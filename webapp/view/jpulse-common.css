@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.4.10
- * @release         2026-01-10
+ * @version         1.4.11
+ * @release         2026-01-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -3272,6 +3272,107 @@ Example site customizations:
         min-width: auto;
         font-size: 13px;
         padding: 10px 14px;
+    }
+}
+
+/* ========================================
+ * BROADCAST MESSAGE SYSTEM (W-131)
+ * ======================================== */
+
+/* Broadcast message container - fixed position below header */
+/* Minimize/restore toggle button - always visible, fixed position */
+.jp-broadcast-toggle {
+    position: fixed;
+    left: 4px;
+    top: calc(var(--jp-header-height, {{appConfig.view.pageDecoration.headerHeight}}px) + 4px);
+    z-index: 897; /* Above sidebar (895), below site dropdown (900) */
+    background: var(--jp-theme-bg-primary, #ffffff);
+    border: 1px solid var(--jp-theme-border-color, #dee2e6);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 2px; /* Symmetrical padding */
+    color: var(--jp-theme-text-secondary, #6c757d);
+    font-family: inherit;
+    user-select: none;
+    min-width: 24px;
+    text-align: center;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.jp-broadcast-toggle:hover {
+    background: var(--jp-theme-bg-secondary, #f8f9fa);
+    border-color: var(--jp-theme-border-dark, #adb5bd);
+    color: var(--jp-theme-text-primary, #212529);
+}
+
+.jp-broadcast-message {
+    position: fixed;
+    top: calc(var(--jp-header-height, {{appConfig.view.pageDecoration.headerHeight}}px) + 16px);
+    left: 16px;
+    z-index: 896; /* Above sidebar (895), below button (897) and site dropdown (900) */
+    max-width: calc(100vw - 32px);
+    transform-origin: left center;
+    transform: scaleX(0);
+    opacity: 0;
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+    pointer-events: none;
+}
+
+.jp-broadcast-message.jp-broadcast-show {
+    transform: scaleX(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.jp-broadcast-message.jp-broadcast-hidden {
+    display: none;
+}
+
+/* Broadcast message content - tooltip-like appearance */
+.jp-broadcast-content {
+    display: inline-block;
+    margin-top: 0;
+    margin-left: 0;
+    padding: 8px 16px;
+    border-radius: 6px;
+    color: var(--jp-theme-color-warning-text, #856404);
+    font-size: 16px;
+    line-height: 1.5;
+    background: var(--jp-theme-color-warning-bg, #fff3cd);
+    border: 1px solid var(--jp-theme-color-warning, #ffc107);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    max-width: calc(100vw - 32px);
+}
+
+.jp-broadcast-content a {
+    color: var(--jp-theme-color-warning-text, #856404);
+    text-decoration: underline;
+}
+
+.jp-broadcast-content a:hover {
+    opacity: 0.8;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .jp-broadcast-content {
+        padding: 6px 12px;
+        font-size: 14px;
+        max-width: calc(100vw - 32px);
+    }
+
+    .jp-broadcast-toggle {
+        padding: 2px 2px;
+        font-size: 14px;
+        min-width: 22px;
+    }
+
+    .jp-broadcast-message {
+        top: calc(var(--jp-header-height, {{appConfig.view.pageDecoration.headerHeight}}px) + 16px);
+        left: 16px;
     }
 }
 

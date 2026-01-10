@@ -1,4 +1,4 @@
-# jPulse Docs / Getting Started with jPulse v1.4.10
+# jPulse Docs / Getting Started with jPulse v1.4.11
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the site override system.
 
@@ -39,6 +39,8 @@ npm start
 ```
 
 Visit `http://localhost:8080` - you should see the jPulse welcome page.
+
+> **Admin Access**: Once your site is running, access the admin interface at `/admin/` to configure email, broadcast messages, and manage users. See the [Site Administration Guide](site-administration.md) for complete documentation.
 
 ## Step 2: Understanding the Architecture
 

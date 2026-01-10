@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.4.10
+# jPulse Docs / Handlebars Templating v1.4.11
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -559,6 +559,102 @@ Maximum of all arguments (variadic, 1+ args).
 {{#if (gt (math.add user.score bonus) 100)}}High score!{{/if}}
 ```
 
+### Date Helpers
+
+Date operations are organized under the `date.*` namespace for working with dates and timestamps. All date helpers work with UTC timezone.
+
+#### `{{date.now}}` - Get current timestamp
+
+Returns the current Unix timestamp in milliseconds.
+
+```handlebars
+{{date.now}}                          <!-- 1737212000123 -->
+{{math.subtract (date.now) 3600000}}  <!-- 1 hour ago -->
+```
+
+**Use cases:**
+- Calculate time differences
+- Timestamp comparisons
+- Cache busting with timestamps
+
+#### `{{date.parse}}` - Parse date to timestamp
+
+Converts a date value (Date object, ISO string, or timestamp) to a Unix timestamp in milliseconds.
+
+```handlebars
+{{date.parse "2025-01-18T14:53:20Z"}} <!-- 1737212000000 -->
+{{math.subtract (date.now) (date.parse vars.lastLogin)}}
+                                      <!-- Time since last login (ms) -->
+{{date.parse url.param.startDate}}    <!-- Parse ISO string from URL parameter -->
+```
+
+**Supported input types:**
+- ISO date strings: `"2025-01-18T14:53:20Z"` (most common use case)
+- Date objects: Automatically normalized to timestamps in Handlebars context (usually not needed)
+- Timestamps: `1737212000000` (returns as-is)
+- Empty/invalid: Returns empty string
+
+**Use cases:**
+- **Convert ISO strings to timestamps** for math operations (primary use case)
+- Parse date strings from URL parameters, form inputs, or API responses
+- Calculate time differences: `{{math.subtract (date.now) (date.parse vars.lastLogin)}}`
+- Normalize date values from different sources to timestamps
+
+#### `{{date.format}}` - Format date to string
+
+Formats a date value to a specified string format (UTC). If no date is provided, uses current time.
+
+```handlebars
+{{date.format}}                   <!-- Current time in ISO: "2026-01-10T14:35:12.000Z" -->
+{{date.format vars.chatTime}}     <!-- ISO format (default): "2026-01-10T14:35:12.000Z" -->
+{{date.format vars.chatTime format="%DATE%"}}     <!-- Date only: "2026-01-10" -->
+{{date.format vars.chatTime format="%TIME%"}}     <!-- Time only: "14:35:12" -->
+{{date.format vars.chatTime format="%DATETIME%"}} <!-- Date + Time: "2026-01-10 14:35:12" -->
+```
+
+**Format Tokens:**
+
+| Token | Description | Example Output |
+|-------|-------------|----------------|
+| `%ISO%` | ISO 8601 format (default) | `2026-01-10T14:35:12.000Z` |
+| `%DATE%` | Date only (YYYY-MM-DD) | `2026-01-10` |
+| `%TIME%` | Time only (HH:MM:SS) | `14:35:12` |
+| `%DATETIME%` | Date + Time (YYYY-MM-DD HH:MM:SS) | `2026-01-10 14:35:12` |
+| `%Y%` | Year (4 digits) | `2026` |
+| `%M%` | Month (01-12) | `01` |
+| `%D%` | Day (01-31) | `10` |
+| `%H%` | Hour (00-23) | `14` |
+| `%MIN%` | Minutes (00-59) | `35` |
+| `%SEC%` | Seconds (00-59) | `12` |
+| `%MS%` | Milliseconds (000-999) | `000` |
+
+**Custom format combinations:**
+```handlebars
+{{date.format vars.chatTime format="%Y%-%M%-%D% %H%:%MIN%:%SEC%"}}
+                              <!-- "2026-01-10 14:35:12" -->
+{{date.format vars.chatTime format="%D%/%M%/%Y%"}}
+                              <!-- "10/01/2026" -->
+{{date.format vars.chatTime format="Updated: %DATE% at %TIME%"}}
+                              <!-- "Updated: 2026-01-10 at 14:35:12" -->
+```
+
+**Supported input types:**
+- Date objects: `siteConfig.broadcast.enabledAt`
+- ISO strings: `"2025-01-18T14:53:20Z"`
+- Timestamps: `1737212000000`
+- Empty/invalid: Returns empty string
+- No argument: Uses current time
+
+**Timezone:**
+- All formatting uses UTC timezone (v1)
+- Future versions may support timezone parameter
+
+**Use cases:**
+- Display dates in user-friendly formats
+- Format timestamps for display
+- Create custom date/time strings
+- Format dates from database or API responses
+
 ### String Helpers
 
 String operations are organized under the `string.*` namespace for consistency and organization.
@@ -568,8 +664,8 @@ String operations are organized under the `string.*` namespace for consistency a
 Concatenate all arguments into a single string (variadic, 1+ args).
 
 ```handlebars
-{{string.concat "hello" " " "world"}}                    <!-- "hello world" -->
-{{string.concat "themes/" user.preferences.theme ".css"}}  <!-- "themes/light.css" -->
+{{string.concat "hello" " " "world"}}                     <!-- "hello world" -->
+{{string.concat "themes/" user.preferences.theme ".css"}} <!-- "themes/light.css" -->
 {{string.concat "prefix-" vars.value "-suffix"}}
 ```
 
@@ -578,8 +674,8 @@ Concatenate all arguments into a single string (variadic, 1+ args).
 Return the first non-empty value, or the last argument as fallback (variadic, 1+ args).
 
 ```handlebars
-{{string.default user.preferences.theme "light"}}  <!-- "light" if theme is empty -->
-{{string.default user.preferences.language "en"}}   <!-- "en" if language is empty -->
+{{string.default user.preferences.theme "light"}}         <!-- "light" if theme is empty -->
+{{string.default user.preferences.language "en"}}         <!-- "en" if language is empty -->
 {{string.default vars.customValue "default" "fallback"}}  <!-- first non-empty, or "fallback" -->
 ```
 
@@ -608,7 +704,7 @@ Extract a substring from a string (3 args: string, start, length).
 Pad a string to the left with a character (3 args: string, length, padChar).
 
 ```handlebars
-{{string.padLeft "5" 3 "0"}}        <!-- "005" -->
+{{string.padLeft "5" 3 "0"}}       <!-- "005" -->
 {{string.padLeft user.id 6 "0"}}   <!-- zero-pad ID to 6 digits -->
 {{string.padLeft "42" 5 " "}}      <!-- "   42" (padded with spaces) -->
 ```
@@ -618,9 +714,9 @@ Pad a string to the left with a character (3 args: string, length, padChar).
 Pad a string to the right with a character (3 args: string, length, padChar).
 
 ```handlebars
-{{string.padRight "5" 3 "0"}}        <!-- "500" -->
+{{string.padRight "5" 3 "0"}}         <!-- "500" -->
 {{string.padRight user.name 20 " "}}  <!-- pad name to 20 characters -->
-{{string.padRight "42" 5 "-"}}       <!-- "42---" -->
+{{string.padRight "42" 5 "-"}}        <!-- "42---" -->
 ```
 
 #### `{{string.startsWith}}` - Check if string starts with

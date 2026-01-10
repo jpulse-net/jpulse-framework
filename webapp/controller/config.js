@@ -3,8 +3,8 @@
  * @tagline         Config Controller for jPulse Framework WebApp
  * @description     This is the config controller for the jPulse Framework WebApp
  * @file            webapp/controller/config.js
- * @version         1.4.10
- * @release         2026-01-10
+ * @version         1.4.11
+ * @release         2026-01-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -59,24 +59,12 @@ class ConfigController {
             let config = await ConfigModel.findById(id);
 
             // If config not found and this is the default config, create it
+            // W-131: Let model's applyDefaults() handle defaults (single source of truth)
             if (!config && id === defaultDocName) {
                 const defaultConfig = {
                     _id: defaultDocName,
                     parent: null,
-                    data: {
-                        email: {
-                            adminEmail: '',
-                            adminName: '',
-                            smtpServer: 'localhost',
-                            smtpPort: 25,
-                            smtpUser: '',
-                            smtpPass: '',
-                            useTls: false
-                        },
-                        messages: {
-                            broadcast: ''
-                        }
-                    }
+                    data: {}
                 };
 
                 if (req.session && req.session.user) {

@@ -1,10 +1,12 @@
-# jPulse Docs / Sending Email v1.4.10
+# jPulse Docs / Sending Email v1.4.11
 
 Complete guide to configuring and sending emails from jPulse Framework applications using the standardized email sending strategy.
 
 ## Overview
 
 The jPulse Framework provides enterprise-grade email sending capabilities through `EmailController`, supporting both server-side utility methods and client-side API endpoints. Email configuration is stored in MongoDB (not `app.conf`), enabling per-instance configuration and dynamic updates.
+
+> **Admin Interface**: Configure email settings via the [Site Administration](site-administration.md) interface at `/admin/config.shtml`.
 
 ### Key Features
 

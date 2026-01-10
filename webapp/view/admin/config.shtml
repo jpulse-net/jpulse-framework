@@ -4,8 +4,8 @@
  * @tagline         Site configuration management interface
  * @description     Edit site configuration, for administrators
  * @file            webapp/view/admin/config.shtml
- * @version         1.4.10
- * @release         2026-01-10
+ * @version         1.4.11
+ * @release         2026-01-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -202,21 +202,47 @@
                         </div>
                 </div>
 
-                <!-- Messages Section -->
+                <!-- Broadcast Message Section -->
                 <div class="jp-card local-config-section">
                     <h2 class="jp-card-dialog-heading">{{i18n.view.admin.config.messageSettings}}</h2>
                     <div class="jp-card-subheading">{{i18n.view.admin.config.messageSettingsDesc}}</div>
-                    <div class="local-form-row local-full-width">
+                    <div class="local-checkbox-group">
+                        <input type="checkbox" id="broadcastEnable" name="broadcastEnable" value="true">
+                        <label for="broadcastEnable">{{i18n.view.admin.config.broadcastEnable}}</label>
+                    </div>
+                    <div class="local-form-row local-full-width jp-mt-15">
                         <div class="jp-form-group">
-                            <label for="broadcast" class="jp-form-label">{{i18n.view.admin.config.broadcast}}</label>
-                            <textarea id="broadcast" name="broadcast" class="jp-form-textarea" rows="3" placeholder="{{i18n.view.admin.config.broadcastPlaceholder}}"></textarea>
+                            <label for="broadcastMessage" class="jp-form-label">{{i18n.view.admin.config.broadcastMessage}}</label>
+                            <textarea id="broadcastMessage" name="broadcastMessage" class="jp-form-textarea" rows="5" placeholder="{{i18n.view.admin.config.broadcastPlaceholder}}"></textarea>
                         </div>
                     </div>
-                </div>
-
-                <!-- Future sections note -->
-                <div class="jp-info-box">
-                    <p><strong>{{i18n.view.admin.config.futureNote}}:</strong> {{i18n.view.admin.config.futureNoteDesc}}</p>
+                    <div class="local-form-row">
+                        <div class="jp-form-group">
+                            <label for="broadcastNagTime" class="jp-form-label">{{i18n.view.admin.config.broadcastNagTime}}</label>
+                            <select id="broadcastNagTime" name="broadcastNagTime" class="jp-form-input">
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="4">4</option>
+                                <option value="8">8</option>
+                            </select>
+                            <div class="jp-form-help-text">{{i18n.view.admin.config.broadcastNagTimeDesc}}</div>
+                        </div>
+                        <div class="jp-form-group">
+                            <label for="broadcastDisableTime" class="jp-form-label">{{i18n.view.admin.config.broadcastDisableTime}}</label>
+                            <select id="broadcastDisableTime" name="broadcastDisableTime" class="jp-form-input">
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="4">4</option>
+                                <option value="8">8</option>
+                                <option value="12">12</option>
+                                <option value="24">24</option>
+                                <option value="48">48</option>
+                            </select>
+                            <div class="jp-form-help-text">{{i18n.view.admin.config.broadcastDisableTimeDesc}}</div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Form Actions -->
@@ -297,7 +323,7 @@
             function populateForm(config) {
                 const data = config.data || {};
                 const email = data.email || {};
-                const messages = data.messages || {};
+                const broadcast = data.broadcast || {};
 
                 // Populate email fields - explicitly handle empty strings
                 document.getElementById('adminEmail').value = email.adminEmail !== undefined ? email.adminEmail : '';
@@ -308,8 +334,11 @@
                 document.getElementById('smtpPass').value = email.smtpPass !== undefined ? email.smtpPass : '';
                 document.getElementById('useTls').checked = email.useTls !== undefined ? email.useTls : false;
 
-                // Populate message fields
-                document.getElementById('broadcast').value = messages.broadcast !== undefined ? messages.broadcast : '';
+                // Populate broadcast fields
+                document.getElementById('broadcastEnable').checked = broadcast.enable !== undefined ? broadcast.enable : false;
+                document.getElementById('broadcastMessage').value = broadcast.message !== undefined ? broadcast.message : '';
+                document.getElementById('broadcastNagTime').value = broadcast.nagTime !== undefined ? broadcast.nagTime : 4;
+                document.getElementById('broadcastDisableTime').value = broadcast.disableTime !== undefined ? broadcast.disableTime : 0;
             }
 
             function getFormData() {
@@ -324,8 +353,11 @@
                             smtpPass: document.getElementById('smtpPass').value, // Preserve empty strings
                             useTls: document.getElementById('useTls').checked
                         },
-                        messages: {
-                            broadcast: document.getElementById('broadcast').value
+                        broadcast: {
+                            enable: document.getElementById('broadcastEnable').checked,
+                            message: document.getElementById('broadcastMessage').value,
+                            nagTime: parseInt(document.getElementById('broadcastNagTime').value) || 4,
+                            disableTime: parseInt(document.getElementById('broadcastDisableTime').value) || 0
                         }
                     }
                 };

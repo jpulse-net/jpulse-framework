@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-045 PluginController
  * @description     Tests plugin API endpoints including new public getInfo()
  * @file            webapp/tests/unit/controller/plugin-controller.test.js
- * @version         1.4.10
- * @release         2026-01-10
+ * @version         1.4.11
+ * @release         2026-01-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

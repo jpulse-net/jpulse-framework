@@ -59,6 +59,7 @@ genai-development.md        Generative AI  Development
 genai-instructions.md       Generative AI  Instructions
 
 # Site Customization
+site-administration.md
 site-customization.md
 site-navigation.md
 sidebars.md

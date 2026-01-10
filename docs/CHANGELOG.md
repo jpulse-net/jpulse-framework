@@ -1,6 +1,142 @@
-# jPulse Docs / Version History v1.4.10
+# jPulse Docs / Version History v1.4.11
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.11, W-131, 2026-01-11
+
+**Commit:** `W-131, v1.4.11: view: broadcast message system, add handlebars date helpers`
+
+**FEATURE RELEASE**: Broadcast message system enabling site administrators to display important messages to all users.
+
+**Objective**: Admin can broadcast message to all users, such as "scheduled downtime this Saturday 10am-12pm".
+
+**Key Features**:
+- **Fixed-Position Message**: Yellow broadcast message displayed just below banner with fixed positioning
+- **Minimize Button**: `－` / `＋` button on left to minimize/restore message (always visible, minimal styling)
+- **State Persistence**: Per-user minimize state remembered across page loads (localStorage)
+- **Nag Time**: Configurable auto-expand after N hours (0, 1, 2, 4, 8 hours, per-user, client-side)
+- **Auto-Disable Timer**: Server-side global timer to auto-disable message after N hours (0, 1, 2, 4, 8, 12, 24, 48 hours)
+- **HTML Content Support**: Broadcast message supports HTML content (admin-controlled, no sanitization)
+- **Smooth Animation**: Left-to-right animation (scaleX transform) for open/close transitions
+- **Z-Index Hierarchy**: Proper layering (below site dropdown, above sidebar)
+- **Admin Configuration**: Complete admin UI at `/admin/config` with enable checkbox, message textarea, nag time dropdown, and disable time dropdown
+- **Handlebars Date Helpers**: New `{{date.now}}`, `{{date.parse}}`, and `{{date.format}}` helpers for Unix timestamp operations and date formatting
+- **Context Normalization**: Generic `normalizeForContext()` utility converts Date objects to Unix timestamps for Handlebars math operations
+
+**Code Changes**:
+
+**webapp/model/config.js**:
+- Added `broadcast` schema with `enable`, `message`, `nagTime`, `disableTime`, `enabledAt` fields
+- Updated validation to check broadcast fields (enable boolean, message string, nagTime/disableTime >= 0, enabledAt Date or null)
+- Updated `applyDefaults()` to set broadcast defaults
+- Updated `updateById()` to handle `enabledAt` timestamp (set to `new Date()` when enable changes from false to true, set to `null` when disabled)
+- Updated `getEffectiveConfig()` to include `disableTime` and `enabledAt` in merged broadcast configuration
+
+**webapp/controller/config.js**:
+- Removed hardcoded default config creation for `messages.broadcast` (lines 76-78)
+- Now relies on `ConfigModel.applyDefaults()` for single source of truth
+
+**webapp/controller/handlebar.js**:
+- Added `{{date.now}}` helper returning current Unix timestamp in milliseconds
+- Added `{{date.format}}` helper to format date value to string (UTC)
+  - Tokens: `%DATE%`, `%TIME%`, `%DATETIME%`, `%Y%`, `%M%`, `%D%`, `%H%`, `%MIN%`, `%SEC%`, `%MS%`, `%ISO%` (default)'
+- Added `{{date.parse}}` helper parsing Date objects, ISO strings, or timestamps to Unix timestamps
+- Updated `_buildInternalContext()` to use `CommonUtils.normalizeForContext()` on `siteConfig.data` before passing to Handlebars context
+- Registered `date.now`, `date.parse`, and `date.format` helpers in `HANDLEBARS_DESCRIPTIONS` array
+- Added `_handleDateFormat()` function with flexible formatting options
+- Added `_handleDateParse()` function with robust Date object handling
+
+**webapp/utils/common.js**:
+- Added `normalizeForContext()` static method for Handlebars context normalization
+- Recursively converts Date objects to Unix timestamps (`.valueOf()`)
+- Handles null/undefined, arrays, objects, RegExp, Error, Function, Symbol, BigInt, ObjectId
+- Ensures all values passed to Handlebars are safe and usable for math operations
+
+**webapp/view/admin/config.shtml**:
+- Added broadcast message configuration section in "Messages Section"
+- Enable checkbox for `broadcast.enable`
+- Textarea for `broadcast.message` (HTML content, rows="5")
+- Dropdown for `broadcast.nagTime` (options: 0, 1, 2, 4, 8 hours)
+- Dropdown for `broadcast.disableTime` (options: 0, 1, 2, 4, 8, 12, 24, 48 hours)
+- Updated `populateForm()` to read values from `config.data.broadcast`
+- Updated `getFormData()` to save values to `config.data.broadcast`
+- Added `jp-mt-15` class for gap between enable checkbox and message header
+
+**webapp/view/jpulse-footer.tmpl**:
+- Added broadcast message HTML structure with toggle button and message container
+- Button always visible (separate from message container)
+- Handlebars template checks `siteConfig.broadcast.enable` and `siteConfig.broadcast.message`
+- Server-side disable time check using `{{date.now}}` and `{{date.parse}}` helpers
+- JavaScript initialization for minimize/restore functionality with localStorage persistence
+- Nag time logic to auto-expand message after configured hours
+
+**webapp/view/jpulse-common.css**:
+- Added `.jp-broadcast-toggle` styles (fixed position, 4px top/left margin, z-index 897)
+- Added `.jp-broadcast-message` styles (fixed position, scaleX transform for animation, z-index 896)
+- Added `.jp-broadcast-message.jp-broadcast-show` for visible state
+- Added `.jp-broadcast-content` styles (yellow tooltip-like appearance, rounded corners, max-width)
+- Adjusted sidebar z-indexes to maintain proper hierarchy (sidebar 895, separator 896, hover zone 894)
+- Uses `--jp-header-height` CSS variable for dynamic positioning
+
+**webapp/translations/en.conf, de.conf**:
+- Added `view.admin.config.broadcastEnable`: "Enable Broadcast Message"
+- Added `view.admin.config.broadcastMessage`: "Broadcast Message"
+- Added `view.admin.config.broadcastNagTime`: "Nag Time (hours)"
+- Added `view.admin.config.broadcastNagTimeDesc`: "Show minimized message again after N hours (0 = disable)"
+- Added `view.admin.config.broadcastDisableTime`: "Auto-Disable Time (hours)"
+- Added `view.admin.config.broadcastDisableTimeDesc`: "Automatically disable message after N hours (0 = no auto-disable)"
+
+**docs/site-administration.md**:
+- New documentation file for site administration features
+- Overview of admin features and configuration types
+- Distinction between Site Configuration (MongoDB) and Application Configuration (Files)
+- Complete broadcast message documentation with features, configuration, UX, technical details, examples, and best practices
+- Sections for Email Configuration, User Management, Plugin Management, System Monitoring, Application Configuration, and WebSocket Status
+- Cross-links to other relevant documentation
+
+**webapp/tests/unit/controller/handlebar-date-helpers.test.js**:
+- New test file with 19 comprehensive tests for date helpers
+- Tests for `{{date.now}}` (current timestamp, string format)
+- Tests for `{{date.parse}}` (ISO strings, Date objects, timestamps, invalid inputs, null values, context usage)
+- Tests for `{{date.format}}` (ISO format, all format tokens, custom combinations, timestamp/ISO string inputs, invalid/empty date handling)
+
+**webapp/tests/unit/utils/common-utils-advanced.test.js**:
+- Added 10 tests for `normalizeForContext()` method
+- Tests for Date conversion, null/undefined handling, nested objects, arrays, RegExp, Error, functions, primitives, deep nesting
+
+**webapp/tests/unit/config/config-model.test.js**:
+- Added 6 tests for broadcast validation
+- Tests for valid config, invalid types (enable, message), negative values (nagTime, disableTime), invalid enabledAt type
+
+**webapp/tests/unit/config/config-basic.test.js**:
+- Updated all references from `messages.broadcast` to `broadcast.message` (and related fields)
+- Updated test data structures to use new broadcast schema
+- Updated schema validation tests to check broadcast structure
+
+**Documentation**:
+- Updated README.md and docs/README.md with v1.4.11 release highlights
+- Updated CHANGELOG.md with W-131 details
+- Added "Date Helpers" section to docs/handlebars.md with complete documentation for all 3 helpers (`date.now`, `date.parse`, `date.format`)
+- Updated docs/README.md to add "Site Administration" to documentation guide
+- Updated docs/getting-started.md with note about accessing admin features
+- Updated docs/sending-email.md with cross-link to site-administration.md
+- Updated docs/site-customization.md with note about configuration types
+
+**Bug Fixes**:
+- Fixed failing tests by updating all references from `messages.broadcast` to `broadcast.message`
+- Fixed `normalizeForContext()` recursive calls to use `CommonUtils.normalizeForContext()` explicitly
+- Fixed test expectations for Date object parsing (allow timezone differences in string representation)
+
+**Breaking Changes**:
+- None
+
+**Migration Steps**:
+- None required - new feature, no existing functionality affected
+
+**Work Item**: W-131
+**Version**: v1.4.11
+**Release Date**: 2026-01-11
 
 ________________________________________________
 ## v1.4.10, W-130, 2026-01-10

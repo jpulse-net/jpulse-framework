@@ -3,13 +3,13 @@
  * @tagline         Basic tests for Config Model and Controller
  * @description     Simple unit tests for Config Model validation and basic functionality
  * @file            webapp/tests/unit/config/config-basic.test.js
- * @version         1.4.10
- * @release         2026-01-10
+ * @version         1.4.11
+ * @release         2026-01-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 2.3, Claude Sonnet 4.5
  */
 
 import { jest } from '@jest/globals';
@@ -64,8 +64,11 @@ describe('Config Model Basic Tests', () => {
                         smtpPass: 'password',
                         useTls: true
                     },
-                    messages: {
-                        broadcast: 'Welcome message'
+                    broadcast: {
+                        enable: true,
+                        message: 'Welcome message',
+                        nagTime: 4,
+                        disableTime: 0
                     }
                 },
                 updatedBy: 'user123',
@@ -77,7 +80,7 @@ describe('Config Model Basic Tests', () => {
             expect(validData.parent === null || typeof validData.parent === 'string').toBe(true);
             expect(typeof validData.data.email.adminEmail).toBe('string');
             expect(typeof validData.data.email.useTls).toBe('boolean');
-            expect(typeof validData.data.messages.broadcast).toBe('string');
+            expect(typeof validData.data.broadcast.message).toBe('string');
             expect(typeof validData.updatedBy).toBe('string');
             expect(typeof validData.docVersion).toBe('number');
         });
@@ -95,8 +98,11 @@ describe('Config Model Basic Tests', () => {
                         smtpPass: '',
                         useTls: false
                     },
-                    messages: {
-                        broadcast: ''
+                    broadcast: {
+                        enable: false,
+                        message: '',
+                        nagTime: 4,
+                        disableTime: 0
                     }
                 },
                 parent: null,
@@ -110,7 +116,7 @@ describe('Config Model Basic Tests', () => {
             expect(result.data.email.adminEmail).toBe('');
             expect(result.data.email.smtpServer).toBe('localhost');
             expect(result.data.email.useTls).toBe(false);
-            expect(result.data.messages.broadcast).toBe('');
+            expect(result.data.broadcast.message).toBe('');
             expect(result.parent).toBe(null);
             expect(result.docVersion).toBe(1);
         });
@@ -126,8 +132,11 @@ describe('Config Model Basic Tests', () => {
                         smtpServer: 'global.smtp.com',
                         useTls: false
                     },
-                    messages: {
-                        broadcast: 'Global message'
+                    broadcast: {
+                        enable: true,
+                        message: 'Global message',
+                        nagTime: 4,
+                        disableTime: 0
                     }
                 }
             };
@@ -140,8 +149,11 @@ describe('Config Model Basic Tests', () => {
                         adminEmail: 'sales@example.com'
                         // smtpServer and useTls should inherit from parent
                     },
-                    messages: {
-                        broadcast: 'Sales message'
+                    broadcast: {
+                        enable: true,
+                        message: 'Sales message',
+                        nagTime: 4,
+                        disableTime: 0
                     }
                 }
             };
@@ -152,9 +164,9 @@ describe('Config Model Basic Tests', () => {
                     ...parentConfig.data.email,
                     ...childConfig.data.email
                 },
-                messages: {
-                    ...parentConfig.data.messages,
-                    ...childConfig.data.messages
+                broadcast: {
+                    ...parentConfig.data.broadcast,
+                    ...childConfig.data.broadcast
                 }
             };
 
@@ -167,7 +179,7 @@ describe('Config Model Basic Tests', () => {
             expect(effectiveConfig.data.email.adminEmail).toBe('sales@example.com');
             expect(effectiveConfig.data.email.smtpServer).toBe('global.smtp.com');
             expect(effectiveConfig.data.email.useTls).toBe(false);
-            expect(effectiveConfig.data.messages.broadcast).toBe('Sales message');
+            expect(effectiveConfig.data.broadcast.message).toBe('Sales message');
             expect(effectiveConfig._effectiveParent).toBe('global');
         });
     });
@@ -278,8 +290,11 @@ describe('Config Model Basic Tests', () => {
                         smtpPass: 'smtp_password',
                         useTls: true
                     },
-                    messages: {
-                        broadcast: 'System maintenance scheduled'
+                    broadcast: {
+                        enable: true,
+                        message: 'System maintenance scheduled',
+                        nagTime: 4,
+                        disableTime: 24
                     }
                 },
                 createdAt: new Date('2025-01-27T10:00:00Z'),
@@ -302,9 +317,12 @@ describe('Config Model Basic Tests', () => {
             expect(typeof completeSchema.data.email.smtpPass).toBe('string');
             expect(typeof completeSchema.data.email.useTls).toBe('boolean');
 
-            // Validate messages structure
-            expect(completeSchema.data.messages).toBeDefined();
-            expect(typeof completeSchema.data.messages.broadcast).toBe('string');
+            // Validate broadcast structure
+            expect(completeSchema.data.broadcast).toBeDefined();
+            expect(typeof completeSchema.data.broadcast.enable).toBe('boolean');
+            expect(typeof completeSchema.data.broadcast.message).toBe('string');
+            expect(typeof completeSchema.data.broadcast.nagTime).toBe('number');
+            expect(typeof completeSchema.data.broadcast.disableTime).toBe('number');
 
             // Validate metadata
             expect(completeSchema.createdAt).toBeInstanceOf(Date);

@@ -12498,3 +12498,108 @@ STATUS: completed
 
 
 ============================================================
+2026-01-09 22:59
+
+next: W-130, v1.4.10, 2026-01-10: view: broadcast message system, @work-items.md (3882-3903)
+- review task, ask questions if unclear
+- suggest change of spec if any, goal is a good UX, good usability, good onboarding & learning experience for site admins and developers; use the "don't make me think" paradigm
+- plan how to implement (wait for my go ahead)
+
+SUMMARY:
+- Reviewed W-130 broadcast message system task
+- Clarified requirements through Q&A:
+  * Fixed position below banner
+  * Left-aligned minimize button ([-] when open, [+] when closed, 2px margin)
+  * Completely hidden when minimized
+  * HTML message content (no sanitization, admin controlled)
+  * Site config only (not app config)
+  * Nag time: per-user, client-side (localStorage)
+  * Disable time: global, server-side (auto-disables broadcast.enable when elapsed)
+  * enabledAt field: Date object, normalized to .valueOf() in Handlebars context
+- Designed generic normalizeForContext() utility in common.js for Handlebars context normalization
+- Added {{time.now}} and {{time.parse}} Handlebars helpers
+- Implemented complete broadcast message system:
+  * Model: Updated schema, validation, defaults, updateById() with enabledAt logic
+  * Controller: Removed hardcoded defaults, let model handle it
+  * Admin view: Added enable checkbox, message textarea, nagTime/disableTime dropdowns
+  * Translations: Added i18n keys for all broadcast settings
+  * Footer template: Added broadcast message HTML with Handlebars conditionals
+  * CSS: Added broadcast message styles with animations
+  * JavaScript: Added minimize/restore functionality with nagTime logic
+
+STATUS: completed - all changes implemented
+
+
+============================================================
+2026-01-10 02:00
+
+release prep: W-131, v1.4.11
+- Updated README.md with v1.4.11 release highlights
+- Updated docs/README.md with v1.4.11 release highlights
+- Updated docs/CHANGELOG.md with W-131 details
+- Updated commit-message.txt with W-131 release information
+- Fixed failing tests (updated messages.broadcast to broadcast.message references)
+- Added unit tests for time helpers (8 tests)
+- Added unit tests for normalizeForContext (10 tests)
+- Added unit tests for broadcast validation (6 tests)
+- Updated all test files to use new broadcast schema structure
+
+STATUS: completed
+
+
+============================================================
+2026-01-10 14:16
+
+W-131, v1.4.11: Added date.format helper and renamed time.* to date.* namespace
+
+Summary:
+- Renamed all time.* helpers to date.* namespace (aligns with Handlebars community conventions)
+- Implemented {{date.format}} helper with format tokens: %DATE%, %TIME%, %DATETIME%, %Y%, %M%, %D%, %H%, %MIN%, %SEC%, %MS%, %ISO% (default)
+- Added comprehensive documentation section "Date Helpers" in handlebars.md
+- Updated all references across codebase, tests, and documentation
+
+Implementation Details:
+
+1. Renamed helpers (time.* → date.*):
+   - webapp/controller/handlebar.js: Updated helper registration, switch cases, function names
+   - webapp/view/jpulse-footer.tmpl: Updated template usage
+   - webapp/tests/unit/controller/handlebar-time-helpers.test.js → handlebar-date-helpers.test.js
+   - All documentation files updated
+
+2. Added date.format helper:
+   - webapp/controller/handlebar.js:
+     - Added date.format to HANDLEBARS_DESCRIPTIONS
+     - Added case 'date.format' to switch statement
+     - Implemented _handleDateFormat() function with all format tokens
+     - Supports Date objects, ISO strings, timestamps
+     - UTC timezone (v1)
+     - Defaults to current time when no date provided
+   - webapp/tests/unit/controller/handlebar-date-helpers.test.js:
+     - Added 11 tests for date.format (19 tests total for all date helpers)
+     - Tests for all format tokens, custom combinations, invalid inputs
+
+3. Documentation updates:
+   - docs/handlebars.md: Added "Date Helpers" section with complete documentation
+   - Updated examples to be more educational (shows when date.parse is actually needed)
+   - Format token reference table
+   - Use cases and examples
+
+4. Release documentation:
+   - Updated README.md and docs/README.md with shorter bullet points
+   - Updated CHANGELOG.md with date.format details
+   - Updated commit-message.txt with all changes
+
+Files Modified:
+- webapp/controller/handlebar.js (added date.format, renamed time.* to date.*)
+- webapp/view/jpulse-footer.tmpl (updated to use date.now)
+- webapp/tests/unit/controller/handlebar-date-helpers.test.js (renamed, added tests)
+- docs/handlebars.md (added Date Helpers section)
+- README.md, docs/README.md (updated release highlights)
+- docs/CHANGELOG.md (added date.format details)
+- commit-message.txt (updated with latest changes)
+- docs/dev/work-items.md (updated with date.format)
+
+STATUS: completed
+
+
+============================================================

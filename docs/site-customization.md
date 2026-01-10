@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v1.4.10
+# jPulse Docs / Site Customization Guide v1.4.11
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -54,6 +54,8 @@ my-jpulse-site/
 
 ________________________________________________
 ## Configuration System
+
+> **Admin Configuration**: For MongoDB-based configuration (email, broadcast messages, etc.), see the [Site Administration Guide](site-administration.md). The `app.conf` file is for framework defaults and site overrides.
 
 ### Site Configuration
 Create `site/webapp/app.conf` to override framework defaults:

@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.4.10
- * @release         2026-01-10
+ * @version         1.4.11
+ * @release         2026-01-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -354,6 +354,114 @@ class CommonUtils {
         }
 
         return target;
+    }
+
+    /**
+     * Normalize an object for safe use in Handlebars context
+     *
+     * Recursively traverses deep object structures and converts non-serializable
+     * or problematic values to Handlebars-safe types:
+     * - Date → .valueOf() (unix timestamp in milliseconds)
+     * - null → '' (empty string)
+     * - undefined → '' (empty string)
+     * - NaN → 0
+     * - Infinity/-Infinity → Number.MAX_SAFE_INTEGER/MIN_SAFE_INTEGER
+     * - Symbol → .description or ''
+     * - BigInt → Number (may lose precision for very large values)
+     * - RegExp → string representation
+     * - Error → error message string
+     * - Function → '' (functions not serializable)
+     * - ObjectId → string (MongoDB ObjectId)
+     *
+     * @param {any} obj - Object or value to normalize
+     * @returns {any} Normalized object/value safe for Handlebars templates
+     *
+     * @example
+     * const obj = {
+     *   date: new Date('2025-01-01'),
+     *   nullValue: null,
+     *   nested: { enabledAt: new Date() }
+     * };
+     * const normalized = CommonUtils.normalizeForContext(obj);
+     * // Returns: { date: 1735689600000, nullValue: '', nested: { enabledAt: 1735689600000 } }
+     */
+    static normalizeForContext(obj) {
+        // Handle null
+        if (obj === null) {
+            return '';
+        }
+
+        // Handle undefined
+        if (obj === undefined) {
+            return '';
+        }
+
+        // Handle Arrays - recursively normalize each element
+        if (Array.isArray(obj)) {
+            return obj.map(item => CommonUtils.normalizeForContext(item));
+        }
+
+        // Handle Objects - iterate properties and recursively normalize
+        if (obj && typeof obj === 'object') {
+            // Handle special object types that shouldn't be iterated
+            if (obj instanceof Date) {
+                return obj.valueOf();
+            }
+
+            if (obj instanceof RegExp) {
+                return obj.toString();
+            }
+
+            if (obj instanceof Error) {
+                return obj.message || obj.toString();
+            }
+
+            if (obj instanceof ObjectId) {
+                return obj.toString();
+            }
+
+            // Regular object - iterate properties and recursively normalize
+            const normalized = {};
+            for (const key in obj) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                    // Skip functions and symbols as keys
+                    if (typeof key === 'symbol') {
+                        continue;
+                    }
+                    // Recursively normalize each property value
+                    normalized[key] = CommonUtils.normalizeForContext(obj[key]);
+                }
+            }
+            return normalized;
+        }
+
+        // Handle Functions - skip (functions not serializable in Handlebars)
+        if (typeof obj === 'function') {
+            return '';
+        }
+
+        // Handle Symbol - convert to description or empty string
+        if (typeof obj === 'symbol') {
+            return obj.description || '';
+        }
+
+        // Handle BigInt - convert to number (may lose precision for very large values)
+        if (typeof obj === 'bigint') {
+            return Number(obj);
+        }
+
+        // Handle NaN numbers
+        if (typeof obj === 'number' && isNaN(obj)) {
+            return 0;
+        }
+
+        // Handle Infinity/-Infinity
+        if (typeof obj === 'number' && !isFinite(obj)) {
+            return obj === Infinity ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER;
+        }
+
+        // Primitive values (string, number, boolean) - return as-is
+        return obj;
     }
 
     /**
@@ -1073,6 +1181,7 @@ export const {
     setValueByPath,
     deleteValueByPath,
     deepMerge,
+    normalizeForContext,
     formatValue,
     generateUuid,
     isValidEmail,

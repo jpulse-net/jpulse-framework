@@ -3,13 +3,13 @@
  * @tagline         Advanced Unit Tests for CommonUtils
  * @description     Additional focused tests for common utility functions
  * @file            webapp/tests/unit/utils/common-utils-advanced.test.js
- * @version         1.4.10
- * @release         2026-01-10
+ * @version         1.4.11
+ * @release         2026-01-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 2.3, Claude Sonnet 4.5
  */
 
 import { describe, test, expect } from '@jest/globals';
@@ -323,6 +323,89 @@ describe('CommonUtils - Advanced Tests', () => {
             const namedResult = schemaBasedQuery(schema, params);
 
             expect(classResult).toEqual(namedResult);
+        });
+    });
+
+    describe('W-131: normalizeForContext', () => {
+        test('should convert Date objects to Unix timestamps', () => {
+            const date = new Date('2025-01-18T14:53:20Z');
+            const result = CommonUtils.normalizeForContext({ date });
+            expect(result.date).toBe(date.valueOf());
+        });
+
+        test('should handle null values', () => {
+            const result = CommonUtils.normalizeForContext({ nullValue: null });
+            expect(result.nullValue).toBe('');
+        });
+
+        test('should handle undefined values', () => {
+            const result = CommonUtils.normalizeForContext({ undefinedValue: undefined });
+            expect(result.undefinedValue).toBe('');
+        });
+
+        test('should normalize nested objects with Date values', () => {
+            const date = new Date('2025-01-18T14:53:20Z');
+            const obj = {
+                broadcast: {
+                    enabledAt: date,
+                    message: 'Test'
+                }
+            };
+            const result = CommonUtils.normalizeForContext(obj);
+            expect(result.broadcast.enabledAt).toBe(date.valueOf());
+            expect(result.broadcast.message).toBe('Test');
+        });
+
+        test('should normalize arrays with Date values', () => {
+            const dates = [new Date('2025-01-18T14:53:20Z'), new Date('2025-01-19T15:00:00Z')];
+            const result = CommonUtils.normalizeForContext(dates);
+            expect(result[0]).toBe(dates[0].valueOf());
+            expect(result[1]).toBe(dates[1].valueOf());
+        });
+
+        test('should handle deep nesting', () => {
+            const date = new Date('2025-01-18T14:53:20Z');
+            const obj = {
+                level1: {
+                    level2: {
+                        level3: {
+                            date: date
+                        }
+                    }
+                }
+            };
+            const result = CommonUtils.normalizeForContext(obj);
+            expect(result.level1.level2.level3.date).toBe(date.valueOf());
+        });
+
+        test('should handle RegExp objects', () => {
+            const regex = /test/i;
+            const result = CommonUtils.normalizeForContext({ regex });
+            expect(result.regex).toBe(regex.toString());
+        });
+
+        test('should handle Error objects', () => {
+            const error = new Error('Test error');
+            const result = CommonUtils.normalizeForContext({ error });
+            expect(result.error).toBe('Test error');
+        });
+
+        test('should handle functions', () => {
+            const func = () => 'test';
+            const result = CommonUtils.normalizeForContext({ func });
+            expect(result.func).toBe('');
+        });
+
+        test('should preserve primitive values', () => {
+            const obj = {
+                string: 'test',
+                number: 42,
+                boolean: true
+            };
+            const result = CommonUtils.normalizeForContext(obj);
+            expect(result.string).toBe('test');
+            expect(result.number).toBe(42);
+            expect(result.boolean).toBe(true);
         });
     });
 });

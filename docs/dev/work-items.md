@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.10
+# jPulse Docs / Dev / Work Items v1.4.11
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3849,17 +3849,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - Added `contextFilter.alwaysAllow` list for secure `appConfig.system.*` exposure
     - Updated cache configuration path to `utils.theme.cache`
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-130, v1.4.10, 2026-01-10: docs: syntax highlighting for code blocks
 - status: ✅ DONE
 - type: Feature
@@ -3878,6 +3867,79 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/app.conf:
     - Added controller.view.rawExtensions configuration (binary and text arrays)
     - Added controller.view.contentTypes configuration (mapping of extensions to MIME types)
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-131, v1.4.11, 2026-01-11: view: broadcast message system, add handlebars date helpers
+- status: ✅ DONE
+- type: Feature
+- objective: admin can broadcast message to all users, such as "scheduled downtime this Saturday 10am-12pm"
+- enhancements:
+  - show yellow broadcast message just below banner
+  - broadcast message div has `－` / `＋` button on left to minimize message
+    - reduced to `＋` button, when clicked restores the message div
+    - minimize status is remembered across page loads (localStorage)
+    - minimize status is reset after N hours site config setting (nag time, per-user)
+  - broadcast message can be set in site config
+    ```
+    broadcast: {
+        enable: { type: 'boolean', default: false },
+        message: { type: 'string', default: '' },     // broadcast message (HTML supported)
+        nagTime: { type: 'number', default: 4 },      // hours, 0 to disable
+        disableTime: { type: 'number', default: 0 },  // hours, 0 for no auto-disable (server-side)
+        enabledAt: { type: 'date', default: null }    // timestamp of when enabled
+    }
+    ```
+  - auto-disable functionality (server-side, global timer)
+  - context normalization for Date objects in Handlebars (normalizeForContext utility)
+  - left-to-right animation (scaleX transform)
+  - button always visible with minimal styling
+  - proper z-index hierarchy (below site dropdown, above sidebar)
+  - new handlebar date helpers:
+    - `{{date.now}}` - current time as a Unix timestamp (milliseconds)
+    - `{{date.format dateVar format="%DATE% %TIME%"}}` - format date value to string (UTC)
+      - tokens: `%DATE%`, `%TIME%`, `%DATETIME%`, `%Y%`, `%M%`, `%D%`, `%H%`, `%MIN%`, `%SEC%`, `%MS%`, `%ISO%` (default)
+    - `{{date.parse "2026-01-10T14:35:12"}}` - parse date value (Date object, ISO string, or timestamp) to Unix timestamp
+- deliverables:
+  - webapp/model/config.js:
+    - Added broadcast schema with enable, message, nagTime, disableTime, enabledAt
+    - Updated validation, defaults, and updateById logic for enabledAt timestamp
+  - webapp/controller/config.js:
+    - Removed hardcoded defaults (single source of truth in model)
+  - webapp/controller/handlebar.js:
+    - Added `{{date.now}}`, `{{date.format}}`, and `{{date.parse}}` helpers
+    - Added normalizeForContext() usage for siteConfig
+  - webapp/utils/common.js:
+    - Added normalizeForContext() static method for Handlebars context normalization
+  - webapp/view/admin/config.shtml:
+    - Added broadcast message configuration UI (enable, message, nagTime, disableTime)
+  - webapp/view/jpulse-footer.tmpl:
+    - Added broadcast message HTML and JavaScript initialization
+  - webapp/view/jpulse-common.css:
+    - Added broadcast message styles with animation
+  - webapp/translations/en.conf, de.conf:
+    - Added i18n keys for broadcast configuration
+  - docs/site-administration.md:
+    - Complete documentation for broadcast message feature
+  - webapp/tests/unit/controller/handlebar-date-helpers.test.js:
+    - Unit tests for date.now, date.parse, and date.format helpers (19 tests total)
+    - Renamed from handlebar-time-helpers.test.js
+  - webapp/tests/unit/utils/common-utils-advanced.test.js:
+    - Unit tests for normalizeForContext (10 tests)
+  - webapp/tests/unit/config/config-model.test.js:
+    - Unit tests for broadcast validation (6 tests)
+  - webapp/tests/unit/config/config-basic.test.js:
+    - Updated tests for broadcast schema structure
+
 
 
 
@@ -3916,8 +3978,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-130, v1.4.10
-- update deliverables in W-130 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-131, v1.4.11
+- update deliverables in W-131 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -3934,12 +3996,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.10
+node bin/bump-version.js 1.4.11
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.10
+git tag v1.4.11
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -4028,23 +4090,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - alerting rules for critical system events
   - dashboard configuration for operations teams
 - benefits: proactive production system monitoring and issue detection
-
-### W-0: view: broadcast message
-- status: 🕑 PENDING
-- type: Feature
-- objective: admin can broadcast message to all users, such as "scheduled downtime this Saturday 10am-12pm"
-- show yellow broadcast message just below banner
-- brodcast message div has [-] button on left to minimize message
-  - reduced to [+] button, when clicked restores the message div
-  - minimize status is remembered across page loads
-  - minimize status is reset after 4 hours site config setting (nag time)
-- broadcast message can be set in site config
-  messages: {
-      enable: { type: 'boolean', default: false },
-      broadcast: { type: 'string', default: '' },
-      // show minimized message again after N hours:
-      nagTimeHours: { type: 'number', default: 4 } // 0: disable
-  }
 
 ### W-084: security: harden security
 - status: 🕑 PENDING

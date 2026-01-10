@@ -3,8 +3,8 @@
  * @tagline         Config Model for jPulse Framework WebApp
  * @description     This is the config model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/config.js
- * @version         1.4.10
- * @release         2026-01-10
+ * @version         1.4.11
+ * @release         2026-01-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -35,8 +35,12 @@ class ConfigModel {
                 smtpPass: { type: 'string', default: '' },
                 useTls: { type: 'boolean', default: false }
             },
-            messages: {
-                broadcast: { type: 'string', default: '' }
+            broadcast: {
+                enable: { type: 'boolean', default: false },
+                message: { type: 'string', default: '' },     // broadcast message
+                nagTime: { type: 'number', default: 4 },      // hours, 0 to disable
+                disableTime: { type: 'number', default: 0 },  // hours, 0 for no auto-disable
+                enabledAt: { type: 'date', default: null }    // timestamp of when enabled
             }
         },
         createdAt: { type: 'date', auto: true },
@@ -130,11 +134,23 @@ class ConfigModel {
                 }
             }
 
-            // Validate messages settings
-            if (data.data.messages) {
-                const messages = data.data.messages;
-                if (messages.broadcast !== undefined && typeof messages.broadcast !== 'string') {
-                    errors.push('data.messages.broadcast must be a string');
+            // Validate broadcast settings
+            if (data.data.broadcast) {
+                const broadcast = data.data.broadcast;
+                if (broadcast.enable !== undefined && typeof broadcast.enable !== 'boolean') {
+                    errors.push('data.broadcast.enable must be a boolean');
+                }
+                if (broadcast.message !== undefined && typeof broadcast.message !== 'string') {
+                    errors.push('data.broadcast.message must be a string');
+                }
+                if (broadcast.nagTime !== undefined && (typeof broadcast.nagTime !== 'number' || broadcast.nagTime < 0)) {
+                    errors.push('data.broadcast.nagTime must be a number >= 0');
+                }
+                if (broadcast.disableTime !== undefined && (typeof broadcast.disableTime !== 'number' || broadcast.disableTime < 0)) {
+                    errors.push('data.broadcast.disableTime must be a number >= 0');
+                }
+                if (broadcast.enabledAt !== undefined && broadcast.enabledAt !== null && !(broadcast.enabledAt instanceof Date)) {
+                    errors.push('data.broadcast.enabledAt must be a Date object or null');
                 }
             }
         }
@@ -172,9 +188,13 @@ class ConfigModel {
         if (result.data.email.smtpPass === undefined) result.data.email.smtpPass = '';
         if (result.data.email.useTls === undefined) result.data.email.useTls = false;
 
-        // Apply messages defaults
-        if (!result.data.messages) result.data.messages = {};
-        if (result.data.messages.broadcast === undefined) result.data.messages.broadcast = '';
+        // Apply broadcast defaults
+        if (!result.data.broadcast) result.data.broadcast = {};
+        if (result.data.broadcast.enable === undefined) result.data.broadcast.enable = false;
+        if (result.data.broadcast.message === undefined) result.data.broadcast.message = '';
+        if (result.data.broadcast.nagTime === undefined) result.data.broadcast.nagTime = 4;
+        if (result.data.broadcast.disableTime === undefined) result.data.broadcast.disableTime = 0;
+        if (result.data.broadcast.enabledAt === undefined) result.data.broadcast.enabledAt = null;
 
         // Apply metadata defaults
         if (result.parent === undefined) result.parent = null;
@@ -308,9 +328,22 @@ class ConfigModel {
                         setOperation.$set[`data.email.${key}`] = updateData.data.email[key];
                     });
                 }
-                if (updateData.data.messages) {
-                    Object.keys(updateData.data.messages).forEach(key => {
-                        setOperation.$set[`data.messages.${key}`] = updateData.data.messages[key];
+                if (updateData.data.broadcast) {
+                    // W-131: Handle enabledAt logic - set when enable=true, clear when enable=false
+                    const broadcast = updateData.data.broadcast;
+                    const currentBroadcast = current.data?.broadcast || {};
+
+                    // If enable is being set to true and enabledAt is not already set, set it now
+                    if (broadcast.enable === true && !currentBroadcast.enabledAt) {
+                        broadcast.enabledAt = new Date();
+                    }
+                    // If enable is being set to false, clear enabledAt
+                    if (broadcast.enable === false) {
+                        broadcast.enabledAt = null;
+                    }
+
+                    Object.keys(broadcast).forEach(key => {
+                        setOperation.$set[`data.broadcast.${key}`] = broadcast[key];
                     });
                 }
             }
@@ -389,9 +422,9 @@ class ConfigModel {
                     ...parentConfig.data.email,
                     ...config.data.email
                 },
-                messages: {
-                    ...parentConfig.data.messages,
-                    ...config.data.messages
+                broadcast: {
+                    ...parentConfig.data.broadcast,
+                    ...config.data.broadcast
                 }
             };
 

@@ -3,13 +3,13 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.4.10
- * @release         2026-01-10
+ * @version         1.4.11
+ * @release         2026-01-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
+ * @genai           60%, Cursor 2.3, Claude Sonnet 4.5
  */
 
 import path from 'path';
@@ -19,7 +19,7 @@ import configModel from '../model/config.js';
 import PathResolver from '../utils/path-resolver.js';
 import AuthController from './auth.js';
 import cacheManager from '../utils/cache-manager.js';
-import { getValueByPath, setValueByPath } from '../utils/common.js';
+import { getValueByPath, setValueByPath, normalizeForContext } from '../utils/common.js';
 
 // W-014: Import ContextExtensions at module level for performance
 let ContextExtensions = null;       // initialized by initialize()
@@ -39,23 +39,26 @@ class HandlebarController {
     // source: 'jpulse' for core framework, 'site' for site-specific, plugin name for plugins
     static HANDLEBARS_DESCRIPTIONS = [
         // Regular helpers
-        {name: 'and', type: 'regular', source: 'jpulse', description: 'Logical AND, returns "true" or "false" (1+ arguments)', example: '{{and user.isAuthenticated user.isAdmin}}'},
-        {name: 'app', type: 'regular', source: 'jpulse', description: 'Application context (app.jPulse.* and app.site.*)', example: '{{app.site.name}} v{{app.site.version}}'},
+        {name: 'and', type: 'regular', source: 'jpulse', description: 'Logical AND, returns `true` or `false` (1+ arguments)', example: '{{and user.isAuthenticated user.isAdmin}}'},
+        {name: 'app', type: 'regular', source: 'jpulse', description: 'Application context (`app.jPulse.*` and `app.site.*`)', example: '{{app.site.name}} v{{app.site.version}}'},
         {name: 'appCluster', type: 'regular', source: 'jpulse', description: 'Redis cluster availability information', example: '{{appCluster.*}}'},
         {name: 'appConfig', type: 'regular', source: 'jpulse', description: 'Full application configuration (filtered based on auth)', example: '{{appConfig.*}}'},
-        {name: 'components', type: 'regular', source: 'jpulse', description: 'Reusable component call with parameters. Static: {{components.jpIcons.configSvg size="64"}}. Dynamic: {{components name="sidebar.toc"}} or {{components name=(this)}}', example: '{{components.jpIcons.configSvg size="64"}}'},
-        {name: 'eq', type: 'regular', source: 'jpulse', description: 'Equality comparison, returns "true" or "false" (2 arguments)', example: '{{eq user.role "admin"}}'},
-        {name: 'file.exists', type: 'regular', source: 'jpulse', description: 'Check if file exists, returns "true" or "false"', example: '{{file.exists "template.tmpl"}}'},
+        {name: 'components', type: 'regular', source: 'jpulse', description: 'Reusable component call with parameters. Static: `{{components.jpIcons.configSvg size="64"}}`. Dynamic: `{{components name="sidebar.toc"}}` or `{{components name=(this)}}`', example: '{{components.jpIcons.configSvg size="64"}}'},
+        {name: 'date.format', type: 'regular', source: 'jpulse', description: 'Format date value to string (UTC). Tokens: `%DATE%`, `%TIME%`, `%DATETIME%`, `%Y%`, `%M%`, `%D%`, `%H%`, `%MIN%`, `%SEC%`, `%MS%`, `%ISO%` (default)', example: '{{date.format vars.chatTime format="%DATE%"}}'},
+        {name: 'date.now', type: 'regular', source: 'jpulse', description: 'Get current unix timestamp in milliseconds', example: '{{date.now}}'},
+        {name: 'date.parse', type: 'regular', source: 'jpulse', description: 'Parse date value to unix timestamp in milliseconds', example: '{{date.parse "2026-01-10T14:53:20Z"}}'},
+        {name: 'eq', type: 'regular', source: 'jpulse', description: 'Equality comparison, returns `true` or `false` (2 arguments)', example: '{{eq user.role "admin"}}'},
+        {name: 'file.exists', type: 'regular', source: 'jpulse', description: 'Check if file exists, returns `true` or `false`', example: '{{file.exists "template.tmpl"}}'},
         {name: 'file.include', type: 'regular', source: 'jpulse', description: 'Include another template file with optional parameters', example: '{{file.include "template.tmpl"}}'},
         {name: 'file.includeComponents', type: 'regular', source: 'jpulse', description: 'Register components from multiple files matching glob pattern', example: '{{file.includeComponents "admin/*.shtml" component="adminCards.*"}}'},
         {name: 'file.list', type: 'regular', source: 'jpulse', description: 'List files matching glob pattern', example: '{{file.list "admin/*.shtml"}}'},
         {name: 'file.timestamp', type: 'regular', source: 'jpulse', description: 'Get file last modified timestamp', example: '{{file.timestamp "file.css"}}'},
-        {name: 'gt', type: 'regular', source: 'jpulse', description: 'Greater than comparison, returns "true" or "false" (2 arguments)', example: '{{gt user.score 100}}'},
-        {name: 'gte', type: 'regular', source: 'jpulse', description: 'Greater than or equal comparison, returns "true" or "false" (2 arguments)', example: '{{gte user.count 10}}'},
+        {name: 'gt', type: 'regular', source: 'jpulse', description: 'Greater than comparison, returns `true` or `false` (2 arguments)', example: '{{gt user.score 100}}'},
+        {name: 'gte', type: 'regular', source: 'jpulse', description: 'Greater than or equal comparison, returns `true` or `false` (2 arguments)', example: '{{gte user.count 10}}'},
         {name: 'i18n', type: 'regular', source: 'jpulse', description: 'Internationalization messages from translation files', example: '{{i18n.view.home.introduction}}'},
-        {name: 'let', type: 'regular', source: 'jpulse', description: 'Define custom variables (accessed via {{vars.*}})', example: '{{let pageTitle="Dashboard" maxItems=10}}'},
-        {name: 'lt', type: 'regular', source: 'jpulse', description: 'Less than comparison, returns "true" or "false" (2 arguments)', example: '{{lt user.age 18}}'},
-        {name: 'lte', type: 'regular', source: 'jpulse', description: 'Less than or equal comparison, returns "true" or "false" (2 arguments)', example: '{{lte user.items 5}}'},
+        {name: 'let', type: 'regular', source: 'jpulse', description: 'Define custom variables (accessed via `{{vars.*}}`)', example: '{{let pageTitle="Dashboard" maxItems=10}}'},
+        {name: 'lt', type: 'regular', source: 'jpulse', description: 'Less than comparison, returns `true` or `false` (2 arguments)', example: '{{lt user.age 18}}'},
+        {name: 'lte', type: 'regular', source: 'jpulse', description: 'Less than or equal comparison, returns `true` or `false` (2 arguments)', example: '{{lte user.items 5}}'},
         {name: 'math.add', type: 'regular', source: 'jpulse', description: 'Sum all arguments (variadic, 1+ args)', example: '{{math.add 2 4 6}}'},
         {name: 'math.ceil', type: 'regular', source: 'jpulse', description: 'Round up to integer (exactly 1 arg)', example: '{{math.ceil 3.2}}'},
         {name: 'math.divide', type: 'regular', source: 'jpulse', description: 'First arg divided by all subsequent args (variadic, 1+ args)', example: '{{math.divide 100 4 2}}'},
@@ -66,22 +69,22 @@ class HandlebarController {
         {name: 'math.multiply', type: 'regular', source: 'jpulse', description: 'Multiply all arguments (variadic, 1+ args)', example: '{{math.multiply 2 3 4}}'},
         {name: 'math.round', type: 'regular', source: 'jpulse', description: 'Round to nearest integer (exactly 1 arg)', example: '{{math.round 3.7}}'},
         {name: 'math.subtract', type: 'regular', source: 'jpulse', description: 'First arg minus all subsequent args (variadic, 1+ args)', example: '{{math.subtract 10 3 2}}'},
-        {name: 'ne', type: 'regular', source: 'jpulse', description: 'Not equal comparison, returns "true" or "false" (2 arguments)', example: '{{ne user.role "guest"}}'},
-        {name: 'not', type: 'regular', source: 'jpulse', description: 'Logical NOT, returns "true" or "false" (1 argument)', example: '{{not user.isGuest}}'},
-        {name: 'or', type: 'regular', source: 'jpulse', description: 'Logical OR, returns "true" or "false" (1+ arguments)', example: '{{or user.isPremium user.isTrial}}'},
-        {name: 'siteConfig', type: 'regular', source: 'jpulse', description: 'Site configuration values from ConfigModel (database)', example: '{{siteConfig.email.adminEmail}}'},
+        {name: 'ne', type: 'regular', source: 'jpulse', description: 'Not equal comparison, returns `true` or `false` (2 arguments)', example: '{{ne user.role "guest"}}'},
+        {name: 'not', type: 'regular', source: 'jpulse', description: 'Logical NOT, returns `true` or `false` (1 argument)', example: '{{not user.isGuest}}'},
+        {name: 'or', type: 'regular', source: 'jpulse', description: 'Logical OR, returns `true` or `false` (1+ arguments)', example: '{{or user.isPremium user.isTrial}}'},
+        {name: 'siteConfig', type: 'regular', source: 'jpulse', description: 'Site configuration values from `ConfigModel` (database)', example: '{{siteConfig.email.adminEmail}}'},
         {name: 'string.concat', type: 'regular', source: 'jpulse', description: 'Concatenate strings (variadic, 1+ args)', example: '{{string.concat "hello" " " "world"}}'},
-        {name: 'string.contains', type: 'regular', source: 'jpulse', description: 'Check if string contains substring (2 args) → "true"/"false"', example: '{{string.contains "hello" "ell"}}'},
+        {name: 'string.contains', type: 'regular', source: 'jpulse', description: 'Check if string contains substring (2 args) → `true`/`false`', example: '{{string.contains "hello" "ell"}}'},
         {name: 'string.default', type: 'regular', source: 'jpulse', description: 'Return first non-empty value (variadic, 1+ args)', example: '{{string.default user.preferences.theme "light"}}'},
-        {name: 'string.endsWith', type: 'regular', source: 'jpulse', description: 'Check if string ends with suffix (2 args) → "true"/"false"', example: '{{string.endsWith "hello" "lo"}}'},
+        {name: 'string.endsWith', type: 'regular', source: 'jpulse', description: 'Check if string ends with suffix (2 args) → `true`/`false`', example: '{{string.endsWith "hello" "lo"}}'},
         {name: 'string.padLeft', type: 'regular', source: 'jpulse', description: 'Pad left with character (3 args: string, length, padChar)', example: '{{string.padLeft "5" 3 "0"}}'},
         {name: 'string.padRight', type: 'regular', source: 'jpulse', description: 'Pad right with character (3 args: string, length, padChar)', example: '{{string.padRight "5" 3 "0"}}'},
         {name: 'string.replace', type: 'regular', source: 'jpulse', description: 'Replace substring (3 args: string, search, replace)', example: '{{string.replace "hello world" "world" "jPulse"}}'},
-        {name: 'string.startsWith', type: 'regular', source: 'jpulse', description: 'Check if string starts with prefix (2 args) → "true"/"false"', example: '{{string.startsWith "hello" "he"}}'},
+        {name: 'string.startsWith', type: 'regular', source: 'jpulse', description: 'Check if string starts with prefix (2 args) → `true`/`false`', example: '{{string.startsWith "hello" "he"}}'},
         {name: 'string.substring', type: 'regular', source: 'jpulse', description: 'Extract substring (3 args: string, start, length)', example: '{{string.substring "hello world" 0 5}}'},
         {name: 'url', type: 'regular', source: 'jpulse', description: 'URL context (protocol, hostname, port, pathname, search, domain, param.*)', example: '{{url.protocol}}://{{url.hostname}}{{url.pathname}}'},
         {name: 'user', type: 'regular', source: 'jpulse', description: 'User context (username, loginId, firstName, lastName, email, roles, isAuthenticated, isAdmin)', example: '{{user.firstName}} {{user.email}}'},
-        {name: 'vars', type: 'regular', source: 'jpulse', description: 'Custom variables defined with {{let}} or {{#let}}', example: '{{vars.pageTitle}}'},
+        {name: 'vars', type: 'regular', source: 'jpulse', description: 'Custom variables defined with `{{let}}` or `{{#let}}`', example: '{{vars.pageTitle}}'},
 
         // Block helpers
         {name: 'and', type: 'block', source: 'jpulse', description: 'Logical AND block, renders true or else part (1+ arguments)', example: '{{#and user.isAuthenticated user.isAdmin}} admin {{else}} not admin {{/and}}'},
@@ -91,7 +94,7 @@ class HandlebarController {
         {name: 'gt', type: 'block', source: 'jpulse', description: 'Greater than block, renders true or else part (2 arguments)', example: '{{#gt user.score 100}} high score {{else}} low score {{/gt}}'},
         {name: 'gte', type: 'block', source: 'jpulse', description: 'Greater than or equal block, renders true or else part (2 arguments)', example: '{{#gte user.count 10}} enough {{else}} not enough {{/gte}}'},
         {name: 'if', type: 'block', source: 'jpulse', description: 'Conditional rendering based on truthy value', example: '{{#if user.isAuthenticated}} welcome {{else}} login {{/if}}'},
-        {name: 'let', type: 'block', source: 'jpulse', description: 'Block-scoped custom variables (accessed via {{vars.*}})', example: '{{#let inner="inner"}}...{{/let}}'},
+        {name: 'let', type: 'block', source: 'jpulse', description: 'Block-scoped custom variables (accessed via `{{vars.*}}`)', example: '{{#let inner="inner"}}...{{/let}}'},
         {name: 'lt', type: 'block', source: 'jpulse', description: 'Less than block, renders true or else part (2 arguments)', example: '{{#lt user.age 18}} minor {{else}} adult {{/lt}}'},
         {name: 'lte', type: 'block', source: 'jpulse', description: 'Less than or equal block, renders true or else part (2 arguments)', example: '{{#lte user.items 5}} few items {{else}} many items {{/lte}}'},
         {name: 'ne', type: 'block', source: 'jpulse', description: 'Not equal block, renders true or else part (2 arguments)', example: '{{#ne user.role "guest"}} registered {{else}} guest {{/ne}}'},
@@ -700,7 +703,8 @@ class HandlebarController {
                 isAdmin: AuthController.isAuthorized(req, adminRoles),
                 preferences: req.session?.user?.preferences || {}
             },
-            siteConfig: this.globalConfig?.data || {},
+            // W-131: Normalize for Handlebars (Date → timestamp, null/undefined → '', etc.)
+            siteConfig: normalizeForContext(this.globalConfig?.data || {}),
             appConfig: appConfigForContext, // Full app config (will be filtered based on auth)
             // W-076: Add Redis cluster availability for client-side jPulse.appCluster
             appCluster: {
@@ -1173,6 +1177,14 @@ class HandlebarController {
                 case 'string.endsWith':
                 case 'string.contains':
                     return _handleString(parsedArgs, currentContext);
+
+                // W-131: Date helpers
+                case 'date.now':
+                    return String(Date.now());
+                case 'date.parse':
+                    return _handleDateParse(parsedArgs, currentContext);
+                case 'date.format':
+                    return _handleDateFormat(parsedArgs, currentContext);
 
                 // File helpers
                 case 'file.include':
@@ -2322,6 +2334,153 @@ class HandlebarController {
                         `Unknown string operation: ${operation}`);
                     return '';
             }
+        }
+
+        /**
+         * W-131: Handle date.parse helper - parse date value to unix timestamp
+         * Converts Date object, ISO string, or timestamp to unix timestamp (milliseconds)
+         * @param {object} parsedArgs - Parsed arguments with _target or date parameter
+         * @param {object} currentContext - Current context
+         * @returns {string} Unix timestamp as string, or empty string if invalid
+         */
+        function _handleDateParse(parsedArgs, currentContext) {
+            let dateValue = parsedArgs._target || parsedArgs.date || parsedArgs._args?.[0];
+
+            if (!dateValue && dateValue !== 0) {
+                return '';
+            }
+
+            // If already a number (timestamp), return as-is
+            if (typeof dateValue === 'number') {
+                return String(dateValue);
+            }
+
+            // If Date object, use valueOf()
+            if (dateValue instanceof Date) {
+                return String(dateValue.valueOf());
+            }
+
+            // Try to parse as Date from string
+            if (typeof dateValue === 'string') {
+                // Handle empty string
+                if (dateValue.trim() === '') {
+                    return '';
+                }
+                const date = new Date(dateValue);
+                if (!isNaN(date.getTime())) {
+                    return String(date.valueOf());
+                }
+            }
+
+            // Handle case where Date might have been JSON.stringify'd
+            // JSON.stringify converts Date to ISO string, but we need to check if it's a JSON object
+            if (typeof dateValue === 'object' && dateValue !== null) {
+                // If it has a valueOf method (like Date), use it
+                if (typeof dateValue.valueOf === 'function') {
+                    try {
+                        const timestamp = dateValue.valueOf();
+                        if (typeof timestamp === 'number' && !isNaN(timestamp)) {
+                            return String(timestamp);
+                        }
+                    } catch (e) {
+                        // Ignore errors
+                    }
+                }
+                // If it's a JSON-stringified Date (shouldn't happen, but handle it)
+                if (dateValue.$date) {
+                    // MongoDB-style date
+                    const date = new Date(dateValue.$date);
+                    if (!isNaN(date.getTime())) {
+                        return String(date.valueOf());
+                    }
+                }
+            }
+
+            return '';
+        }
+
+        /**
+         * W-131: Handle date.format helper - format date value to string
+         * Formats Date object, ISO string, or timestamp to specified format (UTC)
+         * @param {object} parsedArgs - Parsed arguments with _target, date, or format parameter
+         * @param {object} currentContext - Current context
+         * @returns {string} Formatted date string, or empty string if invalid
+         */
+        function _handleDateFormat(parsedArgs, currentContext) {
+            let dateValue = parsedArgs._target || parsedArgs.date || parsedArgs._args?.[0];
+            const format = parsedArgs.format || '%ISO%';
+
+            // Check if dateValue is explicitly provided (not undefined)
+            const hasDateValue = parsedArgs._target !== undefined || parsedArgs.date !== undefined || (parsedArgs._args && parsedArgs._args.length > 0 && parsedArgs._args[0] !== undefined);
+
+            // If no date value provided at all, use current time
+            if (!hasDateValue) {
+                dateValue = Date.now();
+            }
+
+            // Convert to Date object
+            let date;
+            if (typeof dateValue === 'number') {
+                date = new Date(dateValue);
+            } else if (dateValue instanceof Date) {
+                date = dateValue;
+            } else if (typeof dateValue === 'string') {
+                if (dateValue.trim() === '') {
+                    return '';
+                }
+                date = new Date(dateValue);
+            } else if (typeof dateValue === 'object' && dateValue !== null) {
+                // Handle case where Date might have been JSON.stringify'd
+                if (typeof dateValue.valueOf === 'function') {
+                    try {
+                        const timestamp = dateValue.valueOf();
+                        if (typeof timestamp === 'number' && !isNaN(timestamp)) {
+                            date = new Date(timestamp);
+                        } else {
+                            return '';
+                        }
+                    } catch (e) {
+                        return '';
+                    }
+                } else if (dateValue.$date) {
+                    // MongoDB-style date
+                    date = new Date(dateValue.$date);
+                } else {
+                    return '';
+                }
+            } else {
+                return '';
+            }
+
+            // Validate date
+            if (!date || isNaN(date.getTime())) {
+                return '';
+            }
+
+            // Get UTC components
+            const year = date.getUTCFullYear();
+            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(date.getUTCDate()).padStart(2, '0');
+            const hours = String(date.getUTCHours()).padStart(2, '0');
+            const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+            const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+            const milliseconds = String(date.getUTCMilliseconds()).padStart(3, '0');
+
+            // Format tokens
+            let result = format
+                .replace(/%ISO%/g, date.toISOString())
+                .replace(/%DATETIME%/g, '%DATE% %TIME%')
+                .replace(/%DATE%/g, `${year}-${month}-${day}`)
+                .replace(/%TIME%/g, `${hours}:${minutes}:${seconds}`)
+                .replace(/%Y%/g, String(year))
+                .replace(/%M%/g, month)
+                .replace(/%D%/g, day)
+                .replace(/%H%/g, hours)
+                .replace(/%MIN%/g, minutes)
+                .replace(/%SEC%/g, seconds)
+                .replace(/%MS%/g, milliseconds);
+
+            return result;
         }
 
         /**

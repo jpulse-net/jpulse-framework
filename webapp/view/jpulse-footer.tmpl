@@ -4,13 +4,13 @@
  * @tagline         Footer template for jPulse pages
  * @description     Footer included in all jPulse pages to provide a consistent page layout
  * @file            webapp/view/jpulse-footer.tmpl
- * @version         1.4.10
- * @release         2026-01-10
+ * @version         1.4.11
+ * @release         2026-01-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
+ * @genai           60%, Cursor 2.3, Claude Sonnet 4.5
 -->
 <!-- Visual Header Banner (positioned at top via CSS) -->
 <header class="jp-header">
@@ -56,6 +56,16 @@
         </div>
     </div>
 </header>
+
+<!-- W-131: Broadcast Message (positioned below header) -->
+{{#if (and siteConfig.broadcast.enable siteConfig.broadcast.message)}}
+  {{#if (or (eq siteConfig.broadcast.disableTime 0) (not siteConfig.broadcast.enabledAt) (lt (math.subtract (date.now) siteConfig.broadcast.enabledAt) (math.multiply siteConfig.broadcast.disableTime 3600000)))}}
+    <button id="jp-broadcast-toggle" class="jp-broadcast-toggle" aria-label="Toggle broadcast message">＋</button>
+    <div id="jp-broadcast-message" class="jp-broadcast-message jp-broadcast-hidden">
+        <div class="jp-broadcast-content">{{siteConfig.broadcast.message}}</div>
+    </div>
+  {{/if}}
+{{/if}}
 
 <!-- Mobile Menu Overlay (W-069) -->
 {{#if appConfig.view.pageDecoration.siteNavigation.enabled}}
@@ -329,6 +339,96 @@ jPulse.dom.ready(() => {
                         observer.observe(content, { childList: true, subtree: true });
                     }
                 }
+            }
+        });
+    }
+
+    // W-131: Initialize broadcast message
+    const toggleBtn = document.getElementById('jp-broadcast-toggle');
+    const broadcastEl = document.getElementById('jp-broadcast-message');
+
+    if (toggleBtn && broadcastEl) {
+        const localStorageKey = 'jpulse-broadcast-minimized';
+        const nagTime = parseInt('{{siteConfig.broadcast.nagTime}}', 10) || 4; // hours, 0 to disable
+
+        // Get minimize state from localStorage
+        function getMinimizeState() {
+            const stored = localStorage.getItem(localStorageKey);
+            if (!stored) {
+                return { minimized: false, timestamp: null };
+            }
+            try {
+                return JSON.parse(stored);
+            } catch (e) {
+                return { minimized: false, timestamp: null };
+            }
+        }
+
+        // Save minimize state to localStorage
+        function setMinimizeState(minimized) {
+            const state = {
+                minimized: minimized,
+                timestamp: minimized ? Date.now() : null
+            };
+            localStorage.setItem(localStorageKey, JSON.stringify(state));
+        }
+
+        // Check if nag time has elapsed
+        function shouldAutoOpen(state) {
+            if (!state.minimized || !state.timestamp) {
+                return false;
+            }
+            if (nagTime === 0) {
+                return false; // Nag time disabled
+            }
+            const elapsedHours = (Date.now() - state.timestamp) / (1000 * 60 * 60);
+            return elapsedHours >= nagTime;
+        }
+
+        // Show/hide broadcast message with animation
+        function showBroadcast() {
+            broadcastEl.classList.remove('jp-broadcast-hidden');
+            // Force reflow
+            broadcastEl.offsetHeight;
+            broadcastEl.classList.add('jp-broadcast-show');
+            toggleBtn.textContent = '－';
+        }
+
+        function hideBroadcast() {
+            broadcastEl.classList.remove('jp-broadcast-show');
+            setTimeout(() => {
+                if (!broadcastEl.classList.contains('jp-broadcast-show')) {
+                    broadcastEl.classList.add('jp-broadcast-hidden');
+                }
+            }, 300); // Match CSS transition duration
+            toggleBtn.textContent = '＋';
+        }
+
+        // Initialize on page load
+        const state = getMinimizeState();
+        if (shouldAutoOpen(state)) {
+            // Nag time elapsed, auto-open
+            setMinimizeState(false);
+            showBroadcast();
+        } else if (state.minimized) {
+            // Keep minimized
+            hideBroadcast();
+        } else {
+            // Show message
+            showBroadcast();
+        }
+
+        // Handle toggle button click
+        toggleBtn.addEventListener('click', () => {
+            const currentState = getMinimizeState();
+            if (currentState.minimized) {
+                // Currently minimized, restore
+                setMinimizeState(false);
+                showBroadcast();
+            } else {
+                // Currently shown, minimize
+                setMinimizeState(true);
+                hideBroadcast();
             }
         });
     }

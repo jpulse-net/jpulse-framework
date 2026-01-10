@@ -1,6 +1,62 @@
-# jPulse Docs / Version History v1.4.9
+# jPulse Docs / Version History v1.4.10
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.10, W-130, 2026-01-10
+
+**Commit:** `W-130, v1.4.10: docs: syntax highlighting for code blocks`
+
+**FEATURE RELEASE**: Prism.js syntax highlighting for all code blocks in markdown documentation.
+
+**Objective**: Better way to understand code in documentation through automatic syntax highlighting.
+
+**Key Features**:
+- **Automatic Syntax Highlighting**: All triple backtick code blocks in markdown documentation get Prism.js syntax highlighting
+- **Language Detection**: Automatic language detection from code block language tags (e.g., ```javascript)
+- **Theme Integration**: Seamless integration with existing Prism theme system (light/dark themes)
+- **No Custom Renderer Needed**: marked.js automatically adds `language-*` classes, so only `Prism.highlightAll()` call needed
+- **Configurable ViewController**: Enhanced ViewController with configurable raw extensions and content types via `app.conf`
+
+**Code Changes**:
+
+**webapp/view/jpulse-common.js**:
+- Added `Prism.highlightAll(viewer._contentEl)` call after markdown rendering in `jPulse.UI.docs._renderMarkdown()`
+- No custom renderer needed - marked.js already adds `language-*` classes automatically
+
+**webapp/view/jpulse-common.css**:
+- Removed `!important` color override that was preventing Prism token colors from showing
+- Allows Prism themes to handle text colors appropriately for light/dark modes
+
+**webapp/controller/view.js**:
+- Made raw extensions (binary/text) configurable via `app.conf controller.view.rawExtensions`
+- Made content types configurable via `app.conf controller.view.contentTypes`
+- Replaced hardcoded extension lists and content type mappings with configurable approach
+
+**webapp/app.conf**:
+- Added `controller.view.rawExtensions` configuration (binary and text arrays)
+- Added `controller.view.contentTypes` configuration (mapping of extensions to MIME types)
+
+**webapp/tests/unit/controller/view-static-assets.test.js**:
+- Updated test setup to include `rawExtensions` and `contentTypes` configuration in `appConfig`
+- Tests now pass with configurable content types
+
+**Documentation**:
+- Updated README.md and docs/README.md with v1.4.10 release highlights
+- Updated CHANGELOG.md with W-130 details
+
+**Bug Fixes**:
+- Fixed test failures in view-static-assets.test.js by adding proper configuration to test setup
+
+**Breaking Changes**:
+- None
+
+**Migration Steps**:
+- None required - automatic syntax highlighting works out of the box
+
+**Work Item**: W-130
+**Version**: v1.4.10
+**Release Date**: 2026-01-10
 
 ________________________________________________
 ## v1.4.9, W-129, 2026-01-09

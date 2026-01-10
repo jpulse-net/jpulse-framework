@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         1.4.9
- * @release         2026-01-09
+ * @version         1.4.10
+ * @release         2026-01-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -271,6 +271,7 @@ class ViewController {
      */
     static async load(req, res) {
         const startTime = Date.now();
+        const viewConfig = global.appConfig?.controller?.view || {};
 
         try {
             // Log the request
@@ -278,7 +279,7 @@ class ViewController {
 
             // Determine the file path
             let filePath = req.path;
-            const defaultTemplate = global.appConfig?.controller?.view?.defaultTemplate || 'index.shtml';
+            const defaultTemplate = viewConfig.defaultTemplate || 'index.shtml';
             if (filePath === '/') {
                 filePath = `/home/${defaultTemplate}`;
             } else if (filePath.endsWith('/')) {
@@ -378,37 +379,14 @@ class ViewController {
             // For binary/static assets (e.g., theme previews), do NOT run i18n/Handlebars expansion
             // and do NOT read via template cache (it reads UTF-8 and would corrupt binary files).
             const rawFileExtension = path.extname(filePath).toLowerCase();
-            const binaryExtensions = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico']);
+            const binaryExtensions = new Set(viewConfig.rawExtensions?.binary ||
+                                             [ '.gif', '.ico', '.jpg', '.jpeg', '.png', '.webp' ]);
             // JSON should be served raw (no Handlebars expansion) to avoid accidental variable expansion/leaks.
             // SVG is treated like other text assets (similar to .css/.js): it can be processed if desired.
-            const rawTextExtensions = new Set(['.json']);
+            const rawTextExtensions = new Set(viewConfig.rawExtensions?.text ||  [ '.json' ]);
 
             if (fullPath && (binaryExtensions.has(rawFileExtension) || rawTextExtensions.has(rawFileExtension))) {
-                let rawContentType = 'application/octet-stream';
-                switch (rawFileExtension) {
-                    case '.png':
-                        rawContentType = 'image/png';
-                        break;
-                    case '.jpg':
-                    case '.jpeg':
-                        rawContentType = 'image/jpeg';
-                        break;
-                    case '.gif':
-                        rawContentType = 'image/gif';
-                        break;
-                    case '.webp':
-                        rawContentType = 'image/webp';
-                        break;
-                    case '.ico':
-                        rawContentType = 'image/x-icon';
-                        break;
-                    case '.json':
-                        rawContentType = 'application/json; charset=utf-8';
-                        break;
-                    default:
-                        break;
-                }
-
+                let rawContentType = viewConfig.contentTypes?.[rawFileExtension] ||  'application/octet-stream';
                 res.set('Content-Type', rawContentType);
 
                 // Send raw bytes for binary assets; send UTF-8 text for JSON/SVG.
@@ -441,33 +419,22 @@ class ViewController {
             // Use original file path for content type detection when serving template files
             const pathForContentType = isTemplateFile ? originalFilePath : filePath;
             const fileExtension = path.extname(pathForContentType).toLowerCase();
-            let contentType = 'text/html';
-
             // Set content type and increment counter by file extension (W-112)
             switch (fileExtension) {
                 case '.css':
                     this.cssCounter.increment();
-                    contentType = 'text/css';
                     break;
                 case '.js':
                     this.jsCounter.increment();
-                    contentType = 'application/javascript';
-                    break;
-                case '.svg':
-                    contentType = 'image/svg+xml; charset=utf-8';
-                    break;
-                case '.json':
-                    contentType = 'application/json; charset=utf-8';
                     break;
                 case '.tmpl':
                     this.tmplCounter.increment();
-                    contentType = 'text/html';
                     break;
                 case '.shtml':
                     this.shtmlCounter.increment();
                     break;
-                // default: no other content types here, regular files are in webapp/static directory
             }
+            let contentType = viewConfig.contentTypes?.[fileExtension] ||  'text/html';
             res.set('Content-Type', contentType);
             res.send(content);
 

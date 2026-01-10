@@ -12468,3 +12468,33 @@ STATUS: accepted
 
 
 ============================================================
+2026-01-09 19:54
+
+next work item: W-130, v1.4.10, 2026-01-10: docs: syntax highlighting for preformatted sections
+
+SUMMARY:
+- Implemented Prism syntax highlighting for all triple backtick code blocks in markdown documentation
+- Discovered that marked.js already adds language-* classes automatically, so no custom renderer needed
+- Added Prism.highlightAll() call after markdown rendering in jPulse.UI.docs._renderMarkdown()
+- Removed CSS !important color override that was preventing Prism token colors from showing
+- User also enhanced ViewController to make raw extensions and content types configurable in app.conf
+
+CHANGES:
+- webapp/view/jpulse-common.js: Added Prism.highlightAll(viewer._contentEl) call after markdown rendering
+- webapp/view/jpulse-common.css: Removed .jp-docs-content .jp-markdown-content pre code color override
+- webapp/controller/view.js: Made rawExtensions and contentTypes configurable (user enhancement)
+- webapp/app.conf: Added controller.view.rawExtensions and controller.view.contentTypes config
+
+STATUS: accepted
+
+release prep: W-130, v1.4.10
+- Updated README.md with v1.4.10 release highlights
+- Updated docs/README.md with v1.4.10 release highlights
+- Updated docs/CHANGELOG.md with W-130 details
+- Updated commit-message.txt with W-130 release information
+- Fixed test failures in view-static-assets.test.js by adding rawExtensions and contentTypes config to test setup
+
+STATUS: completed
+
+
+============================================================

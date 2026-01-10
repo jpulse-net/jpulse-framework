@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.9
+# jPulse Docs / Dev / Work Items v1.4.10
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3860,6 +3860,25 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-130, v1.4.10, 2026-01-10: docs: syntax highlighting for code blocks
+- status: ✅ DONE
+- type: Feature
+- objective: better way to understand code through automatic syntax highlighting
+- features:
+  - jPulse.UI.docs: all triple backtick sections are initialized with Prism syntax highlighting based on specified language
+  - ViewController: make raw extensions (those not handlebar-expanded) configurable in app.conf
+- deliverables:
+  - webapp/view/jpulse-common.js:
+    - Added Prism.highlightAll() call after markdown rendering (marked.js already adds language-* classes automatically, no custom renderer needed)
+  - webapp/view/jpulse-common.css:
+    - Removed !important color override that was preventing Prism token colors from showing
+  - webapp/controller/view.js:
+    - Made raw extensions (binary/text) configurable via app.conf controller.view.rawExtensions
+    - Made content types configurable via app.conf controller.view.contentTypes
+  - webapp/app.conf:
+    - Added controller.view.rawExtensions configuration (binary and text arrays)
+    - Added controller.view.contentTypes configuration (mapping of extensions to MIME types)
+
 
 
 
@@ -3894,12 +3913,11 @@ next work item: W-0...
 - review task, ask questions if unclear
 - suggest change of spec if any, goal is a good UX, good usability, good onboarding & learning experience for site admins and developers; use the "don't make me think" paradigm
 - plan how to implement (wait for my go ahead)
-- current timestamp: 2025-11-29 23:35
 
 release prep:
 - run tests, and fix issues
-- assume release: W-129, v1.4.9
-- update deliverables in W-129 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-130, v1.4.10
+- update deliverables in W-130 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -3916,12 +3934,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.9
+node bin/bump-version.js 1.4.10
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.9
+git tag v1.4.10
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -4136,13 +4154,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - reduce duplication of wrapper HTML (cards, modals, panels)
   - similar to Vue.js slots or Web Components
 - note: syntax updated from {{#use.*}} (removed in W-102) to {{#components.*}} (current standard)
-
-### W-0: docs: syntax highlighting for preformatted sections
-- status: 🕑 PENDING
-- type: Feature
-- objective: better way to understand code
-- deliverables:
-  - all tripple backtick sections are initialized with prism syntax highlighting based on specified language
 
 ### W-0: view: create jPulse.UI.progressbar
 - status: 🕑 PENDING

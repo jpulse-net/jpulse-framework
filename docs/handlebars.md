@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.4.11
+# jPulse Docs / Handlebars Templating v2.4.12
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -602,14 +602,20 @@ Converts a date value (Date object, ISO string, or timestamp) to a Unix timestam
 
 #### `{{date.format}}` - Format date to string
 
-Formats a date value to a specified string format (UTC). If no date is provided, uses current time.
+Formats a date value to a specified string format. Defaults to UTC timezone if no timezone is specified. If no date is provided, uses current time.
 
 ```handlebars
-{{date.format}}                   <!-- Current time in ISO: "2026-01-10T14:35:12.000Z" -->
-{{date.format vars.chatTime}}     <!-- ISO format (default): "2026-01-10T14:35:12.000Z" -->
-{{date.format vars.chatTime format="%DATE%"}}     <!-- Date only: "2026-01-10" -->
-{{date.format vars.chatTime format="%TIME%"}}     <!-- Time only: "14:35:12" -->
-{{date.format vars.chatTime format="%DATETIME%"}} <!-- Date + Time: "2026-01-10 14:35:12" -->
+{{date.format}}               <!-- Current time in ISO (UTC): "2026-01-10T14:35:12.000Z" -->
+{{date.format vars.chatTime}} <!-- ISO format (default, UTC): "2026-01-10T14:35:12.000Z" -->
+{{date.format vars.chatTime format="%DATE%"}}     <!-- Date only (UTC): "2026-01-10" -->
+{{date.format vars.chatTime format="%TIME%"}}     <!-- Time only (UTC): "14:35:12" -->
+{{date.format vars.chatTime format="%DATETIME%"}} <!-- Date + Time (UTC): "2026-01-10 14:35:12" -->
+{{date.format vars.chatTime format="%TIME%" timezone="server"}}
+                              <!-- Time at server: "2026-01-10 05:35:12" -->
+{{date.format vars.chatTime format="%TIME%" timezone="browser"}}
+                              <!-- Time in user's browser: "2026-01-10 05:35:12" -->
+{{date.format vars.chatTime format="%TIME%" timezone="America/Los_Angeles"}}
+                              <!-- Time in America/Los_Angeles: "2026-01-10 05:35:12" -->
 ```
 
 **Format Tokens:**
@@ -645,15 +651,107 @@ Formats a date value to a specified string format (UTC). If no date is provided,
 - Empty/invalid: Returns empty string
 - No argument: Uses current time
 
-**Timezone:**
-- All formatting uses UTC timezone (v1)
-- Future versions may support timezone parameter
+**Timezone Support:**
+
+By default, all formatting uses UTC timezone. You can specify a timezone using the `timezone` parameter:
+
+```handlebars
+{{date.format vars.chatTime timezone="server"}}              <!-- Server local timezone -->
+{{date.format vars.chatTime timezone="browser"}}             <!-- Browser timezone (from cookie, fallback to server) -->
+{{date.format vars.chatTime timezone="America/Los_Angeles"}} <!-- Specific IANA timezone -->
+{{date.format vars.chatTime timezone="UTC"}}                 <!-- UTC (explicit, same as default) -->
+```
+
+**Timezone Parameter Values:**
+
+| Value | Description | Example |
+|-------|-------------|---------|
+| `"server"` | Server's local timezone | Uses server's configured timezone |
+| `"browser"` | Browser's timezone (or `"client"`, `"user"`, `"view"`) | Detected from browser, stored in cookie, falls back to server timezone |
+| `"America/New_York"` | Specific IANA timezone | Any valid IANA timezone database name |
+| (not specified) | UTC (default) | UTC timezone |
+
+**Browser Timezone Detection:**
+
+The browser timezone is automatically detected on page load and stored in a cookie. If the user's timezone changes (e.g., they travel), the cookie is automatically updated. The cookie persists for 30 days.
+
+**Examples with Timezone:**
+
+```handlebars
+<!-- Server timezone -->
+{{date.format vars.chatTime timezone="server" format="%DATETIME%"}}
+                              <!-- "2026-01-10 09:35:12" (if server is EST) -->
+
+<!-- Browser timezone -->
+{{date.format vars.chatTime timezone="browser" format="%DATETIME%"}}
+                              <!-- "2026-01-10 14:35:12" (user's local time) -->
+
+<!-- Specific timezone -->
+{{date.format vars.chatTime timezone="America/Los_Angeles" format="%DATETIME%"}}
+                              <!-- "2026-01-10 06:35:12" (PST) -->
+
+<!-- UTC (default) -->
+{{date.format vars.chatTime format="%DATETIME%"}}
+                              <!-- "2026-01-10 14:35:12" (UTC) -->
+```
 
 **Use cases:**
 - Display dates in user-friendly formats
-- Format timestamps for display
+- Format timestamps for display in user's local timezone
 - Create custom date/time strings
 - Format dates from database or API responses
+- Display server-local times for administrative purposes
+
+#### `{{date.fromNow}}` - Format relative time from now
+
+Formats a date value as relative time from the current moment (e.g., "in 6 days, 13 hours" for future dates or "2 hours ago" for past dates).
+
+```handlebars
+{{let downtime=(date.parse "2026-01-17T16:00:00Z")}}
+{{date.fromNow vars.downtime}}                  <!-- "in 6 days, 13 hours" (long 2 default) -->
+{{date.fromNow vars.downtime format="long"}}    <!-- "in 6 days, 13 hours" (long 2) -->
+{{date.fromNow vars.downtime format="long 1"}}  <!-- "in 6 days" -->
+{{date.fromNow vars.downtime format="long 3"}}  <!-- "in 6 days, 13 hours, 29 minutes" -->
+{{date.fromNow vars.downtime format="short"}}   <!-- "in 6d 13h" (short 2) -->
+{{date.fromNow vars.downtime format="short 1"}} <!-- "in 6d" -->
+{{date.fromNow vars.downtime format="short 3"}} <!-- "in 6d 13h 29m" -->
+{{date.fromNow vars.lastLogin}}                 <!-- "2 hours ago" (past date) -->
+```
+
+**Format Parameter:**
+
+The `format` parameter uses space-separated tokens to specify style and precision:
+
+| Format | Description | Example Output |
+|--------|-------------|----------------|
+| `"long"` or `"long 2"` | Long format, 2 units (default) | `"in 6 days, 13 hours"` |
+| `"long 1"` | Long format, 1 unit | `"in 6 days"` |
+| `"long 3"` | Long format, 3 units | `"in 6 days, 13 hours, 29 minutes"` |
+| `"short"` or `"short 2"` | Short format, 2 units | `"in 6d 13h"` |
+| `"short 1"` | Short format, 1 unit | `"in 6d"` |
+| `"short 3"` | Short format, 3 units | `"in 6d 13h 29m"` |
+
+**Time Units:**
+
+The helper automatically selects the most appropriate time units (years, months, weeks, days, hours, minutes, seconds) based on the time difference. Units are shown in order of magnitude, up to the specified number of units.
+
+**Past vs Future:**
+
+- **Future dates**: Prefixed with `"in"` (e.g., `"in 6 days, 13 hours"`)
+- **Past dates**: Suffixed with `"ago"` (e.g., `"2 hours ago"`)
+- **Very recent (< 1 second)**: Returns `"just now"` (long) or `"0s ago"` (short) for past, `"in a moment"` (long) or `"in 0s"` (short) for future
+
+**Supported input types:**
+- Date objects: `siteConfig.broadcast.enabledAt`
+- ISO strings: `"2025-01-18T14:53:20Z"`
+- Timestamps: `1737212000000`
+- Empty/invalid: Returns empty string
+
+**Use cases:**
+- Display relative time for scheduled events: `"scheduled downtime is this Saturday, 2026-01-17 08:00 to 12:00, starting {{date.fromNow vars.downtimeStart}}"`
+- Show "last seen" or "last updated" times: `"Last updated {{date.fromNow vars.updatedAt}}"`
+- Countdown timers: `"Expires {{date.fromNow vars.expiryDate}}"`
+- Activity feeds: `"Posted {{date.fromNow vars.postedAt}}"`
 
 ### String Helpers
 

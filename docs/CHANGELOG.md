@@ -1,6 +1,106 @@
-# jPulse Docs / Version History v1.4.11
+# jPulse Docs / Version History v2.4.12
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.12, W-132, 2026-01-12
+
+**Commit:** `W-132, v1.4.12: handlebars: add date.fromNow helper, add local timezone to date.format helper`
+
+**FEATURE RELEASE**: Enhanced Handlebars date helpers with timezone support and new relative time formatting.
+
+**Objectives**:
+- Ability to specify a count down broadcast message like "scheduled downtime this Saturday, starting in 4 days, 23 hours"
+- Support local timezone formatting for local server time and local browser time
+
+**Key Features**:
+- **New `{{date.fromNow}}` Helper**: Formats dates as relative time from now (e.g., "in 6 days, 13 hours" for future dates or "2 hours ago" for past dates)
+  - Format parameter: `long`/`short` with units (1-3), default: `long 2`
+  - Supports past and future dates with proper prefixes/suffixes
+  - Full i18n support with translations for all time units and templates
+  - Handles very recent times (< 1 second) with moment translations
+- **Enhanced `{{date.format}}` Timezone Support**:
+  - `timezone="server"` - Server's local timezone
+  - `timezone="browser"` - Browser timezone (from cookie, fallback to server), also supports aliases: `"client"`, `"user"`, `"view"`
+  - `timezone="America/Los_Angeles"` - Specific IANA timezone database name
+  - Default: UTC (backward compatible)
+- **Automatic Browser Timezone Detection**: Browser timezone automatically detected on page load and stored in cookie (30-day TTL, auto-updates when user travels)
+- **ISO Format with Timezone Offset**: When timezone is specified, ISO format displays offset (e.g., `-08:00`, `+09:00`) instead of `Z`
+
+**Code Changes**:
+
+**webapp/view/jpulse-common.js**:
+- Added browser timezone detection in `jPulse.dom.ready()` callback
+- Uses `Intl.DateTimeFormat().resolvedOptions().timeZone` to detect browser timezone
+- Sets/updates `timezone` cookie if changed (hybrid approach, 30-day TTL)
+- Cookie persists across sessions and auto-updates when user travels
+
+**webapp/controller/handlebar.js**:
+- Added `{{date.fromNow}}` helper: `_handleDateFromNow()` function with i18n support
+  - Calculates relative time from now (past/future)
+  - Supports format parameter: `long`/`short` with units (1-3)
+  - Handles years, months, weeks, days, hours, minutes, seconds
+  - Returns "just now" / "in a moment" for very recent times (< 1 second) in long format
+  - Returns "0s ago" / "in 0s" for very recent times in short format
+  - Full i18n integration with translation lookups for units, separators, and templates
+- Enhanced `{{date.format}}` helper with timezone support:
+  - Added `_getTimezoneOffset(date, timezone)` function using sv-SE locale format
+  - Added `_getServerTimezone()` function (Intl API or process.env.TZ fallback)
+  - Added `_parseCookie(req, name)` function for manual cookie parsing fallback
+  - Updated `_handleDateFormat()` to support timezone parameter
+  - Simplified offset calculation: uses `toLocaleString('sv-SE')` and Date parsing
+  - No caching of offset (calculated per call, handles DST correctly)
+  - ISO format timezone offset handling (replaces `Z` with `+/-HH:MM` format)
+  - Fallback: browser timezone falls back to server timezone if cookie not available
+
+**webapp/translations/en.conf, de.conf**:
+- Added `controller.handlebar.date.fromNow` translation keys:
+  - `pastRange`, `futureRange` templates with `{{range}}` placeholder
+  - `pastMoment`, `futureMoment` for very recent times
+  - `long` object with singular/plural forms for all units (year, month, week, day, hour, minute, second)
+  - `short` object with abbreviations (singular keys only)
+  - `separator` for joining multiple units
+
+**webapp/tests/unit/controller/handlebar-date-helpers.test.js**:
+- Added 18 tests for `{{date.fromNow}}` helper:
+  - Future and past dates with all format options (long/short, 1-3 units)
+  - Very recent dates (< 1 second)
+  - Different input types (Date, timestamp, ISO string)
+  - Error handling (invalid, empty, null)
+- Added 12 tests for `{{date.format}}` timezone support:
+  - Server timezone, browser timezone (with/without cookie), specific IANA timezone
+  - ISO format with positive/negative timezone offsets
+  - Timezone aliases (client, user, view)
+  - Invalid timezone handling
+  - Format tokens with timezone
+
+**docs/handlebars.md**:
+- Updated `{{date.format}}` documentation with timezone examples and parameter table
+- Added complete `{{date.fromNow}}` documentation section:
+  - Format parameter table (long/short with 1-3 units)
+  - Time units explanation
+  - Past vs future behavior
+  - Use cases and examples
+
+**Documentation**:
+- Updated README.md and docs/README.md with v1.4.12 release highlights
+- Updated CHANGELOG.md with W-132 details
+- Updated work-items.md to mark W-132 as completed with full deliverables
+
+**Bug Fixes**:
+- Fixed short format separator (uses space instead of comma)
+- Fixed very recent time handling for short format (shows "0s" instead of moment text)
+- Fixed seconds display in long 3 format (now includes seconds when available)
+
+**Breaking Changes**:
+- None
+
+**Migration Steps**:
+- None required - new features, backward compatible
+
+**Work Item**: W-132
+**Version**: v1.4.12
+**Release Date**: 2026-01-12
 
 ________________________________________________
 ## v1.4.11, W-131, 2026-01-11

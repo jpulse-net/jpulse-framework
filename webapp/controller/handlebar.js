@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.4.11
- * @release         2026-01-11
+ * @version         2.4.12
+ * @release         2026-01-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -44,7 +44,8 @@ class HandlebarController {
         {name: 'appCluster', type: 'regular', source: 'jpulse', description: 'Redis cluster availability information', example: '{{appCluster.*}}'},
         {name: 'appConfig', type: 'regular', source: 'jpulse', description: 'Full application configuration (filtered based on auth)', example: '{{appConfig.*}}'},
         {name: 'components', type: 'regular', source: 'jpulse', description: 'Reusable component call with parameters. Static: `{{components.jpIcons.configSvg size="64"}}`. Dynamic: `{{components name="sidebar.toc"}}` or `{{components name=(this)}}`', example: '{{components.jpIcons.configSvg size="64"}}'},
-        {name: 'date.format', type: 'regular', source: 'jpulse', description: 'Format date value to string (UTC). Tokens: `%DATE%`, `%TIME%`, `%DATETIME%`, `%Y%`, `%M%`, `%D%`, `%H%`, `%MIN%`, `%SEC%`, `%MS%`, `%ISO%` (default)', example: '{{date.format vars.chatTime format="%DATE%"}}'},
+        {name: 'date.format', type: 'regular', source: 'jpulse', description: 'Format date value to string in UTC (default), server, browser, or specific timezone. Tokens: `%DATE%`, `%TIME%`, `%DATETIME%`, `%Y%`, `%M%`, `%D%`, `%H%`, `%MIN%`, `%SEC%`, `%MS%`, `%ISO%` (default)', example: '{{date.format vars.chatTime format="%DATE%" timezone="browser"}}'},
+        {name: 'date.fromNow', type: 'regular', source: 'jpulse', description: 'Format date as relative time from now, e.g. "in 6 days, 13 hours" or "2 hours ago". Format: `long`/`short` with units (1-3), default: `long 2`', example: '{{date.fromNow vars.downtimeStart format="long 2"}}'},
         {name: 'date.now', type: 'regular', source: 'jpulse', description: 'Get current unix timestamp in milliseconds', example: '{{date.now}}'},
         {name: 'date.parse', type: 'regular', source: 'jpulse', description: 'Parse date value to unix timestamp in milliseconds', example: '{{date.parse "2026-01-10T14:53:20Z"}}'},
         {name: 'eq', type: 'regular', source: 'jpulse', description: 'Equality comparison, returns `true` or `false` (2 arguments)', example: '{{eq user.role "admin"}}'},
@@ -1185,6 +1186,8 @@ class HandlebarController {
                     return _handleDateParse(parsedArgs, currentContext);
                 case 'date.format':
                     return _handleDateFormat(parsedArgs, currentContext);
+                case 'date.fromNow':
+                    return _handleDateFromNow(parsedArgs, currentContext);
 
                 // File helpers
                 case 'file.include':
@@ -2400,9 +2403,59 @@ class HandlebarController {
         }
 
         /**
+         * W-132: Calculate timezone offset in milliseconds for a specific date and timezone
+         * @param {Date} date - Date object
+         * @param {string} timezone - IANA timezone (e.g., "America/New_York")
+         * @returns {number} Offset in milliseconds
+         */
+        function _getTimezoneOffset(date, timezone) {
+            // Format as ISO-like strings that Date can parse reliably (sv-SE locale gives YYYY-MM-DD HH:mm:ss)
+            const tzString = date.toLocaleString('sv-SE', { timeZone: timezone });
+            const utcString = date.toLocaleString('sv-SE', { timeZone: 'UTC' });
+
+            // Parse as UTC (treat the strings as UTC by appending 'Z')
+            const tzAsUtc = new Date(tzString + 'Z');
+            const utcAsUtc = new Date(utcString + 'Z');
+
+            return tzAsUtc - utcAsUtc;
+        }
+
+        /**
+         * W-132: Get server timezone
+         * @returns {string} IANA timezone string
+         */
+        function _getServerTimezone() {
+            try {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone;
+            } catch (e) {
+                return process.env.TZ || 'UTC';
+            }
+        }
+
+        /**
+         * W-132: Parse cookie manually (fallback if cookie-parser not available)
+         * @param {object} req - Express request object
+         * @param {string} name - Cookie name
+         * @returns {string|null} Cookie value or null
+         */
+        function _parseCookie(req, name) {
+            if (!req?.headers?.cookie) {
+                return null;
+            }
+            const cookies = req.headers.cookie.split(';').map(c => c.trim());
+            for (const cookie of cookies) {
+                const [key, value] = cookie.split('=');
+                if (key === name) {
+                    return decodeURIComponent(value);
+                }
+            }
+            return null;
+        }
+
+        /**
          * W-131: Handle date.format helper - format date value to string
-         * Formats Date object, ISO string, or timestamp to specified format (UTC)
-         * @param {object} parsedArgs - Parsed arguments with _target, date, or format parameter
+         * Formats Date object, ISO string, or timestamp to specified format (UTC by default, or specified timezone)
+         * @param {object} parsedArgs - Parsed arguments with _target, date, format, or timezone parameter
          * @param {object} currentContext - Current context
          * @returns {string} Formatted date string, or empty string if invalid
          */
@@ -2457,7 +2510,51 @@ class HandlebarController {
                 return '';
             }
 
-            // Get UTC components
+            // W-132: Determine target timezone and apply offset if needed
+            const tzParam = parsedArgs.timezone;
+            let targetTimezone = null;
+
+            if (tzParam === 'server') {
+                targetTimezone = _getServerTimezone();
+            } else if (tzParam === 'browser' || tzParam === 'client' || tzParam === 'user' || tzParam === 'view') {
+                // Read from cookie (try cookie-parser first, fallback to manual parsing)
+                const req = currentContext._handlebar?.req;
+                if (req) {
+                    targetTimezone = req.cookies?.timezone || _parseCookie(req, 'timezone');
+                }
+                // Fallback to server timezone if cookie not found
+                if (!targetTimezone) {
+                    targetTimezone = _getServerTimezone();
+                }
+            } else if (tzParam && typeof tzParam === 'string') {
+                // Specific IANA timezone (e.g., "America/Los_Angeles")
+                targetTimezone = tzParam;
+            }
+
+            // Apply timezone offset if needed
+            let offset = 0;
+            if (targetTimezone) {
+                try {
+                    // W-132: Adjusts date so getUTC* methods return timezone values
+                    offset = _getTimezoneOffset(date, targetTimezone);
+                    date = new Date(date.getTime() + offset);
+                } catch (e) {
+                    // If timezone is invalid, fall back to UTC (existing behavior)
+                    // Silently continue with original date
+                }
+            }
+
+            // Get UTC components (now represents timezone-adjusted values after offset application)
+            let isoString = date.toISOString();
+            if(offset !== 0) {
+                offset = offset / 60000; // convert to minutes
+                const absOffset = Math.abs(offset);
+                const offsetSign = offset < 0 ? '-' : '+'; // Positive = ahead of UTC
+                const offsetHours = Math.floor(absOffset / 60).toString().padStart(2, '0');
+                const offsetMinutes = (absOffset % 60).toString().padStart(2, '0');
+                const timezoneOffset = `${offsetSign}${offsetHours}:${offsetMinutes}`;
+                isoString = isoString.replace('Z', `${timezoneOffset}`);
+            }
             const year = date.getUTCFullYear();
             const month = String(date.getUTCMonth() + 1).padStart(2, '0');
             const day = String(date.getUTCDate()).padStart(2, '0');
@@ -2468,7 +2565,7 @@ class HandlebarController {
 
             // Format tokens
             let result = format
-                .replace(/%ISO%/g, date.toISOString())
+                .replace(/%ISO%/g, isoString)
                 .replace(/%DATETIME%/g, '%DATE% %TIME%')
                 .replace(/%DATE%/g, `${year}-${month}-${day}`)
                 .replace(/%TIME%/g, `${hours}:${minutes}:${seconds}`)
@@ -2481,6 +2578,221 @@ class HandlebarController {
                 .replace(/%MS%/g, milliseconds);
 
             return result;
+        }
+
+        /**
+         * W-132: Handle date.fromNow helper - format relative time from now
+         * Formats a date value as relative time (e.g., "in 6 days, 13 hours" or "6 days, 13 hours ago")
+         * @param {object} parsedArgs - Parsed arguments with _target, date, or format parameter
+         * @param {object} currentContext - Current context
+         * @returns {string} Formatted relative time string, or empty string if invalid
+         */
+        function _handleDateFromNow(parsedArgs, currentContext) {
+            let dateValue = parsedArgs._target || parsedArgs.date || parsedArgs._args?.[0];
+            const formatParam = parsedArgs.format || 'long 2';
+
+            // Check if dateValue is explicitly provided
+            const hasDateValue = parsedArgs._target !== undefined || parsedArgs.date !== undefined || (parsedArgs._args && parsedArgs._args.length > 0 && parsedArgs._args[0] !== undefined);
+
+            // If no date value provided, return empty
+            if (!hasDateValue) {
+                return '';
+            }
+
+            // Convert to Date object (reuse logic from _handleDateFormat)
+            let date;
+            if (typeof dateValue === 'number') {
+                date = new Date(dateValue);
+            } else if (dateValue instanceof Date) {
+                date = dateValue;
+            } else if (typeof dateValue === 'string') {
+                if (dateValue.trim() === '') {
+                    return '';
+                }
+                date = new Date(dateValue);
+            } else if (typeof dateValue === 'object' && dateValue !== null) {
+                if (typeof dateValue.valueOf === 'function') {
+                    try {
+                        const timestamp = dateValue.valueOf();
+                        if (typeof timestamp === 'number' && !isNaN(timestamp)) {
+                            date = new Date(timestamp);
+                        } else {
+                            return '';
+                        }
+                    } catch (e) {
+                        return '';
+                    }
+                } else if (dateValue.$date) {
+                    date = new Date(dateValue.$date);
+                } else {
+                    return '';
+                }
+            } else {
+                return '';
+            }
+
+            // Validate date
+            if (!date || isNaN(date.getTime())) {
+                return '';
+            }
+
+            // Parse format parameter: "long 2", "short 3", etc.
+            const formatParts = formatParam.trim().split(/\s+/);
+            const style = formatParts[0] || 'long'; // 'long' or 'short'
+            const units = parseInt(formatParts[1] || '2', 10) || 2; // number of units to show (1-3)
+
+            // Calculate difference from now
+            const now = Date.now();
+            const diff = date.getTime() - now;
+            const isFuture = diff > 0;
+            const absDiff = Math.abs(diff);
+
+            // Calculate time units
+            const msPerSecond = 1000;
+            const msPerMinute = 60 * msPerSecond;
+            const msPerHour = 60 * msPerMinute;
+            const msPerDay = 24 * msPerHour;
+            const msPerWeek = 7 * msPerDay;
+            const msPerMonth = 30 * msPerDay; // Approximate
+            const msPerYear = 365 * msPerDay; // Approximate
+
+            const parts = [];
+            let remaining = absDiff;
+
+            // Years
+            if (remaining >= msPerYear && parts.length < units) {
+                const years = Math.floor(remaining / msPerYear);
+                parts.push({ value: years, unitKey: 'year' });
+                remaining = remaining % msPerYear;
+            }
+
+            // Months
+            if (remaining >= msPerMonth && parts.length < units) {
+                const months = Math.floor(remaining / msPerMonth);
+                parts.push({ value: months, unitKey: 'month' });
+                remaining = remaining % msPerMonth;
+            }
+
+            // Weeks
+            if (remaining >= msPerWeek && parts.length < units) {
+                const weeks = Math.floor(remaining / msPerWeek);
+                parts.push({ value: weeks, unitKey: 'week' });
+                remaining = remaining % msPerWeek;
+            }
+
+            // Days
+            if (remaining >= msPerDay && parts.length < units) {
+                const days = Math.floor(remaining / msPerDay);
+                parts.push({ value: days, unitKey: 'day' });
+                remaining = remaining % msPerDay;
+            }
+
+            // Hours
+            if (remaining >= msPerHour && parts.length < units) {
+                const hours = Math.floor(remaining / msPerHour);
+                parts.push({ value: hours, unitKey: 'hour' });
+                remaining = remaining % msPerHour;
+            }
+
+            // Minutes
+            if (remaining >= msPerMinute && parts.length < units) {
+                const minutes = Math.floor(remaining / msPerMinute);
+                parts.push({ value: minutes, unitKey: 'minute' });
+                remaining = remaining % msPerMinute;
+            }
+
+            // Seconds (if we have room for more units and there's remaining time)
+            if (remaining >= msPerSecond && parts.length < units) {
+                const seconds = Math.floor(remaining / msPerSecond);
+                parts.push({ value: seconds, unitKey: 'second' });
+                remaining = remaining % msPerSecond;
+            }
+
+            // Get request object for i18n
+            const req = currentContext._handlebar?.req;
+
+            // If still no parts (less than 1 second), show moment translations or 0s for short format
+            if (parts.length === 0) {
+                if (style === 'short') {
+                    // Short format: show "0s" instead of moment text
+                    return isFuture ? 'in 0s' : '0s ago';
+                } else {
+                    // Long format: use moment translations
+                    const momentKey = isFuture ? 'controller.handlebar.date.fromNow.futureMoment' : 'controller.handlebar.date.fromNow.pastMoment';
+                    if (global.i18n && req) {
+                        return global.i18n.translate(req, momentKey) || (isFuture ? 'in a moment' : 'just now');
+                    }
+                    return isFuture ? 'in a moment' : 'just now';
+                }
+            }
+
+            // Get separator from i18n (only for long format; short format uses space)
+            let separator = style === 'short' ? ' ' : ', ';
+            if (style === 'long' && global.i18n && req) {
+                const separatorKey = 'controller.handlebar.date.fromNow.separator';
+                separator = global.i18n.translate(req, separatorKey) || ', ';
+            }
+
+            // Format parts with i18n translations
+            const translatedParts = [];
+            for (const part of parts) {
+                // Determine unit key (singular or plural)
+                // Short format always uses singular keys, long format uses singular/plural based on value
+                let unitKey;
+                if (style === 'short') {
+                    // Short format only has singular keys in translation file
+                    unitKey = part.unitKey;
+                } else {
+                    // Long format: singular if value is 1, plural otherwise
+                    unitKey = part.value === 1 ? part.unitKey : (part.unitKey + 's');
+                }
+
+                const i18nKey = `controller.handlebar.date.fromNow.${style}.${unitKey}`;
+
+                let translatedUnit;
+                if (global.i18n && req) {
+                    translatedUnit = global.i18n.translate(req, i18nKey, { value: part.value });
+                    // If translation returns the key (translation missing), use fallback
+                    if (translatedUnit === i18nKey) {
+                        translatedUnit = null; // Will use fallback below
+                    }
+                }
+
+                // Fallback to English if i18n not available or translation missing
+                if (!translatedUnit) {
+                    const fallbackAbbrev = {
+                        year: 'y',
+                        month: 'mo',
+                        week: 'w',
+                        day: 'd',
+                        hour: 'h',
+                        minute: 'm',
+                        second: 's'
+                    };
+                    const fallbackUnit = style === 'short'
+                        ? fallbackAbbrev[part.unitKey] || part.unitKey.charAt(0)
+                        : (part.value === 1 ? part.unitKey : part.unitKey + 's');
+                    if (style === 'short') {
+                        translatedUnit = `${part.value}${fallbackUnit}`;
+                    } else {
+                        translatedUnit = `${part.value} ${fallbackUnit}`;
+                    }
+                }
+
+                translatedParts.push(translatedUnit);
+            }
+
+            // Join parts with separator
+            const range = translatedParts.join(separator);
+
+            // Wrap in pastRange/futureRange template
+            const rangeKey = isFuture ? 'controller.handlebar.date.fromNow.futureRange' : 'controller.handlebar.date.fromNow.pastRange';
+            if (global.i18n && req) {
+                return global.i18n.translate(req, rangeKey, { range }) || (isFuture ? `in ${range}` : `${range} ago`);
+            }
+
+            // Fallback to English if i18n not available
+            return isFuture ? `in ${range}` : `${range} ago`;
         }
 
         /**

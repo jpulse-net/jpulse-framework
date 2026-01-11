@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.11
+# jPulse Docs / Dev / Work Items v2.4.12
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3868,17 +3868,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - Added controller.view.rawExtensions configuration (binary and text arrays)
     - Added controller.view.contentTypes configuration (mapping of extensions to MIME types)
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-131, v1.4.11, 2026-01-11: view: broadcast message system, add handlebars date helpers
 - status: ✅ DONE
 - type: Feature
@@ -3947,6 +3936,60 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-132, v1.4.12, 2026-01-12: handlebars: add date.fromNow helper, add local timezone to date.format helper
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - ability to specify a count down broadcast message like "scheduled downtime this Saturday, starting in 4 days, 23 hours"
+  - support local timezone formatting for local server time and local browser time
+- features:
+  - `date.fromNow` helper: format relative time from now (e.g., "in 6 days, 13 hours" or "2 hours ago")
+    - format parameter: `long`/`short` with units (1-3), default: `long 2`
+    - supports past and future dates with proper prefixes/suffixes
+    - i18n support with translations for all time units and templates
+    - handles very recent times (< 1 second) with moment translations
+  - `date.format` timezone support: there are two local times:
+    - server local time
+    - browser local time
+      - browser sets a cookie with the tz string, so that the server knows the tz of the user (auth or not)
+  - add new timezone parameter to `date.format`:
+    - `timezone="server"` -- local server timezone
+    - `timezone="browser"` -- browser server timezone (or `"view"`, `"client"`, `"user"`?)
+    - `timezone="America/Los_Angeles"` -- a specific tz database time zone
+    - default: UTC
+  - ISO format with timezone offset: when timezone is specified, ISO format shows offset (e.g., `-08:00`, `+09:00`) instead of `Z` suffix
+- deliverables:
+  - webapp/view/jpulse-common.js:
+    - automatic timezone detection client-side in jpulse-common.js, stored in cookie (30-day TTL, auto-updates if timezone changes)
+    - runs in jPulse.dom.ready() callback
+  - webapp/controller/handlebar.js:
+    - added date.fromNow helper: _handleDateFromNow() function with i18n support
+    - added timezone support in _handleDateFormat()
+    - added helper functions _getTimezoneOffset(), _getServerTimezone(), _parseCookie()
+    - simplified offset calculation using sv-SE locale format and Date parsing
+    - no caching of offset (calculated per call, handles DST correctly)
+    - fallback: browser timezone falls back to server timezone if cookie not available
+    - ISO format timezone offset handling (replaces Z with +/-HH:MM format)
+  - webapp/translations/en.conf, de.conf:
+    - added controller.handlebar.date.fromNow translation keys (pastRange, futureRange, pastMoment, futureMoment, long/short units, separator)
+  - webapp/tests/unit/controller/handlebar-date-helpers.test.js:
+    - added 18 tests for date.fromNow helper (all format options, past/future, edge cases)
+    - added 12 tests for date.format timezone support (server, browser, specific timezone, ISO offset, aliases, error handling)
+  - docs/handlebars.md:
+    - updated date.format documentation with timezone examples and parameter table
+    - added complete date.fromNow documentation section with format parameter table and use cases
+
+
+
+
+
+
+
+
 to-do:
 
 
@@ -3961,7 +4004,6 @@ old pending:
 - how to define the time of valid session?
 
 ### Potential next items:
-- W-0: view: broadcast message
 - W-0: handlebars: add array access functions
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-0: deployment: docker strategy
@@ -3978,8 +4020,9 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume release: W-131, v1.4.11
-- update deliverables in W-131 work-items to document work done (don't change status, don't make any other changes to this file)
+- review git diff tt-diff.txt for accuracy and completness of work item
+- assume release: W-132, v1.4.12
+- update deliverables in W-132 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -3996,12 +4039,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.11
+node bin/bump-version.js 1.4.12
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.11
+git tag v1.4.12
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -4141,6 +4184,17 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - prerequisite
   - W-076, v1.0.0: framework: redis infrastrucure for a scaleable jPulse Framework
 - /hello-websocket/, /hello-app-cluster/ should work properly on its own page, that is no messaging to other tabs with same page open
+
+### W-0: site config: extend config schema for site and plugin developers
+- status: 🕑 PENDING
+- type: Feature
+- objective: offer a way to extend the schema for the site configuration in a data-driven way
+- features:
+  - the config can be extended in a similar way like the existing user schema extension feature
+  - make it data driven, e.g. no need to modify webapp/view/admin/config.shtml when the schema is extended
+- deliverables:
+  - FIXME file:
+    - FIXME summary
 
 ### W-0: handlebars: add array access functions
 - status: 🕑 PENDING

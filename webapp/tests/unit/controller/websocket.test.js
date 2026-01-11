@@ -3,8 +3,8 @@
  * @tagline         Unit tests for WebSocket Controller
  * @description     Tests for WebSocket infrastructure, authentication, broadcasting, and lifecycle
  * @file            webapp/tests/unit/controller/websocket.test.js
- * @version         1.4.11
- * @release         2026-01-11
+ * @version         2.4.12
+ * @release         2026-01-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

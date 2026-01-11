@@ -12603,3 +12603,93 @@ STATUS: completed
 
 
 ============================================================
+2026-01-10 19:49
+
+W-132: Implemented handlebars date.format helper with local timezone support
+
+Summary:
+- Added client-side timezone detection in jpulse-common.js (hybrid cookie approach with 30-day TTL, auto-updates if timezone changes)
+- Added server-side helper functions: _getTimezoneOffset(), _getServerTimezone(), _parseCookie()
+- Updated _handleDateFormat() to support timezone parameter: "server", "browser"/"client"/"user"/"view", or specific IANA timezone
+- Simplified offset calculation using sv-SE locale format (toLocaleString) and Date parsing
+- No caching of offset (calculated per call to handle DST correctly)
+- Fallback: browser timezone falls back to server timezone if cookie not available
+- Updated handlebars.md documentation with timezone examples and usage
+- Updated work-items.md to mark W-132 as completed
+
+Implementation Details:
+
+1. Client-side (webapp/view/jpulse-common.js):
+   - Added IIFE at end of file to detect browser timezone on page load
+   - Uses Intl.DateTimeFormat().resolvedOptions().timeZone
+   - Sets/updates 'timezone' cookie if changed (hybrid approach)
+   - 30-day cookie TTL, auto-updates when user travels
+
+2. Server-side (webapp/controller/handlebar.js):
+   - _getTimezoneOffset(date, timezone): Calculates offset using sv-SE locale format
+   - _getServerTimezone(): Gets server timezone from Intl API or process.env.TZ
+   - _parseCookie(req, name): Manual cookie parsing fallback
+   - _handleDateFormat(): Updated to support timezone parameter
+     - timezone="server" → uses server local timezone
+     - timezone="browser" → reads from cookie, falls back to server
+     - timezone="America/Los_Angeles" → specific IANA timezone
+     - No timezone → UTC (backward compatible)
+
+3. Documentation (docs/handlebars.md):
+   - Updated date.format section with timezone examples
+   - Added timezone parameter values table
+   - Added browser timezone detection explanation
+   - Added examples for all timezone options
+
+4. Work Items (docs/dev/work-items.md):
+   - Updated W-132 status from IN_PROGRESS to DONE
+   - Added implementation details and deliverables
+
+STATUS: completed
+
+
+============================================================
+2026-01-10 23:07
+
+W-132: Release prep - updated work items, documentation, and commit message
+
+Summary:
+- Updated work-items.md W-132 with complete features and deliverables (date.fromNow helper, timezone support, i18n, tests, translations)
+- Updated README.md and docs/README.md with v1.4.12 release highlights
+- Updated docs/CHANGELOG.md with comprehensive v1.4.12 entry
+- Updated commit-message.txt with W-132 details following same format as W-131
+- All release documentation prepared for v1.4.12 release
+
+Implementation Details:
+
+1. Work Items (docs/dev/work-items.md):
+   - Updated W-132 title to include both date.fromNow and timezone features
+   - Added complete features list (date.fromNow format options, timezone parameter options, ISO offset handling)
+   - Expanded deliverables to include:
+     - date.fromNow helper implementation with i18n
+     - Translation files (en.conf, de.conf)
+     - Unit tests (18 for date.fromNow, 12 for timezone support)
+     - Complete documentation updates
+
+2. Release Highlights (README.md, docs/README.md):
+   - Added v1.4.12 entry at top of Latest Release Highlights
+   - Described date.fromNow helper with format options
+   - Described timezone support for date.format
+   - Mentioned automatic browser timezone detection
+   - Mentioned ISO format timezone offset display
+
+3. Changelog (docs/CHANGELOG.md):
+   - Added comprehensive v1.4.12 entry at top
+   - Updated version history header to v1.4.12
+   - Documented all code changes, features, tests, translations
+   - Included bug fixes and migration notes
+
+4. Commit Message (commit-message.txt):
+   - Created new commit message following W-131 format
+   - Documented objectives, spec, code changes, tests, documentation
+   - Included bug fixes and breaking changes sections
+
+STATUS: completed
+
+
+============================================================

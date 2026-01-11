@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.4.11
- * @release         2026-01-11
+ * @version         2.4.12
+ * @release         2026-01-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -8112,6 +8112,23 @@ jPulse.dom.ready(() => {
             sessionStorage.removeItem('jpulse_toast_queue');
         }
     }
+
+    // W-132: Browser timezone detection and cookie setting
+    // Detects browser timezone and sets cookie for server-side date formatting
+    try {
+        const cookieName = 'timezone';
+        const existingTimezone = jPulse.cookies.get(cookieName);
+        const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+        // Update cookie if timezone changed (e.g., user traveled) or doesn't exist
+        if (!existingTimezone || existingTimezone !== browserTimezone) {
+            jPulse.cookies.set(cookieName, browserTimezone, 30); // 30 day TTL
+        }
+    } catch (e) {
+        // Silently fail if timezone detection is not supported
+        // Server will fall back to server timezone
+    }
+
 });
 
 // ====================================================================

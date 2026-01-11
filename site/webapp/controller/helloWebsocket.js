@@ -3,7 +3,7 @@
  * @tagline         WebSocket Demo Controller for Real-Time Communication Examples
  * @description     Demonstrates WebSocket patterns: emoji cursor tracking and collaborative todo
  * @file            site/webapp/controller/helloWebsocket.js
- * @version         2.4.12
+ * @version         1.4.12
  * @release         2026-01-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

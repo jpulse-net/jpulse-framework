@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-114: {{and}}, {{or}}, {{eq}} logical helpers
  * @description     Tests for logical and comparison helpers with subexpression support
  * @file            webapp/tests/unit/controller/handlebar-logical-helpers.test.js
- * @version         2.4.12
+ * @version         1.4.12
  * @release         2026-01-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -4,7 +4,7 @@
  * @tagline         Framework update synchronization CLI tool
  * @description     Updates local framework files from installed package
  * @file            bin/jpulse-update.js
- * @version         2.4.12
+ * @version         1.4.12
  * @release         2026-01-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

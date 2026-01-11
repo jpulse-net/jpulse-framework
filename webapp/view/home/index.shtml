@@ -4,7 +4,7 @@
  * @tagline         Home page of jPulse Framework
  * @description     This is the home page of jPulse Framework
  * @file            webapp/view/home/index.shtml
- * @version         2.4.12
+ * @version         1.4.12
  * @release         2026-01-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -116,7 +116,7 @@
 <body>
     <div class="jp-main">
         <div class="local-home-container">
-            <h1 class="local-home-title"><img src="/images/jpulse-logo/jpulse-logo.svg" alt="jPulse Framework" class="local-home-logo" width="40" height="40"> Welcome to jPulse Framework v2.4.12</h1>
+            <h1 class="local-home-title"><img src="/images/jpulse-logo/jpulse-logo.svg" alt="jPulse Framework" class="local-home-logo" width="40" height="40"> Welcome to jPulse Framework v1.4.12</h1>
             <p class="local-home-subtitle">A modern, lightweight web application framework</p>
 
             <div class="local-home-success">

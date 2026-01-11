@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-045 PluginModel
  * @description     Tests plugin configuration validation
  * @file            webapp/tests/unit/model/plugin.test.js
- * @version         2.4.12
+ * @version         1.4.12
  * @release         2026-01-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

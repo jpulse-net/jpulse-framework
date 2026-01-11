@@ -1,4 +1,4 @@
-# jPulse Framework v2.4.12 Deployment Guide for %SITE_NAME%
+# jPulse Framework v1.4.12 Deployment Guide for %SITE_NAME%
 
 **Site Generated**: %GENERATION_DATE%
 **Deployment Type**: %DEPLOYMENT_TYPE%

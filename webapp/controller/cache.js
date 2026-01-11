@@ -3,7 +3,7 @@
  * @tagline         Cache management API controller for the jPulse Framework
  * @description     Provides REST API endpoints for cache invalidation and statistics
  * @file            webapp/controller/cache.js
- * @version         2.4.12
+ * @version         1.4.12
  * @release         2026-01-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

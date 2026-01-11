@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-129: appConfig.system allowlist exposure (unauthenticated)
  * @description     Tests for contextFilter.alwaysAllow to re-expose specific appConfig.system keys after filtering
  * @file            webapp/tests/unit/controller/handlebar-appconfig-alwaysallow.test.js
- * @version         2.4.12
+ * @version         1.4.12
  * @release         2026-01-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

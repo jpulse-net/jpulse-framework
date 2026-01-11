@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.4.12
+# jPulse Docs / Dev / Work Items v1.4.12
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 

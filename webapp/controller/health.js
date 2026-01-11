@@ -5,7 +5,7 @@
  *                  for non-admin users in the _sanitizeMetricsData() method!
  * @description     This is the health controller for the jPulse Framework WebApp
  * @file            webapp/controller/health.js
- * @version         2.4.12
+ * @version         1.4.12
  * @release         2026-01-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

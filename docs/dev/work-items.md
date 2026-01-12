@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.12
+# jPulse Docs / Dev / Work Items v1.4.13
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3929,17 +3929,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/tests/unit/config/config-basic.test.js:
     - Updated tests for broadcast schema structure
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-132, v1.4.12, 2026-01-12: handlebars: add date.fromNow helper, add local timezone to date.format helper
 - status: ✅ DONE
 - type: Feature
@@ -3990,6 +3979,52 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-133, v1.4.13, 2026-01-13: handlebars: add date.add, date.diff helpers, add user.timezone context, expand handlebars in broadcast messages
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives: ability for site admins to set a broadcast message like "Scheduled downtime in 3 days, 18 hours"
+- spec & features:
+  - broadcast messages containing Handlebars expressions (e.g., `{{date.fromNow}}`, `{{date.format}}`) are properly server-side, including proper browser local timezone handling
+  - expanded message stored in `appConfig.system.broadcastMessage` for template use
+  - conditional expansion: only expand if message contains `{{` (performance optimization)
+  - caching: reuse expanded message if already computed (prevents re-expansion on recursive calls)
+  - error handling: fallback to raw message if expansion fails
+  - browser timezone support: `timezone="browser"` works via cookie (already supported)
+  - added `{{date.add}}` helper: add/subtract time units from a date (symmetrical API with `value` and `unit` parameters)
+  - added `{{date.diff}}` helper: calculate difference between two dates in specified unit
+- deliverables:
+  - webapp/controller/handlebar.js:
+    - expand broadcast message in `_buildInternalContext()` after context extensions
+    - check if already expanded (no-op optimization)
+    - expand using `_expandHandlebars()` with current context
+    - store result in `appConfig.system.broadcastMessage`
+    - add `{{user.timezone}}` to show the browser timezone of the user, such as: `America/Los_Angeles`
+    - change `{{date.format format="%TIME%"}}` and `{{date.format format="%DATETIME%"}}` to show only `hours:minutes` instead of `hours:minutes:seconds`
+    - added `_handleDateAdd()` function: supports years, months, weeks, days, hours, minutes, seconds, milliseconds (singular and plural unit names)
+    - added `_handleDateDiff()` function: calculates difference in years, months, weeks, days, hours, minutes, seconds, milliseconds (default: milliseconds)
+    - refactored date parsing into shared `_parseDateValue()` helper for code reuse
+  - webapp/view/jpulse-footer.tmpl:
+    - change from `{{siteConfig.broadcast.message}}` to `{{appConfig.system.broadcastMessage}}`
+  - webapp/app.conf:
+    - add 'appConfig.system.broadcastMessage' to controller.handlebar.contextFilter.alwaysAllow
+  - webapp/tests/unit/controller/handlebar-date-helpers.test.js:
+    - added 17 unit tests for `{{date.add}}` helper (all time units, positive/negative values, edge cases, error handling)
+    - added 16 unit tests for `{{date.diff}}` helper (all time units, negative differences, current time fallback, error handling)
+    - updated existing tests for `%TIME%` and `%DATETIME%` format changes (removed seconds)
+    - updated timezone conversion tests to verify correct conversion (not showing UTC when browser timezone is set)
+
+
+
+
+
+
+
+
+
 to-do:
 
 
@@ -4004,6 +4039,7 @@ old pending:
 - how to define the time of valid session?
 
 ### Potential next items:
+- W-0: config model: make config schema extendable for site and plugin developers
 - W-0: handlebars: add array access functions
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-0: deployment: docker strategy
@@ -4021,8 +4057,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-diff.txt for accuracy and completness of work item
-- assume release: W-132, v1.4.12
-- update deliverables in W-132 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-133, v1.4.13
+- update deliverables in W-133 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4039,12 +4075,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.12
+node bin/bump-version.js 1.4.13
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.12
+git tag v1.4.13
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -4185,7 +4221,7 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
   - W-076, v1.0.0: framework: redis infrastrucure for a scaleable jPulse Framework
 - /hello-websocket/, /hello-app-cluster/ should work properly on its own page, that is no messaging to other tabs with same page open
 
-### W-0: site config: extend config schema for site and plugin developers
+### W-0: config model: make config schema extendable for site and plugin developers
 - status: 🕑 PENDING
 - type: Feature
 - objective: offer a way to extend the schema for the site configuration in a data-driven way
@@ -4203,16 +4239,19 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - syntax option 1: (idea)
   - `{{array.includes user.roles "admin"}}` -- test if user roles array includes "admin", returns true or false
   - `{{array.indexOf user.roles "admin"}}` -- get the index of "admin" in the user roles array, -1 if not found
-  - `{{array.join user.roles ", "}}` -- join the user roles array items
-  - `{{array.first user.roles}}` -- get the first item of the user roles array
+  - `{{array.length user.roles}}` -- length of user roles array
+  - `{{array.join user.roles ", "}}` -- join the user roles array elements
+  - `{{array.first user.roles}}` -- get the first ielementtem of the user roles array
+  - `{{array.last user.roles}}` -- get the last element of the user roles array
+  - `{{array.get user.roles index=0}}` -- get element at index of the user roles array (supports negative: index=-1)
 - syntax option 2:
   - `{{user.roles.includes "admin"}}` -- test if user roles array includes "admin", returns true or false
   - `{{user.roles.indexOf "admin"}}` -- get the index of "admin" in the user roles array, -1 if not found
-  - `{{user.roles.join ", "}}` -- join the user roles array items
-  - `{{user.roles.first}}` -- get the first item of the user roles array
-  - `{{user.roles.0}}` -- get the first item of the user roles array (alternative)
-  - `{{user.roles.last}}` -- get the last item of the user roles array
-  - `{{user.roles.-1}}` -- get the last item of the user roles array (alternative)
+  - `{{user.roles.join ", "}}` -- join the user roles array elements
+  - `{{user.roles.first}}` -- get the first element of the user roles array
+  - `{{user.roles.0}}` -- get the first element of the user roles array (alternative)
+  - `{{user.roles.last}}` -- get the last element of the user roles array
+  - `{{user.roles.-1}}` -- get the last element of the user roles array (alternative)
 - implementation for option 2:
   - _getNestedProperty(obj, path, arg)
     - add third parameter arg

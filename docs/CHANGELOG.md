@@ -1,6 +1,123 @@
-# jPulse Docs / Version History v1.4.12
+# jPulse Docs / Version History v1.4.13
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.13, W-133, 2026-01-13
+
+**Commit:** `W-133, v1.4.13: handlebars: add date.add, date.diff helpers, add user.timezone context, expand handlebars in broadcast messages`
+
+**FEATURE RELEASE**: Enhanced Handlebars date helpers with date arithmetic and broadcast message Handlebars expansion.
+
+**Objectives**:
+- Ability for site admins to set a broadcast message like "Scheduled downtime in 3 days, 18 hours"
+- Support date arithmetic operations in Handlebars templates
+- Provide browser timezone in context for authenticated and unauthenticated users
+
+**Key Features**:
+- **New `{{date.add}}` Helper**: Add or subtract time units from a date
+  - Symmetrical API: `value` and `unit` parameters (e.g., `value=7 unit="days"`)
+  - Supports all time units: years, months, weeks, days, hours, minutes, seconds, milliseconds
+  - Use negative values to subtract (e.g., `value=-7 unit="days"`)
+  - Supports singular and plural unit names (e.g., `"day"` or `"days"`)
+  - Returns timestamp in milliseconds
+- **New `{{date.diff}}` Helper**: Calculate difference between two dates
+  - Returns difference in specified unit (default: milliseconds)
+  - Supports all time units: years, months, weeks, days, hours, minutes, seconds, milliseconds
+  - If only one date provided, uses current time as second date
+  - Returns negative values when first date is later than second date
+- **Broadcast Message Handlebars Expansion**: Broadcast messages can now contain Handlebars expressions
+  - Server-side expansion at context build time
+  - Conditional expansion: only expands if message contains `{{` (performance optimization)
+  - Caching: reuses expanded message if already computed (prevents re-expansion on recursive calls)
+  - Error handling: falls back to raw message if expansion fails
+  - Expanded message stored in `appConfig.system.broadcastMessage` for template use
+- **`{{user.timezone}}` Context Variable**: Browser timezone available in Handlebars context
+  - Shows IANA timezone (e.g., `America/Los_Angeles`)
+  - Available for both authenticated and unauthenticated users
+  - Falls back to server timezone if browser cookie not found
+  - Used automatically by `{{date.format timezone="browser"}}` helper
+- **Format Token Changes**: `%TIME%` and `%DATETIME%` now show `hours:minutes` (no seconds)
+  - Simplified time display for better readability
+  - Backward compatible with existing templates
+
+**Code Changes**:
+
+**webapp/controller/handlebar.js**:
+- Added `{{date.add}}` helper: `_handleDateAdd()` function
+  - Supports years, months, weeks, days, hours, minutes, seconds, milliseconds
+  - Symmetrical API with `value` and `unit` parameters
+  - Handles singular and plural unit names
+  - Returns timestamp in milliseconds
+- Added `{{date.diff}}` helper: `_handleDateDiff()` function
+  - Calculates difference between two dates in specified unit
+  - Default unit: milliseconds
+  - Supports approximate calculations for years and months
+  - Rounds results for non-millisecond units (2 decimal places)
+- Added `_parseDateValue()` shared helper function
+  - Centralizes date parsing logic for code reuse
+  - Used by `_handleDateParse()`, `_handleDateFormat()`, `_handleDateFromNow()`, `_handleDateAdd()`, `_handleDateDiff()`
+- Enhanced `_buildInternalContext()`:
+  - Added `user.timezone` to context (from cookie, fallback to server timezone)
+  - Added broadcast message Handlebars expansion logic
+  - Conditional expansion only if message contains `{{`
+  - Caching check to prevent re-expansion on recursive calls
+  - Stores expanded message in `appConfig.system.broadcastMessage`
+- Fixed timezone conversion bug: changed `const date` to `let date` in `_handleDateFormat()` to allow reassignment during timezone offset application
+- Updated `_handleDateFormat()` to use `user.timezone` from context instead of reading cookie directly
+- Changed `%TIME%` and `%DATETIME%` format tokens to show `hours:minutes` instead of `hours:minutes:seconds`
+
+**webapp/view/jpulse-footer.tmpl**:
+- Changed from `{{siteConfig.broadcast.message}}` to `{{appConfig.system.broadcastMessage}}` to use expanded message
+
+**webapp/app.conf**:
+- Added `'appConfig.system.broadcastMessage'` to `controller.handlebar.contextFilter.alwaysAllow` to ensure expanded message is visible to unauthenticated users
+
+**webapp/tests/unit/controller/handlebar-date-helpers.test.js**:
+- Added 17 unit tests for `{{date.add}}` helper:
+  - All time units (years, months, weeks, days, hours, minutes, seconds, milliseconds)
+  - Positive and negative values (addition and subtraction)
+  - Current time fallback when no date provided
+  - ISO date strings and timestamp numbers
+  - Singular and plural unit names
+  - Error handling (invalid dates, missing parameters, invalid units)
+  - Month overflow handling
+- Added 16 unit tests for `{{date.diff}}` helper:
+  - All time units (years, months, weeks, days, hours, minutes, seconds, milliseconds)
+  - Negative differences (when first date is later)
+  - Current time fallback when only one date provided
+  - ISO date strings and timestamp numbers
+  - Singular and plural unit names, `ms` alias
+  - Error handling (invalid dates)
+  - Rounding for non-millisecond units
+- Updated existing tests for `%TIME%` and `%DATETIME%` format changes (removed seconds)
+- Updated timezone conversion tests to verify correct conversion (not showing UTC when browser timezone is set)
+
+**docs/handlebars.md**:
+- Added documentation for `{{date.add}}` helper with examples
+- Added documentation for `{{date.diff}}` helper with examples
+- Updated `{{date.format}}` documentation to reflect `%TIME%` and `%DATETIME%` format changes
+- Added example showing scheduled downtime broadcast message with Handlebars expressions
+
+**Documentation**:
+- Updated README.md and docs/README.md with v1.4.13 release highlights
+- Updated CHANGELOG.md with W-133 details
+- Updated work-items.md to mark W-133 as completed with full deliverables
+
+**Bug Fixes**:
+- Fixed timezone conversion bug: `const date` prevented reassignment during timezone offset application
+- Fixed broadcast message not visible to unauthenticated users (added to `alwaysAllow` context filter)
+
+**Breaking Changes**:
+- `%TIME%` and `%DATETIME%` format tokens now show `hours:minutes` instead of `hours:minutes:seconds` (simplified format)
+
+**Migration Steps**:
+- If templates rely on seconds in `%TIME%` or `%DATETIME%`, use `%H%:%MIN%:%SEC%` for full time display
+- Broadcast messages with Handlebars expressions are now automatically expanded (no action needed)
+
+**Work Item**: W-133
+**Version**: v1.4.13
+**Release Date**: 2026-01-13
 
 ________________________________________________
 ## v1.4.12, W-132, 2026-01-12

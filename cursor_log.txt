@@ -12693,3 +12693,65 @@ STATUS: completed
 
 
 ============================================================
+2026-01-11 22:51
+
+W-133, v1.4.13: handlebars: add date.add, date.diff helpers, add user.timezone context, expand handlebars in broadcast messages
+
+Summary:
+- Added {{date.add}} helper: add/subtract time units from dates (symmetrical API with value and unit parameters)
+- Added {{date.diff}} helper: calculate difference between two dates in specified unit
+- Added {{user.timezone}} context variable: browser timezone available in Handlebars context (e.g., America/Los_Angeles)
+- Enhanced broadcast messages: Handlebars expressions now expanded server-side at context build time
+- Fixed timezone conversion bug: changed const date to let date in _handleDateFormat() to allow reassignment
+- Changed %TIME% and %DATETIME% format tokens to show hours:minutes instead of hours:minutes:seconds
+- Added 33 comprehensive unit tests (17 for date.add, 16 for date.diff)
+
+Implementation Details:
+
+1. Date Helpers (webapp/controller/handlebar.js):
+   - Added _handleDateAdd() function: supports years, months, weeks, days, hours, minutes, seconds, milliseconds
+   - Added _handleDateDiff() function: calculates difference in all time units (default: milliseconds)
+   - Refactored date parsing into shared _parseDateValue() helper for code reuse
+   - Fixed timezone conversion bug: const date prevented reassignment during timezone offset application
+   - Updated _handleDateFormat() to use user.timezone from context instead of reading cookie directly
+   - Changed %TIME% and %DATETIME% format tokens to show hours:minutes (no seconds)
+
+2. Context Enhancements (webapp/controller/handlebar.js):
+   - Added user.timezone to _buildInternalContext() (from cookie, fallback to server timezone)
+   - Available for both authenticated and unauthenticated users
+   - Used automatically by {{date.format timezone="browser"}} helper
+
+3. Broadcast Message Expansion (webapp/controller/handlebar.js):
+   - Added Handlebars expansion logic in _buildInternalContext()
+   - Conditional expansion: only expands if message contains {{
+   - Caching: reuses expanded message if already computed (prevents re-expansion on recursive calls)
+   - Error handling: falls back to raw message if expansion fails
+   - Stores expanded message in appConfig.system.broadcastMessage
+
+4. Template Updates:
+   - webapp/view/jpulse-footer.tmpl: Changed from {{siteConfig.broadcast.message}} to {{appConfig.system.broadcastMessage}}
+   - webapp/app.conf: Added 'appConfig.system.broadcastMessage' to alwaysAllow context filter
+
+5. Tests (webapp/tests/unit/controller/handlebar-date-helpers.test.js):
+   - Added 17 unit tests for {{date.add}} helper (all time units, positive/negative values, edge cases, error handling)
+   - Added 16 unit tests for {{date.diff}} helper (all time units, negative differences, current time fallback, error handling)
+   - Updated existing tests for %TIME% and %DATETIME% format changes (removed seconds)
+   - Updated timezone conversion tests to verify correct conversion
+
+6. Documentation:
+   - Updated docs/handlebars.md with {{date.add}} and {{date.diff}} documentation
+   - Updated README.md and docs/README.md with v1.4.13 release highlights
+   - Updated docs/CHANGELOG.md with W-133 details
+   - Updated docs/dev/work-items.md to mark W-133 as completed
+
+Bug Fixes:
+- Fixed timezone conversion bug: const date prevented reassignment during timezone offset application
+- Fixed broadcast message not visible to unauthenticated users (added to alwaysAllow context filter)
+
+Breaking Changes:
+- %TIME% and %DATETIME% format tokens now show hours:minutes instead of hours:minutes:seconds
+
+STATUS: completed
+
+
+============================================================

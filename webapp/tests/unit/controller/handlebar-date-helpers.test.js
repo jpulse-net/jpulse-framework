@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-131: Date helpers (date.now, date.parse, date.format) and W-132: Timezone support
  * @description     Tests for date helpers for Unix timestamp operations and timezone formatting
  * @file            webapp/tests/unit/controller/handlebar-date-helpers.test.js
- * @version         1.4.12
- * @release         2026-01-12
+ * @version         1.4.13
+ * @release         2026-01-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -175,7 +175,7 @@ describe('W-131: Handlebars Date Helpers', () => {
                 testDate: testDate
             });
 
-            expect(result.trim()).toBe('14:53:20');
+            expect(result.trim()).toBe('14:53');
         });
 
         test('should format date value with %DATETIME% token', async () => {
@@ -185,7 +185,7 @@ describe('W-131: Handlebars Date Helpers', () => {
                 testDate: testDate
             });
 
-            expect(result.trim()).toBe('2025-01-18 14:53:20');
+            expect(result.trim()).toBe('2025-01-18 14:53');
         });
 
         test('should format date value with individual tokens', async () => {
@@ -248,15 +248,21 @@ describe('W-131: Handlebars Date Helpers', () => {
             });
 
             // Should format in server timezone (exact value depends on server TZ)
-            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
         });
 
         test('should format with timezone="browser" when cookie is set', async () => {
             const testDate = new Date('2025-01-18T14:53:20Z');
             const mockReqWithCookie = {
                 ...mockReq,
-                cookies: { timezone: 'America/New_York' }
+                cookies: { timezone: 'America/New_York' },
+                baseContext: undefined // Clear any cached context to force rebuild
             };
+
+            // Verify context is built with user.timezone
+            const context = await HandlebarController._buildInternalContext(mockReqWithCookie);
+            expect(context.user.timezone).toBe('America/New_York');
+
             const template = '{{date.format testDate format="%DATETIME%" timezone="browser"}}';
             const result = await HandlebarController.expandHandlebars(mockReqWithCookie, template, {
                 testDate: testDate
@@ -264,9 +270,11 @@ describe('W-131: Handlebars Date Helpers', () => {
 
             // Should format in browser timezone (America/New_York = UTC-5 in January)
             // 14:53 UTC = 09:53 EST
-            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
-            // Verify it's different from UTC (which would be 14:53)
-            expect(result.trim()).not.toContain('14:53:20');
+            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+            // Verify it's different from UTC (which would be 14:53) - should be converted to EST
+            expect(result.trim()).not.toContain('14:53');
+            // Verify it contains a valid time (not empty)
+            expect(result.trim()).toMatch(/\d{2}:\d{2}/);
         });
 
         test('should format with timezone="browser" when cookie is not set (fallback to server)', async () => {
@@ -277,7 +285,7 @@ describe('W-131: Handlebars Date Helpers', () => {
             });
 
             // Should fallback to server timezone
-            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
         });
 
         test('should format with timezone="browser" using manual cookie parsing', async () => {
@@ -293,20 +301,27 @@ describe('W-131: Handlebars Date Helpers', () => {
             });
 
             // Should format in browser timezone (America/Los_Angeles = UTC-8 in January)
-            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
         });
 
         test('should format with specific IANA timezone', async () => {
             const testDate = new Date('2025-01-18T14:53:20Z');
+            const mockReqFresh = {
+                ...mockReq,
+                baseContext: undefined // Clear any cached context
+            };
             const template = '{{date.format testDate format="%DATETIME%" timezone="America/New_York"}}';
-            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+            const result = await HandlebarController.expandHandlebars(mockReqFresh, template, {
                 testDate: testDate
             });
 
             // Should format in America/New_York timezone (UTC-5 in January)
             // 14:53 UTC = 09:53 EST
-            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
-            expect(result.trim()).not.toContain('14:53:20');
+            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
+            // Verify it's converted to EST (not UTC 14:53)
+            expect(result.trim()).not.toContain('14:53');
+            // Verify it contains a valid time (not empty)
+            expect(result.trim()).toMatch(/\d{2}:\d{2}/);
         });
 
         test('should format ISO with timezone offset for non-UTC timezone', async () => {
@@ -355,7 +370,7 @@ describe('W-131: Handlebars Date Helpers', () => {
                 testDate: testDate
             });
 
-            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
         });
 
         test('should format with timezone="user" (alias for browser)', async () => {
@@ -369,7 +384,7 @@ describe('W-131: Handlebars Date Helpers', () => {
                 testDate: testDate
             });
 
-            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
         });
 
         test('should format with timezone="view" (alias for browser)', async () => {
@@ -383,7 +398,7 @@ describe('W-131: Handlebars Date Helpers', () => {
                 testDate: testDate
             });
 
-            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+            expect(result.trim()).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/);
         });
 
         test('should handle invalid timezone gracefully (fallback to UTC)', async () => {
@@ -410,14 +425,21 @@ describe('W-131: Handlebars Date Helpers', () => {
 
         test('should format TIME token with timezone', async () => {
             const testDate = new Date('2025-01-18T14:53:20Z');
+            const mockReqFresh = {
+                ...mockReq,
+                baseContext: undefined // Clear any cached context
+            };
             const template = '{{date.format testDate format="%TIME%" timezone="America/New_York"}}';
-            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+            const result = await HandlebarController.expandHandlebars(mockReqFresh, template, {
                 testDate: testDate
             });
 
             // Should format time in timezone (14:53 UTC = 09:53 EST)
-            expect(result.trim()).toMatch(/^\d{2}:\d{2}:\d{2}$/);
-            expect(result.trim()).not.toBe('14:53:20'); // Should be different from UTC
+            expect(result.trim()).toMatch(/^\d{2}:\d{2}$/);
+            // Verify it's converted to EST (not UTC 14:53)
+            expect(result.trim()).not.toBe('14:53');
+            // Verify it contains a valid time (not empty)
+            expect(result.trim().length).toBeGreaterThan(0);
         });
 
         test('should format with timezone and custom format string', async () => {
@@ -618,6 +640,430 @@ describe('W-131: Handlebars Date Helpers', () => {
             });
 
             expect(result.trim()).toMatch(/^in \d+d \d+h$/);
+        });
+    });
+
+    describe('{{date.add}} Helper', () => {
+        test('should add days to a date', async () => {
+            const testDate = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.add testDate value=7 unit="days"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                testDate: testDate
+            });
+            const timestamp = parseInt(result.trim(), 10);
+            const expected = new Date('2025-01-25T14:53:20Z').getTime();
+
+            expect(timestamp).toBe(expected);
+        });
+
+        test('should subtract days from a date (negative value)', async () => {
+            const testDate = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.add testDate value=-7 unit="days"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                testDate: testDate
+            });
+            const timestamp = parseInt(result.trim(), 10);
+            const expected = new Date('2025-01-11T14:53:20Z').getTime();
+
+            expect(timestamp).toBe(expected);
+        });
+
+        test('should add hours to a date', async () => {
+            const testDate = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.add testDate value=5 unit="hours"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                testDate: testDate
+            });
+            const timestamp = parseInt(result.trim(), 10);
+            const expected = new Date('2025-01-18T19:53:20Z').getTime();
+
+            expect(timestamp).toBe(expected);
+        });
+
+        test('should add months to a date', async () => {
+            const testDate = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.add testDate value=2 unit="months"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                testDate: testDate
+            });
+            const timestamp = parseInt(result.trim(), 10);
+            // JavaScript setMonth() may be affected by DST, so calculate expected value
+            const expectedDate = new Date(testDate);
+            expectedDate.setMonth(expectedDate.getMonth() + 2);
+            const expected = expectedDate.getTime();
+
+            expect(timestamp).toBe(expected);
+        });
+
+        test('should add years to a date', async () => {
+            const testDate = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.add testDate value=1 unit="years"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                testDate: testDate
+            });
+            const timestamp = parseInt(result.trim(), 10);
+            const expected = new Date('2026-01-18T14:53:20Z').getTime();
+
+            expect(timestamp).toBe(expected);
+        });
+
+        test('should add weeks to a date', async () => {
+            const testDate = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.add testDate value=2 unit="weeks"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                testDate: testDate
+            });
+            const timestamp = parseInt(result.trim(), 10);
+            const expected = new Date('2025-02-01T14:53:20Z').getTime();
+
+            expect(timestamp).toBe(expected);
+        });
+
+        test('should add minutes to a date', async () => {
+            const testDate = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.add testDate value=30 unit="minutes"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                testDate: testDate
+            });
+            const timestamp = parseInt(result.trim(), 10);
+            const expected = new Date('2025-01-18T15:23:20Z').getTime();
+
+            expect(timestamp).toBe(expected);
+        });
+
+        test('should add seconds to a date', async () => {
+            const testDate = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.add testDate value=45 unit="seconds"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                testDate: testDate
+            });
+            const timestamp = parseInt(result.trim(), 10);
+            const expected = new Date('2025-01-18T14:54:05Z').getTime();
+
+            expect(timestamp).toBe(expected);
+        });
+
+        test('should add milliseconds to a date', async () => {
+            const testDate = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.add testDate value=500 unit="milliseconds"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                testDate: testDate
+            });
+            const timestamp = parseInt(result.trim(), 10);
+            const expected = new Date('2025-01-18T14:53:20.500Z').getTime();
+
+            expect(timestamp).toBe(expected);
+        });
+
+        test('should use current time if no date provided', async () => {
+            const before = Date.now();
+            const template = '{{date.add value=1 unit="days"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {});
+            const after = Date.now();
+            const timestamp = parseInt(result.trim(), 10);
+            const expectedBefore = before + (24 * 60 * 60 * 1000);
+            const expectedAfter = after + (24 * 60 * 60 * 1000);
+
+            expect(timestamp).toBeGreaterThanOrEqual(expectedBefore);
+            expect(timestamp).toBeLessThanOrEqual(expectedAfter);
+        });
+
+        test('should handle ISO date string', async () => {
+            const template = '{{date.add "2025-01-18T14:53:20Z" value=7 unit="days"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {});
+            const timestamp = parseInt(result.trim(), 10);
+            const expected = new Date('2025-01-25T14:53:20Z').getTime();
+
+            expect(timestamp).toBe(expected);
+        });
+
+        test('should handle timestamp number', async () => {
+            const testTimestamp = new Date('2025-01-18T14:53:20Z').getTime();
+            const template = `{{date.add ${testTimestamp} value=7 unit="days"}}`;
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {});
+            const timestamp = parseInt(result.trim(), 10);
+            const expected = new Date('2025-01-25T14:53:20Z').getTime();
+
+            expect(timestamp).toBe(expected);
+        });
+
+        test('should handle singular unit names', async () => {
+            const testDate = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.add testDate value=7 unit="day"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                testDate: testDate
+            });
+            const timestamp = parseInt(result.trim(), 10);
+            const expected = new Date('2025-01-25T14:53:20Z').getTime();
+
+            expect(timestamp).toBe(expected);
+        });
+
+        test('should return empty string for invalid date', async () => {
+            const template = '{{date.add "invalid-date" value=7 unit="days"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {});
+
+            expect(result.trim()).toBe('');
+        });
+
+        test('should return empty string for missing value parameter', async () => {
+            const testDate = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.add testDate unit="days"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                testDate: testDate
+            });
+
+            expect(result.trim()).toBe('');
+        });
+
+        test('should return empty string for missing unit parameter', async () => {
+            const testDate = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.add testDate value=7}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                testDate: testDate
+            });
+
+            expect(result.trim()).toBe('');
+        });
+
+        test('should return empty string for invalid unit', async () => {
+            const testDate = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.add testDate value=7 unit="invalid"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                testDate: testDate
+            });
+
+            expect(result.trim()).toBe('');
+        });
+
+        test('should handle month overflow correctly', async () => {
+            const testDate = new Date('2025-01-31T14:53:20Z');
+            const template = '{{date.add testDate value=1 unit="months"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                testDate: testDate
+            });
+            const timestamp = parseInt(result.trim(), 10);
+            // JavaScript setMonth() rolls over to next month when day doesn't exist
+            // January 31 + 1 month = March 3 (Feb 31 doesn't exist, so it rolls to March)
+            const expectedDate = new Date(testDate);
+            expectedDate.setMonth(expectedDate.getMonth() + 1);
+            const expected = expectedDate.getTime();
+
+            expect(timestamp).toBe(expected);
+        });
+    });
+
+    describe('{{date.diff}} Helper', () => {
+        test('should calculate difference in days', async () => {
+            const date1 = new Date('2025-01-18T14:53:20Z');
+            const date2 = new Date('2025-01-25T14:53:20Z');
+            const template = '{{date.diff date1 date2 unit="days"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date1: date1,
+                date2: date2
+            });
+            const diff = parseFloat(result.trim());
+
+            expect(diff).toBe(7);
+        });
+
+        test('should calculate negative difference when first date is later', async () => {
+            const date1 = new Date('2025-01-25T14:53:20Z');
+            const date2 = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.diff date1 date2 unit="days"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date1: date1,
+                date2: date2
+            });
+            const diff = parseFloat(result.trim());
+
+            expect(diff).toBe(-7);
+        });
+
+        test('should calculate difference in hours', async () => {
+            const date1 = new Date('2025-01-18T14:53:20Z');
+            const date2 = new Date('2025-01-18T19:53:20Z');
+            const template = '{{date.diff date1 date2 unit="hours"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date1: date1,
+                date2: date2
+            });
+            const diff = parseFloat(result.trim());
+
+            expect(diff).toBe(5);
+        });
+
+        test('should calculate difference in minutes', async () => {
+            const date1 = new Date('2025-01-18T14:53:20Z');
+            const date2 = new Date('2025-01-18T14:58:20Z');
+            const template = '{{date.diff date1 date2 unit="minutes"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date1: date1,
+                date2: date2
+            });
+            const diff = parseFloat(result.trim());
+
+            expect(diff).toBe(5);
+        });
+
+        test('should calculate difference in seconds', async () => {
+            const date1 = new Date('2025-01-18T14:53:20Z');
+            const date2 = new Date('2025-01-18T14:53:25Z');
+            const template = '{{date.diff date1 date2 unit="seconds"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date1: date1,
+                date2: date2
+            });
+            const diff = parseFloat(result.trim());
+
+            expect(diff).toBe(5);
+        });
+
+        test('should calculate difference in milliseconds (default)', async () => {
+            const date1 = new Date('2025-01-18T14:53:20Z');
+            const date2 = new Date('2025-01-18T14:53:20.500Z');
+            const template = '{{date.diff date1 date2}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date1: date1,
+                date2: date2
+            });
+            const diff = parseInt(result.trim(), 10);
+
+            expect(diff).toBe(500);
+        });
+
+        test('should calculate difference in weeks', async () => {
+            const date1 = new Date('2025-01-18T14:53:20Z');
+            const date2 = new Date('2025-02-01T14:53:20Z');
+            const template = '{{date.diff date1 date2 unit="weeks"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date1: date1,
+                date2: date2
+            });
+            const diff = parseFloat(result.trim());
+
+            expect(Math.round(diff)).toBe(2);
+        });
+
+        test('should calculate difference in months (approximate)', async () => {
+            const date1 = new Date('2025-01-18T14:53:20Z');
+            const date2 = new Date('2025-03-18T14:53:20Z');
+            const template = '{{date.diff date1 date2 unit="months"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date1: date1,
+                date2: date2
+            });
+            const diff = parseFloat(result.trim());
+
+            // Approximate: should be close to 2 months
+            expect(diff).toBeGreaterThan(1.9);
+            expect(diff).toBeLessThan(2.1);
+        });
+
+        test('should calculate difference in years (approximate)', async () => {
+            const date1 = new Date('2025-01-18T14:53:20Z');
+            const date2 = new Date('2026-01-18T14:53:20Z');
+            const template = '{{date.diff date1 date2 unit="years"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date1: date1,
+                date2: date2
+            });
+            const diff = parseFloat(result.trim());
+
+            // Approximate: should be close to 1 year
+            expect(diff).toBeGreaterThan(0.99);
+            expect(diff).toBeLessThan(1.01);
+        });
+
+        test('should use current time as second date if only one date provided', async () => {
+            const date1 = new Date(Date.now() - (24 * 60 * 60 * 1000)); // 1 day ago
+            const template = '{{date.diff date1 unit="days"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date1: date1
+            });
+            const diff = parseFloat(result.trim());
+
+            // Should be approximately 1 day (allowing small margin for execution time)
+            expect(diff).toBeGreaterThan(0.99);
+            expect(diff).toBeLessThan(1.01);
+        });
+
+        test('should handle ISO date strings', async () => {
+            const template = '{{date.diff "2025-01-18T14:53:20Z" "2025-01-25T14:53:20Z" unit="days"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {});
+            const diff = parseFloat(result.trim());
+
+            expect(diff).toBe(7);
+        });
+
+        test('should handle timestamp numbers', async () => {
+            const date1 = new Date('2025-01-18T14:53:20Z').getTime();
+            const date2 = new Date('2025-01-25T14:53:20Z').getTime();
+            const template = `{{date.diff ${date1} ${date2} unit="days"}}`;
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {});
+            const diff = parseFloat(result.trim());
+
+            expect(diff).toBe(7);
+        });
+
+        test('should handle singular unit names', async () => {
+            const date1 = new Date('2025-01-18T14:53:20Z');
+            const date2 = new Date('2025-01-25T14:53:20Z');
+            const template = '{{date.diff date1 date2 unit="day"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date1: date1,
+                date2: date2
+            });
+            const diff = parseFloat(result.trim());
+
+            expect(diff).toBe(7);
+        });
+
+        test('should handle ms unit alias', async () => {
+            const date1 = new Date('2025-01-18T14:53:20Z');
+            const date2 = new Date('2025-01-18T14:53:20.500Z');
+            const template = '{{date.diff date1 date2 unit="ms"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date1: date1,
+                date2: date2
+            });
+            const diff = parseInt(result.trim(), 10);
+
+            expect(diff).toBe(500);
+        });
+
+        test('should return empty string for invalid first date', async () => {
+            const date2 = new Date('2025-01-25T14:53:20Z');
+            const template = '{{date.diff "invalid-date" date2 unit="days"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date2: date2
+            });
+
+            expect(result.trim()).toBe('');
+        });
+
+        test('should return empty string for invalid second date', async () => {
+            const date1 = new Date('2025-01-18T14:53:20Z');
+            const template = '{{date.diff date1 "invalid-date" unit="days"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date1: date1
+            });
+
+            expect(result.trim()).toBe('');
+        });
+
+        test('should round result for non-millisecond units', async () => {
+            const date1 = new Date('2025-01-18T14:53:20Z');
+            const date2 = new Date('2025-01-18T14:53:20.123Z');
+            const template = '{{date.diff date1 date2 unit="seconds"}}';
+            const result = await HandlebarController.expandHandlebars(mockReq, template, {
+                date1: date1,
+                date2: date2
+            });
+            const diff = parseFloat(result.trim());
+
+            // Should be rounded to 2 decimal places
+            expect(diff).toBe(0.12);
         });
     });
 });

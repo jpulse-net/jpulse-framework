@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.4.12
+# jPulse Docs / Handlebars Templating v1.4.13
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -752,6 +752,21 @@ The helper automatically selects the most appropriate time units (years, months,
 - Show "last seen" or "last updated" times: `"Last updated {{date.fromNow vars.updatedAt}}"`
 - Countdown timers: `"Expires {{date.fromNow vars.expiryDate}}"`
 - Activity feeds: `"Posted {{date.fromNow vars.postedAt}}"`
+
+**Example:**
+
+Set a scheduled downtime broadcast message in configure:
+
+```
+{{let downtimeStart=(date.parse "2026-01-17T16:00:00Z")}}
+Scheduled downtime this Saturday,
+{{date.format vars.downtimeStart format="%DATETIME%" timezone="browser"}}
+for 2 hours, starting {{date.fromNow vars.downtimeStart format="long 2"}}.
+```
+
+Results in a broadcast message showing the actual local time in the user's browser:
+
+![Scheduled downtime broadcast message](./images/scheduled-downtime-700.png)
 
 ### String Helpers
 

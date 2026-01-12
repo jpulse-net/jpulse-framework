@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.4.12
- * @release         2026-01-12
+ * @version         1.4.13
+ * @release         2026-01-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -44,6 +44,8 @@ class HandlebarController {
         {name: 'appCluster', type: 'regular', source: 'jpulse', description: 'Redis cluster availability information', example: '{{appCluster.*}}'},
         {name: 'appConfig', type: 'regular', source: 'jpulse', description: 'Full application configuration (filtered based on auth)', example: '{{appConfig.*}}'},
         {name: 'components', type: 'regular', source: 'jpulse', description: 'Reusable component call with parameters. Static: `{{components.jpIcons.configSvg size="64"}}`. Dynamic: `{{components name="sidebar.toc"}}` or `{{components name=(this)}}`', example: '{{components.jpIcons.configSvg size="64"}}'},
+        {name: 'date.add', type: 'regular', source: 'jpulse', description: 'Add time units to a date. Returns timestamp in milliseconds. Use `value` and `unit` parameters (e.g., `value=7 unit="days"`). Units: `years`, `months`, `weeks`, `days`, `hours`, `minutes`, `seconds`, `milliseconds`. Use negative values to subtract (e.g., `value=-7 unit="days"`)', example: '{{date.add vars.startDate value=7 unit="days"}}'},
+        {name: 'date.diff', type: 'regular', source: 'jpulse', description: 'Calculate difference between two dates. Returns number in specified unit. Units: `years`, `months`, `weeks`, `days`, `hours`, `minutes`, `seconds`, `milliseconds`. Default: `milliseconds`', example: '{{date.diff vars.endDate vars.startDate unit="days"}}'},
         {name: 'date.format', type: 'regular', source: 'jpulse', description: 'Format date value to string in UTC (default), server, browser, or specific timezone. Tokens: `%DATE%`, `%TIME%`, `%DATETIME%`, `%Y%`, `%M%`, `%D%`, `%H%`, `%MIN%`, `%SEC%`, `%MS%`, `%ISO%` (default)', example: '{{date.format vars.chatTime format="%DATE%" timezone="browser"}}'},
         {name: 'date.fromNow', type: 'regular', source: 'jpulse', description: 'Format date as relative time from now, e.g. "in 6 days, 13 hours" or "2 hours ago". Format: `long`/`short` with units (1-3), default: `long 2`', example: '{{date.fromNow vars.downtimeStart format="long 2"}}'},
         {name: 'date.now', type: 'regular', source: 'jpulse', description: 'Get current unix timestamp in milliseconds', example: '{{date.now}}'},
@@ -685,6 +687,28 @@ class HandlebarController {
             }
         };
 
+        // W-133: Get browser timezone from cookie, fallback to server timezone
+        let browserTimezone = req.cookies?.timezone || null;
+        if (!browserTimezone && req?.headers?.cookie) {
+            // Manual cookie parsing fallback
+            const cookies = req.headers.cookie.split(';').map(c => c.trim());
+            for (const cookie of cookies) {
+                const [key, value] = cookie.split('=');
+                if (key === 'timezone') {
+                    browserTimezone = decodeURIComponent(value);
+                    break;
+                }
+            }
+        }
+        // Fallback to server timezone if cookie not found
+        if (!browserTimezone) {
+            try {
+                browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            } catch (e) {
+                browserTimezone = process.env.TZ || 'UTC';
+            }
+        }
+
         const baseContext = {
             app: appConfig.app,
             user: {
@@ -702,7 +726,8 @@ class HandlebarController {
                 }, {}),
                 isAuthenticated: AuthController.isAuthenticated(req),
                 isAdmin: AuthController.isAuthorized(req, adminRoles),
-                preferences: req.session?.user?.preferences || {}
+                preferences: req.session?.user?.preferences || {},
+                timezone: browserTimezone
             },
             // W-131: Normalize for Handlebars (Date → timestamp, null/undefined → '', etc.)
             siteConfig: normalizeForContext(this.globalConfig?.data || {}),
@@ -732,6 +757,34 @@ class HandlebarController {
         const context = ContextExtensions
             ? await ContextExtensions.getExtendedContext(baseContext, req)
             : baseContext; // Fallback if not loaded yet
+
+        // W-133: Expand Handlebars in broadcast message if it contains {{ expressions
+        const broadcastMessage = context.siteConfig?.broadcast?.message;
+
+        // Check if already expanded (from previous recursive call)
+        if (req.baseContext?.appConfig?.system?.broadcastMessage !== undefined) {
+            // Already expanded, reuse it
+            context.appConfig.system.broadcastMessage = req.baseContext.appConfig.system.broadcastMessage;
+        } else if (typeof broadcastMessage === 'string' && broadcastMessage.includes('{{')) {
+            // Needs expansion - expand using current context
+            try {
+                // Set baseContext temporarily to avoid recursion in _expandHandlebars
+                req.baseContext = context;
+
+                const expandedMessage = await this._expandHandlebars(req, broadcastMessage, {}, 0);
+                context.appConfig.system.broadcastMessage = expandedMessage;
+
+                // Don't restore req.baseContext - expandHandlebars() will set it correctly when called
+            } catch (error) {
+                LogController.logWarning(req, 'handlebar._buildInternalContext',
+                    `Failed to expand broadcast message: ${error.message}`);
+                // Fallback to raw message on error
+                context.appConfig.system.broadcastMessage = broadcastMessage;
+            }
+        } else if (broadcastMessage) {
+            // No Handlebars, store as-is
+            context.appConfig.system.broadcastMessage = broadcastMessage;
+        }
 
         // Filter context based on authentication status
         return this._filterContext(context, AuthController.isAuthenticated(req));
@@ -1188,6 +1241,10 @@ class HandlebarController {
                     return _handleDateFormat(parsedArgs, currentContext);
                 case 'date.fromNow':
                     return _handleDateFromNow(parsedArgs, currentContext);
+                case 'date.add':
+                    return _handleDateAdd(parsedArgs, currentContext);
+                case 'date.diff':
+                    return _handleDateDiff(parsedArgs, currentContext);
 
                 // File helpers
                 case 'file.include':
@@ -2340,6 +2397,54 @@ class HandlebarController {
         }
 
         /**
+         * Helper function to parse date value to Date object
+         * @param {*} dateValue - Date value (timestamp, Date object, ISO string, etc.)
+         * @returns {Date|null} Date object or null if invalid
+         * @private
+         */
+        function _parseDateValue(dateValue) {
+            if (!dateValue && dateValue !== 0) {
+                return null;
+            }
+
+            if (typeof dateValue === 'number') {
+                return new Date(dateValue);
+            }
+
+            if (dateValue instanceof Date) {
+                return dateValue;
+            }
+
+            if (typeof dateValue === 'string') {
+                if (dateValue.trim() === '') {
+                    return null;
+                }
+                const date = new Date(dateValue);
+                return isNaN(date.getTime()) ? null : date;
+            }
+
+            if (typeof dateValue === 'object' && dateValue !== null) {
+                if (typeof dateValue.valueOf === 'function') {
+                    try {
+                        const timestamp = dateValue.valueOf();
+                        if (typeof timestamp === 'number' && !isNaN(timestamp)) {
+                            return new Date(timestamp);
+                        }
+                    } catch (e) {
+                        return null;
+                    }
+                }
+                if (dateValue.$date) {
+                    // MongoDB-style date
+                    const date = new Date(dateValue.$date);
+                    return isNaN(date.getTime()) ? null : date;
+                }
+            }
+
+            return null;
+        }
+
+        /**
          * W-131: Handle date.parse helper - parse date value to unix timestamp
          * Converts Date object, ISO string, or timestamp to unix timestamp (milliseconds)
          * @param {object} parsedArgs - Parsed arguments with _target or date parameter
@@ -2358,48 +2463,13 @@ class HandlebarController {
                 return String(dateValue);
             }
 
-            // If Date object, use valueOf()
-            if (dateValue instanceof Date) {
-                return String(dateValue.valueOf());
+            // Use _parseDateValue to handle all other cases
+            const date = _parseDateValue(dateValue);
+            if (!date || isNaN(date.getTime())) {
+                return '';
             }
 
-            // Try to parse as Date from string
-            if (typeof dateValue === 'string') {
-                // Handle empty string
-                if (dateValue.trim() === '') {
-                    return '';
-                }
-                const date = new Date(dateValue);
-                if (!isNaN(date.getTime())) {
-                    return String(date.valueOf());
-                }
-            }
-
-            // Handle case where Date might have been JSON.stringify'd
-            // JSON.stringify converts Date to ISO string, but we need to check if it's a JSON object
-            if (typeof dateValue === 'object' && dateValue !== null) {
-                // If it has a valueOf method (like Date), use it
-                if (typeof dateValue.valueOf === 'function') {
-                    try {
-                        const timestamp = dateValue.valueOf();
-                        if (typeof timestamp === 'number' && !isNaN(timestamp)) {
-                            return String(timestamp);
-                        }
-                    } catch (e) {
-                        // Ignore errors
-                    }
-                }
-                // If it's a JSON-stringified Date (shouldn't happen, but handle it)
-                if (dateValue.$date) {
-                    // MongoDB-style date
-                    const date = new Date(dateValue.$date);
-                    if (!isNaN(date.getTime())) {
-                        return String(date.valueOf());
-                    }
-                }
-            }
-
-            return '';
+            return String(date.valueOf());
         }
 
         /**
@@ -2471,41 +2541,8 @@ class HandlebarController {
                 dateValue = Date.now();
             }
 
-            // Convert to Date object
-            let date;
-            if (typeof dateValue === 'number') {
-                date = new Date(dateValue);
-            } else if (dateValue instanceof Date) {
-                date = dateValue;
-            } else if (typeof dateValue === 'string') {
-                if (dateValue.trim() === '') {
-                    return '';
-                }
-                date = new Date(dateValue);
-            } else if (typeof dateValue === 'object' && dateValue !== null) {
-                // Handle case where Date might have been JSON.stringify'd
-                if (typeof dateValue.valueOf === 'function') {
-                    try {
-                        const timestamp = dateValue.valueOf();
-                        if (typeof timestamp === 'number' && !isNaN(timestamp)) {
-                            date = new Date(timestamp);
-                        } else {
-                            return '';
-                        }
-                    } catch (e) {
-                        return '';
-                    }
-                } else if (dateValue.$date) {
-                    // MongoDB-style date
-                    date = new Date(dateValue.$date);
-                } else {
-                    return '';
-                }
-            } else {
-                return '';
-            }
-
-            // Validate date
+            // Convert to Date object using shared helper
+            let date = _parseDateValue(dateValue);
             if (!date || isNaN(date.getTime())) {
                 return '';
             }
@@ -2517,15 +2554,8 @@ class HandlebarController {
             if (tzParam === 'server') {
                 targetTimezone = _getServerTimezone();
             } else if (tzParam === 'browser' || tzParam === 'client' || tzParam === 'user' || tzParam === 'view') {
-                // Read from cookie (try cookie-parser first, fallback to manual parsing)
-                const req = currentContext._handlebar?.req;
-                if (req) {
-                    targetTimezone = req.cookies?.timezone || _parseCookie(req, 'timezone');
-                }
-                // Fallback to server timezone if cookie not found
-                if (!targetTimezone) {
-                    targetTimezone = _getServerTimezone();
-                }
+                // W-133: Use user.timezone from context (set during context build, fallback to server tz only)
+                targetTimezone = currentContext?.user?.timezone || _getServerTimezone();
             } else if (tzParam && typeof tzParam === 'string') {
                 // Specific IANA timezone (e.g., "America/Los_Angeles")
                 targetTimezone = tzParam;
@@ -2568,7 +2598,7 @@ class HandlebarController {
                 .replace(/%ISO%/g, isoString)
                 .replace(/%DATETIME%/g, '%DATE% %TIME%')
                 .replace(/%DATE%/g, `${year}-${month}-${day}`)
-                .replace(/%TIME%/g, `${hours}:${minutes}:${seconds}`)
+                .replace(/%TIME%/g, `${hours}:${minutes}`)
                 .replace(/%Y%/g, String(year))
                 .replace(/%M%/g, month)
                 .replace(/%D%/g, day)
@@ -2599,39 +2629,8 @@ class HandlebarController {
                 return '';
             }
 
-            // Convert to Date object (reuse logic from _handleDateFormat)
-            let date;
-            if (typeof dateValue === 'number') {
-                date = new Date(dateValue);
-            } else if (dateValue instanceof Date) {
-                date = dateValue;
-            } else if (typeof dateValue === 'string') {
-                if (dateValue.trim() === '') {
-                    return '';
-                }
-                date = new Date(dateValue);
-            } else if (typeof dateValue === 'object' && dateValue !== null) {
-                if (typeof dateValue.valueOf === 'function') {
-                    try {
-                        const timestamp = dateValue.valueOf();
-                        if (typeof timestamp === 'number' && !isNaN(timestamp)) {
-                            date = new Date(timestamp);
-                        } else {
-                            return '';
-                        }
-                    } catch (e) {
-                        return '';
-                    }
-                } else if (dateValue.$date) {
-                    date = new Date(dateValue.$date);
-                } else {
-                    return '';
-                }
-            } else {
-                return '';
-            }
-
-            // Validate date
+            // Convert to Date object using shared helper
+            const date = _parseDateValue(dateValue);
             if (!date || isNaN(date.getTime())) {
                 return '';
             }
@@ -2793,6 +2792,173 @@ class HandlebarController {
 
             // Fallback to English if i18n not available
             return isFuture ? `in ${range}` : `${range} ago`;
+        }
+
+        /**
+         * W-133: Handle date.add helper - add time units to a date
+         * Adds specified time units to a date and returns timestamp in milliseconds
+         * Uses symmetrical API: value + unit (e.g., value=7 unit="days")
+         * @param {object} parsedArgs - Parsed arguments with _target/date, value, and unit parameters
+         * @param {object} currentContext - Current context
+         * @returns {string} Timestamp in milliseconds, or empty string if invalid
+         */
+        function _handleDateAdd(parsedArgs, currentContext) {
+            let dateValue = parsedArgs._target || parsedArgs.date || parsedArgs._args?.[0];
+
+            // Check if dateValue is explicitly provided
+            const hasDateValue = parsedArgs._target !== undefined || parsedArgs.date !== undefined || (parsedArgs._args && parsedArgs._args.length > 0 && parsedArgs._args[0] !== undefined);
+
+            // If no date value provided, use current time
+            if (!hasDateValue) {
+                dateValue = Date.now();
+            }
+
+            // Parse date value
+            const date = _parseDateValue(dateValue);
+            if (!date || isNaN(date.getTime())) {
+                return '';
+            }
+
+            // Get value and unit parameters
+            const value = parsedArgs.value;
+            const unit = parsedArgs.unit ? parsedArgs.unit.toLowerCase() : null;
+
+            // Validate required parameters
+            if (value === undefined || !unit) {
+                return '';
+            }
+
+            // Parse value to number
+            const numValue = typeof value === 'string' ? parseFloat(value) : (typeof value === 'number' ? value : 0);
+            if (isNaN(numValue)) {
+                return '';
+            }
+
+            // Create new date with added time
+            const result = new Date(date);
+
+            // Add time unit based on unit parameter
+            switch (unit) {
+                case 'years':
+                case 'year':
+                    result.setFullYear(result.getFullYear() + numValue);
+                    break;
+                case 'months':
+                case 'month':
+                    result.setMonth(result.getMonth() + numValue);
+                    break;
+                case 'weeks':
+                case 'week':
+                    result.setDate(result.getDate() + (numValue * 7));
+                    break;
+                case 'days':
+                case 'day':
+                    result.setDate(result.getDate() + numValue);
+                    break;
+                case 'hours':
+                case 'hour':
+                    result.setHours(result.getHours() + numValue);
+                    break;
+                case 'minutes':
+                case 'minute':
+                    result.setMinutes(result.getMinutes() + numValue);
+                    break;
+                case 'seconds':
+                case 'second':
+                    result.setSeconds(result.getSeconds() + numValue);
+                    break;
+                case 'milliseconds':
+                case 'millisecond':
+                case 'ms':
+                    result.setMilliseconds(result.getMilliseconds() + numValue);
+                    break;
+                default:
+                    return '';
+            }
+
+            return String(result.getTime());
+        }
+
+        /**
+         * W-133: Handle date.diff helper - calculate difference between two dates
+         * Calculates the difference between two dates in the specified unit
+         * @param {object} parsedArgs - Parsed arguments with two dates and unit parameter
+         * @param {object} currentContext - Current context
+         * @returns {string} Difference as number, or empty string if invalid
+         */
+        function _handleDateDiff(parsedArgs, currentContext) {
+            // Get two dates from arguments
+            // First date: _target or date1 or first positional arg
+            // Second date: date2 or second positional arg
+            let date1Value = parsedArgs._target || parsedArgs.date1 || parsedArgs._args?.[0];
+            let date2Value = parsedArgs.date2 || parsedArgs._args?.[1];
+
+            // If only one date provided, use current time as second date
+            if (!date2Value && date2Value !== 0) {
+                date2Value = Date.now();
+            }
+
+            // Parse both dates
+            const date1 = _parseDateValue(date1Value);
+            const date2 = _parseDateValue(date2Value);
+
+            if (!date1 || !date2 || isNaN(date1.getTime()) || isNaN(date2.getTime())) {
+                return '';
+            }
+
+            // Calculate difference in milliseconds
+            const diffMs = date2.getTime() - date1.getTime();
+
+            // Get unit parameter (default: milliseconds)
+            const unit = (parsedArgs.unit || 'milliseconds').toLowerCase();
+
+            // Convert to requested unit
+            let result;
+            switch (unit) {
+                case 'years':
+                case 'year':
+                    // Approximate: 365.25 days per year
+                    result = diffMs / (365.25 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'months':
+                case 'month':
+                    // Approximate: 30.44 days per month
+                    result = diffMs / (30.44 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'weeks':
+                case 'week':
+                    result = diffMs / (7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'days':
+                case 'day':
+                    result = diffMs / (24 * 60 * 60 * 1000);
+                    break;
+                case 'hours':
+                case 'hour':
+                    result = diffMs / (60 * 60 * 1000);
+                    break;
+                case 'minutes':
+                case 'minute':
+                    result = diffMs / (60 * 1000);
+                    break;
+                case 'seconds':
+                case 'second':
+                    result = diffMs / 1000;
+                    break;
+                case 'milliseconds':
+                case 'millisecond':
+                case 'ms':
+                default:
+                    result = diffMs;
+                    break;
+            }
+
+            // Return as string (rounded for non-millisecond units)
+            if (unit === 'milliseconds' || unit === 'millisecond' || unit === 'ms') {
+                return String(Math.round(result));
+            }
+            // Round to reasonable precision for other units
+            return String(Math.round(result * 100) / 100);
         }
 
         /**

@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.4.13
- * @release         2026-01-13
+ * @version         1.4.14
+ * @release         2026-01-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -2607,6 +2607,8 @@ window.jPulse = {
              * Initialize site navigation from appConfig
              * @param {Object} options - Configuration
              * @param {string} options.currentUrl - Current page URL for active state
+             * @param {Object} options.siteNavigation - Site navigation structure (main menu)
+             * @param {Object} options.userNavigation - User dropdown menu structure (W-134)
              * @param {Array} options.userRoles - User roles for visibility control
              * @param {number} options.openDelay - Delay before opening menu (ms)
              * @param {number} options.closeDelay - Delay before closing menu (ms)
@@ -2643,14 +2645,19 @@ window.jPulse = {
                     ? options.submenuCloseDelay
                     : (typeof options.submenuCloseDelay === 'string' ? parseInt(options.submenuCloseDelay, 10) : 600);
 
-                // Get navigation structure from options parameter (passed from server)
-                const navConfig = options.navigation;
+                // Get site navigation structure from options parameter (passed from server)
+                const navConfig = options.siteNavigation
                 if (!navConfig || Object.keys(navConfig).length === 0) {
                     console.warn('- jPulse.UI.navigation: No navigation structure provided');
                     return null;
                 }
                 // Sanitize navigation to remove null deletion markers (W-098)
                 jPulse.UI.navigation._navConfig = jPulse.UI.navigation._sanitizeNavStructure(navConfig);
+
+                // Store user dropdown config (W-134)
+                if (options.userNavigation) {
+                    jPulse.UI.navigation._userDropdownConfig = jPulse.UI.navigation._sanitizeNavStructure(options.userNavigation);
+                }
 
                 // Create navigation dropdown element
                 jPulse.UI.navigation._createDropdown();
@@ -2660,6 +2667,11 @@ window.jPulse = {
 
                 // Initialize mobile menu (W-069-B)
                 jPulse.UI.navigation._initMobileMenu();
+
+                // Initialize user dropdown menu (W-134)
+                if (options.userNavigation) {
+                    jPulse.UI.navigation._initUserDropdown();
+                }
 
                 jPulse.UI.navigation._initialized = true;
 
@@ -3334,6 +3346,9 @@ window.jPulse = {
                 // Clean up mobile menu
                 jPulse.UI.navigation._destroyMobileMenu();
 
+                // Clean up user dropdown
+                jPulse.UI.navigation._destroyUserDropdown();
+
                 jPulse.UI.navigation._initialized = false;
                 jPulse.UI.navigation._registeredPages = {};
             },
@@ -3626,6 +3641,186 @@ window.jPulse = {
              */
             _destroyMobileMenu: () => {
                 jPulse.UI.navigation._closeMobileMenu();
+            },
+
+            // ========================================
+            // USER DROPDOWN MENU FUNCTIONS (W-134)
+            // ========================================
+
+            /**
+             * Initialize user dropdown menu (called from init)
+             */
+            _initUserDropdown: () => {
+                const userIcon = document.getElementById('jp-user-icon');
+                const dropdown = document.getElementById('userDropdown');
+                const userMenu = document.querySelector('.jp-user-menu');
+
+                if (!userIcon || !dropdown || !userMenu) {
+                    return;
+                }
+
+                // Render user dropdown content
+                jPulse.UI.navigation._renderUserDropdown();
+
+                // Setup hover/tap behavior (consistent with site navigation)
+                jPulse.UI.navigation._setupUserDropdownHandlers();
+            },
+
+            /**
+             * Render user dropdown menu HTML
+             */
+            _renderUserDropdown: () => {
+                const dropdown = document.getElementById('userDropdown');
+                if (!dropdown) {
+                    return;
+                }
+
+                const userConfig = jPulse.UI.navigation._userDropdownConfig;
+                if (!userConfig || !userConfig.pages) {
+                    console.warn('- jPulse.UI.navigation: No user dropdown config provided');
+                    return;
+                }
+
+                // Render user menu items (only pages, not the parent)
+                const html = jPulse.UI.navigation._renderUserDropdownLevel(userConfig.pages, 0);
+                dropdown.innerHTML = html;
+            },
+
+            /**
+             * Render user dropdown level (recursive, similar to mobile nav)
+             */
+            _renderUserDropdownLevel: (navItems, depth) => {
+                if (depth > 5 || !navItems || typeof navItems !== 'object') {
+                    return '';
+                }
+
+                let html = '';
+                Object.entries(navItems).forEach(([key, item]) => {
+                    // Check role visibility
+                    if (item.role && !jPulse.UI.navigation._userRoles.includes(item.role)) {
+                        return;
+                    }
+
+                    // Check hideInDropdown flag
+                    if (item.hideInDropdown) {
+                        return;
+                    }
+
+                    // Render as link
+                    html += `<a href="${item.url || '#'}" class="jp-dropdown-item">`;
+
+                    // Icon (if present)
+                    if (item.icon) {
+                        html += jPulse.UI.navigation._renderIcon(item.icon, 'jp-dropdown-icon');
+                    }
+
+                    // Label
+                    html += `<span>${item.label || key}</span>`;
+                    html += `</a>`;
+
+                    // Handle nested pages (recursive)
+                    if (item.pages && typeof item.pages === 'object') {
+                        html += jPulse.UI.navigation._renderUserDropdownLevel(item.pages, depth + 1);
+                    }
+                });
+
+                return html;
+            },
+
+            /**
+             * Setup user dropdown hover/tap handlers
+             */
+            _setupUserDropdownHandlers: () => {
+                const userIcon = document.getElementById('jp-user-icon');
+                const dropdown = document.getElementById('userDropdown');
+                const userMenu = document.querySelector('.jp-user-menu');
+
+                if (!userIcon || !dropdown || !userMenu) {
+                    return;
+                }
+
+                let hideTimeout = null;
+                const isMobileDevice = jPulse.device.isMobile() || jPulse.device.isTouchDevice();
+
+                if (isMobileDevice) {
+                    // Mobile: tap to toggle behavior ONLY
+                    userIcon.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        dropdown.classList.toggle('show');
+                    });
+
+                    // Close on outside tap
+                    document.addEventListener('click', (event) => {
+                        if (!userMenu.contains(event.target)) {
+                            dropdown.classList.remove('show');
+                        }
+                    });
+
+                    // Close on menu item selection
+                    dropdown.addEventListener('click', (event) => {
+                        if (event.target.tagName === 'A') {
+                            dropdown.classList.remove('show');
+                        }
+                    });
+
+                    // Prevent mouse events from interfering on mobile
+                    userIcon.addEventListener('mouseenter', (e) => e.preventDefault());
+                    userIcon.addEventListener('mouseleave', (e) => e.preventDefault());
+                    dropdown.addEventListener('mouseenter', (e) => e.preventDefault());
+                    dropdown.addEventListener('mouseleave', (e) => e.preventDefault());
+
+                } else {
+                    // Desktop: hover behavior like site navigation ONLY
+                    const openDelay = jPulse.UI.navigation._openDelay || 300;
+                    const closeDelay = jPulse.UI.navigation._closeDelay || 500;
+
+                    userIcon.addEventListener('mouseenter', () => {
+                        if (hideTimeout) {
+                            clearTimeout(hideTimeout);
+                            hideTimeout = null;
+                        }
+                        dropdown.classList.add('show');
+                    });
+
+                    userIcon.addEventListener('mouseleave', (e) => {
+                        if (!dropdown.contains(e.relatedTarget)) {
+                            hideTimeout = setTimeout(() => {
+                                dropdown.classList.remove('show');
+                                hideTimeout = null;
+                            }, closeDelay);
+                        }
+                    });
+
+                    dropdown.addEventListener('mouseenter', () => {
+                        if (hideTimeout) {
+                            clearTimeout(hideTimeout);
+                            hideTimeout = null;
+                        }
+                        dropdown.classList.add('show');
+                    });
+
+                    dropdown.addEventListener('mouseleave', () => {
+                        hideTimeout = setTimeout(() => {
+                            dropdown.classList.remove('show');
+                            hideTimeout = null;
+                        }, closeDelay);
+                    });
+
+                    // Prevent click events from interfering on desktop hover
+                    userIcon.addEventListener('click', (e) => e.preventDefault());
+                }
+            },
+
+            /**
+             * Destroy user dropdown (cleanup)
+             */
+            _destroyUserDropdown: () => {
+                const dropdown = document.getElementById('userDropdown');
+                if (dropdown) {
+                    dropdown.classList.remove('show');
+                    dropdown.innerHTML = '';
+                }
             }
         },
 
@@ -5576,9 +5771,21 @@ window.jPulse = {
                 // Add a small offset to visually separate from .jp-main
                 const top = Math.min(MAX_MARGIN, topBase + 5);
 
-                // Bottom: symmetry within white page background (exclude blue banner area)
-                // bottom = top - headerHeight (clamp to [0..MAX_MARGIN])
-                const bottom = Math.max(10, Math.min(MAX_MARGIN, top - headerHeight));
+                // Bottom: Calculate from where .jp-main actually ends
+                // For fixed positioning: bottom value = distance from viewport bottom
+                // So to stop sidebar at mainBottom: bottom = viewportHeight - mainBottom
+                const viewportHeight = window.innerHeight;
+                const mainBottom = mainRect.top + mainRect.height;
+
+                // Calculate space needed to stop at content end, with small gap
+                const gap = 20; // Small gap between sidebar and content bottom
+                const bottomNeeded = Math.max(gap, viewportHeight - mainBottom - gap);
+
+                // Only clamp to MAX_MARGIN if content extends beyond normal page height
+                // Otherwise use actual calculated value to stop at content
+                const bottom = mainBottom < (viewportHeight - MAX_MARGIN)
+                    ? bottomNeeded  // Short content: use calculated value (don't clamp)
+                    : Math.max(10, Math.min(MAX_MARGIN, topBase - headerHeight)); // Tall content: use symmetry
 
                 this._stickyViewportOffsetsCache = { top, bottom };
                 return this._stickyViewportOffsetsCache;
@@ -5783,9 +5990,15 @@ window.jPulse = {
                 this._updateMainLayout(main);
             },
 
-            layoutAll() {
+            layoutAll(options = {}) {
                 // Don't layout during drag to prevent interference
                 if (this._isDragging) return;
+
+                // Clear cache by default (most layout triggers mean something changed)
+                // Set useCache: true only for performance optimization when you know offsets haven't changed
+                if (!options.useCache) {
+                    this._stickyViewportOffsetsCache = null;
+                }
 
                 const main = this._main || document.querySelector('.jp-main');
                 if (!main) return;
@@ -6944,7 +7157,6 @@ window.jPulse = {
                     const current = document.querySelector('.jp-main');
                     if (current && current !== this._main) {
                         this._observeMain(current);
-                        this._stickyViewportOffsetsCache = null;
                         this.layoutAll();
                     }
                 });
@@ -7088,7 +7300,6 @@ window.jPulse = {
                 });
 
                 window.addEventListener('resize', () => {
-                    this._stickyViewportOffsetsCache = null;
                     this.layoutAll();
 
                     // Update hover zones in sticky mode (fixed positioning requires viewport-relative recalculation)

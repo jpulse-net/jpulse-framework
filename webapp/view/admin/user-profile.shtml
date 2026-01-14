@@ -4,8 +4,8 @@
  * @tagline         Admin user profile management with view and edit capabilities
  * @description     Admin user profile management with view and edit modes
  * @file            webapp/view/admin/user-profile.shtml
- * @version         1.4.13
- * @release         2026-01-13
+ * @version         1.4.14
+ * @release         2026-01-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -277,7 +277,7 @@
 
                 <!-- Preferences Section -->
                 <div class="local-profile-section">
-                    <h3>{{i18n.view.user.profile.preferences}}</h3>
+                    <h3>{{i18n.view.admin.userProfile.preferencesSection}}</h3>
                     <form id="preferencesForm" class="jp-form">
                         <div class="jp-form-grid">
                             <div class="jp-form-group">

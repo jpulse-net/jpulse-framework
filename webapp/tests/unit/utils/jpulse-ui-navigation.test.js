@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.navigation Widget (W-069)
  * @description     Tests for client-side site navigation dropdown and mobile hamburger menu
  * @file            webapp/tests/unit/utils/jpulse-ui-navigation.test.js
- * @version         1.4.13
- * @release         2026-01-13
+ * @version         1.4.14
+ * @release         2026-01-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -128,7 +128,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         const handle = window.jPulse.UI.navigation.init({
             currentUrl: '/admin/config.shtml',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         expect(handle).not.toBeNull();
@@ -143,13 +143,13 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/admin/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const handle = window.jPulse.UI.navigation.init({
             currentUrl: '/admin/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         expect(handle).toBeNull();
@@ -177,7 +177,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/admin/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const dropdown = document.getElementById('jp-site-nav-dropdown');
@@ -196,7 +196,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/admin/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const dropdown = document.getElementById('jp-site-nav-dropdown');
@@ -216,7 +216,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/admin/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const dropdown = document.getElementById('jp-site-nav-dropdown');
@@ -230,7 +230,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/jpulse-docs/',
             userRoles: [],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const dropdown = document.getElementById('jp-site-nav-dropdown');
@@ -244,7 +244,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/admin/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const dropdown = document.getElementById('jp-site-nav-dropdown');
@@ -264,7 +264,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/',
             userRoles: [],  // No roles
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const dropdown = document.getElementById('jp-site-nav-dropdown');
@@ -282,7 +282,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/admin/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const dropdown = document.getElementById('jp-site-nav-dropdown');
@@ -301,7 +301,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/admin/config.shtml',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const dropdown = document.getElementById('jp-site-nav-dropdown');
@@ -315,7 +315,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/admin/config.shtml',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const dropdown = document.getElementById('jp-site-nav-dropdown');
@@ -340,7 +340,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/jpulse-docs/',
             userRoles: [],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const mockCallback = async () => ({
@@ -359,7 +359,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/admin/',  // Not on /jpulse-docs/
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const mockCallback = jest.fn(async () => ({}));
@@ -375,7 +375,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/jpulse-docs/',
             userRoles: [],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const originalHTML = document.getElementById('jp-site-nav-dropdown').innerHTML;
@@ -486,7 +486,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/admin/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const dropdown = document.getElementById('jp-site-nav-dropdown');
@@ -508,7 +508,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/admin/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         expect(document.getElementById('jp-site-nav-dropdown')).not.toBeNull();
@@ -529,7 +529,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const emojiIcon = window.jPulse.UI.navigation._renderIcon('⚙️');
@@ -545,7 +545,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/',
             userRoles: [],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const icon1 = window.jPulse.UI.navigation._renderIcon('/assets/icons/test.svg');
@@ -559,7 +559,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/',
             userRoles: [],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const emptyIcon = window.jPulse.UI.navigation._renderIcon('');
@@ -602,7 +602,7 @@ describe('jPulse.UI.navigation Mobile Menu (W-069-B)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const hamburger = document.getElementById('jp-hamburger');
@@ -619,7 +619,7 @@ describe('jPulse.UI.navigation Mobile Menu (W-069-B)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const mobileMenu = document.getElementById('jp-mobile-menu');
@@ -632,7 +632,7 @@ describe('jPulse.UI.navigation Mobile Menu (W-069-B)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const mobileMenu = document.getElementById('jp-mobile-menu');
@@ -645,7 +645,7 @@ describe('jPulse.UI.navigation Mobile Menu (W-069-B)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const mobileMenu = document.getElementById('jp-mobile-menu');
@@ -658,7 +658,7 @@ describe('jPulse.UI.navigation Mobile Menu (W-069-B)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const hamburger = document.getElementById('jp-hamburger');
@@ -678,7 +678,7 @@ describe('jPulse.UI.navigation Mobile Menu (W-069-B)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const hamburger = document.getElementById('jp-hamburger');
@@ -702,7 +702,7 @@ describe('jPulse.UI.navigation Mobile Menu (W-069-B)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const hamburger = document.getElementById('jp-hamburger');
@@ -725,7 +725,7 @@ describe('jPulse.UI.navigation Mobile Menu (W-069-B)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         // Open menu
@@ -752,7 +752,7 @@ describe('jPulse.UI.navigation Mobile Menu (W-069-B)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const mobileMenu = document.getElementById('jp-mobile-menu');
@@ -765,7 +765,7 @@ describe('jPulse.UI.navigation Mobile Menu (W-069-B)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/admin/config.shtml',
             userRoles: ['admin'],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const mobileMenu = document.getElementById('jp-mobile-menu');
@@ -779,7 +779,7 @@ describe('jPulse.UI.navigation Mobile Menu (W-069-B)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/',
             userRoles: [],  // No admin role
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         const mobileMenu = document.getElementById('jp-mobile-menu');
@@ -793,7 +793,7 @@ describe('jPulse.UI.navigation Mobile Menu (W-069-B)', () => {
         window.jPulse.UI.navigation.init({
             currentUrl: '/jpulse-docs/',
             userRoles: [],
-            navigation: window.appConfig.view.navigation
+            siteNavigation: window.appConfig.view.navigation
         });
 
         // Register dynamic pages

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.13
+# jPulse Docs / Dev / Work Items v1.4.14
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -3972,19 +3972,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - updated date.format documentation with timezone examples and parameter table
     - added complete date.fromNow documentation section with format parameter table and use cases
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-133, v1.4.13, 2026-01-13: handlebars: add date.add, date.diff helpers, add user.timezone context, expand handlebars in broadcast messages
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives: ability for site admins to set a broadcast message like "Scheduled downtime in 3 days, 18 hours"
 - spec & features:
@@ -4025,7 +4014,99 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-134, v1.4.14, 2026-01-14: user view: create SPA for public profiles, user dashboard and user settings
+- status: ✅ DONE
+- type: Feature
+- objective: more intuitive UX for viewing profile pages, and setting user preferences
+- problem: users can't find the settings page easily to change preferences; no public profile view for collaboration features
+- spec & features:
+  - created Single Page Application (SPA) at /user/ with client-side routing (no Vue.js, pure HTML/JavaScript with Handlebars)
+  - SPA routes:
+    - /user/ - dashboard/directory (config-driven, public or authenticated)
+    - /user/me - my dashboard (authenticated, reserved route)
+    - /user/settings - settings page (authenticated, renamed from profile.shtml)
+    - /user/{username} - public profile view (config-driven visibility)
+  - reserved username validation (blocks 'settings', 'me' on signup)
+  - config-driven public profile access control with field filtering
+  - new API endpoint: GET /api/1/user/public/:id (supports ObjectId or username)
+  - updated API endpoint: GET /api/1/user/search (changed from admin-only to policy-based access with field filtering)
+  - dynamic user dropdown menu (data-driven from jpulse-navigation.js, desktop hover + mobile tap)
+  - dashboard with config-driven stats cards and nav cards
+  - full i18n support for all user-facing text
+  - i18n audit test enhancements with // i18n-audit-ignore directive for dynamic keys
+- deliverables:
+  - webapp/model/user.js:
+    - added reserved username validation in validate() method
+  - webapp/controller/user.js:
+    - added _checkPublicProfilePolicy() and _filterPublicProfileFields() private helper methods
+  - webapp/controller/user.js:
+    - added getPublic() method for new public profile endpoint
+    - updated search() method with access control and field filtering
+  - webapp/routes.js:
+    - removed admin middleware from /user/search, added /api/1/user/public/:id route
+  - webapp/view/user/index.shtml:
+    - created SPA entry point with client-side routing
+  - webapp/view/user/dashboard.tmpl:
+    - created dashboard template with config-driven cards and search (limit 50 results)
+  - webapp/view/user/me.tmpl:
+    - created authenticated user dashboard template
+  - webapp/view/user/profile.tmpl:
+    - created public profile view template
+  - webapp/view/user/settings.tmpl:
+    - created settings template (moved from profile.shtml)
+  - webapp/view/user/profile.shtml:
+    - deleted (replaced by SPA templates)
+  - webapp/view/jpulse-common.js:
+    - enhanced navigation.init() with userDropdown parameter and implementation
+  - webapp/view/jpulse-footer.tmpl:
+    - updated to dynamically render user dropdown from navigation data
+  - webapp/view/jpulse-navigation.js:
+    - restructured user menu for dropdown and breadcrumb support
+  - webapp/app.conf:
+    - added model.user.reservedUsernames, controller.user.profile, view.user.index configurations
+    - fixed contextFilter paths (removed redundant appConfig. prefix)
+  - webapp/controller/handlebar.js:
+    - added // i18n-audit-ignore comments for dynamic i18n keys, i.e. to avoid warning in tests
+  - webapp/translations/en.conf:
+    - added 18 new i18n keys for user SPA (view.user.index.*, view.user.settings.*)
+  - webapp/translations/de.conf:
+    - added 18 new i18n keys with German translations
+  - webapp/tests/unit/model/user-reserved-usernames.test.js:
+    - added 18 unit tests for reserved username validation
+  - webapp/tests/unit/i18n/utils/key-extractor.js:
+    - added support for // i18n-audit-ignore directive
+  - webapp/tests/unit/utils/jpulse-ui-navigation.test.js:
+    - updated 49 test calls to use siteNavigation parameter
+  - webapp/tests/unit/controller/handlebar-appconfig-alwaysallow.test.js:
+    - fixed contextFilter paths in test
+  - docs/api-reference.md:
+    - added GET /api/1/user/public/:id documentation, updated GET /api/1/user/search docs
+  - docs/mpa-vs-spa.md:
+    - added comprehensive SPA implementation reference using /user/ as example
+  - docs/CHANGELOG.md:
+    - updated layoutAll() documentation with useCache parameter
+  - docs/handlebars.md:
+    - updated with contextFilter path correction documentation
+  - docs/jpulse-ui-reference.md:
+    - updated layoutAll() reference
+  - docs/sidebars.md:
+    - updated layoutAll() documentation
+  - docs/template-reference.md:
+    - updated layoutAll() reference
+
+
+
+
+
+
+
+
+
 to-do:
+
 
 
 
@@ -4040,6 +4121,7 @@ old pending:
 
 ### Potential next items:
 - W-0: config model: make config schema extendable for site and plugin developers
+- W-0: handlebars: add string helpers
 - W-0: handlebars: add array access functions
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-0: deployment: docker strategy
@@ -4057,8 +4139,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-diff.txt for accuracy and completness of work item
-- assume release: W-133, v1.4.13
-- update deliverables in W-133 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-134, v1.4.14
+- update deliverables in W-134 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4075,12 +4157,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.13
+node bin/bump-version.js 1.4.14
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.13
+git tag v1.4.14
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -4228,6 +4310,24 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - features:
   - the config can be extended in a similar way like the existing user schema extension feature
   - make it data driven, e.g. no need to modify webapp/view/admin/config.shtml when the schema is extended
+- deliverables:
+  - FIXME file:
+    - FIXME summary
+
+### W-0: handlebars: add string manipulation helpers
+- status: 🕑 PENDING
+- type: Feature
+- objective: more flexibility with string manipulation
+- new helpers:
+  - `{{string.length user.name}}`
+  - `{{string.lowercase user.name}}`
+  - `{{string.uppercase user.name}}`
+  - `{{string.titlecase user.name}}`
+  - `{{string.slugify "Hello World!"}}` → `"hello-world"`
+  - `{{string.urlEncode "hello world"}}` → `"hello%20world"`
+  - `{{string.urlDecode "hello%20world"}}` → `"hello world"`
+  - `{{string.htmlEscape}}` → safe HTML, for security & to prevent XSS
+  - `{{string.htmlToText}}` → convert html to text
 - deliverables:
   - FIXME file:
     - FIXME summary

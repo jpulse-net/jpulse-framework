@@ -1,0 +1,111 @@
+<!-- Start webapp/view/user/me.tmpl -->
+{{!--
+ * @name            jPulse Framework / WebApp / View / User / My Dashboard Template
+ * @tagline         User SPA - Dashboard template
+ * @description     W-134: My Dashboard template of user profile SPA, authenticated only
+ * @file            webapp/view/user/dashboard.tmpl
+ * @version         1.4.14
+ * @release         2026-01-14
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 2.3, Claude Sonnet 4.5
+--}}
+{{#component "userSpa.meHtml"}}
+{{#if user.isAuthenticated}}
+    <div class="jp-page-header">
+        <h1>{{i18n.view.user.index.myDashboard}}</h1>
+    </div>
+
+    <!-- User Stats -->
+    <div class="jp-stats-grid" id="userStatsGrid">
+        <div class="jp-stat-card">
+            <div class="jp-stat-number" id="lastLogin">-</div>
+            <div class="jp-stat-label">{{i18n.view.user.index.lastLogin}}</div>
+        </div>
+        <div class="jp-stat-card">
+            <div class="jp-stat-number" id="accountStatus">-</div>
+            <div class="jp-stat-label">{{i18n.view.user.index.accountStatus}}</div>
+        </div>
+        <div class="jp-stat-card">
+            <div class="jp-stat-number" id="memberSince">-</div>
+            <div class="jp-stat-label">{{i18n.view.user.index.memberSince}}</div>
+        </div>
+    </div>
+
+    <!-- Navigation Cards -->
+    <div class="jp-dashboard-grid">
+        <a href="/user/settings" class="jp-card-dashboard jp-icon-btn">
+            <div class="jp-icon-container">
+                {{components.jpIcons.userSvg size="64" _inline=true}}
+            </div>
+            <h3 class="jp-card-title">{{i18n.view.user.index.settings}}</h3>
+            <p class="jp-card-description">{{i18n.view.user.index.settingsDesc}}</p>
+        </a>
+
+        {{#if user.isAdmin}}
+        <a href="/admin/" class="jp-card-dashboard jp-icon-btn">
+            <div class="jp-icon-container">
+                {{components.jpIcons.configSvg size="64"}}
+            </div>
+            <h3 class="jp-card-title">{{i18n.view.user.index.adminDashboard}}</h3>
+            <p class="jp-card-description">{{i18n.view.user.index.adminDashboardDesc}}</p>
+        </a>
+        {{/if}}
+    </div>
+{{else}}
+    <div class="jp-error-box local-error-box">
+        {{i18n.view.auth.common.notAuthenticated}}
+    </div>
+{{/if}}
+{{/component}}
+{{#component "userSpa.meJs"}}
+{{#if user.isAuthenticated}}
+    // W-134: Me page initialization function (called by SPA router)
+    async function initMe() {
+        await loadMeUserData();
+    }
+
+    async function loadMeUserData() {
+        try {
+            const result = await jPulse.api.get('/api/1/user');
+            if (result.success && result.data) {
+                const user = result.data;
+
+                // Update last login
+                const lastLoginEl = document.getElementById('lastLogin');
+                if (lastLoginEl) {
+                    if (user.lastLogin) {
+                        const date = new Date(user.lastLogin);
+                        lastLoginEl.textContent = date.toISOString().split('T')[0];
+                    } else {
+                        lastLoginEl.textContent = '{{i18n.view.user.index.never}}';
+                    }
+                }
+
+                // Update account status
+                const statusEl = document.getElementById('accountStatus');
+                if (statusEl) {
+                    statusEl.textContent = user.status || '{{i18n.view.user.index.unknown}}';
+                }
+
+                // Update member since
+                const memberSinceEl = document.getElementById('memberSince');
+                if (memberSinceEl) {
+                    if (user.createdAt) {
+                        const date = new Date(user.createdAt);
+                        memberSinceEl.textContent = date.toISOString().split('T')[0];
+                    } else {
+                        memberSinceEl.textContent = '{{i18n.view.user.index.unknown}}';
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('- jPulse: Failed to load user data:', error);
+        }
+    }
+{{/if}}
+{{/component}}
+
+<!-- EOF webapp/view/user/me.tmpl -->

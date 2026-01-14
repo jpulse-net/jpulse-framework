@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.4.13
- * @release         2026-01-13
+ * @version         1.4.14
+ * @release         2026-01-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -3152,60 +3152,6 @@ body.jp-mobile-menu-open {
     padding: 10px;
     border-radius: 4px;
 }
-
-/* ========================================
- * THEME SYSTEM (for future W-037: create themes)
- * ======================================== */
-
-/* Light Theme Classes (default) */
-.jp-theme-text-primary { color: #333; }
-.jp-theme-text-secondary { color: #666; }
-.jp-theme-text-muted { color: #999; }
-.jp-theme-bg-primary { background-color: #007acc; }
-.jp-theme-bg-secondary { background-color: #f8f9fa; }
-.jp-theme-bg-light { background-color: #ffffff; }
-.jp-theme-border-light { border-color: #ddd; }
-.jp-theme-border-primary { border-color: #007acc; }
-.jp-theme-shadow-light { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-
-/* Dark Theme Overrides (for future W-0: create themes implementation) */
-/*
-.jp-theme-dark .jp-theme-text-primary { color: #e0e0e0; }
-.jp-theme-dark .jp-theme-text-secondary { color: #b0b0b0; }
-.jp-theme-dark .jp-theme-text-muted { color: #888; }
-.jp-theme-dark .jp-theme-bg-secondary { background-color: #2d3748; }
-.jp-theme-dark .jp-theme-bg-light { background-color: #1a202c; }
-.jp-theme-dark .jp-theme-border-light { border-color: #555; }
-.jp-theme-dark .jp-theme-shadow-light { box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
-
-Body theme class application:
-<body class="jp-theme-{{user.preferences.theme}}">
-*/
-
-/* ========================================
- * SITE OVERRIDE EXAMPLES (for future W-014: framework/site separation)
- * ======================================== */
-
-/*
-Site-specific overrides would go in: site/webapp/view/jpulse-common.css
-
-Example site customizations:
-.jp-header {
-    background: linear-gradient(135deg, #28a745, #20c997);
-}
-
-.jp-btn-primary {
-    background: #28a745;
-}
-
-.jp-btn-primary:hover {
-    background: #218838;
-}
-
-.jp-logo-icon {
-    color: #28a745;
-}
-*/
 
 /* Toast Message System Components (transient, non-blocking, dismissable) */
 .jp-toast {

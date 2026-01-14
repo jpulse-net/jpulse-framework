@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <!--
- * @name            jPulse Framework / WebApp / View / User / Dashboard
- * @tagline         Personal user dashboard
- * @description     User dashboard with profile access and activity summary
+ * @name            jPulse Framework / WebApp / View / User / SPA
+ * @tagline         User SPA - Dashboard, Profiles, and Settings
+ * @description     Single Page Application for user profiles, dashboard, and settings with config-driven behavior
  * @file            webapp/view/user/index.shtml
- * @version         1.4.13
- * @release         2026-01-13
+ * @version         1.4.14
+ * @release         2026-01-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
 -->
@@ -19,100 +19,275 @@
     <title>{{i18n.view.user.index.title}} - {{app.site.shortName}}</title>
 
     {{file.include "jpulse-header.tmpl"}}
+    {{file.include "user/dashboard.tmpl"}}
+    {{file.include "user/me.tmpl"}}
+    {{file.include "user/settings.tmpl"}}
+    {{file.include "user/profile.tmpl"}}
+    <style>
+        /* SPA-specific styles - override global .jp-main min-height */
+        .local-spa-main {
+            min-height: 400px !important;  /* Override jpulse-common.css calc(100vh - 30px) */
+        }
+
+        .local-spa-route {
+            min-height: 400px;
+        }
+
+        /* Profile page styles (shared across profile views) */
+        .local-profile-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--jp-theme-color-primary, #007acc);
+        }
+
+        .local-profile-info h1 {
+            margin: 0;
+            color: var(--jp-theme-text-primary, #333);
+        }
+
+        .local-profile-info h2 {
+            margin: 0;
+            color: var(--jp-theme-text-primary, #333);
+        }
+
+        .local-profile-info .jp-user-details {
+            color: var(--jp-theme-text-secondary, #666);
+            margin: 5px 0;
+        }
+
+        .local-profile-section {
+            margin-bottom: 20px;
+        }
+
+        .local-profile-section h3 {
+            margin-top: 0;
+            color: var(--jp-theme-color-primary, #007acc);
+            border-bottom: 1px solid var(--jp-theme-border-color, #dee2e6);
+            padding-bottom: 10px;
+        }
+
+        .local-profile-section h3.local-no-content-header {
+            margin-bottom: -5px;
+            border-bottom: 0 none;
+            padding-bottom: 0;
+        }
+
+        .local-user-profile .jp-read-only-field {
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+            color: var(--jp-theme-text-secondary, #666);
+        }
+
+        /* Settings page - Plugin card styles (W-107) */
+        .local-plugin-card {
+            margin-bottom: 20px;
+            border: 2px solid transparent;
+        }
+
+        .local-plugin-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--jp-theme-border-color, #dee2e6);
+        }
+
+        .local-plugin-card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .local-plugin-card-title h3 {
+            margin: 0;
+            color: var(--jp-theme-color-primary, #007acc);
+        }
+
+        .local-plugin-card-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .local-plugin-card-description {
+            color: var(--local-plugin-card-text-muted, var(--jp-theme-text-secondary, #666));
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .local-plugin-field-grid {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 10px 15px;
+        }
+
+        .local-plugin-field-label {
+            color: var(--local-plugin-card-text-muted, var(--jp-theme-text-muted, #999));
+            font-weight: 500;
+        }
+
+        .local-plugin-field-value {
+            color: var(--local-plugin-card-text, var(--jp-theme-text-primary, #333));
+        }
+
+        .local-plugin-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .local-plugin-badge-success {
+            background: var(--jp-theme-color-success-bg, #d4edda);
+            color: var(--jp-theme-color-success-text, #155724);
+        }
+
+        .local-plugin-badge-danger {
+            background: var(--jp-theme-color-danger-bg, #f8d7da);
+            color: var(--jp-theme-color-danger-text, #721c24);
+        }
+
+        .local-plugin-badge-warning {
+            background: var(--jp-theme-color-warning-bg, #fff3cd);
+            color: var(--jp-theme-color-warning-text, #856404);
+        }
+
+        .local-plugin-badge-info {
+            background: var(--jp-theme-color-info-bg, #d1ecf1);
+            color: var(--jp-theme-color-info-text, #0c5460);
+        }
+
+        .local-error-box {
+            padding: 15px 20px;
+        }
+    </style>
 </head>
 <body>
-    <div class="jp-main">
-        <div class="jp-page-header">
-            <h1>{{i18n.view.user.index.title}}</h1>
-            <span class="jp-subtitle">{{i18n.view.user.index.subtitle}}</span>
+    <div class="jp-main local-spa-main">
+        {{!-- W-134: SPA content sections (all included, show/hide based on route) --}}
+
+        {{!-- Dashboard route: /user/ --}}
+        <div id="route-dashboard" class="local-spa-route jp-hidden">
+            {{components.userSpa.dashboardHtml}}
         </div>
-        {{#if user.isAuthenticated}}
-            <!-- User Activity Stats -->
-            <div class="jp-stats-grid" id="userStatsGrid">
-                <div class="jp-stat-card">
-                    <div class="jp-stat-number" id="lastLogin">-</div>
-                    <div class="jp-stat-label">{{i18n.view.user.index.lastLogin}}</div>
-                </div>
-                <div class="jp-stat-card">
-                    <div class="jp-stat-number" id="accountStatus">-</div>
-                    <div class="jp-stat-label">{{i18n.view.user.index.accountStatus}}</div>
-                </div>
-                <div class="jp-stat-card">
-                    <div class="jp-stat-number" id="memberSince">-</div>
-                    <div class="jp-stat-label">{{i18n.view.user.index.memberSince}}</div>
-                </div>
-            </div>
 
-            <!-- Dashboard Navigation -->
-            <div class="jp-dashboard-grid">
-                <a href="/user/profile.shtml" class="jp-card-dashboard jp-icon-btn">
-                    <div class="jp-icon-container">
-                        {{components.jpIcons.userSvg size="64" _inline=true}}
-                    </div>
-                    <h3 class="jp-card-title">{{i18n.view.user.index.profileSettings}}</h3>
-                    <p class="jp-card-description">{{i18n.view.user.index.profileSettingsDesc}}</p>
-                </a>
+        {{!-- Me route: /user/me --}}
+        <div id="route-me" class="local-spa-route jp-hidden">
+            {{components.userSpa.meHtml}}
+        </div>
 
-                <!-- Conditional Admin Dashboard (admin/root only) -->
-                {{#if user.isAdmin}}
-                <a href="/admin/" class="jp-card-dashboard jp-icon-btn">
-                    <div class="jp-icon-container">
-                        {{components.jpIcons.configSvg size="64"}}
-                    </div>
-                    <h3 class="jp-card-title">{{i18n.view.user.index.adminDashboard}}</h3>
-                    <p class="jp-card-description">{{i18n.view.user.index.adminDashboardDesc}}</p>
-                </a>
-                {{/if}}
-            </div>
-        {{else}}
-            <div class="jp-error-box">
-                {{i18n.view.auth.common.notAuthenticated}}
-            </div>
-        {{/if}}
+        {{!-- Settings route: /user/settings --}}
+        <div id="route-settings" class="local-spa-route jp-hidden">
+            {{components.userSpa.settingsHtml}}
+        </div>
+
+        {{!-- Profile route: /user/{username} --}}
+        <div id="route-profile" class="local-spa-route jp-hidden">
+            {{components.userSpa.profileHtml}}
+        </div>
     </div>
-
     <script>
-        {{#if user.isAuthenticated}}
-        // Load user dashboard data
-        jPulse.dom.ready(() => {
-            loadUserStats();
-        });
-        {{/if}}
+        // W-134: JavaScript in components
+        {{components.userSpa.dashboardJs}}
+        {{components.userSpa.meJs}}
+        {{components.userSpa.settingsJs}}
+        {{components.userSpa.profileJs}}
 
-        async function loadUserStats() {
-            try {
-                const result = await jPulse.api.get('/api/1/user');
-                if (result.success && result.data) {
-                    const user = result.data;
+        // W-134: Simple SPA routing - show/hide included content
+        const routeMapping = {
+            '/user/': 'route-dashboard',
+            '/user/me': 'route-me',
+            '/user/settings': 'route-settings',
+        };
 
-                    // Update last login
-                    const lastLoginEl = document.getElementById('lastLogin');
-                    if (user.lastLogin) {
-                        const date = new Date(user.lastLogin);
-                        lastLoginEl.textContent = date.toISOString().split('T')[0]; // YYYY-MM-DD format
-                    } else {
-                        lastLoginEl.textContent = 'Never';
+        const initFunctions = {
+            '/user/': 'initDashboard',
+            '/user/me': 'initMe',
+            '/user/settings': 'initSettings',
+        };
+
+        async function loadRoute(path) {
+            // Normalize path
+            const normalizedPath = path.endsWith('/') ? path : path + '/';
+
+            // Check for exact route match first
+            let routeId = routeMapping[normalizedPath] || routeMapping[path];
+            let initFn = initFunctions[normalizedPath] || initFunctions[path];
+
+            // If no exact match, check if it's a profile route (/user/{username})
+            if (!routeId && path.match(/^\/user\/[^\/]+$/)) {
+                routeId = 'route-profile';
+                initFn = 'initProfile';
+            }
+
+            // Hide all routes
+            document.querySelectorAll('.local-spa-route').forEach(route => {
+                route.classList.add('jp-hidden');
+            });
+
+            // Show selected route
+            if (routeId) {
+                const routeEl = document.getElementById(routeId);
+                if (routeEl) {
+                    routeEl.classList.remove('jp-hidden');
+
+                    // Call init function if it exists
+                    if (initFn && window[initFn]) {
+                        await window[initFn]();
                     }
 
-                    // Update account status
-                    const statusEl = document.getElementById('accountStatus');
-                    statusEl.textContent = user.status || 'Unknown';
-
-                    // Update member since
-                    const memberSinceEl = document.getElementById('memberSince');
-                    if (user.createdAt) {
-                        const date = new Date(user.createdAt);
-                        memberSinceEl.textContent = date.toISOString().split('T')[0]; // YYYY-MM-DD format
-                    } else {
-                        memberSinceEl.textContent = 'Unknown';
+                    // Emit content-changed event for TOC and other listeners
+                    if (jPulse.events) {
+                        jPulse.events.emit('content-changed');
                     }
+
+                    // Update sidebar positions after content changes
+                    // Use requestAnimationFrame to ensure DOM has settled
+                    requestAnimationFrame(() => {
+                        if (jPulse.UI?.sidebars) {
+                            jPulse.UI.sidebars.layoutAll();
+                        }
+                    });
+                } else {
+                    console.error('Route element not found:', routeId);
                 }
-            } catch (error) {
-                console.error('- jPulse: Failed to load user stats:', error);
+            } else {
+                // Unknown route - show error
+                document.querySelector('.jp-main').innerHTML = '<div class="jp-error-box local-error-box">{{i18n.view.user.index.pageNotFound}}</div>';
             }
         }
-    </script>
 
+        // Initialize SPA on page load
+        jPulse.dom.ready(async () => {
+            await loadRoute(window.location.pathname);
+
+            // Handle browser back/forward
+            window.addEventListener('popstate', async (event) => {
+                await loadRoute(window.location.pathname);
+            });
+
+            // Intercept clicks on internal links for SPA navigation
+            document.addEventListener('click', (e) => {
+                const link = e.target.closest('a[href^="/user/"]');
+                if (link && !link.hasAttribute('target')) {
+                    e.preventDefault();
+                    const href = link.getAttribute('href');
+                    navigateTo(href);
+                }
+            });
+        });
+
+        // Helper for programmatic navigation
+        async function navigateTo(path) {
+            history.pushState(null, '', path);
+            await loadRoute(path);
+        }
+    </script>
     {{file.include "jpulse-footer.tmpl"}}
 </body>
 </html>

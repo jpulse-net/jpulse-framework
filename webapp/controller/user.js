@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.4.13
- * @release         2026-01-13
+ * @version         1.4.14
+ * @release         2026-01-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -219,6 +219,7 @@ class UserController {
     /**
      * Search users using schema-based query
      * GET /api/1/user/search
+     * W-134: Updated to use profile access policy and field filtering
      * @param {object} req - Express request object
      * @param {object} res - Express response object
      */
@@ -227,9 +228,21 @@ class UserController {
         try {
             LogController.logRequest(req, 'user.search', JSON.stringify(req.query));
 
-            // Authentication and authorization are handled by AuthController.requireRole(['admin', 'root']) middleware
+            // W-134: Check public profile access policy (admins always allowed)
+            if (!UserController._checkPublicProfilePolicy(req)) {
+                const authState = AuthController.isAuthenticated(req) ? 'authenticated' : 'unauthenticated';
+                LogController.logError(req, 'user.search', `error: Public profile access denied for ${authState} user`);
+                const message = global.i18n.translate(req, 'controller.user.getPublicProfile.unauthorized');
+                return global.CommonUtils.sendError(req, res, 403, message, 'PUBLIC_PROFILE_ACCESS_DENIED');
+            }
 
             const results = await UserModel.search(req.query);
+
+            // W-134: Filter fields for each user in results
+            if (results.data && Array.isArray(results.data)) {
+                results.data = results.data.map(user => UserController._filterPublicProfileFields(user, req));
+            }
+
             const elapsed = Date.now() - startTime;
 
             LogController.logInfo(req, 'user.search', `success: search completed in ${elapsed}ms`);
@@ -504,6 +517,77 @@ class UserController {
     }
 
     /**
+     * Get public user profile by ID or username
+     * GET /api/1/user/public/:id
+     * W-134: Public profile endpoint with config-based access control and field filtering
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async getPublic(req, res) {
+        const startTime = Date.now();
+        try {
+            // W-134: Check public profile access policy (admins always allowed)
+            if (!UserController._checkPublicProfilePolicy(req)) {
+                const authState = AuthController.isAuthenticated(req) ? 'authenticated' : 'unauthenticated';
+                LogController.logError(req, 'user.getPublic', `error: Public profile access denied for ${authState} user`);
+                const message = global.i18n.translate(req, 'controller.user.getPublicProfile.unauthorized');
+                return global.CommonUtils.sendError(req, res, 403, message, 'PUBLIC_PROFILE_ACCESS_DENIED');
+            }
+
+            // User lookup (same logic as get())
+            let user = null;
+            let userId = null;
+            let lookupMethod = '';
+
+            if (req.params.id && req.params.id.trim() !== '') {
+                const idParam = req.params.id.trim();
+                const isObjectId = /^[a-fA-F0-9]{24}$/.test(idParam);
+
+                if (isObjectId) {
+                    userId = idParam;
+                    lookupMethod = 'id';
+                    user = await UserModel.findById(userId);
+                } else {
+                    // Fall back to username lookup
+                    lookupMethod = 'username';
+                    user = await UserModel.findByUsername(idParam);
+                    if (user) {
+                        userId = user._id.toString();
+                    }
+                }
+            }
+
+            LogController.logRequest(req, 'user.getPublic', `${lookupMethod}: ${req.params.id || 'unknown'}`);
+
+            if (!user) {
+                const identifier = req.params.id || 'unknown';
+                LogController.logError(req, 'user.getPublic', `error: user not found for ${lookupMethod}: ${identifier}`);
+                const message = global.i18n.translate(req, 'controller.user.get.userNotFound');
+                return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
+            }
+
+            // W-134: Filter fields based on config policy
+            const filteredUser = UserController._filterPublicProfileFields(user, req);
+
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'user.getPublic', `success: user ${userId} retrieved in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.user.get.retrieved');
+
+            res.json({
+                success: true,
+                data: filteredUser,
+                message: message,
+                elapsed
+            });
+
+        } catch (error) {
+            LogController.logError(req, 'user.getPublic', `error: ${error.message}`);
+            const message = global.i18n.translate(req, 'controller.user.get.internalError', { details: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
      * Update user by ID, username, or current session user
      * PUT /api/1/user/:id, PUT /api/1/user?username=..., or PUT /api/1/user (current user)
      * @param {object} req - Express request object
@@ -739,6 +823,88 @@ class UserController {
             const message = global.i18n.translate(req, 'controller.user.getEnums.internalError', { details: error.message });
             return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
+    }
+
+    // ============================================================================
+    // W-134: PRIVATE HELPER METHODS FOR PUBLIC PROFILE ACCESS
+    // ============================================================================
+
+    /**
+     * Check if public profile access is allowed based on config policy
+     * Admins always have access (preserved)
+     * W-134: Used by search() and getPublic() to avoid code duplication
+     * @param {object} req - Express request object
+     * @returns {boolean} True if access allowed, false if denied
+     */
+    static _checkPublicProfilePolicy(req) {
+        const profileConfig = global.appConfig?.controller?.user?.profile || {};
+        const adminRoles = global.appConfig?.controller?.user?.adminRoles || ['admin', 'root'];
+        const isAuthenticated = AuthController.isAuthenticated(req);
+
+        // Admins always have access (preserve admin access)
+        if (isAuthenticated && AuthController.isAuthorized(req, adminRoles)) {
+            return true; // Admin access granted
+        }
+
+        // Determine which policy to check based on auth state
+        const policyConfig = isAuthenticated
+            ? profileConfig.withAuth
+            : profileConfig.withoutAuth;
+
+        // Check if access is allowed
+        if (!policyConfig || !policyConfig.allowed) {
+            return false; // Access denied
+        }
+
+        return true; // Access allowed
+    }
+
+    /**
+     * Filter user object to include only public profile fields based on config
+     * W-134: Shared field filtering logic for both search() and getPublic() methods
+     * @param {object} user - User object from database
+     * @param {object} req - Express request object (for auth state and admin check)
+     * @returns {object} Filtered user object
+     */
+    static _filterPublicProfileFields(user, req) {
+        const profileConfig = global.appConfig?.controller?.user?.profile || {};
+        const adminRoles = global.appConfig?.controller?.user?.adminRoles || ['admin', 'root'];
+        const isAuthenticated = AuthController.isAuthenticated(req);
+        const isAdmin = isAuthenticated && AuthController.isAuthorized(req, adminRoles);
+
+        // Admins get all fields except sensitive ones
+        if (isAdmin) {
+            const { passwordHash, ...adminFields } = user.toObject ? user.toObject() : user;
+            return adminFields;
+        }
+
+        // Determine which fields config to use based on auth state
+        const fieldsConfig = isAuthenticated
+            ? (profileConfig.withAuth?.fields || [])
+            : (profileConfig.withoutAuth?.fields || []);
+
+        // Start with always-included fields
+        const filtered = {
+            username: user.username,
+            profile: {
+                firstName: user.profile?.firstName || '',
+                lastName: user.profile?.lastName || ''
+            },
+            initials: ((user.profile?.firstName?.[0] || '') + (user.profile?.lastName?.[0] || '')).toUpperCase()
+        };
+
+        // Add configured additional fields (handle dot notation)
+        fieldsConfig.forEach(fieldPath => {
+            const value = global.CommonUtils.getValueByPath(user, fieldPath);
+            if (value !== undefined) {
+                global.CommonUtils.setValueByPath(filtered, fieldPath, value);
+            }
+        });
+
+        // Always exclude sensitive fields
+        // passwordHash, etc. are never included
+
+        return filtered;
     }
 }
 

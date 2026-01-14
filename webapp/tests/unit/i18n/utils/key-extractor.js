@@ -3,8 +3,8 @@
  * @tagline         Extract i18n keys from view and controller files
  * @description     Utility to extract translation keys from various source formats
  * @file            webapp/tests/unit/i18n/utils/key-extractor.js
- * @version         1.4.13
- * @release         2026-01-13
+ * @version         1.4.14
+ * @release         2026-01-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -142,6 +142,12 @@ export function extractControllerKeys(content, filePath) {
         }
 
         const lineNumber = content.substring(0, matchIndex).split('\n').length;
+        const lineContent = lines[lineNumber - 1] || '';
+
+        // Skip if line has audit ignore directive
+        if (lineContent.match(/(\/\/|\/\*) *i18n-audit-ignore\b/)) {
+            continue;
+        }
 
         results.push({
             key: variableName,
@@ -159,6 +165,12 @@ export function extractControllerKeys(content, filePath) {
         const matchIndex = match.index;
         const lineNumber = content.substring(0, matchIndex).split('\n').length;
         const lineContent = lines[lineNumber - 1] || '';
+
+        // Skip if line has audit ignore directive
+        if (lineContent.match(/(\/\/|\/\*) *i18n-audit-ignore\b/)) {
+            continue;
+        }
+
         const fullMatch = match[0];
 
         results.push({

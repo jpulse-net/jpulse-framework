@@ -5,8 +5,8 @@
  * @description     Customize framework navigation by directly modifying window.jPulseNavigation
  * @convention      Append mode: This file is concatenated to framework jpulse-navigation.js (W-098)
  * @file            site/webapp/view/jpulse-navigation.js.tmpl
- * @version         1.4.13
- * @release         2026-01-13
+ * @version         1.4.14
+ * @release         2026-01-14
  * @author          Site Administrator
  * @copyright       2025 Site Administrator
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
@@ -25,8 +25,9 @@
  * - Delete sections or pages (set to null)
  *
  * Pattern: Directly modify window.jPulseNavigation
- * - window.jPulseNavigation.site.{section}
- * - window.jPulseNavigation.tabs.{tabGroup}
+ * - window.jPulseNavigation.site.{section}     // for site menu dropdown and breadcrumbs
+ * - window.jPulseNavigation.user.{section}     // for user menu dropdown (on right side)
+ * - window.jPulseNavigation.tabs.{tabGroup}    // for tab bars in pages
  */
 
 // ========================================
@@ -67,7 +68,7 @@
 // ========================================
 // Add site-specific admin pages
 // window.jPulseNavigation.site.admin.pages.contacts = {
-//     label:  '{{i18n.view.navigation.admin.contacts}}',
+//     label:  '{{i18n.view.navigation.site.admin.contacts}}',
 //     url:    '/admin/contacts.shtml',
 //     icon:   '📧'
 // };

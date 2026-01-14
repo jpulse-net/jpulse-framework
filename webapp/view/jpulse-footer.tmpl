@@ -4,8 +4,8 @@
  * @tagline         Footer template for jPulse pages
  * @description     Footer included in all jPulse pages to provide a consistent page layout
  * @file            webapp/view/jpulse-footer.tmpl
- * @version         1.4.13
- * @release         2026-01-13
+ * @version         1.4.14
+ * @release         2026-01-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -37,21 +37,7 @@
               {{/if}}
             </div>
             <div class="jp-dropdown" id="userDropdown">
-              {{#if user.isAuthenticated}}
-                <a href="/user/">{{i18n.view.user.index.dashboard}}</a>
-                <a href="/user/profile.shtml">{{i18n.view.auth.common.profile}}</a>
-                <a href="/auth/logout.shtml">{{i18n.view.auth.common.signout}}</a>
-              {{else}}
-                {{#unless appConfig.view.auth.hideLogin}}
-                <a href="/auth/login.shtml">{{i18n.view.auth.common.signin}}</a>
-                {{/unless}}
-                {{#unless appConfig.view.auth.hideSignup}}
-                <a href="/auth/signup.shtml">{{i18n.view.auth.common.signup}}</a>
-                {{/unless}}
-              {{/if}}
-              {{#if user.isAdmin}}
-                <a href="/admin/">{{i18n.view.user.index.adminDashboard}}</a>
-              {{/if}}
+                <!-- populated by jPulse.UI.navigation.init() (W-134) -->
             </div>
         </div>
     </div>
@@ -172,7 +158,8 @@ jPulse.dom.ready(() => {
     jPulse.UI.navigation.init({
         currentUrl: `{{url.pathname}}`,
         userRoles: {{user.roles}},
-        navigation: window.jPulseNavigation.site,
+        siteNavigation: window.jPulseNavigation.site,
+        userNavigation: window.jPulseNavigation.user,
         openDelay: parseInt(`{{appConfig.view.pageDecoration.siteNavigation.openDelay}}`, 10),
         closeDelay: parseInt(`{{appConfig.view.pageDecoration.siteNavigation.closeDelay}}`, 10),
         submenuCloseDelay: parseInt(`{{appConfig.view.pageDecoration.siteNavigation.submenuCloseDelay}}`, 10)
@@ -186,82 +173,6 @@ jPulse.dom.ready(() => {
         homeLabel: `{{i18n.view.home.title}}`
     });
     {{/if}}
-
-    // Enhanced user menu - hover behavior like site navigation with mobile fallback
-    const userIcon = document.getElementById('jp-user-icon');
-    const dropdown = document.getElementById('userDropdown');
-    const userMenu = document.querySelector('.jp-user-menu');
-
-    if (userIcon && dropdown && userMenu) {
-        let hideTimeout = null;
-        const isMobileDevice = jPulse.device.isMobile() || jPulse.device.isTouchDevice();
-
-        if (isMobileDevice) {
-            // Mobile: tap to toggle behavior ONLY
-            userIcon.addEventListener('click', (event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                dropdown.classList.toggle('show');
-            });
-
-            // Close on outside tap
-            document.addEventListener('click', (event) => {
-                if (!userMenu.contains(event.target)) {
-                    dropdown.classList.remove('show');
-                }
-            });
-
-            // Close on menu item selection
-            dropdown.addEventListener('click', (event) => {
-                if (event.target.tagName === 'A') {
-                    dropdown.classList.remove('show');
-                }
-            });
-
-            // Prevent mouse events from interfering on mobile
-            userIcon.addEventListener('mouseenter', (e) => e.preventDefault());
-            userIcon.addEventListener('mouseleave', (e) => e.preventDefault());
-            dropdown.addEventListener('mouseenter', (e) => e.preventDefault());
-            dropdown.addEventListener('mouseleave', (e) => e.preventDefault());
-
-        } else {
-            // Desktop: hover behavior like site navigation ONLY
-            userIcon.addEventListener('mouseenter', () => {
-                if (hideTimeout) {
-                    clearTimeout(hideTimeout);
-                    hideTimeout = null;
-                }
-                dropdown.classList.add('show');
-            });
-
-            userIcon.addEventListener('mouseleave', (e) => {
-                if (!dropdown.contains(e.relatedTarget)) {
-                    hideTimeout = setTimeout(() => {
-                        dropdown.classList.remove('show');
-                        hideTimeout = null;
-                    }, 600); // Match site menu delay
-                }
-            });
-
-            dropdown.addEventListener('mouseenter', () => {
-                if (hideTimeout) {
-                    clearTimeout(hideTimeout);
-                    hideTimeout = null;
-                }
-                dropdown.classList.add('show');
-            });
-
-            dropdown.addEventListener('mouseleave', () => {
-                hideTimeout = setTimeout(() => {
-                    dropdown.classList.remove('show');
-                    hideTimeout = null;
-                }, 500); // Slightly shorter delay for dropdown
-            });
-
-            // Prevent click events from interfering on desktop hover
-            userIcon.addEventListener('click', (e) => e.preventDefault());
-        }
-    }
 
     // W-118: Initialize heading anchors on page load
     const initHeadingAnchors = () => {

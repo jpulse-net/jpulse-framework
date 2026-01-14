@@ -1,0 +1,147 @@
+<!-- Start webapp/view/user/profile.tmpl -->
+{{!--
+ * @name            jPulse Framework / WebApp / View / User / Public Profile Template
+ * @tagline         User SPA - Public Profile template
+ * @description     W-134: Public Profile template of user profile Single Page Application
+ * @file            webapp/view/user/profile.tmpl
+ * @version         1.4.14
+ * @release         2026-01-14
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 2.3, Claude Sonnet 4.5
+--}}
+{{#component "userSpa.profileHtml"}}
+<div class="jp-container-800" id="profileContainer">
+    <div class="jp-loading">{{i18n.view.user.profile.loading}}</div>
+</div>
+{{/component}}
+{{#component "userSpa.profileJs"}}
+    // W-134: Profile page initialization function (called by SPA router)
+
+    // Pre-render i18n strings for use in client-side error messages
+    const i18n = {
+        accessDenied: '{{i18n.view.user.profile.accessDenied}}',
+        userNotFound: '{{i18n.view.user.profile.userNotFound}}',
+        loadError: '{{i18n.view.user.profile.loadError}}',
+        invalidPath: '{{i18n.view.user.profile.invalidPath}}',
+        additionalInfo: '{{i18n.view.user.profile.additionalInfo}}'
+    };
+
+    async function initProfile() {
+        // Extract username from URL
+        const path = window.location.pathname;
+        const match = path.match(/^\/user\/(.+)$/);
+        const username = match ? match[1] : '';
+
+        if (!username || ['settings', 'me'].includes(username.toLowerCase())) {
+            document.getElementById('profileContainer').innerHTML =
+                `<div class="jp-error-box local-error-box">${i18n.invalidPath}</div>`;
+            return;
+        }
+
+        await loadProfileData(username);
+    }
+
+    async function loadProfileData(username) {
+        const container = document.getElementById('profileContainer');
+
+        try {
+            const result = await jPulse.api.get('/api/1/user/public/' + encodeURIComponent(username));
+
+            if (result.success && result.data) {
+                renderProfile(result.data, container);
+            } else {
+                // Handle 403 or 404
+                if (result.code === 'PUBLIC_PROFILE_ACCESS_DENIED') {
+                    container.innerHTML = `
+                        <div class="jp-error-box local-error-box">
+                            ${i18n.accessDenied}
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="jp-error-box local-error-box">
+                            ${i18n.userNotFound}
+                        </div>
+                    `;
+                }
+            }
+        } catch (error) {
+            container.innerHTML = `
+                <div class="jp-error-box local-error-box">
+                    ${i18n.loadError}: ${error.message}
+                </div>
+            `;
+        }
+    }
+
+    function renderProfile(user, container) {
+        const config = {{appConfig.controller.user.profile}};
+        const isAuthenticated = {{#if user.isAuthenticated}}true{{else}}false{{/if}};
+        const fieldsConfig = isAuthenticated
+            ? (config?.withAuth?.fields || [])
+            : (config?.withoutAuth?.fields || []);
+
+        // Always-included fields
+        let html = `
+            <div class="local-profile-header">
+                <div class="jp-user-avatar-large">
+                    ${user.initials || ((user.profile?.firstName?.[0] || '') + (user.profile?.lastName?.[0] || '')).toUpperCase()}
+                </div>
+                <div class="local-profile-info">
+                    <h1>${(user.profile?.firstName || '')} ${(user.profile?.lastName || '')}</h1>
+                    <div class="jp-user-details">@${user.username || ''}</div>
+                </div>
+            </div>
+        `;
+
+        // Additional fields from config
+        if (fieldsConfig.length > 0) {
+            html += `<div class="jp-card local-profile-section"><h3>${i18n.additionalInfo}</h3>`;
+            html += '<div class="local-plugin-field-grid">';
+
+            fieldsConfig.forEach(fieldPath => {
+                const value = getProfileNestedValue(user, fieldPath);
+                if (value !== undefined && value !== null && value !== '') {
+                    const label = formatFieldLabel(fieldPath);
+                    html += `
+                        <div class="local-plugin-field-label">${label}:</div>
+                        <div class="local-plugin-field-value">${formatProfileFieldValue(value)}</div>
+                    `;
+                }
+            });
+
+            html += '</div></div>';
+        }
+
+        container.innerHTML = html;
+    }
+
+    function getProfileNestedValue(obj, path) {
+        return path.split('.').reduce((acc, part) => acc?.[part], obj);
+    }
+
+    function formatFieldLabel(path) {
+        // Convert dot notation to readable label
+        const parts = path.split('.');
+        const last = parts[parts.length - 1];
+        return last.charAt(0).toUpperCase() + last.slice(1).replace(/([A-Z])/g, ' $1');
+    }
+
+    function formatProfileFieldValue(value) {
+        if (typeof value === 'boolean') {
+            return value ? '{{i18n.view.user.settings.yes}}' : '{{i18n.view.user.settings.no}}';
+        }
+        if (Array.isArray(value)) {
+            return value.join(', ');
+        }
+        if (typeof value === 'object' && value !== null) {
+            return JSON.stringify(value);
+        }
+        return String(value);
+    }
+{{/component}}
+
+<!-- EOF webapp/view/user/profile.tmpl -->

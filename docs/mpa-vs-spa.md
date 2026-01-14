@@ -1,4 +1,4 @@
-# jPulse Docs / MPA vs. SPA: Architecture Comparison v1.4.13
+# jPulse Docs / MPA vs. SPA: Architecture Comparison v1.4.14
 
 Understanding the key differences between Multi-Page Applications (MPA) and Single Page Applications (SPA) helps you choose the right architecture for your web application.
 
@@ -113,7 +113,7 @@ From an **MVC** (Model-View-Controller) architecture perspective, the key differ
 | **Browser Memory Usage** | ✅ Low (page reload clears) | ✅ Low (page reload clears) | ⚠️ Grows over time |
 | **Debugging** | ✅ Easy (view source works) | ⚠️ Moderate (mix of server/client) | ❌ Complex (requires dev tools) |
 | **Team Skills** | HTML, CSS, Server-side language | HTML, CSS, JavaScript, Backend | JavaScript frameworks, Backend |
-| **Examples in jPulse** | `/home/`<br/> <nobr>`/jpulse-examples/`</nobr> | `/hello-todo/`<br/> Most framework pages | `/hello-vue/`<br/> `/jpulse-docs/` |
+| **Examples in jPulse** | `/home/`<br/> <nobr>`/jpulse-examples/`</nobr> | `/hello-todo/`<br/> Most framework pages | `/hello-vue/`<br/> `/jpulse-docs/`<br/> `/user/` |
 
 ## When to Choose Which?
 
@@ -226,6 +226,203 @@ jPulse supports **all three patterns** in the same application:
 </body>
 </html>
 ```
+
+### SPA Implementation Reference: User Profile SPA
+
+The `/user/` SPA demonstrates a production-ready HTML/JS SPA implementation without framework dependencies. This pattern uses Handlebars components, client-side routing, and config-driven UI.
+
+**Key Features:**
+- No Vue.js/React - pure JavaScript with Handlebars templates
+- Client-side routing with `history.pushState()` and `popstate`
+- Components as `{{#component}}` blocks with `.Html` and `.Js` sections
+- Config-driven dashboard cards and navigation
+- Full i18n support with server-side Handlebars placeholders
+- Async/await API patterns with proper error handling
+
+**Routes:**
+- `/user/` - Dashboard (public or authenticated based on config)
+- `/user/me` - My Dashboard (authenticated only)
+- `/user/settings` - Settings page (authenticated only)
+- `/user/{username}` - Public profile view (config-controlled visibility)
+
+**File Structure:**
+```
+webapp/view/user/
+├── index.shtml         → SPA entry point with routing logic
+├── dashboard.tmpl      → Component for /user/ route
+├── me.tmpl             → Component for /user/me route
+├── profile.tmpl        → Component for /user/{username} route
+└── settings.tmpl       → Component for /user/settings route
+```
+
+**Example: SPA Entry Point (`index.shtml`)**
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Users</title>
+</head>
+<body>
+    <!-- SPA content container -->
+    <div id="user-content"></div>
+
+    <!-- Include all components as Handlebars components -->
+    {{file.include "user/dashboard.tmpl"}}
+    {{file.include "user/me.tmpl"}}
+    {{file.include "user/profile.tmpl"}}
+    {{file.include "user/settings.tmpl"}}
+
+    <script>
+    // Client-side routing
+    async function loadRoute() {
+        const path = window.location.pathname;
+        const route = path.replace('/user/', '') || '';
+
+        if (route === 'settings') {
+            // Load settings component
+            document.getElementById('user-content').innerHTML =
+                document.getElementById('user-settings-html').innerHTML;
+            await initSettings();
+        } else if (route === 'me') {
+            // Load my dashboard component
+            document.getElementById('user-content').innerHTML =
+                document.getElementById('user-me-html').innerHTML;
+            await initMe();
+        } else if (route === '') {
+            // Load dashboard component
+            document.getElementById('user-content').innerHTML =
+                document.getElementById('user-dashboard-html').innerHTML;
+            await initDashboard();
+        } else {
+            // Load public profile for username
+            document.getElementById('user-content').innerHTML =
+                document.getElementById('user-profile-html').innerHTML;
+            await initProfile(route);
+        }
+
+        // Notify system that content changed (for TOC, sidebars, etc.)
+        jPulse.events.emit('content-changed');
+    }
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', loadRoute);
+
+    // Initial load
+    jPulse.dom.ready(loadRoute);
+    </script>
+</body>
+</html>
+```
+
+**Example: Component Template (`dashboard.tmpl`)**
+```handlebars
+{{!-- HTML Component --}}
+{{#component "userSpa.dashboardHtml"}}
+    <div class="jp-page-header">
+        <h1>{{i18n.view.user.index.title}}</h1>
+    </div>
+
+    {{#if user.isAuthenticated}}
+      {{#if appConfig.view.user.index.withAuth.enabled}}
+        <!-- Stats Cards (config-driven) -->
+        {{#if appConfig.view.user.index.withAuth.statsCards}}
+        <div class="jp-stats-grid" id="userStatsGrid">
+            {{#each appConfig.view.user.index.withAuth.statsCards}}
+                {{#if (eq this "usersTotal")}}
+                <div class="jp-stat-card">
+                    <div class="jp-stat-number" id="stat-usersTotal">-</div>
+                    <div class="jp-stat-label">{{i18n.view.user.index.usersTotal}}</div>
+                </div>
+                {{/if}}
+            {{/each}}
+        </div>
+        {{/if}}
+
+        <!-- Navigation Cards (config-driven) -->
+        {{#if appConfig.view.user.index.withAuth.navCards}}
+        <div class="jp-dashboard-grid">
+            {{#each appConfig.view.user.index.withAuth.navCards}}
+                {{#if (eq this "me")}}
+                <a href="/user/me" class="jp-card-dashboard jp-icon-btn">
+                    <h3>{{i18n.view.user.index.myDashboard}}</h3>
+                </a>
+                {{/if}}
+            {{/each}}
+        </div>
+        {{/if}}
+      {{/if}}
+    {{/if}}
+{{/component}}
+
+{{!-- JavaScript Component --}}
+{{#component "userSpa.dashboardJs"}}
+{{#if user.isAuthenticated}}
+    async function initDashboard() {
+        const config = {{appConfig.view.user.index.withAuth}};
+
+        // Load stats if configured
+        if (config?.statsCards && config.statsCards.length > 0) {
+            await loadUserStats();
+        }
+
+        // Setup search form if queryFields configured
+        if (config && config.queryFields && config.queryFields.length > 0) {
+            setupSearchForm();
+        }
+    }
+
+    async function loadUserStats() {
+        const result = await jPulse.api.get('/api/1/user/stats');
+        if (result.success && result.data) {
+            const stats = result.data;
+            document.getElementById('stat-usersTotal').textContent = stats.total || 0;
+        }
+    }
+{{/if}}
+{{/component}}
+```
+
+**Key Implementation Details:**
+
+1. **Components Structure:**
+   - Each `.tmpl` file defines **two separate components**: one for HTML, one for JS
+   - HTML component: `{{#component "userSpa.dashboardHtml"}}` contains template markup
+   - JS component: `{{#component "userSpa.dashboardJs"}}` contains initialization function
+   - Server includes all components at page load (no dynamic loading)
+
+2. **Routing Logic:**
+   - `loadRoute()` function parses URL and injects appropriate component
+   - Each route calls its corresponding `init*()` function
+   - Browser history API (`pushState`/`popstate`) handles navigation
+   - Content changes emit `'content-changed'` event for sidebar/TOC updates
+
+3. **Config-Driven UI:**
+   - Dashboard cards configured via `appConfig.view.user.index`
+   - Public profile visibility via `appConfig.controller.user.profile`
+   - Nav cards and stats cards selectively rendered based on config
+
+4. **i18n Pattern:**
+   - Use `{{i18n.view.user.index.key}}` for server-side rendering
+   - Dynamic text uses `.replace('%TOKEN%', value)` pattern
+   - Never use `global.i18n.translate()` in client-side JavaScript
+
+5. **API Integration:**
+   - All API calls use `jPulse.api.get()` / `jPulse.api.post()`
+   - Async/await for clean error handling
+   - Field filtering handled server-side via config
+
+**Benefits of This Pattern:**
+- ✅ No framework dependencies (Vue.js/React not needed)
+- ✅ Server-side rendering for initial page load (good SEO)
+- ✅ Client-side routing for fast navigation
+- ✅ Config-driven UI (no code changes for different deployments)
+- ✅ Component reusability via Handlebars
+- ✅ Full i18n support
+- ✅ Works with existing jPulse utilities
+
+**See Also:**
+- [Template Reference](template-reference.md) - Handlebars component syntax
+- [REST API Reference](api-reference.md) - Backend API endpoints
 
 ### Shared API Backend
 All patterns use the same backend:

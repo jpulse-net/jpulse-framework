@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.4.13
+# jPulse Docs / jPulse.UI Widget Reference v1.4.14
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -1013,6 +1013,10 @@ jPulse.UI.sidebars.toggle('left');  // Toggle left sidebar
 
 // Get sidebar state
 const state = jPulse.UI.sidebars.getState('left');  // Returns 'open' or 'closed'
+
+// Force layout recalculation
+jPulse.UI.sidebars.layoutAll();                     // Clears cache by default
+jPulse.UI.sidebars.layoutAll({ useCache: true });   // Reuse cache (performance optimization)
 ```
 
 #### Page Preferred State

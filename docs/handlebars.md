@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.4.13
+# jPulse Docs / Handlebars Templating v1.4.14
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -656,10 +656,14 @@ Formats a date value to a specified string format. Defaults to UTC timezone if n
 By default, all formatting uses UTC timezone. You can specify a timezone using the `timezone` parameter:
 
 ```handlebars
-{{date.format vars.chatTime timezone="server"}}              <!-- Server local timezone -->
-{{date.format vars.chatTime timezone="browser"}}             <!-- Browser timezone (from cookie, fallback to server) -->
-{{date.format vars.chatTime timezone="America/Los_Angeles"}} <!-- Specific IANA timezone -->
-{{date.format vars.chatTime timezone="UTC"}}                 <!-- UTC (explicit, same as default) -->
+{{date.format vars.chatTime timezone="server"}}
+                    <!-- Server local timezone -->
+{{date.format vars.chatTime timezone="browser"}}
+                    <!-- Browser timezone (from cookie, fallback to server) -->
+{{date.format vars.chatTime timezone="America/Los_Angeles"}}
+                    <!-- Specific IANA timezone -->
+{{date.format vars.chatTime timezone="UTC"}}
+                    <!-- UTC (explicit, same as default) -->
 ```
 
 **Timezone Parameter Values:**
@@ -680,19 +684,19 @@ The browser timezone is automatically detected on page load and stored in a cook
 ```handlebars
 <!-- Server timezone -->
 {{date.format vars.chatTime timezone="server" format="%DATETIME%"}}
-                              <!-- "2026-01-10 09:35:12" (if server is EST) -->
+                    <!-- "2026-01-10 09:35:12" (if server is EST) -->
 
 <!-- Browser timezone -->
 {{date.format vars.chatTime timezone="browser" format="%DATETIME%"}}
-                              <!-- "2026-01-10 14:35:12" (user's local time) -->
+                    <!-- "2026-01-10 14:35:12" (user's local time) -->
 
 <!-- Specific timezone -->
 {{date.format vars.chatTime timezone="America/Los_Angeles" format="%DATETIME%"}}
-                              <!-- "2026-01-10 06:35:12" (PST) -->
+                    <!-- "2026-01-10 06:35:12" (PST) -->
 
 <!-- UTC (default) -->
 {{date.format vars.chatTime format="%DATETIME%"}}
-                              <!-- "2026-01-10 14:35:12" (UTC) -->
+                    <!-- "2026-01-10 14:35:12" (UTC) -->
 ```
 
 **Use cases:**
@@ -708,14 +712,16 @@ Formats a date value as relative time from the current moment (e.g., "in 6 days,
 
 ```handlebars
 {{let downtime=(date.parse "2026-01-17T16:00:00Z")}}
-{{date.fromNow vars.downtime}}                  <!-- "in 6 days, 13 hours" (long 2 default) -->
-{{date.fromNow vars.downtime format="long"}}    <!-- "in 6 days, 13 hours" (long 2) -->
+{{date.fromNow vars.downtime}}  <!-- "in 6 days, 13 hours" (long 2 default) -->
+{{date.fromNow vars.downtime format="long"}}
+                                <!-- "in 6 days, 13 hours" (long 2) -->
 {{date.fromNow vars.downtime format="long 1"}}  <!-- "in 6 days" -->
-{{date.fromNow vars.downtime format="long 3"}}  <!-- "in 6 days, 13 hours, 29 minutes" -->
+{{date.fromNow vars.downtime format="long 3"}}
+                                <!-- "in 6 days, 13 hours, 29 minutes" -->
 {{date.fromNow vars.downtime format="short"}}   <!-- "in 6d 13h" (short 2) -->
 {{date.fromNow vars.downtime format="short 1"}} <!-- "in 6d" -->
 {{date.fromNow vars.downtime format="short 3"}} <!-- "in 6d 13h 29m" -->
-{{date.fromNow vars.lastLogin}}                 <!-- "2 hours ago" (past date) -->
+{{date.fromNow vars.lastLogin}} <!-- "2 hours ago" (past date) -->
 ```
 
 **Format Parameter:**
@@ -787,9 +793,9 @@ Concatenate all arguments into a single string (variadic, 1+ args).
 Return the first non-empty value, or the last argument as fallback (variadic, 1+ args).
 
 ```handlebars
-{{string.default user.preferences.theme "light"}}         <!-- "light" if theme is empty -->
-{{string.default user.preferences.language "en"}}         <!-- "en" if language is empty -->
-{{string.default vars.customValue "default" "fallback"}}  <!-- first non-empty, or "fallback" -->
+{{string.default user.preferences.theme "light"}} <!-- "light" if theme is empty -->
+{{string.default user.preferences.language "en"}} <!-- "en" if language is empty -->
+{{string.default vars.val1 vars.val2 "fallback"}} <!-- first non-empty, or "fallback" -->
 ```
 
 #### `{{string.replace}}` - Replace substring
@@ -798,8 +804,8 @@ Replace all occurrences of a substring (3 args: string, search, replace).
 
 ```handlebars
 {{string.replace "hello world" "world" "jPulse"}}  <!-- "hello jPulse" -->
-{{string.replace user.name " " "-"}}               <!-- replace spaces with dashes -->
-{{string.replace url.path "/" "-"}}                <!-- replace slashes with dashes -->
+{{string.replace user.name " " "-"}}    <!-- replace spaces with dashes -->
+{{string.replace url.path "/" "-"}}     <!-- replace slashes with dashes -->
 ```
 
 #### `{{string.substring}}` - Extract substring
@@ -837,8 +843,8 @@ Pad a string to the right with a character (3 args: string, length, padChar).
 Check if a string starts with a prefix (2 args: string, prefix). Returns `"true"` or `"false"`.
 
 ```handlebars
-{{string.startsWith "hello" "he"}}              <!-- "true" -->
-{{string.startsWith url.path "/admin"}}         <!-- "true" if path starts with /admin -->
+{{string.startsWith "hello" "he"}}      <!-- "true" -->
+{{string.startsWith url.path "/admin"}} <!-- "true" if path starts with /admin -->
 {{#if (eq (string.startsWith url.path "/admin") "true")}}Admin area{{/if}}
 ```
 
@@ -847,8 +853,8 @@ Check if a string starts with a prefix (2 args: string, prefix). Returns `"true"
 Check if a string ends with a suffix (2 args: string, suffix). Returns `"true"` or `"false"`.
 
 ```handlebars
-{{string.endsWith "hello" "lo"}}                <!-- "true" -->
-{{string.endsWith url.path ".html"}}            <!-- "true" if path ends with .html -->
+{{string.endsWith "hello" "lo"}}        <!-- "true" -->
+{{string.endsWith url.path ".html"}}    <!-- "true" if path ends with .html -->
 {{#if (eq (string.endsWith user.email "@example.com") "true")}}Internal user{{/if}}
 ```
 
@@ -857,8 +863,8 @@ Check if a string ends with a suffix (2 args: string, suffix). Returns `"true"` 
 Check if a string contains a substring (2 args: string, substring). Returns `"true"` or `"false"`.
 
 ```handlebars
-{{string.contains "hello" "ell"}}               <!-- "true" -->
-{{string.contains user.email "@"}}              <!-- "true" if email contains @ -->
+{{string.contains "hello" "ell"}}       <!-- "true" -->
+{{string.contains user.email "@"}}      <!-- "true" if email contains @ -->
 {{#if (eq (string.contains url.path "admin") "true")}}Admin section{{/if}}
 ```
 
@@ -872,8 +878,8 @@ Check if a string contains a substring (2 args: string, substring). Returns `"tr
 {{string.concat "prefix-" (string.default vars.value "default") "-suffix"}}
 
 <!-- String manipulation -->
-{{string.replace user.name " " "-"}}  <!-- Convert spaces to dashes -->
-{{string.padLeft user.id 6 "0"}}      <!-- Zero-pad ID to 6 digits -->
+{{string.replace user.name " " "-"}}    <!-- Convert spaces to dashes -->
+{{string.padLeft user.id 6 "0"}}        <!-- Zero-pad ID to 6 digits -->
 
 <!-- String checks in conditionals -->
 {{#if (eq (string.startsWith url.path "/admin") "true")}}

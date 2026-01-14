@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.4.13
- * @release         2026-01-13
+ * @version         1.4.14
+ * @release         2026-01-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -279,6 +279,14 @@ class UserModel {
             }
             if (!/^[a-zA-Z0-9_.-]+$/.test(data.username)) {
                 errors.push('username can only contain letters, numbers, dots, dashes, and underscores');
+            }
+            // W-134: Check reserved usernames (only for create)
+            if (!isUpdate) {
+                const reserved = global.appConfig?.model?.user?.reservedUsernames || ['settings', 'me'];
+                const usernameLower = data.username.toLowerCase();
+                if (reserved.some(r => r.toLowerCase() === usernameLower)) {
+                    errors.push(`username "${data.username}" is reserved and cannot be used`);
+                }
             }
         }
 

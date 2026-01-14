@@ -4,8 +4,8 @@
  * @tagline         Admin user management interface
  * @description     User management dashboard for site administrators
  * @file            webapp/view/admin/users.shtml
- * @version         1.4.13
- * @release         2026-01-13
+ * @version         1.4.14
+ * @release         2026-01-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -347,7 +347,7 @@
             const userCell = document.createElement('td');
             userCell.innerHTML = `
                 <div class="jp-user-info">
-                    <div class="jp-user-avatar">${ `{{user.initials}}` || '?'}</div>
+                    <div class="jp-user-avatar">${user.initials || '?'}</div>
                     <div>
                         <div class="jp-user-name">${jPulse.string.escapeHtml(user.profile?.firstName || '')} ${jPulse.string.escapeHtml(user.profile?.lastName || '')}</div>
                         <div class="jp-user-login">@${jPulse.string.escapeHtml(user.username || '')}</div>
@@ -370,7 +370,8 @@
 
             // Status
             const statusCell = document.createElement('td');
-            statusCell.innerHTML = `<span class="jp-status-badge jp-status-${user.status}">${user.status.charAt(0).toUpperCase() + user.status.slice(1)}</span>`;
+            const status = user.status || 'unknown';
+            statusCell.innerHTML = `<span class="jp-status-badge jp-status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
             tr.appendChild(statusCell);
 
             // Last login - use ISO date format (YYYY-MM-DD)

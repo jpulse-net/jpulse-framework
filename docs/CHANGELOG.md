@@ -1,6 +1,230 @@
-# jPulse Docs / Version History v1.4.13
+# jPulse Docs / Version History v1.4.14
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.14, W-134, 2026-01-14
+
+**Commit:** `W-134, v1.4.14: user view: create SPA for public profiles, user dashboard and user settings`
+
+**FEATURE RELEASE**: Complete Single Page Application (SPA) for user views with public profiles, user dashboard, and settings.
+
+**Objectives**:
+- Create intuitive UX for viewing user profiles and settings
+- Enable public profile viewing for collaboration features
+- Implement config-driven access control with field filtering
+- Build pure HTML/JavaScript SPA without Vue.js (reference implementation)
+
+**Key Features**:
+- **Single Page Application (SPA)**: Client-side routing with `history.pushState()` and `popstate` events
+  - `/user/` - dashboard/directory (config-driven, public or authenticated)
+  - `/user/me` - my dashboard (authenticated, reserved route)
+  - `/user/settings` - settings page (authenticated, renamed from profile.shtml)
+  - `/user/{username}` - public profile view (config-driven visibility)
+- **Reserved Username Validation**: Blocks 'settings' and 'me' on signup to protect routing
+- **Config-Driven Public Profile Access**: `controller.user.profile` in `app.conf`
+  - `withoutAuth.allowed`: Controls unauthenticated access (true/false)
+  - `withAuth.allowed`: Controls authenticated access (true/false)
+  - `fields`: Additional fields beyond always-included (email, bio, etc.)
+  - Admins always have full access to all fields
+- **Field Filtering**: Helper methods filter sensitive data from public profile responses
+  - Always included: `_id`, `username`, `displayName`, `avatar`, `createdAt`
+  - Admin-only fields: `email`, `role`, `lastLogin`, `status`, etc.
+- **New API Endpoint**: `GET /api/1/user/public/:id` (supports ObjectId or username)
+- **Updated API Endpoint**: `GET /api/1/user/search` changed from admin-only to policy-based access
+- **Dynamic User Dropdown Menu**: Data-driven from `jpulse-navigation.js`
+  - Desktop: hover to open, click link to navigate
+  - Mobile: tap to toggle, tap link to navigate
+- **Dashboard Configuration**: `view.user.index` in `app.conf`
+  - Config-driven stats cards and nav cards
+  - Separate configs for `withoutAuth` and `withAuth` states
+- **Full i18n Support**: 18 new translation keys for all user-facing text
+- **Search Limit**: User search limited to 50 results (no pagination)
+- **i18n Audit Enhancements**: New `// i18n-audit-ignore` directive for legitimate dynamic keys
+
+**Code Changes**:
+
+**webapp/model/user.js**:
+- Added reserved username validation in `validate()` method
+  - Checks `appConfig.model.user.reservedUsernames` (default: ['settings', 'me'])
+  - Case-insensitive validation
+  - Only blocks on new user creation (not updates)
+
+**webapp/controller/user.js**:
+- Added `_checkPublicProfilePolicy(req)` private helper method
+  - Determines if public profile access is allowed for authenticated/unauthenticated users
+  - Preserves admin access regardless of policy
+- Added `_filterPublicProfileFields(user, req)` private helper method
+  - Filters user object fields based on `appConfig.controller.user.profile` policy
+  - Always includes: `_id`, `username`, `displayName`, `avatar`, `createdAt`
+  - Configurable fields: specified in `controller.user.profile.withoutAuth.fields` or `withAuth.fields`
+  - Admin-visible fields: all fields for admins
+  - Excludes sensitive data: `passwordHash`, `sessions`, etc.
+- Updated `search()` method:
+  - Added `_checkPublicProfilePolicy(req)` access control
+  - Map results through `_filterPublicProfileFields(user, req)`
+- Added `getPublic(req, res)` method:
+  - New endpoint for public profile lookup by username or ObjectId
+  - Incorporates access policy and field filtering
+  - Returns 403 if policy disallows access
+
+**webapp/routes.js**:
+- Removed `AuthController.requireRole(adminRoles)` middleware from `GET /api/1/user/search`
+- Added `router.get('/api/1/user/public/:id', UserController.getPublic)`
+
+**webapp/view/user/index.shtml**:
+- Created SPA entry point with client-side routing
+- Routes: `/user/`, `/user/me`, `/user/settings`, `/user/{username}`
+- Async functions for `initRouter()`, `loadRoute()`, `navigate()`
+- `history.pushState()` and `popstate` event handling
+- Dynamic content loading via `jPulse.api.get()`
+
+**webapp/view/user/dashboard.tmpl**:
+- Created dashboard template with config-driven cards
+- User search form with 50 result limit
+- Stats cards (authenticated state)
+- Nav cards (login, signup, settings, admin)
+
+**webapp/view/user/me.tmpl**:
+- Created authenticated user dashboard template
+- Displays current user info
+- Links to settings and dashboard
+
+**webapp/view/user/profile.tmpl**:
+- Created public profile view template
+- Displays username, display name, avatar, bio, joined date
+- Config-driven field visibility
+
+**webapp/view/user/settings.tmpl**:
+- Created settings template (moved from profile.shtml)
+- Profile editing form
+- Password change form
+- Theme preferences
+
+**webapp/view/user/profile.shtml**:
+- Deleted (replaced by SPA templates)
+
+**webapp/view/jpulse-common.js**:
+- Enhanced `navigation.init()` with `userDropdown` parameter
+  - Desktop: hover to open dropdown
+  - Mobile: tap to toggle dropdown
+  - Click outside to close
+  - Escape key to close
+
+**webapp/view/jpulse-footer.tmpl**:
+- Updated to dynamically render user dropdown from navigation data
+- Removed hardcoded user menu structure
+
+**webapp/view/jpulse-navigation.js**:
+- Restructured user menu for dropdown and breadcrumb support
+- Added `hideInDropdown: true` flag for user menu items
+- Removed old `user.overview` and `user.profile` entries
+- Added new `user.settings` entry
+
+**webapp/app.conf**:
+- Added `model.user.reservedUsernames: ['settings', 'me']`
+- Added `controller.user.profile` configuration:
+  - `withoutAuth.allowed`: false (default)
+  - `withoutAuth.fields`: [] (default)
+  - `withAuth.allowed`: true (default)
+  - `withAuth.fields`: ['email'] (default)
+- Added `view.user.index` configuration:
+  - `withoutAuth.enabled`: true
+  - `withoutAuth.statsCards`: true
+  - `withoutAuth.navCards`: ['login', 'signup']
+  - `withAuth.enabled`: true
+  - `withAuth.statsCards`: true
+  - `withAuth.navCards`: ['me', 'settings', 'admin']
+- Fixed `controller.handlebar.contextFilter` paths (removed redundant `appConfig.` prefix)
+  - `withoutAuth`: ['system'] instead of ['appConfig.system']
+  - `alwaysAllow`: ['system.defaultTheme'] instead of ['appConfig.system.defaultTheme']
+
+**webapp/controller/handlebar.js**:
+- Added `// i18n-audit-ignore` comments for dynamic i18n keys (4 locations)
+  - Line ~2730: `momentKey` in `_handleDateFromNow()`
+  - Line ~2740: `separatorKey` in `_handleDateFromNow()`
+  - Line ~2761: `i18nKey` in `_handleDateFromNow()`
+  - Line ~2798: `rangeKey` in `_handleDateFromNow()`
+
+**webapp/translations/en.conf**:
+- Added 18 new i18n keys:
+  - `view.user.index.dashboardTitle`: "User Dashboard"
+  - `view.user.index.searchPlaceholder`: "Search users..."
+  - `view.user.index.searchButton`: "Search"
+  - `view.user.index.noResults`: "No users found."
+  - `view.user.index.loginCard`: "Login"
+  - `view.user.index.signupCard`: "Sign Up"
+  - `view.user.index.meCard`: "My Dashboard"
+  - `view.user.index.settingsCard`: "Settings"
+  - `view.user.index.adminCard`: "Admin"
+  - `view.user.settings.title`: "User Settings"
+  - `view.user.settings.profileSection`: "Profile"
+  - `view.user.settings.passwordSection`: "Password"
+  - `view.user.settings.preferencesSection`: "Preferences"
+  - `view.user.settings.saveButton`: "Save Changes"
+  - `view.user.settings.cancelButton`: "Cancel"
+  - `view.user.settings.savedToast`: "Settings saved successfully"
+  - `view.user.settings.errorToast`: "Error saving settings: %ERROR%"
+  - `view.user.settings.reservedUsernameError`: "Username '%USERNAME%' is reserved and cannot be used."
+
+**webapp/translations/de.conf**:
+- Added 18 new i18n keys with German translations
+
+**webapp/tests/unit/model/user-reserved-usernames.test.js**:
+- Created new unit test file with 18 tests for reserved username validation
+  - Tests for rejection of reserved names
+  - Tests for case-insensitivity
+  - Tests for grandfathering on update
+  - Tests for custom config
+  - Tests for error message content
+
+**webapp/tests/unit/i18n/utils/key-extractor.js**:
+- Added support for `// i18n-audit-ignore` directive
+  - Checks for directive on same line as `global.i18n.translate()` calls
+  - Suppresses dynamic key warnings if directive found
+  - Implemented in 3 places (variable, string concatenation, template literal patterns)
+
+**webapp/tests/unit/utils/jpulse-ui-navigation.test.js**:
+- Updated 49 test calls to use `siteNavigation` parameter instead of `navigation`
+
+**webapp/tests/unit/controller/handlebar-appconfig-alwaysallow.test.js**:
+- Fixed `contextFilter` paths in test (removed `appConfig.` prefix)
+
+**docs/api-reference.md**:
+- Added comprehensive documentation for `GET /api/1/user/public/:id`
+  - Route, middleware, authentication, access control policies
+  - Always-included and configurable fields
+  - Admin access, URL parameters, example requests, success/error responses
+- Updated `GET /api/1/user/search` documentation
+  - Clarified middleware removal (access control handled in controller)
+  - Mentioned configurable access policy
+  - Added note about search results respecting field filtering
+
+**docs/mpa-vs-spa.md**:
+- Added new section: "SPA Implementation Reference: User Profile SPA"
+  - Uses `/user/` SPA as practical example of pure HTML/JS SPA
+  - Key features, routes, file structure, key implementation details
+  - Code examples for SPA entry point and component template
+- Updated comparison table to include `/user/` as SPA example
+
+**Documentation**:
+- Updated README.md and docs/README.md with v1.4.14 release highlights
+- Updated CHANGELOG.md with W-134 details
+- Updated work-items.md to mark W-134 as IN_PROGRESS with full deliverables
+
+**Breaking Changes**:
+- Removed `webapp/view/user/profile.shtml` (replaced by SPA at `/user/settings`)
+- Changed `GET /api/1/user/search` from admin-only to policy-based access (configurable)
+- Changed `contextFilter` paths format in `app.conf` (remove `appConfig.` prefix)
+
+**Migration Steps**:
+- Update any bookmarks from `/user/profile.shtml` to `/user/settings`
+- Update `app.conf` if using custom `contextFilter` paths (remove `appConfig.` prefix)
+- Configure `controller.user.profile` in `app.conf` if default access policies don't match requirements
+
+**Work Item**: W-134
+**Version**: v1.4.14
+**Release Date**: 2026-01-14
 
 ________________________________________________
 ## v1.4.13, W-133, 2026-01-13
@@ -1192,7 +1416,7 @@ ________________________________________________
 - `initComponent(componentName, options)`: Initialize dynamic component content
 - `attachLeftSidebarTo(selector)`, `attachRightSidebarTo(selector)`: Custom positioning
 - `getUserPreference(key)`, `setUserPreference(key, value)`, `getUserPreferences()`: Preference management
-- `layoutAll()`: Force layout recalculation
+- `layoutAll(options)`: Force layout recalculation (clears cache by default; set `useCache: true` for performance optimization)
 
 **Client-Side Event System**:
 - Created `jPulse.events` pub/sub for single-tab ephemeral UI events

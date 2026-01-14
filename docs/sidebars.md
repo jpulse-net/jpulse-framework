@@ -1,4 +1,4 @@
-# jPulse Docs / Sidebars Guide v1.4.13
+# jPulse Docs / Sidebars Guide v1.4.14
 
 Complete guide to using and configuring sidebars in the jPulse Framework for desktop and mobile.
 
@@ -350,6 +350,43 @@ if (state === 'open') {
     console.log('Left sidebar is open');
 }
 ```
+
+#### `layoutAll(options)`
+Force recalculation of sidebar positions and dimensions.
+
+```javascript
+// Basic usage (clears cache by default for accurate recalculation)
+jPulse.UI.sidebars.layoutAll();
+
+// Performance optimization: reuse cached viewport offsets
+jPulse.UI.sidebars.layoutAll({ useCache: true });
+```
+
+**Options:**
+- `useCache` (boolean, default: **false**) - Reuse cached viewport offsets instead of recalculating. Set to `true` only as a performance optimization when you're certain viewport offsets haven't changed.
+
+**Use Cases:**
+- **SPA Route Changes**: When navigating between routes with different content heights
+- **Dynamic Content**: After loading content that changes page height
+- **Manual Override**: When automatic ResizeObserver doesn't detect changes
+
+**Example: SPA Route Change**
+```javascript
+function loadRoute(path) {
+    // Hide all routes
+    document.querySelectorAll('.spa-route').forEach(el => el.classList.add('jp-hidden'));
+
+    // Show selected route
+    document.getElementById(routeId).classList.remove('jp-hidden');
+
+    // Update sidebar positions for new content height
+    requestAnimationFrame(() => {
+        jPulse.UI.sidebars.layoutAll();  // Cache cleared by default
+    });
+}
+```
+
+**Note:** The sidebar system automatically observes `.jp-main` size changes via ResizeObserver. Manual `layoutAll()` calls are only needed when the container's min-height prevents natural resizing or when content changes don't trigger observation.
 
 ### Page Preferred State
 

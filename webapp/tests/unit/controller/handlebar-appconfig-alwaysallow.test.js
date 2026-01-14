@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-129: appConfig.system allowlist exposure (unauthenticated)
  * @description     Tests for contextFilter.alwaysAllow to re-expose specific appConfig.system keys after filtering
  * @file            webapp/tests/unit/controller/handlebar-appconfig-alwaysallow.test.js
- * @version         1.4.13
- * @release         2026-01-13
+ * @version         1.4.14
+ * @release         2026-01-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -51,9 +51,9 @@ describe('W-129: Handlebars Context Filter - appConfig.system alwaysAllow', () =
         global.appConfig.system.serverId = 123;
 
         global.appConfig.controller.handlebar.contextFilter = {
-            withoutAuth: ['appConfig.system'],
+            withoutAuth: ['system'],
             withAuth: [],
-            alwaysAllow: ['appConfig.system.defaultTheme', 'appConfig.system.htmlAttrs']
+            alwaysAllow: ['system.defaultTheme', 'system.htmlAttrs']
         };
     });
 

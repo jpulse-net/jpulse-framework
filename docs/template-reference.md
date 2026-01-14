@@ -1,4 +1,4 @@
-# jPulse Docs / Template Reference v1.4.13
+# jPulse Docs / Template Reference v1.4.14
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -229,12 +229,12 @@ Define your own template variables safely using the `vars` namespace:
 window.jPulseNavigation = {
     site: {
         admin: {
-            label:  `{{i18n.view.navigation.admin._index}}`,
+            label:  `{{i18n.view.navigation.site.admin._index}}`,
             url:    '/admin/',
             role:   'admin'  // role-based visibility
         },
         about: {
-            label:  `{{i18n.view.navigation.about}}`,
+            label:  `{{i18n.view.navigation.site.about}}`,
             url:    '/about/'
         }
     }
@@ -248,7 +248,7 @@ window.siteNavigation = {
 
         // Add custom section with i18n
         dashboard: {
-            label:  `{{i18n.view.navigation.dashboard}}`,
+            label:  `{{i18n.view.navigation.site.dashboard}}`,
             url:    '/dashboard/',
             role:   'user'
         }

@@ -1,0 +1,308 @@
+<!-- Start webapp/view/user/dashboard.tmpl -->
+{{!--
+ * @name            jPulse Framework / WebApp / View / User / Dashboard Template
+ * @tagline         User SPA - Dashboard template
+ * @description     W-134: Dashboard template of user profile SPA, config driven
+ * @file            webapp/view/user/dashboard.tmpl
+ * @version         1.4.14
+ * @release         2026-01-14
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 2.3, Claude Sonnet 4.5
+--}}
+{{#component "userSpa.dashboardHtml"}}
+    <div class="jp-page-header">
+        <h1>{{i18n.view.user.index.title}}</h1>
+    </div>
+{{#if user.isAuthenticated}}
+  {{#if appConfig.view.user.index.withAuth.enabled}}
+    {{#if appConfig.view.user.index.withAuth.statsCards}}
+    <!-- Stats Cards -->
+    <div class="jp-stats-grid" id="userStatsGrid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+        {{#each appConfig.view.user.index.withAuth.statsCards}}
+            {{#if (eq this "usersTotal")}}
+            <div class="jp-stat-card">
+                <div class="jp-stat-number" id="stat-usersTotal">-</div>
+                <div class="jp-stat-label">{{i18n.view.user.index.usersTotal}}</div>
+            </div>
+            {{/if}}
+            {{#if (eq this "usersActive")}}
+            <div class="jp-stat-card">
+                <div class="jp-stat-number" id="stat-usersActive">-</div>
+                <div class="jp-stat-label">{{i18n.view.user.index.usersActive}}</div>
+            </div>
+            {{/if}}
+            {{#if (eq this "usersAdmin")}}
+            <div class="jp-stat-card">
+                <div class="jp-stat-number" id="stat-usersAdmin">-</div>
+                <div class="jp-stat-label">{{i18n.view.user.index.usersAdmin}}</div>
+            </div>
+            {{/if}}
+        {{/each}}
+        <!-- User Card integrated into stats row -->
+        <div class="jp-stat-card" style="grid-column: span 1;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="jp-user-avatar" id="userAvatarPreview" style="width: 48px; height: 48px; font-size: 18px;">
+                    {{user.initials}}
+                </div>
+                <div>
+                    <div style="font-weight: 600; font-size: 14px;" id="userNamePreview">{{user.firstName}} {{user.lastName}}</div>
+                    <div style="color: var(--jp-theme-text-muted, #666); font-size: 12px;" id="userDetailsPreview">@{{user.username}}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{/if}}
+
+    <!-- Navigation Cards -->
+    {{#if appConfig.view.user.index.withAuth.navCards}}
+    <div class="jp-dashboard-grid">
+        {{#each appConfig.view.user.index.withAuth.navCards}}
+            {{#if (eq this "me")}}
+            <a href="/user/me" class="jp-card-dashboard jp-icon-btn">
+                <div class="jp-icon-container">
+                    {{components.jpIcons.userSvg size="64" _inline=true}}
+                </div>
+                <h3 class="jp-card-title">{{i18n.view.user.index.myDashboard}}</h3>
+                <p class="jp-card-description">{{i18n.view.user.index.myDashboardDesc}}</p>
+            </a>
+            {{/if}}
+            {{#if (eq this "settings")}}
+            <a href="/user/settings" class="jp-card-dashboard jp-icon-btn">
+                <div class="jp-icon-container">
+                    {{components.jpIcons.userSvg size="64" _inline=true}}
+                </div>
+                <h3 class="jp-card-title">{{i18n.view.user.index.settings}}</h3>
+                <p class="jp-card-description">{{i18n.view.user.index.settingsDesc}}</p>
+            </a>
+            {{/if}}
+            {{#if (eq this "admin")}}
+            {{#if user.isAdmin}}
+            <a href="/admin/" class="jp-card-dashboard jp-icon-btn">
+                <div class="jp-icon-container">
+                    {{components.jpIcons.configSvg size="64"}}
+                </div>
+                <h3 class="jp-card-title">{{i18n.view.user.index.adminDashboard}}</h3>
+                <p class="jp-card-description">{{i18n.view.user.index.adminDashboardDesc}}</p>
+            </a>
+            {{/if}}
+            {{/if}}
+        {{/each}}
+    </div>
+    {{/if}}
+
+    <!-- Search Form (if queryFields configured) -->
+    {{#if appConfig.view.user.index.withAuth.queryFields}}
+    <div class="jp-card jp-mt-30" id="searchSection">
+        <h3>{{i18n.view.user.index.searchUsers}}</h3>
+        <form id="userSearchForm" class="jp-form">
+            <div class="jp-form-grid" style="grid-template-columns: 1fr 1fr auto auto; align-items: end; gap: 12px;">
+                {{#each appConfig.view.user.index.withAuth.queryFields}}
+                    {{#if (eq this "name")}}
+                    <div class="jp-form-group" style="margin-bottom: 0;">
+                        <label for="searchName" class="jp-form-label">{{i18n.view.user.index.searchName}}</label>
+                        <input type="text" id="searchName" name="name" class="jp-form-input" placeholder="{{i18n.view.user.index.searchNamePlaceholder}}">
+                    </div>
+                    {{/if}}
+                    {{#if (eq this "email")}}
+                    <div class="jp-form-group" style="margin-bottom: 0;">
+                        <label for="searchEmail" class="jp-form-label">{{i18n.view.user.index.searchEmail}}</label>
+                        <input type="email" id="searchEmail" name="email" class="jp-form-input" placeholder="{{i18n.view.user.index.searchEmailPlaceholder}}">
+                    </div>
+                    {{/if}}
+                {{/each}}
+                <button type="submit" class="jp-btn jp-btn-primary">{{i18n.view.user.index.search}}</button>
+                <button type="button" class="jp-btn jp-btn-secondary" onclick="clearSearch()">{{i18n.view.user.index.clear}}</button>
+            </div>
+        </form>
+        <div id="searchResults" class="jp-hidden jp-mt-30"></div>
+    </div>
+    {{/if}}
+  {{else}}
+    <div class="jp-error-box local-error-box">
+        {{i18n.view.user.index.accessDenied}}
+    </div>
+  {{/if}}
+{{else}}
+    {{#if appConfig.view.user.index.withoutAuth.enabled}}
+        <!-- Navigation Cards for unauthenticated users -->
+        {{#if appConfig.view.user.index.withoutAuth.navCards}}
+        {{#if (or (not appConfig.view.auth.hideLogin) (not appConfig.view.auth.hideSignup))}}
+        <div class="jp-dashboard-grid">
+            {{#each appConfig.view.user.index.withoutAuth.navCards}}
+                {{#if (eq this "login")}}
+                {{#unless appConfig.view.auth.hideLogin}}
+                <a href="/auth/login.shtml" class="jp-card-dashboard jp-icon-btn">
+                    <div class="jp-icon-container">
+                        {{components.jpIcons.userSvg size="64" _inline=true}}
+                    </div>
+                    <h3 class="jp-card-title">{{i18n.view.auth.login.title}}</h3>
+                    <p class="jp-card-description">{{i18n.view.auth.login.subtitle}}</p>
+                </a>
+                {{/unless}}
+                {{/if}}
+                {{#if (eq this "signup")}}
+                {{#unless appConfig.view.auth.hideSignup}}
+                <a href="/auth/signup.shtml" class="jp-card-dashboard jp-icon-btn">
+                    <div class="jp-icon-container">
+                        {{components.jpIcons.userSvg size="64" _inline=true}}
+                    </div>
+                    <h3 class="jp-card-title">{{i18n.view.auth.signup.title}}</h3>
+                    <p class="jp-card-description">{{i18n.view.auth.signup.subtitle}}</p>
+                </a>
+                {{/unless}}
+                {{/if}}
+            {{/each}}
+        </div>
+        {{else}}
+        <div class="jp-info-box local-error-box">
+            {{i18n.view.user.index.noAuthOptions}}
+        </div>
+        {{/if}}
+        {{/if}}
+    {{else}}
+        <div class="jp-error-box local-error-box">
+            {{i18n.view.user.index.accessDenied}}
+        </div>
+    {{/if}}
+  {{/if}}
+{{/component}}
+{{#component "userSpa.dashboardJs"}}
+{{#if user.isAuthenticated}}
+    // W-134: Dashboard initialization function (called by SPA router)
+    async function initDashboard() {
+        const config = {{appConfig.view.user.index.withAuth}};
+        if (config?.statsCards && config.statsCards.length > 0) {
+            await loadUserStats();
+        }
+        await loadDashboardUserCardPreview();
+
+        // Setup search form if queryFields configured
+        if (config && config.queryFields && config.queryFields.length > 0) {
+            setupSearchForm();
+        }
+    }
+
+    async function loadUserStats() {
+        try {
+            const result = await jPulse.api.get('/api/1/user/stats');
+            if (result.success && result.data) {
+                const stats = result.data;
+                if (document.getElementById('stat-usersTotal')) {
+                    document.getElementById('stat-usersTotal').textContent = stats.total || 0;
+                }
+                if (document.getElementById('stat-usersActive')) {
+                    document.getElementById('stat-usersActive').textContent = stats.byStatus?.active || 0;
+                }
+                if (document.getElementById('stat-usersAdmin')) {
+                    document.getElementById('stat-usersAdmin').textContent = stats.admins || 0;
+                }
+            }
+        } catch (error) {
+            console.error('- jPulse: Failed to load user stats:', error);
+        }
+    }
+
+    async function loadDashboardUserCardPreview() {
+        try {
+            const result = await jPulse.api.get('/api/1/user');
+            if (result.success && result.data) {
+                const user = result.data;
+                if (document.getElementById('userAvatarPreview')) {
+                    document.getElementById('userAvatarPreview').textContent =
+                        ((user.profile?.firstName?.[0] || '') + (user.profile?.lastName?.[0] || '')).toUpperCase();
+                }
+                if (document.getElementById('userNamePreview')) {
+                    document.getElementById('userNamePreview').textContent =
+                        (user.profile?.firstName || '') + ' ' + (user.profile?.lastName || '');
+                }
+                if (document.getElementById('userDetailsPreview')) {
+                    document.getElementById('userDetailsPreview').textContent = '@' + (user.username || '');
+                }
+            }
+        } catch (error) {
+            console.error('- jPulse: Failed to load user card:', error);
+        }
+    }
+
+    function setupSearchForm() {
+        const form = document.getElementById('userSearchForm');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await searchUsers();
+            });
+        }
+    }
+
+    async function searchUsers() {
+        const form = document.getElementById('userSearchForm');
+        const formData = jPulse.form.serialize(form);
+        const searchParams = {
+            limit: 50
+        };
+
+        Object.keys(formData).forEach(key => {
+            if (formData[key] && formData[key].toString().trim()) {
+                searchParams[key] = formData[key].toString().trim();
+            }
+        });
+
+        try {
+            const result = await jPulse.api.get('/api/1/user/search?' + new URLSearchParams(searchParams).toString());
+            if (result.success) {
+                displaySearchResults(result.data, result.pagination);
+            } else {
+                jPulse.UI.toast.error(result.error || '{{i18n.view.user.index.searchFailed}}');
+            }
+        } catch (error) {
+            jPulse.UI.toast.error('{{i18n.view.user.index.searchError}}');
+        }
+    }
+
+    function displaySearchResults(users, pagination) {
+        const resultsEl = document.getElementById('searchResults');
+        if (!resultsEl) return;
+
+        jPulse.dom.show(resultsEl);
+
+        if (!users || users.length === 0) {
+            resultsEl.innerHTML = '<p>{{i18n.view.user.index.noResults}}</p>';
+            return;
+        }
+
+        let html = '<table class="jp-table"><thead><tr>';
+        html += '<th>{{i18n.view.user.index.username}}</th>';
+        html += '<th>{{i18n.view.user.index.name}}</th>';
+        html += '<th>{{i18n.view.user.index.email}}</th>';
+        html += '<th>{{i18n.view.user.index.actions}}</th>';
+        html += '</tr></thead><tbody>';
+
+        users.forEach(user => {
+            html += '<tr>';
+            html += '<td>' + (user.username || '') + '</td>';
+            html += '<td>' + (user.profile?.firstName || '') + ' ' + (user.profile?.lastName || '') + '</td>';
+            html += '<td>' + (user.email || '') + '</td>';
+            html += '<td><a href="/user/' + encodeURIComponent(user.username) + '" class="jp-btn jp-btn-sm jp-btn-outline">{{i18n.view.user.index.viewProfile}}</a></td>';
+            html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        resultsEl.innerHTML = html;
+    }
+
+    function clearSearch() {
+        const form = document.getElementById('userSearchForm');
+        if (form) form.reset();
+        const resultsEl = document.getElementById('searchResults');
+        if (resultsEl) {
+            jPulse.dom.hide(resultsEl);
+            resultsEl.innerHTML = '';
+        }
+    }
+{{/if}}
+{{/component}}
+
+<!-- EOF webapp/view/user/dashboard.tmpl -->

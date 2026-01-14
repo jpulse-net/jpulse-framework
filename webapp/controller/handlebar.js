@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.4.13
- * @release         2026-01-13
+ * @version         1.4.14
+ * @release         2026-01-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -811,9 +811,11 @@ class HandlebarController {
         const allowValues = [];
         if (Array.isArray(alwaysAllowList) && alwaysAllowList.length > 0) {
             for (const allowPath of alwaysAllowList) {
-                const value = getValueByPath(context, allowPath);
+                // Prefix with 'appConfig.' since contextFilter paths are relative to appConfig
+                const fullPath = `appConfig.${allowPath}`;
+                const value = getValueByPath(context, fullPath);
                 if (value !== undefined) {
-                    allowValues.push({ path: allowPath, value });
+                    allowValues.push({ path: fullPath, value });
                 }
             }
         }
@@ -825,7 +827,9 @@ class HandlebarController {
 
         if (appFilterList && appFilterList.length > 0) {
             for (const filterPath of appFilterList) {
-                this._removePath(filtered, filterPath);
+                // Prefix with 'appConfig.' since contextFilter paths are relative to appConfig
+                const fullPath = `appConfig.${filterPath}`;
+                this._removePath(filtered, fullPath);
             }
         }
 
@@ -1806,10 +1810,14 @@ class HandlebarController {
                 }
             }
 
+            // W-134: Strip level annotations from blockContent before storing
+            // Level annotations are context-specific and will be re-annotated when component is expanded
+            const cleanTemplate = blockContent.replace(/\{\{([#\/][a-z]+):~\d+~(.*?)\}\}/g, '{{$1$2}}');
+
             // Register component in per-request registry
             req.componentRegistry.set(usageName, {
                 originalName: componentName,
-                template: blockContent,
+                template: cleanTemplate,
                 defaults: defaultParams
             });
 
@@ -2719,7 +2727,7 @@ class HandlebarController {
                     // Long format: use moment translations
                     const momentKey = isFuture ? 'controller.handlebar.date.fromNow.futureMoment' : 'controller.handlebar.date.fromNow.pastMoment';
                     if (global.i18n && req) {
-                        return global.i18n.translate(req, momentKey) || (isFuture ? 'in a moment' : 'just now');
+                        return global.i18n.translate(req, momentKey) || (isFuture ? 'in a moment' : 'just now'); // i18n-audit-ignore
                     }
                     return isFuture ? 'in a moment' : 'just now';
                 }
@@ -2729,7 +2737,7 @@ class HandlebarController {
             let separator = style === 'short' ? ' ' : ', ';
             if (style === 'long' && global.i18n && req) {
                 const separatorKey = 'controller.handlebar.date.fromNow.separator';
-                separator = global.i18n.translate(req, separatorKey) || ', ';
+                separator = global.i18n.translate(req, separatorKey) || ', '; // i18n-audit-ignore
             }
 
             // Format parts with i18n translations
@@ -2750,7 +2758,7 @@ class HandlebarController {
 
                 let translatedUnit;
                 if (global.i18n && req) {
-                    translatedUnit = global.i18n.translate(req, i18nKey, { value: part.value });
+                    translatedUnit = global.i18n.translate(req, i18nKey, { value: part.value }); // i18n-audit-ignore
                     // If translation returns the key (translation missing), use fallback
                     if (translatedUnit === i18nKey) {
                         translatedUnit = null; // Will use fallback below
@@ -2787,7 +2795,7 @@ class HandlebarController {
             // Wrap in pastRange/futureRange template
             const rangeKey = isFuture ? 'controller.handlebar.date.fromNow.futureRange' : 'controller.handlebar.date.fromNow.pastRange';
             if (global.i18n && req) {
-                return global.i18n.translate(req, rangeKey, { range }) || (isFuture ? `in ${range}` : `${range} ago`);
+                return global.i18n.translate(req, rangeKey, { range }) || (isFuture ? `in ${range}` : `${range} ago`); // i18n-audit-ignore
             }
 
             // Fallback to English if i18n not available

@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.4.13
+# jPulse Docs / REST API Reference v1.4.14
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -678,12 +678,144 @@ Create new user account with validation.
 
 ### Administrative User Management
 
+#### Get Public User Profile
+Get a public user profile by ObjectId or username with config-controlled access and field filtering.
+
+**Route:** `GET /api/1/user/public/:id`
+**Middleware:** None (access control in controller)
+**Authentication:** Optional (access policy configured in `app.conf`)
+**jPulse 1.4.14+:** Supports config-driven public profile visibility with field filtering
+
+**Access Control:**
+Access is controlled by `appConfig.controller.user.profile` configuration:
+
+```javascript
+controller: {
+    user: {
+        profile: {
+            withoutAuth: {
+                allowed: false,  // Deny unauthenticated access
+                fields: []       // No additional fields beyond always-included
+            },
+            withAuth: {
+                allowed: true,   // Allow authenticated users
+                fields: [ 'email', 'preferences.theme' ]  // Additional fields
+            }
+        }
+    }
+}
+```
+
+**Always-Included Fields** (not configurable):
+- `username` - User's login ID
+- `profile.firstName` - First name
+- `profile.lastName` - Last name
+- `initials` - Computed from firstName/lastName (e.g., "JD")
+
+**Configurable Additional Fields:**
+Fields specified in the `fields` array use dot notation and can include any non-sensitive user field:
+- `email` - Email address
+- `preferences.theme` - Theme preference
+- `preferences.language` - Language preference
+- `status` - Account status
+- Any other user model field (except `passwordHash`)
+
+**Admin Access:**
+Admins always have access regardless of policy and see all fields except `passwordHash`.
+
+**URL Parameters:**
+- `:id` (string, required): ObjectId (24 hex chars) or username
+
+**Example Requests:**
+```bash
+# Get by ObjectId
+GET /api/1/user/public/66cb1234567890abcdef1234
+
+# Get by username
+GET /api/1/user/public/jsmith
+```
+
+**Response (200):**
+```json
+{
+    "success": true,
+    "data": {
+        "username": "jsmith",
+        "profile": {
+            "firstName": "John",
+            "lastName": "Smith"
+        },
+        "initials": "JS",
+        "email": "john@example.com"
+    },
+    "message": "User retrieved successfully",
+    "elapsed": 5
+}
+```
+
+**Response - Access Denied (403):**
+```json
+{
+    "success": false,
+    "error": "You do not have permission to view public profiles",
+    "code": "PUBLIC_PROFILE_ACCESS_DENIED"
+}
+```
+
+**Response - User Not Found (404):**
+```json
+{
+    "success": false,
+    "error": "User not found",
+    "code": "USER_NOT_FOUND"
+}
+```
+
+**Use Cases:**
+- Public user profiles in collaboration features
+- User directories with configurable visibility
+- @ mention lookups in chat/comments
+- Team member lists with controlled information exposure
+
+**Configuration Examples:**
+
+*Public access with minimal info:*
+```javascript
+withoutAuth: {
+    allowed: true,
+    fields: []  // Only username and name visible
+}
+```
+
+*Authenticated users see email:*
+```javascript
+withAuth: {
+    allowed: true,
+    fields: [ 'email' ]
+}
+```
+
+*Private profiles (auth required, no public):*
+```javascript
+withoutAuth: {
+    allowed: false,
+    fields: []
+},
+withAuth: {
+    allowed: true,
+    fields: [ 'email', 'preferences.theme' ]
+}
+```
+
+---
+
 #### Search Users
 Search and filter users with advanced query capabilities.
 
 **Route:** `GET /api/1/user/search`
-**Middleware:** `AuthController.requireAuthentication`, `AuthController.requireRole(['admin', 'root'])`
-**Authentication:** Required (Admin/Root roles only)
+**Middleware:** None (access control in controller)
+**Authentication:** Optional (access policy configured in `app.conf`)
+**jPulse 1.4.14+:** Updated to use profile access policy instead of admin-only middleware
 
 **Query Parameters:**
 - `username` (string): Login ID filter with wildcard support (`*`)
@@ -736,19 +868,13 @@ GET /api/1/user/search?limit=25&offset=50&sort=-lastLogin
     "success": true,
     "data": [
         {
-            "_id": "66cb1234567890abcdef1234",
             "username": "jsmith",
-            "email": "john@example.com",
             "profile": {
                 "firstName": "John",
-                "lastName": "Smith",
-                "nickName": "Johnny"
+                "lastName": "Smith"
             },
-            "roles": ["user", "admin"],
-            "status": "active",
-            "lastLogin": "2025-08-25T10:30:00.000Z",
-            "loginCount": 42,
-            "createdAt": "2025-08-01T08:00:00.000Z"
+            "initials": "JS",
+            "email": "john@example.com"
         }
     ],
     "count": 25,
@@ -762,6 +888,13 @@ GET /api/1/user/search?limit=25&offset=50&sort=-lastLogin
     }
 }
 ```
+
+**Note on Field Filtering (W-134):**
+
+Search results respect the same field filtering as `/api/1/user/public/:id`:
+- Always includes: `username`, `profile.firstName`, `profile.lastName`, `initials`
+- Additional fields determined by auth state and config (`withoutAuth.fields` / `withAuth.fields`)
+- Admins see all fields except `passwordHash`
 
 **Response - Offset Mode (200):**
 ```json

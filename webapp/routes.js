@@ -3,8 +3,8 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.4.14
- * @release         2026-01-14
+ * @version         1.4.15
+ * @release         2026-01-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -99,7 +99,8 @@ router.post('/api/1/user/signup', UserController.signup);
 router.put('/api/1/user/password', AuthController.requireAuthentication, UserController.changePassword);
 // W-134: Changed from admin-only to profile access policy (access control in controller)
 router.get('/api/1/user/search', UserController.search);
-router.get('/api/1/user/stats', AuthController.requireRole(adminRoles), UserController.stats);
+// W-134: Changed from admin-only to authenticated users (for /user/ dashboard stats)
+router.get('/api/1/user/stats', AuthController.requireAuthentication, UserController.stats);
 router.get('/api/1/user/enums', AuthController.requireAuthentication, UserController.getEnums);
 router.get('/api/1/user', AuthController.requireAuthentication, UserController.get);
 router.get('/api/1/user/:id', AuthController.requireAuthentication, UserController.get);

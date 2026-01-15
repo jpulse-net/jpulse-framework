@@ -1,6 +1,97 @@
-# jPulse Docs / Version History v1.4.14
+# jPulse Docs / Version History v1.4.15
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.15, W-135, 2026-01-15
+
+**Commit:** `W-135, v1.4.15: handlebars: add string manipulation helpers`
+
+**FEATURE RELEASE**: 10 powerful string manipulation helpers with variadic support for enhanced template flexibility.
+
+**Objectives**:
+- Provide comprehensive string manipulation capabilities in Handlebars templates
+- Enable variadic support (1+ arguments) for all string helpers
+- Implement smart English title casing with punctuation preservation
+- Add HTML to text/markdown conversion helpers
+- Maintain security with XSS prevention helper
+
+**Key Features**:
+- **10 New String Helpers**: All organized under `string.*` namespace
+  - `{{string.length}}` - Returns string length as numeric string
+  - `{{string.lowercase}}` - Converts to lowercase
+  - `{{string.uppercase}}` - Converts to uppercase
+  - `{{string.titlecase}}` - Smart English title case (preserves punctuation)
+  - `{{string.slugify}}` - URL-friendly slugs (removes diacritics, handles punctuation)
+  - `{{string.urlEncode}}` - URL encode string
+  - `{{string.urlDecode}}` - URL decode string
+  - `{{string.htmlEscape}}` - Escape HTML for XSS prevention
+  - `{{string.htmlToText}}` - Smart HTML to text conversion
+  - `{{string.htmlToMd}}` - HTML to Markdown conversion
+- **Variadic Support**: All helpers accept 1+ arguments, concatenate first, then apply operation
+  - Example: `{{string.lowercase user.firstName " " user.lastName}}` → `"john doe"`
+- **Smart Titlecase**: English grammar rules, doesn't capitalize articles/prepositions unless first/last word
+  - Preserves punctuation: periods, colons, slashes, quotes, parentheses, brackets
+  - Example: `{{string.titlecase "the lord of the rings"}}` → `"The Lord of the Rings"`
+- **Smart Slugify**: Removes diacritics, converts punctuation to hyphens, no length limit
+  - Example: `{{string.slugify "Café: The Story!"}}` → `"cafe-the-story"`
+- **HTML to Text**: Smart tag removal with word boundary preservation, entity decoding, whitespace normalization
+- **HTML to Markdown**: Converts headings, lists (ul/ol), links, formatting (bold/italic/code), paragraphs, images (alt text), basic tables
+  - Handles HTML attributes gracefully (class, style, etc. stripped correctly)
+  - Documented limitations: no nested lists, basic table support, no code blocks
+
+**Code Changes**:
+
+**webapp/controller/handlebar.js**:
+- Added 10 helper descriptions to `HANDLEBARS_DESCRIPTIONS` array (lines 83-92)
+- Added case labels for new helpers in `_handleString` switch statement (lines 1247-1256)
+- Implemented all 10 helper functions in `_handleString` (lines 2418-2638, ~250 lines)
+  - `case 'length'`: Variadic, returns string length as string
+  - `case 'lowercase'`: Variadic, converts to lowercase
+  - `case 'uppercase'`: Variadic, converts to uppercase
+  - `case 'titlecase'`: Variadic, smart English title case with punctuation preservation
+  - `case 'slugify'`: Variadic, URL-friendly slugs with diacritic removal and punctuation handling
+  - `case 'urlEncode'`: Variadic, URL encode
+  - `case 'urlDecode'`: Variadic, URL decode with error handling
+  - `case 'htmlEscape'`: Variadic, escape HTML entities for XSS prevention
+  - `case 'htmlToText'`: Variadic, smart HTML to text conversion (tag removal, entity decoding, whitespace normalization)
+  - `case 'htmlToMd'`: Variadic, HTML to Markdown conversion (headings, lists, links, formatting, images, tables)
+- Bug fix (line 1437): Changed named argument regex from `/^(\w+)=(.+)$/` to `/^(\w+(?:\.\w+)*)=(.+)$/`
+  - Now supports dot notation in named arguments (e.g., `config.theme="dark"`)
+  - Prevents HTML attributes like `class="foo"` from being parsed as named arguments
+- Bug fix (line 2528): Changed tag removal regex from `/<\w[^>]*>/g` to `/<\/?\w[^>]*>/g`
+  - Now matches both opening (`<b>`) and closing (`</b>`) tags
+  - Preserves word boundaries in `htmlToText` helper
+
+**webapp/tests/unit/controller/handlebar-string-manipulation.test.js**:
+- Created comprehensive test file with 80+ tests for all 10 helpers
+- Single argument tests, multiple arguments (variadic) tests
+- Empty string, null, undefined input tests
+- Special characters, unicode, diacritics tests
+- HTML entities, complex HTML structures tests
+- Integration tests (chaining helpers, conditionals, custom variables)
+- All tests passing
+
+**docs/handlebars.md**:
+- Added "Shared Behavior" section for string helpers (variadic support, empty handling)
+- Documented all 10 helpers in alphabetical order with:
+  - Description, syntax, examples, features, notes
+  - `string.htmlEscape`: Security note about XSS prevention
+  - `string.htmlToMd`: Documented limitations (nested lists, tables, code blocks)
+  - `string.htmlToMd`: "Handles HTML attributes gracefully" section
+- Updated "Common Use Cases" with examples using new helpers
+- Enhanced `string.titlecase` documentation with punctuation examples
+- Enhanced `string.slugify` documentation with punctuation handling
+
+**Breaking Changes**:
+- None - fully backward compatible
+
+**Migration Steps**:
+- No migration needed - purely additive feature
+
+**Work Item**: W-135
+**Version**: v1.4.15
+**Release Date**: 2026-01-15
 
 ________________________________________________
 ## v1.4.14, W-134, 2026-01-14

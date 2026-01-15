@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.4.14
+# jPulse Docs / Handlebars Templating v1.4.15
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -778,6 +778,11 @@ Results in a broadcast message showing the actual local time in the user's brows
 
 String operations are organized under the `string.*` namespace for consistency and organization.
 
+**Shared Behavior:**
+- **Variadic support**: Most string helpers support multiple arguments (1+), which are concatenated before applying the operation
+- **Example**: `{{string.lowercase user.firstName " " user.lastName}}` → `"john doe"`
+- **Empty handling**: All helpers return empty string `""` for empty/null/undefined inputs
+
 #### `{{string.concat}}` - Concatenate strings
 
 Concatenate all arguments into a single string (variadic, 1+ args).
@@ -787,6 +792,16 @@ Concatenate all arguments into a single string (variadic, 1+ args).
 {{string.concat "themes/" user.preferences.theme ".css"}} <!-- "themes/light.css" -->
 {{string.concat "prefix-" vars.value "-suffix"}}
 ```
+#### `{{string.contains}}` - Check if string contains substring
+
+Check if a string contains a substring (2 args: string, substring). Returns `"true"` or `"false"`.
+
+```handlebars
+{{string.contains "hello" "ell"}}       <!-- "true" -->
+{{string.contains user.email "@"}}      <!-- "true" if email contains @ -->
+{{#if (eq (string.contains url.path "admin") "true")}}Admin section{{/if}}
+```
+
 
 #### `{{string.default}}` - Return first non-empty value
 
@@ -796,56 +811,6 @@ Return the first non-empty value, or the last argument as fallback (variadic, 1+
 {{string.default user.preferences.theme "light"}} <!-- "light" if theme is empty -->
 {{string.default user.preferences.language "en"}} <!-- "en" if language is empty -->
 {{string.default vars.val1 vars.val2 "fallback"}} <!-- first non-empty, or "fallback" -->
-```
-
-#### `{{string.replace}}` - Replace substring
-
-Replace all occurrences of a substring (3 args: string, search, replace).
-
-```handlebars
-{{string.replace "hello world" "world" "jPulse"}}  <!-- "hello jPulse" -->
-{{string.replace user.name " " "-"}}    <!-- replace spaces with dashes -->
-{{string.replace url.path "/" "-"}}     <!-- replace slashes with dashes -->
-```
-
-#### `{{string.substring}}` - Extract substring
-
-Extract a substring from a string (3 args: string, start, length).
-
-```handlebars
-{{string.substring "hello world" 0 5}}  <!-- "hello" -->
-{{string.substring user.email 0 10}}    <!-- first 10 characters -->
-{{string.substring vars.text 5 20}}     <!-- characters 5-24 -->
-```
-
-#### `{{string.padLeft}}` - Pad left with character
-
-Pad a string to the left with a character (3 args: string, length, padChar).
-
-```handlebars
-{{string.padLeft "5" 3 "0"}}       <!-- "005" -->
-{{string.padLeft user.id 6 "0"}}   <!-- zero-pad ID to 6 digits -->
-{{string.padLeft "42" 5 " "}}      <!-- "   42" (padded with spaces) -->
-```
-
-#### `{{string.padRight}}` - Pad right with character
-
-Pad a string to the right with a character (3 args: string, length, padChar).
-
-```handlebars
-{{string.padRight "5" 3 "0"}}         <!-- "500" -->
-{{string.padRight user.name 20 " "}}  <!-- pad name to 20 characters -->
-{{string.padRight "42" 5 "-"}}        <!-- "42---" -->
-```
-
-#### `{{string.startsWith}}` - Check if string starts with
-
-Check if a string starts with a prefix (2 args: string, prefix). Returns `"true"` or `"false"`.
-
-```handlebars
-{{string.startsWith "hello" "he"}}      <!-- "true" -->
-{{string.startsWith url.path "/admin"}} <!-- "true" if path starts with /admin -->
-{{#if (eq (string.startsWith url.path "/admin") "true")}}Admin area{{/if}}
 ```
 
 #### `{{string.endsWith}}` - Check if string ends with
@@ -858,14 +823,148 @@ Check if a string ends with a suffix (2 args: string, suffix). Returns `"true"` 
 {{#if (eq (string.endsWith user.email "@example.com") "true")}}Internal user{{/if}}
 ```
 
-#### `{{string.contains}}` - Check if string contains substring
+#### `{{string.htmlEscape}}` - Escape HTML
 
-Check if a string contains a substring (2 args: string, substring). Returns `"true"` or `"false"`.
+Escape HTML characters for security (prevents XSS attacks). Variadic: concatenates args first.
 
 ```handlebars
-{{string.contains "hello" "ell"}}       <!-- "true" -->
-{{string.contains user.email "@"}}      <!-- "true" if email contains @ -->
-{{#if (eq (string.contains url.path "admin") "true")}}Admin section{{/if}}
+{{string.htmlEscape "<script>alert('xss')</script>"}} <!-- "&lt;script&gt;alert('xss')&lt;/script&gt;" -->
+<div>{{string.htmlEscape userInput}}</div>          <!-- Safe display of user input -->
+{{string.htmlEscape "<div>" "content" "</div>"}}    <!-- Variadic support -->
+```
+
+**Security note**: Always use this helper when displaying user-generated content to prevent XSS attacks.
+
+#### `{{string.htmlToMd}}` - Convert HTML to Markdown
+
+Convert HTML to Markdown format (lists, paragraphs, formatting). Variadic: concatenates args first.
+
+```handlebars
+{{string.htmlToMd "<h1>Title</h1><p>Content</p>"}}  <!-- "# Title\n\nContent" -->
+{{string.htmlToMd vars.emailBody}}                  <!-- Convert email HTML to Markdown -->
+```
+
+**Supported conversions:**
+- Headings: `<h1>-<h6>` → `# text`
+- Paragraphs/divs: `<p>`, `<div>` → double newlines
+- Lists: `<ul><li>` → `- item`, `<ol><li>` → `1. item`
+- Formatting: `<b>`, `<strong>` → `**text**`, `<i>`, `<em>` → `*text*`
+- Links: `<a href>` → `[text](url)`
+- Code: `<code>` → `` `text` ``
+- Images: `<img alt>` → `alt` text only
+- Tables: Basic support (rows to newlines, no proper markdown tables)
+
+**Handles HTML attributes gracefully:**
+- HTML attributes (class, style, id, etc.) are automatically stripped
+- Example: `<div class="hero" style="padding: 2rem;">` works correctly
+
+**Limitations:**
+- No nested lists
+- No code blocks (use inline code only)
+- Tables preserved as rows with newlines, not proper markdown tables
+- Preserves 2 newlines for block elements, collapses 3+ to 2
+
+#### `{{string.htmlToText}}` - Convert HTML to text
+
+Convert HTML to plain text with smart tag removal and entity decoding. Variadic: concatenates args first.
+
+```handlebars
+{{string.htmlToText "<p>Hello</p><p>World</p>"}}    <!-- "Hello World" -->
+{{string.htmlToText vars.emailBody}}                <!-- Strip HTML for preview -->
+{{string.htmlToText "&lt;script&gt;"}}              <!-- "<script>" (entities decoded) -->
+```
+
+#### `{{string.length}}` - Get string length
+
+Get string length as numeric string. Variadic: concatenates args first, then returns length.
+
+```handlebars
+{{string.length "hello"}}                           <!-- "5" -->
+{{string.length user.firstName " " user.lastName}}  <!-- "8" (if "John Doe") -->
+{{#if (gt (string.length user.bio) 500)}}Bio too long{{/if}}
+```
+
+#### `{{string.lowercase}}` - Convert to lowercase
+
+Convert string to lowercase. Variadic: concatenates args first.
+
+```handlebars
+{{string.lowercase "HELLO"}}                          <!-- "hello" -->
+{{string.lowercase user.firstName " " user.lastName}} <!-- "john doe" -->
+{{string.lowercase user.email}}                       <!-- "john@example.com" -->
+```
+
+**Features:**
+- Smart tag removal: Replaces block tags with spaces to preserve word boundaries
+- Entity decoding: Converts `&lt;`, `&gt;`, `&amp;`, `&nbsp;`, numeric entities
+- Whitespace collapse: Collapses 1+ whitespace to single space
+- Trimmed output
+
+#### `{{string.padLeft}}` - Pad left with character
+
+Pad a string to the left with a character (3 args: string, length, padChar).
+
+```handlebars
+{{string.padLeft "5" 3 "0"}}                <!-- "005" -->
+{{string.padLeft user.id 6 "0"}}            <!-- zero-pad ID to 6 digits -->
+{{string.padLeft "42" 5 " "}}               <!-- "   42" (padded with spaces) -->
+```
+
+#### `{{string.padRight}}` - Pad right with character
+
+Pad a string to the right with a character (3 args: string, length, padChar).
+
+```handlebars
+{{string.padRight "5" 3 "0"}}               <!-- "500" -->
+{{string.padRight user.name 20 " "}}        <!-- pad name to 20 characters -->
+{{string.padRight "42" 5 "-"}}              <!-- "42---" -->
+```
+
+#### `{{string.replace}}` - Replace substring
+
+Replace all occurrences of a substring (3 args: string, search, replace).
+
+```handlebars
+{{string.replace "hello world" "world" "jPulse"}}  <!-- "hello jPulse" -->
+{{string.replace user.name " " "-"}}        <!-- replace spaces with dashes -->
+{{string.replace url.path "/" "-"}}         <!-- replace slashes with dashes -->
+```
+
+#### `{{string.slugify}}` - Convert to URL-friendly slug
+
+Convert string to URL-friendly slug (lowercase, dashes, no special chars). Variadic: concatenates args first.
+
+```handlebars
+{{string.slugify "Hello World!"}}           <!-- "hello-world" -->
+{{string.slugify article.title}}            <!-- "my-blog-post" -->
+{{string.slugify "Café"}}                   <!-- "cafe" (diacritics removed) -->
+<a href="/blog/{{string.slugify post.title}}">Read more</a>
+```
+
+**Features:**
+- Converts to lowercase
+- Removes diacritics/accents: `"Café"` → `"cafe"`
+- Replaces spaces and common punctuation (`.`, `,`, `:`, `;`) with hyphens
+- Removes non-alphanumeric characters (except hyphens)
+- Collapses multiple hyphens to single hyphen
+- Trims hyphens from ends
+- Preserves numbers
+
+**Examples:**
+```handlebars
+{{string.slugify "Hello World!"}}           <!-- "hello-world" -->
+{{string.slugify "Café"}}                   <!-- "cafe" -->
+{{string.slugify "Hello, World: A Tale"}}   <!-- "hello-world-a-tale" -->
+{{string.slugify "Contact Us (Support)"}}   <!-- "contact-us-support" -->
+```
+
+**Common Use Cases:**
+```handlebars
+<!-- Blog post URL -->
+<a href="/blog/{{string.slugify category " " title}}">Read</a>
+
+<!-- File naming -->
+{{let filename=(string.slugify "My Document.pdf")}}  <!-- "my-documentpdf" -->
 ```
 
 **Common Use Cases**:
@@ -878,13 +977,109 @@ Check if a string contains a substring (2 args: string, substring). Returns `"tr
 {{string.concat "prefix-" (string.default vars.value "default") "-suffix"}}
 
 <!-- String manipulation -->
-{{string.replace user.name " " "-"}}    <!-- Convert spaces to dashes -->
-{{string.padLeft user.id 6 "0"}}        <!-- Zero-pad ID to 6 digits -->
+{{string.replace user.name " " "-"}}        <!-- Convert spaces to dashes -->
+{{string.padLeft user.id 6 "0"}}            <!-- Zero-pad ID to 6 digits -->
 
 <!-- String checks in conditionals -->
 {{#if (eq (string.startsWith url.path "/admin") "true")}}
     Admin area
 {{/if}}
+
+<!-- Variadic string operations -->
+{{string.lowercase user.firstName " " user.lastName}}   <!-- "john doe" -->
+{{string.uppercase "Mr. " user.lastName}}               <!-- "MR. DOE" -->
+{{string.slugify category " " title}}                   <!-- "tech-my-post" -->
+
+<!-- URL-safe filenames and slugs -->
+<a href="/blog/{{string.slugify post.title}}">{{string.titlecase post.title}}</a>
+
+<!-- Safe HTML display (prevent XSS) -->
+<div class="user-comment">{{string.htmlEscape comment.text}}</div>
+
+<!-- HTML to text preview -->
+<div class="preview">{{string.substring (string.htmlToText article.body) 0 200}}...</div>
+
+<!-- Generate length-based UI -->
+{{#if (gt (string.length user.bio) 100)}}
+    <button onclick="toggleBio()">Read more</button>
+{{/if}}
+```
+
+#### `{{string.startsWith}}` - Check if string starts with
+
+Check if a string starts with a prefix (2 args: string, prefix). Returns `"true"` or `"false"`.
+
+```handlebars
+{{string.startsWith "hello" "he"}}      <!-- "true" -->
+{{string.startsWith url.path "/admin"}} <!-- "true" if path starts with /admin -->
+{{#if (eq (string.startsWith url.path "/admin") "true")}}Admin area{{/if}}
+```
+
+#### `{{string.substring}}` - Extract substring
+
+Extract a substring from a string (3 args: string, start, length).
+
+```handlebars
+{{string.substring "hello world" 0 5}}  <!-- "hello" -->
+{{string.substring user.email 0 10}}    <!-- first 10 characters -->
+{{string.substring vars.text 5 20}}     <!-- characters 5-24 -->
+```
+
+#### `{{string.titlecase}}` - Convert to title case
+
+Convert to English title case with smart capitalization. Variadic: concatenates args first.
+
+```handlebars
+{{string.titlecase "hello world"}}              <!-- "Hello World" -->
+{{string.titlecase "the lord of the rings"}}    <!-- "The Lord of the Rings" -->
+{{string.titlecase "a tale of two cities"}}     <!-- "A Tale of Two Cities" -->
+```
+
+**Smart capitalization rules:**
+- Always capitalizes first and last word
+- Capitalizes major words (nouns, verbs, adjectives, etc.)
+- Doesn't capitalize small words in middle: `a`, `an`, `and`, `as`, `at`, `but`, `by`, `for`, `in`, `nor`, `of`, `on`, `or`, `so`, `the`, `to`, `up`, `yet`
+- Preserves punctuation: periods, colons, slashes, quotes, parentheses, brackets
+- English-specific rules
+
+**Examples:**
+```handlebars
+{{string.titlecase "going to the store"}}       <!-- "Going to the Store" -->
+{{string.titlecase "THE GREAT GATSBY"}}         <!-- "The Great Gatsby" -->
+{{string.titlecase "hello: world"}}             <!-- "Hello: World" -->
+{{string.titlecase "contact us (support)"}}     <!-- "Contact Us (Support)" -->
+```
+
+#### `{{string.uppercase}}` - Convert to uppercase
+
+Convert string to uppercase. Variadic: concatenates args first.
+
+```handlebars
+{{string.uppercase "hello"}}                    <!-- "HELLO" -->
+{{string.uppercase user.status}}                <!-- "ACTIVE" -->
+{{string.uppercase "hello" " " "world"}}        <!-- "HELLO WORLD" -->
+```
+
+#### `{{string.urlDecode}}` - URL decode
+
+URL decode string. Variadic: concatenates args first.
+
+```handlebars
+{{string.urlDecode "hello%20world"}}            <!-- "hello world" -->
+{{string.urlDecode url.param.query}}            <!-- Decode URL parameter -->
+{{string.urlDecode "hello%26world"}}            <!-- "hello&world" -->
+```
+
+**Error handling**: Returns original string if decoding fails (invalid URL encoding).
+
+#### `{{string.urlEncode}}` - URL encode
+
+URL encode string. Variadic: concatenates args first.
+
+```handlebars
+{{string.urlEncode "hello world"}}              <!-- "hello%20world" -->
+<a href="/search?q={{string.urlEncode user.query}}">Search</a>
+{{string.urlEncode "hello&world"}}              <!-- "hello%26world" -->
 ```
 
 ## Block Helpers

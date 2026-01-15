@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.14
+# jPulse Docs / Dev / Work Items v1.4.15
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4006,17 +4006,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - updated existing tests for `%TIME%` and `%DATETIME%` format changes (removed seconds)
     - updated timezone conversion tests to verify correct conversion (not showing UTC when browser timezone is set)
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-134, v1.4.14, 2026-01-14: user view: create SPA for public profiles, user dashboard and user settings
 - status: ✅ DONE
 - type: Feature
@@ -4105,7 +4094,50 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-to-do:
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-135, v1.4.15, 2026-01-15: handlebars: add string manipulation helpers
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: more flexibility with string manipulation
+- new helpers (all variadic, 1+ args):
+  - `{{string.length user.firstName}}` → `"4"` (returns string number)
+  - `{{string.lowercase user.firstName}}` → `"john"`
+  - `{{string.lowercase user.firstName " " user.lastName}}` → `"john doe"`
+  - `{{string.uppercase user.firstName}}` → `"JOHN"`
+  - `{{string.titlecase "the lord of the rings"}}` → `"The Lord of the Rings"` (smart English title case)
+  - `{{string.slugify "Hello World!"}}` → `"hello-world"` (URL-friendly, removes diacritics)
+  - `{{string.urlEncode "hello world"}}` → `"hello%20world"`
+  - `{{string.urlDecode "hello%20world"}}` → `"hello world"`
+  - `{{string.htmlEscape vars.someHtml}}` → safe HTML, for security & to prevent XSS
+  - `{{string.htmlToText vars.someHtml}}` → convert HTML to plain text (smart tag removal, entity decoding)
+  - `{{string.htmlToMd vars.someHtml}}` → convert HTML to markdown (headings, lists, links, formatting)
+- deliverables:
+  - webapp/controller/handlebar.js:
+    - Added 10 helper descriptions to HANDLEBARS_DESCRIPTIONS
+    - Added case labels for new helpers in switch statement
+    - Implemented all 10 helper functions with variadic support (250+ lines)
+    - Bug fix: HTML attribute parsing (class="foo" no longer treated as named arg)
+    - Enhancement: titlecase preserves punctuation (periods, colons, quotes, etc.)
+    - Enhancement: slugify handles punctuation gracefully (converts to hyphens)
+  - webapp/tests/unit/controller/handlebar-string-manipulation.test.js:
+    - New test file with 80+ comprehensive tests
+    - Tests for all helpers with variadic support, edge cases, integration
+    - All tests passing
+  - docs/handlebars.md:
+    - Added "Shared Behavior" section explaining variadic support
+    - Documented all 10 helpers in alphabetical order with examples
+    - Added comprehensive use cases and feature descriptions
+    - Documented htmlToMd limitations and supported conversions
+- notes:
+  - All helpers support variadic arguments (concatenate first, then apply operation)
+  - Smart titlecase uses English grammar rules (doesn't capitalize articles/prepositions)
+  - Slugify removes diacritics and handles punctuation naturally
+  - htmlToMd handles HTML attributes gracefully (class, style, etc.)
+  - No breaking changes - fully backward compatible
+
+
 
 
 
@@ -4121,7 +4153,6 @@ old pending:
 
 ### Potential next items:
 - W-0: config model: make config schema extendable for site and plugin developers
-- W-0: handlebars: add string helpers
 - W-0: handlebars: add array access functions
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-0: deployment: docker strategy
@@ -4139,8 +4170,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-diff.txt for accuracy and completness of work item
-- assume release: W-134, v1.4.14
-- update deliverables in W-134 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-135, v1.4.15
+- update deliverables in W-135 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4157,12 +4188,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.14
+node bin/bump-version.js 1.4.15
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.14
+git tag v1.4.15
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -4310,24 +4341,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - features:
   - the config can be extended in a similar way like the existing user schema extension feature
   - make it data driven, e.g. no need to modify webapp/view/admin/config.shtml when the schema is extended
-- deliverables:
-  - FIXME file:
-    - FIXME summary
-
-### W-0: handlebars: add string manipulation helpers
-- status: 🕑 PENDING
-- type: Feature
-- objective: more flexibility with string manipulation
-- new helpers:
-  - `{{string.length user.name}}`
-  - `{{string.lowercase user.name}}`
-  - `{{string.uppercase user.name}}`
-  - `{{string.titlecase user.name}}`
-  - `{{string.slugify "Hello World!"}}` → `"hello-world"`
-  - `{{string.urlEncode "hello world"}}` → `"hello%20world"`
-  - `{{string.urlDecode "hello%20world"}}` → `"hello world"`
-  - `{{string.htmlEscape}}` → safe HTML, for security & to prevent XSS
-  - `{{string.htmlToText}}` → convert html to text
 - deliverables:
   - FIXME file:
     - FIXME summary

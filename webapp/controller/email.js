@@ -3,8 +3,8 @@
  * @tagline         Email Controller for jPulse Framework
  * @description     Provides email sending capability and API endpoint for jPulse Framework
  * @file            webapp/controller/email.js
- * @version         1.4.14
- * @release         2026-01-14
+ * @version         1.4.15
+ * @release         2026-01-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

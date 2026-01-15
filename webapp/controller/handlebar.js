@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.4.14
- * @release         2026-01-14
+ * @version         1.4.15
+ * @release         2026-01-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -80,11 +80,21 @@ class HandlebarController {
         {name: 'string.contains', type: 'regular', source: 'jpulse', description: 'Check if string contains substring (2 args) → `true`/`false`', example: '{{string.contains "hello" "ell"}}'},
         {name: 'string.default', type: 'regular', source: 'jpulse', description: 'Return first non-empty value (variadic, 1+ args)', example: '{{string.default user.preferences.theme "light"}}'},
         {name: 'string.endsWith', type: 'regular', source: 'jpulse', description: 'Check if string ends with suffix (2 args) → `true`/`false`', example: '{{string.endsWith "hello" "lo"}}'},
+        {name: 'string.htmlEscape', type: 'regular', source: 'jpulse', description: 'Escape HTML for security (prevents XSS). Variadic: concatenates args first', example: '{{string.htmlEscape vars.userInput}}'},
+        {name: 'string.htmlToMd', type: 'regular', source: 'jpulse', description: 'Convert HTML to Markdown (lists, paragraphs, formatting). Variadic: concatenates args first', example: '{{string.htmlToMd vars.emailBody}}'},
+        {name: 'string.htmlToText', type: 'regular', source: 'jpulse', description: 'Convert HTML to plain text (smart tag removal, entity decoding). Variadic: concatenates args first', example: '{{string.htmlToText vars.emailBody}}'},
+        {name: 'string.length', type: 'regular', source: 'jpulse', description: 'Get string length as string. Variadic: concatenates args first', example: '{{string.length user.firstName}}'},
+        {name: 'string.lowercase', type: 'regular', source: 'jpulse', description: 'Convert to lowercase. Variadic: concatenates args first', example: '{{string.lowercase user.firstName " " user.lastName}}'},
         {name: 'string.padLeft', type: 'regular', source: 'jpulse', description: 'Pad left with character (3 args: string, length, padChar)', example: '{{string.padLeft "5" 3 "0"}}'},
         {name: 'string.padRight', type: 'regular', source: 'jpulse', description: 'Pad right with character (3 args: string, length, padChar)', example: '{{string.padRight "5" 3 "0"}}'},
         {name: 'string.replace', type: 'regular', source: 'jpulse', description: 'Replace substring (3 args: string, search, replace)', example: '{{string.replace "hello world" "world" "jPulse"}}'},
+        {name: 'string.slugify', type: 'regular', source: 'jpulse', description: 'Convert to URL-friendly slug (lowercase, dashes, no special chars). Variadic: concatenates args first', example: '{{string.slugify article.title}}'},
         {name: 'string.startsWith', type: 'regular', source: 'jpulse', description: 'Check if string starts with prefix (2 args) → `true`/`false`', example: '{{string.startsWith "hello" "he"}}'},
         {name: 'string.substring', type: 'regular', source: 'jpulse', description: 'Extract substring (3 args: string, start, length)', example: '{{string.substring "hello world" 0 5}}'},
+        {name: 'string.titlecase', type: 'regular', source: 'jpulse', description: 'Convert to English title case (smart capitalization). Variadic: concatenates args first', example: '{{string.titlecase "the lord of the rings"}}'},
+        {name: 'string.uppercase', type: 'regular', source: 'jpulse', description: 'Convert to uppercase. Variadic: concatenates args first', example: '{{string.uppercase user.status}}'},
+        {name: 'string.urlDecode', type: 'regular', source: 'jpulse', description: 'URL decode string. Variadic: concatenates args first', example: '{{string.urlDecode url.param.query}}'},
+        {name: 'string.urlEncode', type: 'regular', source: 'jpulse', description: 'URL encode string. Variadic: concatenates args first', example: '{{string.urlEncode user.query}}'},
         {name: 'url', type: 'regular', source: 'jpulse', description: 'URL context (protocol, hostname, port, pathname, search, domain, param.*)', example: '{{url.protocol}}://{{url.hostname}}{{url.pathname}}'},
         {name: 'user', type: 'regular', source: 'jpulse', description: 'User context (username, loginId, firstName, lastName, email, roles, isAuthenticated, isAdmin)', example: '{{user.firstName}} {{user.email}}'},
         {name: 'vars', type: 'regular', source: 'jpulse', description: 'Custom variables defined with `{{let}}` or `{{#let}}`', example: '{{vars.pageTitle}}'},
@@ -1234,6 +1244,17 @@ class HandlebarController {
                 case 'string.startsWith':
                 case 'string.endsWith':
                 case 'string.contains':
+                // W-135: String manipulation helpers
+                case 'string.length':
+                case 'string.lowercase':
+                case 'string.uppercase':
+                case 'string.titlecase':
+                case 'string.slugify':
+                case 'string.urlEncode':
+                case 'string.urlDecode':
+                case 'string.htmlEscape':
+                case 'string.htmlToText':
+                case 'string.htmlToMd':
                     return _handleString(parsedArgs, currentContext);
 
                 // W-131: Date helpers
@@ -1361,20 +1382,16 @@ class HandlebarController {
             }
 
             // Phase 2: Escape quotes and parentheses inside quoted strings, normalize to double quotes
-            // Example: arg='Hello (\'world\')' → "Hello (world)" with chars encoded
-            // When normalizing single quotes to double quotes, escape unescaped double quotes in content
+            // Example: arg='Hello (\'world\')' → "Hello ('world')" with chars encoded
             // Example: foo='bar "quoted" text' → foo="bar \"quoted\" text"
-            let processedExpr = parts[2];
-            processedExpr = processedExpr.replace(/(['"])((?:(?!\1)[^\\]|\\.)*)\1/g, (match, quote, content) => {
-                if(quote === "'") {
-                    // If normalizing from single quote to double quote, escape unescaped double quotes
-                    content = content.replace(/(?<!\\)"/g, '\\"');
-                } else {
-                    // Unescape escaped single quotes (they don't need escaping in double quotes)
-                    content = content.replace(/\\'/g, "'");
-                }
-                // Encode special chars (spaces, quotes, parentheses, backslashes)
-                // Escaped quotes (\") are preserved as encoded backslash + encoded quote
+            // Escaped quotes (\") are preserved as encoded backslash + encoded quote
+            let processedExpr = parts[2].replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g, (match, content) => {
+                // Unescape escaped single quotes
+                content = content.replace(/\\'/g, "'");
+                return _encodeChars('"' + content + '"');
+            }).replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, (match, content) => {
+                // If normalizing from single quote to double quote, escape unescaped double quotes
+                content = content.replace(/(?<!\\)"/g, '\\"');
                 return _encodeChars('"' + content + '"');
             });
 
@@ -1417,7 +1434,7 @@ class HandlebarController {
 
             for (const token of tokens) {
                 const restored = _restoreChars(token);
-                const match = restored.trim().match(/^([^=]+)=(.+)$/);
+                const match = restored.trim().match(/^(\w+(?:\.\w+)*)=(.+)$/);
                 let [key, value] = match ? match.slice(1) : [null, restored];
 
                 if (value.startsWith('"') && value.endsWith('"')) {
@@ -2396,6 +2413,195 @@ class HandlebarController {
                     const str7 = String(args[0] || '');
                     const substring = String(args[1] || '');
                     return str7.includes(substring) ? 'true' : 'false';
+
+                // W-135: String manipulation helpers
+                case 'length':
+                    // Variadic: concatenate all args first, then return length as string
+                    if (args.length < 1) {
+                        return '0';
+                    }
+                    return String(args.map(a => String(a || '')).join('').length);
+
+                case 'lowercase':
+                    // Variadic: concatenate all args first, then convert to lowercase
+                    if (args.length < 1) {
+                        return '';
+                    }
+                    return args.map(a => String(a || '')).join('').toLowerCase();
+
+                case 'uppercase':
+                    // Variadic: concatenate all args first, then convert to uppercase
+                    if (args.length < 1) {
+                        return '';
+                    }
+                    return args.map(a => String(a || '')).join('').toUpperCase();
+
+                case 'titlecase':
+                    // Variadic: concatenate all args first, then apply smart English title case
+                    if (args.length < 1) {
+                        return '';
+                    }
+                    const titleStr = args.map(a => String(a || '')).join('');
+                    // English title case - don't capitalize articles, prepositions, conjunctions
+                    const smallWords = /^(a|an|and|as|at|but|by|for|in|nor|of|on|or|so|the|to|up|yet)$/i;
+                    const splitRegex = /([ \.:\/'"\(\[\<]+)/;
+                    return titleStr
+                        .toLowerCase()
+                        .split(splitRegex)
+                        .map((word, index, array) => {
+                            if(splitRegex.test(word)) {
+                                return word;
+                            } else {
+                                // Always capitalize first and last word
+                                if (index === 0 || index === array.length - 1) {
+                                    return word.charAt(0).toUpperCase() + word.slice(1);
+                                }
+                                // Don't capitalize small words
+                                if (smallWords.test(word)) {
+                                    return word;
+                                }
+                                // Capitalize everything else
+                                return word.charAt(0).toUpperCase() + word.slice(1);
+                            }
+                        })
+                        .join('');
+
+                case 'slugify':
+                    // Variadic: concatenate all args first, then convert to URL-friendly slug
+                    if (args.length < 1) {
+                        return '';
+                    }
+                    return args.map(a => String(a || '')).join('')
+                        .toLowerCase()
+                        .normalize('NFD')  // Decompose accents
+                        .replace(/[\u0300-\u036f]/g, '')  // Remove diacritics
+                        .replace(/[^a-z0-9\.,:;\s-]/g, '')  // Remove non-alphanumeric except space/hyphen
+                        .replace(/[\.,:;\s]+/g, '-')  // Replace spaces with hyphens
+                        .replace(/-+/g, '-')  // Collapse multiple hyphens
+                        .replace(/^-|-$/g, '');  // Trim hyphens from ends
+
+                case 'urlEncode':
+                    // Variadic: concatenate all args first, then URL encode
+                    if (args.length < 1) {
+                        return '';
+                    }
+                    return encodeURIComponent(args.map(a => String(a || '')).join(''));
+
+                case 'urlDecode':
+                    // Variadic: concatenate all args first, then URL decode
+                    if (args.length < 1) {
+                        return '';
+                    }
+                    try {
+                        return decodeURIComponent(args.map(a => String(a || '')).join(''));
+                    } catch (e) {
+                        LogController.logWarning(req, 'handlebar.string.urlDecode',
+                            `Invalid URL encoding: ${args[0]}`);
+                        return args.map(a => String(a || '')).join('');
+                    }
+
+                case 'htmlEscape':
+                    // Variadic: concatenate all args first, then escape HTML
+                    if (args.length < 1) {
+                        return '';
+                    }
+                    return args.map(a => String(a || '')).join('')
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+
+                case 'htmlToText':
+                    // Variadic: concatenate all args first, then convert HTML to text
+                    if (args.length < 1) {
+                        return '';
+                    }
+                    const htmlStr = args.map(a => String(a || '')).join('');
+                    // Smart HTML to text conversion:
+                    // 1. Replace block tags with spaces to preserve word boundaries
+                    let text = htmlStr
+                        // Block elements - add spaces around them
+                        .replace(/<\/(p|div|h[1-6]|li|td|th|tr)>/gi, ' ')
+                        .replace(/<(p|div|h[1-6]|li|td|th|tr)[^>]*>/gi, ' ')
+                        // Remove all other tags
+                        .replace(/<\/?\w[^>]*>/g, ' ');
+                    // 2. Decode HTML entities
+                    text = text
+                        .replace(/&nbsp;/g, ' ')
+                        .replace(/&lt;/g, '<')
+                        .replace(/&gt;/g, '>')
+                        .replace(/&quot;/g, '"')
+                        .replace(/&#39;/g, "'")
+                        .replace(/&#x27;/g, "'")
+                        .replace(/&amp;/g, '&')  // Must be last
+                        // Numeric entities
+                        .replace(/&#(\d+);/g, (match, dec) => String.fromCharCode(dec))
+                        .replace(/&#x([0-9a-f]+);/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+                    // 3. Collapse whitespace (1+ → 1 space) and trim
+                    return text.replace(/\s+/g, ' ').trim();
+
+                case 'htmlToMd':
+                    // Variadic: concatenate all args first, then convert HTML to Markdown
+                    if (args.length < 1) {
+                        return '';
+                    }
+                    let htmlMd = args.map(a => String(a || '')).join('');
+                    let md = htmlMd;
+                    // Convert headings
+                    md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '\n\n# $1\n\n');
+                    md = md.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '\n\n## $1\n\n');
+                    md = md.replace(/<h3[^>]*>(.*?)<\/h3>/gi, '\n\n### $1\n\n');
+                    md = md.replace(/<h4[^>]*>(.*?)<\/h4>/gi, '\n\n#### $1\n\n');
+                    md = md.replace(/<h5[^>]*>(.*?)<\/h5>/gi, '\n\n##### $1\n\n');
+                    md = md.replace(/<h6[^>]*>(.*?)<\/h6>/gi, '\n\n###### $1\n\n');
+                    // Convert links
+                    md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+                    // Convert formatting
+                    md = md.replace(/<(strong|b)[^>]*>(.*?)<\/\1>/gi, '**$2**');
+                    md = md.replace(/<(em|i)[^>]*>(.*?)<\/\1>/gi, '*$2*');
+                    md = md.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
+                    // Convert unordered lists
+                    md = md.replace(/<ul[^>]*>(.*?)<\/ul>/gis, (match, content) => {
+                        const items = content.match(/<li[^>]*>(.*?)<\/li>/gis) || [];
+                        return '\n\n' + items.map(item =>
+                            '- ' + item.replace(/<\/?li[^>]*>/gi, '').trim()
+                        ).join('\n') + '\n\n';
+                    });
+                    // Convert ordered lists
+                    md = md.replace(/<ol[^>]*>(.*?)<\/ol>/gis, (match, content) => {
+                        const items = content.match(/<li[^>]*>(.*?)<\/li>/gis) || [];
+                        return '\n\n' + items.map((item, i) =>
+                            `${i + 1}. ` + item.replace(/<\/?li[^>]*>/gi, '').trim()
+                        ).join('\n') + '\n\n';
+                    });
+                    // Convert paragraphs and divs to double newlines
+                    md = md.replace(/<\/(p|div)>/gi, '\n\n');
+                    md = md.replace(/<(p|div)[^>]*>/gi, '');
+                    // Convert images to alt text only
+                    md = md.replace(/<img[^>]*alt="([^"]*)"[^>]*>/gi, '$1');
+                    md = md.replace(/<img[^>]*>/gi, '');
+                    // Convert table rows to newlines (basic support, not full markdown tables)
+                    md = md.replace(/<\/tr>/gi, '\n');
+                    md = md.replace(/<tr[^>]*>/gi, '');
+                    md = md.replace(/<\/(td|th)>/gi, ' ');
+                    md = md.replace(/<(td|th)[^>]*>/gi, '');
+                    // Remove remaining tags
+                    md = md.replace(/<[^>]*>/g, '');
+                    // Decode entities
+                    md = md
+                        .replace(/&nbsp;/g, ' ')
+                        .replace(/&lt;/g, '<')
+                        .replace(/&gt;/g, '>')
+                        .replace(/&quot;/g, '"')
+                        .replace(/&#39;/g, "'")
+                        .replace(/&#x27;/g, "'")
+                        .replace(/&amp;/g, '&');
+                    // Clean up excessive newlines (3+ → 2)
+                    md = md.replace(/\n{3,}/g, '\n\n');
+                    // Clean up excessive spaces
+                    md = md.replace(/ {2,}/g, ' ');
+                    return md.trim();
 
                 default:
                     LogController.logWarning(req, `handlebar.string.${operation}`,

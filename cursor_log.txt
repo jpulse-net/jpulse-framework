@@ -15061,3 +15061,58 @@ Next steps (for user):
 
 
 ============================================================
+2026-01-15 20:20
+
+User: Post-release enhancement - update handlebars.shtml examples page
+
+Agent: Implemented Option A enhancements to handlebars.shtml:
+
+**Updates Made:**
+
+1. **Section 3 Context Tables - Fixed Descriptions:**
+   - Updated Section 3.7 "Logical and Comparison Helpers" (v1.3.15+, v1.4.16+)
+   - Changed all "Returns \"true\"" descriptions to "Returns true" (native boolean)
+   - Updated version note for block helpers to (v1.4.16+)
+
+2. **Section 8 String Helpers - Fixed Conditionals:**
+   - Removed workaround: `{{#if (eq (string.startsWith ...) "true")}}`
+   - Updated to direct use: `{{#if (string.startsWith ...)}}`
+   - Same fix for `string.contains` and `string.endsWith` examples
+   - Both example and source code panels updated
+
+3. **NEW Section 15: Array Helpers (v1.4.16+):**
+   - Array Access & Manipulation: first, last, length, includes, join
+   - Array Sorting: sort with numbers and objects, sortBy with nested properties
+   - Combined Operations: nested array.sort, array.concat, array.reverse
+   - Practical examples with json.parse for creating test arrays
+   - Link to complete array helpers documentation
+
+4. **NEW Section 16: JSON Parse Helper (v1.4.16+):**
+   - Parse JSON Arrays: use with {{#each}} loops
+   - Parse JSON Objects: access properties
+   - Use in Conditionals: combine with array.includes
+   - All examples show practical usage patterns
+
+5. **Context Tables - Added New Sections:**
+   - Section 3.10: Array Helpers (5 rows covering all 10 helpers)
+   - Section 3.11: JSON Helper (3 rows showing parse and usage)
+
+6. **JavaScript Tab Registration:**
+   - Added array-tabs initialization
+   - Added json-tabs initialization
+   - Both with proper panelHeight and slideAnimation
+
+**Implementation Approach:**
+- ✅ Option A: Minimal update with practical examples
+- ✅ No native type system explanation (users just expect it to work)
+- ✅ Focus on 3-4 practical use cases per section
+- ✅ Link to comprehensive docs for complete reference
+- ✅ Keep page length manageable (~200 lines added vs ~400+ for comprehensive)
+
+**Files Modified:**
+- webapp/view/jpulse-examples/handlebars.shtml (sections 3, 8, 15, 16 + JavaScript)
+
+Changes accepted and ready for testing!
+
+
+============================================================

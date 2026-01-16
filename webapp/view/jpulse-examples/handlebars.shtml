@@ -340,7 +340,7 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
             </div>
 
             <div class="jp-info-box">
-                <h4>3.7 Logical and Comparison Helpers (v1.3.15+)</h4>
+                <h4>3.7 Logical and Comparison Helpers (v1.3.15+, v1.4.16+)</h4>
                 <table class="jp-table">
                     <tr>
                         <th>Helper</th>
@@ -350,57 +350,57 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                     <tr>
                         <td>Logical AND</td>
                         <td><code>&#123;&#123;and cond1 cond2&#125;&#125;</code></td>
-                        <td>Returns "true" if all conditions are truthy</td>
+                        <td>Returns true if all conditions are truthy</td>
                     </tr>
                     <tr>
                         <td>Logical OR</td>
                         <td><code>&#123;&#123;or cond1 cond2&#125;&#125;</code></td>
-                        <td>Returns "true" if any condition is truthy</td>
+                        <td>Returns true if any condition is truthy</td>
                     </tr>
                     <tr>
                         <td>Logical NOT</td>
                         <td><code>&#123;&#123;not cond&#125;&#125;</code></td>
-                        <td>Returns "true" if condition is falsy</td>
+                        <td>Returns true if condition is falsy</td>
                     </tr>
                     <tr>
                         <td>Equal</td>
                         <td><code>&#123;&#123;eq a b&#125;&#125;</code></td>
-                        <td>Returns "true" if values are equal (type coercion)</td>
+                        <td>Returns true if values are equal (type coercion)</td>
                     </tr>
                     <tr>
                         <td>Not equal</td>
                         <td><code>&#123;&#123;ne a b&#125;&#125;</code></td>
-                        <td>Returns "true" if values are not equal (type coercion)</td>
+                        <td>Returns true if values are not equal (type coercion)</td>
                     </tr>
                     <tr>
                         <td>Greater than</td>
                         <td><code>&#123;&#123;gt a b&#125;&#125;</code></td>
-                        <td>Returns "true" if a > b (type coercion)</td>
+                        <td>Returns true if a &gt; b (type coercion)</td>
                     </tr>
                     <tr>
                         <td>Greater or equal</td>
                         <td><code>&#123;&#123;gte a b&#125;&#125;</code></td>
-                        <td>Returns "true" if a >= b (type coercion)</td>
+                        <td>Returns true if a &gt;= b (type coercion)</td>
                     </tr>
                     <tr>
                         <td>Less than</td>
                         <td><code>&#123;&#123;lt a b&#125;&#125;</code></td>
-                        <td>Returns "true" if a < b (type coercion)</td>
+                        <td>Returns true if a &lt; b (type coercion)</td>
                     </tr>
                     <tr>
                         <td>Less or equal</td>
                         <td><code>&#123;&#123;lte a b&#125;&#125;</code></td>
-                        <td>Returns "true" if a <= b (type coercion)</td>
+                        <td>Returns true if a &lt;= b (type coercion)</td>
                     </tr>
                     <tr>
                         <td>Subexpressions</td>
                         <td><code>&#123;&#123;#if (and cond1 cond2)&#125;&#125;...&#123;&#123;/if&#125;&#125;</code></td>
-                        <td>Use in {{#if}}, {{#unless}}, and block helpers</td>
+                        <td>Use in <code>&#123;&#123;#if&#125;&#125;</code>, <code>&#123;&#123;#unless&#125;&#125;</code>, and block helpers</td>
                     </tr>
                     <tr>
                         <td>Block helpers</td>
                         <td><code>&#123;&#123;#and cond1 cond2&#125;&#125;...&#123;&#123;else&#125;&#125;...&#123;&#123;/and&#125;&#125;</code></td>
-                        <td>All helpers support {{else}} blocks</td>
+                        <td>All helpers support <code>&#123;&#123;else&#125;&#125;</code> blocks (v1.4.16+)</td>
                     </tr>
                 </table>
             </div>
@@ -465,6 +465,69 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                         <td>Renders with custom parameters</td>
                     </tr>
                 </table>
+            </div>
+
+            <div class="jp-warning-box">
+                <h4>3.10 Array Helpers (v1.4.16+)</h4>
+                <table class="jp-table">
+                    <tr>
+                        <th>Helper</th>
+                        <th>Handlebar</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>Array access</td>
+                        <td><code>&#123;&#123;array.first arr&#125;&#125;</code>, <code>&#123;&#123;array.last arr&#125;&#125;</code>, <code>&#123;&#123;array.at arr 0&#125;&#125;</code></td>
+                        <td>Get array elements by position</td>
+                    </tr>
+                    <tr>
+                        <td>Array tests</td>
+                        <td><code>&#123;&#123;array.includes arr "value"&#125;&#125;</code>, <code>&#123;&#123;array.isEmpty arr&#125;&#125;</code></td>
+                        <td>Check array membership and emptiness (returns true/false)</td>
+                    </tr>
+                    <tr>
+                        <td>Array info</td>
+                        <td><code>&#123;&#123;array.length arr&#125;&#125;</code>, <code>&#123;&#123;array.join arr ", "&#125;&#125;</code></td>
+                        <td>Get array size and join elements</td>
+                    </tr>
+                    <tr>
+                        <td>Array manipulation</td>
+                        <td><code>&#123;&#123;array.concat arr1 arr2&#125;&#125;</code>, <code>&#123;&#123;array.reverse arr&#125;&#125;</code></td>
+                        <td>Combine and reverse arrays (returns native array)</td>
+                    </tr>
+                    <tr>
+                        <td>Array sorting</td>
+                        <td><code>&#123;&#123;array.sort arr sortBy="name"&#125;&#125;</code></td>
+                        <td>Sort arrays (primitives or objects by property)</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="jp-info-box">
+                <h4>3.11 JSON Helper (v1.4.16+)</h4>
+                <table class="jp-table">
+                    <tr>
+                        <th>Helper</th>
+                        <th>Handlebar</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>Parse JSON</td>
+                        <td><code>&#123;&#123;json.parse '["a","b"]'&#125;&#125;</code></td>
+                        <td>Convert JSON string to native array or object</td>
+                    </tr>
+                    <tr>
+                        <td>Use with arrays</td>
+                        <td><code>&#123;&#123;let arr=(json.parse '...')&#125;&#125;</code></td>
+                        <td>Store parsed JSON in variable for array helpers</td>
+                    </tr>
+                    <tr>
+                        <td>Use with loops</td>
+                        <td><code>&#123;&#123;#each (json.parse '...')&#125;&#125;...&#123;&#123;/each&#125;&#125;</code></td>
+                        <td>Iterate over JSON array directly</td>
+                    </tr>
+                </table>
+                <p><strong>Note:</strong> A <code>&#123;&#123;json.stringify&#125;&#125;</code> helper is not needed because stringification is automatically done at the end of the handlebar rendering process. For example, <code>&#123;&#123;user.roles&#125;&#125;</code> will return an array in JSON format.</p>
             </div>
         </div>
 
@@ -743,8 +806,8 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
             <div class="jp-warning-box">
                 <h4>In Conditionals</h4>
                 <ul>
-                    <li><strong>Path check:</strong> {{#if (eq (string.startsWith url.path "/admin") "true")}}Admin area{{else}}Public area{{/if}}</li>
-                    <li><strong>Email check:</strong> {{#if (eq (string.contains user.email "@") "true")}}Valid email{{else}}Invalid email{{/if}}</li>
+                    <li><strong>Path check:</strong> {{#if (string.startsWith url.path "/admin")}}Admin area{{else}}Public area{{/if}}</li>
+                    <li><strong>Email check:</strong> {{#if (string.contains user.email "@")}}Valid email{{else}}Invalid email{{/if}}</li>
                 </ul>
             </div>
         </div>
@@ -768,12 +831,12 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
 &#123;&#123;string.contains "hello" "ell"&#125;&#125;                  &lt;!-- "true" --&gt;
 
 &lt;!-- In Conditionals --&gt;
-&#123;&#123;#if (eq (string.startsWith url.path "/admin") "true")&#125;&#125;
+&#123;&#123;#if (string.startsWith url.path "/admin")&#125;&#125;
     Admin area
 &#123;&#123;else&#125;&#125;
     Public area
 &#123;&#123;/if&#125;&#125;
-&#123;&#123;#if (eq (string.contains user.email "@") "true")&#125;&#125;
+&#123;&#123;#if (string.contains user.email "@")&#125;&#125;
     Valid email
 &#123;&#123;else&#125;&#125;
     Invalid email
@@ -1153,6 +1216,157 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
 &#123;&#123;/if&#125;&#125;
             </div>
         </div>
+
+        <!-- Array Helpers (v1.4.16+) -->
+        <h2 class="local-heading-2">15. Array Helpers</h2>
+        <!-- Tab interface for example/source -->
+        <div id="array-tabs" class="jp-tabs"></div>
+        <div id="array-example-panel" class="jp-panel">
+            <div class="jp-info-box">
+                <p><strong>What you learn:</strong> How to work with arrays using helpers like <code>array.sort</code>, <code>array.join</code>, <code>array.includes</code>, and more.</p>
+                <p><strong>📖 Complete Reference:</strong> <a href="/jpulse-docs/handlebars#array-helpers">Array Helpers Documentation</a> - All 10 array helpers with detailed examples.</p>
+            </div>
+
+            <div class="jp-warning-box">
+                <h4>Array Access & Manipulation</h4>
+                {{let items=(json.parse '["apple","banana","cherry","date"]')}}
+                <ul>
+                    <li><strong>First item:</strong> {{array.first vars.items}}</li>
+                    <li><strong>Last item:</strong> {{array.last vars.items}}</li>
+                    <li><strong>Length:</strong> {{array.length vars.items}}</li>
+                    <li><strong>Includes "banana":</strong> {{array.includes vars.items "banana"}}</li>
+                    <li><strong>Joined:</strong> {{array.join vars.items " | "}}</li>
+                </ul>
+            </div>
+
+            <div class="jp-info-box">
+                <h4>Array Sorting</h4>
+                {{let numbers=(json.parse '[5,2,8,1,9]')}}
+                {{let users=(json.parse '[{"name":"Charlie","age":35},{"name":"Alice","age":28},{"name":"Bob","age":42}]')}}
+                <ul>
+                    <li><strong>Original numbers:</strong> {{array.join vars.numbers ", "}}</li>
+                    <li><strong>Sorted numbers:</strong> {{array.join (array.sort vars.numbers) ", "}}</li>
+                    <li><strong>Reversed:</strong> {{array.join (array.reverse vars.numbers) ", "}}</li>
+                    <li><strong>Sort users by name:</strong>
+                        {{#each (array.sort vars.users sortBy="name")}}
+                            {{name}} ({{age}}){{#unless @last}}, {{/unless}}
+                        {{/each}}
+                    </li>
+                    <li><strong>Sort users by age (descending):</strong>
+                        {{#each (array.sort vars.users sortBy="age" sortAs="number" reverse=true)}}
+                            {{name}} ({{age}}){{#unless @last}}, {{/unless}}
+                        {{/each}}
+                    </li>
+                </ul>
+            </div>
+
+            <div class="jp-warning-box">
+                <h4>Combined Operations</h4>
+                {{let arr1=(json.parse '["x","y"]')}}
+                {{let arr2=(json.parse '["a","b","c"]')}}
+                <p><strong>Concatenate and sort:</strong> {{array.join (array.sort (array.concat vars.arr1 vars.arr2)) ", "}}</p>
+                <p><strong>Reverse sorted:</strong> {{array.join (array.reverse (array.sort (array.concat vars.arr1 vars.arr2))) ", "}}</p>
+            </div>
+        </div>
+
+        <div id="array-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
+&lt;!-- Array Access --&gt;
+&#123;&#123;let items=(json.parse '["apple","banana","cherry","date"]')&#125;&#125;
+&#123;&#123;array.first vars.items&#125;&#125;           &lt;!-- "apple" --&gt;
+&#123;&#123;array.last vars.items&#125;&#125;            &lt;!-- "date" --&gt;
+&#123;&#123;array.length vars.items&#125;&#125;          &lt;!-- 4 --&gt;
+&#123;&#123;array.includes vars.items "banana"&#125;&#125; &lt;!-- true --&gt;
+&#123;&#123;array.join vars.items " | "&#125;&#125;       &lt;!-- "apple | banana | cherry | date" --&gt;
+
+&lt;!-- Array Sorting --&gt;
+&#123;&#123;let numbers=(json.parse '[5,2,8,1,9]')&#125;&#125;
+&#123;&#123;array.join (array.sort vars.numbers) ", "&#125;&#125;    &lt;!-- "1, 2, 5, 8, 9" --&gt;
+&#123;&#123;array.join (array.reverse vars.numbers) ", "&#125;&#125;  &lt;!-- "9, 1, 8, 2, 5" --&gt;
+
+&lt;!-- Sort Objects by Property --&gt;
+&#123;&#123;let users=(json.parse '[{"name":"Charlie","age":35},{"name":"Alice","age":28},{"name":"Bob","age":42}]')&#125;&#125;
+&#123;&#123;#each (array.sort vars.users sortBy="name")&#125;&#125;
+    &#123;&#123;name&#125;&#125; (&#123;&#123;age&#125;&#125;)
+&#123;&#123;/each&#125;&#125;
+
+&#123;&#123;#each (array.sort vars.users sortBy="age" sortAs="number" reverse=true)&#125;&#125;
+    &#123;&#123;name&#125;&#125; (&#123;&#123;age&#125;&#125;)
+&#123;&#123;/each&#125;&#125;
+
+&lt;!-- Combined Operations --&gt;
+&#123;&#123;let arr1=(json.parse '["x","y"]')&#125;&#125;
+&#123;&#123;let arr2=(json.parse '["a","b","c"]')&#125;&#125;
+&#123;&#123;array.join (array.sort (array.concat vars.arr1 vars.arr2)) ", "&#125;&#125;  &lt;!-- "a, b, c, x, y" --&gt;
+            </div>
+        </div>
+
+        <!-- JSON Parse Helper (v1.4.16+) -->
+        <h2 class="local-heading-2">16. JSON Parse Helper</h2>
+        <!-- Tab interface for example/source -->
+        <div id="json-tabs" class="jp-tabs"></div>
+        <div id="json-example-panel" class="jp-panel">
+            <div class="jp-info-box">
+                <p><strong>What you learn:</strong> How to use <code>&#123;&#123;json.parse&#125;&#125;</code> to convert JSON strings into native arrays and objects that work with array helpers, loops, and conditionals.</p>
+            </div>
+
+            <div class="jp-warning-box">
+                <h4>Parse JSON Arrays</h4>
+                {{let myArray=(json.parse '["red","green","blue"]')}}
+                <p><strong>Colors array:</strong>
+                {{#each vars.myArray}}
+                    <span style="padding: 2px 6px; background: {{this}}; color: white; margin: 0 2px;">{{this}}</span>
+                {{/each}}
+                </p>
+                <p><strong>Array operations:</strong> Length = {{array.length vars.myArray}}, First = {{array.first vars.myArray}}</p>
+            </div>
+
+            <div class="jp-info-box">
+                <h4>Parse JSON Objects</h4>
+                {{let config=(json.parse '{"theme":"dark","timeout":5000,"enabled":true}')}}
+                <ul>
+                    <li><strong>Theme:</strong> {{vars.config.theme}}</li>
+                    <li><strong>Timeout:</strong> {{vars.config.timeout}}ms</li>
+                    <li><strong>Enabled:</strong> {{vars.config.enabled}}</li>
+                </ul>
+            </div>
+
+            <div class="jp-warning-box">
+                <h4>Use in Conditionals</h4>
+                {{let roles=(json.parse '["user","editor","admin"]')}}
+                {{#if (array.includes vars.roles "admin")}}
+                    <p>✅ Has admin access</p>
+                {{else}}
+                    <p>❌ No admin access</p>
+                {{/if}}
+            </div>
+        </div>
+
+        <div id="json-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
+&lt;!-- Parse JSON Arrays --&gt;
+&#123;&#123;let myArray=(json.parse '["red","green","blue"]')&#125;&#125;
+&#123;&#123;#each vars.myArray&#125;&#125;
+    &lt;span&gt;&#123;&#123;this&#125;&#125;&lt;/span&gt;
+&#123;&#123;/each&#125;&#125;
+&#123;&#123;array.length vars.myArray&#125;&#125;  &lt;!-- 3 --&gt;
+&#123;&#123;array.first vars.myArray&#125;&#125;   &lt;!-- "red" --&gt;
+
+&lt;!-- Parse JSON Objects --&gt;
+&#123;&#123;let config=(json.parse '{"theme":"dark","timeout":5000,"enabled":true}')&#125;&#125;
+&lt;p&gt;Theme: &#123;&#123;vars.config.theme&#125;&#125;&lt;/p&gt;
+&lt;p&gt;Timeout: &#123;&#123;vars.config.timeout&#125;&#125;ms&lt;/p&gt;
+&lt;p&gt;Enabled: &#123;&#123;vars.config.enabled&#125;&#125;&lt;/p&gt;
+
+&lt;!-- Use in Conditionals --&gt;
+&#123;&#123;let roles=(json.parse '["user","editor","admin"]')&#125;&#125;
+&#123;&#123;#if (array.includes vars.roles "admin")&#125;&#125;
+    &lt;p&gt;✅ Has admin access&lt;/p&gt;
+&#123;&#123;else&#125;&#125;
+    &lt;p&gt;❌ No admin access&lt;/p&gt;
+&#123;&#123;/if&#125;&#125;
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1300,6 +1514,26 @@ document.getElementById('handlebarButton').addEventListener('click', async () =>
                 panelHeight: '32rem',
                 slideAnimation: true
             }, 'string-example');
+
+            // Array helpers example tabs
+            jPulse.UI.tabs.register('array-tabs', {
+                tabs: [
+                    { id: 'array-example', label: 'Example', panelId: 'array-example-panel' },
+                    { id: 'array-source', label: 'Source Code', panelId: 'array-source-panel' }
+                ],
+                panelHeight: '32rem',
+                slideAnimation: true
+            }, 'array-example');
+
+            // JSON parse helper example tabs
+            jPulse.UI.tabs.register('json-tabs', {
+                tabs: [
+                    { id: 'json-example', label: 'Example', panelId: 'json-example-panel' },
+                    { id: 'json-source', label: 'Source Code', panelId: 'json-source-panel' }
+                ],
+                panelHeight: '28rem',
+                slideAnimation: true
+            }, 'json-example');
 
             document.getElementById('handlebarButton').addEventListener('click', async () => {
                 const $resultElem = document.getElementById('handlebarResult');

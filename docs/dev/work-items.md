@@ -4126,17 +4126,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - htmlToMd handles HTML attributes gracefully (class, style, etc.)
   - No breaking changes - fully backward compatible
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-136, v1.4.16, 2026-01-16: handlebars: add array helpers, json.parse helper, logical block helpers, native type system
 - status: ✅ DONE
 - type: Feature
@@ -4188,11 +4177,11 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - added 10 array helpers (at, first, last, includes, isEmpty, join, length, concat, reverse, sort)
     - added json.parse helper
     - implemented native type system with value store
-    - added block logical/comparison helpers (_handleBlockLogical, _handleBlockComparison)
+    - added block logical/comparison helpers (`_handleBlockLogical()`, `_handleBlockComparison()`)
     - performance optimization: single stringify per value
     - updated all boolean helpers to return native boolean
     - fixed file.list to return native array
-    - updated {{#each}} to handle native arrays
+    - updated `{{#each}}` to handle native arrays
     - removed auto-parsing logic
   - webapp/tests/unit/controller/handlebar-array-helpers.test.js:
     - new test file with 100 comprehensive tests
@@ -4206,7 +4195,20 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - added "Array Helpers" section (10 helpers documented)
     - added "JSON Helpers" section (json.parse)
     - updated all examples to use json.parse for JSON strings
-    - version bumped to v1.4.16
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
+
 
 
 
@@ -4353,6 +4355,51 @@ npx jest webapp/tests/unit/controller/handlebar-logical-helpers.test.js
   - alerting rules for critical system events
   - dashboard configuration for operations teams
 - benefits: proactive production system monitoring and issue detection
+
+### W-057: deployment: system status service for site admins, send anonymous usage stats to jpulse.net
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - offer free monitring service
+  - monitor compiance with BSL 1.1
+  - use as sales funnel
+- spec & features:
+  - in setup script, ask a question:
+    - "would you like to get alerted of system downtimes, and see system status?"
+  - if yes, which is the default:
+    - send anonymous system info to status monitor endpoint at jpulse.net (dial home)
+      - send every 10 (?) min
+      - payload:
+        - uuid of site install
+          - need to generate JPULSE_SITE_UUID and add to .env, fallback to JPULSE_SITE_ID
+        - jpulse version
+        - admin email (for alert)
+        - num registered & active users
+        - total num server & instances
+        - num installed & enabled plugins
+        - log docs udpated 24h
+        - redis active connections
+        - views last 24h
+        - websocket num connections
+      - auto-turn off/retry afer some time for air-gapped deployments
+  - on jpulse.net:
+    - add site admin model, controller, view
+      - associate site admin with status monitor (how? JPULSE_SITE_UUID)
+    - add site status monitor model controller & view
+      - _id: mongodb
+      - uuid: JPULSE_SITE_UUID
+    - views:
+      - for site admins:
+        - status history like status.cursor.com
+        - view uri contains JPULSE_SITE_UUID (for privacy)
+        - no auth
+      - for jpulse.net admins:
+        - view activity of jpulse sites
+        - monitor compiance with BSL 1.1
+    - send alert email to site admin on outage
+- deliverables:
+  - FIXME file:
+    - FIXME summary
 
 ### W-084: security: harden security
 - status: 🕑 PENDING

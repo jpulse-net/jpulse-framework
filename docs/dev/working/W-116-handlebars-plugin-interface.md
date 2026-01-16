@@ -126,9 +126,9 @@ static registerHelper(name, handler, options = {}) {
     if (typeof handler !== 'function') {
         throw new Error(`Helper "${name}" handler must be a function`);
     }
-    
+
     const paramCount = handler.length;
-    
+
     // Strict validation: exactly 2 params for regular, exactly 3 for block
     // Expected signatures:
     //   Regular: (args: object, context: object) => string
@@ -144,7 +144,7 @@ static registerHelper(name, handler, options = {}) {
             `Expected 2 for regular helper (args, context) or 3 for block helper (args, blockContent, context)`
         );
     }
-    
+
     // Store handler and metadata together in single entry
     this.helperRegistry.set(name, {
         handler: handler,
@@ -152,7 +152,7 @@ static registerHelper(name, handler, options = {}) {
         source: options.source || 'unknown',
         registeredAt: new Date().toISOString()
     });
-    
+
     // Add to appropriate list (keep registration order, sort in getMetrics)
     if (type === 'block' && !this.BLOCK_HANDLEBARS.includes(name)) {
         this.BLOCK_HANDLEBARS.push(name);
@@ -173,12 +173,12 @@ static registerHelper(name, handler, options = {}) {
 static async _registerHelpersFromFile(filePath, source, pathToFileURL) {
     // Read file content
     const fileContent = fs.readFileSync(filePath, 'utf8');
-    
+
     // Discover handlebar* methods
     for (const methodName of handlebarMethods) {
         // Extract JSDoc
         const jsdoc = this._extractJSDoc(fileContent, methodName);
-        
+
         // Register helper with metadata
         this.registerHelper(helperName, handler, {
             source: source,
@@ -225,7 +225,7 @@ if (global.SiteControllerRegistry && global.SiteControllerRegistry.registry) {
     for (const [registryKey, controllerInfo] of global.SiteControllerRegistry.registry.controllers) {
         try {
             const Controller = await SiteControllerRegistry._loadController(controllerInfo.name);
-            
+
             // Discover handlebar* methods
             const methodNames = Object.getOwnPropertyNames(Controller)
                 .filter(name => {
@@ -239,13 +239,13 @@ if (global.SiteControllerRegistry && global.SiteControllerRegistry.registry) {
                 const handler = Controller[methodName];
                 const helperName = methodName.replace(/^handlebar/, '');
                 const helperNameFinal = helperName.charAt(0).toLowerCase() + helperName.slice(1);
-                
+
                 HandlebarController.registerHelper(helperNameFinal, handler, {
                     source: controllerInfo.source
                 });
             }
         } catch (error) {
-            LogController.logError(null, 'handlebar.initialize', 
+            LogController.logError(null, 'handlebar.initialize',
                 `Failed to discover helpers from ${controllerInfo.name}: ${error.message}`);
         }
     }
@@ -262,7 +262,7 @@ async function _evaluateRegularHandlebar(expression, currentContext) {
     // Check registered helpers first
     if (self.helperRegistry.has(helper)) {
         const registryEntry = self.helperRegistry.get(helper);
-        
+
         if (registryEntry.type === 'regular') {
             const result = await registryEntry.handler(parsedArgs, currentContext);
             return result !== undefined ? String(result) : '';
@@ -281,16 +281,16 @@ async function _evaluateRegularHandlebar(expression, currentContext) {
 async function _evaluateBlockHandlebar(blockType, params, blockContent, currentContext) {
     // Parse params first
     const parsedArgs = await _parseAndEvaluateArguments(`${blockType} ${params}`, currentContext);
-    
+
     // Check registered helpers first
     if (self.helperRegistry.has(blockType)) {
         const registryEntry = self.helperRegistry.get(blockType);
-        
+
         if (registryEntry.type === 'block') {
             return await registryEntry.handler(parsedArgs, blockContent, currentContext);
         }
     }
-    
+
     // Then check built-in helpers (existing switch)
     switch (blockType) {
         // ... existing cases, all refactored to use parsedArgs
@@ -335,10 +335,10 @@ const baseContext = {
 static _filterContext(context, isAuthenticated) {
     const filtered = JSON.parse(JSON.stringify(context));
     // ... existing filtering ...
-    
+
     // Remove internal handlebars framework data
     delete filtered._handlebar;
-    
+
     return filtered;
 }
 ```
@@ -348,7 +348,7 @@ static _filterContext(context, isAuthenticated) {
 ```javascript
 static getMetrics() {
     // ... existing code ...
-    
+
     return {
         // ... existing fields ...
         stats: {
@@ -443,7 +443,7 @@ class MyPluginController {
     static async handlebarRepeat(args, blockContent, context) {
         const { expandHandlebars } = context._handlebar;
         const count = parseInt(args.count || args._target) || 0;
-        
+
         let result = '';
         for (let i = 0; i < count; i++) {
             const iterationContext = { ...context };
@@ -479,14 +479,14 @@ class MyPluginController {
      */
     static async handlebarMyHelper(args, context) {
         const fullHelper = args._helper;  // e.g., "myHelper.action1"
-        
+
         // Extract action from dot notation
         if (!fullHelper.includes('.')) {
             throw new Error(`myHelper requires dot notation: {{myHelper.action}}`);
         }
-        
+
         const action = fullHelper.split('.')[1];  // "action1"
-        
+
         // Route to sub-handler based on action
         switch (action) {
             case 'action1':
@@ -497,13 +497,13 @@ class MyPluginController {
                 throw new Error(`Unknown myHelper action: ${action}`);
         }
     }
-    
+
     static async _handleMyHelperAction1(args, context) {
         // Handle {{myHelper.action1 param="value"}}
         const param = args.param || args._target;
         return `Action 1 result: ${param}`;
     }
-    
+
     static async _handleMyHelperAction2(args, context) {
         // Handle {{myHelper.action2 param="value"}}
         const param = args.param || args._target;

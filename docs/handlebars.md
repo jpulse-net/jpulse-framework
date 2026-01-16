@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.4.15
+# jPulse Docs / Handlebars Templating v1.4.16
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -13,6 +13,53 @@ There are two types of handlebars:
 - **Block handlebars**: Multi-line expressions with opening and closing tags that control flow and rendering, such as `{{#if condition}}...{{/if}}`, `{{#each items}}...{{/each}}`
 
 **Note:** Vue.js supports browser-side handlebars with a slightly different syntax, such as `{{ order.id }}`. For details, see [Template Reference - Vue.js Templates](template-reference.md#vuejs-templates-client-side-only).
+
+### Type System
+
+Handlebars helpers in jPulse use a native type system for internal processing while maintaining string-based template output:
+
+**Native Types in Subexpressions:**
+- Boolean helpers (`eq`, `and`, `includes`, `isEmpty`, etc.) return native `true` or `false`
+- Numeric helpers (`math.*`, `array.length`) return native numbers
+- Array helpers (`file.list`) and `json.parse` return native arrays/objects
+- Native types are preserved through nested subexpressions
+
+**String Output for Display:**
+- At the final rendering stage, non-string values are automatically converted:
+  - Booleans: `true` → `"true"`, `false` → `"false"`
+  - Numbers: `42` → `"42"`
+  - Arrays/Objects: `["a","b"]` → `'["a","b"]'` (JSON.stringify)
+  - `null`/`undefined`: → `""` (empty string)
+
+**Practical Examples:**
+
+```handlebars
+<!-- Boolean helpers return native boolean -->
+{{#if (eq user.role "admin")}}         <!-- Works: native true/false -->
+    Admin panel
+{{/if}}
+
+<!-- Numeric helpers return native numbers -->
+{{#if (gt (math.add 5 3) 7)}}          <!-- Works: native 8 > 7 -->
+    Greater than 7
+{{/if}}
+
+<!-- Array helpers work with native arrays -->
+{{let myArray=(json.parse '["a","b","c"]')}}
+{{array.length vars.myArray}}          <!-- Displays: "3" -->
+{{#if (array.includes vars.myArray "b")}} <!-- Works: native boolean -->
+    Contains "b"
+{{/if}}
+
+<!-- Final output is always stringified -->
+Result: {{eq 1 1}}                      <!-- Displays: "true" -->
+Length: {{array.length items}}          <!-- Displays: "5" -->
+```
+
+**Why This Matters:**
+- Correct boolean evaluation in conditionals (avoids string "false" being truthy)
+- Efficient data passing between helpers without repeated parsing
+- Type-safe operations with proper coercion
 
 ### Summary of Regular Handlebars
 
@@ -1081,6 +1128,266 @@ URL encode string. Variadic: concatenates args first.
 <a href="/search?q={{string.urlEncode user.query}}">Search</a>
 {{string.urlEncode "hello&world"}}              <!-- "hello%26world" -->
 ```
+
+### Array Helpers
+
+Array operations are organized under the `array.*` namespace for working with arrays in templates.
+
+**Supported Input Types:**
+- **Arrays** (native): `user.roles`, `items`, or from helpers like `(file.list "*.js")`
+- **JSON strings**: Use `(json.parse '["a","b","c"]')` to convert JSON strings to native arrays
+- **Objects** (selective): Only `array.length` and `array.isEmpty` support objects
+
+**Shared Behavior:**
+- All helpers require an array as the first argument (except `length` and `isEmpty` which also accept objects)
+- JSON strings must be explicitly parsed using `json.parse` helper
+- Invalid inputs log warnings and return sensible defaults
+- Boolean helpers (`includes`, `isEmpty`) return native boolean values
+- Other helpers return strings or numbers as appropriate
+
+#### `{{array.at}}` - Get element at index
+
+Get element at a specific index (2 args: array, index). Index is zero-based. Returns empty string if index is out of bounds.
+
+```handlebars
+{{array.at user.roles 0}}                   <!-- first element -->
+{{array.at user.roles 1}}                   <!-- second element -->
+{{array.at user.roles 2}}                   <!-- third element -->
+{{array.at (json.parse '["a","b","c"]') 1}} <!-- "b" (from JSON string) -->
+```
+
+**Note**: Only positive indices (0+) are supported. For first/last elements, prefer `array.first` or `array.last` for clarity.
+
+#### `{{array.concat}}` - Concatenate arrays
+
+Concatenate multiple arrays into a single array (1+ args: arrays). Returns a new array combining all elements. Non-array arguments are skipped with a warning.
+
+```handlebars
+{{array.concat arr1 arr2}}                  <!-- Combine two arrays -->
+{{array.concat arr1 arr2 arr3}}             <!-- Combine three arrays -->
+{{let combined=(array.concat (json.parse '["a"]') (json.parse '["b"]'))}}
+{{vars.combined}}                           <!-- ["a","b"] -->
+```
+
+**Note**: Returns a native array (stringified to JSON for display). Use in subexpressions or store in variables with `{{let}}`.
+
+#### `{{array.first}}` - Get first element
+
+Get the first element of an array (1 arg: array). Returns empty string if array is empty.
+
+```handlebars
+{{array.first user.roles}}                    <!-- "admin" -->
+{{array.first (json.parse '["a","b","c"]')}}  <!-- "a" -->
+<p>Primary role: {{array.first user.roles}}</p>
+```
+
+#### `{{array.includes}}` - Check if array contains value
+
+Check if array includes a specific value (2 args: array, value). Returns native boolean (`true` or `false`).
+
+```handlebars
+{{array.includes user.roles "admin"}}       <!-- true if user has admin role -->
+{{array.includes (json.parse '["a","b","c"]') "b"}} <!-- true -->
+{{#if (array.includes user.roles "admin")}}
+    <button>Admin Panel</button>
+{{/if}}
+```
+
+**Note**: Returns native boolean (not string). Works directly in `{{#if}}` conditions and with comparison helpers like `eq`.
+
+#### `{{array.isEmpty}}` - Check if collection is empty
+
+Check if array or object has no elements (1 arg: collection). Returns native boolean (`true` or `false`).
+
+**Supports both arrays and objects:**
+
+```handlebars
+{{array.isEmpty user.roles}}                <!-- true if no roles -->
+{{array.isEmpty config}}                    <!-- true if object has no keys -->
+{{array.isEmpty (json.parse '[]')}}         <!-- true -->
+{{#if (array.isEmpty items)}}
+    No items found
+{{else}}
+    You have {{array.length items}} item(s)
+{{/if}}
+```
+
+#### `{{array.join}}` - Join array elements
+
+Join array elements into a string (2 args: array, separator). Separator defaults to comma.
+
+```handlebars
+{{array.join user.roles ", "}}              <!-- "admin, editor, viewer" -->
+{{array.join user.roles}}                   <!-- "admin,editor,viewer" (default comma) -->
+{{array.join (json.parse '["a","b","c"]') " | "}} <!-- "a | b | c" -->
+<p>Roles: {{array.join user.roles " | "}}</p>
+```
+
+#### `{{array.last}}` - Get last element
+
+Get the last element of an array (1 arg: array). Returns empty string if array is empty.
+
+```handlebars
+{{array.last user.roles}}                   <!-- "viewer" -->
+{{array.last '["a","b","c"]'}}              <!-- "c" -->
+<p>Most recent role: {{array.last user.roles}}</p>
+```
+
+#### `{{array.length}}` - Get collection size
+
+Get the number of elements in an array or keys in an object (1 arg: collection).
+
+**Supports both arrays and objects:**
+
+```handlebars
+{{array.length user.roles}}                   <!-- "3" (array elements) -->
+{{array.length user.preferences}}             <!-- "5" (object keys) -->
+{{array.length (json.parse '["a","b","c"]')}} <!-- "3" (from JSON string) -->
+{{array.length (json.parse '{"a":1,"b":2}')}} <!-- "2" (from JSON object) -->
+{{#if (gt (array.length items) 0)}}
+    Found {{array.length items}} items
+{{/if}}
+```
+
+#### `{{array.reverse}}` - Reverse array order
+
+Reverse the order of elements in an array (1 arg: array). Returns a new array (non-mutating).
+
+```handlebars
+{{array.reverse user.roles}}                <!-- Reverse roles order -->
+{{array.reverse (json.parse '[1,2,3]')}}    <!-- [3,2,1] -->
+{{#each (array.reverse items)}}...{{/each}} <!-- Iterate in reverse -->
+```
+
+**Use Cases:**
+- Display most recent items first
+- Reverse chronological order
+- Descending sort: `{{array.reverse (array.sort items)}}`
+
+#### `{{array.sort}}` - Sort array
+
+Sort array elements (1 arg: array). Optional parameters: `sortBy="property.path"` for object sorting, `sortAs="number"|"string"` to force type, `reverse=true` for descending order.
+
+**Primitive Arrays (auto-detect type):**
+
+```handlebars
+{{array.sort numbers}}                      <!-- [1,2,3] - numeric sort -->
+{{array.sort names}}                        <!-- ["Alice","Bob"] - string sort -->
+{{array.sort items sortAs="number"}}        <!-- Force numeric sort -->
+{{array.sort items sortAs="string"}}        <!-- Force string sort -->
+{{array.sort prices reverse=true}}          <!-- Descending order -->
+```
+
+**Object Arrays (sort by property):**
+
+```handlebars
+{{array.sort users sortBy="name"}}                <!-- Sort by name property -->
+{{array.sort users sortBy="age" sortAs="number"}} <!-- Force numeric sort -->
+{{array.sort users sortBy="prefs.language"}}      <!-- Nested property path -->
+{{array.sort items sortBy="price" reverse=true}}  <!-- Descending by price -->
+```
+
+**Sorting Behavior:**
+- **Auto-detect**: Checks first element type (number vs string)
+- **Locale-aware**: String sorting uses `localeCompare()` for proper internationalization
+- **Case-sensitive**: "B" sorts before "a" (standard JavaScript behavior)
+- **Null handling**: `null`/`undefined` values sort to end
+- **Non-mutating**: Returns new array, original unchanged
+
+**Common Use Cases:**
+
+```handlebars
+<!-- Sort and display list -->
+{{#each (array.sort items sortBy="name")}}
+    <li>{{name}}</li>
+{{/each}}
+
+<!-- Sort prices (numeric) -->
+{{let sorted=(array.sort products sortBy="price" sortAs="number")}}
+<p>Cheapest: {{array.first vars.sorted}}</p>
+
+<!-- Reverse chronological -->
+{{#each (array.sort posts sortBy="created" reverse=true)}}
+    <article>{{title}} - {{created}}</article>
+{{/each}}
+
+<!-- Combined operations -->
+{{array.join (array.reverse (array.sort (array.concat arr1 arr2) sortBy="priority")) ", "}}
+```
+
+**Common Use Cases:**
+
+```handlebars
+<!-- Role-based UI -->
+{{#if (array.includes user.roles "admin")}}
+    <a href="/admin">Admin Dashboard</a>
+{{/if}}
+
+<!-- Display badge count -->
+<span class="badge">{{array.length vars.notifications}}</span>
+
+<!-- Empty state -->
+{{#if (array.isEmpty items)}}
+    <p>No items found.</p>
+{{else}}
+    <p>Showing {{array.length items}} items</p>
+{{/if}}
+
+<!-- Format list -->
+<p>Tags: {{array.join vars.article.tags ", "}}</p>
+
+<!-- Show primary value -->
+<p>Primary category: {{array.first vars.product.categories}}</p>
+
+<!-- Access specific index -->
+<p>Second item: {{array.at menu.items 1}}</p>
+
+<!-- JSON array support -->
+{{let myArray=(json.parse '["high","medium","low"]')}}
+{{#if (array.includes vars.myArray user.priority)}}
+    Valid priority: {{user.priority}}
+{{/if}}
+
+<!-- Subexpressions -->
+{{#if (and (gt (array.length user.roles) 0) (array.includes user.roles "premium"))}}
+    Premium user with {{array.length user.roles}} roles
+{{/if}}
+```
+
+### JSON Helpers
+
+JSON operations are organized under the `json.*` namespace for working with JSON data in templates.
+
+**Note:** A `{{json.stringify}}` helper is not needed because stringification is automatically done at the end of the handlebar rendering process. For example, `{{user.roles}}` will return an array in JSON format.
+
+#### `{{json.parse}}` - Parse JSON string
+
+Parse a JSON string into a native JavaScript object or array (1 arg: JSON string). Returns the parsed value or empty string on parse error.
+
+```handlebars
+{{let myArray=(json.parse '["a","b","c"]')}}
+{{let myObject=(json.parse '{"name":"John","age":30}')}}
+{{array.first vars.myArray}}                <!-- "a" -->
+{{vars.myObject.name}}                      <!-- "John" -->
+
+<!-- Use in subexpressions -->
+{{array.length (json.parse '["x","y","z"]')}} <!-- 3 -->
+{{#if (array.includes (json.parse '["admin","editor"]') user.role)}}
+    Access granted
+{{/if}}
+
+<!-- Iterate over JSON array -->
+{{let items=(json.parse '[{"name":"Item 1"},{"name":"Item 2"}]')}}
+{{#each vars.items}}
+    <li>{{name}}</li>
+{{/each}}
+```
+
+**Important Notes:**
+- Returns native JavaScript types (arrays, objects, numbers, booleans)
+- Parse errors return empty string and log a warning
+- Typically used in subexpressions with array/object helpers
+- Essential for working with JSON string literals in templates
 
 ## Block Helpers
 

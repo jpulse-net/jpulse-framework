@@ -1,6 +1,122 @@
-# jPulse Docs / Version History v1.4.15
+# jPulse Docs / Version History v1.4.16
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.16, W-136, 2026-01-16
+
+**Commit:** `W-136, v1.4.16: handlebars: add array helpers, json.parse helper, logical block helpers, native type system`
+
+**FEATURE RELEASE**: Comprehensive array manipulation system with 10 helpers, json.parse for explicit JSON parsing, native type system with performance-optimized value store, and block logical/comparison helpers.
+
+**Objectives**:
+- Provide comprehensive array manipulation capabilities in Handlebars templates
+- Enable explicit JSON parsing to native types
+- Implement native type system for correct boolean evaluation and efficient data passing
+- Optimize performance by eliminating repeated JSON.stringify/parse cycles
+- Add block-level logical and comparison helpers for conditional content
+
+**Key Features**:
+- **10 New Array Helpers**: All organized under `array.*` namespace
+  - **Phase 1 - Array Access**:
+    - `{{array.at}}` - Get element at index (0-based, positive only)
+    - `{{array.first}}` - Get first element
+    - `{{array.last}}` - Get last element
+    - `{{array.includes}}` - Check if array contains value (returns native boolean)
+    - `{{array.isEmpty}}` - Check if array/object is empty (returns native boolean)
+    - `{{array.join}}` - Join array elements with separator
+    - `{{array.length}}` - Get array/object length (returns string)
+  - **Phase 2 - Array Manipulation**:
+    - `{{array.concat}}` - Concatenate multiple arrays (returns native array)
+    - `{{array.reverse}}` - Reverse array order (non-mutating, returns native array)
+    - `{{array.sort}}` - Sort array with smart features:
+      - Auto-detect type (number vs string)
+      - Object sorting: `sortBy="property.path"` with nested path support
+      - Type override: `sortAs="number"` or `sortAs="string"`
+      - Reverse order: `reverse=true`
+      - Locale-aware string sorting
+      - Null-safe (null/undefined sort to end)
+      - Uses `global.CommonUtils.getValueByPath()` for nested properties
+- **JSON Parse Helper**: `{{json.parse '["a","b"]'}}` - Parse JSON strings to native arrays/objects
+- **Native Type System**:
+  - Boolean helpers return native `true`/`false` (not strings)
+  - Array/object helpers return native arrays/objects
+  - Numbers remain numbers
+  - Final stringification only at render time
+  - Prevents string "false" being truthy in conditionals
+  - Enables efficient data passing between helpers
+- **Value Store Performance Optimization**:
+  - Native values stored with `__VALUE_N__` placeholders
+  - Prevents repeated JSON.stringify/parse cycles in nested operations
+  - Single stringification at end of processing
+  - Optimized for complex nested expressions like `{{array.sort (array.concat (array.reverse arr1) arr2)}}`
+- **Block Logical/Comparison Helpers**:
+  - Logical: `{{#and}}`, `{{#or}}`, `{{#not}}`
+  - Comparison: `{{#eq}}`, `{{#ne}}`, `{{#gt}}`, `{{#gte}}`, `{{#lt}}`, `{{#lte}}`
+  - All support `{{else}}` for conditional content blocks
+
+**Code Changes**:
+
+**webapp/controller/handlebar.js**:
+- Added 10 array helper descriptions to `HANDLEBARS_DESCRIPTIONS` array (lines 46-52)
+- Added json.parse helper description to `HANDLEBARS_DESCRIPTIONS` array (line 72)
+- Implemented `_handleArray` function with 10 operations (lines 2706-2946, ~240 lines):
+  - `case 'at'`: Get element by index (0-based, positive only)
+  - `case 'first'`: Get first element
+  - `case 'last'`: Get last element
+  - `case 'includes'`: Check membership (returns native boolean)
+  - `case 'isEmpty'`: Check empty (supports arrays and objects, returns native boolean)
+  - `case 'join'`: Join with separator
+  - `case 'length'`: Get size (supports arrays and objects)
+  - `case 'concat'`: Merge multiple arrays (returns native array)
+  - `case 'reverse'`: Reverse order (non-mutating, returns native array)
+  - `case 'sort'`: Smart sorting (primitive and object arrays, returns native array)
+- Implemented `_handleJsonParse` function for parsing JSON strings (lines 2948-2978)
+- Implemented `_handleBlockLogical` function for logical block helpers (lines 1590-1610)
+- Implemented `_handleBlockComparison` function for comparison block helpers (lines 1612-1632)
+- Native type system changes:
+  - Final stringification in `HandlebarController.expandHandlebars` (lines 1053-1063)
+  - Updated all boolean helpers to return native boolean (lines 2009-2168)
+  - Fixed `file.list` to return native array (lines 3397-3627)
+  - Updated `{{#each}}` to handle native arrays (lines 1702-1774)
+  - Removed auto-parsing logic
+- Value store performance optimization:
+  - `valueStore` and `valueStoreCounter` as closure variables in `_expandHandlebars` (lines 1138-1139)
+  - `_resolveSubexpression` stores non-string results in valueStore (lines 1400-1411)
+  - `_resolveHandlebars` stores non-string results in valueStore (lines 3935-3947)
+  - Final pass in `_expandHandlebars` replaces placeholders with JSON.stringify (lines 3977-3984)
+  - `restoreValues` function preserves special object types (Date, RegExp) (lines 1542-1565)
+
+**webapp/tests/unit/controller/handlebar-array-helpers.test.js**:
+- New test file with 100 comprehensive tests for all array helpers
+- Tests for phase 1 helpers (at, first, last, includes, isEmpty, join, length): 77 tests
+- Tests for phase 2 helpers (concat, reverse, sort): 23 tests
+  - concat: 4 tests (multiple arrays, single array, non-array skip, empty)
+  - reverse: 4 tests (numeric, string, non-mutating, non-array)
+  - sort: 15 tests (primitives auto-detect/sortAs/reverse/edge, objects sortBy/nested/sortAs/reverse/missing-props/nulls)
+- All tests use `json.parse` for explicit JSON parsing
+- All tests passing
+
+**docs/handlebars.md**:
+- Added "Type System" section explaining native types (lines 17-69)
+- Added "Array Helpers" section with 10 helpers documented (lines 1129-1397)
+  - Documented supported input types, shared behavior
+  - Individual helper documentation with syntax, examples, notes
+  - Common use cases with practical examples
+- Added "JSON Helpers" section with json.parse documented (lines 1399-1444)
+  - Note about json.stringify not needed (automatic at render time)
+- Updated all examples to use `json.parse` for JSON strings
+- Version bumped to v1.4.16 (line 1)
+
+**Breaking Changes**:
+- None - fully backward compatible
+
+**Migration Steps**:
+- No migration needed - purely additive feature
+
+**Work Item**: W-136
+**Version**: v1.4.16
+**Release Date**: 2026-01-16
 
 ________________________________________________
 ## v1.4.15, W-135, 2026-01-15

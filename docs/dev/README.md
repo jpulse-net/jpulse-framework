@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Development Guide v1.4.15
+# jPulse Docs / Dev / Development Guide v1.4.16
 
 **For Framework Contributors & Core Developers**
 
@@ -21,7 +21,7 @@ Technical documentation for developers working on the jPulse Framework itself. T
 - **Configuration**: JavaScript-based `.conf` files with dynamic evaluation
 - **Templating**: Custom Handlebars implementation with security features
 - **Utilities**: CommonUtils framework for data processing and schema-based queries
-- **Testing**: Jest with automated cleanup, global setup/teardown, and 1700+ tests
+- **Testing**: Jest with automated cleanup, global setup/teardown, and 1900+ tests
 - **Build Tools**: npm scripts, native ES modules, version management
 - **Distribution**: npm package (@jpulse-net/jpulse-framework) with CLI tools (W-051)
 - **Production**: nginx reverse proxy + PM2 process management

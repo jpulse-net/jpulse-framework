@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.15
+# jPulse Docs / Dev / Work Items v1.4.16
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4086,19 +4086,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/template-reference.md:
     - updated layoutAll() reference
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-135, v1.4.15, 2026-01-15: handlebars: add string manipulation helpers
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: more flexibility with string manipulation
 - new helpers (all variadic, 1+ args):
@@ -4142,6 +4131,88 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-136, v1.4.16, 2026-01-16: handlebars: add array helpers, json.parse helper, logical block helpers, native type system
+- status: ✅ DONE
+- type: Feature
+- objective: flexibility with array references and manipulation
+- syntax: `{{array.<func> <array> <args>}}`
+  - `<func>`: array access or manipulation function
+  - `<array>`: array to operate on, can be a:
+    - context array, such as `user.roles`
+    - native array from helpers, such as `(file.list "*.js")`
+    - parsed JSON array, such as `(json.parse '["a","b"]')`
+  - `<args>`: arguments, depends on function
+- phase 1: array access functions:
+  - `{{array.at user.roles 0}}` - get element at index (0-based, positive only)
+  - `{{array.first user.roles}}` - get first element
+  - `{{array.last user.roles}}` - get last element
+  - `{{array.includes user.roles "admin"}}` - check if array contains value (returns native boolean)
+  - `{{array.isEmpty user.roles}}` - check if array/object is empty (returns native boolean)
+  - `{{array.join user.roles ", "}}` - join array elements with separator
+  - `{{array.length user.roles}}` - get array/object length (returns string)
+- phase 2: array manipulation functions:
+  - `{{array.concat arr1 arr2 arr3}}` - concatenate multiple arrays (returns native array)
+  - `{{array.reverse arr1}}` - reverse array order (non-mutating, returns native array)
+  - `{{array.sort arr1}}` - sort array with smart features:
+    - auto-detect type (number vs string)
+    - object sorting: `sortBy="property.path"` with nested path support
+    - type override: `sortAs="number"` or `sortAs="string"`
+    - reverse order: `reverse=true`
+    - locale-aware string sorting
+    - null-safe (null/undefined sort to end)
+    - uses `global.CommonUtils.getValueByPath()` for nested properties
+- supporting Features:
+  - `{{json.parse '["a","b"]'}}` - parse JSON strings to native arrays/objects
+  - native type system:
+    - boolean helpers return native `true`/`false`
+    - array/object helpers return native arrays/objects
+    - numbers remain numbers
+    - final stringification only at render time
+  - value store mechanism:
+    - prevents repeated JSON.stringify/parse cycles
+    - native values stored with `__VALUE_N__` placeholders
+    - single stringification at end of processing
+    - performance optimized for nested operations
+  - block logical/comparison helpers:
+    - `{{#and}}`, `{{#or}}`, `{{#not}}` - logical blocks
+    - `{{#eq}}`, `{{#ne}}`, `{{#gt}}`, `{{#gte}}`, `{{#lt}}`, `{{#lte}}` - comparison blocks
+  - zero breaking changes
+- deliverables:
+  - webapp/controller/handlebar.js:
+    - added 10 array helpers (at, first, last, includes, isEmpty, join, length, concat, reverse, sort)
+    - added json.parse helper
+    - implemented native type system with value store
+    - added block logical/comparison helpers (_handleBlockLogical, _handleBlockComparison)
+    - performance optimization: single stringify per value
+    - updated all boolean helpers to return native boolean
+    - fixed file.list to return native array
+    - updated {{#each}} to handle native arrays
+    - removed auto-parsing logic
+  - webapp/tests/unit/controller/handlebar-array-helpers.test.js:
+    - new test file with 100 comprehensive tests
+    - tests for all array helpers
+    - tests for primitive and object sorting
+    - tests for nested property paths
+    - tests for edge cases (null, undefined, invalid input)
+    - test results: 499/499 handlebar tests passing (100%)
+  - docs/handlebars.md:
+    - added "Type System" section explaining native types
+    - added "Array Helpers" section (10 helpers documented)
+    - added "JSON Helpers" section (json.parse)
+    - updated all examples to use json.parse for JSON strings
+    - version bumped to v1.4.16
+
+
+
+
+
+
 ### Pending
 
 
@@ -4153,7 +4224,6 @@ old pending:
 
 ### Potential next items:
 - W-0: config model: make config schema extendable for site and plugin developers
-- W-0: handlebars: add array access functions
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-0: deployment: docker strategy
 - W-0: auth controller: authentication with OAuth2 (see W-109 for flow design)
@@ -4170,8 +4240,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-diff.txt for accuracy and completness of work item
-- assume release: W-135, v1.4.15
-- update deliverables in W-135 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-136, v1.4.16
+- update deliverables in W-136 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4188,12 +4258,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.15
+node bin/bump-version.js 1.4.16
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.15
+git tag v1.4.16
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -4235,6 +4305,7 @@ lsof -ti:8080
 === Tests how to ===
 npm test -- --testPathPattern=jpulse-ui-navigation
 npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
+npx jest webapp/tests/unit/controller/handlebar-logical-helpers.test.js
 
 
 
@@ -4341,40 +4412,6 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 - features:
   - the config can be extended in a similar way like the existing user schema extension feature
   - make it data driven, e.g. no need to modify webapp/view/admin/config.shtml when the schema is extended
-- deliverables:
-  - FIXME file:
-    - FIXME summary
-
-### W-0: handlebars: add array access functions
-- status: 🕑 PENDING
-- type: Feature
-- objective: flexibility with array references
-- syntax option 1: (idea)
-  - `{{array.includes user.roles "admin"}}` -- test if user roles array includes "admin", returns true or false
-  - `{{array.indexOf user.roles "admin"}}` -- get the index of "admin" in the user roles array, -1 if not found
-  - `{{array.length user.roles}}` -- length of user roles array
-  - `{{array.join user.roles ", "}}` -- join the user roles array elements
-  - `{{array.first user.roles}}` -- get the first ielementtem of the user roles array
-  - `{{array.last user.roles}}` -- get the last element of the user roles array
-  - `{{array.get user.roles index=0}}` -- get element at index of the user roles array (supports negative: index=-1)
-- syntax option 2:
-  - `{{user.roles.includes "admin"}}` -- test if user roles array includes "admin", returns true or false
-  - `{{user.roles.indexOf "admin"}}` -- get the index of "admin" in the user roles array, -1 if not found
-  - `{{user.roles.join ", "}}` -- join the user roles array elements
-  - `{{user.roles.first}}` -- get the first element of the user roles array
-  - `{{user.roles.0}}` -- get the first element of the user roles array (alternative)
-  - `{{user.roles.last}}` -- get the last element of the user roles array
-  - `{{user.roles.-1}}` -- get the last element of the user roles array (alternative)
-- implementation for option 2:
-  - _getNestedProperty(obj, path, arg)
-    - add third parameter arg
-    - at any key of path, if value is undefined, value of previous key is of type array, and key is `includes`, `indexOf`, `first`, `last`, take special action to access array of previous key value
-  - _evaluateRegularHandlebar()
-    - in switch default, call _getNestedProperty(obj, path, parsedArgs._target)
-  - _parseAndEvaluateArguments()
-    - defer the positional argument trial to resolve as property to separate loop
-      - call _getNestedProperty(currentContext, value, nextValue)
-  - fix additional _getNestedProperty() calls accordingly
 - deliverables:
   - FIXME file:
     - FIXME summary

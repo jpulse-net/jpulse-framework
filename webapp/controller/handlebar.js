@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.4.15
- * @release         2026-01-15
+ * @version         1.4.16
+ * @release         2026-01-16
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -43,6 +43,16 @@ class HandlebarController {
         {name: 'app', type: 'regular', source: 'jpulse', description: 'Application context (`app.jPulse.*` and `app.site.*`)', example: '{{app.site.name}} v{{app.site.version}}'},
         {name: 'appCluster', type: 'regular', source: 'jpulse', description: 'Redis cluster availability information', example: '{{appCluster.*}}'},
         {name: 'appConfig', type: 'regular', source: 'jpulse', description: 'Full application configuration (filtered based on auth)', example: '{{appConfig.*}}'},
+        {name: 'array.at', type: 'regular', source: 'jpulse', description: 'Get element at index (2 args: array, index)', example: '{{array.at user.roles 0}}'},
+        {name: 'array.concat', type: 'regular', source: 'jpulse', description: 'Concatenate multiple arrays (1+ args: arrays)', example: '{{array.concat arr1 arr2 arr3}}'},
+        {name: 'array.first', type: 'regular', source: 'jpulse', description: 'Get first element of array (1 arg: array)', example: '{{array.first user.roles}}'},
+        {name: 'array.includes', type: 'regular', source: 'jpulse', description: 'Check if array contains value, returns `true` or `false` (2 args: array, value)', example: '{{array.includes user.roles "admin"}}'},
+        {name: 'array.isEmpty', type: 'regular', source: 'jpulse', description: 'Check if array or object is empty, returns `true` or `false` (1 arg: collection)', example: '{{array.isEmpty items}}'},
+        {name: 'array.join', type: 'regular', source: 'jpulse', description: 'Join array elements with separator (2 args: array, separator)', example: '{{array.join user.roles ", "}}'},
+        {name: 'array.last', type: 'regular', source: 'jpulse', description: 'Get last element of array (1 arg: array)', example: '{{array.last user.roles}}'},
+        {name: 'array.length', type: 'regular', source: 'jpulse', description: 'Get array or object length (1 arg: collection)', example: '{{array.length user.roles}}'},
+        {name: 'array.reverse', type: 'regular', source: 'jpulse', description: 'Reverse array order (1 arg: array)', example: '{{array.reverse user.roles}}'},
+        {name: 'array.sort', type: 'regular', source: 'jpulse', description: 'Sort array (1 arg: array). Optional: `sortBy="property.path"`, `sortAs="number"/"string"`, `reverse=true`', example: '{{array.sort items sortBy="name"}}'},
         {name: 'components', type: 'regular', source: 'jpulse', description: 'Reusable component call with parameters. Static: `{{components.jpIcons.configSvg size="64"}}`. Dynamic: `{{components name="sidebar.toc"}}` or `{{components name=(this)}}`', example: '{{components.jpIcons.configSvg size="64"}}'},
         {name: 'date.add', type: 'regular', source: 'jpulse', description: 'Add time units to a date. Returns timestamp in milliseconds. Use `value` and `unit` parameters (e.g., `value=7 unit="days"`). Units: `years`, `months`, `weeks`, `days`, `hours`, `minutes`, `seconds`, `milliseconds`. Use negative values to subtract (e.g., `value=-7 unit="days"`)', example: '{{date.add vars.startDate value=7 unit="days"}}'},
         {name: 'date.diff', type: 'regular', source: 'jpulse', description: 'Calculate difference between two dates. Returns number in specified unit. Units: `years`, `months`, `weeks`, `days`, `hours`, `minutes`, `seconds`, `milliseconds`. Default: `milliseconds`', example: '{{date.diff vars.endDate vars.startDate unit="days"}}'},
@@ -59,6 +69,7 @@ class HandlebarController {
         {name: 'gt', type: 'regular', source: 'jpulse', description: 'Greater than comparison, returns `true` or `false` (2 arguments)', example: '{{gt user.score 100}}'},
         {name: 'gte', type: 'regular', source: 'jpulse', description: 'Greater than or equal comparison, returns `true` or `false` (2 arguments)', example: '{{gte user.count 10}}'},
         {name: 'i18n', type: 'regular', source: 'jpulse', description: 'Internationalization messages from translation files', example: '{{i18n.view.home.introduction}}'},
+        {name: 'json.parse', type: 'regular', source: 'jpulse', description: 'Parse JSON string to native array or object (1 arg: JSON string)', example: '{{json.parse vars.jsonData}}'},
         {name: 'let', type: 'regular', source: 'jpulse', description: 'Define custom variables (accessed via `{{vars.*}}`)', example: '{{let pageTitle="Dashboard" maxItems=10}}'},
         {name: 'lt', type: 'regular', source: 'jpulse', description: 'Less than comparison, returns `true` or `false` (2 arguments)', example: '{{lt user.age 18}}'},
         {name: 'lte', type: 'regular', source: 'jpulse', description: 'Less than or equal comparison, returns `true` or `false` (2 arguments)', example: '{{lte user.items 5}}'},
@@ -1022,14 +1033,6 @@ class HandlebarController {
     }
 
     /**
-     * Expand handlebars in template content
-     * @param {object} req - Express request object
-     * @param {string} template - Template content
-     * @param {object} additionalContext - Additional context to merge with internal context
-     * @param {number} depth - Current include depth for recursion protection
-     * @returns {string} Processed content
-     */
-    /**
      * Public API: Expand handlebars template with per-request component registry
      * W-097 Phase 1: Initializes component registry on first call (depth 0)
      * @param {object} req - Express request object
@@ -1050,7 +1053,15 @@ class HandlebarController {
         }
 
         // Delegate to internal recursive implementation
-        return await this._expandHandlebars(req, template, additionalContext, depth);
+        const result = await this._expandHandlebars(req, template, additionalContext, depth);
+        // W-136: Final stringification for display (only here, not in _expandHandlebars and helpers)
+        if (typeof result === 'string') {
+            return result;
+        } else if (result == undefined || result == null) {
+            return '';
+        } else {
+            return JSON.stringify(result);
+        }
     }
 
     /**
@@ -1124,6 +1135,10 @@ class HandlebarController {
         // Local helper functions (encapsulated within expandHandlebars)
         const self = this;
 
+        // W-136: Shared value store for preserving native types through subexpressions
+        const valueStore = new Map();
+        let valueStoreCounter = 0;
+
         /**
          * Evaluate a block handlebars expression ({{#type}}...{{/type}})
          * ATTENTION: Keep this in sync with HANDLEBARS_DESCRIPTIONS (type='block')
@@ -1143,26 +1158,27 @@ class HandlebarController {
 
             // Fall back to built-in helpers
             switch (blockType) {
-                // W-114: Logical block helpers
+                // Existing block helpers
+                case 'if':
+                    return await _handleBlockIf(parsedArgs, blockContent, currentContext);
+                case 'unless':
+                    return await _handleBlockUnless(parsedArgs, blockContent, currentContext);
+
+                // W-136: Logical block helpers
                 case 'and':
                 case 'or':
                 case 'not':
-                    return await _handleLogicalBlockHelper(blockType, parsedArgs, blockContent, currentContext);
+                    return await _handleBlockLogical(blockType, parsedArgs, blockContent, currentContext);
 
-                // W-114: Comparison block helpers
+                // W-136: Comparison block helpers
                 case 'eq':
                 case 'ne':
                 case 'gt':
                 case 'gte':
                 case 'lt':
                 case 'lte':
-                    return await _handleLogicalBlockHelper(blockType, parsedArgs, blockContent, currentContext);
+                    return await _handleBlockComparison(blockType, parsedArgs, blockContent, currentContext);
 
-                // Existing block helpers
-                case 'if':
-                    return await _handleBlockIf(parsedArgs, blockContent, currentContext);
-                case 'unless':
-                    return await _handleBlockUnless(parsedArgs, blockContent, currentContext);
                 case 'each':
                     return await _handleBlockEach(parsedArgs, blockContent, currentContext);
                 case 'component':
@@ -1188,7 +1204,8 @@ class HandlebarController {
             const registryEntry = HandlebarController.helperRegistry.get(helper);
             if (registryEntry && registryEntry.type === 'regular') {
                 const result = await registryEntry.handler(parsedArgs, currentContext);
-                return result !== undefined ? String(result) : '';
+                // W-136: Return native value (stringification happens at render time)
+                return result !== undefined ? result : '';
             }
 
             // W-102: Handle components.* pattern (with or without parameters)
@@ -1257,6 +1274,19 @@ class HandlebarController {
                 case 'string.htmlToMd':
                     return _handleString(parsedArgs, currentContext);
 
+                // W-136: Array helpers
+                case 'array.at':
+                case 'array.first':
+                case 'array.includes':
+                case 'array.isEmpty':
+                case 'array.join':
+                case 'array.last':
+                case 'array.length':
+                case 'array.concat':
+                case 'array.reverse':
+                case 'array.sort':
+                    return _handleArray(parsedArgs, currentContext);
+
                 // W-131: Date helpers
                 case 'date.now':
                     return String(Date.now());
@@ -1283,6 +1313,10 @@ class HandlebarController {
                 case 'file.list':
                     return _handleFileList(parsedArgs, currentContext);
 
+                // W-136: JSON helpers
+                case 'json.parse':
+                    return _handleJsonParse(parsedArgs, currentContext);
+
                 // Variable helpers
                 case 'let':
                     return await _handleLet(parsedArgs, currentContext);
@@ -1297,14 +1331,13 @@ class HandlebarController {
                         value = currentContext[helper];
                     }
 
-                    // If value exists and is not a string, stringify it (arrays, objects, etc.)
-                    if (value !== undefined && value !== null) {
-                        if (typeof value !== 'string' && typeof value !== 'number') {
-                            return JSON.stringify(value);
-                        }
-                        return String(value);
+                    // W-136: Native type system - return native values
+                    // Property access returns native type (stringification at render time)
+                    if (value === undefined || value === null) {
+                        return '';
+                    } else {
+                        return value;
                     }
-                    return '';
             }
         }
 
@@ -1328,6 +1361,7 @@ class HandlebarController {
          */
         async function _parseAndEvaluateArguments(expression, currentContext) {
             const escChar = '\x00';
+            // W-136: valueStore is now a closure variable (declared at _expandHandlebars level)
 
             /**
              * Encode spaces, quotes, parentheses, and backslashes.
@@ -1366,7 +1400,18 @@ class HandlebarController {
 
                 // Clean up and evaluate
                 subExpr = _cleanupExpressionText(subExpr);
-                return await _evaluateRegularHandlebar(subExpr, ctx);
+                const result = await _evaluateRegularHandlebar(subExpr, ctx);
+
+                // W-136: If result is not a string, store it and return a placeholder
+                // to avoid .toString() conversion in .replace()
+                if (typeof result !== 'string' && result !== null && result !== undefined) {
+                    const placeholder = `__VALUE_${valueStoreCounter}__`;
+                    valueStore.set(valueStoreCounter, result);
+                    valueStoreCounter++;
+                    return placeholder;
+                }
+
+                return result;
             }
 
             // Phase 1: Extract helper name and check for arguments
@@ -1484,7 +1529,31 @@ class HandlebarController {
                 args._args = positionalArgs;       // All positional args as array
             }
 
-            return args;
+            // W-136: Restore non-string values from value store
+            function restoreValues(obj) {
+                if (typeof obj === 'string') {
+                    const match = obj.match(/^__VALUE_(\d+)__$/);
+                    if (match) {
+                        return valueStore.get(parseInt(match[1]));
+                    }
+                    return obj;
+                } else if (Array.isArray(obj)) {
+                    return obj.map(restoreValues);
+                } else if (obj && typeof obj === 'object') {
+                    // W-136: Preserve special object types (Date, RegExp, etc.)
+                    if (obj instanceof Date || obj instanceof RegExp || obj.constructor !== Object) {
+                        return obj;  // Don't iterate over special objects
+                    }
+                    const restored = {};
+                    for (const [key, value] of Object.entries(obj)) {
+                        restored[key] = restoreValues(value);
+                    }
+                    return restored;
+                }
+                return obj;
+            }
+
+            return restoreValues(args);
         }
 
         /**
@@ -1527,6 +1596,56 @@ class HandlebarController {
             const unlessContent = parts[0] || '';
             const elseContent = parts[1] || '';
             return condition ? elseContent : unlessContent;
+        }
+
+        /**
+         * Handle logical block helpers: {{#and}}, {{#or}}, {{#not}}
+         * W-136: Added block-level logical helpers
+         */
+        async function _handleBlockLogical(operator, args, blockContent, currentContext) {
+            // Call the regular helper to evaluate the condition
+            let condition;
+            if (operator === 'and') {
+                condition = _handleAnd(args);
+            } else if (operator === 'or') {
+                condition = _handleOr(args);
+            } else if (operator === 'not') {
+                condition = _handleNot(args);
+            }
+
+            // Split content into if/else parts, handling nested blocks
+            const escapedBlockType = operator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const nestedPattern = new RegExp(`\\{\\{#${escapedBlockType}:~(\\d+)~.*?\\{\\{\\/${escapedBlockType}:~\\1~\\}\\}`, 'gs');
+            const parts = blockContent
+                .replace(nestedPattern, (m) => m.replace(/\{\{else\}\}/g, '{~{~else~}~}'))
+                .split('{{else}}')
+                .map(part => part.replace(/\{~\{~else~\}~\}/g, '{{else}}'));
+
+            const ifContent = parts[0] || '';
+            const elseContent = parts[1] || '';
+            return condition ? ifContent : elseContent;
+        }
+
+        /**
+         * Handle comparison block helpers: {{#eq}}, {{#ne}}, {{#gt}}, {{#gte}}, {{#lt}}, {{#lte}}
+         * W-136: Added block-level comparison helpers
+         */
+        async function _handleBlockComparison(operator, args, blockContent, currentContext) {
+            // Call the regular helper to evaluate the condition
+            // Note: _handleComparison expects (parsedArgs, currentContext, operator)
+            const condition = _handleComparison(args, currentContext, operator);
+
+            // Split content into if/else parts, handling nested blocks
+            const escapedBlockType = operator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const nestedPattern = new RegExp(`\\{\\{#${escapedBlockType}:~(\\d+)~.*?\\{\\{\\/${escapedBlockType}:~\\1~\\}\\}`, 'gs');
+            const parts = blockContent
+                .replace(nestedPattern, (m) => m.replace(/\{\{else\}\}/g, '{~{~else~}~}'))
+                .split('{{else}}')
+                .map(part => part.replace(/\{~\{~else~\}~\}/g, '{{else}}'));
+
+            const ifContent = parts[0] || '';
+            const elseContent = parts[1] || '';
+            return condition ? ifContent : elseContent;
         }
 
         /**
@@ -1588,8 +1707,8 @@ class HandlebarController {
                     _helper: args._target,
                     _target: args._args?.[1]
                 };
-                const listResult = _handleFileList(fileListArgs, currentContext);
-                items = JSON.parse(listResult);
+                // W-136: file.list now returns native array (not JSON string)
+                items = _handleFileList(fileListArgs, currentContext);
 
                 // Get sortBy parameter
                 sortBy = args.sortBy || null;
@@ -1599,19 +1718,8 @@ class HandlebarController {
                     items.sort();
                 }
             } else if (args._target) {
-                // Regular property access or subexpression result
-                // Check if args._target is a JSON string (from subexpression like (file.list "pattern"))
-                if (typeof args._target === 'string' && /^\s*[\{\[]/.test(args._target)) {
-                    try {
-                        items = JSON.parse(args._target);
-                    } catch (e) {
-                        // Not valid JSON, treat as property path or literal
-                        items = args._target;
-                    }
-                } else {
-                    // Regular property access: {{#each items}} - args._target is already evaluated
-                    items = args._target;
-                }
+                // W-136: Regular property access or subexpression result (now returns native types)
+                items = args._target;
             }
 
             if (!items || (!Array.isArray(items) && typeof items !== 'object')) {
@@ -1668,9 +1776,10 @@ class HandlebarController {
                     setVars.push(key);
                 }
             }
-            if (setVars.length > 0) {
-                LogController.logInfo(req, 'handlebar.let', `Variables set: ${setVars.join(', ')}`);
-            }
+            //if (setVars.length > 0) {
+            //    // FIXME: add after log level is implemented
+            //    LogController.logInfo(req, 'handlebar.let', `Variables set: ${setVars.join(', ')}`);
+            //}
 
             return ''; // No output
         }
@@ -1726,8 +1835,9 @@ class HandlebarController {
             }
 
             if (setVars.length > 0) {
-                LogController.logInfo(req, 'handlebar.let',
-                    `Block-scoped variables set: ${setVars.join(', ')}`);
+                // FIXME: add after log level is implemented
+                // LogController.logInfo(req, 'handlebar.let',
+                //    `Block-scoped variables set: ${setVars.join(', ')}`);
             }
 
             // Process block with isolated vars scope
@@ -1996,18 +2106,12 @@ class HandlebarController {
             // Require at least 1 argument
             if (args.length === 0) {
                 LogController.logWarning(req, 'handlebar.and', 'No arguments provided');
-                return 'false';
+                return false;  // W-136: Return native boolean
             }
 
-            // Convert string 'false' to boolean false (from subexpressions)
-            const normalizedArgs = args.map(arg => {
-                if (arg === 'false') return false;
-                if (arg === 'true') return true;
-                return arg;
-            });
-
-            // Return 'true' only if all arguments are truthy
-            return normalizedArgs.every(arg => arg) ? 'true' : 'false';
+            // W-136: No need to normalize - subexpressions now return native types
+            // Return true only if all arguments are truthy
+            return args.every(arg => arg);
         }
 
         /**
@@ -2028,18 +2132,12 @@ class HandlebarController {
             // Require at least 1 argument
             if (args.length === 0) {
                 LogController.logWarning(req, 'handlebar.or', 'No arguments provided');
-                return 'false';
+                return false;  // W-136: Return native boolean
             }
 
-            // Convert string 'false' to boolean false (from subexpressions)
-            const normalizedArgs = args.map(arg => {
-                if (arg === 'false') return false;
-                if (arg === 'true') return true;
-                return arg;
-            });
-
-            // Return 'true' if any argument is truthy
-            return normalizedArgs.some(arg => arg) ? 'true' : 'false';
+            // W-136: No need to normalize - subexpressions now return native types
+            // Return true if any argument is truthy
+            return args.some(arg => arg);
         }
 
         /**
@@ -2060,16 +2158,12 @@ class HandlebarController {
             if (args.length !== 1) {
                 LogController.logWarning(req, 'handlebar.not',
                     `Expected 1 argument, got ${args.length}`);
-                return 'false';
+                return false;  // W-136: Return native boolean
             }
 
-            // Convert string 'false'/'true' to boolean (from subexpressions)
-            let value = args[0];
-            if (value === 'false') value = false;
-            else if (value === 'true') value = true;
-
+            // W-136: No need to normalize - subexpressions now return native types
             // Return negation
-            return value ? 'false' : 'true';
+            return !args[0];
         }
 
         /**
@@ -2091,7 +2185,7 @@ class HandlebarController {
             if (args.length !== 2) {
                 LogController.logWarning(req, `handlebar.${operator}`,
                     `Expected 2 arguments, got ${args.length}`);
-                return 'false';
+                return false;  // W-136: Return native boolean
             }
 
             const [left, right] = args;
@@ -2128,11 +2222,11 @@ class HandlebarController {
             if (!compareFn) {
                 LogController.logWarning(req, `handlebar.${operator}`,
                     `Unknown comparison operator: ${operator}`);
-                return 'false';
+                return false;  // W-136: Return native boolean
             }
 
-            const result = compareFn(left, right);
-            return result ? 'true' : 'false';
+            // W-136: Return native boolean (not string 'true'/'false')
+            return compareFn(left, right);
         }
 
         /**
@@ -2386,33 +2480,33 @@ class HandlebarController {
                     if (args.length !== 2) {
                         LogController.logWarning(req, 'handlebar.string.startsWith',
                             `Expected 2 arguments (string, prefix), got ${args.length}`);
-                        return 'false';
+                        return false;  // W-136: Return native boolean
                     }
                     const str5 = String(args[0] || '');
                     const prefix = String(args[1] || '');
-                    return str5.startsWith(prefix) ? 'true' : 'false';
+                    return str5.startsWith(prefix);  // W-136: Return native boolean
 
                 case 'endsWith':
                     // 2 args: string, suffix
                     if (args.length !== 2) {
                         LogController.logWarning(req, 'handlebar.string.endsWith',
                             `Expected 2 arguments (string, suffix), got ${args.length}`);
-                        return 'false';
+                        return false;  // W-136: Return native boolean
                     }
                     const str6 = String(args[0] || '');
                     const suffix = String(args[1] || '');
-                    return str6.endsWith(suffix) ? 'true' : 'false';
+                    return str6.endsWith(suffix);  // W-136: Return native boolean
 
                 case 'contains':
                     // 2 args: string, substring
                     if (args.length !== 2) {
                         LogController.logWarning(req, 'handlebar.string.contains',
                             `Expected 2 arguments (string, substring), got ${args.length}`);
-                        return 'false';
+                        return false;  // W-136: Return native boolean
                     }
                     const str7 = String(args[0] || '');
                     const substring = String(args[1] || '');
-                    return str7.includes(substring) ? 'true' : 'false';
+                    return str7.includes(substring);  // W-136: Return native boolean
 
                 // W-135: String manipulation helpers
                 case 'length':
@@ -2607,6 +2701,243 @@ class HandlebarController {
                     LogController.logWarning(req, `handlebar.string.${operation}`,
                         `Unknown string operation: ${operation}`);
                     return '';
+            }
+        }
+
+        /**
+         * W-136: Handle array.* helpers - array access and manipulation functions
+         * Supports both arrays and objects (selective: length/isEmpty accept objects)
+         * @param {object} parsedArgs - Parsed arguments with _args array
+         * @param {object} currentContext - Current context for property evaluation
+         * @returns {string} Result as string (for consistency with other helpers)
+         * @examples
+         * {{array.length user.roles}} → "3"
+         * {{array.includes user.roles "admin"}} → "true" or "false"
+         * {{array.join user.roles ", "}} → "admin, editor, viewer"
+         * {{array.first user.roles}} → "admin"
+         */
+        function _handleArray(parsedArgs, currentContext) {
+            const args = parsedArgs._args || [];
+            const helperName = parsedArgs._helper;
+            const operation = helperName.replace('array.', '');
+
+            // W-136: First argument is already native type (no need to parse JSON)
+            const collection = args[0];
+
+            switch (operation) {
+                case 'at':
+                    // Arrays only
+                    if (!Array.isArray(collection)) {
+                        LogController.logWarning(req, helperName,
+                            `Expected array, got ${typeof collection}`);
+                        return '';
+                    }
+                    if (args.length !== 2) {
+                        LogController.logWarning(req, helperName,
+                            `Expected 2 arguments (array, index), got ${args.length}`);
+                        return '';
+                    }
+                    const index = Number(args[1]);
+                    if (isNaN(index) || index < 0) {
+                        LogController.logWarning(req, helperName,
+                            `Index must be non-negative number, got: ${args[1]}`);
+                        return '';
+                    }
+                    return index < collection.length ? String(collection[index]) : '';
+
+                case 'first':
+                    // Arrays only
+                    if (!Array.isArray(collection)) {
+                        LogController.logWarning(req, helperName,
+                            `Expected array, got ${typeof collection}`);
+                        return '';
+                    }
+                    return collection.length > 0 ? String(collection[0]) : '';
+
+                case 'includes':
+                    // Arrays only
+                    if (!Array.isArray(collection)) {
+                        LogController.logWarning(req, helperName,
+                            `Expected array, got ${typeof collection}`);
+                        return false;  // W-136: Return native boolean
+                    }
+                    if (args.length !== 2) {
+                        LogController.logWarning(req, helperName,
+                            `Expected 2 arguments (array, value), got ${args.length}`);
+                        return false;  // W-136: Return native boolean
+                    }
+                    return collection.includes(args[1]);  // W-136: Return native boolean
+
+                case 'isEmpty':
+                    // Accept both arrays and objects
+                    if (Array.isArray(collection)) {
+                        return collection.length === 0;  // W-136: Return native boolean
+                    }
+                    if (typeof collection === 'object' && collection !== null) {
+                        return Object.keys(collection).length === 0;  // W-136: Return native boolean
+                    }
+                    LogController.logWarning(req, helperName,
+                        `Expected array or object, got ${typeof collection}`);
+                    return true;  // W-136: Return native boolean
+
+                case 'join':
+                    // Arrays only
+                    if (!Array.isArray(collection)) {
+                        LogController.logWarning(req, helperName,
+                            `Expected array, got ${typeof collection}`);
+                        return '';
+                    }
+                    const separator = args.length >= 2 ? String(args[1]) : ',';
+                    return collection.join(separator);
+
+                case 'last':
+                    // Arrays only
+                    if (!Array.isArray(collection)) {
+                        LogController.logWarning(req, helperName,
+                            `Expected array, got ${typeof collection}`);
+                        return '';
+                    }
+                    return collection.length > 0 ? String(collection[collection.length - 1]) : '';
+
+                case 'length':
+                    // Accept both arrays and objects
+                    if (Array.isArray(collection)) {
+                        return String(collection.length);
+                    }
+                    if (typeof collection === 'object' && collection !== null) {
+                        return String(Object.keys(collection).length);
+                    }
+                    LogController.logWarning(req, helperName,
+                        `Expected array or object, got ${typeof collection}`);
+                    return '0';
+
+                case 'concat':
+                    // W-136 Phase 2: Concatenate multiple arrays
+                    // Accept all arguments as arrays to concatenate
+                    if (args.length === 0) {
+                        return [];
+                    }
+
+                    const result = [];
+                    for (const arg of args) {
+                        if (Array.isArray(arg)) {
+                            result.push(...arg);
+                        } else if (arg !== null && arg !== undefined) {
+                            LogController.logWarning(req, helperName,
+                                `Skipping non-array argument: ${typeof arg}`);
+                        }
+                    }
+                    return result;
+
+                case 'reverse':
+                    // W-136 Phase 2: Reverse array order (non-mutating)
+                    if (!Array.isArray(collection)) {
+                        return [];
+                    }
+                    return [...collection].reverse();
+
+                case 'sort':
+                    // W-136 Phase 2: Sort array with optional property path and type override
+                    if (!Array.isArray(collection)) {
+                        return [];
+                    }
+
+                    if (collection.length === 0) {
+                        return [];
+                    }
+
+                    const sortBy = parsedArgs.sortBy;      // Property path for object sorting
+                    const sortAs = parsedArgs.sortAs;      // Type override: "number" or "string"
+                    const reverse = parsedArgs.reverse === true || parsedArgs.reverse === 'true';
+
+                    // Create copy to avoid mutation
+                    const sorted = [...collection];
+
+                    if (sortBy) {
+                        // Object property sorting
+                        const getValue = (obj, path) => global.CommonUtils.getValueByPath(obj, path);
+
+                        // Determine comparison type
+                        let compareType = sortAs;
+                        if (!compareType) {
+                            // Auto-detect from first non-null value
+                            const firstValue = sorted.map(obj => getValue(obj, sortBy))
+                                .find(val => val != null);
+                            compareType = typeof firstValue === 'number' ? 'number' : 'string';
+                        }
+
+                        sorted.sort((a, b) => {
+                            const valA = getValue(a, sortBy);
+                            const valB = getValue(b, sortBy);
+
+                            // null/undefined sort to end
+                            if (valA == null) return 1;
+                            if (valB == null) return -1;
+
+                            if (compareType === 'number') {
+                                return Number(valA) - Number(valB);
+                            } else {
+                                return String(valA).localeCompare(String(valB));
+                            }
+                        });
+                    } else {
+                        // Primitive array sorting
+                        let compareType = sortAs;
+                        if (!compareType) {
+                            // Auto-detect from first element
+                            compareType = typeof sorted[0] === 'number' ? 'number' : 'string';
+                        }
+
+                        sorted.sort((a, b) => {
+                            if (compareType === 'number') {
+                                return Number(a) - Number(b);
+                            } else {
+                                return String(a).localeCompare(String(b));
+                            }
+                        });
+                    }
+
+                    return reverse ? sorted.reverse() : sorted;
+
+                default:
+                    LogController.logWarning(req, helperName,
+                        `Unknown array operation: ${operation}`);
+                    return '';
+            }
+        }
+
+        /**
+         * W-136: Handle json.parse helper - parse JSON string to native array/object
+         * @param {object} parsedArgs - Parsed arguments with _target
+         * @param {object} currentContext - Current context
+         * @returns {*} Parsed JSON value (array, object, or null on error)
+         * @examples
+         * {{json.parse '["a","b","c"]'}} → ['a','b','c']
+         * {{json.parse '{"a":1,"b":2}'}} → {a:1,b:2}
+         * {{json.parse vars.jsonString}} → parsed value
+         */
+        function _handleJsonParse(parsedArgs, currentContext) {
+            const helperName = parsedArgs._helper;
+            const jsonString = parsedArgs._target;
+
+            if (!jsonString) {
+                LogController.logWarning(req, helperName,
+                    'Expected 1 argument (JSON string)');
+                return null;
+            }
+
+            if (typeof jsonString !== 'string') {
+                LogController.logWarning(req, helperName,
+                    `Expected string argument, got ${typeof jsonString}`);
+                return null;
+            }
+
+            try {
+                return JSON.parse(jsonString);
+            } catch (e) {
+                LogController.logError(req, helperName,
+                    `Invalid JSON: ${e.message}`);
+                return null;
             }
         }
 
@@ -3188,7 +3519,7 @@ class HandlebarController {
 
                 // Use FileCache synchronously - instant if cached
                 const content = self.includeCache.getFileSync(resolvedPath);
-                return content !== null ? 'true' : 'false';
+                return content !== null;  // W-136: Return native boolean
             } catch (error) {
                 // Try .tmpl fallback for CSS and JS files
                 const fileExtension = path.extname(includePath).toLowerCase();
@@ -3198,12 +3529,12 @@ class HandlebarController {
                         const resolvedPath = PathResolver.resolveModule(templatePath);
 
                         const content = self.includeCache.getFileSync(resolvedPath);
-                        return content !== null ? 'true' : 'false';
+                        return content !== null;  // W-136: Return native boolean
                     } catch (templateError) {
-                        return 'false';
+                        return false;  // W-136: Return native boolean
                     }
                 } else {
-                    return 'false';
+                    return false;  // W-136: Return native boolean
                 }
             }
         }
@@ -3266,19 +3597,19 @@ class HandlebarController {
             const globPattern = parsedArgs._target;
             if (!globPattern) {
                 LogController.logError(req, 'handlebar.file.list', 'file.list requires a glob pattern');
-                return JSON.stringify([]);
+                return [];  // W-136: Return native array
             }
 
             // Security: Prohibit path traversal and absolute paths
             if (globPattern.includes('../') || globPattern.includes('..\\') || path.isAbsolute(globPattern)) {
                 LogController.logError(req, 'handlebar.file.list', `Prohibited pattern in file.list: ${globPattern}. Use relative paths from view root only.`);
-                return JSON.stringify([]);
+                return [];  // W-136: Return native array
             }
 
             // Warn if pattern uses ** (not supported without fast-glob)
             if (globPattern.includes('**')) {
                 LogController.logError(req, 'handlebar.file.list', `Recursive patterns (**) not supported. Use single-level wildcards (*) only. Pattern: ${globPattern}`);
-                return JSON.stringify([]);
+                return [];  // W-136: Return native array
             }
 
             try {
@@ -3289,10 +3620,10 @@ class HandlebarController {
                     _readDirRecursive
                 );
 
-                return JSON.stringify(relativeFiles);
+                return relativeFiles;  // W-136: Return native array
             } catch (error) {
                 LogController.logError(req, 'handlebar.file.list', `Error listing files with pattern ${globPattern}: ${error.message}`);
-                return JSON.stringify([]);
+                return [];  // W-136: Return native array
             }
         }
 
@@ -3568,15 +3899,16 @@ class HandlebarController {
             if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
                 const subExpr = trimmed.substring(1, trimmed.length - 1).trim();
                 const result = await _evaluateRegularHandlebar(subExpr, currentContext);
-                // Logical/comparison helpers return 'true'/'false' strings
-                return result === 'true';
+                // W-136: Helpers now return native booleans (not strings)
+                return !!result;
             }
 
             // Handle helper functions (file.exists, etc.)
             if (trimmed.startsWith('file.exists ')) {
                 const filePath = trimmed.substring('file.exists '.length).trim();
                 const result = _handleFileExists(filePath);
-                return result === 'true';
+                // W-136: file.exists now returns native boolean (not string)
+                return result;
             }
 
             // Handle property access
@@ -3603,7 +3935,20 @@ class HandlebarController {
             } else if (regularHandlebar) {
                 // Regular handlebars: {{name params}}
                 try {
-                    return await _evaluateRegularHandlebar(regularHandlebar, currentContext);
+                    const result = await _evaluateRegularHandlebar(regularHandlebar, currentContext);
+                    // W-136: Use valueStore to avoid stringify/parse cycles
+                    // Store non-string values and return placeholder (same as subexpressions)
+                    if (typeof result === 'string') {
+                        return result;
+                    } else if (result === undefined || result === null) {
+                        return '';
+                    } else {
+                        // Store native value and return placeholder
+                        const placeholder = `__VALUE_${valueStoreCounter}__`;
+                        valueStore.set(valueStoreCounter, result);
+                        valueStoreCounter++;
+                        return placeholder;
+                    }
                 } catch (error) {
                     LogController.logError(req, 'handlebar.expandHandlebars', `error: Handlebar "${regularHandlebar}": ${error.message}`);
                     return `<!-- Error: Handlebar "${regularHandlebar}": ${error.message} -->`;
@@ -3628,6 +3973,15 @@ class HandlebarController {
         }
 
         let result = await _resolveHandlebars(annotated, context);
+
+        // W-136: Final pass - replace all __VALUE_N__ placeholders with stringified values
+        result = result.replace(/__VALUE_(\d+)__/g, (match, id) => {
+            const value = valueStore.get(parseInt(id));
+            if (value === undefined) {
+                return '';
+            }
+            return JSON.stringify(value);
+        });
 
         // Phase 3: Clean up any remaining unbalanced annotations
         result = result.replace(/\{\{([#\/][a-z]+):~\d+~(.*?)\}\}/g, '<!-- Error: Unbalanced handlebar "$1$2" removed -->');

@@ -4,8 +4,8 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         1.4.16
- * @release         2026-01-16
+ * @version         1.4.17
+ * @release         2026-01-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1259,6 +1259,31 @@ async function setup() {
         createNpmrc();
 
         console.log('\n✅ jPulse site setup complete!\n');
+
+        // W-137: Show compliance notice
+        console.log('');
+        console.log('📋 License Compliance Notice:');
+        console.log('   By deploying and using jPulse Framework, you agree to comply with the');
+        console.log('   Business Source License 1.1 with Additional Terms, which includes');
+        console.log('   sending anonymized usage data to jpulse.net for compliance monitoring.');
+        console.log('');
+        if (config.JPULSE_ADMIN_EMAIL_OPT_IN && config.JPULSE_SITE_UUID) {
+            console.log(`   Status of sharing admin email: ✅ opt-in`);
+            console.log(`     - ✅ Dashboard access enabled`);
+            console.log(`     - Monitor URL: https://jpulse.net/monitor/${config.JPULSE_SITE_UUID}`);
+            console.log(`     - Available after first compliance report is sent`);
+            console.log(`     - To change: Admin > Config > manifest.compliance.adminEmailOptIn`);
+            console.log('');
+         } else {
+            console.log(`   Status of sharing admin email: ❌ opt-out`);
+            console.log(`     - ❌ Dashboard access disabled`);
+            console.log(`     - To opt-in: Admin > Config > manifest.compliance.adminEmailOptIn`);
+            console.log('');
+        }
+        console.log('   For questions: team@jpulse.net');
+        console.log('   License details: https://jpulse.net/legal/license.shtml');
+        console.log('   Privacy policy: https://jpulse.net/legal/privacy.shtml');
+        console.log('');
 
         // Show next steps
         console.log('📋 Next steps:');

@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.4.16
- * @release         2026-01-16
+ * @version         1.4.17
+ * @release         2026-01-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -744,15 +744,15 @@ class CommonUtils {
      * Format timestamp for logging
      * @returns {string} Formatted local timezone timestamp (YYYY-MM-DD HH:MM:SS)
      */
-    static formatTimestamp() {
+    static formatTimestamp(omitSeconds = false) {
         const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const day = String(now.getDate()).padStart(2, '0');
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        const seconds = omitSeconds ? '' : String(now.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}${seconds ? `:${seconds}` : ''}`;
     }
 
     /**

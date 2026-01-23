@@ -51,7 +51,7 @@ Business Source License Usage Guidelines
 3. COMMERCIAL LICENSE
    For production use, commercial deployment, or proprietary use of the Licensed
    Work, you must obtain a separate Commercial License from the Licensor. Contact
-   licensing@jpulse.org for commercial licensing terms and pricing.
+   team@jpulse.net for commercial licensing terms and pricing.
 
 4. SOURCE CODE AVAILABILITY
    The Licensed Work is made available in source code form. You may view, study,
@@ -97,6 +97,41 @@ Business Source License Usage Guidelines
     shall be reformed only to the extent necessary to make it enforceable. This
     License shall be governed by the laws of the jurisdiction specified in a notice
     contained within the Licensed Work.
+
+---
+
+ADDITIONAL TERMS
+
+Section 11: USAGE REPORTING (BSL Period Only)
+
+11.1 Compliance Reporting Requirement
+     While this Licensed Work is governed by the Business Source License 1.1
+     (i.e., prior to the Change Date of 2030-01-01), production deployments
+     must send automated daily usage reports to jpulse.net containing deployment
+     metrics as documented at https://jpulse.net/docs/license
+
+11.2 Scope of Reporting
+     Reports include: deployment UUID, version information, aggregate user counts,
+     server/instance counts, and activity metrics. Reports do not include user
+     content, personal information (except opt-in admin email for monitoring
+     service), or sensitive data beyond what is necessary for license compliance
+     verification.
+
+11.3 Post-Conversion Period
+     Effective on the Change Date (2030-01-01), when this License converts to
+     GNU Affero General Public License v3.0, the compliance reporting requirement
+     in Section 11.1 ceases to apply. Versions deployed after the Change Date are
+     governed solely by AGPL-3.0 without additional restrictions.
+
+11.4 Air-Gapped and Restricted Environments
+     For deployments in air-gapped, network-restricted, or highly-secure
+     environments where automated reporting is not feasible, contact team@jpulse.net
+     for alternative compliance arrangements or appropriate licensing terms.
+
+11.5 Privacy and Data Protection
+     Data collection and processing complies with applicable privacy laws
+     including GDPR and CCPA. For details, see the Privacy Policy at
+     https://jpulse.net/legal/privacy.shtml
 
 ---
 

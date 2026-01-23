@@ -1,4 +1,4 @@
-# jPulse Docs / Production Deployment Guide v1.4.16
+# jPulse Docs / Production Deployment Guide v1.4.17
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -40,6 +40,9 @@ pm2 save
 - ✅ Site responds at configured domain
 - ✅ Admin login works
 - ✅ PM2 shows running processes
+- ✅ Compliance reporting active (check `/admin/system-status.shtml`)
+
+> **License Compliance**: Production deployments automatically send daily anonymous usage reports to jpulse.net for Business Source License 1.1 compliance monitoring. Reports include deployment metrics, version information, and aggregate user counts. See the [License Guide](license.md#site-monitoring-bsl-period-only) for details.
 
 ## 📋 Deployment Overview
 

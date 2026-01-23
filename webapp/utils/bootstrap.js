@@ -3,8 +3,8 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.4.16
- * @release         2026-01-16
+ * @version         1.4.17
+ * @release         2026-01-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -173,6 +173,12 @@ export async function bootstrap(options = {}) {
         await HealthControllerModule.default.initialize();
         global.HealthController = HealthControllerModule.default;
         bootstrapLog('✅ HealthController: Initialized with Redis clustering and registered globally');
+
+        // Step 11.1: Initialize compliance reporting scheduler (W-137)
+        if (!isTest) {
+            HealthControllerModule.default.initializeComplianceScheduler();
+            bootstrapLog('✅ ComplianceScheduler: Initialized (checking every 15 minutes)');
+        }
 
         // Step 12: Set up CommonUtils globally
         global.CommonUtils = CommonUtils;

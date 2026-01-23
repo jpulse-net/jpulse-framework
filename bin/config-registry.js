@@ -4,8 +4,8 @@
  * @tagline         Unified configuration registry for all jPulse tools
  * @description     Single source of truth for variable definitions, defaults, and template expansion
  * @file            bin/config-registry.js
- * @version         1.4.16
- * @release         2026-01-16
+ * @version         1.4.17
+ * @release         2026-01-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -68,6 +68,82 @@ export const CONFIG_REGISTRY = {
         prompt: async (config, deploymentType, question) => {
             const defaultId = config.SITE_NAME ? config.SITE_NAME.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') : 'my-site';
             config.JPULSE_SITE_ID = await question(`? Site ID (${defaultId}): `) || defaultId;
+        }
+    },
+
+    JPULSE_SITE_UUID: {
+        // Template expansion
+        default: () => {
+            // Generate UUID v4 (W-137)
+            return crypto.randomUUID();
+        },
+        type: 'computed',
+        auto: true,
+        description: 'Site UUID for license compliance reporting (auto-generated)',
+
+        // No prompting - automatically generated once during setup
+        section: 'Basic Settings',
+        prompt: async (config, deploymentType, question) => {
+            // Generate if not exists, otherwise keep existing value
+            if (!config.JPULSE_SITE_UUID) {
+                config.JPULSE_SITE_UUID = crypto.randomUUID();
+            }
+        }
+    },
+
+    JPULSE_LICENSE_ACCEPTANCE: {
+        // Template expansion
+        default: false,
+        type: 'config',
+        description: 'License terms acceptance',
+
+        // User prompting
+        section: 'License & Compliance',
+        prompt: async (config, deploymentType, question) => {
+            console.log('');
+            console.log('📜 jPulse Framework License Terms:');
+            console.log('');
+            console.log('   Licensed under Business Source License 1.1 with Additional Terms');
+            console.log('');
+            console.log('   Key terms:');
+            console.log('   • Free for non-production use (development, testing, staging)');
+            console.log('   • Commercial license required for production deployments');
+            console.log('   • Anonymous usage reporting to jpulse.net (compliance monitoring)');
+            console.log('');
+            console.log('   Full license: https://jpulse.net/legal/license.shtml');
+            console.log('   Commercial inquiries: team@jpulse.net');
+            console.log('');
+            const accept = await question('? Accept license terms? (y/N): ');
+            if ((accept || '').toLowerCase() !== 'y') {
+                console.log('');
+                console.log('❌ License terms not accepted. Setup cannot continue.');
+                console.log('   For questions: team@jpulse.net');
+                process.exit(1);
+            }
+            config.JPULSE_LICENSE_ACCEPTANCE = true;
+        }
+    },
+
+    JPULSE_ADMIN_EMAIL_OPT_IN: {
+        // Template expansion
+        default: false,
+        type: 'config',
+        description: 'Opt-in to share admin email for dashboard access',
+
+        // User prompting
+        section: 'License & Compliance',
+        prompt: async (config, deploymentType, question) => {
+            console.log('');
+            console.log('📊 Optional: Deployment Dashboard Access');
+            console.log('');
+            console.log('   Share admin email to access your dashboard at:');
+            console.log('   https://jpulse.net/monitor/[your-uuid]');
+            console.log('');
+            console.log('   Provides: Compliance status, health insights, usage history');
+            console.log('   Change later: site/webapp/app.conf (manifest.compliance.adminEmailOptIn)');
+            console.log('');
+            const optIn = await question('? Share admin email for dashboard access? (y/N): ');
+            config.JPULSE_ADMIN_EMAIL_OPT_IN = (optIn || '').toLowerCase() === 'y';
         }
     },
 

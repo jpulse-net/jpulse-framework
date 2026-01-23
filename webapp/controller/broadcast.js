@@ -3,8 +3,8 @@
  * @tagline         Server-side broadcast API for jPulse.appCluster
  * @description     Provides REST API endpoints for cross-instance broadcasting
  * @file            webapp/controller/broadcast.js
- * @version         1.4.16
- * @release         2026-01-16
+ * @version         1.4.17
+ * @release         2026-01-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

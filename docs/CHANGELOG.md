@@ -1,6 +1,125 @@
-# jPulse Docs / Version History v1.4.16
+# jPulse Docs / Version History v1.4.17
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.17, W-137, 2026-01-23
+
+**Commit:** `W-137, v1.4.17: deployment: send license compliance report to jpulse.net`
+
+**FEATURE RELEASE**: Daily compliance reporting system for Business Source License 1.1 with Additional Terms, enabling automated license compliance monitoring during BSL period (2026-2030).
+
+**Objectives**:
+- Monitor BSL 1.1 compliance during 2026-2030 period
+- Identify deployments requiring commercial licensing
+- Understand deployment landscape for product development
+
+**Key Features**:
+- **Automated Daily Reporting**: Sends anonymous usage reports to jpulse.net/api/1/site-monitor/report once per day
+- **Randomized Schedule**: Current hour + random minute (0-59), stored in Redis, consistent per site, 30-minute window for flexibility
+- **UUID Management**: Auto-generated UUID v4 during configure, stored in MongoDB ConfigModel for cluster consistency, priority: MongoDB > .env > generate new
+- **Manifest Configuration**: MongoDB-based manifest section (license key/tier, compliance siteUuid/adminEmailOptIn), cluster-safe single source of truth, editable via Admin Dashboard → Site Configuration → Manifest
+- **Compliance UI**: Client-side rendered compliance section in Admin Dashboard → System Status, shows status (compliant/warning/exempt-dev/violation), scheduled time (local HH:MM), last/next report timestamps, monitor URL (if opted-in), collapsible Request/Response transparency widget
+- **Manual Send API**: POST /api/1/health/compliance/send-report (admin-only, bypasses timing for testing/troubleshooting)
+- **Exponential Backoff**: 1min → 5min → 30min → 1hr → 6hr → 24hr (max) for network failures, graceful handling for air-gapped deployments
+- **Server-Side Classification**: jpulse.net determines compliance status (grace periods, thresholds, environment detection), returns status to client for UI display
+- **Optional Dashboard Access**: Admin email opt-in enables deployment dashboard at jpulse.net/monitor/[uuid] showing compliance status, health insights, usage history
+
+**Code Changes**:
+
+**webapp/model/config.js**:
+- Added `data.manifest` schema with `license` (key, tier) and `compliance` (siteUuid, adminEmailOptIn) sections
+- Implemented `ConfigModel.ensureManifestDefaults()` method (schema-driven, atomic, race-safe initialization)
+- Added contextFilter to hide `data.manifest.license.key` from client (sensitive data)
+- Special handling for empty string siteUuid (treated as missing to allow UUID initialization)
+
+**webapp/controller/health.js**:
+- Added compliance reporting implementation with scheduling, payload building, and API integration
+- UUID initialization: checks MongoDB first, then .env (from configure), then generates new
+- Randomized report timing: `_initializeReportTiming()` sets current hour + random minute in Redis
+- `_isReportTime()` checks 30-minute window around scheduled time
+- `_shouldSendReport()` respects 24h interval and exponential backoff
+- `_buildCompliancePayload()` builds report from existing health metrics
+- `_sendComplianceReport()` sends to jpulse.net with User-Agent header
+- `_recordReportSent()` stores full response object, report, and timestamps (scheduled vs manual)
+- `_handleReportFailure()` implements exponential backoff with Redis state
+- `_getComplianceData()` builds compliance data structure for API (admin-only)
+- `sendComplianceReport()` public API method for manual triggering
+- `refreshGlobalConfig()` reloads config on changes via Redis broadcast
+- Registered for `controller:config:data:changed` broadcast to reload admin email
+
+**webapp/view/admin/system-status.shtml**:
+- Added compliance section with client-side rendering (`renderCompliance()` method)
+- Status display with icons (✓, ⚠️, ℹ️, ❌) and human-readable text
+- Warning banner (only if status === "warning")
+- Reporting failed notice (if >48h since last report)
+- Scheduled time display as local HH:MM (derived from scheduled HH:MM UTC)
+- Last/next report timestamps with browser timezone formatting
+- Monitor URL link (only if opted-in and UUID exists)
+- Collapsible `<details>` widget with Request/Response side-by-side (responsive grid)
+- Transparency text with privacy policy link
+
+**webapp/view/admin/config.shtml**:
+- Added tabbed interface (Email | Broadcast | Manifest)
+- Manifest tab with license key (password field with toggle), license tier (select), site UUID (read-only), admin email opt-in (select with description)
+- Generic form change detection using event delegation (input/change events on form)
+
+**bin/config-registry.js**:
+- Added `JPULSE_SITE_UUID` (auto-generated UUID v4, no prompting)
+- Added `JPULSE_LICENSE_ACCEPTANCE` (mandatory prompt, exits if not accepted)
+- Added `JPULSE_ADMIN_EMAIL_OPT_IN` (optional prompt for dashboard access)
+
+**bin/configure.js**:
+- Added compliance notice display at end of configuration
+- Shows opt-in/opt-out status and monitor URL (if opted-in)
+- Displays where to change opt-in setting (Admin Dashboard → Site Configuration)
+
+**webapp/utils/bootstrap.js**:
+- Added `initializeComplianceScheduler()` call at Step 11.1 (after HealthController.initialize())
+- 15-minute check interval with random delay (0-14 min) to spread load
+- Initial check after 5 minutes with random delay
+- Skipped in test environments
+
+**webapp/routes.js**:
+- Added `POST /api/1/health/compliance/send-report` route (admin-only)
+
+**webapp/tests/unit/controller/health-compliance.test.js**:
+- New test file with unit tests for compliance scheduling and state management
+- Tests for `_shouldSendReport()` (window gating, backoff behavior)
+- Tests for `_recordReportSent()` (scheduled vs manual timestamp behavior)
+- Tests for `_getComplianceData()` (next scheduled timestamp behavior)
+
+**webapp/tests/unit/config/config-manifest.test.js**:
+- New test file with unit tests for manifest defaults
+- Tests for schema presence and contextFilter hiding license key
+- Tests for `ensureManifestDefaults()` merge behavior
+
+**LICENSE**:
+- Added Section 11: USAGE REPORTING (BSL Period Only) with 5 subsections
+- Time-limited compliance (automatically ends 2030-01-01 on AGPL conversion)
+- Privacy-compliant (GDPR/CCPA addressed)
+- Air-gapped deployment accommodation
+- Graceful failure handling (network issues not violations)
+
+**Documentation**:
+- `docs/license.md`: Added "Site Monitoring (BSL Period Only)" section with technical details and enforcement
+- `docs/site-administration.md`: Added Manifest section, updated System Status documentation
+- `docs/installation.md`: Added license acceptance and compliance information
+- `docs/getting-started.md`: Added license acceptance and compliance information
+- `docs/deployment.md`: Added compliance reporting information for production deployments
+- `docs/README.md`: Added License Guide crosslinks
+
+**Breaking Changes**:
+- None - fully backward compatible
+
+**Migration Steps**:
+- No migration needed - new feature automatically enabled
+- Existing deployments will generate UUID on first startup
+- Configure script prompts for license acceptance on next run
+
+**Work Item**: W-137
+**Version**: v1.4.17
+**Release Date**: 2026-01-23
 
 ________________________________________________
 ## v1.4.16, W-136, 2026-01-16

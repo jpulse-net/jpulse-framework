@@ -4,8 +4,8 @@
  * @tagline         Admin system status interface
  * @description     System monitoring and health dashboard for site administrators
  * @file            webapp/view/admin/system-status.shtml
- * @version         1.4.16
- * @release         2026-01-16
+ * @version         1.4.17
+ * @release         2026-01-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -47,6 +47,35 @@
             border-radius: 6px;
             border: 1px solid var(--jp-theme-border-light, #e9ecef);
         }
+        .local-compliance-details {
+            padding: 1rem;
+            border: 1px solid var(--jp-theme-border-color, #ddd);
+            border-radius: 6px;
+            background: var(--jp-theme-bg-secondary, #f9f9f9);
+        }
+
+        .local-compliance-summary {
+            cursor: pointer;
+            font-weight: bold;
+            user-select: none;
+        }
+
+        .local-compliance-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .local-compliance-grid pre {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+            .local-compliance-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -81,6 +110,11 @@
                     <div id="clusterHealthGrid" class="jp-stats-grid">
                         <!-- Populated by JavaScript -->
                     </div>
+                </div>
+
+                <!-- 1.1. License Compliance Reporting (W-137) -->
+                <div id="complianceSection" class="jp-hidden">
+                    <!-- Populated by JavaScript -->
                 </div>
 
                 <!-- 1.5. Component Health (Aggregated) -->
@@ -150,6 +184,7 @@
                 this.elements.errorMessage = document.getElementById('errorMessage');
                 this.elements.statusContent = document.getElementById('statusContent');
                 this.elements.clusterHealthGrid = document.getElementById('clusterHealthGrid');
+                this.elements.complianceSection = document.getElementById('complianceSection');
                 this.elements.componentHealthGrid = document.getElementById('componentHealthGrid');
                 this.elements.serverSummariesGrid = document.getElementById('serverSummariesGrid');
                 this.elements.serverTabContent = document.getElementById('serverTabContent');
@@ -207,6 +242,7 @@
 
             render() {
                 this.renderClusterHealth();
+                this.renderCompliance();
                 this.renderComponentHealth();
                 this.renderServerSummaries();
                 this.renderServerDetails();
@@ -229,6 +265,187 @@
                         <div class="jp-stat-label">${card.label}</div>
                     </div>
                 `).join('');
+            },
+
+            _utcToLocalTime(reportTimeUtc) {
+                // Convert scheduled HH:MM in UTC to local HH:MM (24-hour)
+                const [schedHour, schedMin] = String(reportTimeUtc).split(':').map(Number);
+                if (!Number.isFinite(schedHour) || !Number.isFinite(schedMin)) return '';
+                const date = new Date();
+                date.setUTCHours(schedHour, schedMin, 0, 0);
+                return date.getHours().toString().padStart(2, '0') + ':'
+                    +  date.getMinutes().toString().padStart(2, '0');
+            },
+
+            renderCompliance() {
+                // W-137: Render license compliance section (admins only)
+                const compliance = this.data?.compliance;
+                if (!compliance || !compliance.status) {
+                    this.elements.complianceSection.classList.add('jp-hidden');
+                    return;
+                }
+
+                // Show section
+                this.elements.complianceSection.classList.remove('jp-hidden');
+
+                // Build status icon and text
+                const statusMap = {
+                    'compliant': { icon: '✓', text: '{{i18n.view.admin.systemStatus.licenseCompliance.status.compliant}}', class: 'success' },
+                    'warning': { icon: '⚠️', text: '{{i18n.view.admin.systemStatus.licenseCompliance.status.warning}}', class: 'warning' },
+                    'exempt-dev': { icon: 'ℹ️', text: '{{i18n.view.admin.systemStatus.licenseCompliance.status.exemptDev}}', class: 'info' },
+                    'violation': { icon: '❌', text: '{{i18n.view.admin.systemStatus.licenseCompliance.status.violation}}', class: 'danger' },
+                    'unknown': { icon: '', text: '{{i18n.view.admin.systemStatus.licenseCompliance.status.unknown}}', class: 'secondary' }
+                };
+                const statusInfo = statusMap[compliance.status] || statusMap.unknown;
+
+                // Build HTML
+                let html = '<h2>{{i18n.view.admin.systemStatus.licenseCompliance.heading}}</h2><div class="jp-card jp-mb-30">';
+
+                // Warning banner (only if status is warning)
+                if (compliance.status === 'warning') {
+                    const warningMessage = compliance.message || '{{i18n.view.admin.systemStatus.licenseCompliance.warningBanner.defaultMessage}}';
+                    html += `
+                        <div class="jp-alert jp-alert-warning jp-mb-20">
+                            <strong>⚠️ {{i18n.view.admin.systemStatus.licenseCompliance.warningBanner.title}}</strong>
+                            <p>${warningMessage}</p>
+                            <p>
+                                <a href="mailto:team@jpulse.net" class="jp-btn jp-btn-secondary">
+                                    {{i18n.view.admin.systemStatus.licenseCompliance.warningBanner.contactButton}}
+                                </a>
+                            </p>
+                        </div>`;
+                }
+
+                // Reporting failed notice (only if >48h)
+                if (compliance.reportingFailed) {
+                    const hours = compliance.hoursSinceReport || '{{i18n.view.admin.systemStatus.unknown}}';
+                    const retryHours = compliance.hoursUntilRetry || '{{i18n.view.admin.systemStatus.unknown}}';
+                    const unableToSendText = '{{i18n.view.admin.systemStatus.licenseCompliance.reportingFailed.unableToSend}}'.replace('%HOURS%', hours);
+                    const airGappedContactText = '{{i18n.view.admin.systemStatus.licenseCompliance.reportingFailed.airGappedContact}}'.replace('%EMAIL%', '<a href="mailto:team@jpulse.net">team@jpulse.net</a>');
+                    const retryInfoText = '{{i18n.view.admin.systemStatus.licenseCompliance.reportingFailed.retryInfo}}'.replace('%HOURS%', retryHours);
+
+                    html += `
+                        <div class="jp-alert jp-alert-info jp-mb-20">
+                            <strong>ℹ️ {{i18n.view.admin.systemStatus.licenseCompliance.reportingFailed.title}}</strong>
+                            <p>${unableToSendText}</p>
+                            <p><strong>{{i18n.view.admin.systemStatus.licenseCompliance.reportingFailed.airGappedQuestion}}</strong> ${airGappedContactText}</p>
+                            <p><small>${retryInfoText}</small></p>
+                        </div>`;
+                }
+
+                // Main compliance status
+                html += '<div class="jp-status-metrics">';
+
+                // Status
+                html += `
+                    <div class="jp-metric-row">
+                        <span class="jp-metric-label"><strong>{{i18n.view.admin.systemStatus.licenseCompliance.statusLabel}}</strong></span>
+                        <span class="jp-metric-value">
+                            ${statusInfo.icon} <strong>${statusInfo.text}</strong>
+                        </span>
+                    </div>`;
+
+                // Scheduled time
+                if (compliance.reportTime) {
+                    const scheduledLocalTime = this._utcToLocalTime(compliance.reportTime) || String(compliance.reportTime);
+                    const scheduledLabel = '{{i18n.view.admin.systemStatus.licenseCompliance.localDaily}}'
+                        .replace('%TIME%', scheduledLocalTime);
+                    html += `
+                        <div class="jp-metric-row">
+                            <span class="jp-metric-label">{{i18n.view.admin.systemStatus.licenseCompliance.scheduledReportTime}}</span>
+                            <span class="jp-metric-value">${scheduledLabel}</span>
+                        </div>`;
+                }
+
+                // Last/next report timestamps
+                if (compliance.lastReportTimestamp) {
+                    const lastReport = jPulse.date.formatLocalDateAndTime(compliance.lastReportTimestamp);
+                    const nextReport = jPulse.date.formatLocalDateAndTime(compliance.nextReportTimestamp);
+                    html += `
+                        <div class="jp-metric-row">
+                            <span class="jp-metric-label">{{i18n.view.admin.systemStatus.licenseCompliance.lastReportSent}}</span>
+                            <span class="jp-metric-value">${lastReport}</span>
+                        </div>
+                        <div class="jp-metric-row">
+                            <span class="jp-metric-label">{{i18n.view.admin.systemStatus.licenseCompliance.nextReport}}</span>
+                            <span class="jp-metric-value">${nextReport}</span>
+                        </div>`;
+                } else {
+                    html += `
+                        <div class="jp-metric-row">
+                            <span class="jp-metric-label">Status</span>
+                            <span class="jp-metric-value"><em>{{i18n.view.admin.systemStatus.licenseCompliance.noReportsSent}}</em></span>
+                        </div>`;
+                }
+
+                // Monitor URL (if available)
+                if (compliance.monitorUrl) {
+                    html += `
+                        <div class="jp-metric-row">
+                            <span class="jp-metric-label">{{i18n.view.admin.systemStatus.licenseCompliance.deploymentDashboard}}</span>
+                            <span class="jp-metric-value">
+                                <a href="${compliance.monitorUrl}" target="_blank" class="jp-btn jp-btn-primary">
+                                    {{i18n.view.admin.systemStatus.licenseCompliance.viewDashboard}}
+                                </a>
+                            </span>
+                        </div>`;
+                }
+
+                html += '</div>'; // Close jp-status-metrics
+
+                // Transparency: Show last report and response (collapsible)
+                if (compliance.lastReport && Object.keys(compliance.lastReport).length > 0) {
+                    const reportJson = JSON.stringify(compliance.lastReport, null, 2);
+                    const responseJson = JSON.stringify(compliance.lastResponse, null, 2);
+                    const privacyNoticeText = '{{i18n.view.admin.systemStatus.licenseCompliance.transparency.privacyNotice}}'.replace(
+                        '%LINK%',
+                        '<a href="https://jpulse.net/legal/privacy.shtml" target="_blank">{{i18n.view.admin.systemStatus.licenseCompliance.transparency.privacyPolicyLink}}</a>'
+                    );
+
+                    html += `
+                        <details class="jp-card jp-mt-15 local-compliance-details">
+                            <summary class="local-compliance-summary">
+                                {{i18n.view.admin.systemStatus.licenseCompliance.transparency.summaryTitle}}
+                            </summary>
+
+                            <div class="local-compliance-grid jp-mt-15">
+                                <!-- Request -->
+                                <div>
+                                    <h4 class="jp-mb-10 jp-text-primary">{{i18n.view.admin.systemStatus.licenseCompliance.transparency.requestSent}}</h4>
+                                    <pre class="jp-pre jp-m-0">${reportJson}</pre>
+                                </div>
+
+                                <!-- Response -->
+                                <div>
+                                    <h4 class="jp-mb-10 jp-text-primary">{{i18n.view.admin.systemStatus.licenseCompliance.transparency.responseReceived}}</h4>
+                                    <pre class="jp-pre jp-m-0">${responseJson}</pre>
+                                </div>
+                            </div>
+
+                            <p class="jp-mt-15 jp-text-muted jp-text-small">
+                                ${privacyNoticeText}
+                            </p>
+                        </details>`;
+                }
+
+                // Opt-in/opt-out information paragraph
+                const adminEmailOptIn = compliance.adminEmailOptIn;
+                if (adminEmailOptIn) {
+                    // Opted-in
+                    const dashboardLink = compliance.monitorUrl
+                        ? `<a href="${compliance.monitorUrl}" target="_blank">jpulse.net/monitor/${compliance.siteUuid || '[uuid]'}</a>`
+                        : 'jpulse.net/monitor/[uuid]';
+                    const optInText = '{{i18n.view.admin.systemStatus.licenseCompliance.transparency.optedIn}}'.replace('%LINK%', dashboardLink);
+                    html += `<p class="jp-mt-15 jp-text-small">${optInText}</p>`;
+                } else {
+                    // Opted-out
+                    const optOutText = '{{i18n.view.admin.systemStatus.licenseCompliance.transparency.optedOut}}';
+                    html += `<p class="jp-mt-15 jp-text-small">${optOutText}</p>`;
+                }
+
+                html += '</div>'; // Close jp-card
+
+                this.elements.complianceSection.innerHTML = html;
             },
 
             renderComponentHealth() {
@@ -416,8 +633,8 @@
                     }, { localConnections: 0, localMessages: 0 });
 
                     panel.innerHTML = `<div class="jp-card">
-                        <div class="jp-status-grid" style="gap: 1.5rem; margin-bottom: 2rem;">
-                            <div class="jp-card">
+                        <div class="jp-status-grid jp-gap-20 jp-mb-30">
+                            <div class="jp-card jp-mb-0">
                                 <h4 class="jp-status-title">{{i18n.view.admin.systemStatus.serverTabContent.systemInfo}}</h4>
                                 ${this.generateMetricRows([
                                     [`{{i18n.view.admin.systemStatus.serverTabContent.serverName}}`, server.serverName],
@@ -427,7 +644,7 @@
                                     [`{{i18n.view.admin.systemStatus.serverTabContent.nodeVersion}}`, server.nodeVersion],
                                 ])}
                             </div>
-                            <div class="jp-card">
+                            <div class="jp-card jp-mb-0">
                                 <h4 class="jp-status-title">{{i18n.view.admin.systemStatus.serverTabContent.performance}}</h4>
                                 ${this.generateMetricRows([
                                     [`{{i18n.view.admin.systemStatus.serverTabContent.oneMinute}}`, server.loadAverage?.[0]?.toFixed(2) || unknown],
@@ -437,7 +654,7 @@
                                     [`{{i18n.view.admin.systemStatus.serverTabContent.totalMemory}}`, this.formatBytes((server.totalMemory || 0) * 1024 * 1024)],
                                 ])}
                             </div>
-                            <div class="jp-card">
+                            <div class="jp-card jp-mb-0">
                                 <h4 class="jp-status-title">{{i18n.view.admin.systemStatus.serverTabContent.database}}</h4>
                                 ${this.generateMetricRows([
                                     [`{{i18n.view.admin.systemStatus.serverTabContent.databaseType}}`, server.database?.type || unknown],
@@ -447,7 +664,7 @@
                                     [`{{i18n.view.admin.systemStatus.serverTabContent.hostname}}`, server.database?.hostname || unknown],
                                 ])}
                             </div>
-                            <div class="jp-card">
+                            <div class="jp-card jp-mb-0">
                                 <h4 class="jp-status-title">{{i18n.view.admin.systemStatus.serverTabContent.webSockets}}</h4>
                                 ${this.generateMetricRows([
                                     [`{{i18n.view.admin.systemStatus.serverTabContent.uptime}}`, server.uptimeFormatted || unknown],
@@ -557,7 +774,7 @@
                             }).join('')}
                         </div>
 
-                        <h3 style="margin-top: 2rem;">{{i18n.view.admin.systemStatus.pm2Instances.heading}}</h3>
+                        <h3 class="jp-mt-15">{{i18n.view.admin.systemStatus.pm2Instances.heading}}</h3>
                         <div class="jp-table-responsive">
                             <table class="jp-table jp-table-hover">
                                 <thead>

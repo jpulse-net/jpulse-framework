@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.16
+# jPulse Docs / Dev / Work Items v1.4.17
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4207,11 +4207,87 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-137, v1.4.17, 2026-01-23: deployment: send license compliance report to jpulse.net
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - send anonymous usage stats to jpulse.net to monitor for BSL 1.1 compliance
+- spec & features:
+  - configure script:
+    - generates JPULSE_SITE_UUID (auto-generated UUID v4, stored in .env)
+    - prompts for mandatory license acceptance (BSL 1.1 with Additional Terms)
+    - prompts for optional admin email opt-in (for deployment dashboard access)
+    - displays compliance notice with opt-in/opt-out status and monitor URL (if opted-in)
+  - MongoDB ConfigModel:
+    - manifest section stores license/compliance settings (cluster-safe, single source of truth)
+    - manifest.compliance.siteUuid (auto-generated on first startup if missing, uses .env UUID if available)
+    - manifest.compliance.adminEmailOptIn (boolean flag, editable via Admin UI)
+    - manifest.license.key and manifest.license.tier (commercial license settings)
+    - ConfigModel.ensureManifestDefaults() provides schema-driven, atomic, race-safe initialization
+  - health controller:
+    - sends anonymous system metrics to jpulse.net/api/1/site-monitor/report (daily compliance reporting)
+      - randomized schedule: current hour + random minute (0-59), stored in Redis, consistent per site
+      - 30-minute window for flexibility (±30 min around scheduled time)
+      - scheduled sends independent of manual sends (separate timestamp tracking)
+      - payload includes: uuid, jpulseVersion, siteVersion, users (total/admins/active24h), deployment (servers/instances/environment), activity (docsUpdated24h/pagesServed24h/wsConnections), plugins (total/enabled/names), adminEmail (if opt-in), timestamp, reportType
+      - exponential backoff for failures: 1min → 5min → 30min → 1hr → 6hr → 24hr (max)
+      - graceful failure handling (network issues not treated as violations)
+    - compliance data exposed via GET /api/1/health/metrics (admin-only)
+    - manual send API: POST /api/1/health/compliance/send-report (admin-only, bypasses timing)
+  - admin UI:
+    - system-status.shtml: client-side rendered compliance section with status, timing, transparency widget
+    - config.shtml: tabbed interface with Manifest tab for license/compliance settings
+    - shows compliance status (compliant/warning/exempt-dev/violation), scheduled time (local HH:MM), last/next report timestamps, monitor URL (if opted-in), collapsible Request/Response transparency widget
+  - bootstrap integration:
+    - compliance scheduler initialized after HealthController.initialize() (Step 11.1)
+    - checks every 15 minutes with random delay (0-14 min) to spread load
+    - initial check after 5 minutes with random delay
+- deliverables:
+  - webapp/model/config.js: manifest schema with ensureManifestDefaults() method
+  - webapp/controller/health.js: compliance reporting implementation (scheduling, payload, API)
+  - webapp/view/admin/system-status.shtml: compliance UI section
+  - webapp/view/admin/config.shtml: manifest configuration tab
+  - bin/config-registry.js: UUID generation, license acceptance, email opt-in prompts
+  - bin/configure.js: compliance notice display
+  - webapp/utils/bootstrap.js: compliance scheduler initialization
+  - webapp/routes.js: manual send API endpoint
+  - webapp/tests/unit/controller/health-compliance.test.js: unit tests for compliance logic
+  - webapp/tests/unit/config/config-manifest.test.js: unit tests for manifest defaults
+  - LICENSE: Section 11 Additional Terms (pending legal review)
+  - docs/license.md: site monitoring section
+  - docs/site-administration.md: manifest and compliance sections
+  - docs/installation.md, docs/getting-started.md, docs/deployment.md: compliance documentation
 
 
 
 
 
+pending:
+
+
+
+
+### W-, v1., 2026-: search: schema-based query with OR
+- status: 🕑 PENDING
+- type: Feature
+- objectives: more flexibility with OR searches
+- enhancement:
+  - the schemaBasedQuery currently handles a schema field of string type:
+    - `*` wildcards are converted to regex `.*`
+      - what is `%`?
+    - search is done by case-insensitive regex that is not anchored
+  - new feature:
+    - OR search with comma:
+      - search `name=a,b,c` will result in a literal case-sensitive OR: `name: { $in: 'a', 'b', 'c' }`
+      - search `name=a,` will result in a an exact case-sensitive match: `name: 'a'`
+    - search is anchored at the beginning (BREAKING CHANGE)
+      - example field value: `"brainstorming"`
+      - search `storm` => no match
+      - search `brain` => match
+      - search `*storm` => match
+- deliverables:
+  - FIXME file:
+    - FIXME summary
 
 
 
@@ -4242,8 +4318,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-diff.txt for accuracy and completness of work item
-- assume release: W-136, v1.4.16
-- update deliverables in W-136 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-137, v1.4.17
+- update deliverables in W-137 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4260,12 +4336,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.16
+node bin/bump-version.js 1.4.17
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.16
+git tag v1.4.17
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -4355,51 +4431,6 @@ npx jest webapp/tests/unit/controller/handlebar-logical-helpers.test.js
   - alerting rules for critical system events
   - dashboard configuration for operations teams
 - benefits: proactive production system monitoring and issue detection
-
-### W-057: deployment: system status service for site admins, send anonymous usage stats to jpulse.net
-- status: 🕑 PENDING
-- type: Feature
-- objectives:
-  - offer free monitring service
-  - monitor compiance with BSL 1.1
-  - use as sales funnel
-- spec & features:
-  - in setup script, ask a question:
-    - "would you like to get alerted of system downtimes, and see system status?"
-  - if yes, which is the default:
-    - send anonymous system info to status monitor endpoint at jpulse.net (dial home)
-      - send every 10 (?) min
-      - payload:
-        - uuid of site install
-          - need to generate JPULSE_SITE_UUID and add to .env, fallback to JPULSE_SITE_ID
-        - jpulse version
-        - admin email (for alert)
-        - num registered & active users
-        - total num server & instances
-        - num installed & enabled plugins
-        - log docs udpated 24h
-        - redis active connections
-        - views last 24h
-        - websocket num connections
-      - auto-turn off/retry afer some time for air-gapped deployments
-  - on jpulse.net:
-    - add site admin model, controller, view
-      - associate site admin with status monitor (how? JPULSE_SITE_UUID)
-    - add site status monitor model controller & view
-      - _id: mongodb
-      - uuid: JPULSE_SITE_UUID
-    - views:
-      - for site admins:
-        - status history like status.cursor.com
-        - view uri contains JPULSE_SITE_UUID (for privacy)
-        - no auth
-      - for jpulse.net admins:
-        - view activity of jpulse sites
-        - monitor compiance with BSL 1.1
-    - send alert email to site admin on outage
-- deliverables:
-  - FIXME file:
-    - FIXME summary
 
 ### W-084: security: harden security
 - status: 🕑 PENDING

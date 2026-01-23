@@ -1,4 +1,4 @@
-# jPulse Docs / Getting Started with jPulse v1.4.16
+# jPulse Docs / Getting Started with jPulse v1.4.17
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the site override system.
 
@@ -25,6 +25,11 @@ npx jpulse-install
 # Configure your site
 npx jpulse configure
 ```
+
+**jPulse Configure Functionality**: The `npx jpulse configure` command sets up your site by generating configuration files, creating the site directory structure, and prompting for essential settings including site name, admin email, database configuration, and deployment type.
+
+- You must accept the Business Source License 1.1 with Additional Terms (required to continue). jPulse deployments send daily anonymous usage reports to jpulse.net for license compliance monitoring. See the [License Guide](license.md) for details.
+- You can opt-in to share your admin email address to access a deployment dashboard at jpulse.net showing compliance status, health insights, and usage history. This can be changed later via Admin Dashboard → Site Configuration → Manifest.
 
 ### Install Dependencies, Setup Database, and Start Server
 ```bash

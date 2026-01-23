@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administration v1.4.16
+# jPulse Docs / Site Administration v1.4.17
 
 Complete guide to managing your jPulse site through the admin interface.
 
@@ -13,7 +13,7 @@ jPulse uses two distinct configuration systems:
 1. **Site Configuration** (MongoDB-based):
    - Admin-managed settings stored in MongoDB
    - Accessible via `/admin/config.shtml` interface
-   - Includes: email settings, broadcast messages, site preferences
+   - Includes: email settings, broadcast messages, and site manifest (license/compliance settings)
    - **Dynamic Updates**: Changes take effect immediately without restarts
    - **Per-Deployment**: Different settings for dev/staging/production
    - **Admin UI**: Intuitive interface for non-technical administrators
@@ -62,6 +62,22 @@ Configure site-wide messages that are shown to all users with a prominent yellow
    - Options: 0 (no auto-disable), 1, 2, 4, 8, 12, 24, 48 hours
    - Default: 0 (disabled)
 
+### Manifest (License, Compliance, Monitoring)
+
+The **Manifest** section in `/admin/config.shtml` manages license and compliance-related settings stored in MongoDB. This is the single source of truth for these settings across app-cluster deployments.
+
+**Fields:**
+- **License Key**: Commercial license key (stored server-side; never exposed via APIs or templates)
+- **License Tier**: License tier selection (e.g., BSL, commercial, enterprise)
+- **Site UUID**: Deployment UUID used for compliance reporting and monitoring
+- **Admin Email Opt-In**: Optional opt-in to share the admin email address with `jpulse.net` for site monitoring services
+  - If you opt-in, you will gain access to your deployment dashboard where you can monitor compliance status, view historical reports, and receive alerts about potential license issues.
+
+**Notes:**
+- **Cluster-safe**: Values are stored in MongoDB and shared across all app instances in a cluster.
+- **Security**: The license key is treated as sensitive and is filtered from server responses.
+- **Monitoring**: Opting in to admin email sharing is optional and is only used for monitoring services.
+
 ### Site Configuration Storage: MongoDB
 
 All admin-managed site configuration is stored in MongoDB, not in `app.conf` files. This enables:
@@ -73,7 +89,7 @@ All admin-managed site configuration is stored in MongoDB, not in `app.conf` fil
 
 **Configuration Document**:
 - Collection: `configs`
-- Document ID: `'site'` (default, configurable via `ConfigController.getDefaultDocName()`)
+- Document ID: `'global'` by default (configurable via `ConfigController.getDefaultDocName()`)
 - Schema: Defined in `ConfigModel` with validation
 - Access: `/admin/config.shtml` admin interface
 
@@ -200,6 +216,14 @@ View real-time system metrics including:
 - WebSocket connections
 - Component metrics
 - Multi-instance aggregation (when using Redis)
+
+**License Compliance and Site Monitoring (BSL Period Only):**
+
+- View the compliance reporting status, last report/response, and the next scheduled report time.
+- Review the report payload and server response details (admin-only).
+- Manual report sending may be available for administrators (intended for testing and troubleshooting).
+
+> **See**: [License Guide](license.md#site-monitoring-bsl-period-only) for complete details about compliance reporting requirements, what data is collected, and privacy information.
 
 ### Logs
 

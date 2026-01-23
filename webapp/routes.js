@@ -3,8 +3,8 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.4.16
- * @release         2026-01-16
+ * @version         1.4.17
+ * @release         2026-01-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -43,6 +43,7 @@ const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
 // Health and metrics endpoints
 router.get('/api/1/health/status', HealthController.status);
 router.get('/api/1/health/metrics', HealthController.metrics);
+router.post('/api/1/health/compliance/send-report', HealthController.sendComplianceReport); // W-137
 
 // W-076: Broadcast endpoints for jPulse.appCluster
 router.post('/api/1/broadcast/:channel', BroadcastController.publish);

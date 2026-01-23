@@ -3,8 +3,8 @@
  * @tagline         Config Model for jPulse Framework WebApp
  * @description     This is the config model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/config.js
- * @version         1.4.16
- * @release         2026-01-16
+ * @version         1.4.17
+ * @release         2026-01-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -41,6 +41,21 @@ class ConfigModel {
                 nagTime: { type: 'number', default: 4 },      // hours, 0 to disable
                 disableTime: { type: 'number', default: 0 },  // hours, 0 for no auto-disable
                 enabledAt: { type: 'date', default: null }    // timestamp of when enabled
+            },
+            manifest: {
+                // W-137+: Site manifest, used for jpulse.net integration and services
+                // On schema change, fix ensureManifestDefaults, applyDefaults, updateById functions
+                // and /admin/config.shtml view.
+                license: {
+                    key: { type: 'string', default: '' },     // Commercial license key
+                    tier: { type: 'string', default: 'bsl',
+                        enum: ['bsl', 'commercial', 'enterprise'] }
+                },
+                compliance: {
+                    siteUuid: { type: 'string', default: '',
+                        pattern: '^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$' },
+                    adminEmailOptIn: { type: 'boolean', default: false }
+                }
             }
         },
         createdAt: { type: 'date', auto: true },
@@ -51,11 +66,13 @@ class ConfigModel {
         _meta: {
             contextFilter: {
                 withoutAuth: [
-                    'data.email.smtp*',     // Remove all smtp fields for unauthenticated users
-                    'data.email.*pass'      // Remove any password fields
+                    'data.email.smtp*',         // Remove all smtp fields for unauthenticated users
+                    'data.email.*pass',         // Remove any password fields
+                    'data.manifest.license.key' // W-137: Never expose license key
                 ],
                 withAuth: [
-                    'data.email.smtpPass'   // Even authenticated users shouldn't see password
+                    'data.email.smtpPass',      // Even authenticated users shouldn't see password
+                    'data.manifest.license.key' // W-137: Never expose license key (even to admins)
                 ]
             }
         }
@@ -71,6 +88,87 @@ class ConfigModel {
             throw new Error('Database connection not available');
         }
         return db.collection('configs');
+    }
+
+    /**
+     * W-137: Ensure manifest structure exists with schema defaults
+     * Atomic operation that initializes missing manifest fields from schema
+     * Safe for concurrent calls (race condition safe)
+     *
+     * @param {string} id - Config document ID (typically 'global')
+     * @param {object} overrides - Optional field overrides (e.g., { 'compliance.siteUuid': 'abc-123' })
+     * @returns {Promise<object>} Updated config document with complete manifest
+     */
+    static async ensureManifestDefaults(id, overrides = {}) {
+        try {
+            const collection = this.getCollection();
+
+            // Read current document
+            const current = await collection.findOne({ _id: id });
+            if (!current) {
+                throw new Error(`Config document not found: ${id}`);
+            }
+
+            // Extract manifest schema defaults from schema definition
+            const manifestSchema = this.schema.data.manifest;
+            const existingManifest = current.data?.manifest || {};
+
+            // Build complete manifest by merging: existing > overrides > schema defaults
+            const completeManifest = {
+                license: {},
+                compliance: {}
+            };
+
+            // Process license fields from schema
+            if (manifestSchema.license) {
+                Object.keys(manifestSchema.license).forEach(key => {
+                    const fieldSchema = manifestSchema.license[key];
+                    completeManifest.license[key] =
+                        existingManifest.license?.[key] ??           // Existing value
+                        overrides[`license.${key}`] ??               // Override value
+                        fieldSchema.default;                         // Schema default
+                });
+            }
+
+            // Process compliance fields from schema
+            if (manifestSchema.compliance) {
+                Object.keys(manifestSchema.compliance).forEach(key => {
+                    const fieldSchema = manifestSchema.compliance[key];
+                    const existingValue = existingManifest.compliance?.[key];
+                    const overrideValue = overrides[`compliance.${key}`];
+
+                    // W-137: Treat empty string as "missing" for siteUuid initialization
+                    // (schema default is '', but we want to allow callers to supply a generated UUID)
+                    if (key === 'siteUuid' && (existingValue === undefined || existingValue === null || existingValue === '')) {
+                        completeManifest.compliance[key] = overrideValue ?? fieldSchema.default;
+                        return;
+                    }
+
+                    completeManifest.compliance[key] =
+                        existingValue ??                             // Existing value
+                        overrideValue ??                             // Override value
+                        fieldSchema.default;                          // Schema default
+                });
+            }
+
+            // Atomic update (first write wins in race condition)
+            await collection.updateOne(
+                { _id: id },
+                {
+                    $set: {
+                        'data.manifest': completeManifest,
+                        updatedAt: new Date()
+                    },
+                    $inc: { saveCount: 1 }
+                }
+            );
+
+            // Return fresh document (gets actual written values in case of race)
+            return await this.findById(id);
+
+        } catch (error) {
+            throw new Error(`Failed to ensure manifest defaults: ${error.message}`);
+        }
     }
 
     /**
@@ -195,6 +293,17 @@ class ConfigModel {
         if (result.data.broadcast.nagTime === undefined) result.data.broadcast.nagTime = 4;
         if (result.data.broadcast.disableTime === undefined) result.data.broadcast.disableTime = 0;
         if (result.data.broadcast.enabledAt === undefined) result.data.broadcast.enabledAt = null;
+
+        // W-137: Apply manifest defaults
+        if (!result.data.manifest) result.data.manifest = {};
+        if (!result.data.manifest.license) result.data.manifest.license = {};
+        if (result.data.manifest.license.key === undefined) result.data.manifest.license.key = '';
+        if (result.data.manifest.license.tier === undefined) result.data.manifest.license.tier = 'bsl';
+        if (!result.data.manifest.compliance) result.data.manifest.compliance = {};
+        if (result.data.manifest.compliance.siteUuid === undefined) result.data.manifest.compliance.siteUuid = '';
+        if (result.data.manifest.compliance.adminEmailOptIn === undefined) {
+            result.data.manifest.compliance.adminEmailOptIn = false;
+        }
 
         // Apply metadata defaults
         if (result.parent === undefined) result.parent = null;
@@ -345,6 +454,19 @@ class ConfigModel {
                     Object.keys(broadcast).forEach(key => {
                         setOperation.$set[`data.broadcast.${key}`] = broadcast[key];
                     });
+                }
+                // W-137: Handle manifest fields (license and compliance)
+                if (updateData.data.manifest) {
+                    if (updateData.data.manifest.license) {
+                        Object.keys(updateData.data.manifest.license).forEach(key => {
+                            setOperation.$set[`data.manifest.license.${key}`] = updateData.data.manifest.license[key];
+                        });
+                    }
+                    if (updateData.data.manifest.compliance) {
+                        Object.keys(updateData.data.manifest.compliance).forEach(key => {
+                            setOperation.$set[`data.manifest.compliance.${key}`] = updateData.data.manifest.compliance[key];
+                        });
+                    }
                 }
             }
 

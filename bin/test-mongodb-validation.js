@@ -4,8 +4,8 @@
  * @tagline         Comprehensive MongoDB setup validation to prevent authentication failures
  * @description     Tests password hashing compatibility, command structure, and YAML configuration
  * @file            bin/test-mongodb-validation.js
- * @version         1.4.16
- * @release         2026-01-16
+ * @version         1.4.17
+ * @release         2026-01-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

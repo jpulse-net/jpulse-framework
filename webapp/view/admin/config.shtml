@@ -4,8 +4,8 @@
  * @tagline         Site configuration management interface
  * @description     Edit site configuration, for administrators
  * @file            webapp/view/admin/config.shtml
- * @version         1.4.16
- * @release         2026-01-16
+ * @version         1.4.17
+ * @release         2026-01-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -37,6 +37,13 @@
         .local-config-section .jp-card-subheading {
             color: #666;
             font-size: 0.9em;
+        }
+
+        .local-panel-description {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--jp-theme-text-primary, #333);
+            margin-bottom: 15px;
         }
 
         .local-form-row {
@@ -148,39 +155,42 @@
             </div>
 
             <form id="configForm" class="local-config-form">
-                <!-- Email Settings Section -->
-                <div class="jp-card local-config-section">
-                    <h2 class="jp-card-dialog-heading">{{i18n.view.admin.config.emailSettings}}</h2>
-                    <div class="jp-card-subheading">{{i18n.view.admin.config.emailSettingsDesc}}</div>
+                <!-- Tab Navigation -->
+                <div id="config-tabs" class="jp-tabs"></div>
+
+                <!-- Email Settings Panel -->
+                <div id="email-panel" class="jp-panel">
+                    <div class="jp-card local-config-section">
+                        <div class="local-panel-description">{{i18n.view.admin.config.email.description}}</div>
                         <div class="local-form-row">
                             <div class="jp-form-group">
-                                <label for="adminEmail" class="jp-form-label">{{i18n.view.admin.config.adminEmail}}</label>
+                                <label for="adminEmail" class="jp-form-label">{{i18n.view.admin.config.email.adminEmail}}</label>
                                 <input type="email" id="adminEmail" name="adminEmail" class="jp-form-input" placeholder="admin@example.com">
                             </div>
                             <div class="jp-form-group">
-                                <label for="adminName" class="jp-form-label">{{i18n.view.admin.config.adminName}}</label>
+                                <label for="adminName" class="jp-form-label">{{i18n.view.admin.config.email.adminName}}</label>
                                 <input type="text" id="adminName" name="adminName" class="jp-form-input" placeholder="Site Administrator">
                             </div>
                         </div>
 
                         <div class="local-form-row">
                             <div class="jp-form-group">
-                                <label for="smtpServer" class="jp-form-label">{{i18n.view.admin.config.smtpServer}}</label>
+                                <label for="smtpServer" class="jp-form-label">{{i18n.view.admin.config.email.smtpServer}}</label>
                                 <input type="text" id="smtpServer" name="smtpServer" class="jp-form-input" placeholder="localhost">
                             </div>
                             <div class="jp-form-group">
-                                <label for="smtpPort" class="jp-form-label">{{i18n.view.admin.config.smtpPort}}</label>
+                                <label for="smtpPort" class="jp-form-label">{{i18n.view.admin.config.email.smtpPort}}</label>
                                 <input type="number" id="smtpPort" name="smtpPort" class="jp-form-input" placeholder="25" min="1" max="65535">
                             </div>
                         </div>
 
                         <div class="local-form-row">
                             <div class="jp-form-group">
-                                <label for="smtpUser" class="jp-form-label">{{i18n.view.admin.config.smtpUser}}</label>
+                                <label for="smtpUser" class="jp-form-label">{{i18n.view.admin.config.email.smtpUser}}</label>
                                 <input type="text" id="smtpUser" name="smtpUser" class="jp-form-input" placeholder="username">
                             </div>
                             <div class="jp-form-group">
-                                <label for="smtpPass" class="jp-form-label">{{i18n.view.admin.config.smtpPass}}</label>
+                                <label for="smtpPass" class="jp-form-label">{{i18n.view.admin.config.email.smtpPass}}</label>
                                 <div class="local-password-field">
                                     <input type="password" id="smtpPass" name="smtpPass" class="jp-form-input" placeholder="password">
                                     <button type="button" class="local-password-toggle" onclick="togglePasswordVisibility('smtpPass')" title="Show/hide password">
@@ -192,7 +202,7 @@
 
                         <div class="local-checkbox-group">
                             <input type="checkbox" id="useTls" name="useTls" value="true">
-                            <label for="useTls">{{i18n.view.admin.config.useTls}}</label>
+                            <label for="useTls">{{i18n.view.admin.config.email.useTls}}</label>
                         </div>
 
                         <div class="local-form-row local-full-width" style="margin-top: -40px; justify-content: flex-end;">
@@ -200,52 +210,96 @@
                                 <button type="button" id="testEmailBtn" class="jp-btn jp-btn-secondary">{{i18n.view.admin.config.testEmail}}</button>
                             </div>
                         </div>
-                </div>
-
-                <!-- Broadcast Message Section -->
-                <div class="jp-card local-config-section">
-                    <h2 class="jp-card-dialog-heading">{{i18n.view.admin.config.messageSettings}}</h2>
-                    <div class="jp-card-subheading">{{i18n.view.admin.config.messageSettingsDesc}}</div>
-                    <div class="local-checkbox-group">
-                        <input type="checkbox" id="broadcastEnable" name="broadcastEnable" value="true">
-                        <label for="broadcastEnable">{{i18n.view.admin.config.broadcastEnable}}</label>
-                    </div>
-                    <div class="local-form-row local-full-width jp-mt-15">
-                        <div class="jp-form-group">
-                            <label for="broadcastMessage" class="jp-form-label">{{i18n.view.admin.config.broadcastMessage}}</label>
-                            <textarea id="broadcastMessage" name="broadcastMessage" class="jp-form-textarea" rows="5" placeholder="{{i18n.view.admin.config.broadcastPlaceholder}}"></textarea>
-                        </div>
-                    </div>
-                    <div class="local-form-row">
-                        <div class="jp-form-group">
-                            <label for="broadcastNagTime" class="jp-form-label">{{i18n.view.admin.config.broadcastNagTime}}</label>
-                            <select id="broadcastNagTime" name="broadcastNagTime" class="jp-form-input">
-                                <option value="0">0</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="4">4</option>
-                                <option value="8">8</option>
-                            </select>
-                            <div class="jp-form-help-text">{{i18n.view.admin.config.broadcastNagTimeDesc}}</div>
-                        </div>
-                        <div class="jp-form-group">
-                            <label for="broadcastDisableTime" class="jp-form-label">{{i18n.view.admin.config.broadcastDisableTime}}</label>
-                            <select id="broadcastDisableTime" name="broadcastDisableTime" class="jp-form-input">
-                                <option value="0">0</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="4">4</option>
-                                <option value="8">8</option>
-                                <option value="12">12</option>
-                                <option value="24">24</option>
-                                <option value="48">48</option>
-                            </select>
-                            <div class="jp-form-help-text">{{i18n.view.admin.config.broadcastDisableTimeDesc}}</div>
-                        </div>
                     </div>
                 </div>
 
-                <!-- Form Actions -->
+                <!-- Broadcast Message Panel -->
+                <div id="broadcast-panel" class="jp-panel">
+                    <div class="jp-card local-config-section">
+                        <div class="local-panel-description">{{i18n.view.admin.config.broadcast.description}}</div>
+                        <div class="local-checkbox-group">
+                            <input type="checkbox" id="broadcastEnable" name="broadcastEnable" value="true">
+                            <label for="broadcastEnable">{{i18n.view.admin.config.broadcast.enable}}</label>
+                        </div>
+                        <div class="local-form-row local-full-width jp-mt-15">
+                            <div class="jp-form-group">
+                                <label for="broadcastMessage" class="jp-form-label">{{i18n.view.admin.config.broadcast.message}}</label>
+                                <textarea id="broadcastMessage" name="broadcastMessage" class="jp-form-textarea" rows="5" placeholder="{{i18n.view.admin.config.broadcast.messagePlaceholder}}"></textarea>
+                            </div>
+                        </div>
+                        <div class="local-form-row">
+                            <div class="jp-form-group">
+                                <label for="broadcastNagTime" class="jp-form-label">{{i18n.view.admin.config.broadcast.nagTime}}</label>
+                                <select id="broadcastNagTime" name="broadcastNagTime" class="jp-form-input">
+                                    <option value="0">0</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="4">4</option>
+                                    <option value="8">8</option>
+                                </select>
+                                <div class="jp-text-small jp-text-muted jp-mt-10">{{i18n.view.admin.config.broadcast.nagTimeDesc}}</div>
+                            </div>
+                            <div class="jp-form-group">
+                                <label for="broadcastDisableTime" class="jp-form-label">{{i18n.view.admin.config.broadcast.disableTime}}</label>
+                                <select id="broadcastDisableTime" name="broadcastDisableTime" class="jp-form-input">
+                                    <option value="0">0</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="4">4</option>
+                                    <option value="8">8</option>
+                                    <option value="12">12</option>
+                                    <option value="24">24</option>
+                                    <option value="48">48</option>
+                                </select>
+                                <div class="jp-text-small jp-text-muted jp-mt-10">{{i18n.view.admin.config.broadcast.disableTimeDesc}}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manifest Panel (W-137) -->
+                <div id="manifest-panel" class="jp-panel">
+                    <div class="jp-card local-config-section">
+                        <div class="local-panel-description">{{i18n.view.admin.config.manifest.description}}</div>
+
+                        <div class="local-form-row">
+                            <div class="jp-form-group">
+                                <label for="licenseKey" class="jp-form-label">{{i18n.view.admin.config.manifest.licenseKey}}</label>
+                                <div class="local-password-field">
+                                    <input type="password" id="licenseKey" name="licenseKey" class="jp-form-input" placeholder="{{i18n.view.admin.config.manifest.licenseKeyPlaceholder}}">
+                                    <button type="button" class="local-password-toggle" onclick="togglePasswordVisibility('licenseKey')" title="Show/hide license key">
+                                        👁️
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="jp-form-group">
+                                <label for="licenseTier" class="jp-form-label">{{i18n.view.admin.config.manifest.licenseTier}}</label>
+                                <select id="licenseTier" name="licenseTier" class="jp-form-input">
+                                    <option value="bsl">{{i18n.view.admin.config.manifest.licenseTierBsl}}</option>
+                                    <option value="commercial">{{i18n.view.admin.config.manifest.licenseTierCommercial}}</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="local-form-row">
+                            <div class="jp-form-group">
+                                <label for="siteUuid" class="jp-form-label">{{i18n.view.admin.config.manifest.siteUuid}}</label>
+                                <input type="text" id="siteUuid" name="siteUuid" class="jp-form-input" readonly placeholder="Auto-generated" title="This UUID is automatically generated and uniquely identifies your deployment">
+                                <div class="jp-text-small jp-text-muted jp-mt-10">{{i18n.view.admin.config.manifest.siteUuidHelp}}</div>
+                            </div>
+                            <div class="jp-form-group">
+                                <label for="adminEmailOptIn" class="jp-form-label">{{i18n.view.admin.config.manifest.adminEmailOptIn}}</label>
+                                <select id="adminEmailOptIn" name="adminEmailOptIn" class="jp-form-input">
+                                    <option value="false">{{i18n.view.admin.config.manifest.adminEmailOptInNo}}</option>
+                                    <option value="true">{{i18n.view.admin.config.manifest.adminEmailOptInYes}}</option>
+                                </select>
+                                <div class="jp-text-small jp-text-muted jp-mt-10">{{i18n.view.admin.config.manifest.adminEmailOptInDesc}}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions (shown below all tab panels) -->
                 <div class="local-form-actions">
                     <button type="button" id="cancelBtn" class="jp-btn jp-btn-secondary">{{i18n.view.admin.config.cancel}}</button>
                     <button type="submit" id="saveBtn" class="jp-btn jp-btn-primary">{{i18n.view.admin.config.saveChanges}}</button>
@@ -293,6 +347,17 @@
 
         // Site configuration management
         jPulse.dom.ready(() => {
+            // Initialize tabs
+            const configTabs = jPulse.UI.tabs.register('config-tabs', {
+                tabs: [
+                    { id: 'email-tab', label: '{{i18n.view.admin.config.email.label}}', panelId: 'email-panel' },
+                    { id: 'broadcast-tab', label: '{{i18n.view.admin.config.broadcast.label}}', panelId: 'broadcast-panel' },
+                    { id: 'manifest-tab', label: 'Manifest', panelId: 'manifest-panel' }
+                ],
+                panelHeight: '31rem',
+                slideAnimation: true
+            }, 'email-tab');
+
             const configForm = document.getElementById('configForm');
             const saveBtn = document.getElementById('saveBtn');
             const cancelBtn = document.getElementById('cancelBtn');
@@ -324,6 +389,9 @@
                 const data = config.data || {};
                 const email = data.email || {};
                 const broadcast = data.broadcast || {};
+                const manifest = data.manifest || {};
+                const manifestLicense = manifest.license || {};
+                const manifestCompliance = manifest.compliance || {};
 
                 // Populate email fields - explicitly handle empty strings
                 document.getElementById('adminEmail').value = email.adminEmail !== undefined ? email.adminEmail : '';
@@ -339,6 +407,12 @@
                 document.getElementById('broadcastMessage').value = broadcast.message !== undefined ? broadcast.message : '';
                 document.getElementById('broadcastNagTime').value = broadcast.nagTime !== undefined ? broadcast.nagTime : 4;
                 document.getElementById('broadcastDisableTime').value = broadcast.disableTime !== undefined ? broadcast.disableTime : 0;
+
+                // Populate manifest fields (W-137)
+                document.getElementById('licenseKey').value = manifestLicense.key !== undefined ? manifestLicense.key : '';
+                document.getElementById('licenseTier').value = manifestLicense.tier !== undefined ? manifestLicense.tier : 'bsl';
+                document.getElementById('siteUuid').value = manifestCompliance.siteUuid !== undefined ? manifestCompliance.siteUuid : '';
+                document.getElementById('adminEmailOptIn').value = manifestCompliance.adminEmailOptIn !== undefined ? String(manifestCompliance.adminEmailOptIn) : 'false';
             }
 
             function getFormData() {
@@ -358,6 +432,16 @@
                             message: document.getElementById('broadcastMessage').value,
                             nagTime: parseInt(document.getElementById('broadcastNagTime').value) || 4,
                             disableTime: parseInt(document.getElementById('broadcastDisableTime').value) || 0
+                        },
+                        manifest: {
+                            license: {
+                                key: document.getElementById('licenseKey').value, // Preserve empty strings
+                                tier: document.getElementById('licenseTier').value || 'bsl'
+                            },
+                            compliance: {
+                                siteUuid: document.getElementById('siteUuid').value, // Read-only but include in payload
+                                adminEmailOptIn: document.getElementById('adminEmailOptIn').value === 'true'
+                            }
                         }
                     }
                 };
@@ -374,24 +458,9 @@
                 // Cancel button should always be enabled to allow navigation back to admin
             }
 
-            // Form change detection
+            // Form change detection (event delegation)
             configForm.addEventListener('input', checkDirty);
             configForm.addEventListener('change', checkDirty);
-
-            // Explicitly handle password field changes (browser autofill/caching can interfere)
-            const passwordFields = ['smtpUser', 'smtpPass'];
-            passwordFields.forEach(fieldId => {
-                const field = document.getElementById(fieldId);
-                if (field) {
-                    // Listen to multiple events to catch all changes
-                    ['input', 'change', 'keyup', 'paste', 'cut'].forEach(eventType => {
-                        field.addEventListener(eventType, () => {
-                            // Small delay to ensure value is updated
-                            setTimeout(checkDirty, 10);
-                        });
-                    });
-                }
-            });
 
             // Save configuration
             configForm.addEventListener('submit', async (e) => {

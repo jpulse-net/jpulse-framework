@@ -1,4 +1,4 @@
-# jPulse Docs / License, jPulse v1.4.16
+# jPulse Docs / License, jPulse v1.4.17
 
 ## Overview
 
@@ -102,6 +102,42 @@ Any deployment that:
 - Financial services application handling transactions
 - Any application generating revenue or supporting business operations
 
+## Site Monitoring (BSL Period Only)
+
+During the BSL period (prior to the Change Date), production deployments must send automated daily usage reports to `jpulse.net` for license compliance verification. This reporting also enables an optional site monitoring service (with explicit opt-in at: Site Administration > Site Configuration > Manifest).
+
+### What is reported
+
+Reports include deployment UUID, version information, aggregate user counts, server/instance counts, and activity metrics. Reports do not include user content or personal information, except an optional admin email if you explicitly opt in to the monitoring service. You can see the last report sent among other details in your jPulse site at: Site Administration > System Status.
+
+### Purpose and use of site monitoring
+
+Collected data is used solely for:
+
+- Verifying compliance with production use restrictions in Section 2
+- Identifying deployments that may require commercial licensing
+- Understanding deployment patterns and scale
+- Providing optional system monitoring services (with explicit opt-in)
+
+### Technical details
+
+The Licensed Work includes automated reporting functionality that:
+
+- Attempts to send daily reports to `https://jpulse.net/api/1/site-monitor/report`
+- Uses exponential backoff for network failures (not treated as violation)
+- Stores minimal local state (last report time, retry count)
+- Does not interfere with normal operation if reporting fails
+
+### Enforcement
+
+Failure to comply with reporting requirements without prior arrangement constitutes a violation of the license and may result in:
+
+- License termination
+- Requirement to obtain immediate Commercial License
+- Pursuit of remedies available under applicable law
+
+Good faith technical failures (network issues, temporary outages) are not considered violations if the Licensed Work is attempting to report as designed.
+
 ## License Conversion: BSL 1.1 → AGPL v3.0
 
 **Change Date: 2030-01-01**
@@ -173,7 +209,7 @@ Commercial licensing offers flexible tiers:
 - **Enterprise License**: Comprehensive licensing for large organizations
 - **Enterprise Plus**: Premium licensing with advanced features and support
 
-*Contact [team@jpulse.net](mailto:team@jpulse.net) for detailed pricing and licensing options.*
+*Visit (jPulse.net Pricing)[https://jpulse.net/pricing/] for detailed pricing and licensing options.*
 
 ## Frequently Asked Questions
 
@@ -231,13 +267,13 @@ The full license text is available in the [LICENSE](../LICENSE) file in the jPul
 
 ## Contact
 
-For commercial licensing inquiries:
-- **Email**: [team@jpulse.net](mailto:team@jpulse.net)
+- **Contact**: [jPulse.net ](https://jpulse.net/contact/)
 - **GitHub**: [jpulse-net/jpulse-framework](https://github.com/jpulse-net/jpulse-framework)
+- **Email**: [team@jpulse.net](mailto:team@jpulse.net)
 
 ## Summary
 
-**Current License (2025-2030):**
+**Current License (2026-2030):**
 - **BSL 1.1**: Free for development/testing, commercial license required for production
 - **Source Code**: Fully accessible for viewing, learning, and contribution
 
@@ -252,4 +288,4 @@ For commercial licensing inquiries:
 
 ---
 
-*For the most current licensing information, see the [LICENSE](../LICENSE) file or contact [team@jpulse.net](mailto:team@jpulse.net).*
+*For the most current licensing information, see the **LICENSE** file in the jpulse project root, or contact [team@jpulse.net](mailto:team@jpulse.net).*

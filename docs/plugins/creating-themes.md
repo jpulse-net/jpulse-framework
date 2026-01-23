@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Themes v1.4.16
+# jPulse Docs / Plugins / Creating Themes v1.4.17
 
 This guide explains how to create **custom themes** for jPulse.
 

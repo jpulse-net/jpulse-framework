@@ -5,8 +5,8 @@
  *                  for non-admin users in the _sanitizeMetricsData() method!
  * @description     This is the health controller for the jPulse Framework WebApp
  * @file            webapp/controller/health.js
- * @version         1.4.16
- * @release         2026-01-16
+ * @version         1.4.17
+ * @release         2026-01-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -19,6 +19,8 @@ import WebSocketController from './websocket.js';
 import AuthController from './auth.js';
 import HookManager from '../utils/hook-manager.js';
 import MetricsRegistry from '../utils/metrics-registry.js';
+import ConfigModel from '../model/config.js';
+import CommonUtils from '../utils/common.js';
 import os from 'os';
 import process from 'process';
 
@@ -67,6 +69,9 @@ class HealthController {
             // Removed componentProviders - no longer needed
         };
     }
+
+    // W-137: Global config cache for compliance reporting
+    static globalConfig = null;
 
 
     /**
@@ -160,6 +165,107 @@ class HealthController {
      * Called during application bootstrap
      */
     static async initialize() {
+        // W-137: Load global config for compliance reporting
+        try {
+            const defaultDocName = global.ConfigController?.getDefaultDocName() || 'global';
+            this.globalConfig = await ConfigModel.findById(defaultDocName);
+
+            // W-137: Ensure manifest structure exists with schema defaults
+            // ConfigModel handles schema, race conditions, and atomic updates
+            const needsManifest = !this.globalConfig?.data?.manifest?.compliance?.siteUuid;
+            const needsAdminEmailOptIn = this.globalConfig?.data?.manifest?.compliance?.adminEmailOptIn === undefined;
+
+            if (needsManifest || needsAdminEmailOptIn) {
+                // W-137: Use UUID from .env if available (from configure.js), otherwise generate new one
+                // Priority: MongoDB (checked above) > .env > generate new
+                const uuidFromEnv = process.env.JPULSE_SITE_UUID;
+                const uuid = uuidFromEnv || CommonUtils.generateUuid();
+
+                // W-137: Use adminEmailOptIn from .env if available (from configure.js), otherwise default to false
+                // Priority: MongoDB (checked above) > .env > default (false)
+                const adminEmailOptInFromEnv = process.env.JPULSE_ADMIN_EMAIL_OPT_IN;
+                const adminEmailOptIn = adminEmailOptInFromEnv === 'true' || adminEmailOptInFromEnv === '1';
+
+                const overrides = {};
+                if (needsManifest) {
+                    overrides['compliance.siteUuid'] = uuid;
+                }
+                if (needsAdminEmailOptIn) {
+                    overrides['compliance.adminEmailOptIn'] = adminEmailOptIn;
+                }
+
+                try {
+                    // Let ConfigModel handle the atomic update with schema defaults
+                    // If race condition occurs, existing values win (first write wins)
+                    this.globalConfig = await ConfigModel.ensureManifestDefaults(defaultDocName, overrides);
+
+                    // Log which UUID we're using (might be ours, might be another instance's)
+                    if (needsManifest) {
+                        const finalUuid = this.globalConfig.data.manifest.compliance.siteUuid;
+                        let source = ' (existing)';  // Another instance wrote first
+                        if (finalUuid === uuid) {
+                            // This instance's UUID was used
+                            source = uuidFromEnv ? ' (from .env)' : ' (generated)';
+                        }
+                        LogController.logInfo(null, 'health.initialize',
+                            `Site UUID initialized: ${finalUuid}${source}`);
+                    }
+
+                    // Log which adminEmailOptIn we're using
+                    if (needsAdminEmailOptIn) {
+                        const finalOptIn = this.globalConfig.data.manifest.compliance.adminEmailOptIn;
+                        let source = ' (existing)';  // Another instance wrote first
+                        if (finalOptIn === adminEmailOptIn) {
+                            // This instance's value was used
+                            source = adminEmailOptInFromEnv ? ' (from .env)' : ' (default)';
+                        }
+                        LogController.logInfo(null, 'health.initialize',
+                            `Admin email opt-in initialized: ${finalOptIn}${source}`);
+                    }
+
+                } catch (updateError) {
+                    LogController.logWarning(null, 'health.initialize',
+                        `Failed to persist manifest to MongoDB: ${updateError.message}. Using in-memory defaults.`);
+                    // Fallback: use in-memory manifest with generated UUID and opt-in
+                    if (!this.globalConfig.data) this.globalConfig.data = {};
+                    if (!this.globalConfig.data.manifest) {
+                        this.globalConfig.data.manifest = {
+                            license: { key: '', tier: 'bsl' },
+                            compliance: { siteUuid: uuid, adminEmailOptIn: adminEmailOptIn }
+                        };
+                    } else if (!this.globalConfig.data.manifest.compliance) {
+                        this.globalConfig.data.manifest.compliance = {
+                            siteUuid: uuid,
+                            adminEmailOptIn: adminEmailOptIn
+                        };
+                    } else {
+                        if (needsManifest && !this.globalConfig.data.manifest.compliance.siteUuid) {
+                            this.globalConfig.data.manifest.compliance.siteUuid = uuid;
+                        }
+                        if (needsAdminEmailOptIn && this.globalConfig.data.manifest.compliance.adminEmailOptIn === undefined) {
+                            this.globalConfig.data.manifest.compliance.adminEmailOptIn = adminEmailOptIn;
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            LogController.logError(null, 'health.initialize', `Failed to load config: ${error.message}`);
+        }
+
+        // W-137: Initialize compliance reporting timing
+        await this._initializeReportTiming();
+
+        // W-137: Register for config changes (to reload admin email)
+        try {
+            global.RedisManager?.registerBroadcastCallback('controller:config:data:changed', (channel, data, sourceInstanceId) => {
+                if (data && data.id === (global.ConfigController?.getDefaultDocName() || 'global')) {
+                    this.refreshGlobalConfig();
+                }
+            }, { omitSelf: false });
+        } catch (error) {
+            LogController.logError(null, 'health.initialize', `Failed to register config callback: ${error.message}`);
+        }
+
         if (!this.config.enableBroadcasting || !global.RedisManager?.isRedisAvailable()) {
             return;
         }
@@ -271,12 +377,7 @@ class HealthController {
                 LogController.logRequest(req, 'health.health', '');
             }
             LogController.logError(req, 'health.health', `error: ${error.message}`);
-            res.status(500).json({
-                success: false,
-                status: 'error',
-                error: 'Health check failed',
-                code: 'HEALTH_CHECK_ERROR'
-            });
+            return global.CommonUtils.sendError(req, res, 500, 'Health check failed', 'HEALTH_CHECK_ERROR', error.message);
         }
     }
 
@@ -350,6 +451,11 @@ class HealthController {
                 const servers = await HealthController._buildClusterServersArray(systemInfo, wsStats, pm2Status, baseMetrics.data.timestamp);
                 baseMetrics.data.servers = servers;
 
+                // W-137: Add compliance data for admins only
+                if (isAdmin) {
+                    baseMetrics.data.compliance = await HealthController._getComplianceData();
+                }
+
             } else {
                 baseMetrics.success = false;
                 baseMetrics.message = 'Not authorized to see more jPulse Framework metrics data';
@@ -373,13 +479,47 @@ class HealthController {
 
         } catch (error) {
             LogController.logError(req, 'health.metrics', `error: ${error.message}`);
-            res.status(500).json({
-                success: false,
-                error: 'Metrics collection failed',
-                code: 'METRICS_ERROR'
-            });
+            return global.CommonUtils.sendError(req, res, 500, 'Metrics collection failed', 'METRICS_ERROR', error.message);
         }
     }
+
+    /**
+     * Manually trigger compliance report send
+     * POST /api/1/health/compliance/send-report
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async sendComplianceReport(req, res) {
+        LogController.logRequest(req, 'health.sendComplianceReport', '');
+
+        try {
+            // Admin-only
+            const adminRoles = global.appConfig?.controller?.user?.adminRoles || ['admin', 'root'];
+            if (!AuthController.isAuthorized(req, adminRoles)) {
+                return global.CommonUtils.sendError(req, res, 403, 'Admin access required', 'FORBIDDEN');
+            }
+
+            LogController.logInfo(req, 'health.sendComplianceReport', 'Manually triggering compliance report...');
+            const result = await HealthController._sendComplianceReport(req, true); // Force send
+
+            if (result) {
+                LogController.logInfo(req, 'health.sendComplianceReport', 'Report sent successfully');
+                return res.json({
+                    success: true,
+                    message: 'Compliance report sent successfully',
+                    data: result
+                });
+            } else {
+                LogController.logWarning(req, 'health.sendComplianceReport', 'Report failed to send');
+                return global.CommonUtils.sendError(req, res, 500, 'Failed to send compliance report', 'SEND_FAILED', 'Report returned null');
+            }
+
+        } catch (error) {
+            LogController.logError(req, 'health.sendComplianceReport', `error: ${error.message}`);
+            return global.CommonUtils.sendError(req, res, 500, 'Failed to send compliance report', 'SEND_ERROR', error.message);
+        }
+    }
+
     /**
      * Build cluster-wide statistics (legacy method for single-instance fallback)
      * ATTENTION: When new sensitive metrics data is added, it needs to be sanitized as well
@@ -1832,6 +1972,470 @@ class HealthController {
             return null;
         }
     }
+
+    // ========================================================================
+    // W-137: License Compliance Reporting
+    // ========================================================================
+
+    /**
+     * Initialize compliance reporting scheduler (W-137)
+     * Called from bootstrap.js during app startup
+     * @public
+     */
+    static initializeComplianceScheduler() {
+        // Check every 15 minutes if it's time to report
+        setInterval(async () => {
+            if (await this._isReportTime()) {
+                // Add random delay 0-14 minutes to spread load across jpulse.net
+                const randomDelayMs = Math.floor(Math.random() * 14 * 60 * 1000);
+                setTimeout(() => {
+                    this._sendComplianceReport(null);
+                }, randomDelayMs);
+            }
+        }, 15 * 60 * 1000);  // Check every 15 minutes
+
+        // Initial check after 5 minutes (avoid startup rush)
+        setTimeout(async () => {
+            if (await this._isReportTime()) {
+                const randomDelayMs = Math.floor(Math.random() * 14 * 60 * 1000);
+                setTimeout(() => {
+                    this._sendComplianceReport(null);
+                }, randomDelayMs);
+            }
+        }, 5 * 60 * 1000);
+
+        LogController.logInfo(null, 'health.compliance', 'Compliance scheduler initialized');
+    }
+
+    /**
+     * Refresh global config when it changes
+     * @private
+     */
+    static async refreshGlobalConfig() {
+        try {
+            const defaultDocName = global.ConfigController?.getDefaultDocName() || 'global';
+            this.globalConfig = await ConfigModel.findById(defaultDocName);
+            LogController.logInfo(null, 'health.compliance', 'Config refreshed for compliance reporting');
+        } catch (error) {
+            LogController.logError(null, 'health.compliance', `Failed to refresh config: ${error.message}`);
+        }
+    }
+
+    /**
+     * Initialize compliance report timing
+     * Sets a randomized daily report time if not already set
+     * @private
+     */
+    static async _initializeReportTiming() {
+        const redis = global.RedisManager?.getClient('metrics');
+        if (!redis) return;
+
+        try {
+            const existingTime = await redis.get('metrics:compliance:report_time');
+            if (existingTime) {
+                LogController.logInfo(null, 'health.compliance', `Report time already set: ${existingTime} UTC`);
+                return;
+            }
+
+            // Generate random time: current hour + random minute (0-59)
+            const now = new Date();
+            const hour = now.getUTCHours().toString().padStart(2, '0');
+            const minute = Math.floor(Math.random() * 60).toString().padStart(2, '0');
+            const reportTime = `${hour}:${minute}`;
+
+            await redis.set('metrics:compliance:report_time', reportTime);
+            LogController.logInfo(null, 'health.compliance', `Report time initialized: ${reportTime} UTC`);
+        } catch (error) {
+            LogController.logError(null, 'health.compliance', `Failed to initialize report timing: ${error.message}`);
+        }
+    }
+
+    /**
+     * Check if it's time to send compliance report
+     * Uses 30-minute window around scheduled time
+     * @returns {Promise<boolean>} True if within report window
+     * @private
+     */
+    static async _isReportTime() {
+        const redis = global.RedisManager?.getClient('metrics');
+        if (!redis) return false;
+
+        try {
+            const reportTime = await redis.get('metrics:compliance:report_time');
+            if (!reportTime) return false;
+
+            const now = new Date();
+            const [schedHour, schedMin] = reportTime.split(':').map(Number);
+
+            // Calculate scheduled time in minutes since midnight UTC
+            const schedMinutes = schedHour * 60 + schedMin;
+
+            // Current time in minutes since midnight UTC
+            const nowMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+
+            // Check if within ±30 minutes window
+            const diff = Math.abs(nowMinutes - schedMinutes);
+            return diff <= 30 || diff >= (24 * 60 - 30); // Handle day boundary
+
+        } catch (error) {
+            LogController.logError(null, 'health.compliance', `Failed to check report time: ${error.message}`);
+            return false;
+        }
+    }
+
+    /**
+     * Check if compliance report should be sent
+     * Respects 24h interval and exponential backoff
+     * @returns {Promise<boolean>} True if should send
+     * @private
+     */
+    static async _shouldSendReport() {
+        const redis = global.RedisManager?.getClient('metrics');
+        if (!redis) return false;
+
+        try {
+            const state = await HealthController._getComplianceState();
+
+            // W-137 refinement:
+            // - Scheduled reports should always send during the scheduled window (even if a manual report was sent)
+            // - Prevent duplicates within the same scheduled window (±30 minutes around report_time)
+            const reportTime = state.reportTime;
+            if (!reportTime) return false;
+
+            const [schedHour, schedMin] = reportTime.split(':').map(Number);
+            const now = new Date();
+            const nowUtcMs = Date.now();
+            const scheduledTodayUtcMs = Date.UTC(
+                now.getUTCFullYear(),
+                now.getUTCMonth(),
+                now.getUTCDate(),
+                schedHour,
+                schedMin,
+                0,
+                0
+            );
+
+            const windowRadiusMs = 30 * 60 * 1000;
+            const isWithinWindow = (startMs) => nowUtcMs >= startMs && nowUtcMs <= (startMs + 2 * windowRadiusMs);
+
+            // Determine which scheduled window is active (today vs yesterday, to handle day boundaries)
+            const windowStartToday = scheduledTodayUtcMs - windowRadiusMs;
+            const windowStartYesterday = (scheduledTodayUtcMs - 24 * 3600000) - windowRadiusMs;
+
+            let activeWindowStart = 0;
+            if (isWithinWindow(windowStartToday)) {
+                activeWindowStart = windowStartToday;
+            } else if (isWithinWindow(windowStartYesterday)) {
+                activeWindowStart = windowStartYesterday;
+            } else {
+                // Not in scheduled window (scheduler should not call outside it)
+                return false;
+            }
+
+            // If we've already sent a scheduled report within this window, don't send again
+            if (state.lastScheduledTimestamp && state.lastScheduledTimestamp >= activeWindowStart) {
+                return false;
+            }
+
+            // Check exponential backoff for failures
+            if (state.nextAttempt && Date.now() < state.nextAttempt) {
+                return false; // In backoff period
+            }
+
+            return true;
+        } catch (error) {
+            LogController.logError(null, 'health.compliance', `Failed to check send conditions: ${error.message}`);
+            return false;
+        }
+    }
+
+    /**
+     * Build compliance payload from collected stats
+     * @returns {Promise<Object>} Compliance payload
+     * @private
+     */
+    static async _buildCompliancePayload() {
+        const components = await this._collectComponentStats();
+
+        // W-137: Get admin email from config model if opt-in enabled (now in MongoDB)
+        let adminEmail = '';
+        const manifestConfig = this.globalConfig?.data?.manifest || {};
+        if (manifestConfig.compliance?.adminEmailOptIn === true) {
+            adminEmail = this.globalConfig?.data?.email?.adminEmail || '';
+        }
+
+        // W-137: Get site UUID (MongoDB > env var > fallback)
+        const siteUuid = this.globalConfig?.data?.manifest?.compliance?.siteUuid ||
+                         process.env.JPULSE_SITE_UUID ||
+                         process.env.JPULSE_SITE_ID ||
+                         `fallback-${os.hostname()}`;
+
+        return {
+            uuid: siteUuid,
+            jpulseVersion: global.appConfig.app.jPulse.version,
+            siteVersion: global.appConfig.app.site?.version || '0.0.0',
+            users: {
+                total: components.users?.stats?.total || 0,
+                admins: components.users?.stats?.admins || 0,
+                active24h: components.users?.stats?.recentLogins?.last24h || 0
+            },
+            deployment: {
+                servers: components.statistics?.totalServers || 1,
+                instances: components.statistics?.totalInstances || 1,
+                environment: global.appConfig.deployment.mode
+            },
+            activity: {
+                docsUpdated24h: components.log?.stats?.docsUpdated24h || 0,
+                pagesServed24h: components.view?.stats?.servedLast24h || 0,
+                wsConnections: components.websocket?.stats?.totalConnections || 0
+            },
+            plugins: {
+                total: components.plugins?.stats?.total || 0,
+                enabled: components.plugins?.stats?.enabled || 0,
+                names: components.plugins?.stats?.loadOrder || []
+            },
+            adminEmail: adminEmail, // Empty if not configured or no opt-in
+            timestamp: new Date().toISOString(),
+            reportType: 'daily'
+        };
+    }
+
+    /**
+     * Send compliance report to jpulse.net
+     * @param {boolean} force - Force send (skip time checks)
+     * @returns {Promise<Object|null>} Server response or null on failure
+     * @private
+     */
+    static async _sendComplianceReport(req, force = false) {
+        // Check if should send (unless forced)
+        if (!force && !(await this._shouldSendReport())) {
+            return null;
+        }
+
+        try {
+            const payload = await this._buildCompliancePayload();
+
+            const response = await fetch('https://jpulse.net/api/1/site-monitor/report', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': `jPulse-Framework/${global.appConfig.app.jPulse.version}`
+                },
+                body: JSON.stringify(payload),
+                signal: AbortSignal.timeout(30000) // 30s timeout
+            });
+
+            if (response.ok) {
+                const responseData = await response.json();
+                // Scheduled vs manual: manual sends should not affect the scheduled-window gating
+                const isScheduled = (force !== true);
+                await this._recordReportSent(responseData, payload, isScheduled);
+
+                LogController.logInfo(req, 'health.compliance',
+                        `Compliance report sent: status=${responseData.complianceStatus || responseData.status}`);
+
+                return responseData;
+            } else {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+        } catch (error) {
+            await this._handleReportFailure(error);
+            return null;
+        }
+    }
+
+    /**
+     * Record successful report send
+     * @param {Object} responseData - Server response
+     * @param {Object} payload - Original payload sent
+     * @private
+     */
+    static async _recordReportSent(responseData, payload, isScheduled = true) {
+        const redis = global.RedisManager?.getClient('metrics');
+        if (!redis) return;
+
+        try {
+            const timestamp = Date.now();
+
+            // Store full report for admin viewing (transparency)
+            await redis.set('metrics:compliance:last_report', JSON.stringify(payload));
+            await redis.set('metrics:compliance:last_timestamp', timestamp);
+            if (isScheduled) {
+                await redis.set('metrics:compliance:last_scheduled_timestamp', timestamp);
+            }
+
+            // Store full response object (simpler than separate fields)
+            await redis.set('metrics:compliance:last_response', JSON.stringify(responseData));
+
+            // Clear failure tracking
+            await redis.del('metrics:compliance:retry_count');
+            await redis.del('metrics:compliance:next_attempt');
+
+        } catch (error) {
+            LogController.logError(null, 'health.compliance', `Failed to record report: ${error.message}`);
+        }
+    }
+
+    /**
+     * Handle report failure with exponential backoff
+     * @param {Error} error - The error that occurred
+     * @private
+     */
+    static async _handleReportFailure(error) {
+        const redis = global.RedisManager?.getClient('metrics');
+        if (!redis) return;
+
+        try {
+            // Increment retry count
+            const retryCount = parseInt(await redis.get('metrics:compliance:retry_count') || '0') + 1;
+            await redis.set('metrics:compliance:retry_count', retryCount);
+
+            // Calculate exponential backoff: 1h, 2h, 4h, 8h, 16h, 24h (max)
+            const backoffHours = Math.min(Math.pow(2, retryCount - 1), 24);
+            const nextAttempt = Date.now() + (backoffHours * 3600000);
+            await redis.set('metrics:compliance:next_attempt', nextAttempt);
+
+            // Log chronic failures (after 10 attempts = ~1023 hours if no max)
+            if (retryCount >= 10) {
+                LogController.logError(null, 'health.compliance',
+                    `Chronic compliance reporting failure (attempt ${retryCount}): ${error.message}`);
+            } else {
+                LogController.logWarning(null, 'health.compliance',
+                    `Failed to send compliance report (attempt ${retryCount}, retry in ${backoffHours}h): ${error.message}`);
+            }
+
+        } catch (err) {
+            LogController.logError(null, 'health.compliance', `Failed to record failure: ${err.message}`);
+        }
+    }
+
+    /**
+     * Get compliance state from Redis
+     * @returns {Promise<object>} Compliance state object
+     * @private
+     */
+    static async _getComplianceState() {
+        const redis = global.RedisManager?.getClient('metrics');
+        if (!redis) {
+            // Redis unavailable - return defaults
+            return {
+                reportTime: '',
+                lastReport: null,
+                lastTimestamp: 0,
+                lastScheduledTimestamp: 0,
+                lastResponse: null,
+                retryCount: 0,
+                nextAttempt: 0
+            };
+        }
+
+        // Parse stored JSON objects
+        let lastReport = null;
+        let lastResponse = null;
+
+        try {
+            const reportJson = await redis.get('metrics:compliance:last_report');
+            if (reportJson) lastReport = JSON.parse(reportJson);
+        } catch (e) {
+            // Invalid JSON, ignore
+        }
+
+        try {
+            const responseJson = await redis.get('metrics:compliance:last_response');
+            if (responseJson) lastResponse = JSON.parse(responseJson);
+        } catch (e) {
+            // Invalid JSON, ignore
+        }
+
+        return {
+            reportTime: await redis.get('metrics:compliance:report_time') || '',
+            lastReport: lastReport,
+            lastTimestamp: parseInt(await redis.get('metrics:compliance:last_timestamp') || '0'),
+            lastScheduledTimestamp: parseInt(await redis.get('metrics:compliance:last_scheduled_timestamp') || '0'),
+            lastResponse: lastResponse,
+            retryCount: parseInt(await redis.get('metrics:compliance:retry_count') || '0'),
+            nextAttempt: parseInt(await redis.get('metrics:compliance:next_attempt') || '0')
+        };
+    }
+
+    /**
+     * Get compliance data for metrics API
+     * Private method - auth check handled by metrics endpoint
+     * @returns {Promise<object>} Compliance data object
+     * @private
+     */
+    static async _getComplianceData() {
+        const state = await HealthController._getComplianceState();
+        const response = state.lastResponse || {};
+
+        // Calculate convenience fields
+        const hoursSinceReport = state.lastTimestamp
+            ? Math.round((Date.now() - state.lastTimestamp) / 3600000)
+            : null;
+        const hoursUntilRetry = state.nextAttempt
+            ? Math.max(0, Math.round((state.nextAttempt - Date.now()) / 3600000))
+            : null;
+
+        // W-137: Monitor URL - only if opted-in AND UUID exists (from MongoDB)
+        const manifestConfig = this.globalConfig?.data?.manifest || {};
+        const hasOptIn = manifestConfig.compliance?.adminEmailOptIn === true;
+        const siteUuid = manifestConfig.compliance?.siteUuid ||
+                         process.env.JPULSE_SITE_UUID ||
+                         '';
+        const monitorUrl = (hasOptIn && siteUuid && !siteUuid.startsWith('fallback-'))
+            ? `https://jpulse.net/monitor/${siteUuid}`
+            : '';
+
+        // Next scheduled report time (based on scheduled HH:MM UTC, independent of manual sends)
+        let nextScheduledTimestamp = 0;
+        if (state.reportTime) {
+            const [schedHour, schedMin] = state.reportTime.split(':').map(Number);
+            const now = new Date();
+            const scheduledTodayUtcMs = Date.UTC(
+                now.getUTCFullYear(),
+                now.getUTCMonth(),
+                now.getUTCDate(),
+                schedHour,
+                schedMin,
+                0,
+                0
+            );
+            const nowUtcMs = Date.now();
+            nextScheduledTimestamp = (nowUtcMs <= scheduledTodayUtcMs)
+                ? scheduledTodayUtcMs
+                : (scheduledTodayUtcMs + 24 * 3600000);
+        }
+
+        return {
+            // Status from server response
+            status: response.complianceStatus || 'unknown',
+            message: response.message || '',
+
+            // Timing information
+            reportTime: state.reportTime || '',
+            lastReportTimestamp: state.lastTimestamp || 0,
+            nextReportTimestamp: nextScheduledTimestamp,
+
+            // Failure tracking
+            retryCount: state.retryCount || 0,
+            hoursSinceReport: hoursSinceReport,
+            hoursUntilRetry: hoursUntilRetry,
+            reportingFailed: hoursSinceReport && hoursSinceReport > 48,
+
+            // Full report and response for transparency
+            lastReport: state.lastReport || {},
+            lastResponse: state.lastResponse || {},
+
+            // Monitor URL (empty string if not available)
+            monitorUrl: monitorUrl,
+
+            // Opt-in status and UUID for UI display (W-137)
+            adminEmailOptIn: hasOptIn,
+            siteUuid: siteUuid
+        };
+    }
+
 }
 
 export default HealthController;

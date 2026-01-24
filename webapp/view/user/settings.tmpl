@@ -4,8 +4,8 @@
  * @tagline         User SPA - Settings template
  * @description     W-134: Settings template of user profile Single Page Application
  * @file            webapp/view/user/settings.tmpl
- * @version         1.4.17
- * @release         2026-01-23
+ * @version         1.4.18
+ * @release         2026-01-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -517,7 +517,6 @@
     // W-107: Render a single plugin card
     function renderPluginCard(blockKey, blockDef, cardConfig) {
         const userData = currentUserData[blockKey] || {};
-        const bgColor = cardConfig.backgroundColor || '';
         const icon = cardConfig.icon || '📦';
         const label = cardConfig.label || blockKey;
         const description = cardConfig.description || '';
@@ -528,19 +527,8 @@
         // Build fields display - use userCard visibility
         const fieldsHtml = renderCardFields(blockKey, blockDef, userData);
 
-        // If plugin specifies a backgroundColor, pick a readable text color automatically.
-        const styleAttr = bgColor
-            ? (() => {
-                const rgb = parseCssColor(bgColor);
-                const isLightBg = rgb ? getRelativeLuminance(rgb) > 0.6 : false;
-                const text = isLightBg ? '#111827' : '#f7fafc';
-                const textMuted = isLightBg ? '#374151' : '#cbd5e0';
-                return ` style="background-color: ${bgColor}; border-color: ${bgColor}; --local-plugin-card-text: ${text}; --local-plugin-card-text-muted: ${textMuted};"`;
-            })()
-            : '';
-
         return `
-            <div class="jp-card local-plugin-card" id="card-${blockKey}"${styleAttr}>
+            <div class="jp-card local-plugin-card" id="card-${blockKey}">
                 <div class="local-plugin-card-header">
                     <div class="local-plugin-card-title">
                         <span class="local-plugin-icon">${icon}</span>
@@ -727,7 +715,7 @@
         const displayAs = fieldDef.displayAs;
 
         if (value === null || value === undefined) {
-            return '<span style="color: #999;">—</span>';
+            return '<span class="jp-text-muted">—</span>';
         }
 
         switch (displayAs) {
@@ -740,12 +728,12 @@
                 return `<span class="local-plugin-badge local-plugin-badge-info">${value}</span>`;
 
             case 'date':
-                if (!value) return '<span style="color: #999;">—</span>';
-                return new Date(value).toLocaleDateString();
+                if (!value) return '<span class="jp-text-muted">—</span>';
+                return jPulse.date.formatLocalDate(value);
 
             case 'datetime':
-                if (!value) return '<span style="color: #999;">—</span>';
-                return new Date(value).toLocaleString();
+                if (!value) return '<span class="jp-text-muted">—</span>';
+                return jPulse.date.formatLocalDateAndTime(value);
 
             case 'count':
                 if (Array.isArray(value)) {

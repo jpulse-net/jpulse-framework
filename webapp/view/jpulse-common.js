@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.4.17
- * @release         2026-01-23
+ * @version         1.4.18
+ * @release         2026-01-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -514,18 +514,19 @@ window.jPulse = {
         /**
          * Format time to local HH:MM:SS format
          * @param {Date|string|number} date - Date to format (Date object, ISO string, or timestamp)
-         * @returns {string} Formatted time string (HH:MM:SS)
+         * @param {boolean} includeSeconds - Whether to include seconds (default: true)
+         * @returns {string} Formatted time string (HH:MM:SS or HH:MM)
          *
          * @example
          * jPulse.date.formatLocalTime(new Date());           // Returns: "10:30:45"
          * jPulse.date.formatLocalTime('2025-12-11T10:30:45Z'); // Returns: "10:30:45"
          */
-        formatLocalTime: (date) => {
+        formatLocalTime: (date, includeSeconds = true) => {
             const d = date instanceof Date ? date : new Date(date);
             const hours = String(d.getHours()).padStart(2, '0');
             const minutes = String(d.getMinutes()).padStart(2, '0');
-            const seconds = String(d.getSeconds()).padStart(2, '0');
-            return `${hours}:${minutes}:${seconds}`;
+            const seconds = includeSeconds ? ':' + String(d.getSeconds()).padStart(2, '0') : '';
+            return `${hours}:${minutes}${seconds}`;
         }
     },
 

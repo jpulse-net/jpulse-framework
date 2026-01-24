@@ -1,0 +1,17 @@
+---
+description: Core jPulse framework assistant rules (no git, no guessing, formatting)
+alwaysApply: true
+---
+
+# jPulse Framework - Core Assistant Rules
+
+- Do not run any `git` commands unless the user explicitly approves first.
+- Do not guess or hallucinate. If context is missing, use the transcript file the user provided, or say “I don’t know” / “I am not sure, but I can look it up if you’d like”.
+- Follow source formatting preferences:
+    - No tabs in source; use spaces only.
+    - Prefer 4 spaces for indentation.
+    - No spaces on empty lines (avoid lines matching `^ +$`).
+
+# Session Hygiene
+
+- If the user provides a transcript path, consult it for missing details instead of guessing.

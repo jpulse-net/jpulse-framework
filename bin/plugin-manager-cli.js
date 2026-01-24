@@ -4,8 +4,8 @@
  * @tagline         Plugin management commands for jPulse Framework
  * @description     Handles plugin install, update, remove, enable, disable, list, info, publish
  * @file            bin/plugin-manager-cli.js
- * @version         1.4.17
- * @release         2026-01-23
+ * @version         1.4.18
+ * @release         2026-01-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -157,6 +157,61 @@ function parseNpmError(stderr) {
         message: 'npm command failed',
         suggestion: null
     };
+}
+
+/**
+ * Install plugin npm dependencies into the plugin directory.
+ *
+ * Why: the CLI installs plugin packages with `--no-save` at the site root, which can be pruned by a later
+ * `npm install`. Installing runtime dependencies inside the plugin directory makes the plugin self-contained.
+ *
+ * This is only done in "site" context to avoid polluting the framework repo with plugin-local node_modules.
+ *
+ * @param {string} pluginPath - Destination path (e.g., <projectRoot>/plugins/<name>)
+ * @param {object} pluginJson - Parsed plugin.json
+ * @param {object} options - CLI options (may include registry)
+ * @param {string} context - 'site' | 'framework' | 'unknown'
+ */
+function installPluginRuntimeDependencies(pluginPath, pluginJson, options, context) {
+    if (context !== 'site') {
+        return;
+    }
+
+    const pluginPackageJsonPath = path.join(pluginPath, 'package.json');
+    const hasPackageJson = fs.existsSync(pluginPackageJsonPath);
+    const npmDeps = pluginJson?.dependencies?.npm || {};
+
+    if (!hasPackageJson && Object.keys(npmDeps).length === 0) {
+        return;
+    }
+
+    console.log('  → Installing plugin npm dependencies (plugin-local node_modules)...');
+
+    let npmCmd;
+    if (hasPackageJson) {
+        npmCmd = 'npm install --omit=dev --legacy-peer-deps';
+    } else {
+        const packageSpecs = Object.entries(npmDeps).map(([name, version]) => `${name}@${version}`);
+        npmCmd = `npm install ${packageSpecs.join(' ')} --no-save --legacy-peer-deps`;
+    }
+
+    if (options?.registry) {
+        npmCmd += ` --registry=${options.registry}`;
+    }
+
+    try {
+        execSync(npmCmd, { cwd: pluginPath, stdio: 'pipe' });
+        console.log('  ✓ Installed plugin npm dependencies');
+    } catch (error) {
+        const stderr = error.stderr?.toString() || error.message;
+        const parsed = parseNpmError(stderr);
+        const suggestions = parsed.suggestion ? [parsed.suggestion] : [];
+        throw new PluginError(
+            `Plugin npm dependency install failed: ${parsed.message}`,
+            parsed.code,
+            suggestions
+        );
+    }
 }
 
 /**
@@ -796,7 +851,7 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
             throw new Error('Plugin source is required. Usage: npx jpulse plugin install <source>');
         }
 
-        const { projectRoot, pluginsDir, jpulseDir, registryPath } = detectPaths();
+        const { projectRoot, pluginsDir, jpulseDir, registryPath, context } = detectPaths();
         const resolved = resolvePluginSource(source);
 
         console.log('');
@@ -814,6 +869,7 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
         let pluginJson;
         let pluginName;
         let installedFrom;
+        let destPath;
 
         if (resolved.type === 'local') {
             // Local path install - copy directly to plugins/
@@ -852,7 +908,7 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
             pluginName = pluginJson.name;
             installedFrom = 'local';
 
-            const destPath = path.join(pluginsDir, pluginName);
+            destPath = path.join(pluginsDir, pluginName);
 
             console.log(`  ✓ Validated plugin.json`);
 
@@ -962,7 +1018,7 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
             console.log(`  ✓ Checked version compatibility (${pluginJson.jpulseVersion || 'any'})`);
 
             // Sync to plugins/
-            const destPath = path.join(pluginsDir, pluginName);
+            destPath = path.join(pluginsDir, pluginName);
 
             if (fs.existsSync(destPath) && !options.force) {
                 throw new PluginError(
@@ -978,6 +1034,9 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
             console.log(`  ✓ Syncing to plugins/${pluginName}/`);
             copyDirRecursive(nodeModulesPath, destPath);
         }
+
+        // Install plugin runtime dependencies into the plugin directory (site installs only)
+        installPluginRuntimeDependencies(destPath, pluginJson, options, context);
 
         // Load and update registry
         const registry = loadRegistry(registryPath);
@@ -1043,7 +1102,7 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
      * @param {object} options - Command options
      */
     static async update(name, options) {
-        const { projectRoot, pluginsDir, registryPath } = detectPaths();
+        const { projectRoot, pluginsDir, registryPath, context } = detectPaths();
         const registry = loadRegistry(registryPath);
         const plugins = discoverPlugins(pluginsDir, registry);
 
@@ -1167,6 +1226,9 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
                     const filePath = path.join(destPath, pattern);
                     fs.writeFileSync(filePath, content);
                 }
+
+                // Ensure plugin runtime dependencies are installed after update (site installs only)
+                installPluginRuntimeDependencies(destPath, newPluginJson, options, context);
 
                 // Update registry
                 const registryEntry = registry.plugins.find(p => p.name === plugin.name);

@@ -4,8 +4,8 @@
  * @tagline         Site configuration management interface
  * @description     Edit site configuration, for administrators
  * @file            webapp/view/admin/config.shtml
- * @version         1.4.17
- * @release         2026-01-23
+ * @version         1.4.18
+ * @release         2026-01-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -165,34 +165,40 @@
                         <div class="local-form-row">
                             <div class="jp-form-group">
                                 <label for="adminEmail" class="jp-form-label">{{i18n.view.admin.config.email.adminEmail}}</label>
-                                <input type="email" id="adminEmail" name="adminEmail" class="jp-form-input" placeholder="admin@example.com">
+                                <input type="email" id="adminEmail" name="adminEmail" class="jp-form-input local-edit-field" placeholder="admin@example.com">
                             </div>
                             <div class="jp-form-group">
                                 <label for="adminName" class="jp-form-label">{{i18n.view.admin.config.email.adminName}}</label>
-                                <input type="text" id="adminName" name="adminName" class="jp-form-input" placeholder="Site Administrator">
+                                <input type="text" id="adminName" name="adminName" class="jp-form-input local-edit-field" placeholder="Site Administrator">
                             </div>
                         </div>
 
                         <div class="local-form-row">
                             <div class="jp-form-group">
                                 <label for="smtpServer" class="jp-form-label">{{i18n.view.admin.config.email.smtpServer}}</label>
-                                <input type="text" id="smtpServer" name="smtpServer" class="jp-form-input" placeholder="localhost">
+                                <input type="text" id="smtpServer" name="smtpServer" class="jp-form-input local-edit-field" placeholder="localhost">
                             </div>
                             <div class="jp-form-group">
                                 <label for="smtpPort" class="jp-form-label">{{i18n.view.admin.config.email.smtpPort}}</label>
-                                <input type="number" id="smtpPort" name="smtpPort" class="jp-form-input" placeholder="25" min="1" max="65535">
+                                <input type="number" id="smtpPort" name="smtpPort" class="jp-form-input local-edit-field" placeholder="25" min="1" max="65535">
                             </div>
                         </div>
 
                         <div class="local-form-row">
                             <div class="jp-form-group">
                                 <label for="smtpUser" class="jp-form-label">{{i18n.view.admin.config.email.smtpUser}}</label>
-                                <input type="text" id="smtpUser" name="smtpUser" class="jp-form-input" placeholder="username">
+                                <input type="text" id="smtpUser" name="smtpUser" class="jp-form-input local-edit-field" placeholder="username">
                             </div>
                             <div class="jp-form-group">
                                 <label for="smtpPass" class="jp-form-label">{{i18n.view.admin.config.email.smtpPass}}</label>
                                 <div class="local-password-field">
-                                    <input type="password" id="smtpPass" name="smtpPass" class="jp-form-input" placeholder="password">
+                                    <input type="password" id="smtpPass" name="smtpPass" class="jp-form-input local-edit-field" placeholder="password"
+                                        autocomplete="new-password"
+                                        data-lpignore="true"
+                                        data-1p-ignore="true"
+                                        autocapitalize="off"
+                                        autocorrect="off"
+                                        spellcheck="false">
                                     <button type="button" class="local-password-toggle" onclick="togglePasswordVisibility('smtpPass')" title="Show/hide password">
                                         👁️
                                     </button>
@@ -201,7 +207,7 @@
                         </div>
 
                         <div class="local-checkbox-group">
-                            <input type="checkbox" id="useTls" name="useTls" value="true">
+                            <input type="checkbox" id="useTls" name="useTls" value="true" class="local-edit-field">
                             <label for="useTls">{{i18n.view.admin.config.email.useTls}}</label>
                         </div>
 
@@ -218,19 +224,19 @@
                     <div class="jp-card local-config-section">
                         <div class="local-panel-description">{{i18n.view.admin.config.broadcast.description}}</div>
                         <div class="local-checkbox-group">
-                            <input type="checkbox" id="broadcastEnable" name="broadcastEnable" value="true">
+                            <input type="checkbox" id="broadcastEnable" name="broadcastEnable" value="true" class="local-edit-field">
                             <label for="broadcastEnable">{{i18n.view.admin.config.broadcast.enable}}</label>
                         </div>
                         <div class="local-form-row local-full-width jp-mt-15">
                             <div class="jp-form-group">
                                 <label for="broadcastMessage" class="jp-form-label">{{i18n.view.admin.config.broadcast.message}}</label>
-                                <textarea id="broadcastMessage" name="broadcastMessage" class="jp-form-textarea" rows="5" placeholder="{{i18n.view.admin.config.broadcast.messagePlaceholder}}"></textarea>
+                                <textarea id="broadcastMessage" name="broadcastMessage" class="jp-form-textarea local-edit-field" rows="5" placeholder="{{i18n.view.admin.config.broadcast.messagePlaceholder}}"></textarea>
                             </div>
                         </div>
                         <div class="local-form-row">
                             <div class="jp-form-group">
                                 <label for="broadcastNagTime" class="jp-form-label">{{i18n.view.admin.config.broadcast.nagTime}}</label>
-                                <select id="broadcastNagTime" name="broadcastNagTime" class="jp-form-input">
+                                <select id="broadcastNagTime" name="broadcastNagTime" class="jp-form-input local-edit-field">
                                     <option value="0">0</option>
                                     <option value="1">1</option>
                                     <option value="2">2</option>
@@ -241,7 +247,7 @@
                             </div>
                             <div class="jp-form-group">
                                 <label for="broadcastDisableTime" class="jp-form-label">{{i18n.view.admin.config.broadcast.disableTime}}</label>
-                                <select id="broadcastDisableTime" name="broadcastDisableTime" class="jp-form-input">
+                                <select id="broadcastDisableTime" name="broadcastDisableTime" class="jp-form-input local-edit-field">
                                     <option value="0">0</option>
                                     <option value="1">1</option>
                                     <option value="2">2</option>
@@ -266,7 +272,13 @@
                             <div class="jp-form-group">
                                 <label for="licenseKey" class="jp-form-label">{{i18n.view.admin.config.manifest.licenseKey}}</label>
                                 <div class="local-password-field">
-                                    <input type="password" id="licenseKey" name="licenseKey" class="jp-form-input" placeholder="{{i18n.view.admin.config.manifest.licenseKeyPlaceholder}}">
+                                    <input type="password" id="licenseKey" name="licenseKey" class="jp-form-input local-edit-field" placeholder="{{i18n.view.admin.config.manifest.licenseKeyPlaceholder}}"
+                                        autocomplete="new-password"
+                                        data-lpignore="true"
+                                        data-1p-ignore="true"
+                                        autocapitalize="off"
+                                        autocorrect="off"
+                                        spellcheck="false">
                                     <button type="button" class="local-password-toggle" onclick="togglePasswordVisibility('licenseKey')" title="Show/hide license key">
                                         👁️
                                     </button>
@@ -274,7 +286,7 @@
                             </div>
                             <div class="jp-form-group">
                                 <label for="licenseTier" class="jp-form-label">{{i18n.view.admin.config.manifest.licenseTier}}</label>
-                                <select id="licenseTier" name="licenseTier" class="jp-form-input">
+                                <select id="licenseTier" name="licenseTier" class="jp-form-input local-edit-field">
                                     <option value="bsl">{{i18n.view.admin.config.manifest.licenseTierBsl}}</option>
                                     <option value="commercial">{{i18n.view.admin.config.manifest.licenseTierCommercial}}</option>
                                 </select>
@@ -289,7 +301,7 @@
                             </div>
                             <div class="jp-form-group">
                                 <label for="adminEmailOptIn" class="jp-form-label">{{i18n.view.admin.config.manifest.adminEmailOptIn}}</label>
-                                <select id="adminEmailOptIn" name="adminEmailOptIn" class="jp-form-input">
+                                <select id="adminEmailOptIn" name="adminEmailOptIn" class="jp-form-input local-edit-field">
                                     <option value="false">{{i18n.view.admin.config.manifest.adminEmailOptInNo}}</option>
                                     <option value="true">{{i18n.view.admin.config.manifest.adminEmailOptInYes}}</option>
                                 </select>
@@ -364,7 +376,8 @@
             const testEmailBtn = document.getElementById('testEmailBtn');
             const testEmailBtnTitle = `{{i18n.view.admin.config.testEmailDesc}}`;
             testEmailBtn.title = jPulse.string.escapeHtml(testEmailBtnTitle);
-            let originalData = {};
+            let originalDirtySnapshot = '';
+            let dirtyTrackingReady = false;
 
             // Load current configuration
             loadConfig();
@@ -374,15 +387,47 @@
                     const result = await jPulse.api.call('/api/1/config/_default');
                     if (result.success && result.data) {
                         populateForm(result.data);
-                        originalData = getFormData();
-                        isDirty = false;
-                        updateButtonStates();
+
+                        // Establish a dirty baseline after populate (and after late autofill).
+                        // Some browsers/password managers fill on focus or shortly after load.
+                        setTimeout(() => {
+                            originalDirtySnapshot = localSerializeDirtySnapshot();
+                            dirtyTrackingReady = true;
+                            isDirty = false;
+                            updateButtonStates();
+                        }, 0);
+                        setTimeout(() => {
+                            // Only re-baseline if the user hasn't made any edits.
+                            if (!isDirty) {
+                                originalDirtySnapshot = localSerializeDirtySnapshot();
+                                dirtyTrackingReady = true;
+                                updateButtonStates();
+                            }
+                        }, 300);
                     } else {
                         jPulse.UI.toast.error(`{{i18n.view.admin.config.loadFailed}}`);
                     }
                 } catch (error) {
                     jPulse.UI.toast.error(`{{i18n.view.admin.config.loadError}}`);
                 }
+            }
+
+            function localGetDirtySnapshot() {
+                const snapshot = {};
+                configForm.querySelectorAll('.local-edit-field').forEach((el) => {
+                    const key = el.id || el.name;
+                    if (!key) return;
+                    if (el.type === 'checkbox') {
+                        snapshot[key] = el.checked ? 'true' : 'false';
+                        return;
+                    }
+                    snapshot[key] = el.value;
+                });
+                return snapshot;
+            }
+
+            function localSerializeDirtySnapshot() {
+                return JSON.stringify(localGetDirtySnapshot());
             }
 
             function populateForm(config) {
@@ -448,8 +493,8 @@
             }
 
             function checkDirty() {
-                const currentData = getFormData();
-                isDirty = !jPulse.utils.deepEqual(currentData, originalData);
+                if (!dirtyTrackingReady) return;
+                isDirty = localSerializeDirtySnapshot() !== originalDirtySnapshot;
                 updateButtonStates();
             }
 
@@ -458,9 +503,16 @@
                 // Cancel button should always be enabled to allow navigation back to admin
             }
 
-            // Form change detection (event delegation)
-            configForm.addEventListener('input', checkDirty);
-            configForm.addEventListener('change', checkDirty);
+            // Dirty tracking (targeted): attach to fields we care about.
+            // IMPORTANT: For password fields, only listen to 'input' (type toggle can fire 'change' in some browsers).
+            configForm.querySelectorAll('.local-edit-field').forEach((el) => {
+                if (el.type === 'password') {
+                    el.addEventListener('input', checkDirty);
+                    return;
+                }
+                el.addEventListener('input', checkDirty);
+                el.addEventListener('change', checkDirty);
+            });
 
             // Save configuration
             configForm.addEventListener('submit', async (e) => {
@@ -488,14 +540,11 @@
                     });
 
                     if (result.success) {
-                        // Reload config to get actual saved values (including empty strings)
-                        await loadConfig();
-
-                        // Show success message and redirect
-                        jPulse.UI.toast.success(`{{i18n.view.admin.config.saveSuccess}}`);
-                        setTimeout(() => {
-                            window.location.href = '/admin/';
-                        }, 2000);
+                        isDirty = false;
+                        // Redirect immediately with deferred success toast
+                        jPulse.url.redirect('/admin/', {
+                            toasts: [{ toastType: 'success', message: `{{i18n.view.admin.config.saveSuccess}}` }]
+                        });
                     } else {
                         jPulse.UI.toast.error(result.error || `{{i18n.view.admin.config.saveFailed}}`);
                     }
@@ -554,8 +603,8 @@
                         method: 'POST',
                         body: {
                             to: adminEmail,
-                            subject: 'Test Email from jPulse Framework',
-                            message: `This is a test email from jPulse Framework.\n\nConfiguration:\n- SMTP Server: ${emailConfig.smtpServer}\n- SMTP Port: ${emailConfig.smtpPort || 25}\n\nSent by: {{user.username}}`,
+                            subject: 'Test Email from {{app.site.name}}',
+                            message: `This is a test email from {{app.site.name}} at {{url.hostname}}.\n\nConfiguration:\n- SMTP Server: ${emailConfig.smtpServer}\n- SMTP Port: ${emailConfig.smtpPort || 25}\n\nSent by: {{user.username}}`,
                             emailConfig: emailConfig  // Override saved config for testing
                         }
                     });

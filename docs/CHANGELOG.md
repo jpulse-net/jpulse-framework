@@ -1,6 +1,55 @@
-# jPulse Docs / Version History v1.4.17
+# jPulse Docs / Version History v1.4.18
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.4.18, W-140, 2026-01-24
+
+**Commit:** `W-140, v1.4.18: plugins: make plugin installs self-contained (install deps in plugin dir)`
+
+**FEATURE RELEASE**: Improved plugin installation reliability in site deployments by installing plugin runtime dependencies in the plugin directory (self-contained installs), plus admin config UX hardening and theme-safe user settings plugin cards.
+
+**Objectives**:
+- Prevent plugins from breaking after `npm install` / `npm prune` in the site root
+- Reduce dependency surprises for site admins
+
+**Key Features**:
+- **Self-Contained Plugin Installs**: Plugin CLI installs plugin runtime npm dependencies into `plugins/<name>/node_modules` during install/update in site context
+- **Admin Config Hardening**: Blocks password-manager autofill on sensitive fields (`smtpPass`, `licenseKey`) and stabilizes dirty tracking
+- **Theme-Safe Settings UI**: Removes inline plugin-card styling and hard-coded colors; standardizes date rendering using `jPulse.date.formatLocalDate()` / `jPulse.date.formatLocalDateAndTime()`
+- **Dependency Cleanup**: Removed `otplib` from framework root dependencies
+
+**Code Changes**:
+
+**bin/plugin-manager-cli.js**:
+- Added plugin-local runtime dependency installation for site context installs/updates to keep plugin dependencies self-contained
+
+**webapp/view/admin/config.shtml**:
+- Added autofill-blocking attributes for sensitive fields and improved dirty snapshot tracking to avoid false “unsaved changes” and autofill-induced overwrites
+
+**webapp/view/user/settings.tmpl**:
+- Removed inline plugin-card styling and hard-coded muted placeholder styles for theme compatibility
+- Centralized date/datetime display using `jPulse.date.formatLocalDate()` / `jPulse.date.formatLocalDateAndTime()`
+
+**webapp/view/jpulse-common.js**:
+- Enhanced time formatting utilities to support consistent date/time display behavior
+
+**package.json / package-lock.json**:
+- Removed `otplib` dependency from the framework root
+
+**Test Results**:
+- Manual testing: Verified plugin installs remain functional after root `npm install` / `npm prune` by installing runtime deps into plugin-local `node_modules` (site context). Verified admin config sensitive fields are protected from password-manager autofill and dirty tracking is stable. Verified user settings plugin cards are theme-safe and date fields display consistently.
+- Automated tests: Not run as part of this release prep
+
+**Breaking Changes**:
+- None - fully backward compatible
+
+**Migration Steps**:
+- No migration needed - changes are automatic for site installs/updates
+
+**Work Item**: W-140
+**Version**: v1.4.18
+**Release Date**: 2026-01-24
 
 ________________________________________________
 ## v1.4.17, W-137, 2026-01-23

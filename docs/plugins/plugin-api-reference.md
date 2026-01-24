@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.4.17
+# jPulse Docs / Plugins / Plugins API Reference v1.4.18
 
 Complete API reference for jPulse plugin developers.
 

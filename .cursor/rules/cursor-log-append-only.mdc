@@ -1,0 +1,28 @@
+---
+description: Enforce cursor_log.txt append-only protocol at EOF
+globs: **/cursor_log.txt
+alwaysApply: false
+---
+
+# cursor_log.txt Append-Only Protocol (MUST)
+
+## When updating `cursor_log.txt`
+
+- Only **append** at the **true end of file (EOF)**. Never insert near the top or in the middle.
+- Before editing, read the **last ~100 lines** to confirm the current ending.
+- Append using this exact structure:
+
+```
+YYYY-MM-DD HH:MM
+
+<user prompt>
+
+<assistant output summary>
+
+
+============================================================
+```
+
+## Verification (required)
+
+- Re-read the last ~40 lines after editing and confirm the new entry is the final entry (EOF).

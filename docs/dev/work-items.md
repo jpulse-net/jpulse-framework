@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.17
+# jPulse Docs / Dev / Work Items v1.4.18
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4196,19 +4196,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - added "JSON Helpers" section (json.parse)
     - updated all examples to use json.parse for JSON strings
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-137, v1.4.17, 2026-01-23: deployment: send license compliance report to jpulse.net
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - send anonymous usage stats to jpulse.net to monitor for BSL 1.1 compliance
@@ -4258,11 +4247,69 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/site-administration.md: manifest and compliance sections
   - docs/installation.md, docs/getting-started.md, docs/deployment.md: compliance documentation
 
+### W-138, v1.0.4, 2026-01-23: auth-mfa plugin: remove otplib dependency
+- status: ✅ DONE
+- type: Feature
+- objectives: less npm dependency, same UI
+- enhancement:
+  - remove `otplib` dependency and replace with a small built-in RFC6238 TOTP implementation using Node.js `crypto`
+  - keep existing UI flow and QR code enrollment (no UX changes)
+  - improve developer experience by avoiding Node/WebCrypto engine constraints from upstream libraries
+- deliverables:
+  - plugins/auth-mfa/webapp/utils/totp.js:
+    - add Base32 + TOTP (RFC6238) + `otpauth://` URI helper (RFC4648), no external deps
+  - plugins/auth-mfa/webapp/controller/mfaAuth.js:
+    - switch enrollment and verification from `otplib` to internal TOTP helper, keep QR code setup
+  - plugins/auth-mfa/package.json, plugins/auth-mfa/plugin.json, plugins/auth-mfa/package-lock.json:
+    - remove `otplib` from npm dependencies and update lockfile
+
+### W-139, v1.0.5, 2026-01-24: auth-mfa plugin: remove custom background color to be theme-safe
+- status: ✅ DONE
+- type: Feature
+- objectives: theme-safe colors in settings
+- deliverables:
+  - webapp/model/mfaAuth.js:
+    - remove `backgroundColor` settings to use default card styling in light/dark themes
+  - webapp/view/user/settings.tmpl:
+    - remove inline backgroundColor styling support for plugin cards (no hard-coded colors)
+    - use `jPulse.date.formatLocalDate()` / `jPulse.date.formatLocalDateAndTime()` for date fields (no duplicated code)
+    - remove hard-coded muted placeholder inline styles (use `jp-text-muted`)
 
 
 
 
-pending:
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-140, v1.4.18, 2026-01-24: plugins: make plugin installs self-contained (install deps in plugin dir)
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - prevent plugins from breaking after `npm install` / `npm prune` in the site root
+  - reduce dependency surprises for site admins
+- enhancements:
+  - plugin CLI installs runtime deps into `plugins/<name>/node_modules` (site context) on install/update
+  - admin config: block password-manager autofill on sensitive fields; stabilize dirty tracking
+  - settings UI: remove inline plugin-card styling to be theme-safe; use `jPulse.date.formatLocalDate*()` for date fields
+- deliverables:
+  - bin/plugin-manager-cli.js:
+    - install plugin deps in plugin folder (site context) on install/update
+  - webapp/view/admin/config.shtml:
+    - autofill protections for `smtpPass` / `licenseKey`; dirty snapshot tracking
+  - webapp/view/user/settings.tmpl:
+    - remove plugin card inline styling and hard-coded colors; use `jPulse.date.*` formatters
+  - package.json, package-lock.json:
+    - remove `otplib` dependency from framework root
+
+
+
+
+
 
 
 
@@ -4288,6 +4335,15 @@ pending:
 - deliverables:
   - FIXME file:
     - FIXME summary
+
+
+
+
+
+pending:
+
+
+
 
 
 
@@ -4318,8 +4374,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-diff.txt for accuracy and completness of work item
-- assume release: W-137, v1.4.17
-- update deliverables in W-137 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-140, v1.4.18
+- update deliverables in W-140 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4336,25 +4392,26 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.17
+node bin/bump-version.js 1.4.18
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.17
+git tag v1.4.18
 git push origin main --tags
 
 === plugin release & package build on github ===
 git diff
 git status
-node ../../bin/bump-version.js 1.0.0
+node ../../bin/bump-version.js 1.0.5
 git diff
 git status
 git add .
-git commit -m "...."
-git tag v1.0.0
+git commit -F commit-message.txt
+git tag v1.0.5
 git push origin main --tags
 npm publish
+(or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 
 === on failed package build on github ===
 git add .

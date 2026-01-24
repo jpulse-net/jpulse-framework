@@ -16845,3 +16845,27 @@ Updated work-items.md W-137 entry with comprehensive spec & features and deliver
 
 
 ============================================================
+2026-01-23 01:02
+
+yes, update
+
+Fixed Admin Config password persistence and dirty-state issues by preventing browser/password-manager autofill from overwriting the SMTP password and license key fields. Added autofill-blocking attributes to the `smtpPass` and `licenseKey` inputs (`autocomplete="new-password"`, plus password-manager ignore attributes), so saved values no longer appear to “revert” due to injected autofill masking.
+
+
+============================================================
+2026-01-24 01:30
+
+release prep:
+- assume release: W-140, v1.4.18
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- update cursor_log.txt (append, don't replace)
+
+Summary:
+- Updated `README.md` and `docs/README.md` (## Latest Release Highlights) to add the new W-140 / v1.4.18 release highlight entry above v1.4.17.
+- Updated `docs/CHANGELOG.md` by adding a full `## v1.4.18, W-140, 2026-01-24` section above v1.4.17, including objectives, key features, code changes, test results, breaking changes, and migration steps.
+- Updated `commit-message.txt` with the W-140 / v1.4.18 commit message in the same format as prior releases (no git actions performed).
+- Appended this entry to `cursor_log.txt` at true EOF per the append-only protocol.
+
+
+============================================================

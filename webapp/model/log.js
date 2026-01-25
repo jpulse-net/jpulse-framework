@@ -3,13 +3,13 @@
  * @tagline         Log Model for jPulse Framework WebApp
  * @description     This is the log model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/log.js
- * @version         1.4.18
- * @release         2026-01-24
+ * @version         1.5.0
+ * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import database from '../database.js';
@@ -288,11 +288,12 @@ class LogModel {
         try {
             // Build MongoDB query from URI parameters
             const ignoreFields = ['limit', 'offset', 'sort', 'cursor'];
-            const query = CommonUtils.schemaBasedQuery(LogModel.schema, queryParams, ignoreFields);
+            const queryResult = CommonUtils.schemaBasedQuery(LogModel.schema, queryParams, ignoreFields);
 
             // Delegate to CommonUtils.paginatedSearch() for pagination handling
+            // paginatedSearch will auto-detect the enhanced format and apply collation if eligible
             const collection = LogModel.getCollection();
-            return CommonUtils.paginatedSearch(collection, query, queryParams, options);
+            return CommonUtils.paginatedSearch(collection, queryResult, queryParams, options);
         } catch (error) {
             throw new Error(`Failed to search log entries: ${error.message}`);
         }

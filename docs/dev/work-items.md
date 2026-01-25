@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.4.18
+# jPulse Docs / Dev / Work Items v1.5.0
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4275,19 +4275,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - use `jPulse.date.formatLocalDate()` / `jPulse.date.formatLocalDateAndTime()` for date fields (no duplicated code)
     - remove hard-coded muted placeholder inline styles (use `jp-text-muted`)
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-140, v1.4.18, 2026-01-24: plugins: make plugin installs self-contained (install deps in plugin dir)
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - prevent plugins from breaking after `npm install` / `npm prune` in the site root
@@ -4314,36 +4303,70 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-### W-, v1., 2026-: search: schema-based query with OR
-- status: 🕑 PENDING
-- type: Feature
-- objectives: more flexibility with OR searches
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-141, v1.5.0, 2026-01-25: search: boolean operators (AND/OR/NOT) with exact match (breaking change)
+- status: 🚧 IN PROGRESS
+- type: Feature + Breaking Change
+- objectives: powerful search with boolean logic, exact match default, collation optimization
+- breaking changes:
+  - exact match by default (was: fuzzy contains)
+    - before: `status=active` matched "active", "inactive", "reactivate"
+    - after: `status=active` matches only "active" (case-insensitive)
+    - migration: use `status=*active*` for fuzzy/contains search
 - enhancement:
-  - the schemaBasedQuery currently handles a schema field of string type:
-    - `*` wildcards are converted to regex `.*`
-      - what is `%`?
-    - search is done by case-insensitive regex that is not anchored
-  - new feature:
-    - OR search with comma:
-      - search `name=a,b,c` will result in a literal case-sensitive OR: `name: { $in: 'a', 'b', 'c' }`
-      - search `name=a,` will result in a an exact case-sensitive match: `name: 'a'`
-    - search is anchored at the beginning (BREAKING CHANGE)
-      - example field value: `"brainstorming"`
-      - search `storm` => no match
-      - search `brain` => match
-      - search `*storm` => match
+  - boolean operators **within same field**:
+    - OR: `,` → `lunch=sushi,pizza` = sushi OR pizza
+    - AND: `;` → `lunch=sushi;soup` = sushi AND soup
+    - NOT: `!` prefix → `lunch=sushi;!miso` = sushi AND NOT miso
+    - combination: `lunch=sushi;miso%20soup,pizza;salad!vinegar` = (sushi AND miso soup) OR (pizza AND salad AND NOT vinegar)
+    - precedence: AND binds tighter than OR
+    - note: AND between **different fields** uses standard query syntax: `role=admin&status=active`
+  - exact match by default (anchored at both ends):
+    - `storm` → `/^storm$/i` matches only "storm" (case-insensitive)
+    - `brain*` → `/^brain.*/i` starts with "brain"
+    - `*storm` → `/.*storm$/i` ends with "storm"
+    - `*storm*` → `/.*storm.*/i` contains "storm" (fuzzy)
+  - regex support for power users:
+    - `/pattern/flags` → explicit regex with flags
+    - example: `/BC[1-9]\d{3}/` case-sensitive, `/storm/i` case-insensitive
+    - security: validated, length-limited (~200 chars)
+  - collation optimization:
+    - exact matches use collation (10-100x faster on large collections)
+    - pattern/regex searches use regex (no collation)
+    - auto-detection in paginatedSearch (backward compatible)
+  - wildcard character: `*` only
+- example queries:
+  - single field AND/OR: `lunch=sushi;miso soup,pizza;salad;!vinegar`
+    - meaning: (sushi AND miso soup) OR (pizza AND salad AND NOT vinegar)
+  - multi-field AND (no change): `role=admin&status=active`
+    - meaning: role is admin AND status is active (standard query string)
 - deliverables:
-  - FIXME file:
-    - FIXME summary
+  - docs/dev/working/W-141-search-with-boolean-operators.md:
+    - complete specification and implementation plan (991 lines)
+  - webapp/utils/common.js:
+    - StringQueryParser class (~250 lines)
+    - enhanced schemaBasedQuery return format (with metadata)
+    - auto-detection in paginatedSearch (backward compatible)
+    - collation support in _paginatedOffsetSearch and _paginatedCursorSearch
+  - webapp/tests/manual-string-query-parser-test.js:
+    - 18 manual tests - all passing
+  - webapp/tests/unit/utils/common-utils-boolean-search.test.js:
+    - 60+ comprehensive unit tests - all passing (2009 total tests)
+  - docs/api-reference.md:
+    - updated search syntax documentation with cross-references
+    - comprehensive Advanced Search Syntax section
+    - boolean operators, wildcards, regex, performance tips
+    - migration guide from v1.4.x
+  - docs/CHANGELOG.md:
+    - pending: breaking change notes with migration guide
 
 
 
 
 
 pending:
-
-
-
 
 
 
@@ -4374,8 +4397,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-diff.txt for accuracy and completness of work item
-- assume release: W-140, v1.4.18
-- update deliverables in W-140 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-141, v1.5.0
+- update deliverables in W-141 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4392,12 +4415,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.4.18
+node bin/bump-version.js 1.5.0
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.4.18
+git tag v1.5.0
 git push origin main --tags
 
 === plugin release & package build on github ===

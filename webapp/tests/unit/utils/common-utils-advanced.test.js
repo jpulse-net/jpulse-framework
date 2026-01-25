@@ -3,13 +3,13 @@
  * @tagline         Advanced Unit Tests for CommonUtils
  * @description     Additional focused tests for common utility functions
  * @file            webapp/tests/unit/utils/common-utils-advanced.test.js
- * @version         1.4.18
- * @release         2026-01-24
+ * @version         1.5.0
+ * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.3, Claude Sonnet 4.5
+ * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import { describe, test, expect } from '@jest/globals';
@@ -39,18 +39,19 @@ describe('CommonUtils - Advanced Tests', () => {
                 docVersion: '1'
             };
 
-            const query = CommonUtils.schemaBasedQuery(logSchema, queryParams);
+            const result = CommonUtils.schemaBasedQuery(logSchema, queryParams);
 
-            expect(query).toEqual({
-                'data.docType': { $regex: /user/i },
+            expect(result.query).toEqual({
+                'data.docType': 'user', // exact match now
                 'data.action': 'update',
-                createdBy: { $regex: /admin.*/i },
+                createdBy: { $regex: /^admin.*/i }, // anchored wildcard
                 createdAt: {
                     $gte: new Date(2025, 7, 1),
                     $lt: new Date(2025, 8, 1)
                 },
                 docVersion: 1
             });
+            expect(result.useCollation).toBe(false); // has regex, can't use collation
         });
 
         test('should handle Config model schema queries', () => {
@@ -80,15 +81,16 @@ describe('CommonUtils - Advanced Tests', () => {
                 docVersion: '2'
             };
 
-            const query = CommonUtils.schemaBasedQuery(configSchema, queryParams);
+            const result = CommonUtils.schemaBasedQuery(configSchema, queryParams);
 
-            expect(query).toEqual({
-                _id: { $regex: /global/i },
-                'data.email.adminEmail': { $regex: /.*@company.com/i },
+            expect(result.query).toEqual({
+                _id: 'global', // exact match now
+                'data.email.adminEmail': { $regex: /.*@company.com$/i }, // anchored wildcard
                 'data.email.useTls': true,
-                updatedBy: { $regex: /admin/i },
+                updatedBy: 'admin', // exact match now
                 docVersion: 2
             });
+            expect(result.useCollation).toBe(false); // has regex, can't use collation
         });
 
         test('should handle User model schema queries', () => {
@@ -116,12 +118,12 @@ describe('CommonUtils - Advanced Tests', () => {
                 lastLogin: '2025-08-24'
             };
 
-            const query = CommonUtils.schemaBasedQuery(userSchema, queryParams);
+            const result = CommonUtils.schemaBasedQuery(userSchema, queryParams);
 
-            expect(query).toEqual({
-                loginId: { $regex: /john.*/i },
-                email: { $regex: /.*@company.com/i },
-                firstName: { $regex: /John/i },
+            expect(result.query).toEqual({
+                loginId: { $regex: /^john.*/i }, // anchored wildcard
+                email: { $regex: /.*@company.com$/i }, // anchored wildcard
+                firstName: 'John', // exact match now
                 active: true,
                 'preferences.language': 'en',
                 'preferences.theme': 'dark',
@@ -130,6 +132,7 @@ describe('CommonUtils - Advanced Tests', () => {
                     $lt: new Date('2025-08-25')
                 }
             });
+            expect(result.useCollation).toBe(false); // has regex, can't use collation
         });
     });
 
@@ -159,18 +162,18 @@ describe('CommonUtils - Advanced Tests', () => {
                 'profile.preferences.theme': 'dark'
             };
 
-            const query = CommonUtils.schemaBasedQuery(complexSchema, params);
+            const result = CommonUtils.schemaBasedQuery(complexSchema, params);
 
-            expect(query.name).toEqual({ $regex: /john.*/i });
-            expect(query.age).toBe(25);
-            expect(query.active).toBe(true);
-            expect(query.status).toBe('published');
-            expect(query.createdAt).toEqual({
+            expect(result.query.name).toEqual({ $regex: /^john.*/i }); // anchored wildcard
+            expect(result.query.age).toBe(25);
+            expect(result.query.active).toBe(true);
+            expect(result.query.status).toBe('published');
+            expect(result.query.createdAt).toEqual({
                 $gte: new Date(2025, 7, 1),
                 $lt: new Date(2025, 8, 1)
             });
-            expect(query['profile.firstName']).toEqual({ $regex: /John/i });
-            expect(query['profile.preferences.theme']).toBe('dark');
+            expect(result.query['profile.firstName']).toBe('John'); // exact match now
+            expect(result.query['profile.preferences.theme']).toBe('dark');
         });
 
         test('should handle ignore fields correctly', () => {
@@ -184,14 +187,14 @@ describe('CommonUtils - Advanced Tests', () => {
             };
 
             const ignoreFields = ['limit', 'skip', 'sort'];
-            const query = CommonUtils.schemaBasedQuery(complexSchema, params, ignoreFields);
+            const result = CommonUtils.schemaBasedQuery(complexSchema, params, ignoreFields);
 
-            expect(query.name).toEqual({ $regex: /john/i });
-            expect(query.age).toBe(25);
-            expect(query.active).toBe(true);
-            expect(query.limit).toBeUndefined();
-            expect(query.skip).toBeUndefined();
-            expect(query.sort).toBeUndefined();
+            expect(result.query.name).toBe('john'); // exact match now
+            expect(result.query.age).toBe(25);
+            expect(result.query.active).toBe(true);
+            expect(result.query.limit).toBeUndefined();
+            expect(result.query.skip).toBeUndefined();
+            expect(result.query.sort).toBeUndefined();
         });
 
         test('should handle empty and null values', () => {
@@ -202,12 +205,12 @@ describe('CommonUtils - Advanced Tests', () => {
                 status: undefined
             };
 
-            const query = CommonUtils.schemaBasedQuery(complexSchema, params);
+            const result = CommonUtils.schemaBasedQuery(complexSchema, params);
 
-            expect(query.name).toBeUndefined();
-            expect(query.age).toBeUndefined();
-            expect(query.active).toBe(true);
-            expect(query.status).toBeUndefined();
+            expect(result.query.name).toBeUndefined();
+            expect(result.query.age).toBeUndefined();
+            expect(result.query.active).toBe(true);
+            expect(result.query.status).toBeUndefined();
         });
     });
 
@@ -282,20 +285,20 @@ describe('CommonUtils - Advanced Tests', () => {
     describe('Error Handling', () => {
         test('schemaBasedQuery should handle empty schema', () => {
             const params = { name: 'test' };
-            const query = CommonUtils.schemaBasedQuery({}, params);
-            expect(Object.keys(query)).toHaveLength(0);
+            const result = CommonUtils.schemaBasedQuery({}, params);
+            expect(Object.keys(result.query)).toHaveLength(0);
         });
 
         test('schemaBasedQuery should handle empty params', () => {
             const schema = { name: { type: 'string' } };
-            const query = CommonUtils.schemaBasedQuery(schema, {});
-            expect(Object.keys(query)).toHaveLength(0);
+            const result = CommonUtils.schemaBasedQuery(schema, {});
+            expect(Object.keys(result.query)).toHaveLength(0);
         });
 
         test('schemaBasedQuery should handle null params', () => {
             const schema = { name: { type: 'string' } };
-            const query = CommonUtils.schemaBasedQuery(schema, null);
-            expect(Object.keys(query)).toHaveLength(0);
+            const result = CommonUtils.schemaBasedQuery(schema, null);
+            expect(Object.keys(result.query)).toHaveLength(0);
         });
 
         test('buildDateQuery should handle invalid dates', () => {

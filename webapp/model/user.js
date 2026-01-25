@@ -3,13 +3,13 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.4.18
- * @release         2026-01-24
+ * @version         1.5.0
+ * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import database from '../database.js';
@@ -469,22 +469,18 @@ class UserModel {
     static async search(queryParams, options = {}) {
         try {
             // Build MongoDB query from URI parameters
-            const ignoreFields = ['limit', 'offset', 'sort', 'cursor', 'password', 'passwordHash', 'name'];
-            const query = CommonUtils.schemaBasedQuery(UserModel.getSchema(), queryParams, ignoreFields);
-
-            // Handle special 'name' parameter to search both firstName and lastName
-            if (queryParams.name && queryParams.name.trim()) {
-                const nameValue = queryParams.name.trim();
-                query.$or = [
-                    { 'profile.firstName': { $regex: new RegExp(nameValue, 'i') } },
-                    { 'profile.lastName': { $regex: new RegExp(nameValue, 'i') } },
-                    { 'username': { $regex: new RegExp(nameValue, 'i') } }
-                ];
-            }
+            // W-141: Use multiFieldSearch option for name parameter
+            const options = {
+                ignoreFields: ['limit', 'offset', 'sort', 'cursor', 'password', 'passwordHash', 'name'],
+                multiFieldSearch: {
+                    name: ['profile.firstName', 'profile.lastName', 'username']
+                }
+            };
+            const queryResult = CommonUtils.schemaBasedQuery(UserModel.getSchema(), queryParams, options);
 
             // Delegate to CommonUtils.paginatedSearch() for pagination handling
             const collection = UserModel.getCollection();
-            return CommonUtils.paginatedSearch(collection, query, queryParams, options);
+            return CommonUtils.paginatedSearch(collection, queryResult, queryParams, options);
         } catch (error) {
             throw new Error(`Failed to search users: ${error.message}`);
         }

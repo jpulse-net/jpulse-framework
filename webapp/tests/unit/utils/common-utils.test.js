@@ -3,13 +3,13 @@
  * @tagline         Unit Tests for CommonUtils
  * @description     Tests for common utility functions
  * @file            webapp/tests/unit/utils/common-utils.test.js
- * @version         1.4.18
- * @release         2026-01-24
+ * @version         1.5.0
+ * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import CommonUtils from '../../../utils/common.js';
@@ -29,81 +29,83 @@ describe('CommonUtils', () => {
             }
         };
 
-        test('should create string query with case-insensitive regex', () => {
+        test('should create string query with exact match by default', () => {
             const params = { name: 'john' };
-            const query = CommonUtils.schemaBasedQuery(testSchema, params);
+            const result = CommonUtils.schemaBasedQuery(testSchema, params);
 
-            expect(query.name).toEqual({ $regex: /john/i });
+            expect(result.query.name).toBe('john'); // exact match now
+            expect(result.useCollation).toBe(true);
         });
 
         test('should handle wildcard patterns in strings', () => {
             const params = { name: 'john*' };
-            const query = CommonUtils.schemaBasedQuery(testSchema, params);
+            const result = CommonUtils.schemaBasedQuery(testSchema, params);
 
-            expect(query.name).toEqual({ $regex: /john.*/i });
+            expect(result.query.name).toEqual({ $regex: /^john.*/i }); // anchored wildcard
+            expect(result.useCollation).toBe(false);
         });
 
         test('should convert string numbers to actual numbers', () => {
             const params = { age: '25' };
-            const query = CommonUtils.schemaBasedQuery(testSchema, params);
+            const result = CommonUtils.schemaBasedQuery(testSchema, params);
 
-            expect(query.age).toBe(25);
+            expect(result.query.age).toBe(25);
         });
 
         test('should convert string booleans to actual booleans', () => {
             const params = { active: 'true' };
-            const query = CommonUtils.schemaBasedQuery(testSchema, params);
+            const result = CommonUtils.schemaBasedQuery(testSchema, params);
 
-            expect(query.active).toBe(true);
+            expect(result.query.active).toBe(true);
 
             const params2 = { active: 'false' };
-            const query2 = CommonUtils.schemaBasedQuery(testSchema, params2);
+            const result2 = CommonUtils.schemaBasedQuery(testSchema, params2);
 
-            expect(query2.active).toBe(false);
+            expect(result2.query.active).toBe(false);
         });
 
         test('should handle enum fields', () => {
             const params = { status: 'active' };
-            const query = CommonUtils.schemaBasedQuery(testSchema, params);
+            const result = CommonUtils.schemaBasedQuery(testSchema, params);
 
-            expect(query.status).toBe('active');
+            expect(result.query.status).toBe('active');
         });
 
         test('should ignore invalid enum values', () => {
             const params = { status: 'invalid' };
-            const query = CommonUtils.schemaBasedQuery(testSchema, params);
+            const result = CommonUtils.schemaBasedQuery(testSchema, params);
 
-            expect(query.status).toBeUndefined();
+            expect(result.query.status).toBeUndefined();
         });
 
         test('should handle nested schema paths', () => {
             const params = { 'data.email.adminEmail': 'admin@example.com' };
-            const query = CommonUtils.schemaBasedQuery(testSchema, params);
+            const result = CommonUtils.schemaBasedQuery(testSchema, params);
 
-            expect(query['data.email.adminEmail']).toEqual({ $regex: /admin@example.com/i });
+            expect(result.query['data.email.adminEmail']).toBe('admin@example.com'); // exact match now
         });
 
         test('should ignore empty values', () => {
             const params = { name: '', age: '25' };
-            const query = CommonUtils.schemaBasedQuery(testSchema, params);
+            const result = CommonUtils.schemaBasedQuery(testSchema, params);
 
-            expect(query.name).toBeUndefined();
-            expect(query.age).toBe(25);
+            expect(result.query.name).toBeUndefined();
+            expect(result.query.age).toBe(25);
         });
 
         test('should ignore specified fields', () => {
             const params = { name: 'john', age: '25' };
-            const query = CommonUtils.schemaBasedQuery(testSchema, params, ['name']);
+            const result = CommonUtils.schemaBasedQuery(testSchema, params, ['name']);
 
-            expect(query.name).toBeUndefined();
-            expect(query.age).toBe(25);
+            expect(result.query.name).toBeUndefined();
+            expect(result.query.age).toBe(25);
         });
 
         test('should handle date queries', () => {
             const params = { createdAt: '2025' };
-            const query = CommonUtils.schemaBasedQuery(testSchema, params);
+            const result = CommonUtils.schemaBasedQuery(testSchema, params);
 
-            expect(query.createdAt).toEqual({
+            expect(result.query.createdAt).toEqual({
                 $gte: new Date(2025, 0, 1),
                 $lt: new Date(2026, 0, 1)
             });

@@ -3,8 +3,8 @@
  * @tagline         Unit tests for log model and controller basic functionality
  * @description     This file contains unit tests for the log model and controller
  * @file            webapp/tests/unit/log/log-basic.test.js
- * @version         1.4.18
- * @release         2026-01-24
+ * @version         1.5.0
+ * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -240,65 +240,65 @@ describe('Schema-Based Query Builder', () => {
 
     test('should build date range queries', () => {
         const queryParams = { createdAt: '2025-08' };
-        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams);
+        const result = CommonUtils.schemaBasedQuery(testSchema, queryParams);
 
-        expect(query.createdAt).toHaveProperty('$gte');
-        expect(query.createdAt).toHaveProperty('$lt');
-        expect(query.createdAt.$gte).toEqual(new Date(2025, 7, 1)); // August 1st
-        expect(query.createdAt.$lt).toEqual(new Date(2025, 8, 1)); // September 1st
+        expect(result.query.createdAt).toHaveProperty('$gte');
+        expect(result.query.createdAt).toHaveProperty('$lt');
+        expect(result.query.createdAt.$gte).toEqual(new Date(2025, 7, 1)); // August 1st
+        expect(result.query.createdAt.$lt).toEqual(new Date(2025, 8, 1)); // September 1st
     });
 
     test('should build string regex queries', () => {
         const queryParams = { docType: 'config' };
-        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams);
+        const result = CommonUtils.schemaBasedQuery(testSchema, queryParams);
 
-        expect(query.docType).toHaveProperty('$regex');
-        expect(query.docType.$regex.source).toBe('config');
-        expect(query.docType.$regex.flags).toBe('i');
+        // Now returns exact match by default
+        expect(result.query.docType).toBe('config');
+        expect(result.useCollation).toBe(true);
     });
 
     test('should handle enum validation', () => {
         const queryParams = { action: 'create' };
-        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams);
+        const result = CommonUtils.schemaBasedQuery(testSchema, queryParams);
 
-        expect(query.action).toBe('create');
+        expect(result.query.action).toBe('create');
     });
 
     test('should ignore invalid enum values', () => {
         const queryParams = { action: 'invalid' };
-        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams);
+        const result = CommonUtils.schemaBasedQuery(testSchema, queryParams);
 
-        expect(query.action).toBeUndefined();
+        expect(result.query.action).toBeUndefined();
     });
 
     test('should handle number queries', () => {
         const queryParams = { count: '42' };
-        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams);
+        const result = CommonUtils.schemaBasedQuery(testSchema, queryParams);
 
-        expect(query.count).toBe(42);
+        expect(result.query.count).toBe(42);
     });
 
     test('should handle boolean queries', () => {
         const queryParams = { active: 'true' };
-        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams);
+        const result = CommonUtils.schemaBasedQuery(testSchema, queryParams);
 
-        expect(query.active).toBe(true);
+        expect(result.query.active).toBe(true);
     });
 
     test('should ignore fields not in schema', () => {
         const queryParams = { unknownField: 'value' };
-        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams);
+        const result = CommonUtils.schemaBasedQuery(testSchema, queryParams);
 
-        expect(query.unknownField).toBeUndefined();
+        expect(result.query.unknownField).toBeUndefined();
     });
 
     test('should ignore specified fields', () => {
         const queryParams = { docType: 'config', limit: '10' };
         const ignoreFields = ['limit'];
-        const query = CommonUtils.schemaBasedQuery(testSchema, queryParams, ignoreFields);
+        const result = CommonUtils.schemaBasedQuery(testSchema, queryParams, ignoreFields);
 
-        expect(query.docType).toBeDefined();
-        expect(query.limit).toBeUndefined();
+        expect(result.query.docType).toBeDefined();
+        expect(result.query.limit).toBeUndefined();
     });
 });
 

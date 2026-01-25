@@ -4,8 +4,8 @@
  * @tagline         Admin logs viewer interface
  * @description     Log analysis and search interface for site administrators
  * @file            webapp/view/admin/logs.shtml
- * @version         1.4.18
- * @release         2026-01-24
+ * @version         1.5.0
+ * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -351,9 +351,9 @@
 
             <!-- Pagination -->
             <div class="jp-pagination jp-hidden" id="pagination">
-                <button id="prevPage" disabled>{{i18n.view.admin.logs.previous}}</button>
+                <button id="prevPage" class="jp-btn jp-btn-outline" disabled>{{i18n.view.admin.logs.previous}}</button>
                 <span id="pageInfo"></span>
-                <button id="nextPage" disabled>{{i18n.view.admin.logs.next}}</button>
+                <button id="nextPage" class="jp-btn jp-btn-outline" disabled>{{i18n.view.admin.logs.next}}</button>
             </div>
 
           {{else}}

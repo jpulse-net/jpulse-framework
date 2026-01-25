@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.4.18
- * @release         2026-01-24
+ * @version         1.5.0
+ * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1696,6 +1696,11 @@ body {
     color: #721c24;
 }
 
+.jp-status-terminated {
+    background: #6c757d;
+    color: #ffffff;
+}
+
 .jp-status-disabled {
     background: #e2e3e5;
     color: #383d41;
@@ -1860,27 +1865,22 @@ body {
     margin: 20px 0;
 }
 
-.jp-pagination button {
-    padding: 8px 12px;
-    border: 1px solid #dee2e6;
-    background: white;
-    cursor: pointer;
-    border-radius: 4px;
+/* Ensure pagination buttons have proper styling */
+.jp-pagination .jp-btn {
+    min-width: 100px;
 }
 
-.jp-pagination button:hover:not(:disabled) {
-    background: #f8f9fa;
-}
-
-.jp-pagination button:disabled {
+/* Make sure outline is visible even when disabled */
+.jp-pagination .jp-btn-outline:disabled {
     opacity: 0.5;
-    cursor: not-allowed;
+    border-color: var(--jp-theme-btn-outline-color, #007acc);
+    color: var(--jp-theme-btn-outline-color, #007acc);
 }
 
-.jp-pagination .jp-current-page {
-    background: #007acc;
-    color: white;
-    border-color: #007acc;
+.jp-pagination span {
+    color: var(--jp-color-text-secondary);
+    padding: 0 8px;
+    font-size: 14px;
 }
 
 /* Loading and No Results States */

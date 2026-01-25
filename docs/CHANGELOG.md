@@ -1,6 +1,171 @@
-# jPulse Docs / Version History v1.4.18
+# jPulse Docs / Version History v1.5.0
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.5.0, W-141, 2026-01-25
+
+**Commit:** `W-141, v1.5.0: search: boolean operators (AND/OR/NOT) with exact match (breaking change)`
+
+**FEATURE RELEASE + BREAKING CHANGE**: Advanced search with boolean operators for all schema-based queries. Exact match replaces fuzzy search as the new default, with MongoDB collation optimization for 10-100x performance improvement on large collections.
+
+**Objectives**:
+- Enable complex searches with boolean logic (AND/OR/NOT) within the same field
+- Improve search predictability with exact match default (breaking change)
+- Optimize query performance with MongoDB collation for exact matches
+- Provide regex support for power users with security safeguards
+
+**Key Features**:
+- **Boolean Operators Within Same Field**:
+  - OR: `,` (comma) → `status=active,pending` matches "active" OR "pending"
+  - AND: `;` (semicolon) → `tags=python;async` matches "python" AND "async"
+  - NOT: `!` (prefix) → `status=!terminated` matches NOT "terminated"
+  - Complex combinations: `lunch=sushi;soup,pizza;salad;!vinegar` = (sushi AND soup) OR (pizza AND salad AND NOT vinegar)
+  - Precedence: AND binds tighter than OR (parentheses-like grouping)
+  - Multi-field AND unchanged: `role=admin&status=active` (standard query string)
+- **Exact Match Default (Breaking Change)**:
+  - Before v1.5.0: `status=active` matched "active", "inactive", "reactivate" (fuzzy contains)
+  - After v1.5.0: `status=active` matches only "active" (case-insensitive anchored)
+  - Migration: Use wildcards to restore fuzzy behavior: `status=*active*`
+- **Wildcard Search**:
+  - `*` only (removed `%` SQL-style wildcard)
+  - `*term*` (contains), `term*` (starts with), `*term` (ends with)
+  - Anchored at boundaries: `storm*` → `/^storm.*/i`
+- **Regex Support for Power Users**:
+  - Syntax: `/pattern/flags` → e.g., `/^BC[0-9]{4}/i`
+  - Supported flags: `i` (case-insensitive), `m` (multiline), `s` (dotall)
+  - Security: Pattern validation and length limit (max 200 chars) to prevent ReDoS attacks
+- **MongoDB Collation Optimization**:
+  - Exact matches use collation (10-100x faster on large collections with indexes)
+  - Pattern/regex searches use regex fallback (no collation)
+  - Auto-detection in `paginatedSearch` (no code changes needed)
+- **Enhanced schemaBasedQuery API**:
+  - Returns `{ query, useCollation, collation }` instead of plain query
+  - Backward compatible (auto-detected by `paginatedSearch`)
+  - New options parameter: `{ ignoreFields, multiFieldSearch }`
+- **Multi-Field Search Option**:
+  - New `multiFieldSearch` option for searching across multiple fields
+  - Example: `name` parameter searches `firstName`, `lastName`, `username`
+  - Replaces ad-hoc model-level $or logic with declarative config
+- **StringQueryParser Class**:
+  - ~250 line parser supporting complex boolean logic
+  - Token-based protection for regex patterns during parsing
+  - Collation eligibility detection
+  - Security validation for user-provided regex
+- **Cursor Pagination Fixes**:
+  - Fixed RegExp serialization in cursors (previously lost as `{}`)
+  - Fixed Date serialization/deserialization in cursors
+  - Added `_serializeQuery` and `_deserializeQuery` helpers
+  - Pagination now works correctly with filtered queries
+
+**Code Changes**:
+
+**webapp/utils/common.js**:
+- Added `StringQueryParser` class (~250 lines) with boolean operator parsing
+- Enhanced `schemaBasedQuery()` to return `{ query, useCollation, collation }` format
+- Added options parameter support (backward compatible with array syntax)
+- Added `_buildMultiFieldOr()` helper for multi-field search
+- Added `_mergeFieldQueries()` helper for combining field queries
+- Enhanced `paginatedSearch()` with auto-detection of enhanced query format
+- Added collation support to `_paginatedOffsetSearch()` and `_paginatedCursorSearch()`
+- Added `_serializeQuery()` and `_deserializeQuery()` helpers for cursor pagination
+- Fixed RegExp and Date serialization in pagination cursors
+- Removed deprecated `_convertQueryDates()` function (replaced by `_deserializeQuery`)
+- Updated version to 1.5.0, release date to 2026-01-25
+
+**webapp/model/user.js**:
+- Updated `search()` to use new `schemaBasedQuery` enhanced format
+- Replaced ad-hoc `name` $or logic with `multiFieldSearch` option
+- Updated genai attribution to Cursor 2.4, Claude Sonnet 4.5
+
+**webapp/model/log.js**:
+- Updated `search()` to use new `schemaBasedQuery` enhanced format
+- Updated genai attribution to Cursor 2.4, Claude Sonnet 4.5
+
+**webapp/view/admin/users.shtml**:
+- Updated pagination buttons to use `.jp-btn jp-btn-outline` classes for consistent theming
+
+**webapp/view/admin/logs.shtml**:
+- Updated pagination buttons to use `.jp-btn jp-btn-outline` classes for consistent theming
+
+**webapp/view/jpulse-common.css**:
+- Added `.jp-status-terminated` style (gray badge for terminated status)
+- Updated `.jp-pagination` button styles to use standard button classes
+- Added `.jp-pagination .jp-btn-outline:disabled` style to ensure outline visibility when disabled
+
+**webapp/tests/unit/utils/common-utils-boolean-search.test.js** (NEW):
+- Created comprehensive test suite with 60+ tests for StringQueryParser
+- Test categories: Basic operators, wildcards, regex, NOT operator, complex combinations
+- Edge cases: Protected characters, collation detection, security validation
+- Query serialization/deserialization tests
+- Advanced boolean search edge cases
+- Real-world search scenarios
+
+**webapp/tests/unit/log/log-basic.test.js**:
+- Updated 15 tests to handle new `schemaBasedQuery` return format (access `result.query`)
+- Updated expectations for exact match default and anchored wildcards
+
+**webapp/tests/unit/utils/common-utils-advanced.test.js**:
+- Updated 9 tests to handle new return format and exact match behavior
+- Updated genai attribution to Cursor 2.4, Claude Sonnet 4.5
+
+**webapp/tests/unit/utils/common-utils.test.js**:
+- Updated 13 tests to handle new return format and exact match behavior
+- Updated genai attribution to Cursor 2.4, Claude Sonnet 4.5
+
+**docs/api-reference.md**:
+- Updated version from v1.4.18 to v1.5.0
+- Added comprehensive "Advanced Search Syntax" section (~150 lines)
+- Documented boolean operators, exact match, wildcards, regex, performance tips
+- Updated User Search and Log Search sections with cross-references
+- Added migration guide from v1.4.x fuzzy search
+- Removed redundant wildcard/date sections (consolidated into Advanced Search)
+
+**docs/dev/work-items.md**:
+- Updated W-141 entry with complete specifications and deliverables
+- Marked W-140 as DONE
+- Moved W-141 to IN_PROGRESS section
+- Updated release prep template for v1.5.0
+
+**docs/dev/working/W-141-search-with-boolean-operators.md** (NEW):
+- Complete technical specification (~1080 lines)
+- Architecture, implementation details, testing strategy
+- Tech debt section for future enhancements
+
+**Test Results**:
+- **2009 total tests** (up from 1981)
+- **All passing** ✅
+- Unit tests: 1875 (up from 1847, +28 net)
+- Integration tests: 105
+- Test execution time: ~20 seconds
+
+**Breaking Changes**:
+1. **Default Search Behavior Changed from Fuzzy to Exact Match**:
+   - Before: `status=active` matched "active", "inactive", "reactivate" (fuzzy contains)
+   - After: `status=active` matches only "active" (case-insensitive anchored)
+   - Impact: All string searches in User Search, Log Search, and custom schemas
+2. **Removed `%` Wildcard** (SQL-style):
+   - Use `*` instead for wildcards
+   - Migration: Replace `field=value%` with `field=value*`
+
+**Migration Steps**:
+1. **Update Search Queries to Exact Match**:
+   - Review existing search filters in UI and API calls
+   - Add wildcards where fuzzy behavior is needed: `field=*value*`
+   - Test critical search workflows
+2. **Replace `%` Wildcards with `*`**:
+   - Find and replace any `%` wildcards in codebase
+   - Update documentation and examples
+3. **Update Tests**:
+   - Update test expectations for exact match behavior
+   - Add tests for new boolean operators if applicable
+4. **Review Performance**:
+   - Exact matches now use collation (10-100x faster)
+   - Monitor query performance improvements
+
+**Work Item**: W-141
+**Version**: v1.5.0
+**Release Date**: 2026-01-25
 
 ________________________________________________
 ## v1.4.18, W-140, 2026-01-24

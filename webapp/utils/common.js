@@ -3,13 +3,13 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.4.18
- * @release         2026-01-24
+ * @version         1.5.0
+ * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import { ObjectId } from 'mongodb';
@@ -109,16 +109,258 @@ class CommonUtils {
         delete current[keys[keys.length - 1]];
     }
 
+    // =========================================================================
+    // String Query Parser (W-141: Boolean Operators)
+    // =========================================================================
+
+    /**
+     * String Query Parser - Parse search strings with boolean operators
+     *
+     * Supports:
+     * - OR operator: `,` (comma) - e.g., "active,pending"
+     * - AND operator: `;` (semicolon) - e.g., "admin;active"
+     * - NOT operator: `!` (prefix) - e.g., "!suspended"
+     * - Wildcards: `*` - e.g., "john*", "*smith", "*admin*"
+     * - Regex: `/pattern/flags` - e.g., "/^BC[0-9]{4}/i"
+     * - Exact match: no operators - e.g., "active"
+     *
+     * @class StringQueryParser
+     */
+    static StringQueryParser = class {
+        // Token constants for protecting special chars in regex
+        static COMMA_TOKEN = '\x01';
+        static SEMICOLON_TOKEN = '\x02';
+
+        /**
+         * Parse a field value into MongoDB query with metadata
+         * @param {string} fieldName - Field name for query
+         * @param {string} value - Search value to parse
+         * @returns {object} { query, useCollation, collation? }
+         */
+        static parse(fieldName, value) {
+            if (!value || typeof value !== 'string') {
+                return { query: {}, useCollation: false };
+            }
+
+            // Step 0: Protect regex patterns
+            const protectedValue = this.protectRegexPatterns(value);
+
+            // Step 1: Split by comma (OR)
+            const orTerms = protectedValue
+                .split(',')
+                .map(s => s.trim())
+                .filter(s => s);
+
+            if (orTerms.length === 0) {
+                return { query: {}, useCollation: false };
+            }
+
+            // Step 2-4: Parse each OR term
+            const orQueries = orTerms.map(term =>
+                this.parseAndExpression(fieldName, term)
+            );
+
+            // Combine into final query
+            if (orQueries.length === 1) {
+                return orQueries[0];
+            }
+
+            return {
+                query: { $or: orQueries.map(q => q.query) },
+                useCollation: orQueries.every(q => q.useCollation),
+                collation: { locale: 'en', strength: 2 }
+            };
+        }
+
+        /**
+         * Parse AND expression (terms separated by semicolon)
+         * @param {string} fieldName - Field name for query
+         * @param {string} term - Term to parse (may contain semicolons)
+         * @returns {object} { query, useCollation, collation? }
+         */
+        static parseAndExpression(fieldName, term) {
+            // Step 2: Split by semicolon (AND)
+            const andTerms = term
+                .split(';')
+                .map(s => s.trim())
+                .filter(s => s);
+
+            if (andTerms.length === 0) {
+                return { query: {}, useCollation: false };
+            }
+
+            // Step 3-4: Parse each AND term
+            const andQueries = andTerms.map(t =>
+                this.parseNotExpression(fieldName, t)
+            );
+
+            if (andQueries.length === 1) {
+                return andQueries[0];
+            }
+
+            return {
+                query: { $and: andQueries.map(q => q.query) },
+                useCollation: andQueries.every(q => q.useCollation),
+                collation: { locale: 'en', strength: 2 }
+            };
+        }
+
+        /**
+         * Parse NOT expression (starts with !)
+         * @param {string} fieldName - Field name for query
+         * @param {string} term - Term to parse (may start with !)
+         * @returns {object} { query, useCollation, collation? }
+         */
+        static parseNotExpression(fieldName, term) {
+            // Step 3: Check for NOT prefix
+            if (term.startsWith('!')) {
+                const innerTerm = term.substring(1).trim();
+                if (!innerTerm) {
+                    return { query: {}, useCollation: false };
+                }
+
+                const innerQuery = this.parseLiteral(fieldName, innerTerm);
+                return {
+                    query: { [fieldName]: { $not: innerQuery.query[fieldName] } },
+                    useCollation: innerQuery.useCollation,
+                    collation: innerQuery.collation
+                };
+            }
+
+            return this.parseLiteral(fieldName, term);
+        }
+
+        /**
+         * Parse literal value (exact, wildcard, or regex)
+         * @param {string} fieldName - Field name for query
+         * @param {string} term - Term to parse
+         * @returns {object} { query, useCollation, collation? }
+         */
+        static parseLiteral(fieldName, term) {
+            // Step 4: Restore and parse literal/pattern
+            const restored = this.restoreRegexPatterns(term);
+
+            // Check explicit regex: /pattern/flags
+            // Pattern: /^\s*\/.*\/[gimsuy]*\s*$/
+            const regexMatch = restored.trim().match(/^\/(.+)\/([gimsuy]*)$/);
+            if (regexMatch) {
+                const [, pattern, flags] = regexMatch;
+
+                // Validate regex for security
+                try {
+                    this.validateRegex(pattern, flags);
+                    return {
+                        query: { [fieldName]: { $regex: new RegExp(pattern, flags) } },
+                        useCollation: false
+                    };
+                } catch (error) {
+                    // Invalid regex - treat as literal
+                    return {
+                        query: { [fieldName]: restored },
+                        useCollation: true,
+                        collation: { locale: 'en', strength: 2 }
+                    };
+                }
+            }
+
+            // Check wildcards
+            if (restored.includes('*')) {
+                return {
+                    query: { [fieldName]: this.buildWildcardRegex(restored) },
+                    useCollation: false
+                };
+            }
+
+            // Exact match - collation candidate
+            return {
+                query: { [fieldName]: restored },
+                useCollation: true,
+                collation: { locale: 'en', strength: 2 }
+            };
+        }
+
+        /**
+         * Build anchored regex from wildcard pattern
+         * @param {string} value - Value with wildcards (*)
+         * @returns {object} { $regex: RegExp }
+         */
+        static buildWildcardRegex(value) {
+            let pattern = value.replace(/\*/g, '.*');
+
+            // Anchor at boundaries (not wildcard)
+            if (!value.startsWith('*')) {
+                pattern = '^' + pattern;
+            }
+            if (!value.endsWith('*')) {
+                pattern = pattern + '$';
+            }
+
+            return { $regex: new RegExp(pattern, 'i') };
+        }
+
+        /**
+         * Protect commas and semicolons inside /.../ patterns
+         * @param {string} value - Value to protect
+         * @returns {string} Protected value
+         */
+        static protectRegexPatterns(value) {
+            return value.replace(/\/([^/]+)\/([gimsuy]*)/g, (match, pattern, flags) => {
+                const protectedPattern = pattern
+                    .replace(/,/g, this.COMMA_TOKEN)
+                    .replace(/;/g, this.SEMICOLON_TOKEN);
+                return `/${protectedPattern}/${flags}`;
+            });
+        }
+
+        /**
+         * Restore protected commas and semicolons
+         * @param {string} value - Value to restore
+         * @returns {string} Restored value
+         */
+        static restoreRegexPatterns(value) {
+            return value
+                .replace(new RegExp(this.COMMA_TOKEN, 'g'), ',')
+                .replace(new RegExp(this.SEMICOLON_TOKEN, 'g'), ';');
+        }
+
+        /**
+         * Validate regex pattern for security (prevent ReDoS)
+         * @param {string} pattern - Regex pattern
+         * @param {string} flags - Regex flags
+         * @throws {Error} If pattern is invalid or too long
+         */
+        static validateRegex(pattern, flags) {
+            // Length limit
+            if (pattern.length > 200) {
+                throw new Error('Regex pattern too long (max: 200 characters)');
+            }
+
+            // Validate it compiles
+            try {
+                new RegExp(pattern, flags);
+            } catch (e) {
+                throw new Error(`Invalid regex pattern: ${e.message}`);
+            }
+
+            // Note: Could add catastrophic backtracking detection here if needed
+            // For now, rely on MongoDB's regex engine being safer than JavaScript's
+        }
+    };
+
     /**
      * Create schema-based MongoDB query from URI parameters
      *
      * Converts URI query parameters into a MongoDB query object based on
      * schema field types. Supports various data types and query patterns.
      *
+     * W-141: Enhanced to return metadata for collation optimization.
+     * Can return either plain query (backward compatible) or enhanced format:
+     * { query: {...}, useCollation: bool, collation: {...} }
+     *
      * @param {object} schema - Schema definition for field types
      * @param {object} queryParams - URI query parameters
      * @param {array} ignoreFields - Fields to ignore in query building (default: [])
-     * @returns {object} MongoDB query object
+     * @returns {object} Enhanced query object with metadata
      *
      * @example
      * const schema = {
@@ -130,19 +372,35 @@ class CommonUtils {
      * };
      *
      * const params = { name: 'john*', age: '25', active: 'true' };
-     * const query = CommonUtils.schemaBasedQuery(schema, params);
-     * // Returns: {
-     * //   name: { $regex: /john.*\/i },
-     * //   age: 25,
-     * //   active: true
+     * const result = CommonUtils.schemaBasedQuery(schema, params);
+     * // Returns enhanced format:
+     * // {
+     * //   query: { name: { $regex: ... }, age: 25, active: true },
+     * //   useCollation: false
      * // }
      */
-    static schemaBasedQuery(schema, queryParams, ignoreFields = []) {
-        const query = {};
+    static schemaBasedQuery(schema, queryParams, ignoreFieldsOrOptions = []) {
+        // W-141: Parse options (backward compatible)
+        let ignoreFields = [];
+        let options = {};
+
+        if (Array.isArray(ignoreFieldsOrOptions)) {
+            // Old style: array of field names to ignore
+            ignoreFields = ignoreFieldsOrOptions;
+        } else if (ignoreFieldsOrOptions && typeof ignoreFieldsOrOptions === 'object') {
+            // New style: options object
+            ignoreFields = ignoreFieldsOrOptions.ignoreFields || [];
+            options = ignoreFieldsOrOptions;
+        }
+
+        const fieldQueries = []; // Collect: { query, useCollation, collation? }
 
         // Handle null/undefined queryParams
         if (!queryParams || typeof queryParams !== 'object') {
-            return query;
+            return {
+                query: {},
+                useCollation: false
+            };
         }
 
         for (const [key, value] of Object.entries(queryParams)) {
@@ -157,7 +415,10 @@ class CommonUtils {
             if (fieldSchema.type === 'date') {
                 const dateQuery = CommonUtils.buildDateQuery(value);
                 if (dateQuery !== null) {
-                    query[key] = dateQuery;
+                    fieldQueries.push({
+                        query: { [key]: dateQuery },
+                        useCollation: false
+                    });
                 }
             } else if (fieldSchema.type === 'array') {
                 // Handle array fields (like roles)
@@ -174,45 +435,216 @@ class CommonUtils {
                     // For enum arrays, filter valid values and check if array contains any of them
                     const validValues = arrayValues.filter(v => fieldSchema.enum.includes(v));
                     if (validValues.length > 0) {
-                        query[key] = { $in: validValues };
+                        fieldQueries.push({
+                            query: { [key]: { $in: validValues } },
+                            useCollation: false
+                        });
                     }
                 } else {
                     // For non-enum arrays, check if array contains any of the values
-                    query[key] = { $in: arrayValues };
+                    fieldQueries.push({
+                        query: { [key]: { $in: arrayValues } },
+                        useCollation: false
+                    });
                 }
             } else if (fieldSchema.enum) {
                 // Handle enum fields (before string type check)
                 if (fieldSchema.enum.includes(value)) {
-                    query[key] = value;
+                    fieldQueries.push({
+                        query: { [key]: value },
+                        useCollation: true,
+                        collation: { locale: 'en', strength: 2 }
+                    });
                 } else {
                     // Skip invalid enum values
                     continue;
                 }
             } else if (fieldSchema.type === 'string') {
-                // Ensure value is a string before processing
+                // W-141: Use new StringQueryParser
                 const stringValue = String(value);
-                // Support partial string matching with wildcards
-                if (stringValue.includes('*') || stringValue.includes('%')) {
-                    const regex = stringValue.replace(/[*%]/g, '.*');
-                    query[key] = { $regex: new RegExp(regex, 'i') };
-                } else {
-                    // Case-insensitive partial matching for strings (including email)
-                    query[key] = { $regex: new RegExp(stringValue, 'i') };
+                const parsed = CommonUtils.StringQueryParser.parse(key, stringValue);
+                if (parsed.query && Object.keys(parsed.query).length > 0) {
+                    fieldQueries.push(parsed);
                 }
             } else if (fieldSchema.type === 'number') {
                 const num = parseFloat(value);
                 if (!isNaN(num) && isFinite(num)) {
-                    query[key] = num;
+                    fieldQueries.push({
+                        query: { [key]: num },
+                        useCollation: false
+                    });
                 }
             } else if (fieldSchema.type === 'boolean') {
-                query[key] = value.toLowerCase() === 'true';
+                fieldQueries.push({
+                    query: { [key]: value.toLowerCase() === 'true' },
+                    useCollation: false
+                });
             } else {
                 // Default to exact match for unknown types
-                query[key] = value;
+                fieldQueries.push({
+                    query: { [key]: value },
+                    useCollation: false
+                });
             }
         }
 
-        return query;
+        // W-141: Handle multiFieldSearch option
+        if (options.multiFieldSearch) {
+            for (const [paramName, fieldNames] of Object.entries(options.multiFieldSearch)) {
+                if (queryParams[paramName]?.trim && queryParams[paramName].trim()) {
+                    const multiFieldQuery = CommonUtils._buildMultiFieldOr(
+                        paramName,
+                        queryParams[paramName].trim(),
+                        fieldNames
+                    );
+
+                    if (multiFieldQuery) {
+                        fieldQueries.push(multiFieldQuery);
+                    }
+                }
+            }
+        }
+
+        // Merge all field queries
+        if (fieldQueries.length === 0) {
+            return {
+                query: {},
+                useCollation: false
+            };
+        }
+
+        // W-141: Use new merge logic to handle multiple $or conditions
+        return CommonUtils._mergeFieldQueries(fieldQueries);
+    }
+
+    /**
+     * Build multi-field $or query from parsed search value
+     * W-141: Helper for multiFieldSearch option
+     * @private
+     *
+     * @param {string} paramName - Parameter name (e.g., 'name')
+     * @param {string} searchValue - Search value from queryParams
+     * @param {string[]} fieldNames - Array of field names to search
+     * @returns {object} Query fragment with $or condition
+     *
+     * @example
+     * _buildMultiFieldOr('name', 'john', ['profile.firstName', 'profile.lastName', 'username'])
+     * // Returns: { query: { $or: [{ 'profile.firstName': 'john' }, ...] }, useCollation: true }
+     */
+    static _buildMultiFieldOr(paramName, searchValue, fieldNames) {
+        const parsed = CommonUtils.StringQueryParser.parse(paramName, searchValue);
+
+        if (parsed.query[paramName]) {
+            // Simple match: create $or for all fields
+            const nameQuery = parsed.query[paramName];
+            return {
+                query: {
+                    $or: fieldNames.map(field => ({ [field]: nameQuery }))
+                },
+                useCollation: false // Can't use collation with $or across multiple fields
+            };
+        } else if (parsed.query.$or) {
+            // OR operator in search: expand each term to all fields
+            const conditions = [];
+            parsed.query.$or.forEach(term => {
+                fieldNames.forEach(field => {
+                    conditions.push({ [field]: term[paramName] });
+                });
+            });
+            return {
+                query: { $or: conditions },
+                useCollation: false
+            };
+        } else if (parsed.query.$and) {
+            // AND operator in search: each AND term needs to match at least one field
+            const andGroups = parsed.query.$and.map(term => {
+                if (term[paramName]) {
+                    return {
+                        $or: fieldNames.map(field => ({ [field]: term[paramName] }))
+                    };
+                }
+                return term;
+            });
+            return {
+                query: { $and: andGroups },
+                useCollation: false
+            };
+        }
+
+        return null;
+    }
+
+    /**
+     * Merge multiple field queries, handling multiple $or conditions properly
+     * W-141: Helper for schemaBasedQuery
+     * @private
+     *
+     * @param {array} fieldQueries - Array of { query, useCollation } objects
+     * @returns {object} Merged query with metadata
+     *
+     * @example
+     * _mergeFieldQueries([
+     *   { query: { status: 'active' }, useCollation: true },
+     *   { query: { $or: [...] }, useCollation: false }
+     * ])
+     */
+    static _mergeFieldQueries(fieldQueries) {
+        if (fieldQueries.length === 0) {
+            return {
+                query: {},
+                useCollation: false
+            };
+        }
+
+        const orGroups = [];
+        const andConditions = {};
+        let allUseCollation = true;
+
+        for (const fq of fieldQueries) {
+            if (fq.query.$or) {
+                // Collect $or groups separately
+                orGroups.push(fq.query.$or);
+            } else if (fq.query.$and) {
+                // Collect $and groups separately
+                orGroups.push({ $and: fq.query.$and });
+            } else {
+                // Simple field conditions
+                Object.assign(andConditions, fq.query);
+            }
+            if (!fq.useCollation) allUseCollation = false;
+        }
+
+        let finalQuery = { ...andConditions };
+
+        if (orGroups.length === 1 && !orGroups[0].$and) {
+            // Single $or group - add directly
+            finalQuery.$or = orGroups[0];
+        } else if (orGroups.length > 1 || (orGroups.length === 1 && orGroups[0].$and)) {
+            // Multiple $or groups or has $and - combine with $and
+            const conditions = [];
+
+            // Add simple conditions as individual $and terms
+            Object.keys(andConditions).forEach(key => {
+                conditions.push({ [key]: andConditions[key] });
+            });
+
+            // Add each $or group wrapped
+            orGroups.forEach(or => {
+                if (or.$and) {
+                    conditions.push(or);
+                } else {
+                    conditions.push({ $or: or });
+                }
+            });
+
+            finalQuery = conditions.length > 1 ? { $and: conditions } : conditions[0] || {};
+        }
+
+        return {
+            query: finalQuery,
+            useCollation: allUseCollation,
+            collation: allUseCollation ? { locale: 'en', strength: 2 } : undefined
+        };
     }
 
     /**
@@ -859,6 +1291,19 @@ class CommonUtils {
      * return CommonUtils.paginatedSearch(collection, query, req.query, { projection: { password: 0 } });
      */
     static async paginatedSearch(collection, query, queryParams = {}, options = {}) {
+        // W-141: Auto-detect if query is enhanced object with metadata
+        let actualQuery = query;
+        let enhancedOptions = { ...options };
+
+        if (query && typeof query === 'object' && query.query && query.useCollation !== undefined) {
+            // Enhanced format detected: { query, useCollation, collation }
+            actualQuery = query.query;
+            if (query.useCollation && !enhancedOptions.collation) {
+                // Apply collation if not already specified in options
+                enhancedOptions.collation = query.collation;
+            }
+        }
+
         // Determine mode: offset if 'offset' param present, else cursor (default)
         const isOffsetMode = queryParams.offset !== undefined;
 
@@ -867,9 +1312,9 @@ class CommonUtils {
         const sort = CommonUtils._normalizePaginationSort(queryParams.sort);
 
         if (isOffsetMode) {
-            return CommonUtils._paginatedOffsetSearch(collection, query, limit, sort, queryParams, options);
+            return CommonUtils._paginatedOffsetSearch(collection, actualQuery, limit, sort, queryParams, enhancedOptions);
         } else {
-            return CommonUtils._paginatedCursorSearch(collection, query, limit, sort, queryParams, options);
+            return CommonUtils._paginatedCursorSearch(collection, actualQuery, limit, sort, queryParams, enhancedOptions);
         }
     }
 
@@ -885,6 +1330,10 @@ class CommonUtils {
         if (options.projection) {
             findOptions.projection = options.projection;
         }
+        // W-141: Add collation if provided
+        if (options.collation) {
+            findOptions.collation = options.collation;
+        }
 
         // Execute query with skip/limit
         const results = await collection.find(query, findOptions)
@@ -893,8 +1342,9 @@ class CommonUtils {
             .limit(limit)
             .toArray();
 
-        // Get total count
-        const total = await collection.countDocuments(query);
+        // Get total count (also needs collation for consistency)
+        const countOptions = options.collation ? { collation: options.collation } : {};
+        const total = await collection.countDocuments(query, countOptions);
 
         return {
             success: true,
@@ -937,22 +1387,37 @@ class CommonUtils {
                 );
                 // Merge range query with original query from cursor
                 if (rangeQuery.$or) {
-                    effectiveQuery = { $and: [originalQuery, rangeQuery] };
+                    // W-141 fix: Properly merge originalQuery with rangeQuery
+                    // If originalQuery has $or or $and, we need to wrap it carefully
+                    if (originalQuery.$or || originalQuery.$and) {
+                        effectiveQuery = { $and: [originalQuery, rangeQuery] };
+                    } else {
+                        // Simple originalQuery - merge the $or conditions with AND
+                        effectiveQuery = { $and: [originalQuery, rangeQuery] };
+                    }
                 } else {
-                    effectiveQuery = originalQuery;
+                    effectiveQuery = { ...originalQuery, ...rangeQuery };
                 }
             }
         }
 
-        // First page: run countDocuments
+        // First page: run countDocuments (with collation if provided)
+        // W-141: Don't use collation on cursor queries as originalQuery may not support it
         if (total === null) {
-            total = await collection.countDocuments(originalQuery);
+            const countOptions = options.collation ? { collation: options.collation } : {};
+            total = await collection.countDocuments(originalQuery, countOptions);
         }
 
         // Build find options
         const findOptions = { ...options };
         if (options.projection) {
             findOptions.projection = options.projection;
+        }
+        // W-141: Don't apply collation to cursor queries
+        // The originalQuery from cursor may have complex date/regex conditions that don't support collation
+        if (!cursorData && options.collation) {
+            // Only apply collation on first page
+            findOptions.collation = options.collation;
         }
 
         // Fetch limit + 1 for hasMore detection
@@ -1014,6 +1479,7 @@ class CommonUtils {
 
     /**
      * Encode pagination cursor to Base64 string
+     * W-141: Custom serialization to handle RegExp and Date objects
      * @private
      * @param {object} cursorData - Cursor data object
      * @returns {string|null} Base64-encoded cursor string or null if invalid
@@ -1023,7 +1489,9 @@ class CommonUtils {
             return null;
         }
         try {
-            return Buffer.from(JSON.stringify(cursorData)).toString('base64');
+            // Custom serialization to handle RegExp
+            const serialized = CommonUtils._serializeQuery(cursorData);
+            return Buffer.from(JSON.stringify(serialized)).toString('base64');
         } catch (error) {
             return null;
         }
@@ -1031,6 +1499,7 @@ class CommonUtils {
 
     /**
      * Decode and validate pagination cursor from Base64 string
+     * W-141: Custom deserialization to restore RegExp and Date objects
      * @private
      * @param {string} cursorString - Base64-encoded cursor string
      * @returns {object|null} Decoded cursor data or null if invalid
@@ -1045,6 +1514,8 @@ class CommonUtils {
             if (!decoded.v || !decoded.s || !decoded.l) {
                 return null;
             }
+            // W-141: Deserialize RegExp and Date objects
+            decoded.q = CommonUtils._deserializeQuery(decoded.q);
             return decoded;
         } catch (error) {
             return null;
@@ -1077,6 +1548,88 @@ class CommonUtils {
         }
 
         return value;
+    }
+
+    /**
+     * Serialize a query object for cursor storage (handles RegExp)
+     * W-141: RegExp objects need special handling for JSON serialization
+     * @private
+     * @param {*} obj - Object to serialize
+     * @returns {*} Serialized object
+     */
+    static _serializeQuery(obj) {
+        if (!obj || typeof obj !== 'object') {
+            return obj;
+        }
+
+        if (obj instanceof RegExp) {
+            return {
+                __type: 'RegExp',
+                source: obj.source,
+                flags: obj.flags
+            };
+        }
+
+        if (Array.isArray(obj)) {
+            return obj.map(item => CommonUtils._serializeQuery(item));
+        }
+
+        const serialized = {};
+        for (const [key, value] of Object.entries(obj)) {
+            if (value instanceof RegExp) {
+                serialized[key] = {
+                    __type: 'RegExp',
+                    source: value.source,
+                    flags: value.flags
+                };
+            } else if (value instanceof Date) {
+                // Serialize Date as ISO string - will be restored by _deserializeQuery
+                serialized[key] = value.toISOString();
+            } else if (value && typeof value === 'object') {
+                serialized[key] = CommonUtils._serializeQuery(value);
+            } else {
+                serialized[key] = value;
+            }
+        }
+        return serialized;
+    }
+
+    /**
+     * Deserialize a query object from cursor storage (restores RegExp and Date)
+     * W-141: Restore RegExp and Date objects from serialized format
+     * @private
+     * @param {*} obj - Object to deserialize
+     * @returns {*} Deserialized object
+     */
+    static _deserializeQuery(obj) {
+        if (!obj || typeof obj !== 'object') {
+            return obj;
+        }
+
+        // Check if this is a serialized RegExp
+        if (obj.__type === 'RegExp') {
+            return new RegExp(obj.source, obj.flags);
+        }
+
+        if (Array.isArray(obj)) {
+            return obj.map(item => CommonUtils._deserializeQuery(item));
+        }
+
+        const deserialized = {};
+        for (const [key, value] of Object.entries(obj)) {
+            if (value && typeof value === 'object' && value.__type === 'RegExp') {
+                deserialized[key] = new RegExp(value.source, value.flags);
+            } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+                // Convert ISO date strings to Date objects
+                const date = new Date(value);
+                deserialized[key] = !isNaN(date.getTime()) ? date : value;
+            } else if (value && typeof value === 'object') {
+                deserialized[key] = CommonUtils._deserializeQuery(value);
+            } else {
+                deserialized[key] = value;
+            }
+        }
+        return deserialized;
     }
 
     /**

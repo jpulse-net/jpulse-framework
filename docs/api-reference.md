@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.4.18
+# jPulse Docs / REST API Reference v1.5.0
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -818,14 +818,14 @@ Search and filter users with advanced query capabilities.
 **jPulse 1.4.14+:** Updated to use profile access policy instead of admin-only middleware
 
 **Query Parameters:**
-- `username` (string): Login ID filter with wildcard support (`*`)
-- `email` (string): Email filter with wildcard support (`*`)
-- `profile.firstName` (string): First name filter with wildcard support
-- `profile.lastName` (string): Last name filter with wildcard support
-- `roles` (string): Role filter (`guest`, `user`, `admin`, `root`)
-- `status` (string): Status filter (`active`, `inactive`, `pending`, `suspended`)
-- `createdAt` (string): Date range filter (YYYY, YYYY-MM, YYYY-MM-DD)
-- `lastLogin` (string): Last login date filter
+- `username` (string): Login ID filter with [Advanced Search Syntax](#advanced-search-syntax)
+- `email` (string): Email filter with [Advanced Search Syntax](#advanced-search-syntax)
+- `profile.firstName` (string): First name filter with search syntax support
+- `profile.lastName` (string): Last name filter with search syntax support
+- `roles` (string): Role filter with search syntax (`guest`, `user`, `admin`, `root`)
+- `status` (string): Status filter with search syntax (`active`, `inactive`, `pending`, `suspended`)
+- `createdAt` (string): Date range filter (YYYY, YYYY-MM, YYYY-MM-DD) - supports wildcards
+- `lastLogin` (string): Last login date filter - supports wildcards
 - `limit` (number): Maximum results to return (default: 50, max: 1000)
 - `sort` (string): Sort field with optional `-` prefix for descending (e.g., `-createdAt`)
 
@@ -849,11 +849,17 @@ The API supports two pagination modes:
 # Find active admin users (cursor mode - default)
 GET /api/1/user/search?status=active&roles=admin
 
-# Search users by name with wildcard
-GET /api/1/user/search?profile.firstName=John*
+# Search users by name with wildcard (fuzzy)
+GET /api/1/user/search?profile.firstName=*john*
 
-# Cursor-based pagination - first page
-GET /api/1/user/search?limit=25&sort=-lastLogin
+# Exact match by username
+GET /api/1/user/search?username=jsmith
+
+# Boolean OR: active or pending users
+GET /api/1/user/search?status=active,pending
+
+# Boolean AND: users with admin role who are NOT suspended
+GET /api/1/user/search?roles=admin&status=!suspended
 
 # Cursor-based pagination - next page (use nextCursor from response)
 GET /api/1/user/search?cursor=eyJ2IjoxLCJxIjp7fSwic...
@@ -895,6 +901,155 @@ Search results respect the same field filtering as `/api/1/user/public/:id`:
 - Always includes: `username`, `profile.firstName`, `profile.lastName`, `initials`
 - Additional fields determined by auth state and config (`withoutAuth.fields` / `withAuth.fields`)
 - Admins see all fields except `passwordHash`
+
+---
+
+### Advanced Search Syntax
+
+**jPulse 1.5.0+** introduces powerful boolean search operators for string-type query parameters with exact match as the new default behavior.
+
+> **📖 Breaking Change:** Search behavior changed from fuzzy-contains to exact-match in v1.5.0. Use wildcards (`*`) for fuzzy matching. See [Search Syntax Reference](W-141-SEARCH-SYNTAX-REFERENCE.md) for migration details.
+
+#### Boolean Operators
+
+String search parameters support boolean logic **within the same field**:
+
+| Operator | Syntax | Example | Meaning |
+|----------|--------|---------|---------|
+| **OR** | `,` comma | `status=active,pending` | Matches "active" OR "pending" |
+| **AND** | `;` semicolon | `tags=python;async` | Matches "python" AND "async" |
+| **NOT** | `!` prefix | `status=!terminated` | Does NOT match "terminated" |
+| **Combine** | Mix operators | `lunch=sushi;soup,pizza` | (sushi AND soup) OR pizza |
+
+**Precedence:** AND binds tighter than OR. Use parentheses-like grouping: `a;b,c;d` = `(a AND b) OR (c AND d)`
+
+#### Exact Match (Default)
+
+String searches are **exact match** by default (case-insensitive, anchored):
+
+```bash
+# Exact match
+GET /api/1/user/search?status=active
+# Returns only users with status exactly "active"
+# Does NOT match "inactive", "reactivate", "activated"
+```
+
+#### Wildcard Search
+
+Use `*` for fuzzy/contains matching:
+
+| Pattern | Example | Matches |
+|---------|---------|---------|
+| `*term*` | `username=*smith*` | Contains "smith" anywhere |
+| `term*` | `username=john*` | Starts with "john" |
+| `*term` | `username=*son` | Ends with "son" |
+
+**Examples:**
+```bash
+# Find users with "smith" in username (fuzzy)
+GET /api/1/user/search?username=*smith*
+
+# Find users whose first name starts with "john"
+GET /api/1/user/search?profile.firstName=john*
+
+# Find emails ending with @example.com
+GET /api/1/user/search?email=*@example.com
+```
+
+#### Regular Expressions
+
+Power users can use regex with `/pattern/flags` syntax:
+
+```bash
+# Case-sensitive code pattern
+GET /api/1/user/search?username=/^[A-Z]{2}\d{4}/
+
+# Case-insensitive email pattern
+GET /api/1/user/search?email=/^support@.*\.com$/i
+```
+
+**Regex Flags:**
+- `i` - Case-insensitive
+- `m` - Multiline
+- `s` - Dot matches newline
+
+**Security:** Regex patterns are validated and length-limited (~200 chars) to prevent ReDoS attacks.
+
+#### Complex Query Examples
+
+**OR Search:**
+```bash
+# Users with active OR pending status
+GET /api/1/user/search?status=active,pending
+
+# Users in multiple roles
+GET /api/1/user/search?roles=admin,editor,moderator
+```
+
+**AND Search:**
+```bash
+# Users with both admin AND root roles (if field supports multiple values)
+GET /api/1/user/search?roles=admin;root
+
+# Logs with both "database" AND "error" in message
+GET /api/1/log/search?message=database;error
+```
+
+**NOT Search:**
+```bash
+# All users except terminated
+GET /api/1/user/search?status=!terminated
+
+# Active users who are NOT guests
+GET /api/1/user/search?status=active&roles=!guest
+
+# Logs without specific message pattern
+GET /api/1/log/search?message=!*debug*
+```
+
+**Combined Boolean Logic:**
+```bash
+# Complex food preferences: (sushi AND miso soup) OR (pizza AND salad NOT vinegar)
+GET /api/1/search?food=sushi;miso soup,pizza;salad;!vinegar
+
+# Users: (active admins) OR (pending moderators) NOT suspended
+GET /api/1/user/search?status=active;!suspended&roles=admin,moderator
+```
+
+**Multi-Field Search:**
+```bash
+# AND between different fields (standard query string)
+GET /api/1/user/search?status=active&roles=admin
+
+# AND within same field, OR across fields
+GET /api/1/user/search?status=active;!suspended&roles=admin,editor
+```
+
+#### Performance Optimization
+
+**Collation (v1.5.0+):** Exact matches automatically use MongoDB collation for 10-100x faster queries on large collections:
+
+- ✅ **Collation-optimized** (fast): `status=active`, `roles=admin,editor`
+- ⚠️ **Regex fallback** (slower): `username=*smith*`, `email=/pattern/`, `status=!terminated`
+
+**Best Practices:**
+- Use exact match when possible (leverages collation and indexes)
+- Minimize use of wildcards in high-traffic queries
+- Avoid leading wildcards (`*term`) on large datasets if possible
+- Use specific patterns instead of `*term*` when you know the structure
+
+#### Migration from v1.4.x
+
+**Breaking Change:** Default search behavior changed from fuzzy to exact:
+
+| v1.4.x (Fuzzy) | v1.5.0 (Exact) | Migration |
+|----------------|----------------|-----------|
+| `status=act` matched "active", "activated" | `status=act` matches only "act" | Add wildcards: `status=*act*` |
+| `username=john` matched "johndoe", "john123" | `username=john` matches only "john" | Use `username=john*` |
+
+**Quick Fix:** Add `*` wildcards to restore fuzzy behavior:
+- Before: `field=value`
+- After: `field=*value*`
 
 **Response - Offset Mode (200):**
 ```json
@@ -1113,13 +1268,15 @@ Search and filter log entries with advanced query capabilities.
 
 **Query Parameters:**
 - `level` (string): Log level filter (`error`, `warn`, `info`, `debug`)
-- `message` (string): Text search with wildcard support (`*`)
+- `message` (string): Text search with [Advanced Search Syntax](#advanced-search-syntax) support
 - `createdAt` (string): Date range filter (YYYY, YYYY-MM, YYYY-MM-DD)
 - `docType` (string): Document type filter (`config`, `user`, `log`)
 - `action` (string): Action filter (`create`, `update`, `delete`)
 - `createdBy` (string): User ID filter
 - `limit` (number): Maximum results to return (default: 50, max: 1000)
 - `sort` (string): Sort field with optional `-` prefix for descending (default: `-createdAt`)
+
+**Search Syntax:** Log search supports the same [Advanced Search Syntax](#advanced-search-syntax) as User Search, including boolean operators (AND/OR/NOT), wildcards, and regex patterns.
 
 **Pagination:** Same as User Search - supports cursor (default) and offset modes.
 See [User Search](#search-users) for pagination parameter details.
@@ -1129,11 +1286,14 @@ See [User Search](#search-users) for pagination parameter details.
 # Get error logs from the last month (cursor mode)
 GET /api/1/log/search?level=error&createdAt=2025-01&limit=50
 
-# Search for database-related messages
-GET /api/1/log/search?message=database*
+# Search for database-related messages (fuzzy)
+GET /api/1/log/search?message=*database*
 
-# Get configuration update logs
-GET /api/1/log/search?docType=config&action=update
+# Complex boolean search: (database AND error) OR timeout
+GET /api/1/log/search?message=database;error,timeout
+
+# Get configuration update logs, exclude automated updates
+GET /api/1/log/search?docType=config&action=update&createdBy=!system
 
 # Next page using cursor
 GET /api/1/log/search?cursor=eyJ2IjoxLC4uLn0
@@ -1173,19 +1333,6 @@ GET /api/1/log/search?level=error&limit=50&offset=100
     }
 }
 ```
-
-### Wildcard Search
-The `message` parameter supports wildcard searching:
-- `database*` - Messages starting with "database"
-- `*connection*` - Messages containing "connection"
-- `*failed` - Messages ending with "failed"
-- Case-insensitive matching
-
-### Date Range Filtering
-The `createdAt` parameter supports flexible date formats:
-- `2025` - All logs from 2025
-- `2025-08` - All logs from August 2025
-- `2025-08-25` - All logs from August 25, 2025
 
 ## 📄 Markdown Documentation API
 

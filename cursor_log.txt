@@ -16869,3 +16869,119 @@ Summary:
 
 
 ============================================================
+2026-01-24 19:10
+
+W-141 Phase 1 Complete: Boolean Search Implementation
+
+Implemented comprehensive boolean search feature for schema-based queries with breaking change to exact match default:
+- Added StringQueryParser class to support AND (`;`), OR (`,`), NOT (`!`), wildcards (`*`), and regex (`/pattern/flags`) operators
+- Changed default from fuzzy to exact match (case-insensitive anchored search)
+- Removed `%` SQL-style wildcard (only `*` supported)
+- Enhanced schemaBasedQuery() with options API supporting multiFieldSearch for searching across multiple fields (e.g., name search across firstName, lastName, username)
+- Added MongoDB collation support for performance optimization with exact matches
+- Fixed critical cursor pagination bugs: proper serialization/deserialization of RegExp and Date objects in queries
+- Created comprehensive unit tests (50+ tests) for StringQueryParser and integration
+- Fixed unrelated UI bugs: added .jp-status-terminated styling, improved pagination button theming with .jp-btn-outline
+- Updated models (UserModel, LogModel) to use new schemaBasedQuery format
+- All 1981 tests passing
+- Pagination with filtered queries now working correctly (tested with date filters)
+
+Files modified: common.js, user.js, log.js, jpulse-common.css, users.shtml, logs.shtml, common-utils-boolean-search.test.js (new), plus test file updates
+
+
+============================================================
+2026-01-24 20:20
+
+Added comprehensive unit tests for W-141 boolean search feature:
+- Added 60+ new tests covering edge cases and advanced scenarios
+- Test coverage for query serialization/deserialization (RegExp and Date in cursors)
+- Advanced boolean search edge cases (NOT operators, wildcards, regex, precedence)
+- Collation detection edge cases
+- Real-world search scenarios (log dates, email domains, code prefixes, status filters, complex lunch queries)
+- Fixed test expectations to match actual MongoDB query format (using $regex operator)
+- All 2009 tests now passing (crossed 2000 test threshold!)
+
+Test breakdown:
+- CLI Tools: 8 passed
+- Enhanced CLI Validation: 11 passed
+- MongoDB & Cross-Platform: 10 passed
+- Unit Tests: 1875 passed (up from 1847)
+- Integration Tests: 105 passed
+- Total: 2009 tests in 21 seconds
+
+
+============================================================
+2026-01-24 20:45
+
+W-141 Documentation Complete:
+
+Updated docs/api-reference.md (v1.5.0):
+- Added comprehensive "Advanced Search Syntax (v1.5.0+)" section after User Search
+- Documented boolean operators (AND/OR/NOT) with syntax table and examples
+- Explained exact match default vs fuzzy with wildcards
+- Added regex support documentation with security notes
+- Included complex query examples showing real-world usage patterns
+- Added performance optimization section explaining collation benefits
+- Provided migration guide from v1.4.x fuzzy search
+- Updated User Search and Log Search sections to reference new syntax
+- Added cross-references between sections for easy navigation
+- Updated version from v1.4.18 to v1.5.0
+- Removed redundant wildcard/date sections (now in Advanced Search)
+
+Cross-linking:
+- User Search references Advanced Search Syntax section
+- Log Search references Advanced Search Syntax section
+- All search-related sections now consistent and cross-referenced
+
+Updated docs/dev/work-items.md:
+- Marked api-reference.md as complete (✅)
+- Updated test deliverables (2009 tests passing)
+- Marked status as DONE (Phase 1 - implementation & docs complete)
+- CHANGELOG deferred to release time
+
+Status: W-141 Phase 1 complete, ready for release prep
+
+
+============================================================
+2026-01-24 21:00
+
+W-141 v1.5.0 Release Prep Complete:
+
+Reviewed tt-git-diff.txt:
+- Comprehensive changes covering all aspects of W-141 boolean search implementation
+- Code changes: common.js (StringQueryParser, enhanced schemaBasedQuery, pagination fixes), user.js, log.js
+- UI fixes: pagination buttons, terminated status badge styling
+- Test updates: 3 test files updated, 1 new comprehensive test file (60+ tests)
+- Documentation: api-reference.md updated with Advanced Search Syntax section
+- All changes accurate and complete for work item
+
+Updated README.md:
+- Updated version from v1.4.18 to v1.5.0
+- Added v1.5.0 release highlight with comprehensive W-141 feature description
+- Kept test count at 2000+ (accurate, we have 2009)
+
+Updated docs/README.md:
+- Updated version from v1.4.18 to v1.5.0
+- Added v1.5.0 release highlight matching main README
+
+Updated docs/CHANGELOG.md:
+- Updated version from v1.4.18 to v1.5.0
+- Added complete v1.5.0, W-141 entry (~150 lines) at top of file
+- Documented objectives, key features, code changes, test results
+- Detailed breaking changes section (exact match default, removed % wildcard)
+- Comprehensive migration steps (4 steps with specific actions)
+- All code changes documented with file-by-file details
+
+Updated commit-message.txt:
+- Replaced W-140 content with W-141 v1.5.0 commit message
+- Follows same format as previous releases
+- Comprehensive spec section with all boolean operators
+- Detailed code changes for all modified files
+- Test results: 2009 total tests (all passing)
+- Breaking changes clearly documented
+- Migration steps with specific actions
+
+Status: W-141 v1.5.0 release documentation complete, ready for version bump and git commit
+
+
+============================================================

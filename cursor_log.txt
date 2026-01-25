@@ -16985,3 +16985,144 @@ Status: W-141 v1.5.0 release documentation complete, ready for version bump and 
 
 
 ============================================================
+2026-01-24 21:15
+
+Enhanced api-reference.md with Additional Examples:
+
+User feedback:
+- docs/dev/working/* is excluded from publishing, can't reference W-141-SEARCH-SYNTAX-REFERENCE.md
+- User removed the reference link from line 911
+- Requested more examples to compensate
+
+Changes made:
+- Enhanced "Complex Query Examples" section in Advanced Search Syntax
+- Added 3 new categories:
+  * **Real-World Scenarios** (7 examples):
+    - Active users registered this month (exact + date wildcard)
+    - Error logs excluding test runs (NOT with wildcards)
+    - Partial name match across multiple fields
+    - Complex role filtering (staff except interns)
+    - Date range + status filtering
+    - Auth failures excluding rate-limits (complex NOT)
+    - Power user regex for ID patterns
+  * Expanded existing categories with more examples:
+    - OR Search: Added email domain example
+    - AND Search: Added name search example
+    - NOT Search: Added non-admin example
+    - Combined Logic: Added log search example
+    - Multi-Field: Added complex 3-field example
+
+Total example count increased from 11 to 21 examples
+All examples are practical, production-ready use cases
+Covers common admin scenarios (user management, log analysis, access control)
+
+Status: api-reference.md now self-contained with comprehensive examples
+
+
+============================================================
+2026-01-25 15:30
+
+User prompt:
+oh, I just realize LICENSE exists in the framework project, but not in the package! i.e. not in site installs. is that an omission?
+
+because it's referenced in the site admin facing docs:
+- docs/CHANGELOG.md references LICENSE in multiple places
+- docs/README.md references LICENSE file
+- docs/license.md references ../LICENSE file
+
+Assistant investigation and fix:
+- LICENSE file exists in framework root (/Users/peterthoeny/Dev/jpulse-framework/LICENSE)
+- LICENSE is included in npm package (package.json "files" array, line 50)
+- LICENSE is referenced in documentation that site admins can access
+- Issue: LICENSE was NOT being copied to site installations during:
+  * npx jpulse configure (initial site setup)
+  * npx jpulse update (framework updates)
+
+Changes made:
+
+1. bin/configure.js:
+   - Added LICENSE file copying in copySiteTemplates() function
+   - Copies LICENSE verbatim (no template processing) from framework package to site root
+   - Placed after README.md copying (lines 879-883)
+
+2. bin/jpulse-update.js:
+   - Added LICENSE file update during framework sync
+   - Copies LICENSE after updating ATTENTION_README.txt (lines 279-284)
+   - Ensures LICENSE stays current with framework version
+
+3. bin/test-cli.js:
+   - Added 'LICENSE' to expectedFiles validation array
+   - Ensures LICENSE presence is verified during deployment testing
+
+4. docs/dev/work-items.md:
+   - Updated version to v1.5.1
+   - Added W-142 work item: "deployment: copy LICENSE file to site installations"
+   - Status: ✅ DONE
+   - Type: Bug Fix
+   - Documented issue, objectives, and deliverables
+
+5. docs/CHANGELOG.md:
+   - Updated version to v1.5.1
+   - Added v1.5.1, W-142 changelog entry at top
+   - Documented issue, fix, and code changes
+
+6. docs/api-reference.md:
+   - Updated version from v1.5.0 to v1.5.1
+
+Work Item: W-142
+Version: v1.5.1
+Release Date: 2026-01-25
+Status: Complete - LICENSE file now properly distributed to site installations
+
+
+============================================================
+2026-01-25 16:00
+
+User prompt:
+release prep:
+- assume release: W-142, v1.5.1
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- update cursor_log.txt (append, don't replace)
+
+Assistant release prep for W-142, v1.5.1:
+
+1. README.md:
+   - Updated "Latest Release Highlights" section
+   - Added v1.5.1 entry as first item (most recent)
+   - Comprehensive summary: LICENSE distribution fix + legal URL standardization
+   - Detailed what was fixed, why it matters, and bonus improvements
+
+2. docs/README.md:
+   - Updated "Latest Release Highlights" section
+   - Added v1.5.1 entry as first item
+   - Same comprehensive summary as main README
+
+3. commit-message.txt:
+   - Completely replaced with W-142, v1.5.1 commit message
+   - Followed same format as W-141 (previous release)
+   - Structured sections:
+     * Title: W-142, v1.5.1: deployment: copy LICENSE file to site installations
+     * Summary: BUG FIX + ENHANCEMENT
+     * Issue: Detailed problem statement
+     * Fix: What was done
+     * Code Changes: File-by-file breakdown (13 files)
+     * Test Results: No new tests needed, all existing passing
+     * Documentation: What docs were updated
+     * Work Item metadata
+
+4. cursor_log.txt:
+   - Appended this entry (following append-only protocol)
+   - Documented release prep activities
+
+Files modified in release prep:
+- README.md (latest release highlights)
+- docs/README.md (latest release highlights)
+- commit-message.txt (complete W-142 commit message)
+- cursor_log.txt (this entry)
+
+Status: W-142 v1.5.1 release prep complete
+Ready for: node bin/bump-version.js 1.5.1
+
+
+============================================================

@@ -3,7 +3,7 @@
  * @tagline         Simplified unit tests for jPulse.ws client utilities
  * @description     Fast, focused tests for client-side WebSocket API
  * @file            webapp/tests/unit/utils/jpulse-websocket-simple.test.js
- * @version         1.5.0
+ * @version         1.5.1
  * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

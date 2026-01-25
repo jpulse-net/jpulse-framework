@@ -3,7 +3,7 @@
  * @tagline         Unit tests for markdown controller publish-list functionality (W-120)
  * @description     Tests for .markdown [publish-list] section ordering and custom titles
  * @file            webapp/tests/unit/controller/markdown-publish-list.test.js
- * @version         1.5.0
+ * @version         1.5.1
  * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -4,7 +4,7 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         1.5.0
+ * @version         1.5.1
  * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -876,6 +876,12 @@ function copySiteTemplates(config, frameworkVersion, deploymentType) {
         fs.writeFileSync('README.md', processedContent);
     }
 
+    // Copy LICENSE (verbatim - no template processing)
+    const licensePath = path.join(packageRoot, 'LICENSE');
+    if (fs.existsSync(licensePath)) {
+        fs.copyFileSync(licensePath, 'LICENSE');
+    }
+
     // Copy hello controller examples (all hello*.js files)
     const helloControllerDir = path.join(packageRoot, 'site/webapp/controller');
     if (fs.existsSync(helloControllerDir)) {
@@ -1281,8 +1287,8 @@ async function setup() {
             console.log('');
         }
         console.log('   For questions: team@jpulse.net');
-        console.log('   License details: https://jpulse.net/legal/license.shtml');
-        console.log('   Privacy policy: https://jpulse.net/legal/privacy.shtml');
+        console.log('   License details: https://jpulse.net/legal/license');
+        console.log('   Privacy policy: https://jpulse.net/legal/privacy');
         console.log('');
 
         // Show next steps

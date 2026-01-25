@@ -1,4 +1,4 @@
-# jPulse Docs / License, jPulse v1.5.0
+# jPulse Docs / License, jPulse v1.5.1
 
 ## Overview
 
@@ -288,4 +288,4 @@ The full license text is available in the [LICENSE](../LICENSE) file in the jPul
 
 ---
 
-*For the most current licensing information, see the **LICENSE** file in the jpulse project root, or contact [team@jpulse.net](mailto:team@jpulse.net).*
+*For the most current licensing information, see the **LICENSE** file in the jpulse project root, [Official License](https://jpulse.net/legal/license), or contact [team@jpulse.net](mailto:team@jpulse.net).*

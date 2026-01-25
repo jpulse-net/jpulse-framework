@@ -4,7 +4,7 @@
  * @tagline         Client-Side Broadcasting Pattern Demo
  * @description     Simple notification broadcasting without server-side persistence
  * @file            site/webapp/view/hello-app-cluster/notifications.shtml
- * @version         1.5.0
+ * @version         1.5.1
  * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

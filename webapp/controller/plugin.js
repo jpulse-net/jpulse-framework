@@ -3,7 +3,7 @@
  * @tagline         Plugin Controller for jPulse Framework WebApp
  * @description     Plugin management controller for the jPulse Framework WebApp
  * @file            webapp/controller/plugin.js
- * @version         1.5.0
+ * @version         1.5.1
  * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

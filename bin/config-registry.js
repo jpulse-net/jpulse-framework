@@ -4,7 +4,7 @@
  * @tagline         Unified configuration registry for all jPulse tools
  * @description     Single source of truth for variable definitions, defaults, and template expansion
  * @file            bin/config-registry.js
- * @version         1.5.0
+ * @version         1.5.1
  * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -110,7 +110,7 @@ export const CONFIG_REGISTRY = {
             console.log('   • Commercial license required for production deployments');
             console.log('   • Anonymous usage reporting to jpulse.net (compliance monitoring)');
             console.log('');
-            console.log('   Full license: https://jpulse.net/legal/license.shtml');
+            console.log('   Full license: https://jpulse.net/legal/license');
             console.log('   Commercial inquiries: team@jpulse.net');
             console.log('');
             const accept = await question('? Accept license terms? (y/N): ');

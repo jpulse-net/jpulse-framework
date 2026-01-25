@@ -4,7 +4,7 @@
  * @tagline         Framework update synchronization CLI tool
  * @description     Updates local framework files from installed package
  * @file            bin/jpulse-update.js
- * @version         1.5.0
+ * @version         1.5.1
  * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -274,6 +274,13 @@ function sync() {
                 // Use unified template expansion - no more manual .replace() chains!
                 const expandedContent = expandAllVariables(templateContent, config);
                 fs.writeFileSync('webapp/ATTENTION_README.txt', expandedContent);
+            }
+
+            // Update LICENSE file (verbatim - no template processing)
+            console.log('📋 Updating LICENSE...');
+            const licensePath = path.join(frameworkPath, 'LICENSE');
+            if (fs.existsSync(licensePath)) {
+                fs.copyFileSync(licensePath, 'LICENSE');
             }
 
             // Copy documentation to webapp/static/assets/jpulse-docs/

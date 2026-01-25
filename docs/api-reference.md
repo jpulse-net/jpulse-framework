@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.5.0
+# jPulse Docs / REST API Reference v1.5.1
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -908,7 +908,7 @@ Search results respect the same field filtering as `/api/1/user/public/:id`:
 
 **jPulse 1.5.0+** introduces powerful boolean search operators for string-type query parameters with exact match as the new default behavior.
 
-> **📖 Breaking Change:** Search behavior changed from fuzzy-contains to exact-match in v1.5.0. Use wildcards (`*`) for fuzzy matching. See [Search Syntax Reference](W-141-SEARCH-SYNTAX-REFERENCE.md) for migration details.
+> **📖 Breaking Change:** Search behavior changed from fuzzy-contains to exact-match in v1.5.0. Use wildcards (`*`) for fuzzy matching.
 
 #### Boolean Operators
 
@@ -984,6 +984,9 @@ GET /api/1/user/search?status=active,pending
 
 # Users in multiple roles
 GET /api/1/user/search?roles=admin,editor,moderator
+
+# Find users with Gmail or Outlook email
+GET /api/1/user/search?email=*@gmail.com,*@outlook.com
 ```
 
 **AND Search:**
@@ -993,6 +996,9 @@ GET /api/1/user/search?roles=admin;root
 
 # Logs with both "database" AND "error" in message
 GET /api/1/log/search?message=database;error
+
+# Find users with "John" AND "Smith" in name
+GET /api/1/user/search?username=*john*;*smith*
 ```
 
 **NOT Search:**
@@ -1005,6 +1011,9 @@ GET /api/1/user/search?status=active&roles=!guest
 
 # Logs without specific message pattern
 GET /api/1/log/search?message=!*debug*
+
+# Find all non-admin users
+GET /api/1/user/search?roles=!admin
 ```
 
 **Combined Boolean Logic:**
@@ -1014,6 +1023,9 @@ GET /api/1/search?food=sushi;miso soup,pizza;salad;!vinegar
 
 # Users: (active admins) OR (pending moderators) NOT suspended
 GET /api/1/user/search?status=active;!suspended&roles=admin,moderator
+
+# Find logs: (database AND timeout) OR (connection AND failed) NOT test
+GET /api/1/log/search?message=database;timeout,connection;failed;!test
 ```
 
 **Multi-Field Search:**
@@ -1023,6 +1035,34 @@ GET /api/1/user/search?status=active&roles=admin
 
 # AND within same field, OR across fields
 GET /api/1/user/search?status=active;!suspended&roles=admin,editor
+
+# Complex: Active/pending admins/editors with specific email domains
+GET /api/1/user/search?status=active,pending&roles=admin,editor&email=*@company.com,*@partner.com
+```
+
+**Real-World Scenarios:**
+
+```bash
+# Find active users who registered this month (exact status + date wildcard)
+GET /api/1/user/search?status=active&createdAt=2026-01*
+
+# Search logs for errors excluding automated test runs
+GET /api/1/log/search?level=error&message=!*test*;!*automated*
+
+# Find users by partial name match across multiple fields
+GET /api/1/user/search?username=*john*,*jane*&status=active
+
+# Complex role-based search: Find users with admin or editor role, excluding suspended
+GET /api/1/user/search?roles=admin,editor&status=!suspended
+
+# Date range + status filter for recent active/pending users
+GET /api/1/user/search?createdAt=2026-01&status=active,pending
+
+# Logs: Find authentication failures but exclude rate-limit events
+GET /api/1/log/search?message=auth*;*fail*;!*rate*;!*limit*
+
+# Power user regex: Find users with specific ID pattern (2-letter code + 4 digits)
+GET /api/1/user/search?username=/^[A-Z]{2}\d{4}$/
 ```
 
 #### Performance Optimization

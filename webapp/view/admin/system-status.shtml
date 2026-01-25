@@ -4,7 +4,7 @@
  * @tagline         Admin system status interface
  * @description     System monitoring and health dashboard for site administrators
  * @file            webapp/view/admin/system-status.shtml
- * @version         1.5.0
+ * @version         1.5.1
  * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -399,7 +399,7 @@
                     const responseJson = JSON.stringify(compliance.lastResponse, null, 2);
                     const privacyNoticeText = '{{i18n.view.admin.systemStatus.licenseCompliance.transparency.privacyNotice}}'.replace(
                         '%LINK%',
-                        '<a href="https://jpulse.net/legal/privacy.shtml" target="_blank">{{i18n.view.admin.systemStatus.licenseCompliance.transparency.privacyPolicyLink}}</a>'
+                        '<a href="https://jpulse.net/legal/privacy" target="_blank">{{i18n.view.admin.systemStatus.licenseCompliance.transparency.privacyPolicyLink}}</a>'
                     );
 
                     html += `

@@ -3,7 +3,7 @@
  * @tagline         Unit tests for ContextExtensions (W-014)
  * @description     Tests Handlebars context extension system
  * @file            webapp/tests/unit/utils/context-extensions.test.js
- * @version         1.5.0
+ * @version         1.5.1
  * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

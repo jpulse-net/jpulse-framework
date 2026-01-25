@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.5.0
+# jPulse Docs / Dev / Work Items v1.5.1
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4295,19 +4295,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - package.json, package-lock.json:
     - remove `otplib` dependency from framework root
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-141, v1.5.0, 2026-01-25: search: boolean operators (AND/OR/NOT) with exact match (breaking change)
-- status: 🚧 IN PROGRESS
+- status: ✅ DONE
 - type: Feature + Breaking Change
 - objectives: powerful search with boolean logic, exact match default, collation optimization
 - breaking changes:
@@ -4366,6 +4355,35 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
+
+
+
+
+
+### W-142, v1.5.1, 2026-01-25: deployment: copy LICENSE file to site installations
+- status: 🚧 IN_PROGRESS
+- type: Bug Fix
+- objectives: ensure LICENSE file is available in site installations
+- issue:
+  - LICENSE file exists in framework root and is included in npm package
+  - LICENSE is referenced in admin-facing documentation (docs/license.md, docs/README.md)
+  - LICENSE was not being copied to site installations during `npx jpulse configure` or `npx jpulse update`
+- deliverables:
+  - bin/configure.js:
+    - copy LICENSE file from framework package to site root (verbatim, no template processing)
+  - bin/jpulse-update.js:
+    - copy LICENSE file during framework updates
+  - bin/test-cli.js:
+    - add LICENSE to expectedFiles validation array
+
 pending:
 
 
@@ -4397,8 +4415,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-diff.txt for accuracy and completness of work item
-- assume release: W-141, v1.5.0
-- update deliverables in W-141 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-142, v1.5.1
+- update deliverables in W-142 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4415,12 +4433,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.5.0
+node bin/bump-version.js 1.5.1
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.5.0
+git tag v1.5.1
 git push origin main --tags
 
 === plugin release & package build on github ===

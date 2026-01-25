@@ -1,4 +1,4 @@
-# jPulse Docs / Examples & Use Cases v1.5.0
+# jPulse Docs / Examples & Use Cases v1.5.1
 
 Real-world examples of building applications with the jPulse Framework, targeting enterprise and government scenarios.
 

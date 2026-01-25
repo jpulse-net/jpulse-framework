@@ -1,6 +1,45 @@
-# jPulse Docs / Version History v1.5.0
+# jPulse Docs / Version History v1.5.1
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.5.1, W-142, 2026-01-25
+
+**Commit:** `W-142, v1.5.1: deployment: copy LICENSE file to site installations`
+
+**BUG FIX**: LICENSE file now properly copied to site installations during `npx jpulse configure` and `npx jpulse update`.
+
+**Issue**:
+- LICENSE file exists in framework root and is included in npm package (package.json files array)
+- LICENSE is referenced in admin-facing documentation (docs/license.md, docs/README.md)
+- LICENSE was not being copied to site installations, making it unavailable to site administrators
+- This was an oversight in the deployment scripts
+
+**Fix**:
+- LICENSE file is now copied verbatim (no template processing) to site root during initial configuration
+- LICENSE file is updated during framework updates to ensure it stays current
+- Test validation includes LICENSE in expectedFiles array
+
+**Code Changes**:
+
+**bin/configure.js**:
+- Added LICENSE file copying in `copySiteTemplates()` function (after README.md)
+- Copies LICENSE verbatim from framework package root to site root
+
+**bin/jpulse-update.js**:
+- Added LICENSE file update during framework sync (after ATTENTION_README.txt)
+- Ensures LICENSE stays current with framework version
+
+**bin/test-cli.js**:
+- Added `LICENSE` to `expectedFiles` validation array
+- Ensures LICENSE presence is verified during deployment testing
+
+**docs/dev/work-items.md**:
+- Added W-142 work item documentation
+
+**Work Item**: W-142
+**Version**: v1.5.1
+**Release Date**: 2026-01-25
 
 ________________________________________________
 ## v1.5.0, W-141, 2026-01-25

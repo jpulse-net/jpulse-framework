@@ -4,7 +4,7 @@
  * @tagline         Test script for CLI tools validation
  * @description     Tests setup and sync CLI tools in isolated environment
  * @file            bin/test-cli.js
- * @version         1.5.0
+ * @version         1.5.1
  * @release         2026-01-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -92,6 +92,7 @@ async function testCLI() {
         const expectedFiles = [
             'package.json',
             'README.md',
+            'LICENSE',
             'webapp/app.js',
             'webapp/controller',
             'site/webapp',

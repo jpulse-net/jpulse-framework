@@ -4351,6 +4351,22 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/CHANGELOG.md:
     - pending: breaking change notes with migration guide
 
+### W-142, v1.5.1, 2026-01-25: deployment: copy LICENSE file to site installations
+- status: ✅ DONE
+- type: Bug Fix
+- objectives: ensure LICENSE file is available in site installations
+- issue:
+  - LICENSE file exists in framework root and is included in npm package
+  - LICENSE is referenced in admin-facing documentation (docs/license.md, docs/README.md)
+  - LICENSE was not being copied to site installations during `npx jpulse configure` or `npx jpulse update`
+- deliverables:
+  - bin/configure.js:
+    - copy LICENSE file from framework package to site root (verbatim, no template processing)
+  - bin/jpulse-update.js:
+    - copy LICENSE file during framework updates
+  - bin/test-cli.js:
+    - add LICENSE to expectedFiles validation array
+
 
 
 
@@ -4367,22 +4383,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-
-### W-142, v1.5.1, 2026-01-25: deployment: copy LICENSE file to site installations
-- status: 🚧 IN_PROGRESS
-- type: Bug Fix
-- objectives: ensure LICENSE file is available in site installations
-- issue:
-  - LICENSE file exists in framework root and is included in npm package
-  - LICENSE is referenced in admin-facing documentation (docs/license.md, docs/README.md)
-  - LICENSE was not being copied to site installations during `npx jpulse configure` or `npx jpulse update`
-- deliverables:
-  - bin/configure.js:
-    - copy LICENSE file from framework package to site root (verbatim, no template processing)
-  - bin/jpulse-update.js:
-    - copy LICENSE file during framework updates
-  - bin/test-cli.js:
-    - add LICENSE to expectedFiles validation array
 
 pending:
 

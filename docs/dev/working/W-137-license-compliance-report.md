@@ -102,7 +102,7 @@ Submit daily compliance report from remote jPulse site.
   success: true,
   message: "Report received",
   complianceStatus: "compliant",        // or "warning", "violation", "exempt-dev"
-  monitorUrl: "https://jpulse.net/monitor/abc-123-def-456"  // Optional
+  monitorUrl: "https://jpulse.net/site-monitor/abc-123-def-456"  // Optional
 }
 ```
 
@@ -567,7 +567,7 @@ Compliance data is provided via `/api/1/health/metrics` API response as `data.co
       reportingFailed: true|false,   // true if hoursSinceReport > 48
       lastReport: { /* full report object */ },
       lastResponse: { /* full response object */ },
-      monitorUrl: 'https://jpulse.net/monitor/uuid' // or '' if not available
+      monitorUrl: 'https://jpulse.net/site-monitor/uuid' // or '' if not available
     }
   }
 }
@@ -700,7 +700,7 @@ echo ""
 if [ -n "${ADMIN_EMAIL}" ]; then
   echo "Admin email: ${ADMIN_EMAIL}"
   echo "View deployment trends at:"
-  echo "  https://jpulse.net/monitor/${JPULSE_SITE_UUID}"
+  echo "  https://jpulse.net/site-monitor/${JPULSE_SITE_UUID}"
   echo ""
 fi
 echo "For details: https://jpulse.net/legal/privacy.shtml"
@@ -840,7 +840,7 @@ curl -X POST http://localhost:8080/api/1/health/compliance/send-report \
 
 ## Deployment Dashboard Access
 
-**URL Format**: `https://jpulse.net/monitor/[uuid]`
+**URL Format**: `https://jpulse.net/site-monitor/[uuid]`
 
 ### Authentication (OTP)
 
@@ -850,7 +850,7 @@ curl -X POST http://localhost:8080/api/1/health/compliance/send-report \
 3. Enter email → Click "Login with Email"
 4. jpulse.net validates email matches report for this UUID
 5. If match: Send email with OTP link
-6. OTP link: `https://jpulse.net/monitor/[uuid]?otp=12345678`
+6. OTP link: `https://jpulse.net/site-monitor/[uuid]?token=12345678`
 7. Click link → Validate OTP (1hr expiry) → Show dashboard
 8. Invalid/expired: "Session expired or invalid"
 

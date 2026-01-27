@@ -4367,17 +4367,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - bin/test-cli.js:
     - add LICENSE to expectedFiles validation array
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-143, v1.6.0, 2026-01-27: framework: redis based cache infrastructure for application data
 - status: ✅ DONE
 - type: Feature (Infrastructure Enhancement)
@@ -4445,7 +4434,20 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
+
+
+
+
 pending:
+
+
 
 
 

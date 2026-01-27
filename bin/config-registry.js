@@ -137,7 +137,7 @@ export const CONFIG_REGISTRY = {
             console.log('📊 Optional: Deployment Dashboard Access');
             console.log('');
             console.log('   Share admin email to access your dashboard at:');
-            console.log('   https://jpulse.net/monitor/[your-uuid]');
+            console.log('   https://jpulse.net/site-monitor/[your-uuid]');
             console.log('');
             console.log('   Provides: Compliance status, health insights, usage history');
             console.log('   Change later: site/webapp/app.conf (manifest.compliance.adminEmailOptIn)');

@@ -443,7 +443,7 @@ ________________________________________________
 - **Manual Send API**: POST /api/1/health/compliance/send-report (admin-only, bypasses timing for testing/troubleshooting)
 - **Exponential Backoff**: 1min → 5min → 30min → 1hr → 6hr → 24hr (max) for network failures, graceful handling for air-gapped deployments
 - **Server-Side Classification**: jpulse.net determines compliance status (grace periods, thresholds, environment detection), returns status to client for UI display
-- **Optional Dashboard Access**: Admin email opt-in enables deployment dashboard at jpulse.net/monitor/[uuid] showing compliance status, health insights, usage history
+- **Optional Dashboard Access**: Admin email opt-in enables deployment dashboard at jpulse.net/site-monitor/[uuid] showing compliance status, health insights, usage history
 
 **Code Changes**:
 

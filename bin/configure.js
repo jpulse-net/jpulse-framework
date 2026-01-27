@@ -1276,7 +1276,7 @@ async function setup() {
         if (config.JPULSE_ADMIN_EMAIL_OPT_IN && config.JPULSE_SITE_UUID) {
             console.log(`   Status of sharing admin email: ✅ opt-in`);
             console.log(`     - ✅ Dashboard access enabled`);
-            console.log(`     - Monitor URL: https://jpulse.net/monitor/${config.JPULSE_SITE_UUID}`);
+            console.log(`     - Monitor URL: https://jpulse.net/site-monitor/${config.JPULSE_SITE_UUID}`);
             console.log(`     - Available after first compliance report is sent`);
             console.log(`     - To change: Admin > Config > manifest.compliance.adminEmailOptIn`);
             console.log('');

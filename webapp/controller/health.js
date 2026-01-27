@@ -2455,7 +2455,7 @@ class HealthController {
                          process.env.JPULSE_SITE_UUID ||
                          '';
         const monitorUrl = (hasOptIn && siteUuid && !siteUuid.startsWith('fallback-'))
-            ? `https://jpulse.net/monitor/${siteUuid}`
+            ? `https://jpulse.net/site-monitor/${siteUuid}`
             : '';
 
         // Next scheduled report time (based on scheduled HH:MM UTC, independent of manual sends)

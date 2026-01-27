@@ -3,6 +3,12 @@ description: Core jPulse framework assistant rules (no git, no guessing, formatt
 alwaysApply: true
 ---
 
+# ⛔ CRITICAL: NO GIT COMMANDS EVER WITHOUT EXPLICIT APPROVAL ⛔
+
+**NEVER run: git status, git log, git show, git diff, git add, git commit, git push, git pull, etc.**
+
+**ALWAYS ask first: "May I run git commands to check X?"**
+
 # Framework Critical Patterns
 
 1. **Site Override System**: All site code goes in `site/webapp/`, NEVER modify `webapp/` (framework-managed, updated by jpulse-update)
@@ -82,7 +88,6 @@ alwaysApply: true
 
 # jPulse Framework - Core Assistant Rules
 
-- Do not run any `git` commands unless the user explicitly approves first.
 - Do not guess or hallucinate. If context is missing, use the transcript file the user provided, or say “I don’t know” / “I am not sure, but I can look it up if you’d like”.
 - Follow source formatting preferences:
     - No tabs in source; use spaces only.

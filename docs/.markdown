@@ -45,6 +45,7 @@ deployment.md
 mpa-vs-spa.md
 framework-comparison.md
 application-cluster.md
+cache-infrastructure.md
 
 # Development Basics
 front-end-development.md    Front-End Development

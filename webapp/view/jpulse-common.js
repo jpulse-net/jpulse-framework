@@ -3,13 +3,13 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.5.1
- * @release         2026-01-25
+ * @version         1.6.0
+ * @release         2026-01-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 window.jPulse = {
@@ -7946,7 +7946,7 @@ window.jPulse = {
                 _connectWebSocket: function() {
                     if (self._websocket) return; // Already connecting or connected
 
-                    self._websocket = jPulse.ws.connect('/api/1/ws/app-cluster')
+                    self._websocket = jPulse.ws.connect('/api/1/ws/jp-broadcast')
                         .onMessage((data) => {
                             self._handleWebSocketMessage(data);
                         })
@@ -8007,7 +8007,7 @@ window.jPulse = {
                  */
                 _postToServer: function(channel, data) {
                     return new Promise((resolve, reject) => {
-                        jPulse.appCluster.fetch(`/api/1/broadcast/${channel}`, {
+                        jPulse.appCluster.fetch(`/api/1/app-cluster/broadcast/${channel}`, {
                             method: 'POST',
                             body: { data: data }
                         })
@@ -8079,7 +8079,7 @@ window.jPulse = {
              */
             async getActiveInstances() {
                 try {
-                    const response = await jPulse.api.get('/api/1/broadcast/status');
+                    const response = await jPulse.api.get('/api/1/app-cluster/broadcast/status');
                     if (response.success) {
                         // For now, just return current instance (Phase 4 will aggregate all instances)
                         return [response.data.instanceId];
@@ -8096,7 +8096,7 @@ window.jPulse = {
              */
             async getClusterHealth() {
                 try {
-                    const response = await jPulse.api.get('/api/1/broadcast/status');
+                    const response = await jPulse.api.get('/api/1/app-cluster/broadcast/status');
                     if (response.success) {
                         return {
                             instanceId: response.data.instanceId,
@@ -8117,6 +8117,74 @@ window.jPulse = {
                     totalInstances: 1,
                     status: 'unknown'
                 };
+            }
+        },
+
+        /**
+         * ====================================================================
+         * jPulse.appCluster.cache: Cluster-wide cache API (W-143)
+         * ====================================================================
+         *
+         * Provides server-side Redis cache operations for client-side use
+         * All cache operations are user-scoped automatically for security
+         *
+         * Usage:
+         *   await jPulse.appCluster.cache.set('theme', 'mode', 'dark', { ttl: 2592000 });
+         *   const mode = await jPulse.appCluster.cache.get('theme', 'mode');
+         *   await jPulse.appCluster.cache.del('theme', 'mode');
+         */
+        cache: {
+            /**
+             * Set cache value (stored in Redis, shared across cluster)
+             * @param {string} category - Cache category (e.g., 'userPrefs', 'theme')
+             * @param {string} key - Cache key
+             * @param {*} value - Value to cache (will be JSON serialized)
+             * @param {Object} options - Optional { ttl: seconds } (0 = indefinite)
+             * @returns {Promise<boolean>} Success status
+             */
+            async set(category, key, value, options = {}) {
+                try {
+                    const response = await jPulse.api.post(`/api/1/app-cluster/cache/${category}/${key}`, {
+                        value,
+                        ttl: options.ttl || 0
+                    });
+                    return response.success;
+                } catch (error) {
+                    console.error('jPulse.appCluster.cache.set: Error:', error);
+                    return false;
+                }
+            },
+
+            /**
+             * Get cache value from Redis (cluster-wide)
+             * @param {string} category - Cache category
+             * @param {string} key - Cache key
+             * @returns {Promise<*>} Cached value or null if not found/expired
+             */
+            async get(category, key) {
+                try {
+                    const response = await jPulse.api.get(`/api/1/app-cluster/cache/${category}/${key}`);
+                    return response.success ? response.data : null;
+                } catch (error) {
+                    console.error('jPulse.appCluster.cache.get: Error:', error);
+                    return null;
+                }
+            },
+
+            /**
+             * Delete cache value from Redis (cluster-wide)
+             * @param {string} category - Cache category
+             * @param {string} key - Cache key
+             * @returns {Promise<boolean>} Success status
+             */
+            async del(category, key) {
+                try {
+                    const response = await jPulse.api.delete(`/api/1/app-cluster/cache/${category}/${key}`);
+                    return response.success;
+                } catch (error) {
+                    console.error('jPulse.appCluster.cache.del: Error:', error);
+                    return false;
+                }
             }
         }
     },

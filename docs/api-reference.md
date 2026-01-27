@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.5.1
+# jPulse Docs / REST API Reference v1.6.0
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -1923,6 +1923,246 @@ The metrics endpoint includes a `components` object with standardized metrics fr
 - Requires admin authentication
 - Provides visual indicators and real-time system information
 - Includes WebSocket namespace details and performance metrics
+
+## 🗄️ Cache API
+
+> **Complete Guide:** See [Cache Infrastructure](cache-infrastructure.md) for comprehensive documentation, patterns, and best practices.
+
+jPulse provides two independent cache systems:
+1. **File Cache** - Framework-managed (templates, i18n, markdown)
+2. **Redis Cache** - Developer-controlled (application data)
+
+### File Cache API
+
+Admin-only endpoints for managing framework asset caches.
+
+#### Refresh All Caches
+
+```http
+POST /api/1/cache/refresh/all
+```
+
+Refreshes all cache types (view templates, i18n translations, markdown documentation).
+
+**Authentication:** Required (admin/root roles)
+
+**Response:**
+```json
+{
+    "success": true,
+    "message": "All caches refreshed successfully"
+}
+```
+
+#### Refresh View Templates
+
+```http
+POST /api/1/cache/refresh/view
+```
+
+Refreshes only view template cache (`.shtml` files).
+
+**Authentication:** Required (admin/root roles)
+
+#### Refresh i18n Translations
+
+```http
+POST /api/1/cache/refresh/i18n
+```
+
+Refreshes only i18n translation cache (`.conf` files).
+
+**Authentication:** Required (admin/root roles)
+
+#### Refresh Markdown Documentation
+
+```http
+POST /api/1/cache/refresh/markdown
+```
+
+Refreshes only markdown documentation cache (`.md` files).
+
+**Authentication:** Required (admin/root roles)
+
+#### Get Cache Statistics
+
+```http
+GET /api/1/cache/stats
+```
+
+Returns file cache statistics.
+
+**Authentication:** Required (admin/root roles)
+
+**Response:**
+```json
+{
+    "success": true,
+    "data": {
+        "view": {
+            "cached": 42,
+            "served": 1250
+        },
+        "i18n": {
+            "cached": 8,
+            "languages": ["en", "de", "es", "fr"]
+        },
+        "markdown": {
+            "cached": 35,
+            "directories": 3
+        }
+    }
+}
+```
+
+---
+
+### Redis Cache API
+
+User-scoped cache for application data. All endpoints require authentication and automatically scope to the authenticated user.
+
+> **Server-Side Usage:** Controllers and models should use `RedisManager` methods directly. See [Cache Infrastructure](cache-infrastructure.md) for server-side API.
+
+#### Set Cache Value
+
+```http
+POST /api/1/app-cluster/cache/set
+```
+
+Sets a cache value with optional TTL (time-to-live).
+
+**Authentication:** Required (any authenticated user)
+
+**Request Body:**
+```json
+{
+    "category": "user-preferences",
+    "key": "theme",
+    "value": "dark",
+    "ttl": 3600
+}
+```
+
+**Parameters:**
+- `category` (string, required) - Logical grouping (e.g., `'user-preferences'`, `'dashboard'`)
+- `key` (string, required) - Unique identifier within category
+- `value` (string, required) - Value to store (for objects, use `JSON.stringify()`)
+- `ttl` (number, optional) - Time-to-live in seconds (default: no expiration)
+
+**Response:**
+```json
+{
+    "success": true,
+    "message": "Cache value set successfully"
+}
+```
+
+**Key Format:** Internally stored as `{userId}:{category}:{key}` for user isolation.
+
+#### Get Cache Value
+
+```http
+POST /api/1/app-cluster/cache/get
+```
+
+Retrieves a cached value.
+
+**Authentication:** Required (any authenticated user)
+
+**Request Body:**
+```json
+{
+    "category": "user-preferences",
+    "key": "theme"
+}
+```
+
+**Response (value found):**
+```json
+{
+    "success": true,
+    "data": {
+        "value": "dark"
+    }
+}
+```
+
+**Response (cache miss):**
+```json
+{
+    "success": true,
+    "data": {
+        "value": null
+    }
+}
+```
+
+#### Delete Cache Value
+
+```http
+POST /api/1/app-cluster/cache/delete
+```
+
+Deletes a cached value.
+
+**Authentication:** Required (any authenticated user)
+
+**Request Body:**
+```json
+{
+    "category": "user-preferences",
+    "key": "theme"
+}
+```
+
+**Response:**
+```json
+{
+    "success": true,
+    "message": "Cache value deleted successfully"
+}
+```
+
+---
+
+### Server-Side Redis Cache Methods
+
+For use in controllers and models. Import `RedisManager` from `../utils/redis-manager.js`.
+
+```javascript
+import RedisManager from '../utils/redis-manager.js';
+
+// Always check availability first
+if (!RedisManager.isAvailable) {
+    // Handle gracefully - cache unavailable
+}
+
+// Simple value operations
+await RedisManager.cacheSet(category, key, value, ttl);
+const value = await RedisManager.cacheGet(category, key);  // Returns null if not found
+await RedisManager.cacheDel(category, key);
+
+// Object operations (automatic JSON serialization)
+await RedisManager.cacheSetObject(category, key, object, ttl);
+const object = await RedisManager.cacheGetObject(category, key);  // Returns null if not found
+
+// Counter operations
+const newValue = await RedisManager.cacheIncr(category, key, ttl);  // Increments and returns new value
+
+// Pattern-based deletion
+await RedisManager.cacheDelPattern(category, pattern);  // e.g., pattern = 'user:*'
+
+// Rate limiting
+const result = await RedisManager.cacheCheckRateLimit(category, identifier, maxRequests, windowSeconds);
+// Returns: { allowed, current, limit, remaining, retryAfter }
+```
+
+**Key Naming Convention:**
+- Category: `'controller:name'`, `'model:name'`, or `'feature:name'`
+- Key: Descriptive identifier (e.g., `'last_run'`, `'user:123:prefs'`)
+- Full Redis key: `category:key` (e.g., `'controller:health:last_run'`)
+
+**See:** [Cache Infrastructure - Server-Side API](cache-infrastructure.md#redis-cache-api---server-side) for complete documentation and patterns.
 
 ## 📝 Error Handling
 

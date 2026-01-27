@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administration v1.5.1
+# jPulse Docs / Site Administration v1.6.0
 
 Complete guide to managing your jPulse site through the admin interface.
 
@@ -224,6 +224,49 @@ View real-time system metrics including:
 - Manual report sending may be available for administrators (intended for testing and troubleshooting).
 
 > **See**: [License Guide](license.md#site-monitoring-bsl-period-only) for complete details about compliance reporting requirements, what data is collected, and privacy information.
+
+### Cache Performance Monitoring
+
+**Access**: `/admin/system-status.shtml` → Component Health section (requires `admin` or `root` role)
+
+jPulse provides two independent cache systems, both visible in the System Status page:
+
+**File Cache** (framework-managed, disk-based):
+- Located in **ViewController** component card
+- **Metrics**:
+  - Cached Files: Total templates/i18n/markdown cached
+  - Served Last 24h: Template renders in last 24 hours
+  - View Directories: Number of view directories configured
+
+**Redis Cache** (developer-controlled, memory-based):
+- Located in **Redis Cache** component card (cluster-wide view)
+- Located in **RedisManager** section (per-instance view)
+- **Metrics**:
+  - **Cache Hit Rate**: Percentage of successful cache retrievals (higher is better)
+    - 90%+ = Excellent caching strategy
+    - 70-90% = Good performance
+    - 50-70% = Fair, consider TTL adjustments
+    - <50% = Review cache strategy
+  - **Cache Gets**: Total cache read operations
+  - **Cache Sets**: Total cache write operations
+  - **Cache Deletes**: Total cache delete operations
+  - **Cache Hits**: Successful cache retrievals (data found)
+  - **Cache Misses**: Cache misses (data not found or expired)
+
+**Interpreting Cache Metrics:**
+
+- **High Hit Rate** (>80%): Cache strategy is effective, good TTL values
+- **Low Hit Rate** (<50%): TTL too short or cache keys not reused effectively
+- **High Gets, Low Sets**: Effective cache reuse (good for read-heavy applications)
+- **High Deletes**: Frequent cache invalidation (normal for rate limiting or session cleanup)
+
+**Multi-Instance Considerations:**
+
+- **Cluster-wide metrics**: Aggregated across all instances
+- **Per-instance metrics**: Individual instance performance
+- Redis cache is shared across all instances in cluster mode
+
+> **See**: [Cache Infrastructure Guide](cache-infrastructure.md) for complete documentation on using and optimizing both cache systems.
 
 ### Logs
 

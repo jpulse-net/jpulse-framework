@@ -4,8 +4,8 @@
  * @tagline         Admin system status interface
  * @description     System monitoring and health dashboard for site administrators
  * @file            webapp/view/admin/system-status.shtml
- * @version         1.5.1
- * @release         2026-01-25
+ * @version         1.6.0
+ * @release         2026-01-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -391,6 +391,17 @@
                         </div>`;
                 }
 
+                // Manual report trigger button
+                html += `
+                    <div class="jp-metric-row">
+                        <span class="jp-metric-label">{{i18n.view.admin.systemStatus.licenseCompliance.manualReport}}</span>
+                        <span class="jp-metric-value">
+                            <button id="send-compliance-report-btn" class="jp-btn jp-btn-secondary">
+                                {{i18n.view.admin.systemStatus.licenseCompliance.sendReportNow}}
+                            </button>
+                        </span>
+                    </div>`;
+
                 html += '</div>'; // Close jp-status-metrics
 
                 // Transparency: Show last report and response (collapsible)
@@ -433,8 +444,8 @@
                 if (adminEmailOptIn) {
                     // Opted-in
                     const dashboardLink = compliance.monitorUrl
-                        ? `<a href="${compliance.monitorUrl}" target="_blank">jpulse.net/monitor/${compliance.siteUuid || '[uuid]'}</a>`
-                        : 'jpulse.net/monitor/[uuid]';
+                        ? `<a href="${compliance.monitorUrl}" target="_blank">jpulse.net/site-monitor/${compliance.siteUuid || '[uuid]'}</a>`
+                        : 'jpulse.net/site-monitor/[uuid]';
                     const optInText = '{{i18n.view.admin.systemStatus.licenseCompliance.transparency.optedIn}}'.replace('%LINK%', dashboardLink);
                     html += `<p class="jp-mt-15 jp-text-small">${optInText}</p>`;
                 } else {
@@ -446,6 +457,45 @@
                 html += '</div>'; // Close jp-card
 
                 this.elements.complianceSection.innerHTML = html;
+
+                // Attach event listener for "Send Report Now" button
+                const sendButton = document.getElementById('send-compliance-report-btn');
+                if (sendButton) {
+                    sendButton.addEventListener('click', () => this.sendComplianceReport());
+                }
+            },
+
+            async sendComplianceReport() {
+                const button = document.getElementById('send-compliance-report-btn');
+                if (!button) return;
+
+                try {
+                    // Disable button and show loading
+                    button.disabled = true;
+                    button.textContent = '{{i18n.view.admin.systemStatus.licenseCompliance.sending}}';
+
+                    const response = await fetch('/api/1/health/compliance/send-report', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        jPulse.UI.toast('{{i18n.view.admin.systemStatus.licenseCompliance.reportSent}}', 'success');
+                        // Reload data to show updated compliance status
+                        await this.loadStatus();
+                    } else {
+                        jPulse.UI.toast(result.error || '{{i18n.view.admin.systemStatus.licenseCompliance.reportFailed}}', 'error');
+                        button.disabled = false;
+                        button.textContent = '{{i18n.view.admin.systemStatus.licenseCompliance.sendReportNow}}';
+                    }
+                } catch (error) {
+                    console.error('- jPulse: Failed to send compliance report:', error);
+                    jPulse.UI.toast('{{i18n.view.admin.systemStatus.licenseCompliance.reportFailed}}', 'error');
+                    button.disabled = false;
+                    button.textContent = '{{i18n.view.admin.systemStatus.licenseCompliance.sendReportNow}}';
+                }
             },
 
             renderComponentHealth() {
@@ -480,9 +530,6 @@
                     const componentMeta = instanceComponent?.meta || {};
                     const fieldsMeta = componentMeta.fields || {};
 
-                    const card = document.createElement('div');
-                    card.className = `jp-card jp-status-card jp-status-${status}`;
-
                     // Helper to check if field should be visualized
                     const shouldVisualize = (fieldName) => {
                         const fieldMeta = fieldsMeta[fieldName] || {};
@@ -491,52 +538,166 @@
                         return effectiveVisualize !== false;
                     };
 
-                    // Get all key stats to display (filter out complex objects/arrays and non-visualized fields)
-                    const keyStats = Object.entries(stats)
-                        .filter(([key, value]) => {
-                            // Only show simple values (not objects/arrays) and fields that should be visualized
-                            return (typeof value !== 'object' || value === null) && shouldVisualize(key);
-                        })
-                        .map(([key, value]) => {
-                            // Format the value - handle timestamps and uptime
-                            let displayValue = value;
-                            if (typeof value === 'number') {
-                                // Special handling for uptime (in seconds) - format directly
-                                if (key === 'uptime') {
-                                    displayValue = jPulse.utils.formatUptime(value);
-                                } else {
-                                    displayValue = value.toLocaleString();
-                                }
-                            } else if (typeof value === 'boolean') {
-                                displayValue = value ? '{{i18n.view.admin.systemStatus.yes}}' : '{{i18n.view.admin.systemStatus.no}}';
-                            } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
-                                // ISO timestamp - format it
-                                displayValue = jPulse.date.formatLocalDateAndTime(value);
-                            }
-                            return { key, value: displayValue };
-                        });
+                    // W-143: Special handling for Redis - split into two cards
+                    if (componentName === 'redis' && stats.cache) {
+                        // Card 1: RedisManager (connectivity/broker)
+                        const redisCard = document.createElement('div');
+                        redisCard.className = `jp-card jp-status-card jp-status-${status}`;
 
-                    const indicatorClass = status === 'ok' ? '' : status === 'warning' ? 'jp-warning' : 'jp-error';
-                    const compDisplayName = instanceComponent?.component || componentName;
-                    card.innerHTML = `
-                        <div class="jp-status-header">
-                            <h3 class="jp-status-title">${compDisplayName}</h3>
-                            <span class="jp-status-indicator ${indicatorClass}"></span>
-                        </div>
-                        <div class="jp-status-metrics">
-                            ${keyStats.map(stat => `
-                                <div class="jp-metric-row">
-                                    <span class="jp-metric-label">${this.formatFieldName(stat.key)}</span>
-                                    <span class="jp-metric-value">${stat.value}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
-                    this.elements.componentHealthGrid.appendChild(card);
+                        const redisStats = Object.entries(stats)
+                            .filter(([key, value]) => {
+                                return (typeof value !== 'object' || value === null) && shouldVisualize(key);
+                            })
+                            .map(([key, value]) => {
+                                let displayValue = value;
+                                if (typeof value === 'number') {
+                                    if (key === 'uptime') {
+                                        displayValue = jPulse.utils.formatUptime(value);
+                                    } else {
+                                        displayValue = value.toLocaleString();
+                                    }
+                                } else if (typeof value === 'boolean') {
+                                    displayValue = value ? '{{i18n.view.admin.systemStatus.yes}}' : '{{i18n.view.admin.systemStatus.no}}';
+                                } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+                                    displayValue = jPulse.date.formatLocalDateAndTime(value);
+                                }
+                                return { key, value: displayValue };
+                            });
+
+                        const indicatorClass = status === 'ok' ? '' : status === 'warning' ? 'jp-warning' : 'jp-error';
+                        const compDisplayName = instanceComponent?.component || componentName;
+                        redisCard.innerHTML = `
+                            <div class="jp-status-header">
+                                <h3 class="jp-status-title">${compDisplayName}</h3>
+                                <span class="jp-status-indicator ${indicatorClass}"></span>
+                            </div>
+                            <div class="jp-status-metrics">
+                                ${redisStats.map(stat => `
+                                    <div class="jp-metric-row">
+                                        <span class="jp-metric-label">${this.formatFieldName(stat.key)}</span>
+                                        <span class="jp-metric-value">${stat.value}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                        this.elements.componentHealthGrid.appendChild(redisCard);
+
+                        // Card 2: Redis Cache (performance)
+                        const cacheCard = document.createElement('div');
+                        cacheCard.className = `jp-card jp-status-card jp-status-${status}`;
+
+                        const cache = stats.cache;
+                        const cacheStats = [];
+
+                        if (cache.hitRate !== undefined) {
+                            cacheStats.push({
+                                key: 'cacheHitRate',
+                                value: `${cache.hitRate}%`
+                            });
+                        }
+                        if (cache.operations) {
+                            cacheStats.push({
+                                key: 'cacheGets',
+                                value: (cache.operations.gets || 0).toLocaleString()
+                            });
+                            cacheStats.push({
+                                key: 'cacheSets',
+                                value: (cache.operations.sets || 0).toLocaleString()
+                            });
+                            cacheStats.push({
+                                key: 'cacheDeletes',
+                                value: (cache.operations.deletes || 0).toLocaleString()
+                            });
+                        }
+                        if (cache.hits !== undefined) {
+                            cacheStats.push({
+                                key: 'cacheHits',
+                                value: cache.hits.toLocaleString()
+                            });
+                        }
+                        if (cache.misses !== undefined) {
+                            cacheStats.push({
+                                key: 'cacheMisses',
+                                value: cache.misses.toLocaleString()
+                            });
+                        }
+
+                        cacheCard.innerHTML = `
+                            <div class="jp-status-header">
+                                <h3 class="jp-status-title">{{i18n.view.admin.systemStatus.componentHealth.redisCache}}</h3>
+                                <span class="jp-status-indicator ${indicatorClass}"></span>
+                            </div>
+                            <div class="jp-status-metrics">
+                                ${cacheStats.map(stat => `
+                                    <div class="jp-metric-row">
+                                        <span class="jp-metric-label">${this.formatFieldName(stat.key)}</span>
+                                        <span class="jp-metric-value">${stat.value}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                        this.elements.componentHealthGrid.appendChild(cacheCard);
+                    } else {
+                        // Standard card for non-Redis components
+                        const card = document.createElement('div');
+                        card.className = `jp-card jp-status-card jp-status-${status}`;
+
+                        const keyStats = Object.entries(stats)
+                            .filter(([key, value]) => {
+                                return (typeof value !== 'object' || value === null) && shouldVisualize(key);
+                            })
+                            .map(([key, value]) => {
+                                let displayValue = value;
+                                if (typeof value === 'number') {
+                                    if (key === 'uptime') {
+                                        displayValue = jPulse.utils.formatUptime(value);
+                                    } else {
+                                        displayValue = value.toLocaleString();
+                                    }
+                                } else if (typeof value === 'boolean') {
+                                    displayValue = value ? '{{i18n.view.admin.systemStatus.yes}}' : '{{i18n.view.admin.systemStatus.no}}';
+                                } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value)) {
+                                    displayValue = jPulse.date.formatLocalDateAndTime(value);
+                                }
+                                return { key, value: displayValue };
+                            });
+
+                        const indicatorClass = status === 'ok' ? '' : status === 'warning' ? 'jp-warning' : 'jp-error';
+                        const compDisplayName = instanceComponent?.component || componentName;
+                        card.innerHTML = `
+                            <div class="jp-status-header">
+                                <h3 class="jp-status-title">${compDisplayName}</h3>
+                                <span class="jp-status-indicator ${indicatorClass}"></span>
+                            </div>
+                            <div class="jp-status-metrics">
+                                ${keyStats.map(stat => `
+                                    <div class="jp-metric-row">
+                                        <span class="jp-metric-label">${this.formatFieldName(stat.key)}</span>
+                                        <span class="jp-metric-value">${stat.value}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                        this.elements.componentHealthGrid.appendChild(card);
+                    }
                 });
             },
 
             formatFieldName(name) {
+                // W-143: Special handling for cache metrics
+                const cacheFieldMap = {
+                    'cacheHitRate': 'Cache Hit Rate',
+                    'cacheGets': 'Cache Gets',
+                    'cacheSets': 'Cache Sets',
+                    'cacheDeletes': 'Cache Deletes',
+                    'cacheHits': 'Cache Hits',
+                    'cacheMisses': 'Cache Misses'
+                };
+
+                if (cacheFieldMap[name]) {
+                    return cacheFieldMap[name];
+                }
+
                 // Convert camelCase to Title Case
                 // Add space before capital letters and before numbers after letters
                 return name
@@ -681,6 +842,20 @@
                             }).map(inst => {
                                 const instanceComponents = inst.components || {};
                                 const formatField = (name) => {
+                                    // W-143: Special handling for cache metrics
+                                    const cacheFieldMap = {
+                                        'cacheHitRate': 'Cache Hit Rate',
+                                        'cacheGets': 'Cache Gets',
+                                        'cacheSets': 'Cache Sets',
+                                        'cacheDeletes': 'Cache Deletes',
+                                        'cacheHits': 'Cache Hits',
+                                        'cacheMisses': 'Cache Misses'
+                                    };
+
+                                    if (cacheFieldMap[name]) {
+                                        return cacheFieldMap[name];
+                                    }
+
                                     // Convert camelCase to Title Case
                                     // Add space before capital letters and before numbers after letters
                                     return name
@@ -707,7 +882,7 @@
                                         };
 
                                         // Get all key stats (filter out complex objects/arrays and non-visualized fields)
-                                        const keyStats = Object.entries(compStats)
+                                        let keyStats = Object.entries(compStats)
                                             .filter(([key, value]) => {
                                                 return (typeof value !== 'object' || value === null) && shouldVisualize(key);
                                             })
@@ -728,6 +903,46 @@
                                                 }
                                                 return { key, value: displayValue };
                                             });
+
+                                        // W-143: Special handling for Redis cache statistics (per-instance)
+                                        if (compName === 'redis' && compStats.cache) {
+                                            const cache = compStats.cache;
+                                            // Add cache hit rate (most important metric)
+                                            if (cache.hitRate !== undefined) {
+                                                keyStats.push({
+                                                    key: 'cacheHitRate',
+                                                    value: `${cache.hitRate}%`
+                                                });
+                                            }
+                                            // Add cache operations summary
+                                            if (cache.operations) {
+                                                keyStats.push({
+                                                    key: 'cacheGets',
+                                                    value: (cache.operations.gets || 0).toLocaleString()
+                                                });
+                                                keyStats.push({
+                                                    key: 'cacheSets',
+                                                    value: (cache.operations.sets || 0).toLocaleString()
+                                                });
+                                                keyStats.push({
+                                                    key: 'cacheDeletes',
+                                                    value: (cache.operations.deletes || 0).toLocaleString()
+                                                });
+                                            }
+                                            // Add hit/miss counts
+                                            if (cache.hits !== undefined) {
+                                                keyStats.push({
+                                                    key: 'cacheHits',
+                                                    value: cache.hits.toLocaleString()
+                                                });
+                                            }
+                                            if (cache.misses !== undefined) {
+                                                keyStats.push({
+                                                    key: 'cacheMisses',
+                                                    value: cache.misses.toLocaleString()
+                                                });
+                                            }
+                                        }
 
                                         // Return component header row and metric rows
                                         // Status indicator: ok = green (default), warning = yellow, error/unknown = red

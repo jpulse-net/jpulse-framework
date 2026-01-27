@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.5.1
+# jPulse Docs / Dev / Work Items v1.6.0
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4378,6 +4378,67 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-143, v1.6.0, 2026-01-27: framework: redis based cache infrastructure for application data
+- status: ✅ DONE
+- type: Feature (Infrastructure Enhancement)
+- objectives: add Redis cache wrapper to RedisManager with enforced naming conventions, common cache patterns, and client-side API
+- features:
+  - colon-separated cache paths (consistent with pub/sub: `controller:namespace:category`)
+  - core operations: `cacheSet()`, `cacheGet()`, `cacheDel()`, `cacheExists()`
+  - JSON operations: `cacheSetObject()`, `cacheGetObject()` (auto-serialization)
+  - counter operations: `cacheIncr()`, `cacheDecr()`, `cacheIncrBy()`
+  - pattern methods: `cacheSetToken()`, `cacheGetToken()`, `cacheDelToken()`, `cacheValidateToken()`, `cacheCheckRateLimit()`
+  - bulk operations: `cacheDelPattern()` (uses SCAN, production-safe)
+  - client-side API: `jPulse.appCluster.cache.set/get/del()` (browser/view access)
+  - backend cache API: `/api/1/cache/set`, `/api/1/cache/get`, `/api/1/cache/delete`
+  - cache metrics integration in `RedisManager.getMetrics()`
+  - TTL conventions: 0 = indefinite, pattern methods have sensible defaults (1 hour)
+  - graceful fallback when Redis unavailable
+  - component types: `controller`, `model`, `view`, `util`
+- deliverables:
+  - `webapp/utils/redis-manager.js`:
+    - add cache methods: `cacheSet()`, `cacheGet()`, `cacheDel()`, `cacheExists()`
+    - add JSON methods: `cacheSetObject()`, `cacheGetObject()`
+    - add counter methods: `cacheIncr()`, `cacheDecr()`, `cacheIncrBy()`
+    - add pattern methods: `cacheSetToken()`, `cacheGetToken()`, `cacheDelToken()`, `cacheValidateToken()`, `cacheCheckRateLimit()`
+    - add bulk method: `cacheDelPattern()`
+    - add helpers: `_parseCachePath()`, `_buildCacheKey()`, `_validateCacheParams()`
+    - Extend `getMetrics()` with cache statistics (hits, misses, hit rate, operations)
+  - `webapp/view/jpulse-common.js`:
+    - add `jPulse.appCluster.cache.set()` (POST to `/api/1/cache/set`)
+    - add `jPulse.appCluster.cache.get()` (GET to `/api/1/cache/get`)
+    - add `jPulse.appCluster.cache.del()` (POST to `/api/1/cache/delete`)
+  - `webapp/controller/cache.js` (new file):
+    - add `apiSetCache()` (POST `/api/1/cache/set`)
+    - add `apiGetCache()` (GET `/api/1/cache/get`)
+    - add `apiDeleteCache()` (POST `/api/1/cache/delete`)
+    - User-scoped: automatically uses `view:{userId}:category:key`
+  - `webapp/view/admin/system-status.shtml`:
+    - add Redis cache statistics section (hit rate, total keys, operations)
+  - `webapp/static/assets/jpulse-docs/cache-infrastructure.md` (new file):
+    - document two cache layers: file-level (CacheManager) vs Redis-based (RedisManager)
+    - usage examples for all cache operations
+    - best practices and security guidelines
+    - client-side vs server-side cache APIs
+  - `webapp/static/assets/jpulse-docs/application-cluster.md`:
+    - add "Cache vs. Broadcast" comparison section
+    - add combined cache + broadcast examples
+    - cross-link to cache-infrastructure.md
+  - `webapp/static/assets/jpulse-docs/genai-instructions.md`:
+    - add cache wrapper patterns and examples
+    - document colon-separated path convention
+    - add `jPulse.appCluster.cache.*` client API
+  - `webapp/static/assets/jpulse-docs/api-reference.md`:
+    - document all `RedisManager.cache*()` methods
+    - document `jPulse.appCluster.cache.*` methods
+    - document `/api/1/cache/*` endpoints
+  - `webapp/tests/unit/redis-manager.test.js`:
+    - add cache operation tests (set/get/del/exists)
+    - add JSON operation tests (serialize/deserialize)
+    - add pattern method tests (tokens, rate limiting)
+    - add bulk deletion tests (pattern matching)
+    - add error handling tests (Redis unavailable)
+    - add key building and validation tests
 
 
 
@@ -4415,8 +4476,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-diff.txt for accuracy and completness of work item
-- assume release: W-142, v1.5.1
-- update deliverables in W-142 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-143, v1.6.0, 2026-01-27
+- update deliverables in W-143 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4433,12 +4494,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.5.1
+node bin/bump-version.js 1.6.0
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.5.1
+git tag v1.6.0
 git push origin main --tags
 
 === plugin release & package build on github ===

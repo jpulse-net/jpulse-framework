@@ -1,4 +1,4 @@
-# jPulse Docs / License, jPulse v1.5.1
+# jPulse Docs / License, jPulse v1.6.0
 
 ## Overview
 
@@ -209,7 +209,7 @@ Commercial licensing offers flexible tiers:
 - **Enterprise License**: Comprehensive licensing for large organizations
 - **Enterprise Plus**: Premium licensing with advanced features and support
 
-*Visit (jPulse.net Pricing)[https://jpulse.net/pricing/] for detailed pricing and licensing options.*
+*Visit [jPulse.net Pricing](https://jpulse.net/pricing/) for detailed pricing and licensing options.*
 
 ## Frequently Asked Questions
 

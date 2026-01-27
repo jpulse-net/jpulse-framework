@@ -1,4 +1,4 @@
-# jPulse Docs / Application Cluster Communication v1.5.1
+# jPulse Docs / Application Cluster Communication v1.6.0
 
 ## Overview
 
@@ -320,6 +320,108 @@ class MyController {
 - Audit trails and logging
 
 **Live Example:** `/hello-app-cluster/collaborative-todo.shtml`
+
+---
+
+## Redis Cache API
+
+> **Detailed Guide:** See [Cache Infrastructure](cache-infrastructure.md) for comprehensive documentation on both file cache and Redis cache systems.
+
+The Application Cluster system includes a Redis-based cache API for user-scoped application data. This is distinct from the file cache (templates, i18n) and designed for developer use.
+
+### Cache Types in jPulse
+
+jPulse provides **two independent cache systems**:
+
+1. **File Cache** (framework-managed, disk-based)
+   - View templates (`.shtml`)
+   - i18n translations (`.conf`)
+   - Markdown documentation (`.md`)
+   - Automatic, no developer code needed
+
+2. **Redis Cache** (developer-controlled, memory-based)
+   - Application data
+   - User preferences
+   - Computed results
+   - Rate limiting
+   - Session data
+
+**Both work independently!** File cache doesn't require Redis. Redis cache requires a Redis connection.
+
+### Quick Redis Cache Example
+
+```javascript
+// Client-side (user-scoped, requires authentication)
+const result = await jPulse.api.post('/api/1/app-cluster/cache/set', {
+    category: 'user-preferences',
+    key: 'theme',
+    value: 'dark',
+    ttl: 3600  // 1 hour
+});
+
+const cached = await jPulse.api.post('/api/1/app-cluster/cache/get', {
+    category: 'user-preferences',
+    key: 'theme'
+});
+
+if (cached.success && cached.data.value) {
+    console.log('User theme:', cached.data.value);
+}
+
+// Server-side (controllers/models)
+if (RedisManager.isAvailable) {
+    // Simple value
+    await RedisManager.cacheSet('controller:myapp', 'last_run', Date.now().toString(), 3600);
+    const lastRun = await RedisManager.cacheGet('controller:myapp', 'last_run');
+
+    // Complex object
+    await RedisManager.cacheSetObject('model:user', 'preferences', { theme: 'dark' }, 3600);
+    const prefs = await RedisManager.cacheGetObject('model:user', 'preferences');
+}
+```
+
+### When to Use Redis Cache
+
+**Perfect for:**
+- User preferences and settings (fast access)
+- Computed analytics (expensive calculations)
+- API rate limiting (request throttling)
+- Temporary data (exports, reports)
+- Session-like data across requests
+
+**Not suitable for:**
+- Primary data storage (use database)
+- Critical data (cache can expire/fail)
+- Large binary files (use file system)
+- Framework assets (use file cache)
+
+### Multi-Instance Benefits
+
+In cluster mode, Redis cache is **shared across all instances**:
+
+```
+User on Instance A: Sets theme = "dark"
+User on Instance B: Gets theme → "dark" (same cached data)
+User on Instance C: Deletes theme → cleared for A and B too
+```
+
+**Rate limiting across instances:**
+```
+User makes 10 requests → Instance A, B, C combined
+Rate limit: 100 requests/hour → counts ALL instances
+```
+
+### See Also
+
+For complete Redis cache documentation, including:
+- All cache methods (`cacheSet`, `cacheGet`, `cacheSetObject`, `cacheIncr`, etc.)
+- Rate limiting patterns
+- Cache key naming conventions
+- Error handling and graceful degradation
+- Common usage patterns
+- Monitoring cache performance
+
+**See:** [Cache Infrastructure Guide](cache-infrastructure.md)
 
 ---
 
@@ -1540,6 +1642,7 @@ RedisManager.isRedisAvailable()
 
 ## See Also
 
+- **[Cache Infrastructure](cache-infrastructure.md)** - Complete guide to file cache and Redis cache
 - **[WebSocket Real-Time Communication](websockets.md)** - Persistent bi-directional patterns
 - **[MPA vs. SPA Architecture](mpa-vs-spa.md)** - Choosing your architecture
 - **[Front-End Development Guide](front-end-development.md)** - Client-side utilities and APIs

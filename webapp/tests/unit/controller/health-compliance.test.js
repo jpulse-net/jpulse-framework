@@ -3,32 +3,56 @@
  * @tagline         Unit tests for W-137 compliance reporting
  * @description     Tests for compliance scheduling, gating, and state handling
  * @file            webapp/tests/unit/controller/health-compliance.test.js
- * @version         1.5.1
- * @release         2026-01-25
+ * @version         1.6.0
+ * @release         2026-01-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.3, GPT-5.2
+ * @genai           80%, Cursor 2.4, Claude Sonnet 4.5 & GPT-5.2
  */
 
 import { jest } from '@jest/globals';
 import HealthController from '../../../controller/health.js';
 
-function createFakeRedis(initial = {}) {
+/**
+ * Create fake RedisManager cache wrapper for W-143 cache API
+ * Maps cache paths (category:key) to values
+ */
+function createFakeRedisManager(initial = {}) {
     const store = new Map(Object.entries(initial));
+
     return {
-        get: jest.fn(async (key) => {
-            const value = store.get(key);
+        isAvailable: true,
+        cacheGet: jest.fn(async (category, key) => {
+            const fullKey = `${category}:${key}`;
+            const value = store.get(fullKey);
             return value === undefined ? null : String(value);
         }),
-        set: jest.fn(async (key, value) => {
-            store.set(key, String(value));
-            return 'OK';
+        cacheSet: jest.fn(async (category, key, value) => {
+            const fullKey = `${category}:${key}`;
+            store.set(fullKey, String(value));
+            return true;
         }),
-        del: jest.fn(async (key) => {
-            store.delete(key);
-            return 1;
+        cacheDel: jest.fn(async (category, key) => {
+            const fullKey = `${category}:${key}`;
+            store.delete(fullKey);
+            return true;
+        }),
+        cacheGetObject: jest.fn(async (category, key) => {
+            const fullKey = `${category}:${key}`;
+            const value = store.get(fullKey);
+            if (value === undefined || value === null) return null;
+            try {
+                return typeof value === 'string' ? JSON.parse(value) : value;
+            } catch (e) {
+                return null;
+            }
+        }),
+        cacheSetObject: jest.fn(async (category, key, obj) => {
+            const fullKey = `${category}:${key}`;
+            store.set(fullKey, JSON.stringify(obj));
+            return true;
         })
     };
 }
@@ -50,13 +74,12 @@ describe('HealthController W-137 compliance', () => {
             // 2026-01-22 10:00:00Z
             jest.setSystemTime(new Date('2026-01-22T10:00:00.000Z'));
 
-            const redis = createFakeRedis({
-                'metrics:compliance:report_time': '07:15',
-                'metrics:compliance:last_scheduled_timestamp': '0',
-                'metrics:compliance:next_attempt': '0'
+            // W-143: Use cache wrapper pattern
+            global.RedisManager = createFakeRedisManager({
+                'controller:compliance:timing:report_time': '07:15',
+                'controller:compliance:history:last_scheduled_timestamp': '0',
+                'controller:compliance:retry:next_attempt': '0'
             });
-
-            global.RedisManager = { getClient: () => redis };
 
             const result = await HealthController._shouldSendReport();
             expect(result).toBe(false);
@@ -66,13 +89,12 @@ describe('HealthController W-137 compliance', () => {
             // 2026-01-22 07:20:00Z (within 07:15 ±30 min)
             jest.setSystemTime(new Date('2026-01-22T07:20:00.000Z'));
 
-            const redis = createFakeRedis({
-                'metrics:compliance:report_time': '07:15',
-                'metrics:compliance:last_scheduled_timestamp': '0',
-                'metrics:compliance:next_attempt': '0'
+            // W-143: Use cache wrapper pattern
+            global.RedisManager = createFakeRedisManager({
+                'controller:compliance:timing:report_time': '07:15',
+                'controller:compliance:history:last_scheduled_timestamp': '0',
+                'controller:compliance:retry:next_attempt': '0'
             });
-
-            global.RedisManager = { getClient: () => redis };
 
             const result = await HealthController._shouldSendReport();
             expect(result).toBe(true);
@@ -86,13 +108,12 @@ describe('HealthController W-137 compliance', () => {
             // Window start is 06:45Z (07:15 - 30 min). Set last scheduled at 07:00Z.
             const lastScheduled = new Date('2026-01-22T07:00:00.000Z').getTime();
 
-            const redis = createFakeRedis({
-                'metrics:compliance:report_time': '07:15',
-                'metrics:compliance:last_scheduled_timestamp': String(lastScheduled),
-                'metrics:compliance:next_attempt': '0'
+            // W-143: Use cache wrapper pattern
+            global.RedisManager = createFakeRedisManager({
+                'controller:compliance:timing:report_time': '07:15',
+                'controller:compliance:history:last_scheduled_timestamp': String(lastScheduled),
+                'controller:compliance:retry:next_attempt': '0'
             });
-
-            global.RedisManager = { getClient: () => redis };
 
             const result = await HealthController._shouldSendReport();
             expect(result).toBe(false);
@@ -105,13 +126,12 @@ describe('HealthController W-137 compliance', () => {
 
             const nextAttempt = now.getTime() + 3600_000;
 
-            const redis = createFakeRedis({
-                'metrics:compliance:report_time': '07:15',
-                'metrics:compliance:last_scheduled_timestamp': '0',
-                'metrics:compliance:next_attempt': String(nextAttempt)
+            // W-143: Use cache wrapper pattern
+            global.RedisManager = createFakeRedisManager({
+                'controller:compliance:timing:report_time': '07:15',
+                'controller:compliance:history:last_scheduled_timestamp': '0',
+                'controller:compliance:retry:next_attempt': String(nextAttempt)
             });
-
-            global.RedisManager = { getClient: () => redis };
 
             const result = await HealthController._shouldSendReport();
             expect(result).toBe(false);
@@ -121,31 +141,37 @@ describe('HealthController W-137 compliance', () => {
     describe('_recordReportSent() scheduled vs manual', () => {
         test('manual send does not update last_scheduled_timestamp', async () => {
             jest.setSystemTime(new Date('2026-01-22T07:20:00.000Z'));
-            const redis = createFakeRedis({
-                'metrics:compliance:report_time': '07:15'
+
+            // W-143: Use cache wrapper pattern
+            global.RedisManager = createFakeRedisManager({
+                'controller:compliance:timing:report_time': '07:15'
             });
-            global.RedisManager = { getClient: () => redis };
 
             await HealthController._recordReportSent({ success: true }, { uuid: 'x' }, false);
 
-            const setKeys = redis.set.mock.calls.map((c) => c[0]);
-            expect(setKeys).toContain('metrics:compliance:last_report');
-            expect(setKeys).toContain('metrics:compliance:last_timestamp');
-            expect(setKeys).toContain('metrics:compliance:last_response');
-            expect(setKeys).not.toContain('metrics:compliance:last_scheduled_timestamp');
+            // W-143: Check cacheSetObject for last_report and last_response, cacheSet for timestamps
+            const setObjectCalls = global.RedisManager.cacheSetObject.mock.calls.map(c => `${c[0]}:${c[1]}`);
+            const setCalls = global.RedisManager.cacheSet.mock.calls.map(c => `${c[0]}:${c[1]}`);
+
+            expect(setObjectCalls).toContain('controller:compliance:history:last_report');
+            expect(setObjectCalls).toContain('controller:compliance:history:last_response');
+            expect(setCalls).toContain('controller:compliance:history:last_timestamp');
+            expect(setCalls).not.toContain('controller:compliance:history:last_scheduled_timestamp');
         });
 
         test('scheduled send updates last_scheduled_timestamp', async () => {
             jest.setSystemTime(new Date('2026-01-22T07:20:00.000Z'));
-            const redis = createFakeRedis({
-                'metrics:compliance:report_time': '07:15'
+
+            // W-143: Use cache wrapper pattern
+            global.RedisManager = createFakeRedisManager({
+                'controller:compliance:timing:report_time': '07:15'
             });
-            global.RedisManager = { getClient: () => redis };
 
             await HealthController._recordReportSent({ success: true }, { uuid: 'x' }, true);
 
-            const setKeys = redis.set.mock.calls.map((c) => c[0]);
-            expect(setKeys).toContain('metrics:compliance:last_scheduled_timestamp');
+            // W-143: Check cacheSet calls for scheduled timestamp
+            const setCalls = global.RedisManager.cacheSet.mock.calls.map(c => `${c[0]}:${c[1]}`);
+            expect(setCalls).toContain('controller:compliance:history:last_scheduled_timestamp');
         });
     });
 
@@ -157,15 +183,15 @@ describe('HealthController W-137 compliance', () => {
             const reportTime = '07:15';
             const scheduledToday = Date.UTC(2026, 0, 22, 7, 15, 0, 0);
 
-            const redis = createFakeRedis({
-                'metrics:compliance:report_time': reportTime,
-                'metrics:compliance:last_timestamp': '0',
-                'metrics:compliance:last_scheduled_timestamp': '0',
-                'metrics:compliance:retry_count': '0',
-                'metrics:compliance:next_attempt': '0'
+            // W-143: Use cache wrapper pattern
+            global.RedisManager = createFakeRedisManager({
+                'controller:compliance:timing:report_time': reportTime,
+                'controller:compliance:history:last_timestamp': '0',
+                'controller:compliance:history:last_scheduled_timestamp': '0',
+                'controller:compliance:retry:retry_count': '0',
+                'controller:compliance:retry:next_attempt': '0'
             });
 
-            global.RedisManager = { getClient: () => redis };
             HealthController.globalConfig = {
                 data: {
                     manifest: { compliance: { adminEmailOptIn: true, siteUuid: '96543dee-f630-4399-a562-04a5bd211208' } }
@@ -183,15 +209,15 @@ describe('HealthController W-137 compliance', () => {
             const reportTime = '07:15';
             const scheduledTomorrow = Date.UTC(2026, 0, 23, 7, 15, 0, 0);
 
-            const redis = createFakeRedis({
-                'metrics:compliance:report_time': reportTime,
-                'metrics:compliance:last_timestamp': '0',
-                'metrics:compliance:last_scheduled_timestamp': '0',
-                'metrics:compliance:retry_count': '0',
-                'metrics:compliance:next_attempt': '0'
+            // W-143: Use cache wrapper pattern
+            global.RedisManager = createFakeRedisManager({
+                'controller:compliance:timing:report_time': reportTime,
+                'controller:compliance:history:last_timestamp': '0',
+                'controller:compliance:history:last_scheduled_timestamp': '0',
+                'controller:compliance:retry:retry_count': '0',
+                'controller:compliance:retry:next_attempt': '0'
             });
 
-            global.RedisManager = { getClient: () => redis };
             HealthController.globalConfig = {
                 data: {
                     manifest: { compliance: { adminEmailOptIn: true, siteUuid: '96543dee-f630-4399-a562-04a5bd211208' } }

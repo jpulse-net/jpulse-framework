@@ -5,13 +5,13 @@
  *                  for non-admin users in the _sanitizeMetricsData() method!
  * @description     This is the health controller for the jPulse Framework WebApp
  * @file            webapp/controller/health.js
- * @version         1.5.1
- * @release         2026-01-25
+ * @version         1.6.0
+ * @release         2026-01-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import LogController from './log.js';
@@ -2027,11 +2027,14 @@ class HealthController {
      * @private
      */
     static async _initializeReportTiming() {
-        const redis = global.RedisManager?.getClient('metrics');
-        if (!redis) return;
+        if (!global.RedisManager?.isAvailable) return;
 
         try {
-            const existingTime = await redis.get('metrics:compliance:report_time');
+            // W-143: Use new cache wrapper
+            const existingTime = await global.RedisManager.cacheGet(
+                'controller:compliance:timing',
+                'report_time'
+            );
             if (existingTime) {
                 LogController.logInfo(null, 'health.compliance', `Report time already set: ${existingTime} UTC`);
                 return;
@@ -2043,7 +2046,11 @@ class HealthController {
             const minute = Math.floor(Math.random() * 60).toString().padStart(2, '0');
             const reportTime = `${hour}:${minute}`;
 
-            await redis.set('metrics:compliance:report_time', reportTime);
+            await global.RedisManager.cacheSet(
+                'controller:compliance:timing',
+                'report_time',
+                reportTime
+            );
             LogController.logInfo(null, 'health.compliance', `Report time initialized: ${reportTime} UTC`);
         } catch (error) {
             LogController.logError(null, 'health.compliance', `Failed to initialize report timing: ${error.message}`);
@@ -2057,11 +2064,14 @@ class HealthController {
      * @private
      */
     static async _isReportTime() {
-        const redis = global.RedisManager?.getClient('metrics');
-        if (!redis) return false;
+        if (!global.RedisManager?.isAvailable) return false;
 
         try {
-            const reportTime = await redis.get('metrics:compliance:report_time');
+            // W-143: Use new cache wrapper
+            const reportTime = await global.RedisManager.cacheGet(
+                'controller:compliance:timing',
+                'report_time'
+            );
             if (!reportTime) return false;
 
             const now = new Date();
@@ -2090,8 +2100,8 @@ class HealthController {
      * @private
      */
     static async _shouldSendReport() {
-        const redis = global.RedisManager?.getClient('metrics');
-        if (!redis) return false;
+        // W-143: Use cache wrapper availability check
+        if (!global.RedisManager?.isAvailable) return false;
 
         try {
             const state = await HealthController._getComplianceState();
@@ -2252,25 +2262,47 @@ class HealthController {
      * @private
      */
     static async _recordReportSent(responseData, payload, isScheduled = true) {
-        const redis = global.RedisManager?.getClient('metrics');
-        if (!redis) return;
+        if (!global.RedisManager?.isAvailable) return;
 
         try {
             const timestamp = Date.now();
 
+            // W-143: Use new cache wrapper
             // Store full report for admin viewing (transparency)
-            await redis.set('metrics:compliance:last_report', JSON.stringify(payload));
-            await redis.set('metrics:compliance:last_timestamp', timestamp);
+            await global.RedisManager.cacheSetObject(
+                'controller:compliance:history',
+                'last_report',
+                payload
+            );
+            await global.RedisManager.cacheSet(
+                'controller:compliance:history',
+                'last_timestamp',
+                timestamp.toString()
+            );
             if (isScheduled) {
-                await redis.set('metrics:compliance:last_scheduled_timestamp', timestamp);
+                await global.RedisManager.cacheSet(
+                    'controller:compliance:history',
+                    'last_scheduled_timestamp',
+                    timestamp.toString()
+                );
             }
 
             // Store full response object (simpler than separate fields)
-            await redis.set('metrics:compliance:last_response', JSON.stringify(responseData));
+            await global.RedisManager.cacheSetObject(
+                'controller:compliance:history',
+                'last_response',
+                responseData
+            );
 
             // Clear failure tracking
-            await redis.del('metrics:compliance:retry_count');
-            await redis.del('metrics:compliance:next_attempt');
+            await global.RedisManager.cacheDel(
+                'controller:compliance:retry',
+                'retry_count'
+            );
+            await global.RedisManager.cacheDel(
+                'controller:compliance:retry',
+                'next_attempt'
+            );
 
         } catch (error) {
             LogController.logError(null, 'health.compliance', `Failed to record report: ${error.message}`);
@@ -2283,18 +2315,30 @@ class HealthController {
      * @private
      */
     static async _handleReportFailure(error) {
-        const redis = global.RedisManager?.getClient('metrics');
-        if (!redis) return;
+        if (!global.RedisManager?.isAvailable) return;
 
         try {
+            // W-143: Use new cache wrapper
             // Increment retry count
-            const retryCount = parseInt(await redis.get('metrics:compliance:retry_count') || '0') + 1;
-            await redis.set('metrics:compliance:retry_count', retryCount);
+            const retryCountStr = await global.RedisManager.cacheGet(
+                'controller:compliance:retry',
+                'retry_count'
+            );
+            const retryCount = parseInt(retryCountStr || '0') + 1;
+            await global.RedisManager.cacheSet(
+                'controller:compliance:retry',
+                'retry_count',
+                retryCount.toString()
+            );
 
             // Calculate exponential backoff: 1h, 2h, 4h, 8h, 16h, 24h (max)
             const backoffHours = Math.min(Math.pow(2, retryCount - 1), 24);
             const nextAttempt = Date.now() + (backoffHours * 3600000);
-            await redis.set('metrics:compliance:next_attempt', nextAttempt);
+            await global.RedisManager.cacheSet(
+                'controller:compliance:retry',
+                'next_attempt',
+                nextAttempt.toString()
+            );
 
             // Log chronic failures (after 10 attempts = ~1023 hours if no max)
             if (retryCount >= 10) {
@@ -2316,8 +2360,7 @@ class HealthController {
      * @private
      */
     static async _getComplianceState() {
-        const redis = global.RedisManager?.getClient('metrics');
-        if (!redis) {
+        if (!global.RedisManager?.isAvailable) {
             // Redis unavailable - return defaults
             return {
                 reportTime: '',
@@ -2330,33 +2373,61 @@ class HealthController {
             };
         }
 
-        // Parse stored JSON objects
-        let lastReport = null;
-        let lastResponse = null;
-
+        // W-143: Use new cache wrapper
         try {
-            const reportJson = await redis.get('metrics:compliance:last_report');
-            if (reportJson) lastReport = JSON.parse(reportJson);
-        } catch (e) {
-            // Invalid JSON, ignore
-        }
+            // Parse stored JSON objects (cacheGetObject handles JSON automatically)
+            const lastReport = await global.RedisManager.cacheGetObject(
+                'controller:compliance:history',
+                'last_report'
+            );
+            const lastResponse = await global.RedisManager.cacheGetObject(
+                'controller:compliance:history',
+                'last_response'
+            );
 
-        try {
-            const responseJson = await redis.get('metrics:compliance:last_response');
-            if (responseJson) lastResponse = JSON.parse(responseJson);
-        } catch (e) {
-            // Invalid JSON, ignore
-        }
+            // Get scalar values
+            const reportTime = await global.RedisManager.cacheGet(
+                'controller:compliance:timing',
+                'report_time'
+            ) || '';
+            const lastTimestamp = parseInt(await global.RedisManager.cacheGet(
+                'controller:compliance:history',
+                'last_timestamp'
+            ) || '0');
+            const lastScheduledTimestamp = parseInt(await global.RedisManager.cacheGet(
+                'controller:compliance:history',
+                'last_scheduled_timestamp'
+            ) || '0');
+            const retryCount = parseInt(await global.RedisManager.cacheGet(
+                'controller:compliance:retry',
+                'retry_count'
+            ) || '0');
+            const nextAttempt = parseInt(await global.RedisManager.cacheGet(
+                'controller:compliance:retry',
+                'next_attempt'
+            ) || '0');
 
-        return {
-            reportTime: await redis.get('metrics:compliance:report_time') || '',
-            lastReport: lastReport,
-            lastTimestamp: parseInt(await redis.get('metrics:compliance:last_timestamp') || '0'),
-            lastScheduledTimestamp: parseInt(await redis.get('metrics:compliance:last_scheduled_timestamp') || '0'),
-            lastResponse: lastResponse,
-            retryCount: parseInt(await redis.get('metrics:compliance:retry_count') || '0'),
-            nextAttempt: parseInt(await redis.get('metrics:compliance:next_attempt') || '0')
-        };
+            return {
+                reportTime,
+                lastReport,
+                lastTimestamp,
+                lastScheduledTimestamp,
+                lastResponse,
+                retryCount,
+                nextAttempt
+            };
+        } catch (error) {
+            LogController.logError(null, 'health.compliance', `Failed to get compliance state: ${error.message}`);
+            return {
+                reportTime: '',
+                lastReport: null,
+                lastTimestamp: 0,
+                lastScheduledTimestamp: 0,
+                lastResponse: null,
+                retryCount: 0,
+                nextAttempt: 0
+            };
+        }
     }
 
     /**

@@ -3,13 +3,13 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.5.1
- * @release         2026-01-25
+ * @version         1.6.0
+ * @release         2026-01-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import path from 'path';
@@ -21,7 +21,7 @@ const router = express.Router();
 // Load controllers
 import AuthController from './controller/auth.js';
 import CacheController from './controller/cache.js';
-import BroadcastController from './controller/broadcast.js';
+import AppClusterController from './controller/appCluster.js';
 import HealthController from './controller/health.js';
 import MarkdownController from './controller/markdown.js';
 import UserController from './controller/user.js';
@@ -45,9 +45,12 @@ router.get('/api/1/health/status', HealthController.status);
 router.get('/api/1/health/metrics', HealthController.metrics);
 router.post('/api/1/health/compliance/send-report', HealthController.sendComplianceReport); // W-137
 
-// W-076: Broadcast endpoints for jPulse.appCluster
-router.post('/api/1/broadcast/:channel', BroadcastController.publish);
-router.get('/api/1/broadcast/status', BroadcastController.status);
+// W-143: App Cluster endpoints (broadcast + cache)
+router.post('/api/1/app-cluster/broadcast/:channel', AppClusterController.broadcastPublish);
+router.get('/api/1/app-cluster/broadcast/status', AppClusterController.broadcastStatus);
+router.post('/api/1/app-cluster/cache/:category/:key', AppClusterController.cacheSet);
+router.get('/api/1/app-cluster/cache/:category/:key', AppClusterController.cacheGet);
+router.delete('/api/1/app-cluster/cache/:category/:key', AppClusterController.cacheDelete);
 
 // Config API routes
 router.get('/api/1/config', ConfigController.list);

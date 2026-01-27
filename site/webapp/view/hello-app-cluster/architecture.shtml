@@ -4,13 +4,13 @@
  * @tagline         App Clustering Architecture Documentation
  * @description     Comprehensive architecture overview for multi-server application clustering
  * @file            site/webapp/view/hello-app-cluster/architecture.shtml
- * @version         1.5.1
- * @release         2026-01-25
+ * @version         1.6.0
+ * @release         2026-01-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -393,32 +393,32 @@ jPulse.appCluster.broadcast.subscribe('view:todo:list:changed', (data) => {
                             <h3 class="local-component-title">AppClusterController</h3>
                         </div>
                         <p class="local-component-description">
-                            The WebSocket-to-Redis bridge for real-time client updates.
+                            Unified controller for WebSocket, broadcast REST API, and cache operations.
                         </p>
                         <ul class="local-component-features">
-                            <li>Manages the `/api/1/ws/app-cluster` namespace</li>
+                            <li>Manages the `/api/1/ws/jp-broadcast` WebSocket namespace (framework-internal)</li>
+                            <li>Provides broadcast REST API (`/api/1/app-cluster/broadcast/*`)</li>
+                            <li>Provides cache REST API (`/api/1/app-cluster/cache/*`)</li>
                             <li>Tracks client channel subscriptions</li>
-                            <li>Subscribes to Redis broadcast patterns</li>
                             <li>Relays Redis messages to interested clients</li>
-                            <li>Enables server-initiated updates to the UI</li>
                         </ul>
                     </div>
 
-                    <!-- Broadcast Controller -->
+                    <!-- Redis Manager -->
                     <div class="local-component-card">
                         <div class="local-component-header">
                             <div class="local-component-icon">📡</div>
-                            <h3 class="local-component-title">BroadcastController</h3>
+                            <h3 class="local-component-title">Redis Broadcast &amp; Cache</h3>
                         </div>
                         <p class="local-component-description">
-                            Provides a REST API endpoint for client-initiated broadcasts.
+                            Server-side broadcasting and caching infrastructure via RedisManager.
                         </p>
                         <ul class="local-component-features">
-                            <li>Exposes `POST /api/1/broadcast/:channel`</li>
+                            <li>Publishes broadcasts to Redis pub/sub channels</li>
                             <li>Enforces channel naming conventions</li>
-                            <li>Validates incoming client messages</li>
-                            <li>Publishes client messages to Redis</li>
-                            <li>Secures the client-to-server broadcast path</li>
+                            <li>Provides cluster-wide cache operations</li>
+                            <li>Graceful fallback when Redis unavailable</li>
+                            <li>Comprehensive metrics and monitoring</li>
                         </ul>
                     </div>
 
@@ -529,7 +529,7 @@ jPulse.appCluster.broadcast.subscribe('view:todo:list:changed', (data) => {
                         <div class="local-step-number">2</div>
                         <div class="local-step-content">
                             <div class="local-step-title">API Request</div>
-                            <div class="local-step-description">JavaScript calls <code>jPulse.appCluster.broadcast.publish()</code>, which sends a POST request to <code>/api/1/broadcast/:channel</code>.</div>
+                            <div class="local-step-description">JavaScript calls <code>jPulse.appCluster.broadcast.publish()</code>, which sends a POST request to <code>/api/1/app-cluster/broadcast/:channel</code>.</div>
                         </div>
                     </div>
 
@@ -537,7 +537,7 @@ jPulse.appCluster.broadcast.subscribe('view:todo:list:changed', (data) => {
                         <div class="local-step-number">3</div>
                         <div class="local-step-content">
                             <div class="local-step-title">Server Publishes to Redis</div>
-                            <div class="local-step-description">The <code>BroadcastController</code> on the receiving server instance validates the request and publishes the message to the Redis pub/sub channel.</div>
+                            <div class="local-step-description">The <code>AppClusterController</code> on the receiving server instance validates the request and publishes the message to the Redis pub/sub channel.</div>
                         </div>
                     </div>
 

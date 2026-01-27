@@ -3,13 +3,13 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.5.1
- * @release         2026-01-25
+ * @version         1.6.0
+ * @release         2026-01-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import CommonUtils from './common.js';
@@ -153,43 +153,38 @@ export async function bootstrap(options = {}) {
             bootstrapLog('✅ SessionStore: Configured with MemoryStore for tests');
         }
 
-        // Step 9: Initialize broadcast controller (W-076)
-        const BroadcastControllerModule = await import('../controller/broadcast.js');
-        BroadcastControllerModule.default.initialize();
-        bootstrapLog('✅ BroadcastController: Initialized with framework subscriptions');
-
-        // Step 10: Initialize app cluster controller (W-076)
+        // Step 9: Initialize app cluster controller (W-143 - merged broadcast functionality)
         try {
             const AppClusterControllerModule = await import('../controller/appCluster.js');
             AppClusterControllerModule.default.initialize();
-            bootstrapLog('✅ AppClusterController: Initialized with WebSocket namespace');
+            bootstrapLog('✅ AppClusterController: Initialized (WebSocket namespace + broadcast + cache APIs)');
         } catch (error) {
             bootstrapLog(`❌ AppClusterController initialization failed: ${error.message}`, 'error');
             bootstrapLog(`Error details: ${error.stack || error}`, 'error');
         }
 
-        // Step 11: Initialize health controller clustering (W-076)
+        // Step 10: Initialize health controller clustering (W-076)
         const HealthControllerModule = await import('../controller/health.js');
         await HealthControllerModule.default.initialize();
         global.HealthController = HealthControllerModule.default;
         bootstrapLog('✅ HealthController: Initialized with Redis clustering and registered globally');
 
-        // Step 11.1: Initialize compliance reporting scheduler (W-137)
+        // Step 10.1: Initialize compliance reporting scheduler (W-137)
         if (!isTest) {
             HealthControllerModule.default.initializeComplianceScheduler();
             bootstrapLog('✅ ComplianceScheduler: Initialized (checking every 15 minutes)');
         }
 
-        // Step 12: Set up CommonUtils globally
+        // Step 11: Set up CommonUtils globally
         global.CommonUtils = CommonUtils;
         bootstrapLog('✅ CommonUtils: Available globally');
 
-        // Step 13: Make UserModel available globally for plugin schema extensions
+        // Step 12: Make UserModel available globally for plugin schema extensions
         // Plugins may call global.UserModel.extendSchema() during controller initialization
         const UserModelModuleEarly = await import('../model/user.js');
         global.UserModel = UserModelModuleEarly.default;
 
-        // Step 14: Initialize site controller registry (W-014, W-045)
+        // Step 13: Initialize site controller registry (W-014, W-045)
         // Discovers site controllers and their API methods
         // W-045: Can now also discover plugin controllers since PluginManager is initialized
         let siteControllerRegistry = null;
@@ -201,19 +196,19 @@ export async function bootstrap(options = {}) {
             bootstrapLog(`✅ SiteControllerRegistry: ${registryStats.controllers} controllers, ${registryStats.apis} APIs`);
         }
 
-        // Step 15: Initialize context extensions (W-014)
+        // Step 14: Initialize context extensions (W-014)
         // Extends template context with site-specific data
         const ContextExtensionsModule = await import('./context-extensions.js');
         await ContextExtensionsModule.default.initialize();
         global.ContextExtensions = ContextExtensionsModule.default;
         bootstrapLog('✅ ContextExtensions: Initialized with providers');
 
-        // Step 16: Initialize UserModel schema (W-045 - after plugins loaded, so they can extend schemas)
-        // global.UserModel is already available from Step 12b
+        // Step 15: Initialize UserModel schema (W-045 - after plugins loaded, so they can extend schemas)
+        // global.UserModel is already available from Step 12
         global.UserModel.initializeSchema();
         bootstrapLog('✅ UserModel: Schema initialized with plugin extensions');
 
-        // Step 17: Initialize ThemeManager and extend UserModel theme enum (W-129)
+        // Step 16: Initialize ThemeManager and extend UserModel theme enum (W-129)
         try {
             const ThemeManagerModule = await import('./theme-manager.js');
             ThemeManagerModule.default.initialize({ isTest });
@@ -227,19 +222,19 @@ export async function bootstrap(options = {}) {
             bootstrapLog(`⚠️  ThemeManager: Initialization failed (continuing without): ${error.message}`, 'error');
         }
 
-        // Step 18: Initialize ConfigController
+        // Step 17: Initialize ConfigController
         const ConfigControllerModule = await import('../controller/config.js');
         ConfigControllerModule.default.initialize();
         global.ConfigController = ConfigControllerModule.default;
         bootstrapLog(`✅ ConfigController: Initialized (defaultDocName: ${ConfigControllerModule.default.getDefaultDocName()})`);
 
-        // Step 19: Initialize HandlebarController (W-088)
+        // Step 18: Initialize HandlebarController (W-088)
         const HandlebarControllerModule = await import('../controller/handlebar.js');
         await HandlebarControllerModule.default.initialize();
         global.HandlebarController = HandlebarControllerModule.default;
         bootstrapLog('✅ HandlebarController: Initialized');
 
-        // Step 20: Auto-discover and register custom Handlebars helpers (W-116)
+        // Step 19: Auto-discover and register custom Handlebars helpers (W-116)
         // Must be after HandlebarController.initialize() and SiteControllerRegistry.initialize()
         if (!isTest && siteControllerRegistry) {
             const helperCount = await HandlebarControllerModule.default.initializeHandlebarHandlers();
@@ -248,7 +243,7 @@ export async function bootstrap(options = {}) {
             }
         }
 
-        // Step 21: Initialize EmailController (W-087)
+        // Step 20: Initialize EmailController (W-087)
         const EmailControllerModule = await import('../controller/email.js');
         const emailReady = await EmailControllerModule.default.initialize();
         global.EmailController = EmailControllerModule.default;
@@ -258,13 +253,13 @@ export async function bootstrap(options = {}) {
             bootstrapLog('⚠️  EmailController: Not configured (email sending disabled)');
         }
 
-        // Step 22: Initialize UserController (W-112 - register metrics provider)
+        // Step 21: Initialize UserController (W-112 - register metrics provider)
         const UserControllerModule = await import('../controller/user.js');
         await UserControllerModule.default.initialize();
         global.UserController = UserControllerModule.default;
         bootstrapLog('✅ UserController: Initialized with metrics provider');
 
-        // Step 23: Build viewRegistry for routes.js compatibility
+        // Step 22: Build viewRegistry for routes.js compatibility
         // Legacy global for routes.js to use
         global.viewRegistry = {
             viewList: global.ViewController.getViewList(),
@@ -272,7 +267,7 @@ export async function bootstrap(options = {}) {
         };
         bootstrapLog(`✅ viewRegistry: Built with ${global.viewRegistry.viewList.length} directories`);
 
-        // Step 24: Prepare WebSocketController (but don't initialize server yet)
+        // Step 23: Prepare WebSocketController (but don't initialize server yet)
         // Server initialization requires Express app and http.Server
         const WebSocketControllerModule = await import('../controller/websocket.js');
         global.WebSocketController = WebSocketControllerModule.default;

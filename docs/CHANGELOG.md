@@ -1,6 +1,173 @@
-# jPulse Docs / Version History v1.5.1
+# jPulse Docs / Version History v1.6.0
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.0, W-143, 2026-01-27
+
+**Commit:** `W-143, v1.6.0: Redis-based cache infrastructure for application data`
+
+**FEATURE RELEASE**: Comprehensive Redis cache infrastructure with user-scoped caching, rate limiting, and multi-instance synchronization.
+
+**Objectives**:
+- Provide standardized cache API for application data (separate from file cache)
+- Enable user-scoped caching with automatic isolation per authenticated user
+- Support rate limiting for API protection
+- Share cache across all application instances in cluster mode
+- Graceful degradation when Redis unavailable
+
+**Key Features**:
+- **Dual Cache Architecture**:
+  - File Cache: Framework-managed (templates, i18n, markdown) - unchanged
+  - Redis Cache: Developer-controlled (application data) - NEW
+- **Client-Side Cache API** (user-scoped, authenticated):
+  - `POST /api/1/app-cluster/cache/set` - Set cache value with optional TTL
+  - `POST /api/1/app-cluster/cache/get` - Get cached value
+  - `POST /api/1/app-cluster/cache/delete` - Delete cached value
+  - Automatic user isolation: keys scoped to `{userId}:{category}:{key}`
+- **Server-Side Cache Methods** (RedisManager):
+  - `cacheSet(category, key, value, ttl)` - Set simple string value
+  - `cacheGet(category, key)` - Get value (returns null if not found)
+  - `cacheDel(category, key)` - Delete value
+  - `cacheSetObject(category, key, object, ttl)` - Set with JSON serialization
+  - `cacheGetObject(category, key)` - Get with JSON parsing
+  - `cacheIncr(category, key, ttl)` - Increment counter
+  - `cacheDelPattern(category, pattern)` - Bulk delete with wildcards
+  - `cacheCheckRateLimit(category, identifier, maxRequests, windowSeconds)` - Rate limiting helper
+- **Key Naming Convention**:
+  - Format: `category:key` (e.g., `'controller:health:last_run'`)
+  - Category: Logical grouping (`'controller:name'`, `'model:name'`, `'feature:name'`)
+  - Key: Specific identifier with optional context (e.g., `'user:123:prefs'`)
+- **Cache Monitoring**:
+  - System Status page split RedisManager into two cards:
+    - **RedisManager**: Connection/pub-sub metrics (broker role)
+    - **Redis Cache**: Performance metrics (cache role)
+  - Metrics: Hit Rate, Gets, Sets, Deletes, Hits, Misses
+  - Both cluster-wide and per-instance views
+- **Migration to Cache Wrapper**:
+  - HealthController migrated from direct Redis calls to cache wrapper
+  - Compliance reporting now uses `cacheGet/Set/Object/Del` methods
+  - Unit tests updated to mock `RedisManager` cache methods
+- **Graceful Degradation**:
+  - All cache operations check `RedisManager.isAvailable` first
+  - Application continues normally if Redis unavailable
+  - Cache operations return null/false on failure
+- **Multi-Instance Synchronization**:
+  - Cache shared across all instances in cluster mode
+  - Rate limiting counts across all instances
+  - Consistent cache invalidation across cluster
+
+**Code Changes**:
+
+**webapp/controller/appCluster.js**:
+- Added `cacheSet` endpoint for client-side cache writes
+- Added `cacheGet` endpoint for client-side cache reads
+- Added `cacheDel` endpoint for client-side cache deletes
+- All endpoints require authentication and scope to `req.session.user._id`
+- Validation for category/key format and TTL values
+
+**webapp/utils/redis-manager.js**:
+- Added `cacheSet(category, key, value, ttl)` wrapper for SETEX/SET
+- Added `cacheGet(category, key)` wrapper for GET
+- Added `cacheDel(category, key)` wrapper for DEL
+- Added `cacheSetObject(category, key, object, ttl)` with JSON.stringify
+- Added `cacheGetObject(category, key)` with JSON.parse
+- Added `cacheIncr(category, key, ttl)` for counters with INCR/EXPIRE
+- Added `cacheDelPattern(category, pattern)` with SCAN for safe bulk delete
+- Added `cacheCheckRateLimit(category, identifier, maxRequests, windowSeconds)` for throttling
+- All methods use `category:key` naming convention for organization
+- Cache statistics tracking (gets, sets, deletes, hits, misses, hit rate)
+
+**webapp/controller/health.js**:
+- Migrated compliance reporting from direct Redis to cache wrapper
+- Updated `_initializeReportTiming()` to use `cacheGet/Set`
+- Updated `_getComplianceState()` to use `cacheGetObject/SetObject`
+- Updated `_updateComplianceState()` to use `cacheSetObject`
+- Updated `_shouldSendReport()` availability check to use `RedisManager.isAvailable`
+- All cache keys follow `controller:compliance:{category}:{key}` pattern
+
+**webapp/tests/unit/controller/health-compliance.test.js**:
+- Replaced `createFakeRedis` with `createFakeRedisManager`
+- Mock now implements cache wrapper methods instead of raw Redis
+- Updated initial data keys to match `category:key` format
+- Updated assertions to check `RedisManager.cacheSet.mock.calls`
+
+**webapp/view/admin/system-status.shtml**:
+- Split RedisManager component into two cards in cluster-wide view:
+  - **RedisManager**: Connection/broker metrics (5 metrics)
+  - **Redis Cache**: Performance metrics (6 metrics)
+- Added cache statistics extraction from `stats.cache` object
+- Cache metrics: Hit Rate, Gets, Sets, Deletes, Hits, Misses
+- Updated `formatFieldName()` with cache-specific labels
+- Per-instance view also displays cache stats
+
+**webapp/translations/en.conf**:
+- Added `componentHealth.redisCache` translation: "Redis Cache"
+
+**webapp/translations/de.conf**:
+- Added `componentHealth.redisCache` translation: "Redis-Cache"
+
+**docs/cache-infrastructure.md** (NEW):
+- Comprehensive guide covering both file cache and Redis cache
+- Architecture diagrams and decision flowcharts
+- Client-side and server-side API documentation
+- Complete method reference with parameters and examples
+- Common usage patterns (preferences, rate limiting, temp data)
+- Key naming conventions and best practices
+- Performance considerations and TTL strategies
+- Error handling and graceful degradation
+- Multi-instance considerations
+- Cache monitoring and interpreting metrics
+- FAQ section
+
+**docs/genai-instructions.md**:
+- Added "Caching" subsection with quick reference
+- Client-side API examples
+- Server-side `RedisManager` patterns
+- Key format: `category:key`
+- Link to comprehensive cache-infrastructure.md guide
+- Updated version to v1.6.0
+
+**docs/application-cluster.md**:
+- Added "Redis Cache API" section explaining dual cache architecture
+- Quick examples of client-side and server-side cache usage
+- When to use Redis cache vs file cache
+- Multi-instance cache benefits
+- Link to cache-infrastructure.md for complete guide
+- Added cache-infrastructure.md to "See Also" section
+- Updated version to v1.6.0
+
+**docs/api-reference.md**:
+- Added "🗄️ Cache API" section with two subsections:
+  - File Cache API (admin endpoints for templates/i18n/markdown refresh)
+  - Redis Cache API (user-scoped cache for application data)
+- Complete endpoint documentation with request/response examples
+- Server-side `RedisManager` method reference
+- Key naming convention explanation
+- Link to cache-infrastructure.md for patterns
+- Updated version to v1.6.0
+
+**docs/.markdown**:
+- Added `cache-infrastructure.md` to publish list after `application-cluster.md`
+- Positioned in "Core Concepts & Architecture" section
+
+**Breaking Changes**: None (new functionality only)
+
+**Migration Notes**:
+- Existing code using direct Redis calls should migrate to cache wrapper for consistency
+- Use `RedisManager.cacheSet/Get/Del` instead of `redis.set/get/del`
+- Always check `RedisManager.isAvailable` before cache operations
+- Follow `category:key` naming convention for better organization
+
+**Documentation**:
+- New: `docs/cache-infrastructure.md` (comprehensive guide)
+- Updated: `docs/genai-instructions.md` (added caching patterns)
+- Updated: `docs/application-cluster.md` (added Redis cache section)
+- Updated: `docs/api-reference.md` (added cache API documentation)
+
+**Work Item**: W-143
+**Version**: v1.6.0
+**Release Date**: 2026-01-27
 
 ________________________________________________
 ## v1.5.1, W-142, 2026-01-25

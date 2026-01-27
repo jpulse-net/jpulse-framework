@@ -4,13 +4,13 @@
  * @tagline         Multi-Server Application Clustering Examples
  * @description     Interactive demos: global notifications and collaborative todo with Redis broadcasting
  * @file            site/webapp/view/hello-app-cluster/index.shtml
- * @version         1.5.1
- * @release         2026-01-25
+ * @version         1.6.0
+ * @release         2026-01-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -261,12 +261,11 @@
     <script>
         // Load cluster status information
         jPulse.dom.ready(() => {
-            // Get cluster status from server
-            fetch('/api/1/broadcast/status')
-                .then(response => response.json())
+            // Get cluster status from server using jPulse.appCluster API
+            jPulse.appCluster.broadcast.getClusterHealth()
                 .then(data => {
-                    if (data.success && data.data) {
-                        const clusterData = data.data;
+                    if (data) {
+                        const clusterData = data;
 
                         // Update instance ID
                         const instanceElement = document.getElementById('instanceId');

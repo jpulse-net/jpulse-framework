@@ -3,13 +3,13 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         1.5.1
- * @release         2026-01-25
+ * @version         1.6.0
+ * @release         2026-01-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import { WebSocketServer as WSServer } from 'ws';
@@ -149,7 +149,7 @@ class WebSocketController {
      */
     static registerNamespace(path, options = {}) {
         try {
-            // Validate path prefix
+            // Validate path prefix (all WebSockets use /api/1/ws/* for consistency)
             if (!path.startsWith('/api/1/ws/')) {
                 throw new Error(`Namespace path must start with /api/1/ws/ (got: ${path})`);
             }

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Installation Guide v1.5.1
+# jPulse Docs / Site Installation Guide v1.6.0
 
 This guide covers creating and setting up jPulse sites for development and production environments.
 

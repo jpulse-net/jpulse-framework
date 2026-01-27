@@ -1,4 +1,4 @@
-# jPulse Docs / Generative-AI Instructions for AI Assistants v1.5.1
+# jPulse Docs / Generative-AI Instructions for AI Assistants v1.6.0
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
@@ -573,6 +573,31 @@ await jPulse.api.get('/api/1/endpoint')
 await jPulse.api.post('/api/1/endpoint', data)
 await jPulse.api.put('/api/1/endpoint', data)
 await jPulse.api.delete('/api/1/endpoint')
+```
+
+**Caching** (v1.6.0+):
+```javascript
+// jPulse has two caches:
+// 1. File cache (auto-managed) - templates, i18n, markdown
+// 2. Redis cache (developer-used) - application data
+
+// Client-side: Redis cache API (user-scoped, requires auth)
+await jPulse.api.post('/api/1/app-cluster/cache/set', {
+    category: 'user-preferences', key: 'theme', value: 'dark', ttl: 3600
+});
+const result = await jPulse.api.post('/api/1/app-cluster/cache/get', {
+    category: 'user-preferences', key: 'theme'
+});
+
+// Server-side: RedisManager methods (controllers/models)
+if (!RedisManager.isAvailable) return; // Always check first!
+await RedisManager.cacheSet('controller:myapp', 'last_run', Date.now(), 3600);
+const cached = await RedisManager.cacheGet('controller:myapp', 'last_run');
+await RedisManager.cacheSetObject('model:user', 'prefs', {theme: 'dark'}, 3600);
+const prefs = await RedisManager.cacheGetObject('model:user', 'prefs');
+
+// Key format: category:key (e.g., 'controller:health', 'report_time')
+// See [Cache Infrastructure](cache-infrastructure.md) for complete guide
 ```
 
 **UI Components**:

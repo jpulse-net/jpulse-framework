@@ -1,4 +1,4 @@
-# jPulse Docs / Production Deployment Guide v1.5.1
+# jPulse Docs / Production Deployment Guide v1.6.0
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -82,6 +82,20 @@ my-site/
 - **Resources**: Minimum 2GB RAM, 2 CPU cores
 - **Network**: Domain name with DNS configured
 - **Access**: Root access for system installation
+
+### Software Requirements
+- **Node.js**: v18.18.0+ or v20.9.0+ (see package.json engines.node)
+- **MongoDB**: v6.0+ (v7.0+ recommended)
+- **Redis**: v6.0+ (required for cluster features)
+  - Required for: WebSocket communication, broadcast messaging, Redis cache
+  - Optional for: Single-instance deployments without these features
+  - Note: File cache (templates/i18n) works without Redis
+
+**Redis Cache Feature (v1.6.0+):**
+- Redis cache is a developer-controlled memory cache for application data
+- Works in both single-instance and cluster modes
+- Gracefully degrades if Redis unavailable (cache operations return null)
+- See [Cache Infrastructure](cache-infrastructure.md) for usage patterns
 
 ### Before You Start
 1. **Domain Setup**: Ensure DNS points to your server

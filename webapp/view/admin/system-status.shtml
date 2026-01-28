@@ -4,8 +4,8 @@
  * @tagline         Admin system status interface
  * @description     System monitoring and health dashboard for site administrators
  * @file            webapp/view/admin/system-status.shtml
- * @version         1.6.0
- * @release         2026-01-27
+ * @version         1.6.1
+ * @release         2026-01-28
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -225,7 +225,7 @@
                     const result = await response.json();
 
                     if (!result.success || !result.data) {
-                        throw new Error(result.error || 'API returned an invalid response');
+                        throw new Error(result.error || result.message || 'API returned an invalid response');
                     }
 
                     this.data = result.data;
@@ -482,17 +482,21 @@
                     const result = await response.json();
 
                     if (result.success) {
-                        jPulse.UI.toast('{{i18n.view.admin.systemStatus.licenseCompliance.reportSent}}', 'success');
+                        jPulse.UI.toast.success(result.message || 'Compliance report sent');
                         // Reload data to show updated compliance status
                         await this.loadStatus();
                     } else {
-                        jPulse.UI.toast(result.error || '{{i18n.view.admin.systemStatus.licenseCompliance.reportFailed}}', 'error');
+                        // Display server's i18n message (already includes error details)
+                        const errorMessage = result.error || result.message || 'Failed to send license compliance report';
+                        console.error('- jPulse: Compliance report failed:', errorMessage);
+                        jPulse.UI.toast.error(errorMessage, { duration: 10000 }); // Show for 10 seconds
                         button.disabled = false;
                         button.textContent = '{{i18n.view.admin.systemStatus.licenseCompliance.sendReportNow}}';
                     }
                 } catch (error) {
                     console.error('- jPulse: Failed to send compliance report:', error);
-                    jPulse.UI.toast('{{i18n.view.admin.systemStatus.licenseCompliance.reportFailed}}', 'error');
+                    // Network error - use generic message since we can't reach server for i18n
+                    jPulse.UI.toast.error(error.error || error.message || 'Failed to send license compliance report', { duration: 10000 });
                     button.disabled = false;
                     button.textContent = '{{i18n.view.admin.systemStatus.licenseCompliance.sendReportNow}}';
                 }

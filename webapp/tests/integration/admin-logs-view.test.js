@@ -3,8 +3,8 @@
  * @tagline         Integration tests for admin logs view functionality
  * @description     Tests for admin logs page, docTypes integration, search functionality, and error handling
  * @file            webapp/tests/integration/admin-logs-view.test.js
- * @version         1.6.0
- * @release         2026-01-27
+ * @version         1.6.1
+ * @release         2026-01-28
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -53,7 +53,8 @@ global.i18n = {
             return `Found ${params?.count || 0} log entries`;
         }
         if (key === 'controller.log.searchError') {
-            return 'Search error occurred';
+            // W-144: Include error details in translated message
+            return `Internal server error while searching logs: ${params?.error || 'Unknown error'}`;
         }
         return key;
     })
@@ -96,7 +97,8 @@ describe('Admin Logs View Integration Tests', () => {
                     return `Found ${params?.count || 0} log entries`;
                 }
                 if (key === 'controller.log.searchError') {
-                    return 'Search error occurred';
+                    // W-144: Include error details in translated message
+                    return `Internal server error while searching logs: ${params?.error || 'Unknown error'}`;
                 }
                 return key;
             })
@@ -328,13 +330,13 @@ describe('Admin Logs View Integration Tests', () => {
 
             await LogController.search(mockReq, mockRes);
 
+            // W-144: Error message now includes error details via i18n (no 6th argument)
             expect(global.CommonUtils.sendError).toHaveBeenCalledWith(
                 mockReq,
                 mockRes,
                 500,
-                'Search error occurred',
-                'SEARCH_ERROR',
-                'Database connection failed'
+                expect.stringContaining('Database connection failed'),
+                'SEARCH_ERROR'
             );
 
             // Restore original methods

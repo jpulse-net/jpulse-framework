@@ -17401,3 +17401,110 @@ Next: node bin/bump-version.js 1.6.0
 
 
 ============================================================
+2026-01-28 11:00
+
+W-144 v1.6.1 release prep complete
+
+Completed release preparation for W-144 Redis Cache Infrastructure Follow-Up v1.6.1.
+
+**Release Summary:**
+
+Enhancement release providing polish and refinement of v1.6.0 Redis cache infrastructure.
+
+**Changes Documented:**
+
+1. **Global Variable Naming Consistency** (15 fixes)
+   - Fixed `global.redisManager` → `global.RedisManager` throughout codebase
+   - webapp/controller/appCluster.js: 3 instances
+   - docs/dev/working/W-137-license-compliance-report.md: 2 instances
+   - docs/dev/working/W-143-redis-based-cache-infrastructure.md: 12 instances
+
+2. **Controller i18n Migration** (6 messages total)
+   - health.js: 5 new translations (complianceReportSent, complianceReportFailed, healthCheckFailed, metricsCollectionFailed, adminAccessRequired)
+   - log.js: Updated searchError to include {{error}} placeholder
+   - Better error reporting with error details in response
+
+3. **Debug Logging Cleanup** (13 removals)
+   - Removed verbose DEBUG statements from health.js cluster statistics
+   - Reduced production log noise, kept essential error/warning logs
+
+4. **View Error Handling Improvements**
+   - logs.shtml: Fixed error property access, updated toast API
+   - system-status.shtml: Extended error display to 10 seconds, better fallback chain, consistent toast API
+
+5. **Translation Consolidation**
+   - Moved reportSent/reportFailed from view to controller namespace
+   - 5 English + 5 German translations in controller.health
+
+**Files Updated:**
+
+Core Code:
+- webapp/controller/appCluster.js (3 lines)
+- webapp/controller/health.js (major: i18n migration, debug cleanup, error handling)
+- webapp/controller/log.js (1 message)
+- webapp/translations/en.conf (added controller.health section)
+- webapp/translations/de.conf (added controller.health section)
+- webapp/view/admin/logs.shtml (error handling)
+- webapp/view/admin/system-status.shtml (error handling)
+
+Documentation:
+- docs/dev/working/W-137-license-compliance-report.md (2 fixes)
+- docs/dev/working/W-143-redis-based-cache-infrastructure.md (12 fixes)
+- docs/dev/work-items.md (W-144 DONE with full deliverables)
+
+Release Files:
+- README.md (latest release highlights)
+- docs/README.md (latest release highlights)
+- docs/CHANGELOG.md (comprehensive v1.6.1 entry, 104 lines)
+- commit-message.txt (comprehensive commit message)
+- cursor_log.txt (this entry)
+
+**Benefits:**
+✅ Consistency: Global variable naming matches framework conventions
+✅ i18n Compliance: All user-facing errors internationalized
+✅ Better UX: Specific error details, longer display duration
+✅ Reduced Noise: Cleaner production logs
+✅ Code Quality: Consistent error handling patterns
+✅ Reusability: Centralized translations
+
+**Release Ready:**
+- Work item W-144 marked as DONE
+- All documentation updated
+- Commit message prepared
+- Breaking changes: None
+- Test coverage: No new tests required (polish/refinement)
+
+Status: W-144 v1.6.1 COMPLETE and RELEASE READY
+Next: node bin/bump-version.js 1.6.1
+
+
+============================================================
+2026-01-28 11:20
+
+Fixed integration test failure for W-144
+
+After completing W-144 v1.6.1 release prep, an integration test failed due to the i18n changes made in W-144.
+
+**Issue:**
+- Test: `webapp/tests/integration/admin-logs-view.test.js` - "should handle search errors gracefully"
+- Failure: Expected error message to contain "Database connection failed" but got "Search error occurred"
+- Root cause: In W-144, we updated `controller.log.searchError` i18n key to include `{{error}}` placeholder for error details
+- The test's i18n mock (in `beforeEach` on lines 94-104) was still returning hard-coded "Search error occurred"
+
+**Fix:**
+- Updated i18n.translate mock in `beforeEach` to interpolate error details: `Internal server error while searching logs: ${params?.error || 'Unknown error'}`
+- Also updated the duplicate mock at top of file (lines 50-61) for consistency
+- Updated test assertion to use `expect.stringContaining("Database connection failed")` matcher
+
+**Test Results:**
+✅ All 105 integration tests passing (10 test suites)
+✅ Exit code: 0
+
+**Files Updated:**
+- webapp/tests/integration/admin-logs-view.test.js (2 i18n mocks, 1 assertion)
+- commit-message.txt (added test fix to objectives and code changes)
+
+Status: W-144 v1.6.1 TEST FIX COMPLETE - All tests passing
+
+
+============================================================

@@ -3,8 +3,8 @@
  * @tagline         Log Controller for jPulse Framework WebApp
  * @description     This is the log controller for the jPulse Framework WebApp
  * @file            webapp/controller/log.js
- * @version         1.6.0
- * @release         2026-01-27
+ * @version         1.6.1
+ * @release         2026-01-28
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -129,8 +129,8 @@ class LogController {
 
         } catch (error) {
             LogController.logError(req, 'log.search', `error: ${error.message}`);
-            const message = global.i18n.translate(req, 'controller.log.searchError');
-            return global.CommonUtils.sendError(req, res, 500, message, 'SEARCH_ERROR', error.message);
+            const message = global.i18n.translate(req, 'controller.log.searchError', { error: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'SEARCH_ERROR');
         }
     }
 

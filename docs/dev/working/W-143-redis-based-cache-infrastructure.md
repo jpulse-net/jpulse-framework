@@ -72,7 +72,7 @@ static getKey(service, key)      // Simple prefix
 **Current Cache Usage Pattern (Direct Redis API):**
 ```javascript
 // Example from siteMonitor.js
-const redis = global.redisManager?.getClient('cache');
+const redis = global.RedisManager?.getClient('cache');
 if (redis) {
     await redis.setex(
         `siteMonitor:dashboardToken:${uuid}`,  // Manual key construction
@@ -212,7 +212,7 @@ jPulse.appCluster.cache = {
 **1. Token Storage (Simplified):**
 ```javascript
 // BEFORE (direct Redis API):
-const redis = global.redisManager?.getClient('cache');
+const redis = global.RedisManager?.getClient('cache');
 const token = crypto.randomBytes(32).toString('base64url');
 const hashedToken = bcrypt.hashSync(token, 10);
 await redis.setex(
@@ -230,7 +230,7 @@ await RedisManager.cacheSetToken('controller:siteMonitor:dashboard', uuid, hashe
 **2. Token Retrieval:**
 ```javascript
 // BEFORE:
-const redis = global.redisManager?.getClient('cache');
+const redis = global.RedisManager?.getClient('cache');
 const storedHash = await redis.get(`siteMonitor:dashboardToken:${uuid}`);
 
 // AFTER (pattern method - recommended):
@@ -243,7 +243,7 @@ const storedHash = await RedisManager.cacheGet('controller:siteMonitor:token:das
 **3. Token Validation:**
 ```javascript
 // BEFORE:
-const redis = global.redisManager?.getClient('cache');
+const redis = global.RedisManager?.getClient('cache');
 const storedHash = await redis.get(`siteMonitor:dashboardToken:${uuid}`);
 const isValid = storedHash && bcrypt.compareSync(token, storedHash);
 
@@ -263,7 +263,7 @@ const isValid = storedHash && bcrypt.compareSync(token, storedHash);
 **4. Token Deletion (Logout):**
 ```javascript
 // BEFORE:
-const redis = global.redisManager?.getClient('cache');
+const redis = global.RedisManager?.getClient('cache');
 await redis.del(`siteMonitor:dashboardToken:${uuid}`);
 
 // AFTER:
@@ -273,7 +273,7 @@ await RedisManager.cacheDelToken('controller:siteMonitor:dashboard', uuid);
 **5. Rate Limiting (Simplified):**
 ```javascript
 // BEFORE (manual implementation):
-const redis = global.redisManager?.getClient('cache');
+const redis = global.RedisManager?.getClient('cache');
 const ipKey = `siteMonitor:rateLimit:ip:${ipAddress}`;
 const ipCount = await redis.incr(ipKey);
 if (ipCount === 1) {
@@ -874,11 +874,11 @@ static _validateCacheParams(component, namespace, category, key) {
 ### Backwards Compatibility
 ```javascript
 // Old pattern (still works):
-const redis = global.redisManager?.getClient('cache');
+const redis = global.RedisManager?.getClient('cache');
 await redis.setex('mykey', 3600, 'myvalue');
 
 // New pattern (recommended):
-await global.redisManager.cacheSet('myNamespace', 'myCategory', 'myKey', 'myvalue', { ttl: 3600 });
+await global.RedisManager.cacheSet('myNamespace', 'myCategory', 'myKey', 'myvalue', { ttl: 3600 });
 
 // Both work - no breaking changes
 ```
@@ -1189,7 +1189,7 @@ Ready for framework implementation in v1.6.0! 🚀
 ### Before (Current T-015 Implementation)
 ```javascript
 // In siteMonitor.js - Token creation
-const redis = global.redisManager?.getClient('cache');
+const redis = global.RedisManager?.getClient('cache');
 if (!redis) {
     return CommonUtils.sendError(req, res, 503,
         'Service temporarily unavailable', 'REDIS_UNAVAILABLE');
@@ -1221,7 +1221,7 @@ const token = crypto.randomBytes(32).toString('base64url');
 const bcrypt = require('bcrypt');
 const hashedToken = bcrypt.hashSync(token, 10);
 
-const success = await global.redisManager.cacheSetToken(
+const success = await global.RedisManager.cacheSetToken(
     'controller:siteMonitor:dashboard',  // Colon-separated path (like pub/sub)
     uuid,
     hashedToken,
@@ -1234,7 +1234,7 @@ if (!success) {
 }
 
 // Later, validation:
-const isValid = await global.redisManager.cacheValidateToken(
+const isValid = await global.RedisManager.cacheValidateToken(
     'controller:siteMonitor:dashboard',
     uuid,
     token,
@@ -1242,7 +1242,7 @@ const isValid = await global.redisManager.cacheValidateToken(
 );
 
 // On logout:
-await global.redisManager.cacheDelToken('controller:siteMonitor:dashboard', uuid);
+await global.RedisManager.cacheDelToken('controller:siteMonitor:dashboard', uuid);
 ```
 
 **Benefits:**

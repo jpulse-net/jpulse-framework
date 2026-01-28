@@ -5,8 +5,8 @@
  *                  for non-admin users in the _sanitizeMetricsData() method!
  * @description     This is the health controller for the jPulse Framework WebApp
  * @file            webapp/controller/health.js
- * @version         1.6.0
- * @release         2026-01-27
+ * @version         1.6.1
+ * @release         2026-01-28
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -377,7 +377,8 @@ class HealthController {
                 LogController.logRequest(req, 'health.health', '');
             }
             LogController.logError(req, 'health.health', `error: ${error.message}`);
-            return global.CommonUtils.sendError(req, res, 500, 'Health check failed', 'HEALTH_CHECK_ERROR', error.message);
+            const message = global.i18n.translate(req, 'controller.health.healthCheckFailed', { error: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'HEALTH_CHECK_ERROR');
         }
     }
 
@@ -479,7 +480,8 @@ class HealthController {
 
         } catch (error) {
             LogController.logError(req, 'health.metrics', `error: ${error.message}`);
-            return global.CommonUtils.sendError(req, res, 500, 'Metrics collection failed', 'METRICS_ERROR', error.message);
+            const message = global.i18n.translate(req, 'controller.health.metricsCollectionFailed', { error: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'METRICS_ERROR');
         }
     }
 
@@ -496,27 +498,32 @@ class HealthController {
             // Admin-only
             const adminRoles = global.appConfig?.controller?.user?.adminRoles || ['admin', 'root'];
             if (!AuthController.isAuthorized(req, adminRoles)) {
-                return global.CommonUtils.sendError(req, res, 403, 'Admin access required', 'FORBIDDEN');
+                const message = global.i18n.translate(req, 'controller.health.adminAccessRequired');
+                return global.CommonUtils.sendError(req, res, 403, message, 'FORBIDDEN');
             }
 
             LogController.logInfo(req, 'health.sendComplianceReport', 'Manually triggering compliance report...');
             const result = await HealthController._sendComplianceReport(req, true); // Force send
 
-            if (result) {
+            if (result && !result.error) {
                 LogController.logInfo(req, 'health.sendComplianceReport', 'Report sent successfully');
+                const message = global.i18n.translate(req, 'controller.health.complianceReportSent');
                 return res.json({
                     success: true,
-                    message: 'Compliance report sent successfully',
+                    message: message,
                     data: result
                 });
             } else {
-                LogController.logWarning(req, 'health.sendComplianceReport', 'Report failed to send');
-                return global.CommonUtils.sendError(req, res, 500, 'Failed to send compliance report', 'SEND_FAILED', 'Report returned null');
+                const errorMessage = result?.error || 'Report returned null';
+                LogController.logWarning(req, 'health.sendComplianceReport', `Report failed to send: ${errorMessage}`);
+                const message = global.i18n.translate(req, 'controller.health.complianceReportFailed', { error: errorMessage });
+                return global.CommonUtils.sendError(req, res, 500, message, 'SEND_FAILED');
             }
 
         } catch (error) {
             LogController.logError(req, 'health.sendComplianceReport', `error: ${error.message}`);
-            return global.CommonUtils.sendError(req, res, 500, 'Failed to send compliance report', 'SEND_ERROR', error.message);
+            const message = global.i18n.translate(req, 'controller.health.complianceReportFailed', { error: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'SEND_ERROR');
         }
     }
 
@@ -680,8 +687,6 @@ class HealthController {
 
             // Get all instance health data from cache
             const allInstances = this._getAllInstancesHealth();
-            LogController.logInfo(null, 'health._buildClusterStatistics',
-                `DEBUG: Building cluster statistics from ${allInstances.size} cached instance(s)`);
 
             // Aggregate statistics across all instances
             let totalServers = new Set();
@@ -698,8 +703,6 @@ class HealthController {
             // Include current instance using appConfig.system.instanceId for deduplication
             const currentInstanceData = await this._getCurrentInstanceHealthData(pm2Status, wsStats);
             const currentInstanceHasComponents = currentInstanceData.components && Object.keys(currentInstanceData.components).length > 0;
-            LogController.logInfo(null, 'health._buildClusterStatistics',
-                `DEBUG: Current instance ${global.appConfig.system.instanceId} has components: ${currentInstanceHasComponents} (${currentInstanceHasComponents ? Object.keys(currentInstanceData.components || {}).length : 0} component(s))`);
             allInstances.set(global.appConfig.system.instanceId, currentInstanceData);
 
             // Aggregate data from all instances
@@ -756,22 +759,14 @@ class HealthController {
                 .map(instance => instance.components || {})
                 .filter(components => Object.keys(components).length > 0); // Only include instances with components
 
-            LogController.logInfo(null, 'health._buildClusterStatistics',
-                `DEBUG: Extracted components from ${allInstancesComponents.length} instance(s) out of ${allInstances.size} total`);
-
             let aggregatedComponents = {};
             if (allInstancesComponents.length > 0) {
                 try {
                     aggregatedComponents = this._aggregateComponentStats(allInstancesComponents);
-                    LogController.logInfo(null, 'health._buildClusterStatistics',
-                        `DEBUG: Aggregation complete, result has ${Object.keys(aggregatedComponents).length} component(s)`);
                 } catch (error) {
                     LogController.logError(null, 'health._buildClusterStatistics',
                         `Component aggregation failed: ${error.message}`);
                 }
-            } else {
-                LogController.logInfo(null, 'health._buildClusterStatistics',
-                    'DEBUG: No instances with components to aggregate');
             }
 
             // W-112: Use WebSocket component stats if available (preferred over legacy calculation)
@@ -814,18 +809,13 @@ class HealthController {
         const aggregated = {};
 
         if (!allInstancesComponents || allInstancesComponents.length === 0) {
-            LogController.logInfo(null, 'health._aggregateComponentStats', 'DEBUG: No instances with components to aggregate');
             return aggregated;
         }
 
         const firstInstance = allInstancesComponents[0];
         if (!firstInstance || Object.keys(firstInstance).length === 0) {
-            LogController.logInfo(null, 'health._aggregateComponentStats', 'DEBUG: First instance has no components');
             return aggregated;
         }
-
-        LogController.logInfo(null, 'health._aggregateComponentStats',
-            `DEBUG: Aggregating components from ${allInstancesComponents.length} instance(s), first instance has ${Object.keys(firstInstance).length} component(s): ${Object.keys(firstInstance).join(', ')}`);
 
         // Collect component names from ALL instances (not just first)
         // This ensures components appear in aggregation as soon as at least one instance has them
@@ -861,8 +851,6 @@ class HealthController {
 
             // Skip if componentData is not an object or doesn't have the expected structure
             if (!componentData || typeof componentData !== 'object' || !componentData.stats) {
-                LogController.logInfo(null, 'health._aggregateComponentStats',
-                    `DEBUG: Skipping component ${componentName} - invalid structure (hasStats: ${!!componentData?.stats})`);
                 continue;
             }
 
@@ -885,14 +873,9 @@ class HealthController {
 
             // If no stat windows found, skip this component (shouldn't happen if components have stats)
             if (statWindows.length === 0) {
-                LogController.logInfo(null, 'health._aggregateComponentStats',
-                    `DEBUG: Component ${componentName} has no stat windows (expected 'stats'), componentData.stats exists: ${!!componentData.stats}`);
                 delete aggregated[componentName];
                 continue;
             }
-
-            LogController.logInfo(null, 'health._aggregateComponentStats',
-                `DEBUG: Component ${componentName} has stat windows: ${statWindows.join(', ')}`);
 
             // For each stat window (stats, stats5m, stats1h)
             for (const window of statWindows) {
@@ -927,16 +910,10 @@ class HealthController {
                         ''
                     );
 
-                    // If the window ended up empty after aggregation, log and remove it
+                    // If the window ended up empty after aggregation, remove it
                     const aggregatedKeys = Object.keys(aggregated[componentName][window]);
                     if (aggregatedKeys.length === 0) {
-                        LogController.logInfo(null, 'health._aggregateComponentStats',
-                            `DEBUG: Component ${componentName}.${window} ended up empty after aggregation. ` +
-                            `StatsObj had ${Object.keys(statsObj).length} fields: ${Object.keys(statsObj).join(', ')}`);
                         delete aggregated[componentName][window];
-                    } else {
-                        LogController.logInfo(null, 'health._aggregateComponentStats',
-                            `DEBUG: Aggregated ${componentName}.${window}: ${aggregatedKeys.length} fields (${aggregatedKeys.slice(0, 5).join(', ')}${aggregatedKeys.length > 5 ? '...' : ''})`);
                     }
                 } catch (error) {
                     LogController.logError(null, 'health._aggregateComponentStats',
@@ -969,8 +946,6 @@ class HealthController {
     static _aggregateFields(allInstances, componentName, window, statsObj, fieldsMeta, componentMeta, targetObj, pathPrefix) {
         // Validate inputs
         if (!statsObj || typeof statsObj !== 'object' || Array.isArray(statsObj)) {
-            LogController.logInfo(null, 'health._aggregateFields',
-                `DEBUG: Invalid statsObj for ${componentName}.${window}${pathPrefix ? '.' + pathPrefix : ''}: ${typeof statsObj}`);
             return;
         }
 
@@ -1022,11 +997,6 @@ class HealthController {
                     // Complex objects shouldn't be aggregated with numeric operations
                     aggregateType = 'first';
                 }
-            }
-
-            if (values.length === 0) {
-                LogController.logInfo(null, 'health._aggregateFields',
-                    `DEBUG: No values found for ${componentName}.${window}${pathPrefix ? '.' + pathPrefix : ''}.${fieldName} from ${allInstances.length} instance(s)`);
             }
 
             if (values.length > 0) {
@@ -2251,7 +2221,8 @@ class HealthController {
 
         } catch (error) {
             await this._handleReportFailure(error);
-            return null;
+            // Return error details for API response
+            return { error: error.message };
         }
     }
 

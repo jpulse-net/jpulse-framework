@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.0
+# jPulse Docs / Dev / Work Items v1.6.1
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4440,6 +4440,49 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-144, v1.6.1, 2026-01-28: framework: redis based cache infrastructure follow-up
+- status: ✅ DONE
+- type: Enhancement
+- objective: fine-tune Redis cache infrastructure post-W-143 implementation
+- benefits:
+  - consistency: global variable naming matches framework convention (PascalCase for singletons)
+  - i18n compliance: all user-facing error messages now properly internationalized
+  - better UX: error messages include specific error details, longer display for important errors
+  - reduced noise: debug logs removed from production, cleaner log files
+  - code quality: error handling patterns consistent across API and UI layers
+- deliverables:
+  - webapp/controller/appCluster.js:
+    - global variable naming consistency (redisManager → RedisManager):
+    - fixed case sensitivity: Changed `global.redisManager` to `global.RedisManager`
+  - webapp/controller/health.js:
+    - controller error message i18n:
+    - migrated 5 hard-coded English error messages to i18n system
+    - added controller.health translations: complianceReportSent, complianceReportFailed, healthCheckFailed, metricsCollectionFailed, adminAccessRequired
+    - updated apiSendComplianceReport: better error handling with error details in response
+    - updated _sendComplianceReport: return error object instead of null for better error reporting
+    - removed 13 verbose DEBUG log statements from cluster statistics aggregation
+    - reduced log noise in production while maintaining error visibility
+  - webapp/controller/log.js:
+    - controller error message i18n
+    - updated searchError translation to include {{error}} placeholder
+    - changed from passing error as 4th argument to including in i18n message
+  - webapp/controller/view.js:
+    - fixed error property access: result.message → result.error (consistent with API)
+    - updated toast call: jPulse.ui.showToast → jPulse.UI.toast.error (consistent with framework)
+  - webapp/view/admin/system-status.shtml:
+    - error handling improvements
+    - compliance report: use server's i18n message (includes error details)
+    - extended error display duration to 10 seconds for better visibility
+    - better fallback chain: result.error || result.message || default
+    - consistent toast API: jPulse.UI.toast.success/error
+  - webapp/translations/en.conf, de.conf:
+    - translation consolidation
+    - moved reportSent/reportFailed from view.admin.systemStatus.licenseCompliance to controller.health
+    - centralized error messages in controller namespace for reuse
+    - English: 5 new controller.health translations
+    - German: 5 new controller.health translations (proper German localization)
+
+
 
 
 
@@ -4447,6 +4490,45 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 pending:
 
+
+
+
+
+### W-145, v1.6.2, 2026-01-28: handlebars: load components from templates
+- status: 🕑 PENDING
+- type: Feature
+- objective: make it easy to load components from templates in assets
+- feature:
+  - add `HandlebarController.loadComponents()` method to load and extract registered components from template files without rendering, enabling templates to define reusable structured content (email subject/body, multi-language strings, configuration sections) that can be programmatically accessed
+- benefits:
+  - single source of truth, reuses existing component syntax, generic & flexible, backward compatible
+- use cases:
+  - email templates - single file defines subject/text/html instead of 3 separate files + config
+  - multi-language email templates (one file per language), multi-part UI content, report sections, configuration templates
+- deliverables:
+  - `webapp/controller/handlebar.js`:
+    - Add `static async loadComponents(req, assetPath, context = {})` method
+    - Add `static async _structureComponents(req, componentRegistry, context)` helper method
+    - Load template via PathResolver.resolveAsset() (supports site overrides)
+    - Expand template to register components in req.componentRegistry
+    - Convert flat component registry to nested object structure (e.g., "email.subject" → { email: { subject: "..." } })
+    - Expand each component template with context before returning
+    - Return structured object with all components expanded
+    - Add proper error handling and logging
+  - Unit tests:
+    - Basic loading with components
+    - Nested components with dot notation (a.b.c → nested objects)
+    - Context expansion in components
+    - Error handling (missing template, invalid path)
+    - Site override system
+  - Integration tests:
+    - Email template loading with subject/text/html
+    - Multi-language template selection
+  - Documentation updates:
+    - `webapp/static/assets/jpulse-docs/template-reference.md`: Add section on component loading
+    - `webapp/static/assets/jpulse-docs/genai-instructions.md`: Add pattern for email templates
+    - `webapp/static/assets/jpulse-docs/api-reference.md`: Add HandlebarController.loadComponents() API
+    - `webapp/view/jpulse-examples/handlebars.shtml`: Add live example
 
 
 
@@ -4478,8 +4560,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-diff.txt for accuracy and completness of work item
-- assume release: W-143, v1.6.0, 2026-01-27
-- update deliverables in W-143 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-144, v1.6.1, 2026-01-28
+- update deliverables in W-144 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4496,12 +4578,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.0
+node bin/bump-version.js 1.6.1
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.0
+git tag v1.6.1
 git push origin main --tags
 
 === plugin release & package build on github ===
@@ -4542,10 +4624,10 @@ redis-cli MONITOR | grep "health:metrics" | head -20
 lsof -ti:8080
 
 === Tests how to ===
+npm run test:integration
 npm test -- --testPathPattern=jpulse-ui-navigation
 npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 npx jest webapp/tests/unit/controller/handlebar-logical-helpers.test.js
-
 
 
 

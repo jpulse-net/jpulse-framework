@@ -1,6 +1,114 @@
-# jPulse Docs / Version History v1.6.0
+# jPulse Docs / Version History v1.6.1
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.1, W-144, 2026-01-28
+
+**Commit:** `W-144, v1.6.1: Redis cache infrastructure follow-up - polish and i18n`
+
+**ENHANCEMENT RELEASE**: Polish and refinement of v1.6.0 Redis cache infrastructure with global naming consistency, i18n compliance, debug logging cleanup, and improved error handling.
+
+**Objectives**:
+- Fix global variable naming inconsistency (redisManager → RedisManager)
+- Migrate hard-coded English error messages to i18n system
+- Reduce debug logging noise in production
+- Improve error handling and user feedback
+- Consolidate translations for better reusability
+
+**Key Changes**:
+- **Global Variable Naming Consistency** (15 fixes):
+  - Changed `global.redisManager` → `global.RedisManager` throughout codebase
+  - webapp/controller/appCluster.js: 3 instances (cacheSetObject, cacheGetObject, cacheDel)
+  - docs/dev/working/W-137-license-compliance-report.md: 2 instances
+  - docs/dev/working/W-143-redis-based-cache-infrastructure.md: 12 instances in code examples
+- **Controller i18n Migration** (health.js - 5 messages):
+  - Migrated hard-coded English error messages to i18n system
+  - Added controller.health.complianceReportSent, complianceReportFailed, healthCheckFailed, metricsCollectionFailed, adminAccessRequired
+  - Updated apiSendComplianceReport: Better error handling with error details in response object
+  - Updated _sendComplianceReport: Return error object instead of null for proper error reporting
+- **Controller i18n Migration** (log.js - 1 message):
+  - Updated controller.log.searchError translation to include {{error}} placeholder
+  - Changed from passing error as 4th argument to including in i18n message
+- **Debug Logging Cleanup** (health.js - 13 removals):
+  - Removed verbose DEBUG log statements from cluster statistics aggregation
+  - Removed logs from _buildClusterStatistics, _aggregateComponentStats, _aggregateFields
+  - Kept only essential error/warning logs
+  - Reduced production log noise while maintaining error visibility
+- **View Error Handling** (logs.shtml):
+  - Fixed error property access: result.message → result.error (consistent with API)
+  - Updated toast call: jPulse.ui.showToast → jPulse.UI.toast.error (consistent with framework)
+- **View Error Handling** (system-status.shtml):
+  - Compliance report now uses server's i18n message (includes error details)
+  - Extended error display duration to 10 seconds for better visibility
+  - Better fallback chain: result.error || result.message || default
+  - Consistent toast API: jPulse.UI.toast.success/error throughout
+- **Translation Consolidation** (en.conf, de.conf):
+  - Moved reportSent/reportFailed from view.admin.systemStatus.licenseCompliance to controller.health
+  - Centralized error messages in controller namespace for reuse across API and UI
+  - Added 5 new English translations in controller.health section
+  - Added 5 new German translations with proper German localization
+
+**Code Changes**:
+
+webapp/controller/appCluster.js:
+- Line 427: Changed global.redisManager → global.RedisManager in cacheSetObject
+- Line 480: Changed global.redisManager → global.RedisManager in cacheGetObject
+- Line 528: Changed global.redisManager → global.RedisManager in cacheDel
+
+webapp/controller/health.js:
+- Lines 257-259: Updated health check error to use i18n translation with error details
+- Lines 267-269: Updated metrics collection error to use i18n translation
+- Lines 276-279: Updated admin access check to use i18n translation
+- Lines 286-293: Enhanced compliance report success with i18n message
+- Lines 295-302: Enhanced compliance report failure with error details in i18n message
+- Lines 305-308: Enhanced exception handling with i18n translation
+- Line 2442: Changed _sendComplianceReport to return error object instead of null
+- Lines 687-927: Removed 13 DEBUG log statements from cluster statistics aggregation
+
+webapp/controller/log.js:
+- Lines 455-458: Updated search error to include {{error}} placeholder in i18n message
+
+webapp/translations/en.conf:
+- Lines 128-133: Added controller.health section with 5 new translations
+- Line 135: Updated controller.log.searchError to include {{error}} placeholder
+- Lines 719-720: Removed view.admin.systemStatus.licenseCompliance.reportSent/reportFailed (moved to controller.health)
+
+webapp/translations/de.conf:
+- Lines 128-133: Added controller.health section with 5 new German translations
+- Line 135: Updated controller.log.searchError to include {{error}} placeholder
+- Lines 719-720: Removed view.admin.systemStatus.licenseCompliance.reportSent/reportFailed (moved to controller.health)
+
+webapp/view/admin/logs.shtml:
+- Line 633: Fixed error property: result.message → result.error
+- Line 657: Updated toast: jPulse.ui.showToast → jPulse.UI.toast.error
+
+webapp/view/admin/system-status.shtml:
+- Line 225: Enhanced error fallback: result.error || result.message || default
+- Lines 482-487: Updated compliance report success to use server's i18n message
+- Lines 489-494: Updated compliance report failure with extended duration (10 seconds)
+- Lines 496-500: Updated exception handling with extended error display
+
+docs/dev/working/W-137-license-compliance-report.md:
+- Line 97: Changed global.redisManager → global.RedisManager
+- Line 105: Changed global.redisManager → global.RedisManager
+
+docs/dev/working/W-143-redis-based-cache-infrastructure.md:
+- 12 instances: Changed global.redisManager → global.RedisManager in all code examples
+
+**Breaking Changes**: None
+
+**Benefits**:
+- **Consistency**: Global variable naming matches framework convention (PascalCase for singletons)
+- **i18n Compliance**: All user-facing error messages properly internationalized
+- **Better UX**: Error messages include specific error details, longer display for important errors
+- **Reduced Noise**: Debug logs removed from production, cleaner log files
+- **Code Quality**: Error handling patterns consistent across API and UI layers
+- **Reusability**: Centralized translations can be used by both API and UI code
+
+**Work Item**: W-144
+**Version**: v1.6.1
+**Release Date**: 2026-01-28
 
 ________________________________________________
 ## v1.6.0, W-143, 2026-01-27

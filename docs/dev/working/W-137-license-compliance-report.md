@@ -199,7 +199,7 @@ static async refreshGlobalConfig() {
 }
 
 static async _initializeReportTiming() {
-  const redis = global.redisManager?.getClient('metrics');
+  const redis = global.RedisManager?.getClient('metrics');
   if (!redis) return;
 
   // Check if report time already set
@@ -225,7 +225,7 @@ static async _initializeReportTiming() {
 **Checking Logic** (in health.js):
 ```javascript
 static async _isReportTime() {
-  const redis = global.redisManager?.getClient('metrics');
+  const redis = global.RedisManager?.getClient('metrics');
   if (!redis) return false;
 
   const reportTime = await redis.get('metrics:compliance:report_time');

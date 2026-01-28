@@ -2,8 +2,8 @@
  * @name            jPulse Framework / WebApp / Controller / App Cluster
  * @description     App Cluster controller for multi-instance communication (WebSocket, broadcast, cache)
  * @file            webapp/controller/appCluster.js
- * @version         1.6.0
- * @release         2026-01-27
+ * @version         1.6.1
+ * @release         2026-01-28
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -425,7 +425,7 @@ class AppClusterController {
 
         try {
             // User-scoped automatically
-            const success = await global.redisManager.cacheSetObject(
+            const success = await global.RedisManager.cacheSetObject(
                 `view:${userId}:${category}`,
                 key,
                 value,
@@ -480,7 +480,7 @@ class AppClusterController {
 
         try {
             // User-scoped automatically
-            const value = await global.redisManager.cacheGetObject(
+            const value = await global.RedisManager.cacheGetObject(
                 `view:${userId}:${category}`,
                 key
             );
@@ -528,7 +528,7 @@ class AppClusterController {
 
         try {
             // User-scoped automatically
-            const success = await global.redisManager.cacheDel(
+            const success = await global.RedisManager.cacheDel(
                 `view:${userId}:${category}`,
                 key
             );

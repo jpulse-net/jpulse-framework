@@ -4,8 +4,8 @@
  * @tagline         Admin logs viewer interface
  * @description     Log analysis and search interface for site administrators
  * @file            webapp/view/admin/logs.shtml
- * @version         1.6.0
- * @release         2026-01-27
+ * @version         1.6.1
+ * @release         2026-01-28
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -633,7 +633,7 @@
                 const result = await response.json();
 
                 if (!result.success) {
-                    throw new Error(result.message || 'Failed to load logs');
+                    throw new Error(result.error || 'Failed to load logs');
                 }
 
                 allLogs = result.data;
@@ -657,7 +657,7 @@
             } catch (error) {
                 console.error('- jPulse: Error loading logs:', error);
                 loading.classList.add('jp-hidden');
-                jPulse.ui.showToast('Error loading logs: ' + error.message, 'error');
+                jPulse.UI.toast.error(error.message || 'Failed to load logs');
             }
         }
 

@@ -3,8 +3,8 @@
  * @tagline         Redis connection management with cluster support and graceful fallback
  * @description     Manages Redis connections for sessions, WebSocket, broadcasting, and metrics
  * @file            webapp/utils/redis-manager.js
- * @version         1.6.1
- * @release         2026-01-28
+ * @version         1.6.2
+ * @release         2026-01-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -53,6 +53,7 @@ class RedisManager {
     static instanceId = global.appConfig.system.instanceId;
 
     // Broadcast callback registry for automatic channel handling
+    // Maps channel pattern to array of callbacks (supports multiple listeners per channel)
     static broadcastCallbacks = new Map();
     static subscribedChannels = new Set();
 
@@ -231,7 +232,8 @@ class RedisManager {
             await RedisManager.getClient('metrics').setex(instanceKey, instanceTTL, JSON.stringify(instanceData));
 
             // Add to instances set for easy discovery
-            await RedisManager.getClient('metrics').sadd('instances', instanceId);
+            const instancesSetKey = RedisManager.getKey('metrics', 'instances');
+            await RedisManager.getClient('metrics').sadd(instancesSetKey, instanceId);
 
             global.LogController?.logInfo(null, 'redis-manager._registerInstance',
                 `Registered instance ${instanceId} in Redis`);
@@ -259,7 +261,8 @@ class RedisManager {
         if (!RedisManager.isAvailable) return [];
 
         try {
-            const instanceIds = await RedisManager.getClient('metrics').smembers('instances');
+            const instancesSetKey = RedisManager.getKey('metrics', 'instances');
+            const instanceIds = await RedisManager.getClient('metrics').smembers(instancesSetKey);
 
             const instances = [];
             for (const instanceId of instanceIds) {
@@ -276,7 +279,7 @@ class RedisManager {
                             instances.push(parsed);
                         } else {
                             // Clean up expired instance
-                            await RedisManager.getClient('metrics').srem('instances', instanceId);
+                            await RedisManager.getClient('metrics').srem(instancesSetKey, instanceId);
                             await RedisManager.getClient('metrics').del(instanceKey);
                         }
                     }
@@ -415,9 +418,38 @@ class RedisManager {
      * @param {string} key - Base key
      * @returns {string} Prefixed key
      */
+    /**
+     * Get full Redis key with namespace and prefix
+     * Namespace format: ${siteId}:${mode}:${prefix}${key}
+     * Examples:
+     * - bubblemap-net:prod:sess:abc123
+     * - jpulse-net:prod:bc:controller:config:data:changed
+     * - jpulse-framework:dev:sess:xyz789
+     *
+     * @param {string} service - Service name (e.g., 'session', 'broadcast')
+     * @param {string} key - Key name
+     * @returns {string} Namespaced key with prefix
+     */
     static getKey(service, key) {
+
+        // Get siteId from config (first choice) or slugified shortName (fallback)
+        const appConfig = global.appConfig || {};
+        let siteId = appConfig.app?.siteId;
+        if (!siteId && appConfig.app?.site?.shortName) {
+            siteId = global.CommonUtils.slugifyString(appConfig.app.site.shortName);
+        }
+        if (!siteId) {
+            siteId = 'jpulse';  // Final fallback
+        }
+
+        // Get deployment mode (default 'dev')
+        const mode = appConfig.deployment?.mode || 'dev';
+
+        // Get service-specific prefix
         const prefix = RedisManager.config?.connections?.[service]?.keyPrefix || '';
-        return `${prefix}${key}`;
+
+        // Return namespaced key: ${siteId}:${mode}:${prefix}${key}
+        return `${siteId}:${mode}:${prefix}${key}`;
     }
 
     /**
@@ -547,7 +579,7 @@ class RedisManager {
 
             if (!publisher) {
                 // Graceful fallback: call local callbacks if publisher not available
-                RedisManager._handleCallbackMessage(channel, data, RedisManager.instanceId);
+                await RedisManager._handleCallbackMessage(channel, data, RedisManager.instanceId);
                 return true;
             }
 
@@ -569,12 +601,12 @@ class RedisManager {
                 global.LogController?.logError(null, 'redis-manager.publishBroadcast',
                     `Failed to publish broadcast ${channel}: ${error.message}`);
                 // Fallback to local callbacks on error
-                RedisManager._handleCallbackMessage(channel, data, RedisManager.instanceId);
+                await RedisManager._handleCallbackMessage(channel, data, RedisManager.instanceId);
                 return true;
             }
         } else {
             // Redis not available - call local callbacks directly (single-instance mode)
-            RedisManager._handleCallbackMessage(channel, data, RedisManager.instanceId);
+            await RedisManager._handleCallbackMessage(channel, data, RedisManager.instanceId);
             global.LogController?.logInfo(null, 'redis-manager.publishBroadcast',
                 `Broadcast handled locally (Redis unavailable): ${channel} from ${RedisManager.instanceId}`);
             return true;
@@ -625,11 +657,16 @@ class RedisManager {
         }
 
         // Store the callback regardless of Redis availability (for potential future use)
-        RedisManager.broadcastCallbacks.set(channel, callback);
+        // Support multiple callbacks per channel (use array)
+        if (!RedisManager.broadcastCallbacks.has(channel)) {
+            RedisManager.broadcastCallbacks.set(channel, []);
+        }
+        RedisManager.broadcastCallbacks.get(channel).push(callback);
 
         // Configure self-message behavior if specified
-        if (options.omitSelf === true) {
-            RedisManager._selfMessageConfig.set(channel, true);
+        // Store per callback (use callback as key since multiple callbacks per channel)
+        if (options.omitSelf !== undefined) {
+            RedisManager._selfMessageConfig.set(callback, options.omitSelf);
         }
 
         // W-082: Do not subscribe here. Subscription is handled centrally at startup.
@@ -644,7 +681,7 @@ class RedisManager {
      * Internal handler for callback-based messages
      * @private
      */
-    static _handleCallbackMessage(channel, data, sourceInstanceId) {
+    static async _handleCallbackMessage(channel, data, sourceInstanceId) {
         // Validate channel schema first
         if (!RedisManager._validateChannelSchema(channel)) {
             global.LogController?.logWarning(null, 'redis-manager._handleCallbackMessage',
@@ -673,23 +710,25 @@ class RedisManager {
             return 0;
         });
 
-        // Only call the FIRST (most specific) matching callback
-        for (const [registeredChannel, callback] of sortedCallbacks) {
+        // Call ALL matching callbacks (multiple controllers may listen to same channel)
+        for (const [registeredChannel, callbacks] of sortedCallbacks) {
             if (RedisManager._channelMatches(channel, registeredChannel)) {
-                // Check if we should omit self-messages for this callback
-                const shouldOmitSelf = RedisManager._selfMessageConfig.get(registeredChannel);
-                if (shouldOmitSelf && sourceInstanceId === RedisManager.instanceId) {
-                    // Skip callback if omitSelf is true and message is from self
-                    return;
-                }
+                // Iterate through all callbacks for this channel
+                for (const callback of callbacks) {
+                    // Check if we should omit self-messages for this specific callback
+                    const shouldOmitSelf = RedisManager._selfMessageConfig.get(callback);
+                    if (shouldOmitSelf && sourceInstanceId === RedisManager.instanceId) {
+                        // Skip this callback if omitSelf is true and message is from self
+                        continue;
+                    }
 
-                try {
-                    callback(channel, data, sourceInstanceId);
-                } catch (error) {
-                    global.LogController._logError(null, 'redis-manager._handleCallbackMessage',
-                        `Error in callback for channel ${channel}: ${error.message}`);
+                    try {
+                        await callback(channel, data, sourceInstanceId);
+                    } catch (error) {
+                        global.LogController._logError(null, 'redis-manager._handleCallbackMessage',
+                            `Error in callback for channel ${channel}: ${error.message}`);
+                    }
                 }
-                break; // Exit after calling the first match
             }
         }
     }
@@ -735,7 +774,7 @@ class RedisManager {
      * Handle incoming broadcast messages
      * @private
      */
-    static _handleBroadcastMessage(channel, messageStr) {
+    static async _handleBroadcastMessage(channel, messageStr) {
         try {
             // Remove prefix from channel
             const prefix = RedisManager.getKey('broadcast', '');
@@ -744,7 +783,7 @@ class RedisManager {
             const message = JSON.parse(messageStr);
 
             // Dispatch to registered callbacks
-            RedisManager._handleCallbackMessage(originalChannel, message.data, message.instanceId);
+            await RedisManager._handleCallbackMessage(originalChannel, message.data, message.instanceId);
         } catch (error) {
             global.LogController?.logError(null, 'redis-manager._handleBroadcastMessage',
                 `Error parsing broadcast message on channel ${channel}: ${error.message}`);

@@ -1,4 +1,4 @@
-# jPulse Docs / Cache Infrastructure v1.6.1
+# jPulse Docs / Cache Infrastructure v1.6.2
 
 ## Overview
 
@@ -879,6 +879,171 @@ static async apiUpdateGlobalConfig(req, res) {
 
     return res.json({ success: true });
 }
+```
+
+---
+
+## Multi-Site Isolation
+
+### Redis Namespace Isolation (v1.6.2+)
+
+When running multiple jPulse installations on the same server (or sharing the same Redis instance), Redis keys are automatically isolated using a namespace prefix:
+
+```
+${siteId}:${mode}:${prefix}${key}
+```
+
+**Namespace Components:**
+
+1. **`siteId`**: Unique identifier for the jPulse installation
+   - Set via `app.siteId` in `site/webapp/app.conf`
+   - Production: Populated from `JPULSE_SITE_ID` environment variable
+   - Fallback: Slugified `app.site.shortName`
+
+2. **`mode`**: Deployment mode (`dev`, `prod`, `test`)
+   - From `deployment.mode` in app configuration
+   - Default: `dev`
+
+3. **`prefix`**: Service-specific prefix (e.g., `sess:`, `bc:`, `cache:`)
+   - Defined in Redis connection configuration
+
+4. **`key`**: The actual key name
+
+### Namespace Examples
+
+```
+# Site: jpulse-framework, Mode: dev
+jpulse-framework:dev:sess:abc123              # Session key
+jpulse-framework:dev:bc:controller:config     # Broadcast channel
+jpulse-framework:dev:cache:user:prefs         # Cache key
+
+# Site: bubblemap-net, Mode: prod
+bubblemap-net:prod:sess:xyz789                # Different site's session
+bubblemap-net:prod:cache:map:tiles            # Different site's cache
+
+# Same site, different modes
+jpulse-framework:dev:cache:config             # Development cache
+jpulse-framework:prod:cache:config            # Production cache (isolated!)
+```
+
+### Benefits of Namespace Isolation
+
+1. **Multi-Site Deployments**: Run multiple jPulse applications on same server
+   - `jpulse.net` and `bubblemap.net` can share Redis instance
+   - No data mixing or cross-contamination
+
+2. **Environment Isolation**: Dev and prod environments stay separate
+   - Same site, different modes use different namespaces
+   - Testing doesn't affect production data
+
+3. **Health Metrics Accuracy**: Each site sees only its own instances
+   - `/api/1/health/metrics` filters by namespace
+   - Proper instance counts per site
+
+4. **Session Isolation**: User sessions stay separate per site
+   - Logging into one site doesn't affect another
+   - Proper session cleanup per site
+
+5. **Broadcast Isolation**: Configuration changes don't cross sites
+   - Config update on Site A doesn't broadcast to Site B
+   - Each site maintains independent configuration
+
+### Configuration
+
+**Framework Development (default):**
+
+```javascript
+// site/webapp/app.conf
+{
+    app: {
+        siteId: 'jpulse-framework'  // Default for framework dev
+    },
+    deployment: {
+        mode: 'dev'  // From app.conf or DEPLOYMENT_MODE env var
+    }
+}
+```
+
+**Production Sites:**
+
+```bash
+# .env file
+JPULSE_SITE_ID=bubblemap-net
+DEPLOYMENT_MODE=prod
+```
+
+```javascript
+// site/webapp/app.conf (populated from template)
+{
+    app: {
+        siteId: '%JPULSE_SITE_ID%'  // Resolved by jPulse configure
+    },
+    deployment: {
+        mode: 'prod'                // Set by jPulse configure
+    }
+}
+```
+
+### Testing Multi-Site Isolation
+
+Use the provided test script to verify namespace isolation:
+
+```bash
+# Run the multi-site isolation test
+webapp/tests/manual/redis/namespace-isolation.sh
+```
+
+The test verifies:
+- Different siteIds create separate namespaces
+- Health metrics show only matching instances
+- Sessions are isolated between sites
+- Broadcasts don't cross site boundaries
+- Dev vs prod modes are isolated
+
+### Breaking Change Note
+
+**Important:** Upgrading to v1.6.2+ invalidates all existing Redis keys.
+
+When you upgrade, the namespace prefix will be added to all keys, making old keys inaccessible:
+
+- **Sessions**: All users will be logged out (need to re-login)
+- **Cache**: All cached data will be rebuilt on next access
+- **Metrics**: Health metrics will reset (start counting from zero)
+- **Broadcasts**: No impact (transient messages)
+
+**This is expected behavior** and is acceptable for proper multi-site support. Plan accordingly:
+- Inform users they'll need to re-login after upgrade
+- Cache will rebuild automatically (may cause brief slowdown)
+- Metrics will restart from zero (historical data still in logs)
+
+### Troubleshooting
+
+**Problem**: Health metrics show instances from multiple sites
+
+**Solution**: Verify each site has a unique `siteId` in `site/webapp/app.conf`
+
+```bash
+# Check current siteId
+grep -A2 "app:" site/webapp/app.conf | grep siteId
+
+# Check Redis keys
+redis-cli KEYS "*" | sort
+
+# Should see namespaced keys like:
+# site1:dev:sess:...
+# site2:prod:sess:...
+```
+
+**Problem**: Sessions shared between dev and prod on same machine
+
+**Solution**: Ensure `deployment.mode` is set correctly in each environment
+
+```bash
+# Development
+DEPLOYMENT_MODE=dev npm start
+
+# Production
+DEPLOYMENT_MODE=prod pm2 start ecosystem.prod.config.cjs
 ```
 
 ---

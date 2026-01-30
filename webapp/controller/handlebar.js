@@ -3,13 +3,13 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.6.1
- * @release         2026-01-28
+ * @version         1.6.2
+ * @release         2026-01-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.3, Claude Sonnet 4.5
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import path from 'path';
@@ -157,10 +157,10 @@ class HandlebarController {
         // omitSelf: false ensures local callback fires when Redis is unavailable
         // Subscribes to generic controller:config:data:changed event for clean separation of concerns
         try {
-            global.RedisManager.registerBroadcastCallback('controller:config:data:changed', (channel, data, sourceInstanceId) => {
+            global.RedisManager.registerBroadcastCallback('controller:config:data:changed', async (channel, data, sourceInstanceId) => {
                 // Only refresh if default config was changed
                 if (data && data.id === global.ConfigController.getDefaultDocName()) {
-                    this.refreshGlobalConfig();
+                    await this.refreshGlobalConfig();
                 }
             }, { omitSelf: false });
             LogController.logInfo(null, 'handlebar.initialize', 'Registered broadcast callback for config change events');
@@ -2565,14 +2565,7 @@ class HandlebarController {
                     if (args.length < 1) {
                         return '';
                     }
-                    return args.map(a => String(a || '')).join('')
-                        .toLowerCase()
-                        .normalize('NFD')  // Decompose accents
-                        .replace(/[\u0300-\u036f]/g, '')  // Remove diacritics
-                        .replace(/[^a-z0-9\.,:;\s-]/g, '')  // Remove non-alphanumeric except space/hyphen
-                        .replace(/[\.,:;\s]+/g, '-')  // Replace spaces with hyphens
-                        .replace(/-+/g, '-')  // Collapse multiple hyphens
-                        .replace(/^-|-$/g, '');  // Trim hyphens from ends
+                    return global.CommonUtils.slugifyString(args.map(a => String(a || '')).join(''));
 
                 case 'urlEncode':
                     // Variadic: concatenate all args first, then URL encode

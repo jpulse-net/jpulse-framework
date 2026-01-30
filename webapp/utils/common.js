@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.6.1
- * @release         2026-01-28
+ * @version         1.6.2
+ * @release         2026-01-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -977,6 +977,54 @@ class CommonUtils {
     }
 
     /**
+     * Convert string to URL-friendly slug (lowercase, hyphens, alphanumeric only).
+     * Uses two-step algorithm: preserve punctuation as word separators, then convert to hyphens.
+     *
+     * Used internally by RedisManager for namespace prefixes (siteId:mode:key).
+     * Also used by HandlebarController's string.slugify helper.
+     *
+     * @param {string} str - String to slugify
+     * @returns {string} URL-friendly slug (lowercase, hyphens, alphanumeric only)
+     *
+     * @example
+     * CommonUtils.slugifyString('Hello World');
+     * // Returns: 'hello-world'
+     *
+     * CommonUtils.slugifyString('Foo:Bar');
+     * // Returns: 'foo-bar'
+     *
+     * CommonUtils.slugifyString('How to: Install');
+     * // Returns: 'how-to-install'
+     *
+     * CommonUtils.slugifyString('Café');
+     * // Returns: 'cafe'
+     *
+     * CommonUtils.slugifyString('My Site!');
+     * // Returns: 'my-site'
+     *
+     * CommonUtils.slugifyString('hello  -  world');
+     * // Returns: 'hello-world'
+     *
+     * CommonUtils.slugifyString(' hello ');
+     * // Returns: 'hello'
+     *
+     * CommonUtils.slugifyString('');
+     * // Returns: ''
+     */
+    static slugifyString(str) {
+        if (typeof str !== 'string' || !str) return '';
+
+        return str
+            .toLowerCase()
+            .normalize('NFD')  // Decompose accents (e.g., é → e + combining accent)
+            .replace(/[\u0300-\u036f]/g, '')    // Remove diacritics (combining accent marks)
+            .replace(/[^a-z0-9\.,:;@\(\)\s-]/g, '') // Remove non-alphanumeric except some special chars
+            .replace(/[\.,:;@\(\)\s]+/g, '-')       // Replace some special chars with hyphens
+            .replace(/-+/g, '-')     // Collapse multiple consecutive hyphens into one
+            .replace(/^-|-$/g, '');  // Trim hyphens from start and end
+    }
+
+    /**
      * Sanitize HTML content by allowing only safe tags and attributes.
      * Prevents XSS attacks while preserving basic formatting.
      *
@@ -1739,6 +1787,7 @@ export const {
     generateUuid,
     isValidEmail,
     sanitizeString,
+    slugifyString,
     sanitizeHtml,
     sendError,
     getLogContext,

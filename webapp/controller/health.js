@@ -5,8 +5,8 @@
  *                  for non-admin users in the _sanitizeMetricsData() method!
  * @description     This is the health controller for the jPulse Framework WebApp
  * @file            webapp/controller/health.js
- * @version         1.6.1
- * @release         2026-01-28
+ * @version         1.6.2
+ * @release         2026-01-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -257,9 +257,9 @@ class HealthController {
 
         // W-137: Register for config changes (to reload admin email)
         try {
-            global.RedisManager?.registerBroadcastCallback('controller:config:data:changed', (channel, data, sourceInstanceId) => {
+            global.RedisManager?.registerBroadcastCallback('controller:config:data:changed', async (channel, data, sourceInstanceId) => {
                 if (data && data.id === (global.ConfigController?.getDefaultDocName() || 'global')) {
-                    this.refreshGlobalConfig();
+                    await this.refreshGlobalConfig();
                 }
             }, { omitSelf: false });
         } catch (error) {
@@ -1425,15 +1425,11 @@ class HealthController {
             if (global.RedisManager?.isRedisAvailable()) {
                 try {
                     // Look for any recent successful status from other instances
-                    const client = RedisManager.getClient('metrics');
-                    if (client) {
-                        const lastGoodStatus = await client.get('health:database:lastGoodStatus');
-                        if (lastGoodStatus) {
-                            const parsed = JSON.parse(lastGoodStatus);
-                            // If status is recent (< 60 seconds), use it
-                            if (Date.now() - parsed.timestamp < 60000) {
-                                return parsed.status;  // Use good status from another instance
-                            }
+                    const lastGoodStatus = await RedisManager.cacheGetObject('controller:health', 'database:lastGoodStatus');
+                    if (lastGoodStatus) {
+                        // If status is recent (< 60 seconds), use it
+                        if (Date.now() - lastGoodStatus.timestamp < 60000) {
+                            return lastGoodStatus.status;  // Use good status from another instance
                         }
                     }
                 } catch (err) {
@@ -1479,17 +1475,15 @@ class HealthController {
             // Cache this good status in Redis for other instances
             if (global.RedisManager?.isRedisAvailable()) {
                 try {
-                    const client = global.RedisManager.getClient('metrics');
-                    if (client) {
-                        await client.setex(
-                            'health:database:lastGoodStatus',
-                            60,
-                            JSON.stringify({
-                                status: mongoStatus,
-                                timestamp: Date.now()
-                            })
-                        );
-                    }
+                    await global.RedisManager.cacheSetObject(
+                        'controller:health',
+                        'database:lastGoodStatus',
+                        {
+                            status: mongoStatus,
+                            timestamp: Date.now()
+                        },
+                        60  // 60 seconds TTL
+                    );
                 } catch (err) {
                     LogController.logError(null, 'health._getMongoDBStatus', `Redis cache write failed: ${err.message}`);
                     // Ignore cache errors
@@ -1561,17 +1555,16 @@ class HealthController {
         // Check if Redis has recent data from any instance (cross-instance caching)
         if (global.RedisManager?.isRedisAvailable()) {
             try {
-                const redisCacheKey = `health:cache:${global.appConfig.system.instanceId}`;
-                const redisData = await global.RedisManager.getClient('metrics').get(redisCacheKey);
+                const cacheKey = `health:cache:${global.appConfig.system.instanceId}`;
+                const redisData = await global.RedisManager.cacheGetObject('controller:health', cacheKey);
 
                 if (redisData) {
-                    const parsedData = JSON.parse(redisData);
                     // Check if Redis data is still fresh
-                    if (parsedData.timestamp && (now - parsedData.timestamp) < HealthController.config.cacheInterval) {
+                    if (redisData.timestamp && (now - redisData.timestamp) < HealthController.config.cacheInterval) {
                         // Use Redis data and cache locally
-                        this.healthDataCache.set(cacheKey, parsedData.data);
+                        this.healthDataCache.set(cacheKey, redisData.data);
                         this.lastCacheUpdate = now;
-                        return parsedData.data;
+                        return redisData.data;
                     }
                 }
             } catch (error) {
@@ -1604,12 +1597,13 @@ class HealthController {
         // Share with other instances via Redis
         if (global.RedisManager?.isRedisAvailable()) {
             try {
-                const redisCacheKey = `health:cache:${global.appConfig.system.instanceId}`;
+                const cacheKey = `health:cache:${global.appConfig.system.instanceId}`;
                 const cacheData = {
                     data: healthData,
                     timestamp: now
                 };
-                await global.RedisManager.getClient('metrics').setex(redisCacheKey, Math.floor(HealthController.config.cacheInterval / 1000), JSON.stringify(cacheData));
+                const cacheTTL = Math.floor(HealthController.config.cacheInterval / 1000);
+                await global.RedisManager.cacheSetObject('controller:health', cacheKey, cacheData, cacheTTL);
             } catch (error) {
                 LogController.logError(null, 'health._getOptimizedHealthData', `Redis cache write failed: ${error.message}`);
             }

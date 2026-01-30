@@ -1,6 +1,137 @@
-# jPulse Docs / Version History v1.6.1
+# jPulse Docs / Version History v1.6.2
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.2, W-146, 2026-01-30
+
+**Commit:** `W-146, v1.6.2: Redis site-specific namespacing for multi-site deployments`
+
+**FEATURE RELEASE**: Site-specific namespace isolation for Redis keys to prevent cross-contamination when multiple jPulse installations share the same Redis instance.
+
+**Objectives**:
+- Prevent Redis key collision between multiple jPulse sites on same server/Redis database
+- Enable clean isolation by site and deployment mode (dev/staging/prod)
+- Fix metrics aggregation showing instances from wrong sites
+- Extract and standardize string slugification utility
+
+**Problem**:
+Multiple jPulse sites (e.g., bubblemap.net + jpulse.net) on same server sharing Redis database were mixing data (sessions, cache, broadcasts, metrics), causing configuration changes to affect wrong site and metrics to aggregate incorrectly across sites.
+
+**Solution**:
+Auto-prepend `${siteId}:${mode}:` to all Redis keys, using `app.siteId` from config (or slugified `app.site.shortName` as fallback) + `deployment.mode` for complete isolation.
+
+**Key Changes**:
+- **CommonUtils Enhancement**:
+  - Extracted `slugifyString(str)` from HandlebarController, made static and reusable
+  - Two-step algorithm: preserve punctuation as word separators (`.,:;`), then convert to hyphens
+  - Handles Unicode/accents with NFD normalization and diacritic removal
+  - Returns lowercase alphanumeric + hyphens only
+  - Examples: "My Site!" → "my-site", "Foo:Bar" → "foo-bar", "Café" → "cafe"
+- **Redis Namespace Structure**:
+  - Format: `${siteId}:${mode}:${prefix}${key}`
+  - Example keys: `bubblemap-net:prod:sess:abc123`, `jpulse-net:dev:bc:controller:config:data:changed`
+  - Computed from `appConfig.app.siteId` (first choice) or `CommonUtils.slugifyString(appConfig.app.site.shortName)` (fallback)
+  - Mode from `appConfig.deployment.mode` (default 'dev')
+- **Health Metrics Fix**:
+  - Metrics aggregation now filters by matching `siteId:mode` namespace
+  - `/api/1/health/metrics` shows only instances from current site+environment
+- **Bug Fixes** (health.js):
+  - Replaced 4 raw Redis operations with `RedisManager.cacheGetObject/SetObject()`:
+    - `health:database:lastGoodStatus` (2 occurrences)
+    - `health:cache:${instanceId}` (2 occurrences)
+  - Benefits: cleaner code, automatic JSON handling, consistent namespace
+- **Bug Fixes** (redis-manager.js):
+  - Fixed 2 instances set key operations to use `RedisManager.getKey()` for proper namespacing
+- **Configuration**:
+  - Added `app.siteId: 'jpulse-framework'` to default app.conf for dev/test environments
+  - Production sites use `JPULSE_SITE_ID` env var (already in deployment templates)
+
+**Code Changes**:
+
+webapp/utils/common.js:
+- Lines 850-895: Added `static slugifyString(str)` method with JSDoc
+- Two-step algorithm: preserve punctuation as separators, convert to hyphens
+- Handle Unicode normalization (NFD), remove diacritics, collapse multiple hyphens
+- Return lowercase alphanumeric + hyphens only
+
+webapp/controller/handlebar.js:
+- Line 2563: Refactored `string.slugify` helper to use `CommonUtils.slugifyString()`
+- Maintained variadic argument concatenation logic
+- Ensured backward compatibility with existing templates
+
+webapp/utils/redis-manager.js:
+- Lines 145-167: Modified `static getKey(connection, key)` to prepend namespace
+- Compute `siteId` from `appConfig.app.siteId` or slugified `appConfig.app.site.shortName`
+- Compute `mode` from `appConfig.deployment.mode` (default 'dev')
+- Return `${siteId}:${mode}:${prefix}${key}`
+- Added detailed comments explaining namespace structure
+- Lines 892, 907: Fixed instances set key to use `getKey()` for proper namespacing
+
+webapp/controller/health.js:
+- Lines 1845, 1862: Replaced raw Redis get/set with `RedisManager.cacheGetObject/SetObject()` for `health:database:lastGoodStatus`
+- Lines 2234, 2251: Replaced raw Redis get/set with `RedisManager.cacheGetObject/SetObject()` for `health:cache:${instanceId}`
+- Updated metrics aggregation to filter by matching `siteId:mode` namespace
+
+site/webapp/app.conf:
+- Line 23: Added `app.siteId: 'jpulse-framework'` for framework's default site config
+
+webapp/tests/unit/common.test.js:
+- Lines 450-530: Added comprehensive unit tests for `CommonUtils.slugifyString()`
+- Test cases: basic slugification, punctuation as separator, accents, special chars, collapse hyphens, trim ends, empty/null
+
+webapp/tests/integration/redis-namespace.test.js (NEW):
+- Lines 1-280: Integration tests for Redis namespace isolation
+- Test multiple sites on same Redis → isolated sessions/cache/broadcasts
+- Verify dev vs prod isolation (same siteId, different mode)
+- Verify health metrics show only matching namespace instances
+
+**Documentation**:
+
+docs/cache-infrastructure.md:
+- Lines 850-920: Added "Multi-Site Isolation" section explaining namespace structure
+- Key format breakdown, configuration examples, migration notes
+
+docs/installation.md:
+- Lines 340-365: Documented `JPULSE_SITE_ID` env var requirement for production
+- Added examples for different deployment scenarios
+
+docs/deployment.md:
+- Lines 580-620: Added migration notes explaining Redis key invalidation on upgrade
+- Step-by-step upgrade instructions for multi-site deployments
+
+docs/api-reference.md:
+- Lines 1240-1275: Updated RedisManager.getKey() documentation with namespace examples
+- Added key structure diagram and multi-site configuration guide
+
+docs/genai-instructions.md:
+- Lines 890-910: Updated Redis examples to show namespace format
+- Added multi-site deployment considerations
+- Updated version to v1.6.2
+
+**Breaking Changes**:
+- **Redis Key Invalidation**: All existing Redis keys invalidated on upgrade
+  - Sessions cleared (users must re-login)
+  - Cache rebuilt (automatic, no data loss)
+  - Metrics reset (historical metrics lost)
+  - Acceptable tradeoff for proper multi-site isolation
+
+**Migration Notes**:
+- Single-site deployments: No action required, keys auto-namespaced with site ID
+- Multi-site deployments: Sessions cleared on first restart, inform users in advance
+- Custom Redis integrations: Update to use `RedisManager.getKey()` for key building
+- Monitoring: Metrics reset to zero, historical data not preserved
+
+**Benefits**:
+- **Multi-Site Support**: Multiple jPulse installations can safely share same Redis instance
+- **Environment Isolation**: Dev/staging/prod environments fully isolated even with same site
+- **Cleaner Metrics**: Health metrics show only relevant instances for current site+mode
+- **Code Quality**: Consistent namespace handling, reduced raw Redis operations
+- **Reusability**: CommonUtils.slugifyString() available for other framework components
+
+**Work Item**: W-146
+**Version**: v1.6.2
+**Release Date**: 2026-01-30
 
 ________________________________________________
 ## v1.6.1, W-144, 2026-01-28

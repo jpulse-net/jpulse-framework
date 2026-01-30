@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.1
+# jPulse Docs / Dev / Work Items v1.6.2
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4429,17 +4429,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - add error handling tests (Redis unavailable)
     - add key building and validation tests
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-144, v1.6.1, 2026-01-28: framework: redis based cache infrastructure follow-up
 - status: ✅ DONE
 - type: Enhancement
@@ -4488,13 +4477,83 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-pending:
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-146, v1.6.2, 2026-01-30: redis: site-specific namespacing for multi-site deployments
+- status: ✅ DONE
+- type: Feature
+- objective: add Redis namespace isolation using `${siteId}:${mode}:` prefix to prevent cross-contamination when multiple jPulse installations share same Redis instance
+- problem: multiple jPulse sites (e.g., bubblemap.net + jpulse.net) on same server/Redis db mix data (sessions, cache, broadcasts, metrics), causing config changes to affect wrong site and metrics to aggregate incorrectly
+- solution: auto-prepend `${siteId}:${mode}:` to all Redis keys, using `app.siteId` from config (or slugified `app.site.shortName`) + `deployment.mode` for complete isolation
+- breaking change: invalidates all existing Redis keys on upgrade (sessions cleared, cache rebuilt, metrics reset) - acceptable for proper multi-site support
+- deliverables:
+  - `webapp/utils/common.js`:
+    - add `static slugifyString(str)` method (extract from HandlebarController, make reusable)
+    - implement two-step algorithm: preserve punctuation as word separators (`.,:;`), then convert to hyphens
+    - handle Unicode/accents, normalize NFD, remove diacritics
+    - return lowercase alphanumeric + hyphens only (e.g., "My Site!" → "my-site", "Foo:Bar" → "foo-bar")
+    - add JSDoc with examples
+    - export in module.exports
+  - `webapp/controller/handlebar.js`:
+    - refactor `string.slugify` helper (line 2563) to use `CommonUtils.slugify()`
+    - keep variadic arg concatenation logic
+    - ensure backward compatibility (all existing tests pass)
+  - `webapp/utils/redis-manager.js`:
+    - modify `static getKey(connection, key)` to prepend namespace
+    - compute `siteId` from `appConfig.app.siteId` (first choice) or `CommonUtils.slugifyString(appConfig.app.site.shortName)` (fallback)
+    - compute `mode` from `appConfig.deployment.mode` (default 'dev')
+    - return `${siteId}:${mode}:${prefix}${key}`
+    - example keys: `bubblemap-net:prod:sess:abc123`, `jpulse-net:prod:bc:controller:config:data:changed`
+    - add comments explaining namespace structure
+  - `site/webapp/app.conf`:
+    - add `app.siteId: 'jpulse-framework'` to framework's default site config (for dev/test environments)
+    - document that production sites get `siteId` from `.env` via `JPULSE_SITE_ID` (already in templates)
+  - `webapp/controller/health.js`:
+    - update metrics aggregation to filter by same `siteId:mode` namespace
+    - ensure `/api/1/health/metrics` only shows instances from current site+environment
+    - BUG FIX: replace raw Redis operations with `RedisManager.cacheGetObject()` / `cacheSetObject()` (4 occurrences):
+      - `health:database:lastGoodStatus` (2 occurrences) - now uses cache wrapper with automatic JSON handling
+      - `health:cache:${instanceId}` (2 occurrences) - now uses cache wrapper with automatic JSON handling
+    - benefit: cleaner code, automatic JSON serialization/deserialization, consistent namespace handling
+  - `webapp/utils/redis-manager.js`:
+    - BUG FIX: use `RedisManager.getKey()` for `instances` set key (2 occurrences)
+  - tests:
+    - unit tests for `CommonUtils.slugifyString()`:
+      - basic: "Hello World" → "hello-world"
+      - punctuation as separator: "Foo:Bar" → "foo-bar", "How to: Install" → "how-to-install"
+      - accents: "Café" → "cafe"
+      - special chars: "My Site!" → "my-site"
+      - collapse hyphens: "hello  -  world" → "hello-world"
+      - trim ends: " hello " → "hello"
+      - empty/null: returns ""
+    - integration tests for Redis namespace:
+      - multiple sites on same Redis → isolated sessions/cache/broadcasts
+      - verify dev vs prod isolation (same siteId, different mode)
+      - health metrics show only matching namespace instances
+  - documentation:
+    - `docs/cache-infrastructure.md`: add "Multi-Site Isolation" section explaining namespace structure
+    - `docs/installation.md`: document `JPULSE_SITE_ID` env var requirement for production
+    - `docs/deployment.md`: add migration notes (Redis keys invalidated on upgrade)
+    - `docs/api-reference.md`: update RedisManager.getKey() documentation with namespace examples
 
 
 
 
 
-### W-145, v1.6.2, 2026-01-28: handlebars: load components from templates
+
+
+
+
+
+
+
+
+
+
+### W-145, v1.6.3, 2026-01-31: handlebars: load components from templates
 - status: 🕑 PENDING
 - type: Feature
 - objective: make it easy to load components from templates in assets
@@ -4533,6 +4592,10 @@ pending:
 
 
 
+
+
+
+
 ### Pending
 
 
@@ -4560,8 +4623,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-diff.txt for accuracy and completness of work item
-- assume release: W-144, v1.6.1, 2026-01-28
-- update deliverables in W-144 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-146, v1.6.2, 2026-01-30
+- update deliverables in W-146 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4574,19 +4637,19 @@ git add .
 git commit -m 'Checkpoint commit 1 for: W-069, v0.9.2: view: create site navigation pulldown and hamburger menu'
 git push
 
-=== normal release & package build on github ===
+=== JPULSE release & package build on github ===
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.1
+node bin/bump-version.js 1.6.2
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.1
+git tag v1.6.2
 git push origin main --tags
 
-=== plugin release & package build on github ===
+=== PLUGIN release & package build on github ===
 git diff
 git status
 node ../../bin/bump-version.js 1.0.5

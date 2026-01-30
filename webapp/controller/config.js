@@ -3,13 +3,13 @@
  * @tagline         Config Controller for jPulse Framework WebApp
  * @description     This is the config controller for the jPulse Framework WebApp
  * @file            webapp/controller/config.js
- * @version         1.6.1
- * @release         2026-01-28
+ * @version         1.6.2
+ * @release         2026-01-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import ConfigModel from '../model/config.js';
@@ -237,7 +237,12 @@ class ConfigController {
      * @param {object} res - Express response object
      */
     static async update(req, res) {
-        const id = req.params.id;
+        // Resolve _default to actual default doc name
+        const defaultDocName = ConfigController.getDefaultDocName();
+        let id = req.params.id && req.params.id.trim();
+        if (id === '_default' || !id) {
+            id = defaultDocName;
+        }
         const updateData = req.body;
         LogController.logRequest(req, 'config.update', `${id || ''}, ${JSON.stringify(updateData)}`);
         try {
@@ -380,7 +385,12 @@ class ConfigController {
      * @param {object} res - Express response object
      */
     static async delete(req, res) {
-        const id = req.params.id;
+        // Resolve _default to actual default doc name
+        const defaultDocName = ConfigController.getDefaultDocName();
+        let id = req.params.id && req.params.id.trim();
+        if (id === '_default' || !id) {
+            id = defaultDocName;
+        }
         LogController.logRequest(req, 'config.delete', id || '');
         try {
             if (!id) {

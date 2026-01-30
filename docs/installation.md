@@ -1,4 +1,4 @@
-# jPulse Docs / Site Installation Guide v1.6.1
+# jPulse Docs / Site Installation Guide v1.6.2
 
 This guide covers creating and setting up jPulse sites for development and production environments.
 
@@ -337,6 +337,71 @@ For production deployment, `site/webapp/app.conf` includes environment variable 
     }
 }
 ```
+
+### Environment Variables (Production)
+
+For production deployments, create a `.env` file in your site root with required configuration:
+
+```bash
+# Site identification (required for Redis namespace isolation)
+JPULSE_SITE_ID=my-site-id
+
+# Deployment mode
+DEPLOYMENT_MODE=prod
+
+# Session security
+SESSION_SECRET=your-random-secret-key-here
+
+# Database credentials
+DB_NAME=your-database-name
+DB_USER=your-db-user
+DB_PASS=your-db-password
+DB_ADMIN_USER=admin
+DB_ADMIN_PASS=admin-password
+
+# Optional: Log directory
+LOG_DIR=/var/log/my-site-id
+```
+
+**Important Environment Variables:**
+
+- **`JPULSE_SITE_ID`** (required for multi-site deployments):
+  - Unique identifier for this jPulse installation
+  - Used for Redis namespace isolation (`siteId:mode:key`)
+  - Format: lowercase alphanumeric + hyphens (e.g., `my-site-prod`, `bubblemap-net`)
+  - Prevents data mixing when multiple sites share same Redis instance
+  - See [Cache Infrastructure - Multi-Site Isolation](cache-infrastructure.md#multi-site-isolation)
+
+- **`DEPLOYMENT_MODE`**: Sets the deployment mode (`dev`, `prod`, `test`)
+  - Used for environment-specific configuration and Redis namespace
+
+- **`SESSION_SECRET`**: Random string for session encryption (minimum 32 characters)
+  - Generate with: `openssl rand -base64 32`
+
+- **`DB_*`**: MongoDB connection credentials
+  - `DB_NAME`: Database name (used for auth source)
+  - `DB_USER` / `DB_PASS`: Application database credentials
+  - `DB_ADMIN_USER` / `DB_ADMIN_PASS`: MongoDB admin credentials
+
+**Multi-Site Deployments:**
+
+When running multiple jPulse sites on the same server, each site MUST have a unique `JPULSE_SITE_ID`:
+
+```bash
+# Site 1: jpulse.net
+JPULSE_SITE_ID=jpulse-net
+DEPLOYMENT_MODE=prod
+
+# Site 2: bubblemap.net
+JPULSE_SITE_ID=bubblemap-net
+DEPLOYMENT_MODE=prod
+```
+
+This ensures:
+- Redis keys are isolated between sites (no data mixing)
+- Health metrics show only instances for that site
+- Sessions are separate per site
+- Configuration changes don't broadcast to wrong site
 
 > **Key Concept**: Site configuration only needs to override framework defaults. The framework provides sensible defaults for ports, database names, and other settings based on `deployment.mode`.
 

@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for CommonUtils
  * @description     Tests for common utility functions
  * @file            webapp/tests/unit/utils/common-utils.test.js
- * @version         1.6.1
- * @release         2026-01-28
+ * @version         1.6.2
+ * @release         2026-01-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -545,6 +545,82 @@ describe('CommonUtils', () => {
                     expect(mockRes.status).toHaveBeenCalledWith(statusCode);
                 });
             });
+        });
+    });
+
+    describe('slugifyString', () => {
+        test('should convert basic string to slug', () => {
+            expect(CommonUtils.slugifyString('Hello World')).toBe('hello-world');
+        });
+
+        test('should handle punctuation as word separators', () => {
+            expect(CommonUtils.slugifyString('Foo:Bar')).toBe('foo-bar');
+            expect(CommonUtils.slugifyString('How to: Install')).toBe('how-to-install');
+            expect(CommonUtils.slugifyString('First.Second,Third;Fourth')).toBe('first-second-third-fourth');
+        });
+
+        test('should handle accents and diacritics', () => {
+            expect(CommonUtils.slugifyString('Café')).toBe('cafe');
+            expect(CommonUtils.slugifyString('Zürich')).toBe('zurich');
+            expect(CommonUtils.slugifyString('naïve')).toBe('naive');
+            expect(CommonUtils.slugifyString('São Paulo')).toBe('sao-paulo');
+        });
+
+        test('should remove special characters', () => {
+            expect(CommonUtils.slugifyString('My Site!')).toBe('my-site');
+            expect(CommonUtils.slugifyString('Hello@World#Test')).toBe('hello-worldtest');  // # removed (not word separators)
+            expect(CommonUtils.slugifyString('Test(123)')).toBe('test-123');
+        });
+
+        test('should collapse multiple hyphens', () => {
+            expect(CommonUtils.slugifyString('hello  -  world')).toBe('hello-world');
+            expect(CommonUtils.slugifyString('foo---bar')).toBe('foo-bar');
+            expect(CommonUtils.slugifyString('test    spaces')).toBe('test-spaces');
+        });
+
+        test('should trim hyphens from ends', () => {
+            expect(CommonUtils.slugifyString(' hello ')).toBe('hello');
+            expect(CommonUtils.slugifyString('-start')).toBe('start');
+            expect(CommonUtils.slugifyString('end-')).toBe('end');
+            expect(CommonUtils.slugifyString('- both -')).toBe('both');
+        });
+
+        test('should handle empty and null values', () => {
+            expect(CommonUtils.slugifyString('')).toBe('');
+            expect(CommonUtils.slugifyString(null)).toBe('');
+            expect(CommonUtils.slugifyString(undefined)).toBe('');
+        });
+
+        test('should handle non-string values', () => {
+            expect(CommonUtils.slugifyString(123)).toBe('');
+            expect(CommonUtils.slugifyString(true)).toBe('');
+            expect(CommonUtils.slugifyString({})).toBe('');
+        });
+
+        test('should handle complex real-world examples', () => {
+            expect(CommonUtils.slugifyString('BubbleMap')).toBe('bubblemap');
+            expect(CommonUtils.slugifyString('jPulse Framework')).toBe('jpulse-framework');
+            expect(CommonUtils.slugifyString('My Site: v2.0')).toBe('my-site-v2-0');
+            expect(CommonUtils.slugifyString('User@Example.com')).toBe('user-example-com');  // Dot preserved as word separator
+        });
+
+        test('should preserve numbers', () => {
+            expect(CommonUtils.slugifyString('Version 1.2.3')).toBe('version-1-2-3');
+            expect(CommonUtils.slugifyString('Test123')).toBe('test123');
+            expect(CommonUtils.slugifyString('2024-Report')).toBe('2024-report');
+        });
+
+        test('should handle mixed case', () => {
+            expect(CommonUtils.slugifyString('CamelCase')).toBe('camelcase');
+            expect(CommonUtils.slugifyString('PascalCase')).toBe('pascalcase');
+            expect(CommonUtils.slugifyString('UPPERCASE')).toBe('uppercase');
+            expect(CommonUtils.slugifyString('MixedCASE')).toBe('mixedcase');
+        });
+
+        test('should handle Unicode characters beyond basic Latin', () => {
+            expect(CommonUtils.slugifyString('你好世界')).toBe('');  // Chinese characters removed
+            expect(CommonUtils.slugifyString('Привет')).toBe('');   // Cyrillic removed
+            expect(CommonUtils.slugifyString('Hello 世界')).toBe('hello');  // Mixed: keep ASCII only
         });
     });
 });

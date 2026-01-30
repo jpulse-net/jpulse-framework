@@ -4471,17 +4471,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - English: 5 new controller.health translations
     - German: 5 new controller.health translations (proper German localization)
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-146, v1.6.2, 2026-01-30: redis: site-specific namespacing for multi-site deployments
 - status: ✅ DONE
 - type: Feature
@@ -4547,11 +4536,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-
-
-
-
-
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
 
 ### W-145, v1.6.3, 2026-01-31: handlebars: load components from templates
 - status: 🕑 PENDING

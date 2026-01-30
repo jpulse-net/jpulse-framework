@@ -1425,7 +1425,7 @@ class HealthController {
             if (global.RedisManager?.isRedisAvailable()) {
                 try {
                     // Look for any recent successful status from other instances
-                    const lastGoodStatus = await RedisManager.cacheGetObject('controller:health', 'database:lastGoodStatus');
+                    const lastGoodStatus = await RedisManager.cacheGetObject('controller:health:database', 'lastGoodStatus');
                     if (lastGoodStatus) {
                         // If status is recent (< 60 seconds), use it
                         if (Date.now() - lastGoodStatus.timestamp < 60000) {
@@ -1476,8 +1476,8 @@ class HealthController {
             if (global.RedisManager?.isRedisAvailable()) {
                 try {
                     await global.RedisManager.cacheSetObject(
-                        'controller:health',
-                        'database:lastGoodStatus',
+                        'controller:health:database',
+                        'lastGoodStatus',
                         {
                             status: mongoStatus,
                             timestamp: Date.now()
@@ -1556,7 +1556,7 @@ class HealthController {
         if (global.RedisManager?.isRedisAvailable()) {
             try {
                 const cacheKey = `health:cache:${global.appConfig.system.instanceId}`;
-                const redisData = await global.RedisManager.cacheGetObject('controller:health', cacheKey);
+                const redisData = await global.RedisManager.cacheGetObject('controller:health:metrics', cacheKey);
 
                 if (redisData) {
                     // Check if Redis data is still fresh
@@ -1603,7 +1603,7 @@ class HealthController {
                     timestamp: now
                 };
                 const cacheTTL = Math.floor(HealthController.config.cacheInterval / 1000);
-                await global.RedisManager.cacheSetObject('controller:health', cacheKey, cacheData, cacheTTL);
+                await global.RedisManager.cacheSetObject('controller:health:metrics', cacheKey, cacheData, cacheTTL);
             } catch (error) {
                 LogController.logError(null, 'health._getOptimizedHealthData', `Redis cache write failed: ${error.message}`);
             }

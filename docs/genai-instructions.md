@@ -1,4 +1,4 @@
-# jPulse Docs / Generative-AI Instructions for AI Assistants v1.6.2
+# jPulse Docs / Generative-AI Instructions for AI Assistants v1.6.3
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
@@ -392,6 +392,7 @@ Complete details:
 **Template Reference**: [docs/template-reference.md](template-reference.md)
 - Handlebars syntax and patterns
 - Server-side template processing
+- Load components from templates (e.g. email subject/text/html in one file): [API Reference - Load Components](api-reference.md#load-components-server-side)
 - Template security
 - When to use: "How do I use templates...", "What template syntax..."
 
@@ -672,6 +673,7 @@ Organize your response guidance by user question type:
 
 **"How do I use Handlebars?"**
 → [Template Reference](template-reference.md) for syntax
+→ Load components from a template (e.g. email subject/text/html): [API Reference - Load Components](api-reference.md#load-components-server-side)
 → Examples in any .shtml file
 
 **"How do I create/use plugins?"**

@@ -1,4 +1,4 @@
-# jPulse Docs / Themes v1.6.2
+# jPulse Docs / Themes v1.6.3
 
 jPulse supports **theme switching** using CSS variables.
 

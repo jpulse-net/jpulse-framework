@@ -1,4 +1,4 @@
-# jPulse Docs / Sending Email v1.6.2
+# jPulse Docs / Sending Email v1.6.3
 
 Complete guide to configuring and sending emails from jPulse Framework applications using the standardized email sending strategy.
 
@@ -247,6 +247,10 @@ Click here to reset your password: {{resetLink}}
 
 This link expires in 1 hour.
 ```
+
+### Single-File Email Templates (Subject + Text + HTML)
+
+For one template that defines subject, text, and HTML (single source of truth), use **HandlebarController.loadComponents()** to load components from a template file. See [API Reference - Load Components](api-reference.md#load-components-server-side).
 
 ### Manual Template Processing
 

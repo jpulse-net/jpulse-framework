@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.6.2
- * @release         2026-01-30
+ * @version         1.6.3
+ * @release         2026-01-31
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -14,6 +14,7 @@
 
 import path from 'path';
 import { readdirSync, statSync, readFileSync } from 'fs';
+import { readFile } from 'fs/promises';
 import LogController from './log.js';
 import configModel from '../model/config.js';
 import PathResolver from '../utils/path-resolver.js';
@@ -1062,6 +1063,85 @@ class HandlebarController {
         } else {
             return JSON.stringify(result);
         }
+    }
+
+    /**
+     * W-145: Load template from asset path and return registered components as structured object.
+     * API-style return: never throws; callers check result.success.
+     * Asset path only, relative to webapp/static/ (PathResolver.resolveAsset).
+     *
+     * @param {object} req - Express request object (for context/logging)
+     * @param {string} assetPath - Path to template relative to webapp/static/ (e.g., 'assets/email/welcome.tmpl')
+     * @param {object} context - Variables for component expansion (default: {})
+     * @returns {Promise<object>} { success: boolean, error?: string, components: object }
+     */
+    static async loadComponents(req, assetPath, context = {}) {
+        let template;
+        try {
+            const fullPath = PathResolver.resolveAsset(assetPath);
+            template = await readFile(fullPath, 'utf8');
+        } catch (error) {
+            const message = `Failed to load components from ${assetPath}: ${error.message}`;
+            LogController.logError(req, 'handlebar.loadComponents', message);
+            return { success: false, error: message, components: {} };
+        }
+
+        try {
+            if (!req.componentRegistry) {
+                req.componentRegistry = new Map();
+            }
+
+            await this.expandHandlebars(req, template, context);
+
+            const registrySnapshot = new Map(req.componentRegistry);
+            const components = await this._structureComponents(req, registrySnapshot, context);
+
+            LogController.logInfo(req, 'handlebar.loadComponents',
+                `Loaded ${registrySnapshot.size} components from ${assetPath}`);
+
+            return { success: true, components };
+        } catch (error) {
+            const message = `Failed to load components from ${assetPath}: ${error.message}`;
+            LogController.logError(req, 'handlebar.loadComponents', message);
+            return { success: false, error: message, components: {} };
+        }
+    }
+
+    /**
+     * W-145: Convert flat component registry to nested object structure.
+     * Saves/restores req.componentRegistry around each expand (inner expand resets registry).
+     * Merges component.defaults into context when expanding.
+     *
+     * @param {object} req - Express request object
+     * @param {Map} componentRegistrySnapshot - Snapshot of component registry (name -> { template, defaults })
+     * @param {object} context - Base context for expansion
+     * @returns {Promise<object>} Nested object (e.g. { email: { subject: "...", text: "..." } })
+     * @private
+     */
+    static async _structureComponents(req, componentRegistrySnapshot, context) {
+        const result = {};
+
+        for (const [name, component] of componentRegistrySnapshot) {
+            const parts = name.split('.');
+            let current = result;
+            for (let i = 0; i < parts.length - 1; i++) {
+                if (!current[parts[i]]) {
+                    current[parts[i]] = {};
+                }
+                current = current[parts[i]];
+            }
+
+            const expandContext = { ...context, ...(component.defaults || {}) };
+
+            const savedRegistry = new Map(req.componentRegistry);
+            try {
+                current[parts[parts.length - 1]] = await this.expandHandlebars(req, component.template, expandContext);
+            } finally {
+                req.componentRegistry = savedRegistry;
+            }
+        }
+
+        return result;
     }
 
     /**

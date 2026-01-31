@@ -20,19 +20,24 @@ Current pattern for server-side email templates:
 
 **Desired pattern:**
 ```javascript
-// Single template defines all email parts
-const email = await HandlebarController.loadComponents(
+// Single template defines all email parts (API-style return, no throw)
+const result = await HandlebarController.loadComponents(
     req,
     'assets/site-monitor/access-request.email.tmpl',
     { accessUrl, uuid, tokenValidHours }
 );
 
-// Access via dot notation
+if (!result.success) {
+    LogController.logError(req, 'email.send', result.error);
+    return;
+}
+const { components } = result;
+
 await EmailController.send({
     to: emailAddress,
-    subject: email.subject,      // Expanded component
-    text: email.text,            // Expanded component
-    html: email.html             // Expanded component
+    subject: components.email.subject,
+    text: components.email.text,
+    html: components.email.html
 });
 ```
 
@@ -42,54 +47,60 @@ await EmailController.send({
 
 ```javascript
 /**
- * Load template and return registered components as structured object
- * Generic - works for any component-based template (not email-specific)
+ * Load template and return registered components as structured object.
+ * Generic - works for any component-based template (not email-specific).
+ * API-style return: never throws; callers check result.success.
  *
  * @param {object} req - Express request object (for context/logging)
- * @param {string} assetPath - Path to template relative to assets/ (e.g., 'email/welcome.tmpl')
+ * @param {string} assetPath - Path to template relative to webapp/static/ (e.g., 'assets/email/welcome.tmpl')
  * @param {object} context - Variables for component expansion (default: {})
- * @returns {Promise<object>} Component registry as nested object
+ * @returns {Promise<object>} { success, error?, components } - success false on error, components {} on error
  *
  * @example
- * const email = await HandlebarController.loadComponents(
+ * const result = await HandlebarController.loadComponents(
  *     req,
  *     'assets/contact/email.tmpl',
  *     { name, email, message }
  * );
- * // Returns: { subject: "...", text: "...", html: "..." }
+ * if (!result.success) { /* handle result.error *\/ return; }
+ * const { components } = result;
+ * // components.email.subject, components.email.text, components.email.html
  */
 static async loadComponents(req, assetPath, context = {})
 ```
 
-### Return Structure
+**Path resolution:** Asset path only, relative to `webapp/static/`. Uses `PathResolver.resolveAsset(assetPath)` (site override supported).
 
-Components with dot notation are converted to nested objects:
+### Return Structure (API-Style)
 
+Return value is always an object with `success` and `components`. On error, `error` is set and `components` is `{}`. **Never throws.**
+
+**On success:**
 ```javascript
-// Component names in template:
-// - email.subject
-// - email.text
-// - email.html
-
-// Returns:
 {
-    email: {
-        subject: "Your jPulse Dashboard Access Link",
-        text: "Hello,\n\nYou requested access...",
-        html: "<!DOCTYPE html><html>..."
+    success: true,
+    components: {
+        email: {
+            subject: "Your jPulse Dashboard Access Link",
+            text: "Hello,\n\nYou requested access...",
+            html: "<!DOCTYPE html><html>..."
+        }
     }
 }
+```
 
-// Flat components (no dots):
-// - header
-// - footer
-
-// Returns:
+**On error (file not found, read error, expansion error):**
+```javascript
 {
-    header: "...",
-    footer: "..."
+    success: false,
+    error: "Failed to load components from assets/...: ...",
+    components: {}
 }
 ```
+
+**Component naming:** Per Handlebars docs, components should always use a path (dot notation), e.g. `{{#component "email.subject"}}`, `{{#component "email.text"}}`. The return object reflects that structure exactly (nested by dots). Single-token names like `{{#component "header"}}` are supported and appear as top-level `components.header`.
+
+**Component name collisions:** Use existing registry behavior; no special validation or rules. Nested structure is built from the registry in iteration order.
 
 ## Template Format
 
@@ -141,23 +152,25 @@ The jPulse Team
 ### Algorithm
 
 1. **Load Template**
-   - Use `PathResolver.resolveAsset()` to find template file
-   - Support site override system (site/webapp/static/assets/... overrides webapp/static/assets/...)
-   - Read file content with `fs.readFile()`
+   - Use **asset path only**: path relative to `webapp/static/`.
+   - Use `PathResolver.resolveAsset(assetPath)` to resolve file (site override: site/webapp/static/... overrides webapp/static/...).
+   - Read file content with `fs.readFile()`.
+   - **On error** (file not found, resolve throws, read fails): log error, return `{ success: false, error: message, components: {} }`. Do not throw.
 
 2. **Expand Template**
-   - Call `expandHandlebars(req, template, context)`
-   - This registers components in `req.componentRegistry`
-   - Template output is discarded (only need components)
+   - Call `expandHandlebars(req, template, context)`.
+   - This registers components in `req.componentRegistry`.
+   - Template output is discarded (only need components).
 
 3. **Structure Components**
-   - Iterate through `req.componentRegistry` (Map)
-   - Split component names by "." (e.g., "email.subject" → ["email", "subject"])
-   - Build nested object structure
-   - **Important:** Expand each component template with context before returning
+   - Iterate over a **snapshot** of `req.componentRegistry` (e.g. `Array.from(registry.entries())`).
+   - For each component: **save** `req.componentRegistry`, expand the component template (merge `component.defaults` into context), **restore** `req.componentRegistry` (inner expandHandlebars resets the registry).
+   - Split component names by "." (e.g. "email.subject" → ["email", "subject"]), build nested object, set leaf to expanded string.
+   - **Component defaults:** When expanding each component template, merge that component's `defaults` into the context (same behavior as normal component rendering).
 
 4. **Return Object**
-   - Return structured object with all components expanded
+   - **On success:** Return `{ success: true, components: { ... } }` with all components expanded.
+   - **On any error:** Return `{ success: false, error: "...", components: {} }`, log the error. Never throw.
 
 ### Code Sketch
 
@@ -170,11 +183,17 @@ static async loadComponents(req, assetPath, context = {}) {
     const LogController = global.LogController;
 
     try {
-        // Load template file
+        // Resolve path: asset path only, relative to webapp/static/
         const fullPath = PathResolver.resolveAsset(assetPath);
         const template = await fs.readFile(fullPath, 'utf8');
+    } catch (error) {
+        const message = `Failed to load components from ${assetPath}: ${error.message}`;
+        LogController.logError(req, 'handlebar.loadComponents', message);
+        return { success: false, error: message, components: {} };
+    }
 
-        // Ensure component registry exists
+    try {
+        // Ensure component registry exists (expandHandlebars initializes at depth 0)
         if (!req.componentRegistry) {
             req.componentRegistry = new Map();
         }
@@ -182,45 +201,51 @@ static async loadComponents(req, assetPath, context = {}) {
         // Expand template to register components (output discarded)
         await this.expandHandlebars(req, template, context);
 
-        // Convert flat registry to nested object structure
-        const components = await this._structureComponents(req, req.componentRegistry, context);
+        // Snapshot registry before _structureComponents (it will call expandHandlebars per component)
+        const registrySnapshot = new Map(req.componentRegistry);
+
+        // Convert flat registry to nested object; save/restore registry per component, merge defaults
+        const components = await this._structureComponents(req, registrySnapshot, context);
 
         LogController.logInfo(req, 'handlebar.loadComponents',
-            `Loaded ${req.componentRegistry.size} components from ${assetPath}`);
+            `Loaded ${registrySnapshot.size} components from ${assetPath}`);
 
-        return components;
-
+        return { success: true, components };
     } catch (error) {
-        LogController.logError(req, 'handlebar.loadComponents',
-            `Failed to load components from ${assetPath}: ${error.message}`);
-        throw error;
+        const message = `Failed to load components from ${assetPath}: ${error.message}`;
+        LogController.logError(req, 'handlebar.loadComponents', message);
+        return { success: false, error: message, components: {} };
     }
 }
 
 /**
- * Convert flat component registry to nested object structure
+ * Convert flat component registry to nested object structure.
  * Example: "email.subject" -> { email: { subject: "..." } }
+ * Saves/restores req.componentRegistry around each expand (inner expand resets registry).
+ * Merges component.defaults into context when expanding.
  * @private
  */
-static async _structureComponents(req, componentRegistry, context) {
+static async _structureComponents(req, componentRegistrySnapshot, context) {
     const result = {};
 
-    for (const [name, component] of componentRegistry) {
-        // Split "email.subject" -> ["email", "subject"]
+    for (const [name, component] of componentRegistrySnapshot) {
         const parts = name.split('.');
-
-        // Navigate/create nested structure
         let current = result;
         for (let i = 0; i < parts.length - 1; i++) {
-            if (!current[parts[i]]) {
-                current[parts[i]] = {};
-            }
+            if (!current[parts[i]]) current[parts[i]] = {};
             current = current[parts[i]];
         }
 
-        // Expand component template with context
-        const finalKey = parts[parts.length - 1];
-        current[finalKey] = await this.expandHandlebars(req, component.template, context);
+        // Merge component defaults into context
+        const expandContext = { ...context, ...(component.defaults || {}) };
+
+        // Save registry, expand component template, restore registry
+        const savedRegistry = new Map(req.componentRegistry);
+        try {
+            current[parts[parts.length - 1]] = await this.expandHandlebars(req, component.template, expandContext);
+        } finally {
+            req.componentRegistry = savedRegistry;
+        }
     }
 
     return result;
@@ -247,14 +272,19 @@ app.conf                            (subject)
 
 **Controller:**
 ```javascript
-const email = await HandlebarController.loadComponents(
+const result = await HandlebarController.loadComponents(
     req, 'assets/contact/email.tmpl', { name, email, message, inquiryType }
 );
+if (!result.success) {
+    LogController.logError(req, 'contact.send', result.error);
+    return;
+}
+const { components } = result;
 await EmailController.send({
     to: adminEmail,
-    subject: email.subject,
-    text: email.text,
-    html: email.html
+    subject: components.email.subject,
+    text: components.email.text,
+    html: components.email.html
 });
 ```
 
@@ -266,19 +296,24 @@ await EmailController.send({
 // Get user's language from session/preferences
 const lang = req.session?.user?.language || 'en';  // Default: English
 
-// Load language-specific template
-const email = await HandlebarController.loadComponents(
+// Load language-specific template (API-style, no throw)
+const result = await HandlebarController.loadComponents(
     req,
     `assets/site-monitor/access-request.${lang}.email.tmpl`,
     context
 );
+if (!result.success) {
+    LogController.logError(req, 'email.send', result.error);
+    return;
+}
+const { components } = result;
 
 // Use as normal - subject/text/html in user's language
 await EmailController.send({
     to: emailAddress,
-    subject: email.subject,
-    text: email.text,
-    html: email.html
+    subject: components.email.subject,
+    text: components.email.text,
+    html: components.email.html
 });
 ```
 
@@ -308,10 +343,12 @@ For dynamic content that should be in one file (not i18n):
 ```
 
 ```javascript
-const sections = await HandlebarController.loadComponents(
+const result = await HandlebarController.loadComponents(
     req, 'assets/dashboard/widgets.tmpl', userData
 );
-// sections.header, sections.summary, sections.details
+if (!result.success) return;
+const sections = result.components;
+// sections.dashboard.header, sections.dashboard.summary, sections.dashboard.details
 ```
 
 ### 4. Report Sections
@@ -323,10 +360,12 @@ const sections = await HandlebarController.loadComponents(
 ```
 
 ```javascript
-const report = await HandlebarController.loadComponents(
+const result = await HandlebarController.loadComponents(
     req, 'assets/reports/monthly.tmpl', reportData
 );
-// Generate PDF with report.summary, report.details, report.footer
+if (!result.success) return;
+const report = result.components;
+// Generate PDF with report.report.summary, report.report.details, report.report.footer
 ```
 
 ### 5. Configuration Templates
@@ -382,10 +421,11 @@ const report = await HandlebarController.loadComponents(
    - Nested handlebars in components
    - Default parameters
 
-4. **Error Handling**
-   - Missing template file
-   - Invalid asset path
-   - Malformed components
+4. **Error Handling (API-style, no throw)**
+   - Missing template file → `{ success: false, error: "...", components: {} }`, log error
+   - Invalid asset path → same, no throw
+   - Malformed components / expansion error → same, no throw
+   - Verify callers can check `result.success` and use `result.components` without try/catch
 
 5. **Site Override**
    - Framework template
@@ -426,9 +466,9 @@ const report = await HandlebarController.loadComponents(
 ## Documentation Updates
 
 Files to update:
-1. `webapp/static/assets/jpulse-docs/template-reference.md` - Add section on component loading
-2. `webapp/static/assets/jpulse-docs/genai-instructions.md` - Add pattern for email templates
-3. `webapp/static/assets/jpulse-docs/api-reference.md` - Add HandlebarController.loadComponents()
+1. `docs/template-reference.md` - Add section on component loading
+2. `docs/genai-instructions.md` - Add pattern for email templates
+3. `docs/api-reference.md` - Add HandlebarController.loadComponents()
 4. `webapp/view/jpulse-examples/handlebars.shtml` - Add live example
 
 ## Future Enhancements
@@ -466,18 +506,23 @@ await EmailController.sendEmail({
 ### After (With loadComponents)
 
 ```javascript
-// contact.js
-const email = await HandlebarController.loadComponents(
+// contact.js (API-style return, no throw)
+const result = await HandlebarController.loadComponents(
     req,
     'assets/contact/email.tmpl',
     context
 );
+if (!result.success) {
+    LogController.logError(req, 'contact.send', result.error);
+    return;
+}
+const { components } = result;
 
 await EmailController.send({
     to: adminEmail,
-    subject: email.subject,     // From template
-    text: email.text,           // From template
-    html: email.html            // From template
+    subject: components.email.subject,
+    text: components.email.text,
+    html: components.email.html
 });
 ```
 

@@ -1,0 +1,16 @@
+{{!-- W-145 unit test fixture: loadComponents() --}}
+
+{{#component "email.subject"}}
+Test Subject: {{name}}
+{{/component}}
+
+{{#component "email.text"}}
+Hello {{name}},
+
+This is plain text. Token: {{token}}
+{{/component}}
+
+{{#component "email.html"}}
+<p>Hello <strong>{{name}}</strong>,</p>
+<p>Token: <code>{{token}}</code></p>
+{{/component}}

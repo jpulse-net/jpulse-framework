@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.2
+# jPulse Docs / Dev / Work Items v1.6.3
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4540,7 +4540,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 ## 🚧 IN_PROGRESS Work Items
 
 ### W-145, v1.6.3, 2026-01-31: handlebars: load components from templates
-- status: 🕑 PENDING
+- status: ✅ DONE
 - type: Feature
 - objective: make it easy to load components from templates in assets
 - feature:
@@ -4552,28 +4552,23 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - multi-language email templates (one file per language), multi-part UI content, report sections, configuration templates
 - deliverables:
   - `webapp/controller/handlebar.js`:
-    - Add `static async loadComponents(req, assetPath, context = {})` method
-    - Add `static async _structureComponents(req, componentRegistry, context)` helper method
-    - Load template via PathResolver.resolveAsset() (supports site overrides)
-    - Expand template to register components in req.componentRegistry
-    - Convert flat component registry to nested object structure (e.g., "email.subject" → { email: { subject: "..." } })
-    - Expand each component template with context before returning
-    - Return structured object with all components expanded
-    - Add proper error handling and logging
-  - Unit tests:
-    - Basic loading with components
-    - Nested components with dot notation (a.b.c → nested objects)
-    - Context expansion in components
-    - Error handling (missing template, invalid path)
-    - Site override system
-  - Integration tests:
-    - Email template loading with subject/text/html
-    - Multi-language template selection
-  - Documentation updates:
-    - `webapp/static/assets/jpulse-docs/template-reference.md`: Add section on component loading
-    - `webapp/static/assets/jpulse-docs/genai-instructions.md`: Add pattern for email templates
-    - `webapp/static/assets/jpulse-docs/api-reference.md`: Add HandlebarController.loadComponents() API
-    - `webapp/view/jpulse-examples/handlebars.shtml`: Add live example
+    - add `static async loadComponents(req, assetPath, context = {})` and `_structureComponents(req, componentRegistry, context)` helper
+    - load template via PathResolver.resolveAsset() (site overrides), expand to register components, return nested object (e.g. "email.subject" → { email: { subject: "..." } }), API-style (never throws)
+  - `webapp/tests/unit/controller/handlebar-load-components.test.js`:
+    - fixture under webapp/tests/fixtures/, PathResolver mocked in test only; basic loading, nested dot notation, context expansion, error handling
+    - integration tests (email template, multi-language) deferred
+  - `webapp/tests/fixtures/test-load-components.tmpl`:
+    - W-145 unit test fixture (email.subject, email.text, email.html)
+  - `docs/api-reference.md`:
+    - full HandlebarController.loadComponents() API (single source of truth)
+  - `docs/template-reference.md`:
+    - short blurb + link to api-reference
+  - `docs/sending-email.md`:
+    - short blurb + link for single-file email templates
+  - `docs/genai-instructions.md`:
+    - add pattern for email templates (blurb + link)
+  - `webapp/view/jpulse-examples/handlebars.shtml`:
+    - skipped (page is view-side; loadComponents is controller-side)
 
 
 
@@ -4609,8 +4604,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-diff.txt for accuracy and completness of work item
-- assume release: W-146, v1.6.2, 2026-01-30
-- update deliverables in W-146 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-145, v1.6.3, 2026-01-31
+- update deliverables in W-145 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4627,12 +4622,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.2
+node bin/bump-version.js 1.6.3
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.2
+git tag v1.6.3
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

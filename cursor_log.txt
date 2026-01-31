@@ -17508,3 +17508,17 @@ Status: W-144 v1.6.1 TEST FIX COMPLETE - All tests passing
 
 
 ============================================================
+2026-01-31 14:15
+
+release prep:
+- review git diff tt-diff.txt for accuracy and completness of work item
+- assume release: W-145, v1.6.3, 2026-01-31
+- update deliverables in W-145 work-items to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- update cursor_log.txt (append, don't replace)
+
+Summary: Release prep for W-145 v1.6.3 completed. tt-diff.txt not found (not in repo); prep based on work done in session. Updated docs/dev/work-items.md W-145 deliverables to document work done (handlebar.js done, unit tests done with fixture under tests/fixtures and PathResolver mock, integration tests deferred, docs done with api-reference as single source of truth and blurbs in template-reference/sending-email/genai-instructions, jpulse-examples live example skipped). Updated README.md and docs/README.md Latest Release Highlights with v1.6.3 W-145 entry. Added docs/CHANGELOG.md v1.6.3 W-145 entry with objectives, key changes, code changes, documentation. Updated commit-message.txt with W-145 v1.6.3 format (same structure as W-146). Appended this entry to cursor_log.txt. No version bump (user will run bump script).
+
+
+============================================================

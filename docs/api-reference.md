@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.2
+# jPulse Docs / REST API Reference v1.6.3
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -1614,6 +1614,41 @@ if (result.success) {
 - Context is automatically filtered based on authentication status
 - Sensitive configuration paths are removed for unauthenticated users
 - See `appConfig.controller.handlebar.contextFilter` for filtering rules
+
+### Load Components (Server-Side) {#load-components-server-side}
+
+Load a template from the asset path and return registered components as a nested object. Does not render the template; only components are expanded and returned. Use for email templates, multi-language content, or any structured content in a single file.
+
+**Method:** `HandlebarController.loadComponents(req, assetPath, context = {})`
+
+**Parameters:**
+- `req` (object): Express request (for context and logging).
+- `assetPath` (string): Path relative to `webapp/static/` (e.g. `assets/email/welcome.tmpl`). Resolved with `PathResolver.resolveAsset(assetPath)`.
+- `context` (object, optional): Additional Handlebars context (default `{}`).
+
+**Returns:** `Promise<{ success: boolean, error?: string, components: object }>`
+- On success: `{ success: true, components: { ... } }`. Component names with dots (e.g. `email.subject`) become nested keys.
+- On error: `{ success: false, error: string, components: {} }`. Errors are logged; the method never throws.
+
+**Example:**
+```javascript
+const result = await HandlebarController.loadComponents(
+    req, 'assets/contact/email.tmpl', { name, email, message, inquiryType }
+);
+if (!result.success) {
+    LogController.logError(req, 'contact.send', result.error);
+    return;
+}
+const { components } = result;
+await EmailController.send({
+    to: adminEmail,
+    subject: components.email.subject,
+    text: components.email.text,
+    html: components.email.html
+});
+```
+
+**Related:** [Template Reference - Load Components](template-reference.md#load-components-server-side) (template format and use cases).
 
 ## 📧 Email API
 

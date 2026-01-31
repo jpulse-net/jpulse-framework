@@ -1,4 +1,4 @@
-# jPulse Docs / Template Reference v1.6.2
+# jPulse Docs / Template Reference v1.6.3
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -476,6 +476,10 @@ File operations leverage caching for performance:
 - **Component Inclusion**: `{{file.includeComponents}}` uses include cache for file content
 - **Pre-loading**: Common includes are asynchronously pre-loaded at startup
 - **Configurable**: Caching behavior controlled via `appConfig.controller.view.cacheIncludes.enabled`
+
+### Load Components (Server-Side)
+
+Server-side code can load a template file and extract registered components as a structured object without rendering the full template (e.g. email subject/text/html from one file, multi-language content). Use the existing `{{#component "name"}}...{{/component}}` syntax; dot notation (e.g. `email.subject`) becomes nested keys in the returned object. **Details:** [API Reference - Load Components](api-reference.md#load-components-server-side).
 
 ## 🔀 Handlebars Syntax
 

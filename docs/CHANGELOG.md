@@ -1,6 +1,48 @@
-# jPulse Docs / Version History v1.6.2
+# jPulse Docs / Version History v1.6.3
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.3, W-145, 2026-01-31
+
+**Commit:** `W-145, v1.6.3: handlebars: load components from templates`
+
+**FEATURE RELEASE**: Server-side API to load and extract registered components from a template file without rendering the full template.
+
+**Objective**: Make it easy to load structured content (e.g. email subject/text/html, multi-language strings) from a single template file that uses the existing `{{#component "name"}}` syntax.
+
+**Key Changes**:
+- **HandlebarController.loadComponents(req, assetPath, context = {})**: Load template via PathResolver.resolveAsset() (site overrides supported), expand template to register components in req.componentRegistry, convert flat registry to nested object (e.g. "email.subject" → { email: { subject: "..." } }), expand each component with context, return `{ success, error?, components }`. API-style return (never throws).
+- **_structureComponents(req, componentRegistrySnapshot, context)**: Private helper; saves/restores req.componentRegistry around each component expand; merges component.defaults into context.
+- **Unit tests**: webapp/tests/unit/controller/handlebar-load-components.test.js with fixture under webapp/tests/fixtures/test-load-components.tmpl; PathResolver mocked via jest.mock so loadComponents reads from disk (no framework test hooks).
+- **Documentation**: docs/api-reference.md full API (single source of truth); docs/template-reference.md, docs/sending-email.md, docs/genai-instructions.md short blurbs + links.
+
+**Code Changes**:
+
+webapp/controller/handlebar.js:
+- Added static async loadComponents(req, assetPath, context = {})
+- Added static async _structureComponents(req, componentRegistrySnapshot, context)
+
+webapp/tests/unit/controller/handlebar-load-components.test.js (NEW):
+- jest.mock path-resolver for fixture asset path → tests/fixtures path
+- beforeAll dynamic import of handlebar.js so HandlebarController gets mock
+- Success: API-style return, nested structure, context expansion
+- Error: missing file, non-existent asset
+
+webapp/tests/fixtures/test-load-components.tmpl (NEW):
+- W-145 unit test fixture: email.subject, email.text, email.html components
+
+**Documentation**:
+
+docs/api-reference.md: Load Components (Server-Side) section with method, parameters, returns, example
+docs/template-reference.md: Short blurb + link to api-reference
+docs/sending-email.md: Single-File Email Templates subsection + link
+docs/genai-instructions.md: Load components bullet and "How do I use Handlebars?" line + link
+docs/dev/work-items.md: W-145 deliverables updated to document work done
+
+**Work Item**: W-145
+**Version**: v1.6.3
+**Release Date**: 2026-01-31
 
 ________________________________________________
 ## v1.6.2, W-146, 2026-01-30

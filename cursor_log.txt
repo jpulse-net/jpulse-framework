@@ -332,7 +332,7 @@ Documentation:
 - webapp/view/jpulse-examples/handlebars.shtml
 
 Working Documents:
-- docs/dev/working/W-103-handlebars-let-with-variables.md
+- docs/dev/design/W-103-handlebars-let-with-variables.md
 - docs/dev/work-items.md
 
 Release Documents:
@@ -603,7 +603,7 @@ Priority hooks for OAuth2/LDAP/MFA:
 - beforeSessionCreate (add provider-specific session data)
 - afterUserCreate (email confirmation trigger)
 
-Created working document: docs/dev/working/W-105-plugins-add-hooks.md
+Created working document: docs/dev/design/W-105-plugins-add-hooks.md
 Updated work-items.md with features and deliverables
 
 Status: ✅ DOCUMENTATION COMPLETED
@@ -620,7 +620,7 @@ Resolution: Yes, renamed to clearer name:
 - Old: onAuthenticationMethod (ambiguous - "on" implies event handler)
 - New: getAuthProvider (clearer - returns 'internal', 'ldap', 'oauth2')
 
-Updated docs/dev/working/W-105-plugins-add-hooks.md with new name.
+Updated docs/dev/design/W-105-plugins-add-hooks.md with new name.
 
 Status: ✅ ACCEPTED
 
@@ -1134,7 +1134,7 @@ Implementation Plan Added (4 Phases):
 Total estimated effort: 8-12 hours
 
 Files Updated:
-- docs/dev/working/W-080-search-with-pagination-cursor.md: Added detailed implementation plan
+- docs/dev/design/W-080-search-with-pagination-cursor.md: Added detailed implementation plan
 
 Status: ✅ DESIGN COMPLETE, READY FOR IMPLEMENTATION
 
@@ -1463,8 +1463,8 @@ Summary:
    - Plugin package structure specification
 
 Files Created/Modified:
-- docs/dev/working/W-106-plugin-cli-management.md - Full CLI spec (NEW)
-- docs/dev/working/W-107-auth-mfa-plugin.md - Renamed from W-106 (user renamed)
+- docs/dev/design/W-106-plugin-cli-management.md - Full CLI spec (NEW)
+- docs/dev/design/W-107-auth-mfa-plugin.md - Renamed from W-106 (user renamed)
 - docs/dev/work-items.md - Updated by user with new work items
 
 Key Design Decisions:
@@ -1512,7 +1512,7 @@ Updated W-106 spec with:
    - node_modules/@jpulse-net/plugin-* for npm-installed plugins
 
 Files Modified:
-- docs/dev/working/W-106-plugin-cli-management.md - Updated spec
+- docs/dev/design/W-106-plugin-cli-management.md - Updated spec
 
 Status: ✅ ACCEPTED
 
@@ -1551,7 +1551,7 @@ Updated W-106 to follow framework's two-step pattern:
    - Discovery unchanged: plugins/ only
 
 Files Modified:
-- docs/dev/working/W-106-plugin-cli-management.md - Major update
+- docs/dev/design/W-106-plugin-cli-management.md - Major update
 
 Status: ✅ ACCEPTED
 
@@ -1596,7 +1596,7 @@ Updated W-106 with comprehensive plugin development/publishing workflow:
    - Each plugin has own repo URL
 
 Files Modified:
-- docs/dev/working/W-106-plugin-cli-management.md - Added publish command, dev workflow, bootstrap plan
+- docs/dev/design/W-106-plugin-cli-management.md - Added publish command, dev workflow, bootstrap plan
 
 Status: ✅ ACCEPTED
 
@@ -1640,8 +1640,8 @@ Completed all pre-implementation planning for W-106 and W-107:
    - Unit tests + manual testing
 
 Files Modified:
-- docs/dev/working/W-106-plugin-cli-management.md - preserveOnUpdate, help output, implementation plan
-- docs/dev/working/W-107-auth-mfa-plugin.md - Fixed header, view paths, added W-106 dependency
+- docs/dev/design/W-106-plugin-cli-management.md - preserveOnUpdate, help output, implementation plan
+- docs/dev/design/W-107-auth-mfa-plugin.md - Fixed header, view paths, added W-106 dependency
 - docs/dev/work-items.md - Updated W-106 and W-107 summaries
 
 Next Steps:
@@ -1988,7 +1988,7 @@ Documentation Created:
   - Admin UI alternative
 
 Spec Updated:
-- docs/dev/working/W-106-plugin-cli-management.md
+- docs/dev/design/W-106-plugin-cli-management.md
   - Status: 🕑 PENDING → ✅ COMPLETE
   - Deliverables checklist updated
 
@@ -2194,7 +2194,7 @@ Implementation Phases:
 Total: ~6-8h
 
 File Created:
-- docs/dev/working/W-107-user-profiles-data-driven.md
+- docs/dev/design/W-107-user-profiles-data-driven.md
 
 Status: 📋 SPECIFICATION COMPLETE - Awaiting review
 
@@ -2513,7 +2513,7 @@ to clarify current behavior:
 ```
 
 ### Added Framework Enhancement Proposal
-Added W-045-TD-21 to `docs/dev/working/W-045-plugins-tech-debt.md`:
+Added W-045-TD-21 to `docs/dev/design/W-045-plugins-tech-debt.md`:
 - **Title**: Custom API Route Paths for Plugin Controllers
 - **Proposal**: Support `static routes = []` array that takes precedence over
   auto-discovery, allowing custom paths like `/api/1/mfa/status` instead of
@@ -2738,7 +2738,7 @@ Prepared release documentation for W-106 Plugin CLI Management:
 - bin/plugin-manager-cli.js (NEW)
 - docs/plugins/managing-plugins.md
 - docs/plugins/publishing-plugins.md
-- docs/dev/working/W-106-plugin-cli-management.md
+- docs/dev/design/W-106-plugin-cli-management.md
 - docs/dev/work-items.md
 
 ### Files NOT for this commit (W-108/W-109):
@@ -2817,7 +2817,7 @@ Prepared release documentation for W-107 Data-Driven User Profile Extensions.
 - webapp/view/user/profile.shtml
 - docs/api-reference.md
 - docs/plugins/plugin-api-reference.md
-- docs/dev/working/W-107-user-profiles-data-driven.md
+- docs/dev/design/W-107-user-profiles-data-driven.md
 - docs/dev/work-items.md
 - docs/CHANGELOG.md
 - docs/README.md
@@ -3297,7 +3297,7 @@ Finalize W-109 for release - update docs, add tests, remove debug logs
 ## Changes Made
 
 ### 1. Updated W-109 Working Document
-- docs/dev/working/W-109-auth-multi-step-login.md
+- docs/dev/design/W-109-auth-multi-step-login.md
 - Changed status from "IMPLEMENTATION COMPLETE" to "✅ COMPLETE"
 - Updated implementation checklist with all items marked as done
 - Added tech debt section documenting known limitations
@@ -3447,7 +3447,7 @@ Design and document hook simplification (Phase 8) for better DX
 - onUserSyncProfile
 
 ## Documentation Added
-- docs/dev/working/W-109-auth-multi-step-login.md
+- docs/dev/design/W-109-auth-multi-step-login.md
 - Added "Phase 8: Hook Simplification" section with:
   - Migration table (old → new)
   - Context object specs
@@ -4144,7 +4144,7 @@ ACCEPTED - Plugin v1.0.0 released successfully
 ## User Request
 Update W-108 working document for release status.
 
-## Changes to docs/dev/working/W-108-auth-mfa-plugin.md
+## Changes to docs/dev/design/W-108-auth-mfa-plugin.md
 
 **Status Updated:**
 - Changed from "IN PROGRESS" to "COMPLETE (v1.0.0 released 2025-12-08)"
@@ -5367,7 +5367,7 @@ Summary: Analyzed two syntax options for W-114 handlebars logical/comparison hel
 - Return values: "true"/"false" strings (matches file.exists pattern)
 - Block helpers: implement {{#and}}, {{#or}}, {{#gt}}, etc. with {{else}} support
 
-Created comprehensive working document: docs/dev/working/W-114-handlebars-logical-subexpressions.md
+Created comprehensive working document: docs/dev/design/W-114-handlebars-logical-subexpressions.md
 - Detailed requirements
 - Complete implementation plan (5 phases)
 - Syntax examples for all three usage contexts
@@ -6033,7 +6033,7 @@ Key changes:
 Files modified:
 - webapp/controller/handlebar.js: Added registry, registerHelper(), refactored all helpers, added _handlebar context
 - webapp/utils/bootstrap.js: Added auto-discovery logic for handlebar* methods
-- docs/dev/working/W-116-handlebars-plugin-interface.md: Removed runtime validation comments
+- docs/dev/design/W-116-handlebars-plugin-interface.md: Removed runtime validation comments
 
 Implementation complete. All existing helpers refactored to use args parameter. Auto-discovery working. Ready for testing.
 
@@ -6058,7 +6058,7 @@ Key Documentation Updates:
 - docs/handlebars.md: Replaced placeholder "Custom Helpers" section with comprehensive documentation
 - docs/plugins/creating-plugins.md: Enhanced Step 3.5 with JSDoc documentation and working examples
 - docs/dev/work-items.md: Updated features, implementation, and deliverables (status kept as IN_PROGRESS per request)
-- docs/dev/working/W-116-handlebars-plugin-interface.md: Added JSDoc extraction details
+- docs/dev/design/W-116-handlebars-plugin-interface.md: Added JSDoc extraction details
 
 Release Readiness:
 - Implementation: ✅ Complete
@@ -6805,7 +6805,7 @@ Response Summary:
    - This feature uses app.conf (not MongoDB config)
 
 7. **Documentation Created**
-   - Comprehensive W-118 work item document: docs/dev/working/W-118-view-anchor-link-headings.md
+   - Comprehensive W-118 work item document: docs/dev/design/W-118-view-anchor-link-headings.md
    - Includes: design decisions, implementation plan, examples, testing strategy
    - Covers: accessibility, security, performance, edge cases
    - Resolved all open questions from work-items.md
@@ -6816,7 +6816,7 @@ Key Deliverables:
 - webapp/view/jpulse-footer.tmpl (auto-initialization)
 - webapp/app.conf (default configuration added at lines 380-384)
 - webapp/translations/en.conf and de.conf (i18n strings)
-- docs/dev/working/W-118-view-anchor-link-headings.md (comprehensive documentation)
+- docs/dev/design/W-118-view-anchor-link-headings.md (comprehensive documentation)
 
 Status: W-118 research and documentation complete. Ready for implementation.
 
@@ -6841,7 +6841,7 @@ Changes were accepted.
 2025-12-19 01:00
 
 next: W-119, v1.3.20, 2025-12-20: i18n: usage audit tests for translations, controllers, views
-- see @work-items.md (3239-3249) and working doc @docs/dev/working/W-119-i18n-usage-audit-tests.md
+- see @work-items.md (3239-3249) and working doc @docs/dev/design/W-119-i18n-usage-audit-tests.md
 - review task, ask questions if unclear
 - plan how to implement (wait for my go ahead, but update the working doc)
 
@@ -6928,7 +6928,7 @@ Changes were accepted.
 User prompt:
 I'd like to discuss:
 W-120, v1.3.21, 2025-12-21: markdown: publishing directives for sort order and page titles, @work-items.md (3274-3301)
-- see scratchpad at @docs/dev/working/W-120-markdown-publishing-directives.md
+- see scratchpad at @docs/dev/design/W-120-markdown-publishing-directives.md
 - review task, ask questions if unclear
 - suggest change of spec if any, goal is a good DX, good usability, good onboarding & learning experience for site developers; use the "don't make me think" paradigm
 - currently in brainstorming
@@ -7179,14 +7179,14 @@ my preference is option 1
 - it makes upgrade easy: copy all doc files
 
 Summary:
-- Investigated npm package build process: confirmed that ALL files in docs/ (including dev/working/) were being included in npm packages
+- Investigated npm package build process: confirmed that ALL files in docs/ (including dev/design/) were being included in npm packages
 - Implemented Option 1: Exclude files at build time based on .markdown [ignore] patterns
 - Created bin/prepack-docs.js: Reads docs/.markdown, parses [ignore] section, creates filtered copy of docs/ excluding ignored files
 - Created bin/postpack-docs.js: Restores original docs/ directory after packaging
 - Added prepack and postpack scripts to package.json (npm lifecycle hooks)
 - Updated .gitignore to exclude docs-original/ and docs-filtered/ temporary directories
 - Script handles symlinks by following them (copying actual target files)
-- Verified: docs/dev/working/ is now excluded from npm packages
+- Verified: docs/dev/design/ is now excluded from npm packages
 
 Files modified:
 - bin/prepack-docs.js (new): Filters docs/ based on .markdown [ignore] patterns before npm pack
@@ -7228,7 +7228,7 @@ Summary:
 - Updated commit-message.txt following same format as previous releases
 
 Work completed:
-- Added docs/dev/roadmap.md and docs/dev/working/ to .npmignore to exclude from npm package
+- Added docs/dev/roadmap.md and docs/dev/design/ to .npmignore to exclude from npm package
 - Simplified bin/jpulse-update.js to basic recursive copy (removed filtering logic)
 - Package now contains pre-filtered docs (excluded files removed at build time)
 
@@ -7263,7 +7263,7 @@ Changes accepted: Yes
 2025-12-22 01:21
 
 brainstorming on sidebars
-- see @docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav.md
+- see @docs/dev/design/W-068-W-069-W-070-view-create-responsive-nav.md
 - we currently have a sidebar for the spa markdown doc pages
 - I'd like to generalize that, e.g. define a "don't make me think" standard for sidebars
 - should work on desktop and mobile
@@ -7285,7 +7285,7 @@ brainstorming on sidebars
   - unlike .js and .css (which are append mode), html is replace mode
   - so site owners possibly add a webapp/view/site-leftbar.tmpl and webapp/view/site-rightbar.tmpl? or use framework names to completely replace
 
-Summary: Created comprehensive brainstorming document for generalized sidebar system at docs/dev/working/W-068-sidebar-generalization.md. Document covers:
+Summary: Created comprehensive brainstorming document for generalized sidebar system at docs/dev/design/W-068-sidebar-generalization.md. Document covers:
 - Configuration structure in app.conf for left/right sidebars
 - Four modes: off, always, toggle (default), auto (for SPA routes)
 - Component-based architecture: siteNavigation, pageNavigation, tableOfContents, custom, static
@@ -7510,7 +7510,7 @@ Changes accepted: Pending
 
 not `{{components name=this}}`, but `{{components name=(this)}}`
 
-review @docs/dev/working/W-068-sidebar-generalization.md one more time
+review @docs/dev/design/W-068-sidebar-generalization.md one more time
 
 Summary: Reviewed and fixed document for consistency:
 - Syntax: All instances already use `{{components name=(this)}}` (correct)
@@ -7608,7 +7608,7 @@ Summary:
 - Fixed JavaScript variable redeclaration error (PADDING_EDGE constant)
 
 Files modified:
-- docs/dev/working/W-068-sidebar-generalization.md: Updated with architectural decisions
+- docs/dev/design/W-068-sidebar-generalization.md: Updated with architectural decisions
 - webapp/view/jpulse-common.css: Sidebar positioning within .jp-main, mobile responsive
 - webapp/view/jpulse-common.js: Position calculations relative to .jp-main, drag-to-resize updates
 
@@ -8395,7 +8395,7 @@ SUMMARY:
    - Other settings hardcoded for consistency
 
 FILES CHANGED:
-- docs/dev/working/W-068-sidebar-generalization.md
+- docs/dev/design/W-068-sidebar-generalization.md
 - webapp/view/jpulse-common.css
 - webapp/view/jpulse-footer.tmpl
 - webapp/view/jpulse-common.js
@@ -9793,7 +9793,7 @@ GIT DIFF REVIEW FINDINGS:
    NEW:
    - docs/sidebars.md (726 lines)
    - docs/sidebar-components.md (703 lines)
-   - docs/dev/working/W-068-sidebar-generalization.md
+   - docs/dev/design/W-068-sidebar-generalization.md
 
    UPDATED:
    - docs/README.md: Cross-links added
@@ -9995,7 +9995,7 @@ Fixed regression bug where files specified in docs/.markdown [ignore] section
 were still being copied to site deployments during fresh installs and upgrades.
 
 Issue:
-- Files in [ignore] section (docs/dev/roadmap.md, docs/dev/working/) were
+- Files in [ignore] section (docs/dev/roadmap.md, docs/dev/design/) were
   still appearing in webapp/static/assets/jpulse-docs/dev/ after install/update
 - Root cause: bin/configure.js and bin/jpulse-update.js were copying entire
   docs/ directory without filtering based on .markdown [ignore] patterns
@@ -10848,7 +10848,7 @@ Changes: Analysis provided, no code changes yet (awaiting user feedback on spec)
 
 2026-01-05 23:55
 
-document this in @docs/dev/working/W-037-themes-strategy.md - add detailed plan
+document this in @docs/dev/design/W-037-themes-strategy.md - add detailed plan
 
 Summary:
 - Created comprehensive W-037 themes strategy document
@@ -10863,13 +10863,13 @@ Summary:
 - Included usage examples and plugin theme creation guide
 
 Changes:
-- Created docs/dev/working/W-037-themes-strategy.md with comprehensive plan
+- Created docs/dev/design/W-037-themes-strategy.md with comprehensive plan
 
 
 ============================================================
 2026-01-08 00:15
 
-I renamed the working doc to @docs/dev/working/W-128-themes-infrastructure.md
+I renamed the working doc to @docs/dev/design/W-128-themes-infrastructure.md
 - new work item: W-128, v1.4.8, 2026-01-08: view: create themes infrastructure, @work-items.md (3659-3670)
 - irt ThemeDiscovery & scanThemeDirectory, use the methods in @webapp/utils/path-resolver.js
 - for caching use @webapp/utils/cache-manager.js
@@ -10890,7 +10890,7 @@ Summary:
 
 Changes:
 - Updated docs/dev/work-items.md: Replaced features section with 15-item bullet list
-- Updated docs/dev/working/W-128-themes-infrastructure.md:
+- Updated docs/dev/design/W-128-themes-infrastructure.md:
   - ThemeDiscovery now uses PathResolver.listFiles() for directory discovery
   - Integrated cache-manager.js for performance
   - Added initialize() method following ViewController pattern
@@ -10914,7 +10914,7 @@ Summary:
 - Updated dynamic content generator references to use ThemeManager
 
 Changes:
-- Updated docs/dev/working/W-128-themes-infrastructure.md:
+- Updated docs/dev/design/W-128-themes-infrastructure.md:
   - Renamed class ThemeDiscovery → ThemeManager
   - Updated all variable references (ThemeDiscovery → ThemeManager)
   - Updated section title and tagline
@@ -10955,7 +10955,7 @@ Summary:
 - Added implementation notes section with all design decisions
 
 Changes:
-- Enhanced docs/dev/working/W-128-themes-infrastructure.md:
+- Enhanced docs/dev/design/W-128-themes-infrastructure.md:
   - Added Architecture Overview section with class structure and dependencies
   - Enhanced Design Decisions with 7 detailed points including PathResolver usage
   - Enhanced ThemeManager implementation with detailed PathResolver.listFiles() usage
@@ -11067,9 +11067,9 @@ Status: ✅ ACCEPTED
 ============================================================
 2026-01-06 18:08
 
-User: now as agent, fix the docs/dev/working/W-129-themes-infrastructure.md for md table output as discussed - any other open items?
+User: now as agent, fix the docs/dev/design/W-129-themes-infrastructure.md for md table output as discussed - any other open items?
 
-AI: Updated docs/dev/working/W-129-themes-infrastructure.md:
+AI: Updated docs/dev/design/W-129-themes-infrastructure.md:
 - Dynamic themes table: switched generator example from a 6-column table (Preview/Theme/Label/Description/Author/Source) to a mobile-friendly 2-column table (Preview + Details), with Details cell using <br> line breaks.
 - Consistency fixes:
   - Validation/error-handling: missing required fields now treated as error (skip theme) and required fields list aligned to name, label, description, author, version, source.
@@ -11127,7 +11127,7 @@ AI: Implemented core.htmlAttrs to simplify <html> tag handling:
   - Values derived from user preferences with safe fallbacks (language=en, theme=light) and allow-list validation.
 - webapp/view/*.shtml:
   - Replaced explicit <html lang="..." data-theme="..."> with <html {{core.htmlAttrs}}> across all views.
-- docs/dev/working/W-129-themes-infrastructure.md:
+- docs/dev/design/W-129-themes-infrastructure.md:
   - Updated example to use <html {{core.htmlAttrs}}>
 
 Status: ✅ ACCEPTED
@@ -12099,7 +12099,7 @@ PROMPT:
 - Update W-129 working doc: migrate core.* references to appConfig.system.* + document %DYNAMIC{themes-default}%
 
 SUMMARY:
-- docs/dev/working/W-129-themes-infrastructure.md: updated header template snippet to use appConfig.system.defaultTheme, clarified unauth fallback behavior, documented themes-default generator, and fixed themes table detail formatting (no escaped backticks).
+- docs/dev/design/W-129-themes-infrastructure.md: updated header template snippet to use appConfig.system.defaultTheme, clarified unauth fallback behavior, documented themes-default generator, and fixed themes table detail formatting (no escaped backticks).
 
 STATUS: pending user verification (accept/reject)
 
@@ -12256,7 +12256,7 @@ PROMPT:
 - Review and fix W-129 docs (working doc + style-reference + api-reference)
 
 SUMMARY:
-- docs/dev/working/W-129-themes-infrastructure.md: updated Documentation checklist to reflect completed docs and clarify what api-reference covers.
+- docs/dev/design/W-129-themes-infrastructure.md: updated Documentation checklist to reflect completed docs and clarify what api-reference covers.
 - docs/style-reference.md: updated Theme System section to reflect current --jp-theme-* variables, htmlAttrs usage, and Prism light/dark CSS selection.
 - docs/api-reference.md: clarified /api/1/user/enums preferences.theme behavior and linked to Themes doc for metadata.
 
@@ -12805,7 +12805,7 @@ STATUS: Verification complete - Amount sum matches Total IOFs ✓
 
 Update W-134 implementation plan: clarify config locations and always-included fields
 
-Summary: Updated docs/dev/working/W-134-user-view-spa.md to reflect:
+Summary: Updated docs/dev/design/W-134-user-view-spa.md to reflect:
 - Config locations moved to where they're used: reservedUsernames in model.user, profile access control in controller.user.profile
 - Clarified fields configuration: always-included fields (username, firstName, lastName, initials) are implicit, showFields array specifies additional fields only
 - Updated API endpoint documentation: GET /api/1/user/public/:id with detailed access control and field filtering logic
@@ -15293,7 +15293,7 @@ Questions posed:
 
 User Request: Create comprehensive documentation of current discussion status before further consideration.
 
-Assistant Response: Created docs/dev/working/W137-system-monitoring-for-site-admins.md (485 lines) with complete brainstorming status including:
+Assistant Response: Created docs/dev/design/W137-system-monitoring-for-site-admins.md (485 lines) with complete brainstorming status including:
 
 Document Sections:
 1. Executive Summary - objectives and key decisions
@@ -15370,7 +15370,7 @@ Offered to draft complete license text or wait for attorney consultation.
 
 User Request: Update W-137 working document with licensing options based on jPulse's BSL 1.1 → AGPL-3.0 conversion on 2030-01-01.
 
-Assistant Response: Updated docs/dev/working/W-137-system-monitoring-for-site-admins.md with comprehensive licensing analysis:
+Assistant Response: Updated docs/dev/design/W-137-system-monitoring-for-site-admins.md with comprehensive licensing analysis:
 
 1. Added "Licensing Options Analysis" section (300+ lines):
    - Current license status (BSL 1.1 → AGPL-3.0 on 2030-01-01)
@@ -15456,7 +15456,7 @@ Final Specifications:
 - No config option to disable (mandatory per license)
 - Legal pages: /legal/privacy.shtml and /legal/terms-of-service.shtml
 
-Assistant Response: Documented complete specification in docs/dev/working/W-137-license-compliance-report.md:
+Assistant Response: Documented complete specification in docs/dev/design/W-137-license-compliance-report.md:
 
 Document Sections (830+ lines):
 1. Executive Summary - objectives and key decisions
@@ -16708,7 +16708,7 @@ Status: rejected (prior attempt); accepted (process correction)
 ============================================================
 2026-01-22 01:47
 
-review current state of enhancements: tt-git-diff.txt; review and fix docs/dev/working/W-137-license-compliance-report.md
+review current state of enhancements: tt-git-diff.txt; review and fix docs/dev/design/W-137-license-compliance-report.md
 
 Summary:
 - Reviewed `tt-git-diff.txt` and reconciled W-137 spec with implementation.
@@ -16990,7 +16990,7 @@ Status: W-141 v1.5.0 release documentation complete, ready for version bump and 
 Enhanced api-reference.md with Additional Examples:
 
 User feedback:
-- docs/dev/working/* is excluded from publishing, can't reference W-141-SEARCH-SYNTAX-REFERENCE.md
+- docs/dev/design/* is excluded from publishing, can't reference W-141-SEARCH-SYNTAX-REFERENCE.md
 - User removed the reference link from line 911
 - Requested more examples to compensate
 
@@ -17181,7 +17181,7 @@ Design rationale documented:
 - Documentation three-tier approach (application-cluster.md, new cache-infrastructure.md, cross-links)
 
 Files updated:
-- docs/dev/working/W-143-redis-based-cache-infrastructure.md (comprehensive API overhaul)
+- docs/dev/design/W-143-redis-based-cache-infrastructure.md (comprehensive API overhaul)
 - cursor_log.txt (this entry)
 
 Status: W-143 specification finalized
@@ -17245,7 +17245,7 @@ Implemented Redis cache wrapper infrastructure for jPulse Framework v1.6.0
 - webapp/utils/redis-manager.js (added cache infrastructure)
 - webapp/app.conf (already had cache connection config)
 - docs/dev/work-items.md (updated W-143 entry)
-- docs/dev/working/W-143-redis-based-cache-infrastructure.md (finalized design decisions)
+- docs/dev/design/W-143-redis-based-cache-infrastructure.md (finalized design decisions)
 
 **Files created:**
 - webapp/controller/cache.js (client-side cache API controller)
@@ -17416,8 +17416,8 @@ Enhancement release providing polish and refinement of v1.6.0 Redis cache infras
 1. **Global Variable Naming Consistency** (15 fixes)
    - Fixed `global.redisManager` → `global.RedisManager` throughout codebase
    - webapp/controller/appCluster.js: 3 instances
-   - docs/dev/working/W-137-license-compliance-report.md: 2 instances
-   - docs/dev/working/W-143-redis-based-cache-infrastructure.md: 12 instances
+   - docs/dev/design/W-137-license-compliance-report.md: 2 instances
+   - docs/dev/design/W-143-redis-based-cache-infrastructure.md: 12 instances
 
 2. **Controller i18n Migration** (6 messages total)
    - health.js: 5 new translations (complianceReportSent, complianceReportFailed, healthCheckFailed, metricsCollectionFailed, adminAccessRequired)
@@ -17448,8 +17448,8 @@ Core Code:
 - webapp/view/admin/system-status.shtml (error handling)
 
 Documentation:
-- docs/dev/working/W-137-license-compliance-report.md (2 fixes)
-- docs/dev/working/W-143-redis-based-cache-infrastructure.md (12 fixes)
+- docs/dev/design/W-137-license-compliance-report.md (2 fixes)
+- docs/dev/design/W-143-redis-based-cache-infrastructure.md (12 fixes)
 - docs/dev/work-items.md (W-144 DONE with full deliverables)
 
 Release Files:
@@ -17519,6 +17519,14 @@ release prep:
 - update cursor_log.txt (append, don't replace)
 
 Summary: Release prep for W-145 v1.6.3 completed. tt-diff.txt not found (not in repo); prep based on work done in session. Updated docs/dev/work-items.md W-145 deliverables to document work done (handlebar.js done, unit tests done with fixture under tests/fixtures and PathResolver mock, integration tests deferred, docs done with api-reference as single source of truth and blurbs in template-reference/sending-email/genai-instructions, jpulse-examples live example skipped). Updated README.md and docs/README.md Latest Release Highlights with v1.6.3 W-145 entry. Added docs/CHANGELOG.md v1.6.3 W-145 entry with objectives, key changes, code changes, documentation. Updated commit-message.txt with W-145 v1.6.3 format (same structure as W-146). Appended this entry to cursor_log.txt. No version bump (user will run bump script).
+
+
+============================================================
+2026-01-31 14:58
+
+write @docs/dev/design/W-147-make-config-schema-extensible.md design doc
+
+Summary: Wrote full W-147 design doc for making config schema extensible. Covers: (1) ConfigModel baseSchema + extendSchema (tab-scope extensions, mirror UserModel); (2) General tab first with roles + adminRoles, bootstrap from app.conf when missing, consumers read only from config; (3) Validation adminRoles ⊆ roles and self-lockout prevention; (4) Data-driven admin config tabs; (5) app.conf comments only; (6) Single global scope for v1, design not to block future hierarchy; (7) Extension API and deliverables checklist.
 
 
 ============================================================

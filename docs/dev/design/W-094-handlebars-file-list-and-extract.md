@@ -363,7 +363,7 @@ def example():
 ### Documentation
 - ✅ `docs/handlebars.md`: Comprehensive documentation with syntax, parameters, and examples
 - ✅ `docs/template-reference.md`: Updated file listing and extraction section
-- ✅ `docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md`: Added technical debt notes for refactoring opportunities
+- ✅ `docs/dev/design/W-014-W-045-mvc-site-plugins-architecture.md`: Added technical debt notes for refactoring opportunities
 
 ### Testing
 - ✅ `webapp/tests/unit/controller/file-list-extract.test.js`: Security tests (4 tests covering path traversal protection)

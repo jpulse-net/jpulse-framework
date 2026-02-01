@@ -11,7 +11,7 @@ site/webapp/app.conf
 # Documentation files excluded via .markdown [ignore] section
 # NOTE: keep this in sync with docs/.markdown [ignore] section
 docs/dev/roadmap.md
-docs/dev/working/
+docs/dev/design/
 
 # Local work files
 .jpulse/

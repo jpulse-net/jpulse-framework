@@ -1469,7 +1469,7 @@ The API respects `.markdown` configuration files in namespace roots to control p
 **Ignore Patterns** (in `[ignore]` section):
 - **Exact files**: `temp.md`
 - **Wildcard patterns**: `*.backup.md`, `draft-*.md`
-- **Directory patterns**: `dev/working/` (excludes entire directory)
+- **Directory patterns**: `dev/design/` (excludes entire directory)
 - **Whitelist mode**: Use `*` to only publish files in `[publish-list]`
 - **Comments**: Lines starting with `#`
 
@@ -1485,7 +1485,7 @@ faq.md
 dev/tmp.md
 
 # Ignore working directory with all contents
-dev/working/
+dev/design/
 
 # Ignore backup markdown files
 *.backup.md

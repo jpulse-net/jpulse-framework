@@ -12743,7 +12743,7 @@ Implementation Details:
 ✅ Implemented _shouldIgnore() with glob pattern matching
 ✅ Modified _scanMarkdownFiles() to filter ignored files/directories
 ✅ Added comprehensive unit tests (12 test cases)
-✅ Manual testing confirms dev/working/ directory is hidden
+✅ Manual testing confirms dev/design/ directory is hidden
 ✅ Manual testing confirms *.save* files are filtered out
 ✅ Cache invalidation handled via app restart (manual as requested)
 
@@ -12751,7 +12751,7 @@ Features:
 - Single .jpulse-ignore file in namespace root (docs/.jpulse-ignore)
 - Patterns relative to ignore file location
 - Basic glob patterns: *, ?, exact matches
-- Directory patterns with trailing slash (dev/working/)
+- Directory patterns with trailing slash (dev/design/)
 - File patterns without slash (*.save*, temp.md)
 - Comment support (lines starting with #)
 - Empty line support
@@ -18689,7 +18689,7 @@ User provided additional clarifications:
 1. Use hello-todo for MVC example with plural collections (helloTodos) and singular everything else (helloTodo.js)
 2. file.exists should check for .shtml files: {{#if (file.exists "hello-todo/index.shtml")}}
 3. Use local-home-link-card styling for dashboard buttons
-4. Document strategy in docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue working file
+4. Document strategy in docs/dev/design/W-071-W-072-W-073-site-strategy-hello-and-vue working file
 
 FINAL STRATEGY AGREED:
 - Namespace: hello-todo (view), helloTodo.js (model/controller), helloTodos (collection)
@@ -20861,7 +20861,7 @@ Ready for testing and checkpoint commit!
 - Config: commit-message.txt
 
 ### Intentionally Left As-Is (Historical):
-- docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue (work item doc)
+- docs/dev/design/W-071-W-072-W-073-site-strategy-hello-and-vue (work item doc)
 - docs/CHANGELOG.md (historical changelog entry)
 - .git/COMMIT_EDITMSG (git history)
 - *.save1, *.save2 files (old editor backups - can be deleted)
@@ -20961,7 +20961,7 @@ Files Modified:
    - Vue.js integration
    - Link to complete websockets.md documentation
 
-10. docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
+10. docs/dev/design/W-071-W-072-W-073-site-strategy-hello-and-vue
     - Marked W-073 as complete
     - Updated implementation status
     - Noted W-075 as next step for examples
@@ -24900,7 +24900,7 @@ User requested review and refinement of navigation system specification for:
    - Mobile: hamburger menu consolidates all navigation
 
 ### Files Updated:
-- docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav (comprehensive spec)
+- docs/dev/design/W-068-W-069-W-070-view-create-responsive-nav (comprehensive spec)
 
 ### Implementation Status:
 Starting Phase 1: W-069-A (Site Nav Dropdown - Desktop)
@@ -24913,7 +24913,7 @@ Status: In progress 🔄
 ### Implementation Progress:
 
 **✅ Completed**:
-1. Updated spec document (docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav)
+1. Updated spec document (docs/dev/design/W-068-W-069-W-070-view-create-responsive-nav)
    - Comprehensive architecture with all refined decisions
    - Clear implementation phases
    - Testing strategy outlined
@@ -24964,7 +24964,7 @@ Next: CSS styling + template integration
 ### ✅ All Tasks Completed:
 
 **1. Spec Document** ✅
-- Updated docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
+- Updated docs/dev/design/W-068-W-069-W-070-view-create-responsive-nav
 - Comprehensive architecture with all refined decisions
 - Clear implementation phases and testing strategy
 
@@ -25057,7 +25057,7 @@ Next: CSS styling + template integration
 - No duplicate navigation structures
 
 ### Files Modified:
-1. docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav (411 lines)
+1. docs/dev/design/W-068-W-069-W-070-view-create-responsive-nav (411 lines)
 2. webapp/view/jpulse-common.js (+330 lines)
 3. webapp/view/jpulse-common.css (+195 lines)
 4. webapp/view/jpulse-footer.tmpl (+11 lines)
@@ -26013,7 +26013,7 @@ Successfully implemented mobile hamburger menu for W-069 site navigation, provid
 - `webapp/view/jpulse-common.css` - Added mobile menu styles, animations, responsive CSS
 - `webapp/view/jpulse-common.js` - Added mobile menu JavaScript functions
 - `webapp/tests/unit/utils/jpulse-ui-navigation.test.js` - Added 13 mobile menu tests
-- `docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav` - Updated breadcrumb position spec
+- `docs/dev/design/W-068-W-069-W-070-view-create-responsive-nav` - Updated breadcrumb position spec
 
 ### W-069 Status:
 **Phase 1 (Desktop):** ✅ Complete (checkpoint 1)
@@ -27357,7 +27357,7 @@ Completed final enhancements and documentation updates for W-069 responsive navi
    - Location: webapp/view/jpulse-common.js
 
 2. **Documentation Updates**
-   - docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav:
+   - docs/dev/design/W-068-W-069-W-070-view-create-responsive-nav:
      - Updated line 17: Navigation structure in jpulse-navigation.tmpl
      - Updated line 321: Tab structures defined in jpulse-navigation.tmpl
    - docs/handlebars.md:
@@ -27410,7 +27410,7 @@ Updated documentation to reflect the final W-069 implementation using template-b
 
 ### Files Updated
 
-1. **docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav**
+1. **docs/dev/design/W-068-W-069-W-070-view-create-responsive-nav**
    - Updated Core Concept: Navigation now in jpulse-navigation.tmpl (not app.conf)
    - Updated Navigation Data Structure: Shows window.jPulseSiteNavigation with Handlebars conditionals
    - Updated Auto-Initialization Pattern: Shows jpulse-footer.tmpl including jpulse-navigation.tmpl
@@ -27845,7 +27845,7 @@ Complete implementation of responsive site navigation system with desktop pulldo
 - webapp/translations/en.conf & de.conf - added navigation translations
 - webapp/tests/unit/utils/jpulse-ui-navigation.test.js - updated for template-based navigation
 - webapp/tests/unit/utils/jpulse-ui-widgets.test.js - tab parameter handling tests
-- docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav - updated spec
+- docs/dev/design/W-068-W-069-W-070-view-create-responsive-nav - updated spec
 - docs/handlebars.md - updated template include examples
 - docs/style-reference.md - added .jp-btn-nav-group documentation
 
@@ -29067,11 +29067,11 @@ All functionality now working perfectly with professional UX!
 2025-10-10 08:05
 
 User Request:
-1. I moved the md file to docs/dev/working/W-040-admin-logs-view.md
+1. I moved the md file to docs/dev/design/W-040-admin-logs-view.md
 2. see if it helps adding low hanging fruite tests for features added
 
 Response Summary:
-✅ Confirmed deliverables summary file location updated to docs/dev/working/W-040-admin-logs-view.md
+✅ Confirmed deliverables summary file location updated to docs/dev/design/W-040-admin-logs-view.md
 
 ✅ Created comprehensive low-hanging fruit tests for W-040 features:
 
@@ -35005,7 +35005,7 @@ PHASE 3: Cleanup and Documentation
 
 8. Updated documentation files:
    - style-reference.md: Completely rewrote "Card Components" section with new CSS examples showing jp-card-dialog-heading and jp-card-subheading patterns, removed all references to deprecated classes
-   - docs/dev/working/W-025-view-component-styling.md: Updated component reference list
+   - docs/dev/design/W-025-view-component-styling.md: Updated component reference list
    - docs/dev/work-items.md: Updated work item reference from .jp-card-header to .jp-card-dialog-heading
 
 PHASE 4: Spacing Fixes
@@ -35244,7 +35244,7 @@ User requested jpulse.net content strategy and site structure planning
 
 SUMMARY:
 - Analyzed NestJS.com (liked content and cat theme) and Nuxt.com/showcase (too geek-focused for decision-makers)
-- Created comprehensive jpulse.net site structure document (docs/dev/working/jpulse-net-site-structure.md)
+- Created comprehensive jpulse.net site structure document (docs/dev/design/jpulse-net-site-structure.md)
 - Proposed theme: "Simplicity Through Intelligence" with pulse wave visual motif (transforming complex architecture into simple pulse wave)
 - Defined 10 major pages: Homepage, Why jPulse, Features, Industries, Compare, Pricing, Docs, Examples, Resources, Contact/Sales
 - Designed for enterprise decision-makers (C-level, IT directors) as primary audience with developers as secondary
@@ -35493,7 +35493,7 @@ CHANGES COMPLETED:
 - docs/getting-started.md: Fixed misleading comments, clarified two-step update process, added explanation of beta/RC workflow
 - docs/deployment.md: Fixed update command to show two-step process
 - docs/dev/work-items.md: Updated command description to clarify sync-only behavior
-- docs/dev/working/W-085-npx-tools-strategy.md: Updated to reflect actual implementation (sync-only, not auto-update)
+- docs/dev/design/W-085-npx-tools-strategy.md: Updated to reflect actual implementation (sync-only, not auto-update)
 
 STATUS: Documentation corrected. Beta/RC update workflow verified to work correctly - `npx jpulse update` respects the installed package version and does not upgrade to latest production.
 
@@ -35517,7 +35517,7 @@ SUMMARY:
   - docs/getting-started.md: Updated update workflow section
   - docs/deployment.md: Simplified troubleshooting section
   - docs/dev/work-items.md: Updated command description
-  - docs/dev/working/W-085-npx-tools-strategy.md: Updated implementation details
+  - docs/dev/design/W-085-npx-tools-strategy.md: Updated implementation details
 
 CHANGES COMPLETED:
 - bin/jpulse-update.js: Added `updatePackage()` function, imports `execSync`, parses version argument, runs npm update/install before syncing
@@ -35526,7 +35526,7 @@ CHANGES COMPLETED:
 - docs/getting-started.md: Changed from two-step to single-command workflow
 - docs/deployment.md: Simplified update command in troubleshooting
 - docs/dev/work-items.md: Updated command description
-- docs/dev/working/W-085-npx-tools-strategy.md: Updated implementation section with actual behavior
+- docs/dev/design/W-085-npx-tools-strategy.md: Updated implementation section with actual behavior
 
 STATUS: Implementation complete. Option 2 provides intuitive single-command workflow for common case (update to latest) while supporting edge cases (beta/RC versions) with familiar npm pattern.
 
@@ -36289,7 +36289,7 @@ Implemented comprehensive admin user management system with schema extension arc
 - webapp/view/user/index.shtml - updated to use new endpoints
 - webapp/translations/en.conf, de.conf - added/updated i18n keys
 - webapp/utils/bootstrap.js - added schema initialization
-- docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md - schema extension docs
+- docs/dev/design/W-014-W-045-mvc-site-plugins-architecture.md - schema extension docs
 
 All functionality tested and working. Ready for v1.2.0 release.
 
@@ -36402,7 +36402,7 @@ Files modified:
 - docs/handlebars.md: Added documentation for new helpers
 - docs/template-reference.md: Added usage examples
 - webapp/tests/unit/controller/file-list-extract.test.js: Created unit tests
-- docs/dev/working/W-094-handlebars-file-list-and-extract.md: Updated with final spec
+- docs/dev/design/W-094-handlebars-file-list-and-extract.md: Updated with final spec
 
 The changes were implemented and are ready for testing.
 
@@ -36465,7 +36465,7 @@ Changes:
   - Removed fast-glob mock
   - Updated tests to use fs.readdirSync and fs.statSync mocks
 - docs/handlebars.md: Updated to note recursive patterns (**) not supported
-- docs/dev/working/W-094-handlebars-file-list-and-extract.md: Updated dependencies section
+- docs/dev/design/W-094-handlebars-file-list-and-extract.md: Updated dependencies section
 
 Functionality reduced: Only single-level wildcards (*) supported, not recursive (**) patterns.
 This is acceptable for the use case (admin/*.shtml works fine).
@@ -36491,7 +36491,7 @@ Changes:
 - docs/handlebars.md:
   - Documented multi-level patterns (foo/*/*.shtml) support
   - Updated feature list to mention PathResolver.listFiles()
-- docs/dev/working/W-094-handlebars-file-list-and-extract.md:
+- docs/dev/design/W-094-handlebars-file-list-and-extract.md:
   - Documented PathResolver enhancement
   - Noted other controllers with manual site override logic:
     * markdown.js: _getNamespaceDirectory() - checks directories
@@ -36536,10 +36536,10 @@ User prompt: Release prep for W-094, v1.2.1
 AI action: Completed release preparation for W-094 v1.2.1
 
 AI summary:
-- Added technical debt section to docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md
+- Added technical debt section to docs/dev/design/W-014-W-045-mvc-site-plugins-architecture.md
   - Documented ViewController._buildViewRegistry() hand-crafted site override logic
   - Recommended creating PathResolver.listDirectories() method for future refactoring
-- Updated deliverables section in docs/dev/working/W-094-handlebars-file-list-and-extract.md
+- Updated deliverables section in docs/dev/design/W-094-handlebars-file-list-and-extract.md
   - Documented core implementation, code changes, documentation, testing, and technical debt
 - Updated docs/CHANGELOG.md with v1.2.1 entry
   - Comprehensive feature list and implementation details
@@ -37110,7 +37110,7 @@ Benefits:
 - Clear intent and ownership
 
 Documentation Created:
-- docs/dev/working/W-098-override-site-navigation.md (comprehensive design doc)
+- docs/dev/design/W-098-override-site-navigation.md (comprehensive design doc)
 
 Ready for implementation in v1.2.5.
 
@@ -37165,7 +37165,7 @@ Files Created:
 
 Documentation Updated:
 - docs/template-reference.md (new navigation pattern documented)
-- docs/dev/working/W-098-override-site-navigation.md (design doc)
+- docs/dev/design/W-098-override-site-navigation.md (design doc)
 
 Tests Status:
 - All tests passing: 776 passed, 16 skipped (792 total)
@@ -37257,7 +37257,7 @@ Files Modified:
 - site/webapp/view/jpulse-common.js.tmpl: Updated header with append mode note
 - site/webapp/view/jpulse-common.css.tmpl: Updated header with append mode note
 - docs/site-navigation.md: Complete rewrite for direct mutation pattern
-- docs/dev/working/W-098-site-navigation-override.md: Updated to Option 7
+- docs/dev/design/W-098-site-navigation-override.md: Updated to Option 7
 
 Technical Details:
 - Append mode: Concatenate framework + site + (future) plugin files
@@ -37346,7 +37346,7 @@ Work Completed:
      * site/webapp/view/hello/site-development.shtml
      * bin/configure.js
      * webapp/routes.js (removed redundant route)
-   - Historical docs (dev/working/*.md) intentionally NOT updated
+   - Historical docs (dev/design/*.md) intentionally NOT updated
 
 Test Status:
 - All tests passing
@@ -38268,7 +38268,7 @@ Files Created:
 - plugins/hello-world/webapp/view/plugins/hello-world.shtml (card + detail)
 
 Files Updated:
-- docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md
+- docs/dev/design/W-014-W-045-mvc-site-plugins-architecture.md
 - plugins/hello-world/README.md (already correct)
 
 Pattern Summary:
@@ -39163,7 +39163,7 @@ Added W-045-TD-12 to working document:
 
 Files Modified:
 
-- docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md
+- docs/dev/design/W-014-W-045-mvc-site-plugins-architecture.md
   - Added W-045-TD-12 after W-045-TD-11 (line 1287+)
   - Includes issue description, current behavior, impact, workaround, and proposed solution
   - Tagged as discovered during W-045 plugin configuration implementation
@@ -39287,7 +39287,7 @@ Files Modified:
 4. plugins/hello-world/webapp/view/jpulse-common.css
    - Added .plg-status-badge, .plg-status-active, .plg-status-disabled, .plg-status-error
 
-5. docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md
+5. docs/dev/design/W-014-W-045-mvc-site-plugins-architecture.md
    - Added W-045-TD-12: Form Submission Data Transformation (technical debt)
 
 Status: All testing issues addressed! Ready for restart and re-testing.
@@ -40024,7 +40024,7 @@ Documentation Refactoring: Created Dedicated Tech Debt Document
 
 User Request:
 
-"Create docs/dev/working/W-045-plugins-tech-debt.md and migrate all TD items
+"Create docs/dev/design/W-045-plugins-tech-debt.md and migrate all TD items
 from the main working doc, leaving a pointer."
 
 Rationale:
@@ -40036,7 +40036,7 @@ Rationale:
 
 Actions Taken:
 
-1. Created docs/dev/working/W-045-plugins-tech-debt.md
+1. Created docs/dev/design/W-045-plugins-tech-debt.md
    - Migrated all 13 technical debt items
    - Added W-045-TD-13: Auto-Generate Plugin Documentation Index (NEW)
    - Includes summary section with priority breakdown
@@ -40083,13 +40083,13 @@ Discovered During: W-045 plugin documentation integration
 
 Files Modified:
 
-1. docs/dev/working/W-045-plugins-tech-debt.md
+1. docs/dev/design/W-045-plugins-tech-debt.md
    - NEW FILE
    - 13 technical debt items
    - Summary with priority breakdown
    - Cross-references to main architecture doc
 
-2. docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md
+2. docs/dev/design/W-014-W-045-mvc-site-plugins-architecture.md
    - Replaced lines 1200-1309 (109 lines)
    - With: 13-line pointer to W-045-plugins-tech-debt.md
    - Updated "Deferred to Future Work Items" section
@@ -40317,12 +40317,12 @@ Files Updated:
    - Updated documentation link:
      * /jpulse-docs/plugins/hello-world/README → /jpulse-docs/installed-plugins/hello-world/README
 
-4. docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md
+4. docs/dev/design/W-014-W-045-mvc-site-plugins-architecture.md
    - Added new section for plugin development docs structure
    - Updated documentation paths to reflect new structure
    - Changed all references: docs/plugins/ → docs/installed-plugins/
 
-5. docs/dev/working/W-045-plugins-tech-debt.md
+5. docs/dev/design/W-045-plugins-tech-debt.md
    - Updated W-045-TD-13 title and description
    - Changed: "Plugin Documentation Index" → "Installed Plugins Index"
    - Updated all path references
@@ -43593,10 +43593,10 @@ Key syntax decision: {{use this}} is the right choice (not {{use.component this}
 - Short and clear with no ambiguity
 - Natural Handlebars pattern
 
-Created comprehensive work document at docs/dev/working/W-100-replace-extract-with-component-handlebar.md documenting the proposal, implementation details, migration path, and open questions.
+Created comprehensive work document at docs/dev/design/W-100-replace-extract-with-component-handlebar.md documenting the proposal, implementation details, migration path, and open questions.
 
 Files Modified:
-1. docs/dev/working/W-100-replace-extract-with-component-handlebar.md - Created comprehensive work document
+1. docs/dev/design/W-100-replace-extract-with-component-handlebar.md - Created comprehensive work document
 
 Status: Changes accepted - work document created successfully.
 
@@ -43975,7 +43975,7 @@ static async upsert(name, configData, modifiedBy = '') {
 - **Total: ~10-13 hours**
 
 ## Files Modified
-1. docs/dev/working/W-045-plugins-tech-debt.md - Added TD-15 and TD-16
+1. docs/dev/design/W-045-plugins-tech-debt.md - Added TD-15 and TD-16
 2. cursor_log.txt - Added comprehensive assessment and review
 
 Status: Assessment and review complete. Ready for implementation phase.
@@ -44737,7 +44737,7 @@ User Request: Add two technical debt items to W-045
 
 ### Files Modified
 
-1. `docs/dev/working/W-045-plugins-tech-debt.md` - Added TD-18 and TD-19, updated summary
+1. `docs/dev/design/W-045-plugins-tech-debt.md` - Added TD-18 and TD-19, updated summary
 
 ### Rationale
 
@@ -45511,7 +45511,7 @@ Added comprehensive section to W-100 working document summarizing all post-1.3.0
 
 ### Section Added
 
-**Location**: `docs/dev/working/W-100-replace-extract-with-component-handlebar.md`
+**Location**: `docs/dev/design/W-100-replace-extract-with-component-handlebar.md`
 **Section**: "Post-1.3.0 Critical Fixes (Included in W-100)"
 
 ### Content Summarized:
@@ -45586,7 +45586,7 @@ This section provides:
 ### Files Updated for Release Prep
 
 **1. Removed Post-1.3.0 Fixes Section**
-- `docs/dev/working/W-101-replace-extract-with-component-handlebar.md`
+- `docs/dev/design/W-101-replace-extract-with-component-handlebar.md`
 - Cleaned up temporary documentation (W-101 renamed from W-100)
 
 **2. Updated Work Items Documentation**
@@ -46057,7 +46057,7 @@ Benefits:
 ✅ Supports multiple components per file naturally
 
 Files Modified:
-1. docs/dev/working/W-102-replace-extract-with-component-handlebar.md - Complete rewrite with final design
+1. docs/dev/design/W-102-replace-extract-with-component-handlebar.md - Complete rewrite with final design
 2. docs/dev/work-items.md - Updated W-102 entry with new syntax
 
 Status: Spec finalized, ready for implementation (waiting for user go-ahead).
@@ -46184,7 +46184,7 @@ Total Occurrences Updated: ~60+ references
 
 Historical References Preserved:
 - docs/CHANGELOG.md - kept all {{use.*}} references as historical documentation
-- docs/dev/working/W-097-handlebars-use-components.md - work item about original implementation
+- docs/dev/design/W-097-handlebars-use-components.md - work item about original implementation
 
 Status: All {{use.*}} syntax replaced with {{components.*}} throughout codebase
 No linter errors. Ready for testing.
@@ -46704,8 +46704,8 @@ and add comprehensive file.includeComponents documentation:
 
 Historical References (Preserved):
 - docs/CHANGELOG.md - Historical record of W-094 feature
-- docs/dev/working/W-094-handlebars-file-list-and-extract.md - W-094 work doc
-- docs/dev/working/W-102-replace-extract-with-component-handlebar.md - W-102 work doc
+- docs/dev/design/W-094-handlebars-file-list-and-extract.md - W-094 work doc
+- docs/dev/design/W-102-replace-extract-with-component-handlebar.md - W-102 work doc
 
 New Documentation Highlights:
 - file.includeComponents syntax and parameters

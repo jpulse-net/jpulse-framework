@@ -543,7 +543,7 @@ None
 3. ✅ `docs/style-reference.md` - CSS documentation
 4. ✅ `docs/front-end-development.md` - Brief mention and link
 5. ✅ `docs/markdown-docs.md` - Feature mention
-6. ✅ `docs/dev/working/W-118-view-anchor-link-headings.md` - This working document
+6. ✅ `docs/dev/design/W-118-view-anchor-link-headings.md` - This working document
 
 **Key Implementation Details:**
 - i18n location: `view.ui.headingAnchor` (not `view.headingAnchor`)

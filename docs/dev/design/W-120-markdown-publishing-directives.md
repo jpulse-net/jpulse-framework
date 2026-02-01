@@ -50,7 +50,7 @@ plugins/managing-plugins.md
 # Use "*" for whitelist mode (only [publish-list] files published)
 
 dev/tmp.md
-dev/working/
+dev/design/
 *.backup.md
 
 [title-case-fix]

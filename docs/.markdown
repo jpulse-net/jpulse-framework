@@ -120,7 +120,7 @@ dev/work-items.md
 #   draft-feature.md     - exclude draft file
 #   *.backup.md          - exclude all backup files
 #   internal/            - exclude internal directory
-#   dev/working/         - exclude working directory
+#   dev/design/          - exclude working directory
 #
 # Common use cases:
 #   - Hide draft or work-in-progress documents
@@ -130,7 +130,7 @@ dev/work-items.md
 # Ignore roadmap and working directory
 # NOTE: keep this in sync with .npmignore
 dev/roadmap.md
-dev/working/
+dev/design/
 
 #____________________________________________________________________________
 [title-case-fix]

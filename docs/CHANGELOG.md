@@ -193,8 +193,8 @@ ________________________________________________
 - **Global Variable Naming Consistency** (15 fixes):
   - Changed `global.redisManager` → `global.RedisManager` throughout codebase
   - webapp/controller/appCluster.js: 3 instances (cacheSetObject, cacheGetObject, cacheDel)
-  - docs/dev/working/W-137-license-compliance-report.md: 2 instances
-  - docs/dev/working/W-143-redis-based-cache-infrastructure.md: 12 instances in code examples
+  - docs/dev/design/W-137-license-compliance-report.md: 2 instances
+  - docs/dev/design/W-143-redis-based-cache-infrastructure.md: 12 instances in code examples
 - **Controller i18n Migration** (health.js - 5 messages):
   - Migrated hard-coded English error messages to i18n system
   - Added controller.health.complianceReportSent, complianceReportFailed, healthCheckFailed, metricsCollectionFailed, adminAccessRequired
@@ -262,11 +262,11 @@ webapp/view/admin/system-status.shtml:
 - Lines 489-494: Updated compliance report failure with extended duration (10 seconds)
 - Lines 496-500: Updated exception handling with extended error display
 
-docs/dev/working/W-137-license-compliance-report.md:
+docs/dev/design/W-137-license-compliance-report.md:
 - Line 97: Changed global.redisManager → global.RedisManager
 - Line 105: Changed global.redisManager → global.RedisManager
 
-docs/dev/working/W-143-redis-based-cache-infrastructure.md:
+docs/dev/design/W-143-redis-based-cache-infrastructure.md:
 - 12 instances: Changed global.redisManager → global.RedisManager in all code examples
 
 **Breaking Changes**: None
@@ -614,7 +614,7 @@ ________________________________________________
 - Moved W-141 to IN_PROGRESS section
 - Updated release prep template for v1.5.0
 
-**docs/dev/working/W-141-search-with-boolean-operators.md** (NEW):
+**docs/dev/design/W-141-search-with-boolean-operators.md** (NEW):
 - Complete technical specification (~1080 lines)
 - Architecture, implementation details, testing strategy
 - Tech debt section for future enhancements
@@ -2291,7 +2291,7 @@ ________________________________________________
 **Issue**:
 - Files and directories specified in `[ignore]` section of `docs/.markdown` were not excluded:
   - `docs/dev/roadmap.md`
-  - `docs/dev/working/`
+  - `docs/dev/design/`
 - These files were appearing in `webapp/static/assets/jpulse-docs/dev/` after fresh installs and upgrades
 
 **Root Cause**:
@@ -2334,7 +2334,7 @@ ________________________________________________
 - Tested fresh install path: `npx jpulse configure` properly excludes ignored files
 - Tested safeguard: Both scripts detect framework repo and exit with helpful error messages
 - Verified symlink handling works in test environment (repo has symlinks, npm packages don't)
-- Verified excluded files (`dev/roadmap.md`, `dev/working/`) are not present in site deployments
+- Verified excluded files (`dev/roadmap.md`, `dev/design/`) are not present in site deployments
 - Verified allowed files are still copied correctly
 
 **Features Delivered**:
@@ -2586,7 +2586,7 @@ ________________________________________________
 **Issue**:
 - Bug: Files and directories specified in the `[ignore]` section of `docs/.markdown` were not excluded from npm package:
   - `docs/dev/roadmap.md`
-  - `docs/dev/working/`
+  - `docs/dev/design/`
 - These files were accessible in the published package even though they should have been excluded
 
 **Solution**:
@@ -2596,7 +2596,7 @@ ________________________________________________
 **Code Changes**:
 
 **.npmignore**:
-- Added `docs/dev/roadmap.md` and `docs/dev/working/` to exclude from npm package
+- Added `docs/dev/roadmap.md` and `docs/dev/design/` to exclude from npm package
 - Added comment noting sync requirement with `docs/.markdown` `[ignore]` section
 - Files specified in `[ignore]` section are now excluded at build time
 
@@ -3327,7 +3327,7 @@ ________________________________________________
 - Updated `docs/handlebars.md` with comprehensive custom helpers section
 - Updated `docs/plugins/creating-plugins.md` with Step 3.5: Add Handlebars Helpers
 - Updated `docs/dev/work-items.md` with W-116 features, implementation, and deliverables
-- Updated `docs/dev/working/W-116-handlebars-plugin-interface.md` with implementation details and JSDoc extraction
+- Updated `docs/dev/design/W-116-handlebars-plugin-interface.md` with implementation details and JSDoc extraction
 - Updated `README.md` and `docs/README.md` latest release highlights
 
 ________________________________________________
@@ -3497,7 +3497,7 @@ ________________________________________________
 - Updated `docs/dev/work-items.md` with W-114 deliverables
 - Updated `docs/handlebars.md` with comprehensive "Logical and Comparison Helpers" section
 - Updated `webapp/view/jpulse-examples/handlebars.shtml` with interactive examples
-- Updated `docs/dev/working/W-114-handlebars-logical-subexpressions.md` with complete design decisions
+- Updated `docs/dev/design/W-114-handlebars-logical-subexpressions.md` with complete design decisions
 
 ________________________________________________
 ## v1.3.14, W-113, 2025-12-13
@@ -3671,7 +3671,7 @@ ________________________________________________
 - Tests: New unit and integration tests for metrics system
 
 **Documentation**:
-- `docs/dev/working/W-112-metrics-get-stats-strategy.md` - Complete strategy document
+- `docs/dev/design/W-112-metrics-get-stats-strategy.md` - Complete strategy document
 - API reference updates for metrics endpoint
 - Plugin development guide with metrics registration examples
 
@@ -3980,7 +3980,7 @@ ________________________________________________
 **Documentation**:
 - `docs/plugins/managing-plugins.md`: Complete CLI command reference with examples
 - `docs/plugins/publishing-plugins.md`: npm publish workflow and configuration
-- `docs/dev/working/W-106-plugin-cli-management.md`: Working document with full specification
+- `docs/dev/design/W-106-plugin-cli-management.md`: Working document with full specification
 
 **Files Modified**: 4
 - 2 bin files: jpulse-framework.js, plugin-manager-cli.js (new)
@@ -4825,7 +4825,7 @@ ________________________________________________
   * `docs/plugins/managing-plugins.md` (new)
   * `docs/plugins/publishing-plugins.md` (new)
   * `docs/plugins/plugin-api-reference.md` (new)
-  * `docs/dev/working/W-045-plugins-tech-debt.md` (new)
+  * `docs/dev/design/W-045-plugins-tech-debt.md` (new)
 - **Routes & Config** (4 files):
   * `webapp/routes.js` (added 12 plugin API routes)
   * `webapp/app.conf` (added utils.common.sanitizeHtml config)
@@ -5352,7 +5352,7 @@ ________________________________________________
 **Documentation**:
 - `docs/handlebars.md`: Comprehensive helper documentation
 - `docs/template-reference.md`: Updated file operations section
-- `docs/dev/working/W-094-handlebars-file-list-and-extract.md`: Complete implementation details
+- `docs/dev/design/W-094-handlebars-file-list-and-extract.md`: Complete implementation details
 
 **Files Modified**:
 - `webapp/controller/handlebar.js`: Added file listing and extraction helpers
@@ -5362,7 +5362,7 @@ ________________________________________________
 - `webapp/tests/unit/controller/file-list-extract.test.js`: Security tests
 - `docs/handlebars.md`: Helper documentation
 - `docs/template-reference.md`: Usage examples
-- `docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md`: Technical debt notes
+- `docs/dev/design/W-014-W-045-mvc-site-plugins-architecture.md`: Technical debt notes
 
 **Release Date**: 2025-11-21
 
@@ -5460,7 +5460,7 @@ ________________________________________________
 - webapp/controller/websocket.js (appConfig.user.adminRoles)
 - webapp/app.conf (user.adminRoles, fixed typo)
 - webapp/tests/unit/user/user-controller.test.js (new tests for getEnums, get, update validation)
-- docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md (schema extension architecture)
+- docs/dev/design/W-014-W-045-mvc-site-plugins-architecture.md (schema extension architecture)
 - docs/api-reference.md (updated endpoints)
 - docs/dev/work-items.md (completed W-093)
 
@@ -6088,7 +6088,7 @@ ________________________________________________
 - **docs/installation.md**: Updated with single-command update workflow
 - **docs/getting-started.md**: Updated framework updates section with new command syntax
 - **docs/deployment.md**: Simplified troubleshooting with new update command
-- **docs/dev/working/W-085-npx-tools-strategy.md**: Complete strategy documentation (621 lines)
+- **docs/dev/design/W-085-npx-tools-strategy.md**: Complete strategy documentation (621 lines)
   - Design decisions, command structure, configuration file strategy
   - Implementation details, usage examples, migration guide
 - **README.md**: Updated all command references to unified `npx jpulse` format
@@ -6111,7 +6111,7 @@ ________________________________________________
 - docs/getting-started.md (updated command syntax)
 - docs/deployment.md (simplified troubleshooting)
 - docs/dev/work-items.md (W-085 deliverables)
-- docs/dev/working/W-085-npx-tools-strategy.md (complete strategy doc)
+- docs/dev/design/W-085-npx-tools-strategy.md (complete strategy doc)
 - README.md (unified command references)
 - docs/README.md (updated command references)
 - templates/README.md (updated command references)
@@ -6666,7 +6666,7 @@ ________________________________________________
 - Old repository archived
 - Updated all repository references in codebase (bin scripts, templates, tests)
 - **Documentation**:
-  - **docs/dev/working/W-052-business-dual-licensing-agpl-and-commercial.md**: Added BSL 1.1 strategy section with rationale
+  - **docs/dev/design/W-052-business-dual-licensing-agpl-and-commercial.md**: Added BSL 1.1 strategy section with rationale
   - Updated all documentation with new repository URLs
 
 **Files Modified**: Extensive changes across 100+ files including controllers, utilities, views, documentation, configuration templates, and package metadata.
@@ -7144,7 +7144,7 @@ ________________________________________________
 
 **Files Created**:
 - `webapp/view/admin/logs.shtml` (970 lines) - Complete admin logs search interface
-- `docs/dev/working/W-040-admin-logs-view.md` - Comprehensive implementation documentation
+- `docs/dev/design/W-040-admin-logs-view.md` - Comprehensive implementation documentation
 
 **Files Enhanced**:
 - `webapp/model/log.js` - Enhanced logging format and consistency
@@ -7437,7 +7437,7 @@ ________________________________________________
 - webapp/tests/unit/utils/jpulse-ui-widgets.test.js: Added 6 tab parameter tests, removed 6 JSDOM-limited tests
 - docs/handlebars.md: Updated template include examples
 - docs/style-reference.md: Added `.jp-btn-nav-group` documentation
-- docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav: Updated spec
+- docs/dev/design/W-068-W-069-W-070-view-create-responsive-nav: Updated spec
 
 **Quality Assurance**:
 - ✅ All 716 tests passing
@@ -8458,7 +8458,7 @@ Major Features:
 - **Markdown Documentation Filtering (W-059)**: Complete .jpulse-ignore implementation for content control
   - Added .jpulse-ignore file support in namespace roots (e.g., docs/.jpulse-ignore)
   - Implemented gitignore-like pattern matching with wildcard support (*, ?) and exact matches
-  - Directory pattern support with trailing slash syntax (dev/working/) for excluding entire directories
+  - Directory pattern support with trailing slash syntax (dev/design/) for excluding entire directories
   - File pattern support for excluding specific markdown files (*.backup.md, draft-*.md)
   - Comment support with # prefix and empty line handling for maintainable ignore files
 
@@ -8473,7 +8473,7 @@ Major Features:
   - Pattern parsing tests (4 tests): ignore file loading, comment handling, pattern compilation
   - Ignore logic tests (5 tests): exact matches, wildcards, directory patterns, nested paths
   - Integration tests (2 tests): full directory scanning with filtering, ignore file absence handling
-  - Manual API testing confirmed dev/working/ directory exclusion and *.save* file filtering
+  - Manual API testing confirmed dev/design/ directory exclusion and *.save* file filtering
 
 - **Complete API Documentation**: Enhanced markdown API reference with ignore functionality
   - Added comprehensive Markdown Documentation API section to api-reference.md

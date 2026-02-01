@@ -65,7 +65,7 @@ describe('MarkdownController Ignore Functionality', () => {
         it('should parse [ignore] section correctly', async () => {
             const markdownContent = `[ignore]
 # Comment line
-dev/working/
+dev/design/
 *.save*
 temp.md
 
@@ -76,7 +76,7 @@ api-reference.md.save1`;
             const config = await MarkdownController._initializeDocsConfig(testDir);
 
             expect(config.ignore).toHaveLength(4);
-            expect(config.ignore[0].pattern).toBe('dev/working/');
+            expect(config.ignore[0].pattern).toBe('dev/design/');
             expect(config.ignore[0].isDirectory).toBe(true);
             expect(config.ignore[1].pattern).toBe('*.save*');
             expect(config.ignore[1].isDirectory).toBe(false);
@@ -88,7 +88,7 @@ api-reference.md.save1`;
             const markdownContent = `[ignore]
 # This is a comment
 
-dev/working/
+dev/design/
 # Another comment
 
 *.save*
@@ -98,7 +98,7 @@ dev/working/
             const config = await MarkdownController._initializeDocsConfig(testDir);
 
             expect(config.ignore).toHaveLength(2);
-            expect(config.ignore[0].pattern).toBe('dev/working/');
+            expect(config.ignore[0].pattern).toBe('dev/design/');
             expect(config.ignore[1].pattern).toBe('*.save*');
         });
     });
@@ -109,8 +109,8 @@ dev/working/
         beforeEach(() => {
             patterns = [
                 {
-                    pattern: 'dev/working/',
-                    regex: /^dev\/working$/,
+                    pattern: 'dev/design/',
+                    regex: /^dev\/design$/,
                     isDirectory: true
                 },
                 {
@@ -138,19 +138,19 @@ dev/working/
         });
 
         it('should ignore directories matching directory patterns', () => {
-            expect(MarkdownController._shouldIgnore('dev/working', true, patterns)).toBe(true);
+            expect(MarkdownController._shouldIgnore('dev/design', true, patterns)).toBe(true);
             expect(MarkdownController._shouldIgnore('dev/other', true, patterns)).toBe(false);
         });
 
         it('should ignore files inside ignored directories', () => {
-            expect(MarkdownController._shouldIgnore('dev/working/file.md', false, patterns)).toBe(true);
-            expect(MarkdownController._shouldIgnore('dev/working/sub/file.md', false, patterns)).toBe(true);
+            expect(MarkdownController._shouldIgnore('dev/design/file.md', false, patterns)).toBe(true);
+            expect(MarkdownController._shouldIgnore('dev/design/sub/file.md', false, patterns)).toBe(true);
             expect(MarkdownController._shouldIgnore('dev/other/file.md', false, patterns)).toBe(false);
         });
 
         it('should not match directory patterns against files', () => {
             // Directory pattern should not match files with same name
-            expect(MarkdownController._shouldIgnore('dev/working.md', false, patterns)).toBe(false);
+            expect(MarkdownController._shouldIgnore('dev/design.md', false, patterns)).toBe(false);
         });
 
         it('should handle empty patterns array', () => {
@@ -163,7 +163,7 @@ dev/working/
         beforeEach(async () => {
             // Create test directory structure
             await fs.mkdir(path.join(testDir, 'dev'), { recursive: true });
-            await fs.mkdir(path.join(testDir, 'dev', 'working'), { recursive: true });
+            await fs.mkdir(path.join(testDir, 'dev', 'design'), { recursive: true });
             await fs.mkdir(path.join(testDir, 'api'), { recursive: true });
 
             // Create test files
@@ -175,14 +175,14 @@ dev/working/
             await fs.writeFile(path.join(testDir, 'dev', 'README.md'), '# Dev README');
             await fs.writeFile(path.join(testDir, 'dev', 'architecture.md'), '# Architecture');
 
-            await fs.writeFile(path.join(testDir, 'dev', 'working', 'draft.md'), '# Draft');
-            await fs.writeFile(path.join(testDir, 'dev', 'working', 'notes.md'), '# Notes');
+            await fs.writeFile(path.join(testDir, 'dev', 'design', 'draft.md'), '# Draft');
+            await fs.writeFile(path.join(testDir, 'dev', 'design', 'notes.md'), '# Notes');
 
             await fs.writeFile(path.join(testDir, 'api', 'README.md'), '# API README');
 
             // Create .markdown file with [ignore] section
             const markdownContent = `[ignore]
-dev/working/
+dev/design/
 temp.md
 *.save*`;
             await fs.writeFile(path.join(testDir, '.markdown'), markdownContent);
@@ -216,7 +216,7 @@ temp.md
                 expect(['Api', 'API']).toContain(apiFile.title);
             }
 
-            // Dev directory should not contain working subdirectory
+            // Dev directory should not contain design subdirectory
             const devDir = rootFiles.find(f => f.title === 'Dev');
             expect(devDir.files).toHaveLength(1); // Only architecture.md
             expect(devDir.files[0].name).toBe('architecture.md');
@@ -238,7 +238,7 @@ temp.md
             expect(fileNames).toContain('temp.md');
             expect(fileNames).toContain('backup.save1.md');
 
-            // Dev directory should contain working subdirectory
+            // Dev directory should contain design subdirectory
             const devDir = rootFiles.find(f => f.title === 'Dev');
             expect(devDir.files.length).toBeGreaterThan(1);
         });

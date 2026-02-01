@@ -250,6 +250,6 @@ const result = await UserModel.search({
 
 ---
 
-**Documentation:** docs/dev/working/W-141-search-with-boolean-operators.md
+**Documentation:** docs/dev/design/W-141-search-with-boolean-operators.md
 **API Reference:** docs/api-reference.md (to be updated)
 **Implementation:** webapp/utils/common.js (StringQueryParser)

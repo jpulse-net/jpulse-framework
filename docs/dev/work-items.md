@@ -618,11 +618,11 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/dev/requirements.md
   - docs/dev/roadmap.md
   - docs/dev/work-items.md
-  - docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md
-  - docs/dev/working/W-023-view-migrate-views-to-vue.md
-  - docs/dev/working/W-025-view-component-styling.md
-  - docs/dev/working/W-046-dev-doc-structure.md
-  - docs/dev/working/W-049-docs-marktown-strategy.md
+  - docs/dev/design/W-014-W-045-mvc-site-plugins-architecture.md
+  - docs/dev/design/W-023-view-migrate-views-to-vue.md
+  - docs/dev/design/W-025-view-component-styling.md
+  - docs/dev/design/W-046-dev-doc-structure.md
+  - docs/dev/design/W-049-docs-marktown-strategy.md
 
 ### W-049, v0.5.4: docs: views render markdown docs for jPulse docs and site docs
 - status: ✅ DONE
@@ -771,12 +771,12 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - type: Feature
 - objectives: hide markdown docs not relevant to be published
 - depends on: W-049: docs: views render markdown docs for jPulse docs and site docs
-- example: dev/working/ should be excluded from official /jpulse/ docs
+- example: dev/design/ should be excluded from official /jpulse/ docs
 - exclude docs and directories defined in .jpulse-ignore file in docs root
 - deliverables
   - ✅ docs/.jpulse-ignore:
     - syntax like .gitignore with gitignore-like patterns
-    - supports exact files (temp.md), wildcards (*.backup.md), directories (dev/working/)
+    - supports exact files (temp.md), wildcards (*.backup.md), directories (dev/design/)
     - comment support with # prefix and empty line handling
   - ✅ webapp/controller/markdown.js:
     - _loadIgnorePatterns() method for parsing .jpulse-ignore files
@@ -960,7 +960,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - objective: make it easy for site developers to create their own MVC trio with mongodb collection
-- see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
+- see docs/dev/design/W-071-W-072-W-073-site-strategy-hello-and-vue
 - prerequisites:
   - site/webapp/view/hello/index.shtml      # simple hello world for site override
   - site/webapp/view/hello/site-demo.shtml  # more details
@@ -990,7 +990,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - objective: define a way to create SPA (single page application) using vue.js, with example for easy onboarding
-- see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
+- see docs/dev/design/W-071-W-072-W-073-site-strategy-hello-and-vue
 - inspiration:
   - the /jpulse-docs/ is already a SPA with changing URI, not based on vue.js
 - deliverables:
@@ -1037,7 +1037,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - objective: standard way where views can establish a persistent bi-directional communication with a controller, useful for single page apps, or concurrent edit of content
-- see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
+- see docs/dev/design/W-071-W-072-W-073-site-strategy-hello-and-vue
 - deliverables:
   - server:
     - webapp/controller/websocket.js - WebSocket controller with namespace registration
@@ -1081,7 +1081,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - objective: create a websocket client app to teach how to create an app with realtime communication
-- see docs/dev/working/W-071-W-072-W-073-site-strategy-hello-and-vue
+- see docs/dev/design/W-071-W-072-W-073-site-strategy-hello-and-vue
 - prerequistes:
   - W-071: site: example /hello-todo/ MVC app with MongoDB collection - v0.8.4
   - W-072: site: example /hello-vue/ SPA using vue.js - v0.8.5
@@ -1127,7 +1127,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - objective: configurable site navigaton for quick access that works on desktop and mobile, easy to overload by site owners
-- spec discussions: docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
+- spec discussions: docs/dev/design/W-068-W-069-W-070-view-create-responsive-nav
 - define site menu in webapp/view/jpulse-navigation.tmpl
 - on desktop:
   - on hover over site logo and site name,
@@ -1135,7 +1135,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - on mobile:
   - show hamburger menu (where? to the left of app icon?)
 - deliverables:
-  - docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav -- updated spec with template-based navigation architecture
+  - docs/dev/design/W-068-W-069-W-070-view-create-responsive-nav -- updated spec with template-based navigation architecture
   - webapp/view/jpulse-navigation.tmpl -- unified site navigation and tabs definition template, renamed from webapp/view/jpulse-nav-tabs.tmpl
   - webapp/controller/view.js:
     - optimize performance by caching the global config instead of reading the database each time
@@ -1172,7 +1172,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - objective: let users know where they are on a big site
-- spec discussions: docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
+- spec discussions: docs/dev/design/W-068-W-069-W-070-view-create-responsive-nav
 - prerequisites:
   - W-069, v0.9.2: view: create site navigation pulldown and hamburger menu
 - example:
@@ -1353,7 +1353,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - type: Feature
 - objective: support multiple node instances (pm2 cluster) on an app server, support a pool of app servers in a load-balanced configuration
 - architecture & spec discussion:
-  - docs/dev/working/W-076-redis-caching-and-1o-release-prep.md
+  - docs/dev/design/W-076-redis-caching-and-1o-release-prep.md
 - prerequisites:
   - W-073, v0.9.0: site: create client & server websocket infrastructure - DONE
 - requirement:
@@ -1617,7 +1617,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - Old repository archived
     - Updated all repository references in codebase (bin scripts, templates, tests)
     - Documentation:
-      - docs/dev/working/W-052-business-dual-licensing-agpl-and-commercial.md: Added BSL 1.1 strategy section with rationale
+      - docs/dev/design/W-052-business-dual-licensing-agpl-and-commercial.md: Added BSL 1.1 strategy section with rationale
       - Updated all documentation with new repository URLs
 
 ### W-076, v1.0.1, v1.0.2, v1.0.3: framework: comparison document
@@ -1664,7 +1664,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - type: Feature
 - objective: more intuitive tools env for site developers
 - prerequisites:
-  - docs/dev/working/W-085-npx-tools-strategy.md
+  - docs/dev/design/W-085-npx-tools-strategy.md
 - consolidated command for jpulse-framework development:
   - npx jpulse bump-version 1.1.0
 - consolidated commands for site development:
@@ -1686,7 +1686,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/getting-started.md -- updated framework updates section with new command syntax
   - docs/deployment.md -- simplified troubleshooting with new update command
   - docs/dev/work-items.md -- updated command descriptions
-  - docs/dev/working/W-085-npx-tools-strategy.md -- complete strategy documentation with implementation details
+  - docs/dev/design/W-085-npx-tools-strategy.md -- complete strategy documentation with implementation details
   - README.md -- updated all command references to `npx jpulse <command>`
   - docs/README.md -- updated Quick Start and command references
   - templates/README.md -- updated command references
@@ -1702,7 +1702,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - prerequisites:
   - docs/genai-development.md
   - docs/genai-instructions.md
-  - docs/dev/working/W-086-genai-docs-review.md
+  - docs/dev/design/W-086-genai-docs-review.md
 - to-do:
   - review and enhance both docs
 - deliverables:
@@ -1755,7 +1755,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - type: Feature
 - objective: provide standardized email sending capability for jPulse Framework and site applications
 - prerequisites:
-  - docs/dev/working/W-087-send-email-strategy.md
+  - docs/dev/design/W-087-send-email-strategy.md
   - W-088, v1.1.2: controller: extract Handlebars processing to dedicated controller
 - deliverables:
   - webapp/controller/email.js -- EmailController with utility methods (sendEmail, sendEmailFromTemplate, sendAdminNotification) and API endpoint (apiSend)
@@ -1888,13 +1888,13 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/controller/health.js -- already using config with fallback
   - webapp/app.conf -- added user.adminRoles configuration, fixed typo in controller.health.requiredRoles.metrics
   - webapp/tests/unit/user/user-controller.test.js -- added minimal tests for getEnums(), get() with ObjectId/username/session fallback, update() validation (last admin, self-removal, suspend last admin)
-  - docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md -- added schema extension architecture section
+  - docs/dev/design/W-014-W-045-mvc-site-plugins-architecture.md -- added schema extension architecture section
 
 ### W-094, v1.2.1: handlebars: list files, extract from files
 - status: ✅ DONE
 - type: Feature
 - objective: generalize file operations in Handlebars to enable automated content generation (e.g., auto-populate card lists in index pages)
-- working doc: docs/dev/working/W-094-handlebars-file-list-and-extract
+- working doc: docs/dev/design/W-094-handlebars-file-list-and-extract
 - features:
   - `file.list` helper:
     - glob pattern matching (admin/*.shtml, multi-level patterns)
@@ -1920,8 +1920,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - webapp/tests/unit/controller/file-list-extract.test.js -- security tests
   - docs/handlebars.md -- helper documentation
   - docs/template-reference.md -- usage examples
-  - docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md -- technical debt notes
-  - docs/dev/working/W-094-handlebars-file-list-and-extract.md -- deliverables section
+  - docs/dev/design/W-014-W-045-mvc-site-plugins-architecture.md -- technical debt notes
+  - docs/dev/design/W-094-handlebars-file-list-and-extract.md -- deliverables section
   - docs/CHANGELOG.md -- v1.2.1 entry
 
 ### W-095, v1.2.2: handlebars: remove jsdom dependency
@@ -1968,7 +1968,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - type: Feature
 - objective: reusable components to reduce code duplication, such as with multiple inline SVG images
 - working document:
-  - docs/dev/working/W-097-handlebars-use-components.md
+  - docs/dev/design/W-097-handlebars-use-components.md
 - deliverables:
   - webapp/controller/handlebar.js - Enhanced to support component definition and usage
     - Added `{{#component "name" param="default"}}...{{/component}}` syntax for definition
@@ -2014,7 +2014,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - type: Feature
 - objective: ability to override and use the jPulse Framework site navigation using append mode and direct mutation
 - working document:
-  - docs/dev/working/W-098-override-site-navigation.md
+  - docs/dev/design/W-098-override-site-navigation.md
 - deliverables:
   - webapp/controller/view.js -- implemented append mode for .js and .css files
     - collectAllFiles() to gather framework + site + (future) plugin files
@@ -2114,7 +2114,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - objective: extensible framework that is easy to understand & easy to maintain
 - author: 3rd party developers & jPulse team
 - audience: site administrator
-- working doc: docs/dev/working/W-014-W-045-mvc-site-plugins-architecture.md
+- working doc: docs/dev/design/W-014-W-045-mvc-site-plugins-architecture.md
 - strategy: drop a plugin in specific directory, with auto discovery
 - provide infrastructure for plugins to:
   - add models, controllers, views
@@ -2300,7 +2300,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - objective: enable template authors to define custom variables safely without polluting the main context
-- working document: docs/dev/working/W-103-handlebars-let-with-variables.md
+- working document: docs/dev/design/W-103-handlebars-let-with-variables.md
 - features:
   - define custom variables in `vars` namespace
   - inline: `{{let key="value"}}` persists in template scope
@@ -2346,7 +2346,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - type: Feature
 - objective: ability to add dynamic content into markdown, such as a table of the installed plugins
 - prerequisites:
-  - docs/dev/working/W-045-plugins-tech-debt.md:
+  - docs/dev/design/W-045-plugins-tech-debt.md:
     - W-045-TD-13: Auto-Generate Installed Plugins Index
 - statement of work:
   - the initial idea to recreate the docs/installed-plugins/README.md markdown document when a plugin is installed/removed is too complex
@@ -2475,7 +2475,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - Common use cases: OAuth2, MFA, email confirmation, audit logging
   - docs/plugins/README.md, creating-plugins.md, plugin-api-reference.md, plugin-architecture.md:
     - Added links to plugin-hooks.md
-  - docs/dev/working/W-105-plugins-add-hooks.md:
+  - docs/dev/design/W-105-plugins-add-hooks.md:
     - Working document with full implementation plan and analysis
 
 ### W-080, v1.3.7, 2025-12-04: controller: search API with cursor-based pagination
@@ -2483,7 +2483,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - type: Feature
 - objective: paged queries that do not miss or duplicate docs between calls
 - reference: https://medium.com/swlh/mongodb-pagination-fast-consistent-ece2a97070f3
-- working document: docs/dev/working/W-080-search-with-pagination-cursor.md
+- working document: docs/dev/design/W-080-search-with-pagination-cursor.md
 - enhancements:
   - cursor-based pagination as default (better performance, consistent results)
   - offset-based pagination as opt-in (when `offset` param present)
@@ -2538,7 +2538,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - objective: Simple way to manage plugins via CLI
-- working doc: docs/dev/working/W-106-plugin-cli-management.md
+- working doc: docs/dev/design/W-106-plugin-cli-management.md
 - features:
   - `npx jpulse plugin list/info` - List and inspect plugins
   - `npx jpulse plugin install <name>` - Install from npm (shorthand: auth-mfa → @jpulse-net/plugin-auth-mfa)
@@ -2570,7 +2570,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - objective: enable plugins to extend user profile pages with data-driven cards
-- working doc: docs/dev/working/W-107-user-profiles-data-driven.md
+- working doc: docs/dev/design/W-107-user-profiles-data-driven.md
 - features:
   - `UserModel.extendSchema()` accepts `_meta` with `adminCard`/`userCard` configuration
   - field-level display attributes: `visible`, `readOnly`, `displayAs`, `showIf`
@@ -2602,7 +2602,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - objective: Flexible, hook-based, multi-step authentication supporting MFA, email verification, OAuth2, LDAP, terms acceptance, and more
-- working doc: docs/dev/working/W-109-auth-multi-step-login.md
+- working doc: docs/dev/design/W-109-auth-multi-step-login.md
 - depends on: W-105 (plugin hooks), W-108 (auth-mfa)
 - scenarios supported:
   - Simple login (no extra steps)
@@ -2675,7 +2675,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - repository: github.com/jpulse-net/plugin-auth-mfa (separate repo)
 - npm package: @jpulse-net/plugin-auth-mfa@1.0.0 (GitHub Package Registry)
 - depends on: W-109 (multi-step login), W-106 (plugin CLI)
-- working doc: docs/dev/working/W-108-auth-mfa-plugin.md
+- working doc: docs/dev/design/W-108-auth-mfa-plugin.md
 - features:
   - TOTP-based MFA using authenticator apps (Google Authenticator, Authy, etc.)
   - backup codes for account recovery (10 codes, one-time use)
@@ -2725,7 +2725,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - status: ✅ DONE
 - type: Feature
 - objective: standard way for components to report vital statistics used by metrics
-- working document: docs/dev/working/W-112-metrics-get-stats-strategy.md
+- working document: docs/dev/design/W-112-metrics-get-stats-strategy.md
 - features:
   - standardized `getMetrics()` method with consistent return structure (component, status, initialized, stats, meta, timestamp)
   - field-level metadata system (visualize, global, sanitize, aggregate) with system defaults and opt-out model
@@ -2940,7 +2940,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
       - Complete source code examples
     - Added helper reference table to "Available Context Variables" section
     - Enhanced "Conditional Rendering" section with subexpression examples
-  - docs/dev/working/W-114-handlebars-logical-subexpressions.md -- working document
+  - docs/dev/design/W-114-handlebars-logical-subexpressions.md -- working document
     - Complete brainstorming, requirements, design decisions, and implementation plan
 
 ### W-115, v1.3.16, 2025-12-16: handlebars: config context enhancements & security, fixes for let and subexpressions
@@ -3046,7 +3046,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/utils/bootstrap.js`:
     - Add helper auto-discovery after `SiteControllerRegistry.initialize()` and before `HandlebarController.initialize()`
     - Discover `handlebar*` methods from all registered controllers (framework, site, plugins)
-  - `docs/dev/working/W-116-handlebars-plugin-interface.md`:
+  - `docs/dev/design/W-116-handlebars-plugin-interface.md`:
     - Complete implementation plan with all phases
     - API reference with helper signatures and args structure
     - Examples for plugin and site helpers
@@ -3341,10 +3341,10 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - issue:
   - bug: files and directories specified in the `[ignore]` section of `docs/.markdown` are not excluded, and accessible:
     - docs/dev/roadmap.md
-    - docs/dev/working
+    - docs/dev/design
 - deliverables:
   - .npmignore:
-    - added `docs/dev/roadmap.md` and `docs/dev/working/` to exclude from npm package
+    - added `docs/dev/roadmap.md` and `docs/dev/design/` to exclude from npm package
     - files specified in `[ignore]` section of `docs/.markdown` are now excluded at build time
     - added comment noting sync requirement with `docs/.markdown` `[ignore]` section
   - bin/jpulse-update.js:
@@ -3358,8 +3358,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - type: Feature
 - objective: define a flexible and extensible sidebar infrastructure
 - brainstorming and design:
-  - docs/dev/working/W-068-W-069-W-070-view-create-responsive-nav
-  - docs/dev/working/W-068-sidebar-generalization.md
+  - docs/dev/design/W-068-W-069-W-070-view-create-responsive-nav
+  - docs/dev/design/W-068-sidebar-generalization.md
 - design decisions:
   - sidebar components defined as components, not specific to left/right side
   - sidebar usage (which components, order) defined in `app.conf`
@@ -3441,14 +3441,14 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - issue:
   - bug: files and directories specified in the `[ignore]` section of `docs/.markdown` are not excluded, and accessible:
     - docs/dev/roadmap.md
-    - docs/dev/working
+    - docs/dev/design
 - deliverables:
   - bin/configure.js:
     - Added `loadMarkdownIgnorePatterns()` function to read and parse `.markdown` `[ignore]` section
     - Added `shouldIgnore()` function to check if files/directories should be excluded
     - Modified `copyDirectory()` to accept optional `shouldSkip` filter function
     - Added explicit docs copy section with filtering after webapp copy during fresh installs
-    - Filters files based on `.markdown` `[ignore]` patterns to exclude `docs/dev/roadmap.md` and `docs/dev/working/` from site deployments
+    - Filters files based on `.markdown` `[ignore]` patterns to exclude `docs/dev/roadmap.md` and `docs/dev/design/` from site deployments
     - Fixed symlink handling: use `lstatSync()` instead of `existsSync()` to properly detect and remove symlinks before copying
     - Added `isFrameworkDevRepo()` safeguard to prevent accidental execution in framework development repository
   - bin/jpulse-update.js:
@@ -3456,7 +3456,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - Added `shouldIgnore()` function to check if files/directories should be excluded
     - Modified `syncDirectory()` to accept optional `shouldSkip` filter function
     - Updated docs copy section to use filtering based on `.markdown` `[ignore]` patterns
-    - Filters files during upgrade to exclude `docs/dev/roadmap.md` and `docs/dev/working/` from site deployments
+    - Filters files during upgrade to exclude `docs/dev/roadmap.md` and `docs/dev/design/` from site deployments
     - Fixed symlink handling: use `lstatSync()` instead of `existsSync()` to properly detect and remove symlinks before copying
     - Added `isFrameworkDevRepo()` safeguard to prevent accidental execution in framework development repository
 
@@ -3465,7 +3465,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - type: Feature
 - objective: qick way to access and use the Table of Contents in the right sidebar
 - prerequisites:
-  - docs/dev/working/W-068-sidebar-generalization.md
+  - docs/dev/design/W-068-sidebar-generalization.md
 - spec:
   - add desktop hover mode to sidebars, to allow instant access without toggle clicks
   - in hover / overlay behavior: use sticky viewport positioning so a long page can be read while TOC stays quickly accessible
@@ -4332,7 +4332,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - multi-field AND (no change): `role=admin&status=active`
     - meaning: role is admin AND status is active (standard query string)
 - deliverables:
-  - docs/dev/working/W-141-search-with-boolean-operators.md:
+  - docs/dev/design/W-141-search-with-boolean-operators.md:
     - complete specification and implementation plan (991 lines)
   - webapp/utils/common.js:
     - StringQueryParser class (~250 lines)
@@ -4528,17 +4528,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - `docs/deployment.md`: add migration notes (Redis keys invalidated on upgrade)
     - `docs/api-reference.md`: update RedisManager.getKey() documentation with namespace examples
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-145, v1.6.3, 2026-01-31: handlebars: load components from templates
 - status: ✅ DONE
 - type: Feature
@@ -4569,6 +4558,28 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - add pattern for email templates (blurb + link)
   - `webapp/view/jpulse-examples/handlebars.shtml`:
     - skipped (page is view-side; loadComponents is controller-side)
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-147, v1.6.4, 2026-02-01: config model: make config schema extensible for site and plugin developers
+- status: 🕑 PENDING
+- type: Feature
+- objective: offer a way to extend the schema for the site configuration in a data-driven way
+- features:
+  - the config can be extended in a similar way like the existing user schema extension feature
+  - make it data driven, e.g. no need to modify webapp/view/admin/config.shtml when the schema is extended
+- deliverables:
+  - FIXME file:
+    - FIXME summary
 
 
 
@@ -4678,6 +4689,16 @@ npx jest webapp/tests/unit/controller/handlebar-logical-helpers.test.js
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items
 
+template:
+### W-1, v1.6., 2026-02-:
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+- features:
+- deliverables:
+  - FIXME `path/file`:
+    - FIXME summary
+
 ### W-055: deployment: load balancer and multi-server setup
 - status: 🕑 PENDING
 - type: Feature
@@ -4770,24 +4791,13 @@ npx jest webapp/tests/unit/controller/handlebar-logical-helpers.test.js
   - W-076, v1.0.0: framework: redis infrastrucure for a scaleable jPulse Framework
 - /hello-websocket/, /hello-app-cluster/ should work properly on its own page, that is no messaging to other tabs with same page open
 
-### W-0: config model: make config schema extendable for site and plugin developers
-- status: 🕑 PENDING
-- type: Feature
-- objective: offer a way to extend the schema for the site configuration in a data-driven way
-- features:
-  - the config can be extended in a similar way like the existing user schema extension feature
-  - make it data driven, e.g. no need to modify webapp/view/admin/config.shtml when the schema is extended
-- deliverables:
-  - FIXME file:
-    - FIXME summary
-
 ### W-0: handlebars: block components with content slots
 - status: 🕑 PENDING
 - type: Feature
 - objective: block-level components with inner content (Phase 2 of W-097, deferred after W-102)
 - background: W-102 completed Phase 1 (inline components with parameters), but did not implement Phase 2 (block components with slots for wrapping arbitrary content)
 - working document:
-  - docs/dev/working/W-097-handlebars-use-components.md (see Phase 2 section)
+  - docs/dev/design/W-097-handlebars-use-components.md (see Phase 2 section)
 - current limitation: components are inline-only ({{components.card title="Hello"}}), cannot wrap content
 - proposed enhancement:
   - define:

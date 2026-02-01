@@ -159,7 +159,7 @@ const result = schemaBasedQuery(schema, params);
    - Updated paginatedSearch with auto-detection
    - Added collation to pagination methods
 
-2. **docs/dev/working/W-141-search-with-boolean-operators.md** (991 lines)
+2. **docs/dev/design/W-141-search-with-boolean-operators.md** (991 lines)
    - Complete specification
    - Implementation plan
    - Tech debt documentation
@@ -219,7 +219,7 @@ Before deploying to production:
 
 ## Technical Debt Documented
 
-See docs/dev/working/W-141-search-with-boolean-operators.md:
+See docs/dev/design/W-141-search-with-boolean-operators.md:
 
 1. **Locale-Specific Collation** (Priority: Medium)
    - Currently hardcoded to English

@@ -85,7 +85,7 @@ This document outlines all documentation pages that need to be updated for the W
 - Add summary of deliverables
 - Link to working doc
 
-#### 2.2 `docs/dev/working/W-118-view-anchor-link-headings.md` ⭐ **HIGH PRIORITY**
+#### 2.2 `docs/dev/design/W-118-view-anchor-link-headings.md` ⭐ **HIGH PRIORITY**
 **Purpose**: Update with final implementation details
 **Location**: Update throughout
 **Content**:
@@ -130,7 +130,7 @@ This document outlines all documentation pages that need to be updated for the W
 
 ### Phase 1: Critical Documentation (Must Have)
 1. ✅ `docs/dev/work-items.md` - Mark W-118 as DONE
-2. ✅ `docs/dev/working/W-118-view-anchor-link-headings.md` - Finalize working doc
+2. ✅ `docs/dev/design/W-118-view-anchor-link-headings.md` - Finalize working doc
 3. ✅ `docs/CHANGELOG.md` - Add v1.3.19 entry
 4. ✅ `docs/jpulse-ui-reference.md` - Add widget documentation
 5. ✅ `docs/site-customization.md` - Add configuration guide

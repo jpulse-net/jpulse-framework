@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -492,7 +492,7 @@ class UserModel {
      */
     static async countAdmins() {
         try {
-            const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+            const adminRoles = ConfigModel.getEffectiveAdminRoles();
             const collection = this.getCollection();
             const count = await collection.countDocuments({
                 roles: { $in: adminRoles }
@@ -513,7 +513,7 @@ class UserModel {
     static async getUserStats() {
         try {
             const collection = this.getCollection();
-            const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+            const adminRoles = ConfigModel.getEffectiveAdminRoles();
 
             // Calculate date thresholds for recent logins
             const now = new Date();

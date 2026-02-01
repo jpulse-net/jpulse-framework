@@ -1,7 +1,7 @@
 {
     "name": "hello-world",
     "npmPackage": "@jpulse-net/plugin-hello-world",
-    "version": "1.6.3",
+    "version": "1.6.4",
     "icon": "🔌",
     "summary": "Hello World demo plugin for jPulse Framework",
     "description": "<p>This demo plugin showcases the jPulse Framework plugin system with:</p><ul><li><strong>Dynamic Configuration:</strong> Tab-based settings with various field types</li><li><strong>MVC Components:</strong> Controller, Model, and View integration</li><li><strong>Append Mode:</strong> Extending framework CSS and JavaScript</li></ul><p>Use this as a reference when creating your own plugins.</p>",
@@ -16,12 +16,12 @@
         "schema": [
             {
                 "type": "help",
-                "content": "<strong>Welcome!</strong> This is a demo plugin showcasing the dynamic configuration system. Fields are grouped into tabs based on the 'tab' attribute.",
+                "content": "<p><strong>Welcome!</strong> This is a demo plugin showcasing the dynamic configuration system. Fields are grouped into tabs based on the 'tab' attribute. </p><p>For site-wide Hello settings (welcome message, show badge), see <a href=\"/admin/config.shtml\">Site Configuration</a> → Hello tab.</p>",
                 "tab": "General"
             },
             {
                 "id": "message",
-                "label": "Welcome Message",
+                "label": "Plugin Hello Message",
                 "type": "text",
                 "default": "Hello from the plugin system!",
                 "placeholder": "Enter a custom welcome message",
@@ -31,7 +31,7 @@
             },
             {
                 "id": "showStats",
-                "label": "Show Statistics",
+                "label": "Show statistics",
                 "type": "boolean",
                 "default": true,
                 "help": "Display plugin statistics on the page",

@@ -3,8 +3,8 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,6 +15,7 @@
 import { WebSocketServer as WSServer } from 'ws';
 import { parse as parseUrl } from 'url';
 import AuthController from './auth.js';
+import ConfigModel from '../model/config.js';
 
 // Access global utilities
 const LogController = global.LogController;
@@ -766,7 +767,7 @@ class WebSocketController {
     static _registerAdminStatsNamespace() {
         this.registerNamespace('/api/1/ws/jpulse-ws-status', {
             requireAuth: true,
-            requireRoles: global.appConfig?.user?.adminRoles || ['admin', 'root'],
+            requireRoles: ConfigModel.getEffectiveAdminRoles(),
             onConnect: (clientId, user) => {
                 // Send initial stats (extract from metrics)
                 const metrics = this.getMetrics();

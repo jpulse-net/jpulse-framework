@@ -3,13 +3,13 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import { describe, test, expect, beforeEach, afterEach, beforeAll, jest } from '@jest/globals';
@@ -27,7 +27,9 @@ jest.mock('../../../controller/log.js', () => ({
 
 jest.mock('../../../model/config.js', () => ({
     default: {
-        findById: jest.fn().mockResolvedValue({ data: {} })
+        findById: jest.fn().mockResolvedValue({ data: {} }),
+        getEffectiveAdminRoles: jest.fn().mockReturnValue(['admin', 'root']),
+        getEffectiveRoles: jest.fn().mockReturnValue(['user', 'admin', 'root'])
     }
 }));
 

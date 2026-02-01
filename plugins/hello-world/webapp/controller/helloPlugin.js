@@ -3,7 +3,7 @@
  * @tagline         Hello Plugin Controller
  * @description     Simple API controller demonstrating plugin structure
  * @file            plugins/hello-world/webapp/controller/helloPlugin.js
- * @version         1.6.3
+ * @version         1.6.4
  * @author          jPulse Team, https://jpulse.net
  * @license         BSL 1.1
  * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
@@ -55,6 +55,26 @@ class HelloPluginController {
     }
 
     // ========================================================================
+    // W-147: Config schema extension (Site Configuration → Hello tab)
+    // Called by SiteControllerRegistry during bootstrap (before ConfigModel.initializeSchema)
+    // ========================================================================
+    static async initialize() {
+        if (global.ConfigModel && typeof global.ConfigModel.extendSchema === 'function') {
+            global.ConfigModel.extendSchema({
+                helloWorldConfig: {
+                    _meta: {
+                        tabLabel: 'Hello',
+                        order: 50,
+                        description: 'Site-wide Hello settings. For plugin-only settings (Welcome Message, Show Statistics) see <a href="/admin/plugin-config.shtml?plugin=hello-world" target="_blank">Configure hello-world</a>.'
+                    },
+                    message: { type: 'string', default: 'Hello from the hello-world plugin!', label: 'Site Hello Message' },
+                    showBadge: { type: 'boolean', default: true, label: 'Show badge' }
+                }
+            });
+        }
+    }
+
+    // ========================================================================
     // API endpoints (W-014)
     // Auto-discovered by SiteControllerRegistry during bootstrap
     // Method names starting with "api" are automatically registered
@@ -79,6 +99,16 @@ class HelloPluginController {
                 enabled: true
             };
 
+            // W-147: Get site config (Hello tab) for demo – values from Admin → Site Configuration → Hello
+            let helloWorldConfig = { message: 'Hello from the plugin!', showBadge: true };
+            if (global.ConfigModel && typeof global.ConfigModel.findById === 'function') {
+                const defaultDocName = global.appConfig?.controller?.config?.defaultDocName || 'global';
+                const siteConfig = await global.ConfigModel.findById(defaultDocName);
+                if (siteConfig?.data?.helloWorldConfig) {
+                    helloWorldConfig = { ...helloWorldConfig, ...siteConfig.data.helloWorldConfig };
+                }
+            }
+
             // Get sample data from model
             const data = await HelloPluginModel.getData();
 
@@ -91,6 +121,7 @@ class HelloPluginController {
                     plugin: 'hello-world',
                     version: '1.0.0',
                     config: config,
+                    helloWorldConfig: helloWorldConfig,
                     sampleData: data
                 },
                 message: 'Hello plugin data retrieved successfully',

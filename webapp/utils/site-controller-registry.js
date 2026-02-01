@@ -3,8 +3,8 @@
  * @tagline         Site Controller Registry and Auto-Discovery
  * @description     Discovers and registers site controller APIs at startup (W-014)
  * @file            webapp/utils/site-controller-registry.js
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -381,11 +381,10 @@ class SiteControllerRegistry {
                     // Load full user for plugin access
                     middlewares.push(this._loadFullUserMiddleware);
                 } else if (authLevel === 'admin') {
-                    // Require authentication + admin role
+                    // Require authentication + admin role (W-147: from site config)
                     middlewares.push(AuthController.requireAuthentication);
                     middlewares.push(this._loadFullUserMiddleware);
-                    const adminRoles = global.appConfig?.controller?.user?.adminRoles || ['admin', 'root'];
-                    middlewares.push(AuthController.requireRole(adminRoles));
+                    middlewares.push(AuthController.requireAdminRole());
                 }
                 // authLevel === 'none' - no middleware
 

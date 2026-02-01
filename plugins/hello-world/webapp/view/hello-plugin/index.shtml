@@ -4,8 +4,8 @@
  * @tagline         Interactive Plugin Development Tutorial
  * @description     Educational demo showing how plugins work in jPulse Framework
  * @file            plugins/hello-world/webapp/view/hello-plugin/index.shtml
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -289,9 +289,29 @@ export default class HelloPluginController {
                 </div>
             </div>
 
-            <!-- Section 5: Automatic Asset Loading -->
+            <!-- Section 5: Site config extension (Hello tab) - W-147 -->
             <div class="jp-card">
-                <h2>📦 Section 5: Automatic Asset Loading</h2>
+                <h2>🔧 Section 5: Site config extension (Hello tab)</h2>
+                <p>
+                    This plugin adds a <strong>Hello</strong> tab to <strong>Admin → Site Configuration</strong>.
+                    The values below come from that tab and show how plugins can extend the site config schema.
+                </p>
+
+                <h3>Current values from Site Configuration → Hello:</h3>
+                <div id="helloConfigOutput" class="jp-output jp-output-info jp-mt-15">
+                    <span class="jp-help-text">Loading...</span>
+                </div>
+
+                {{#if user.isAdmin}}
+                <div class="jp-mt-15">
+                    <a href="/admin/config.shtml" class="jp-btn jp-btn-secondary">Edit in Site Configuration → Hello</a>
+                </div>
+                {{/if}}
+            </div>
+
+            <!-- Section 6: Automatic Asset Loading -->
+            <div class="jp-card">
+                <h2>📦 Section 6: Automatic Asset Loading</h2>
                 <p>
                     Plugin CSS and JavaScript files are automatically loaded with the framework.
                     This provides better performance (fewer HTTP requests) and guaranteed load order.
@@ -353,7 +373,35 @@ export default class HelloPluginController {
         jPulse.UI.collapsible.register('js-code-collapsible', { initOpen: false });
         jPulse.UI.collapsible.register('api-code-collapsible', { initOpen: false });
         jPulse.UI.collapsible.register('config-schema-collapsible', { initOpen: false });
+        loadHelloConfig();
     });
+
+    // W-147: Load and display site config (Hello tab) from plugin API
+    async function loadHelloConfig() {
+        const output = document.getElementById('helloConfigOutput');
+        if (!output) return;
+        output.classList.remove('jp-output-info', 'jp-output-success', 'jp-output-error');
+        output.classList.add('jp-output-info');
+        output.innerHTML = '<span class="jp-help-text">Loading...</span>';
+
+        try {
+            const response = await jPulse.api.get('/api/1/helloPlugin');
+            const h = response.data?.helloWorldConfig || {};
+            const greeting = h.message !== undefined && h.message !== null ? String(h.message) : '—';
+            const showBadge = h.showBadge === true ? 'Yes' : (h.showBadge === false ? 'No' : '—');
+
+            output.classList.remove('jp-output-info');
+            output.classList.add('jp-output-success');
+            output.innerHTML = `
+                <strong>Greeting message:</strong> ${jPulse.string.escapeHtml(greeting)}<br>
+                <strong>Show badge:</strong> ${showBadge}
+            `;
+        } catch (error) {
+            output.classList.remove('jp-output-info');
+            output.classList.add('jp-output-error');
+            output.innerHTML = `<span class="jp-help-text">Could not load: ${jPulse.string.escapeHtml(error.message)}</span>`;
+        }
+    }
 
     // Test plugin JavaScript utilities
     function testPluginUtils() {

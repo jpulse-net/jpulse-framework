@@ -3,8 +3,8 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -35,8 +35,7 @@ import EmailController from './controller/email.js';
 import CommonUtils from './utils/common.js';
 import PathResolver from './utils/path-resolver.js';
 
-// Define admin roles early (used by multiple route groups)
-const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+// W-147: Admin routes use AuthController.requireAdminRole() (reads from ConfigModel cache per request)
 
 // API routes (must come before catch-all route)
 
@@ -67,17 +66,17 @@ router.delete('/api/1/config/:id', ConfigController.delete);
 // Public endpoint (no auth required) - must come before authenticated :name route
 router.get('/api/1/plugin/:name/info', PluginController.getInfo);
 // All other plugin routes require admin role
-router.get('/api/1/plugin', AuthController.requireRole(adminRoles), PluginController.list);
-router.get('/api/1/plugin/:name', AuthController.requireRole(adminRoles), PluginController.get);
-router.get('/api/1/plugin/:name/status', AuthController.requireRole(adminRoles), PluginController.getStatus);
-router.post('/api/1/plugin/:name/enable', AuthController.requireRole(adminRoles), PluginController.enable);
-router.post('/api/1/plugin/:name/disable', AuthController.requireRole(adminRoles), PluginController.disable);
-router.get('/api/1/plugin/:name/config', AuthController.requireRole(adminRoles), PluginController.getConfig);
-router.put('/api/1/plugin/:name/config', AuthController.requireRole(adminRoles), PluginController.updateConfig);
-router.get('/api/1/plugin/dependencies', AuthController.requireRole(adminRoles), PluginController.getDependencies);
-router.get('/api/1/plugin/:name/dependencies', AuthController.requireRole(adminRoles), PluginController.getPluginDependencies);
-router.post('/api/1/plugin/scan', AuthController.requireRole(adminRoles), PluginController.scan);
-router.post('/api/1/plugin/:name/install-dependencies', AuthController.requireRole(adminRoles), PluginController.installDependencies);
+router.get('/api/1/plugin', AuthController.requireAdminRole(), PluginController.list);
+router.get('/api/1/plugin/:name', AuthController.requireAdminRole(), PluginController.get);
+router.get('/api/1/plugin/:name/status', AuthController.requireAdminRole(), PluginController.getStatus);
+router.post('/api/1/plugin/:name/enable', AuthController.requireAdminRole(), PluginController.enable);
+router.post('/api/1/plugin/:name/disable', AuthController.requireAdminRole(), PluginController.disable);
+router.get('/api/1/plugin/:name/config', AuthController.requireAdminRole(), PluginController.getConfig);
+router.put('/api/1/plugin/:name/config', AuthController.requireAdminRole(), PluginController.updateConfig);
+router.get('/api/1/plugin/dependencies', AuthController.requireAdminRole(), PluginController.getDependencies);
+router.get('/api/1/plugin/:name/dependencies', AuthController.requireAdminRole(), PluginController.getPluginDependencies);
+router.post('/api/1/plugin/scan', AuthController.requireAdminRole(), PluginController.scan);
+router.post('/api/1/plugin/:name/install-dependencies', AuthController.requireAdminRole(), PluginController.installDependencies);
 
 // Auth API routes
 router.post('/api/1/auth/login', AuthController.login);
@@ -127,7 +126,7 @@ router.post('/api/1/log/report/csp',
 router.use('/common', express.static(path.join(appConfig.system.appDir, 'static', 'common')));
 
 // Admin routes (require admin role)
-router.get(/^\/admin\/.*/, AuthController.requireAuthentication, AuthController.requireRole(adminRoles));
+router.get(/^\/admin\/.*/, AuthController.requireAuthentication, AuthController.requireAdminRole());
 
 // W-014: Auto-register site controller APIs (no manual registration needed!)
 const SiteControllerRegistry = (await import('./utils/site-controller-registry.js')).default;

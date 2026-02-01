@@ -17530,3 +17530,70 @@ Summary: Wrote full W-147 design doc for making config schema extensible. Covers
 
 
 ============================================================
+2026-01-31 15:45
+
+please start with implementation
+
+Summary: Continued W-147 implementation.
+- Phase 3: Integrated effective general cache with HealthController (setEffectiveGeneralCache after ensureGeneralDefaults and in refreshGlobalConfig), ConfigController (set cache on get/update/upsert for default doc).
+- Phase 4: All consumers now read admin roles from ConfigModel: AuthController.requireAdminRole() (per-request cache), routes.js plugin and admin routes use requireAdminRole(), health.js cache.js site-controller-registry websocket handlebar user controller and user model use ConfigModel.getEffectiveAdminRoles(). No appConfig.user.adminRoles or appConfig.controller.user.adminRoles reads remain in webapp.
+
+
+============================================================
+2026-01-31 17:46
+
+- ux looks good
+adding new role: (log excerpt showing config.upsert with eng-manager, broadcast, log.change, success)
+
+Summary: Acknowledged UX feedback and confirmed adding new role (eng-manager) works: config.upsert, log.change, broadcast, and config refresh all logged correctly. Noted 404 for /.well-known/appspecific/com.chrome.devtools.json is Chrome DevTools probe, harmless. Remaining: Phase 9 (data-driven tabs) and Phase 10 (tests/docs); asked if user wants to proceed or consider scope complete.
+
+
+============================================================
+2026-01-31 18:02
+
+we definitely want that, question is when to implement - for now lets focus at work item! please continue with data driven view
+
+Summary: Implemented Phase 9 (data-driven config view). ConfigModel: added _meta.order to data.general, data.email, data.broadcast, data.manifest. ConfigController.get: use getSchema() when includeSchema=1. config.shtml: fetch with includeSchema=1; build tabs from schema (buildTabsFromSchema, sort by _meta.order); register tabs after rendering extension panels; renderExtensionPanels for non-framework blocks (generic fields: string, number, boolean, array); getFormData/populateForm include extension block data; dirty tracking for ext fields. ConfigModel.updateById: persist extension block data (data.{blockKey}.{field}). Extension panels container #config-extension-panels; framework panels remain static. Updated work-items.md with Phase 9 note.
+
+
+============================================================
+2026-01-31 18:14
+
+looks good, go for it
+
+Summary: Added hello-world config extension demo. helloPlugin.js: static async initialize() calls global.ConfigModel.extendSchema with helloWorldConfig (tabLabel: 'Hello', _meta.description for help text, greetingMessage, showBadge). api() fetches site config (ConfigModel.findById defaultDocName), adds data.helloWorldConfig to response. hello-plugin/index.shtml: new Section 5 "Site config extension (Hello tab)" with loadHelloConfig() on ready; displays greetingMessage and showBadge from API; admin link to /admin/config.shtml. Section 6 = former Section 5 (Automatic Asset Loading).
+
+
+============================================================
+2026-01-31 18:35
+
+dom: config form with only 4 tabs (General, Email, Broadcast, Manifest); await __configDebug() showed configSchema.data keys = 4, configSchema.helloWorldConfig at schema root (not in configSchema.data), #config-extension-panels child count 0
+
+Summary: Root cause: ConfigModel.applySchemaExtension() used CommonUtils.deepMerge(schema, extension), which merged extension blocks at the schema root (schema.helloWorldConfig). The client and getSchema().data expect all tab blocks under schema.data. Fixed applySchemaExtension() to merge each extension block into schema.data (loop over extension entries, skip keys starting with '_', deepMerge into schema.data[blockKey]). After fix, getSchema().data will include helloWorldConfig and the Hello tab and extension panel will appear.
+
+
+============================================================
+2026-01-31 22:03
+
+integration test - only if easy - max time: 10 min
+
+Summary: Added W-147 integration test in webapp/tests/integration/config-admin-roles.test.js. Tests config cache -> getEffectiveAdminRoles -> requireAdminRole flow: (1) user with custom admin role from cache is allowed; (2) user without any configured admin role is denied (sendError 403); (3) default cache (admin, root): user with admin passes. Uses same mocks as auth-middleware (User, LogController, i18n). afterEach clears ConfigModel effective general cache. All 3 tests pass; full integration suite 108 passed.
+
+
+============================================================
+2026-01-31 22:15
+
+next docs
+
+Summary: W-147 documentation added in docs/api-reference.md. (1) Admin Endpoints: note that admin roles come from site config (Admin → Site Configuration → General), not app.conf. (2) Middleware Stack: added requireAdminRole() and note that roles are editable in Admin. (3) New subsection "Config model (server-side, plugins/sites)": extendSchema (tab scope, when to call, avoid conflicting block keys), getEffectiveAdminRoles(), getEffectiveRoles() (cached, sync, usage). (4) Configuration Schema: data.general (roles, adminRoles), note that schema is extensible via ConfigModel.extendSchema. work-items.md docs deliverable updated to "done" with reference to api-reference.md.
+
+
+============================================================
+2026-01-31 22:25
+
+release prep: assume W-147, v1.6.4, 2026-02-01; update README.md, docs/README.md, docs/CHANGELOG.md, commit-message.txt, cursor_log.txt (don't bump version)
+
+Summary: Release prep for W-147, v1.6.4, 2026-02-01. Updated README.md and docs/README.md — Latest Release Highlights: added v1.6.4 W-147 (config schema extensible, extendSchema tab scope, General tab roles/adminRoles, ConfigModel cache getEffectiveAdminRoles/getEffectiveRoles, data-driven admin config UI, app.conf adminRoles removed, unit + integration tests, api-reference docs); kept v1.6.3 W-145 as second bullet. Updated docs/CHANGELOG.md — added full v1.6.4 W-147 entry (commit line, FEATURE RELEASE, objective, key changes, code changes, documentation, work item, version, release date). Updated commit-message.txt — W-147 commit message following same format as W-145 (objectives, key changes, code changes, documentation, README/CHANGELOG lines). Version numbers in doc headers left unchanged per "don't bump version" (bump script will do that). Appended this entry to cursor_log.txt.
+
+
+============================================================

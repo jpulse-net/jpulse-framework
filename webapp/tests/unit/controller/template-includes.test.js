@@ -3,13 +3,13 @@
  * @tagline         Unit tests for template include system (header/footer)
  * @description     Tests for the new template include features and file.include helper
  * @file            webapp/tests/unit/controller/template-includes.test.js
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import { describe, test, expect, beforeEach, beforeAll, jest } from '@jest/globals';
@@ -46,7 +46,9 @@ jest.mock('../../../model/user.js', () => ({
 
 jest.mock('../../../model/config.js', () => ({
     default: {
-        findById: jest.fn().mockResolvedValue({ data: {} })
+        findById: jest.fn().mockResolvedValue({ data: {} }),
+        getEffectiveAdminRoles: jest.fn().mockReturnValue(['admin', 'root']),
+        getEffectiveRoles: jest.fn().mockReturnValue(['user', 'admin', 'root'])
     }
 }));
 

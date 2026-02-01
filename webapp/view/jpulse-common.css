@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -707,6 +707,15 @@ body {
     box-shadow: var(--jp-theme-shadow-lg, 0 4px 12px rgba(0,0,0,0.15));
     transition: transform 0.6s ease-out;
     text-align: left;
+}
+
+/* Trim first/last <p> margins inside alerts (applies to .jp-alert and .jp-alert-*) */
+.jp-alert > p:first-child {
+    margin-block-start: 0;
+}
+
+.jp-alert > p:last-child {
+    margin-block-end: 0;
 }
 
 .jp-alert.jp-alert-show {

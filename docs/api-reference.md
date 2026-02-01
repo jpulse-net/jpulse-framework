@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.3
+# jPulse Docs / REST API Reference v1.6.4
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -45,8 +45,12 @@ All API endpoints use a standardized middleware stack for security and access co
 // Authentication middleware
 AuthController.requireAuthentication(req, res, next)
 
-// Role-based authorization middleware
+// Role-based authorization
 AuthController.requireRole(['admin', 'root'])(req, res, next)
+
+// Admin role from site config
+// (recommended for admin routes; roles editable in Admin → Site Configuration)
+AuthController.requireAdminRole()(req, res, next)
 
 // Utility functions for controller logic
 AuthController.isAuthenticated(req)           // Returns boolean
@@ -66,6 +70,8 @@ AuthController.isAuthorized(req, roles)       // Returns boolean
 - `POST /api/1/auth/logout` - User logout
 
 #### Admin Endpoints (Admin/Root Roles Required)
+Admin roles are defined in **site config** (Admin → Site Configuration → General tab) and read at runtime via `ConfigModel.getEffectiveAdminRoles()`. They are not read from app.conf.
+
 - `GET /api/1/user/search` - User management and search
 - `GET /api/1/config/*` - Configuration access
 - `POST /api/1/config` - Configuration creation
@@ -1295,6 +1301,41 @@ Delete a configuration document.
 }
 ```
 
+### Config model (server-side, plugins/sites)
+
+These methods are used by controllers, models, and plugins on the server. They are not REST endpoints.
+
+#### Extending the config schema (tab scope)
+
+Plugins and site code can add new **config tabs** (blocks under `data.*`) without editing framework files. Call `ConfigModel.extendSchema(extension)` during initialization (e.g. in a plugin's `static async initialize()` or site bootstrap). Each key in `extension` becomes a new block under `data` and a new tab in Admin → Site Configuration. Avoid block keys that conflict with framework blocks: `general`, `email`, `broadcast`, `manifest`.
+
+```javascript
+// Example: plugin adds a "Hello" tab
+ConfigModel.extendSchema({
+    helloWorldConfig: {
+        _meta: { order: 5, tabLabel: 'Hello', description: 'Site-wide Hello settings.' },
+        greetingMessage: { type: 'string', default: 'Hello!' },
+        showBadge: { type: 'boolean', default: true }
+    }
+});
+```
+
+- **When:** Call before `ConfigModel.initializeSchema()` runs (e.g. during plugin/site init, which runs before bootstrap finalizes the schema).
+- **Scope:** Tab-level only; each extension key becomes one block in `data` and one tab in the admin config UI.
+- **Reference:** Design doc `docs/dev/design/W-147-make-config-schema-extensible.md`.
+
+#### Effective roles (cached, sync)
+
+Admin and assignable roles are read from the **default config document** and cached so controllers do not hit the database on every request. The cache is updated when the default config is loaded (e.g. at startup) and when the default config is updated via PUT.
+
+- **`ConfigModel.getEffectiveAdminRoles()`**
+  Returns an array of role codes that count as admin (e.g. `['admin', 'root']`). Used by `AuthController.requireAdminRole()`, admin routes, and any logic that checks “is this user an admin?”. Values are sorted; default when cache is empty: `['admin', 'root']`.
+
+- **`ConfigModel.getEffectiveRoles()`**
+  Returns an array of assignable role codes from site config (e.g. `['user', 'admin', 'root']`). Used for validation and role dropdowns. UserModel combines these with any plugin/site-extended roles. Values are sorted; default when cache is empty: `['admin', 'root', 'user']`.
+
+Both methods are synchronous and return copies of the cached arrays. Do not use app.conf for admin or assignable roles; the config model is the single source of truth at runtime.
+
 ## 📊 Logging API
 
 ### Log Search Endpoint
@@ -2336,7 +2377,11 @@ curl "http://localhost:8080/api/1/log/search?docType=config&action=update" \
 ```javascript
 {
     _id: String,        // Unique identifier
-    data: {             // Configuration data object
+    data: {             // Configuration object (schema extensible via ConfigModel.extendSchema)
+        general: {      // W-147: roles and adminRoles (Admin → Site Configuration → General)
+            roles: Array,      // Assignable role codes, e.g. ['user', 'admin', 'root']
+            adminRoles: Array  // Admin role codes, e.g. ['admin', 'root']
+        },
         email: {
             adminEmail: String,
             adminName: String,
@@ -2348,7 +2393,7 @@ curl "http://localhost:8080/api/1/log/search?docType=config&action=update" \
         messages: {
             broadcast: String
         }
-        // ... additional configuration groups
+        // ... manifest, and plugin/site-added blocks (one tab per block)
     },
     createdAt: Date,    // Auto-generated
     updatedAt: Date,    // Auto-updated

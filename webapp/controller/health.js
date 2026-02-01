@@ -5,8 +5,8 @@
  *                  for non-admin users in the _sanitizeMetricsData() method!
  * @description     This is the health controller for the jPulse Framework WebApp
  * @file            webapp/controller/health.js
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -248,6 +248,19 @@ class HealthController {
                     }
                 }
             }
+
+            // W-147: Ensure general structure exists with schema defaults (no app.conf read)
+            const needsGeneral = this.globalConfig && (!this.globalConfig.data?.general || this.globalConfig.data.general.roles === undefined || this.globalConfig.data.general.adminRoles === undefined);
+            if (needsGeneral) {
+                try {
+                    this.globalConfig = await ConfigModel.ensureGeneralDefaults(defaultDocName);
+                    LogController.logInfo(null, 'health.initialize', 'data.general initialized from schema defaults');
+                } catch (generalError) {
+                    LogController.logWarning(null, 'health.initialize', `Failed to ensure general defaults: ${generalError.message}`);
+                }
+            }
+            // W-147: Populate effective general cache for getEffectiveAdminRoles/getEffectiveRoles
+            ConfigModel.setEffectiveGeneralCache(this.globalConfig?.data?.general);
         } catch (error) {
             LogController.logError(null, 'health.initialize', `Failed to load config: ${error.message}`);
         }
@@ -401,7 +414,7 @@ class HealthController {
 
             // Check if user is actually an admin (for sanitization purposes)
             // This is separate from isAuthorized because config might allow public access
-            const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+            const adminRoles = ConfigModel.getEffectiveAdminRoles();
             const isAdmin = AuthController.isAuthorized(req, adminRoles);
 
             // Base metrics available to all users (framework level only)
@@ -495,8 +508,8 @@ class HealthController {
         LogController.logRequest(req, 'health.sendComplianceReport', '');
 
         try {
-            // Admin-only
-            const adminRoles = global.appConfig?.controller?.user?.adminRoles || ['admin', 'root'];
+            // Admin-only (W-147: from config)
+            const adminRoles = ConfigModel.getEffectiveAdminRoles();
             if (!AuthController.isAuthorized(req, adminRoles)) {
                 const message = global.i18n.translate(req, 'controller.health.adminAccessRequired');
                 return global.CommonUtils.sendError(req, res, 403, message, 'FORBIDDEN');
@@ -1533,7 +1546,7 @@ class HealthController {
         }, initialDelay);
 
         LogController.logInfo(null, 'health._startHealthBroadcasting',
-            `Started health broadcasting: first broadcast in ${initialDelay}ms, then every ${HealthController.config.broadcastInterval}s (with ${HealthController.config.cacheInterval}s caching)`);
+            `Started health broadcasting: first broadcast in ${initialDelay}ms, then every ${HealthController.config.broadcastInterval / 1000}s (with ${HealthController.config.cacheInterval / 1000}s caching)`);
     }
 
     /**
@@ -1979,6 +1992,7 @@ class HealthController {
         try {
             const defaultDocName = global.ConfigController?.getDefaultDocName() || 'global';
             this.globalConfig = await ConfigModel.findById(defaultDocName);
+            ConfigModel.setEffectiveGeneralCache(this.globalConfig?.data?.general);
             LogController.logInfo(null, 'health.compliance', 'Config refreshed for compliance reporting');
         } catch (error) {
             LogController.logError(null, 'health.compliance', `Failed to refresh config: ${error.message}`);

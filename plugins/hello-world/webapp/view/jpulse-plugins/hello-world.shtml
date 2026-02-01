@@ -4,8 +4,8 @@
  * @tagline         Hello World Plugin overview page
  * @description     Overview and quick access for Hello World reference plugin
  * @file            plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -92,15 +92,15 @@
                 <div class="jp-stats-grid local-stats-grid">
                     <div class="jp-stat-card">
                         <div class="jp-stat-label">Version</div>
-                        <div class="jp-stat-number">1.0.0</div>
+                        <div class="jp-stat-number" id="pluginVersion">—</div>
                     </div>
                     <div class="jp-stat-card">
                         <div class="jp-stat-label">Status</div>
-                        <div class="jp-stat-number"><span class="jp-status-badge jp-status-active">Active</span></div>
+                        <div class="jp-stat-number"><span id="pluginStatus" class="jp-status-badge">—</span></div>
                     </div>
                     <div class="jp-stat-card">
                         <div class="jp-stat-label">Auto-Enable</div>
-                        <div class="jp-stat-number">✓ Yes</div>
+                        <div class="jp-stat-number" id="pluginAutoEnable">—</div>
                     </div>
                 </div>
             </div>
@@ -167,7 +167,8 @@
                 <h2>What You Can Do</h2>
                 <ul class="local-action-list">
                     <li><strong>Explore the Demo:</strong> Visit <a href="/hello-plugin/">/hello-plugin/</a> to see interactive examples of plugin features</li>
-                    <li><strong>Configure Settings:</strong> Customize the plugin behavior through the <a href="/admin/plugin-config.shtml?plugin=hello-world">configuration interface</a> (for administrators only)</li>
+                    <li><strong>Site-wide Hello settings:</strong> Configure the site Hello message and badge in <a href="/admin/config.shtml">Site Configuration</a> → Hello tab (for administrators)</li>
+                    <li><strong>Configure Plugin Settings:</strong> Customize plugin-only behavior (welcome message, statistics) in the <a href="/admin/plugin-config.shtml?plugin=hello-world">plugin configuration</a> (for administrators only)</li>
                     <li><strong>Learn Plugin Development:</strong> Use this as a template for creating your own plugins</li>
                     <li><strong>Test API Endpoints:</strong> Try the plugin's REST API at <code>/api/1/helloPlugin</code></li>
                     <li><strong>Read Documentation:</strong> Learn more in the <a href="/jpulse-docs/installed-plugins/hello-world/" target="_blank">user guide</a> and <a href="/jpulse-docs/plugins/README" target="_blank">developer documentation</a></li>
@@ -207,5 +208,33 @@
     </div>
 
     {{file.include "jpulse-footer.tmpl"}}
+    <script>
+    (function () {
+        jPulse.dom.ready(async function () {
+            var pathMatch = window.location.pathname.match(/\/jpulse-plugins\/([^/.]+)\.shtml$/);
+            if (!pathMatch) { return; }
+            var pluginName = pathMatch[1];
+            var versionEl = document.getElementById('pluginVersion');
+            var statusEl = document.getElementById('pluginStatus');
+            var autoEnableEl = document.getElementById('pluginAutoEnable');
+            try {
+                var response = await jPulse.api.get('/api/1/plugin/' + encodeURIComponent(pluginName) + '/info');
+                if (response && response.success && response.data) {
+                    var d = response.data;
+                    if (versionEl) { versionEl.textContent = d.version != null && d.version !== '' ? String(d.version) : '—'; }
+                    if (statusEl) {
+                        statusEl.textContent = d.enabled ? 'Active' : 'Inactive';
+                        statusEl.className = 'jp-status-badge ' + (d.enabled ? 'jp-status-active' : 'jp-status-inactive');
+                    }
+                    if (autoEnableEl) { autoEnableEl.textContent = d.autoEnable ? '✓ Yes' : 'No'; }
+                }
+            } catch (e) {
+                if (versionEl) { versionEl.textContent = '—'; }
+                if (statusEl) { statusEl.textContent = '—'; statusEl.className = 'jp-status-badge'; }
+                if (autoEnableEl) { autoEnableEl.textContent = '—'; }
+            }
+        });
+    })();
+    </script>
 </body>
 </html>

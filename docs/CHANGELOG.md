@@ -1,6 +1,72 @@
-# jPulse Docs / Version History v1.6.3
+# jPulse Docs / Version History v1.6.4
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.4, W-147, 2026-02-01
+
+**Commit:** `W-147, v1.6.4: config model: make config schema extensible for site and plugin developers`
+
+**FEATURE RELEASE**: Extendable site config schema (tab scope) and roles/adminRoles in config model. Site and plugin developers can add new config tabs via ConfigModel.extendSchema(); admin roles are defined in site config (Admin → Site Configuration → General), not app.conf.
+
+**Objective**: Extend the site config schema in a data-driven way (ConfigModel baseSchema + extendSchema, mirror UserModel); move roles and adminRoles into config model (General tab) so site admins can change them via Admin UI without editing app.conf.
+
+**Key Changes**:
+- **ConfigModel**: baseSchema, schemaExtensions, extendSchema(), initializeSchema(), getSchema(); data.general (roles, adminRoles). ensureGeneralDefaults(id); applyDefaults, validate, updateById for general; setEffectiveGeneralCache, getEffectiveAdminRoles(), getEffectiveRoles() (sync, cached). Sort roles/adminRoles on read and write.
+- **HealthController**: Call ensureGeneralDefaults when data.general missing; set cache from globalConfig.data.general.
+- **ConfigController**: Invalidate/update cache on PUT default doc; self-lockout validation (admin cannot remove own admin role).
+- **Admin config UI**: Data-driven tabs and extension panels from ConfigModel.getSchema().data (_meta.order); extension blocks get generic panel (string, number, boolean, array); General tab first; validation adminRoles ⊆ roles.
+- **Consumers**: routes.js, auth.js, user.js, cache.js, health.js, handlebar.js, websocket.js, user.js (model), site-controller-registry.js read adminRoles/roles from ConfigModel.getEffectiveAdminRoles(), ConfigModel.getEffectiveRoles() (no app.conf).
+- **Bootstrap**: ConfigModel.initializeSchema() after UserModel.initializeSchema().
+- **app.conf**: controller.user.adminRoles removed; comment notes W-147 and ConfigModel.getEffectiveAdminRoles().
+- **Translations**: view.admin.config.general.* (en.conf, de.conf) for General tab labels and messages.
+- **Tests**: Unit (config-model.test.js data.general validation; config-general.test.js schema, effective cache, sort on read/write, ensureGeneralDefaults, findById/updateById; config-manifest.test.js beforeAll schema init). Integration: config-admin-roles.test.js (requireAdminRole uses config cache; allow/deny by custom admin role).
+- **Documentation**: docs/api-reference.md — admin roles from config note; requireAdminRole(); Config model subsection (extendSchema tab scope, getEffectiveAdminRoles, getEffectiveRoles); Configuration Schema data.general + extensible.
+
+**Code Changes**:
+
+webapp/model/config.js:
+- baseSchema with data.general (roles, adminRoles); schemaExtensions, extendSchema(), initializeSchema(), getSchema(); applySchemaExtension() merges extension blocks into schema.data
+- ensureGeneralDefaults(id); setEffectiveGeneralCache, clearEffectiveGeneralCache, getEffectiveAdminRoles(), getEffectiveRoles()
+- findById/updateById sort data.general.roles and adminRoles on read/write; validate general (adminRoles ⊆ roles)
+
+webapp/controller/health.js:
+- ensureGeneralDefaults when data.general missing; setEffectiveGeneralCache(globalConfig.data.general)
+
+webapp/controller/config.js:
+- PUT: self-lockout check; after update setEffectiveGeneralCache for default doc
+
+webapp/view/admin/config.shtml:
+- Tab list and panels from schema (data-driven); General tab first; extension panels generic (string, number, boolean, array); getFormData/populateForm and updateById for extension blocks; dirty tracking via delegation
+
+webapp/controller/handlebar.js:
+- _buildInternalContext: isAdmin/adminRoles from ConfigModel.getEffectiveAdminRoles() with defensive fallback for tests
+
+webapp/routes.js, auth.js, user.js, cache.js, health.js, websocket.js, model/user.js, site-controller-registry.js:
+- adminRoles/roles from ConfigModel.getEffectiveAdminRoles(), ConfigModel.getEffectiveRoles()
+
+webapp/utils/bootstrap.js:
+- ConfigModel.initializeSchema() after UserModel.initializeSchema()
+
+webapp/app.conf:
+- controller.user.adminRoles removed; W-147 comment
+
+webapp/translations/en.conf, de.conf:
+- view.admin.config.general.* (label, description, roles, adminRoles, placeholders, adminRolesSubset, selfLockout)
+
+webapp/tests/unit/config/config-model.test.js: W-147 data.general validation
+webapp/tests/unit/config/config-general.test.js (NEW): schema, effective cache, sort on read/write, ensureGeneralDefaults, findById/updateById
+webapp/tests/unit/config/config-manifest.test.js: beforeAll ConfigModel.initializeSchema()
+webapp/tests/integration/config-admin-roles.test.js (NEW): requireAdminRole uses config cache; custom admin role allow/deny
+
+**Documentation**:
+
+docs/api-reference.md: Admin roles from config; requireAdminRole(); Config model subsection (extendSchema, getEffectiveAdminRoles, getEffectiveRoles); Configuration Schema data.general + extensible
+docs/dev/work-items.md: W-147 deliverables updated (docs done)
+
+**Work Item**: W-147
+**Version**: v1.6.4
+**Release Date**: 2026-02-01
 
 ________________________________________________
 ## v1.6.3, W-145, 2026-01-31

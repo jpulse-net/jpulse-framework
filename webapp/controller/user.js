@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -13,6 +13,7 @@
  */
 
 import UserModel from '../model/user.js';
+import ConfigModel from '../model/config.js';
 import LogController from './log.js';
 import AuthController from './auth.js';
 // i18n will be available globally after bootstrap
@@ -458,7 +459,7 @@ class UserController {
             // Authentication is handled by AuthController.requireAuthentication middleware
             // Authorization check is done in method
 
-            const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+            const adminRoles = ConfigModel.getEffectiveAdminRoles();
             const isAdmin = AuthController.isAuthorized(req, adminRoles);
 
             // Regular users can only get their own profile
@@ -628,7 +629,7 @@ class UserController {
             // Authentication is handled by AuthController.requireAuthentication middleware
             // Authorization check is done in method
 
-            const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+            const adminRoles = ConfigModel.getEffectiveAdminRoles();
             const isAdmin = AuthController.isAuthorized(req, adminRoles);
             const isUpdatingSelf = userId === req.session.user.id;
 
@@ -699,7 +700,7 @@ class UserController {
 
                 // Check if roles are being changed
                 if (filteredData.roles !== undefined) {
-                    const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+                    const adminRoles = ConfigModel.getEffectiveAdminRoles();
                     const newRoles = Array.isArray(filteredData.roles) ? filteredData.roles : [filteredData.roles];
                     const oldRoles = currentUser.roles || [];
                     const hadAdminRole = adminRoles.some(role => oldRoles.includes(role));
@@ -726,7 +727,7 @@ class UserController {
                 // Check if status is being changed to suspended/inactive
                 if (filteredData.status !== undefined &&
                     (filteredData.status === 'suspended' || filteredData.status === 'inactive')) {
-                    const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+                    const adminRoles = ConfigModel.getEffectiveAdminRoles();
                     const oldRoles = currentUser.roles || [];
                     const hadAdminRole = adminRoles.some(role => oldRoles.includes(role));
 
@@ -838,7 +839,7 @@ class UserController {
      */
     static _checkPublicProfilePolicy(req) {
         const profileConfig = global.appConfig?.controller?.user?.profile || {};
-        const adminRoles = global.appConfig?.controller?.user?.adminRoles || ['admin', 'root'];
+        const adminRoles = ConfigModel.getEffectiveAdminRoles();
         const isAuthenticated = AuthController.isAuthenticated(req);
 
         // Admins always have access (preserve admin access)
@@ -868,7 +869,7 @@ class UserController {
      */
     static _filterPublicProfileFields(user, req) {
         const profileConfig = global.appConfig?.controller?.user?.profile || {};
-        const adminRoles = global.appConfig?.controller?.user?.adminRoles || ['admin', 'root'];
+        const adminRoles = ConfigModel.getEffectiveAdminRoles();
         const isAuthenticated = AuthController.isAuthenticated(req);
         const isAdmin = isAuthenticated && AuthController.isAuthorized(req, adminRoles);
 

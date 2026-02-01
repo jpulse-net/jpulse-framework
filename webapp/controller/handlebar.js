@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -550,8 +550,10 @@ class HandlebarController {
     static async _buildInternalContext(req) {
         const appConfig = global.appConfig;
 
-        // Create base handlebars context
-        const adminRoles = global.appConfig?.user?.adminRoles || ['admin', 'root'];
+        // Create base handlebars context (W-147: tolerate partial mock in unit tests hack)
+        const adminRoles = typeof configModel.getEffectiveAdminRoles === 'function'
+            ? configModel.getEffectiveAdminRoles()
+            : ['admin', 'root'];
         const userRoles = req.session?.user?.roles || [];
 
         // W-129: HTML attributes + theme default (stored under appConfig.system.* for templates)
@@ -767,8 +769,10 @@ class HandlebarController {
                 search: req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '',
                 param: req.query || {}
             },
-            // Add i18n object to context for dot notation access
-            i18n: global.i18n.getLang(AuthController.getUserLanguage(req)),
+            // Add i18n object to context for dot notation access (tolerate missing i18n in unit tests hack)
+            i18n: global.i18n && typeof global.i18n.getLang === 'function'
+                ? global.i18n.getLang(AuthController.getUserLanguage(req))
+                : {},
             // W-102: Components context (populated by file.includeComponents)
             components: {},
             // W-103: User-defined variables namespace (populated by {{let}})

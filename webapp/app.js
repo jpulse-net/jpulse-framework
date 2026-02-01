@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -27,6 +27,32 @@ import CommonUtils from './utils/common.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.dirname(__dirname); // Parent of webapp/
+
+/**
+ * Compute system identity (hostname, serverId, instanceId, etc.) - single source of truth.
+ * Used early for log context (vm/id) and again in loadAppConfig() when building full config.
+ * @returns {object} { hostname, serverName, serverId, pm2Id, pid, instanceName, instanceId }
+ */
+function _getSystemConfig() {
+    const hostname = os.hostname();
+    const serverName = hostname.split('.')[0];
+    const serverId = parseInt(serverName.replace(/^[^0-9]*([0-9]*).*$/, '$1') || '0', 10) || 0;
+    const pm2Id = parseInt(process.env.pm_id || process.env.NODE_APP_INSTANCE || '0', 10) || 0;
+    const pid = process.pid;
+    return {
+        hostname,
+        serverName,
+        serverId,
+        pm2Id,
+        pid,
+        instanceName: `${serverName}:${pm2Id}:${pid}`,
+        instanceId: `${serverId}:${pm2Id}:${pid}`
+    };
+}
+
+// Set system identity early so all logs (including during config load) get correct vm/id
+global.appConfig = global.appConfig || {};
+global.appConfig.system = { ...global.appConfig.system, ..._getSystemConfig() };
 
 // common logging function for app
 function appLog(message, level = 'info') {
@@ -74,26 +100,16 @@ async function loadAppConfig() {
             config = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
         }
 
-        // Initialize system metadata - single source of truth
-        const hostname = os.hostname();
-        const serverName = hostname.split('.')[0];
-        const serverId = parseInt(serverName.replace(/^[^0-9]*([0-9]*).*$/, '$1') || '0', 10) || 0;
-        const pm2Id = parseInt(process.env.pm_id || process.env.NODE_APP_INSTANCE || '0', 10) || 0;
-        const pid = process.pid;
-        config.system.hostname = hostname;
-        config.system.serverName = serverName;
-        config.system.serverId = serverId;
-        config.system.pm2Id = pm2Id;
-        config.system.pid = pid;
-        config.system.instanceName = `${serverName}:${pm2Id}:${pid}`;
-        config.system.instanceId = `${serverId}:${pm2Id}:${pid}`;
-        appLog(`appConfig.system.hostname: Set to ${hostname}`);
-        appLog(`appConfig.system.serverName: Set to ${serverName}`);
-        appLog(`appConfig.system.serverId: Set to ${serverId}`);
-        appLog(`appConfig.system.pm2Id: Set to ${pm2Id}`);
-        appLog(`appConfig.system.pid: Set to ${pid}`);
-        appLog(`appConfig.system.instanceName: Set to ${config.system.instanceName}`);
-        appLog(`appConfig.system.instanceId: Set to ${config.system.instanceId}`);
+        // Initialize system metadata (same values as early block for log context)
+        const systemMeta = _getSystemConfig();
+        Object.assign(config.system, systemMeta);
+        appLog(`appConfig.system.hostname: Set to ${systemMeta.hostname}`);
+        appLog(`appConfig.system.serverName: Set to ${systemMeta.serverName}`);
+        appLog(`appConfig.system.serverId: Set to ${systemMeta.serverId}`);
+        appLog(`appConfig.system.pm2Id: Set to ${systemMeta.pm2Id}`);
+        appLog(`appConfig.system.pid: Set to ${systemMeta.pid}`);
+        appLog(`appConfig.system.instanceName: Set to ${systemMeta.instanceName}`);
+        appLog(`appConfig.system.instanceId: Set to ${systemMeta.instanceId}`);
 
         // Initialize config.system.port number
         const portArgIndex = process.argv.indexOf('--port');

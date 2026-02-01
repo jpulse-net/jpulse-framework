@@ -3,8 +3,8 @@
  * @tagline         Config Controller for jPulse Framework WebApp
  * @description     This is the config controller for the jPulse Framework WebApp
  * @file            webapp/controller/config.js
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -81,13 +81,19 @@ class ConfigController {
                 return global.CommonUtils.sendError(req, res, 404, message, 'CONFIG_NOT_FOUND');
             }
 
-            // W-115: Include schema metadata if requested
+            // W-147: Ensure effective general cache is set when default config is returned (first request before health init)
+            if (id === defaultDocName && config.data?.general) {
+                ConfigModel.setEffectiveGeneralCache(config.data.general);
+            }
+
+            // W-115 / W-147: Include schema if requested (data-driven tabs and extension panels)
             const includeSchema = req.query.includeSchema === '1' || req.query.includeSchema === 'true';
             let schema = null;
             if (includeSchema) {
+                const fullSchema = ConfigModel.getSchema();
                 schema = {
-                    schema: ConfigModel.schema,
-                    contextFilter: ConfigModel.schema._meta?.contextFilter || null
+                    schema: fullSchema,
+                    contextFilter: fullSchema._meta?.contextFilter || null
                 };
             }
 
@@ -104,6 +110,7 @@ class ConfigController {
             // W-115: Add schema to response if requested
             if (schema) {
                 response.schema = schema;
+                res.set('Cache-Control', 'no-store');
             }
 
             res.json(response);
@@ -265,11 +272,30 @@ class ConfigController {
                 return global.CommonUtils.sendError(req, res, 404, message, 'CONFIG_NOT_FOUND');
             }
 
+            // W-147: Self-lockout prevention – reject if update would remove current user's admin role(s)
+            const incomingGeneral = updateData?.data?.general;
+            if (incomingGeneral && Array.isArray(incomingGeneral.adminRoles)) {
+                const currentAdminRoles = oldConfig.data?.general?.adminRoles ?? [];
+                const userRoles = req.session?.user?.roles ?? [];
+                const userCurrentAdminRoles = userRoles.filter(r => currentAdminRoles.includes(r));
+                const userWouldKeepAdmin = userCurrentAdminRoles.some(r => incomingGeneral.adminRoles.includes(r));
+                if (userCurrentAdminRoles.length > 0 && !userWouldKeepAdmin) {
+                    LogController.logError(req, 'config.update', 'error: self-lockout attempt rejected');
+                    const message = global.i18n.translate(req, 'controller.config.configGeneralSelfLockout');
+                    return global.CommonUtils.sendError(req, res, 400, message, 'SELF_LOCKOUT');
+                }
+            }
+
             // Add updatedBy from session (when authentication is implemented)
             if (req.session && req.session.user) {
                 updateData.updatedBy = req.session.user.id || req.session.user.loginId || '';
             }
             const config = await ConfigModel.updateById(id, updateData);
+
+            // W-147: Update effective general cache when default config is updated
+            if (id === defaultDocName && config?.data?.general) {
+                ConfigModel.setEffectiveGeneralCache(config.data.general);
+            }
 
             // W-088: Publish generic config change event (notification-only pattern)
             // Subscribers (e.g., HandlebarController) will fetch fresh data from DB
@@ -337,7 +363,26 @@ class ConfigController {
             const existingConfig = await ConfigModel.findById(id);
             const isUpdate = !!existingConfig;
 
+            // W-147: Self-lockout prevention on upsert (when updating)
+            const incomingGeneral = configData?.data?.general;
+            if (isUpdate && incomingGeneral && Array.isArray(incomingGeneral.adminRoles)) {
+                const currentAdminRoles = existingConfig.data?.general?.adminRoles ?? [];
+                const userRoles = req.session?.user?.roles ?? [];
+                const userCurrentAdminRoles = userRoles.filter(r => currentAdminRoles.includes(r));
+                const userWouldKeepAdmin = userCurrentAdminRoles.some(r => incomingGeneral.adminRoles.includes(r));
+                if (userCurrentAdminRoles.length > 0 && !userWouldKeepAdmin) {
+                    LogController.logError(req, 'config.upsert', 'error: self-lockout attempt rejected');
+                    const message = global.i18n.translate(req, 'controller.config.configGeneralSelfLockout');
+                    return global.CommonUtils.sendError(req, res, 400, message, 'SELF_LOCKOUT');
+                }
+            }
+
             const config = await ConfigModel.upsert(id, configData);
+
+            // W-147: Update effective general cache when default config is upserted
+            if (id === defaultDocName && config?.data?.general) {
+                ConfigModel.setEffectiveGeneralCache(config.data.general);
+            }
 
             // W-088: Publish generic config change event (notification-only pattern)
             // Subscribers (e.g., HandlebarController) will fetch fresh data from DB

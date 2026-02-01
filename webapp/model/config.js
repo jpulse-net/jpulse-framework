@@ -3,8 +3,8 @@
  * @tagline         Config Model for jPulse Framework WebApp
  * @description     This is the config model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/config.js
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -13,20 +13,29 @@
  */
 
 import database from '../database.js';
+import CommonUtils from '../utils/common.js';
 
 /**
  * Config Model - handles site admin configuration with native MongoDB driver
  * Supports flat hierarchy: global config with department overrides
+ * W-147: Extendable schema (baseSchema + extendSchema), same pattern as UserModel
  */
 class ConfigModel {
     /**
-     * Schema definition for validation
+     * Base schema definition (framework)
+     * W-147: Includes data.general (roles, adminRoles); extended by plugins/sites via extendSchema()
      */
-    static schema = {
+    static baseSchema = {
         _id: { type: 'string', required: true },
         parent: { type: 'string', default: null },
         data: {
+            general: {
+                _meta: { order: 0 },   // W-147: tab order (data-driven config UI)
+                roles: { type: 'array', default: ['user', 'admin', 'root'] },
+                adminRoles: { type: 'array', default: ['admin', 'root'] }
+            },
             email: {
+                _meta: { order: 10 },
                 adminEmail: { type: 'string', default: '', validate: 'email' },
                 adminName: { type: 'string', default: '' },
                 smtpServer: { type: 'string', default: 'localhost' },
@@ -36,6 +45,7 @@ class ConfigModel {
                 useTls: { type: 'boolean', default: false }
             },
             broadcast: {
+                _meta: { order: 20 },
                 enable: { type: 'boolean', default: false },
                 message: { type: 'string', default: '' },     // broadcast message
                 nagTime: { type: 'number', default: 4 },      // hours, 0 to disable
@@ -43,6 +53,7 @@ class ConfigModel {
                 enabledAt: { type: 'date', default: null }    // timestamp of when enabled
             },
             manifest: {
+                _meta: { order: 30 },
                 // W-137+: Site manifest, used for jpulse.net integration and services
                 // On schema change, fix ensureManifestDefaults, applyDefaults, updateById functions
                 // and /admin/config.shtml view.
@@ -79,6 +90,104 @@ class ConfigModel {
     };
 
     /**
+     * Extended schema (base + plugin/site extensions) - computed at init
+     */
+    static schema = null;
+
+    /**
+     * Schema extensions registry (applied in order)
+     * Each extension is the raw object passed to extendSchema()
+     */
+    static schemaExtensions = [];
+
+    /**
+     * Initialize schema with plugin/site extensions
+     * Called during bootstrap after plugins are loaded
+     */
+    static initializeSchema() {
+        let schema = CommonUtils.deepMerge({}, this.baseSchema);
+        for (const extension of this.schemaExtensions) {
+            schema = this.applySchemaExtension(schema, extension);
+        }
+        this.schema = schema;
+    }
+
+    /**
+     * Deep merge extension into schema (extension blocks go under schema.data)
+     * @param {object} schema - Current schema
+     * @param {object} extension - Extension to apply, e.g. { myBlock: { _meta: {}, field: {} } }
+     * @returns {object} Merged schema
+     */
+    static applySchemaExtension(schema, extension) {
+        if (!schema.data) schema.data = {};
+        for (const [blockKey, blockDef] of Object.entries(extension)) {
+            if (blockKey.startsWith('_') || typeof blockDef !== 'object' || blockDef === null) continue;
+            schema.data[blockKey] = CommonUtils.deepMerge(schema.data[blockKey] || {}, blockDef);
+        }
+        return schema;
+    }
+
+    /**
+     * Plugin/site API to extend config schema (tab-scope: each extension = new tab)
+     * @param {object} extension - Schema extension, e.g. { myBlock: { _meta: { tabLabel, order }, field1: {...} } }
+     */
+    static extendSchema(extension) {
+        this.schemaExtensions.push(extension);
+        if (this.schema !== null) {
+            this.initializeSchema();
+        }
+    }
+
+    /**
+     * Get current schema (extended)
+     * @returns {object} Current schema (baseSchema if not yet initialized)
+     */
+    static getSchema() {
+        return this.schema !== null ? this.schema : this.baseSchema;
+    }
+
+    /**
+     * W-147: In-memory cache for effective roles (per-instance; multi-server: re-read from DB when cache empty or invalidated)
+     */
+    static _effectiveGeneralCache = { roles: ['user', 'admin', 'root'], adminRoles: ['admin', 'root'] };
+
+    /**
+     * W-147: Set effective general cache (called from HealthController.initialize and ConfigController after PUT)
+     * @param {object} general - data.general object with roles and adminRoles arrays
+     */
+    static setEffectiveGeneralCache(general) {
+        if (general && Array.isArray(general.roles) && Array.isArray(general.adminRoles)) {
+            const sortRoles = (arr) => [...arr].sort((a, b) => String(a).localeCompare(String(b)));
+            this._effectiveGeneralCache = { roles: sortRoles(general.roles), adminRoles: sortRoles(general.adminRoles) };
+        }
+    }
+
+    /**
+     * W-147: Clear effective general cache (e.g. after config update on another instance; next get will use fallback until refreshed)
+     */
+    static clearEffectiveGeneralCache() {
+        this._effectiveGeneralCache = { roles: ['user', 'admin', 'root'], adminRoles: ['admin', 'root'] };
+    }
+
+    /**
+     * W-147: Get effective admin roles (from cache; fallback to default when cache not populated)
+     * @returns {string[]} Array of role codes that count as admin
+     */
+    static getEffectiveAdminRoles() {
+        const arr = this._effectiveGeneralCache?.adminRoles ?? ['admin', 'root'];
+        return [...arr].sort((a, b) => String(a).localeCompare(String(b)));
+    }
+
+    /**
+     * W-147: Get effective roles (from cache; fallback to default when cache not populated)
+     * @returns {string[]} Array of role codes assignable at this config level
+     */
+    static getEffectiveRoles() {
+        const arr = this._effectiveGeneralCache?.roles ?? ['user', 'admin', 'root'];
+        return [...arr].sort((a, b) => String(a).localeCompare(String(b)));
+    }
+
+    /**
      * Get MongoDB collection
      * @returns {Collection} MongoDB collection instance
      */
@@ -109,8 +218,8 @@ class ConfigModel {
                 throw new Error(`Config document not found: ${id}`);
             }
 
-            // Extract manifest schema defaults from schema definition
-            const manifestSchema = this.schema.data.manifest;
+            // Extract manifest schema defaults from schema definition (W-147: getSchema() for extensible schema)
+            const manifestSchema = this.getSchema().data.manifest;
             const existingManifest = current.data?.manifest || {};
 
             // Build complete manifest by merging: existing > overrides > schema defaults
@@ -172,6 +281,45 @@ class ConfigModel {
     }
 
     /**
+     * W-147: Ensure general structure exists with schema defaults
+     * Atomic operation that initializes missing data.general from schema defaults (no app.conf read)
+     * Safe for concurrent calls (race condition safe)
+     *
+     * @param {string} id - Config document ID (typically 'global')
+     * @param {object} overrides - Optional field overrides (e.g., { 'adminRoles': ['admin', 'root', 'manager'] })
+     * @returns {Promise<object>} Updated config document with complete data.general
+     */
+    static async ensureGeneralDefaults(id, overrides = {}) {
+        try {
+            const collection = this.getCollection();
+            const current = await collection.findOne({ _id: id });
+            if (!current) {
+                throw new Error(`Config document not found: ${id}`);
+            }
+            const generalSchema = this.getSchema().data.general;
+            const existingGeneral = current.data?.general || {};
+            const sortRoles = (arr) => [...arr].sort((a, b) => String(a).localeCompare(String(b)));
+            const completeGeneral = {
+                roles: sortRoles(existingGeneral.roles ?? overrides.roles ?? (generalSchema?.roles?.default || ['user', 'admin', 'root'])),
+                adminRoles: sortRoles(existingGeneral.adminRoles ?? overrides.adminRoles ?? (generalSchema?.adminRoles?.default || ['admin', 'root']))
+            };
+            await collection.updateOne(
+                { _id: id },
+                {
+                    $set: {
+                        'data.general': completeGeneral,
+                        updatedAt: new Date()
+                    },
+                    $inc: { saveCount: 1 }
+                }
+            );
+            return await this.findById(id);
+        } catch (error) {
+            throw new Error(`Failed to ensure general defaults: ${error.message}`);
+        }
+    }
+
+    /**
      * Validate email format
      * @param {string} email - Email to validate
      * @returns {boolean} True if valid email format
@@ -203,6 +351,22 @@ class ConfigModel {
 
         // Validate data structure
         if (data.data) {
+            // W-147: Validate general (roles, adminRoles; adminRoles must be subset of roles)
+            if (data.data.general) {
+                const general = data.data.general;
+                if (general.roles !== undefined && !Array.isArray(general.roles)) {
+                    errors.push('data.general.roles must be an array');
+                }
+                if (general.adminRoles !== undefined && !Array.isArray(general.adminRoles)) {
+                    errors.push('data.general.adminRoles must be an array');
+                }
+                if (Array.isArray(general.roles) && Array.isArray(general.adminRoles)) {
+                    const notSubset = general.adminRoles.filter(r => !general.roles.includes(r));
+                    if (notSubset.length > 0) {
+                        errors.push(`data.general.adminRoles must be a subset of data.general.roles (invalid: ${notSubset.join(', ')})`);
+                    }
+                }
+            }
             // Validate email settings
             if (data.data.email) {
                 const email = data.data.email;
@@ -276,6 +440,11 @@ class ConfigModel {
         // Apply data structure defaults
         if (!result.data) result.data = {};
 
+        // W-147: Apply general defaults (roles, adminRoles)
+        if (!result.data.general) result.data.general = {};
+        if (result.data.general.roles === undefined) result.data.general.roles = ['user', 'admin', 'root'];
+        if (result.data.general.adminRoles === undefined) result.data.general.adminRoles = ['admin', 'root'];
+
         // Apply email defaults
         if (!result.data.email) result.data.email = {};
         if (result.data.email.adminEmail === undefined) result.data.email.adminEmail = '';
@@ -345,8 +514,21 @@ class ConfigModel {
     static async findById(id) {
         try {
             const collection = this.getCollection();
-            const result = await collection.findOne({ _id: id });
-            return result;
+            let doc = await collection.findOne({ _id: id });
+            if (!doc) return null;
+            // W-147: Sort roles and adminRoles on read (edit config and dropdowns show sorted; safe for legacy docs)
+            if (doc.data && doc.data.general) {
+                const g = doc.data.general;
+                const sortArr = (arr) => Array.isArray(arr) ? [...arr].sort((a, b) => String(a).localeCompare(String(b))) : arr;
+                doc = {
+                    ...doc,
+                    data: {
+                        ...doc.data,
+                        general: { ...g, roles: sortArr(g.roles), adminRoles: sortArr(g.adminRoles) }
+                    }
+                };
+            }
+            return doc;
         } catch (error) {
             throw new Error(`Failed to find config by ID: ${error.message}`);
         }
@@ -419,6 +601,13 @@ class ConfigModel {
             let updateData = this.prepareSaveData(data, true);
             updateData.saveCount = (current.saveCount || 0) + 1;
 
+            // W-147: Sort roles and adminRoles on write (edit config and dropdowns show sorted)
+            if (updateData.data && updateData.data.general) {
+                const g = updateData.data.general;
+                if (Array.isArray(g.roles)) g.roles = [...g.roles].sort((a, b) => String(a).localeCompare(String(b)));
+                if (Array.isArray(g.adminRoles)) g.adminRoles = [...g.adminRoles].sort((a, b) => String(a).localeCompare(String(b)));
+            }
+
             // Ensure nested data structure preserves empty strings
             // MongoDB $set with nested objects needs explicit field paths to preserve empty strings
             const setOperation = { $set: {} };
@@ -432,6 +621,11 @@ class ConfigModel {
 
             // Set nested data fields explicitly to preserve empty strings
             if (updateData.data) {
+                if (updateData.data.general) {
+                    Object.keys(updateData.data.general).forEach(key => {
+                        setOperation.$set[`data.general.${key}`] = updateData.data.general[key];
+                    });
+                }
                 if (updateData.data.email) {
                     Object.keys(updateData.data.email).forEach(key => {
                         setOperation.$set[`data.email.${key}`] = updateData.data.email[key];
@@ -468,6 +662,17 @@ class ConfigModel {
                         });
                     }
                 }
+                // W-147: Persist extension block data (schema-extended blocks)
+                const frameworkBlocks = ['general', 'email', 'broadcast', 'manifest'];
+                Object.keys(updateData.data).forEach(blockKey => {
+                    if (frameworkBlocks.includes(blockKey)) return;
+                    const blockData = updateData.data[blockKey];
+                    if (typeof blockData !== 'object' || blockData === null) return;
+                    Object.keys(blockData).forEach(key => {
+                        if (key === '_meta') return;
+                        setOperation.$set[`data.${blockKey}.${key}`] = blockData[key];
+                    });
+                });
             }
 
             // Update in database

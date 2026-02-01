@@ -3,30 +3,36 @@
  * @tagline         Unit tests for W-137 manifest storage and defaults
  * @description     Tests for ConfigModel.ensureManifestDefaults() and related schema behavior
  * @file            webapp/tests/unit/config/config-manifest.test.js
- * @version         1.6.3
- * @release         2026-01-31
+ * @version         1.6.4
+ * @release         2026-02-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.3, GPT-5.2
+ * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import { jest } from '@jest/globals';
 import ConfigModel from '../../../model/config.js';
 
 describe('ConfigModel W-137 manifest', () => {
+    beforeAll(() => {
+        if (!ConfigModel.getSchema()) ConfigModel.initializeSchema();
+    });
+
     afterEach(() => {
         jest.restoreAllMocks();
     });
 
     test('schema contains manifest and filters license key for all contexts', () => {
-        expect(ConfigModel.schema.data.manifest).toBeDefined();
-        expect(ConfigModel.schema.data.manifest.license).toBeDefined();
-        expect(ConfigModel.schema.data.manifest.compliance).toBeDefined();
+        const schema = ConfigModel.getSchema();
+        expect(schema).not.toBeNull();
+        expect(schema.data.manifest).toBeDefined();
+        expect(schema.data.manifest.license).toBeDefined();
+        expect(schema.data.manifest.compliance).toBeDefined();
 
-        const withoutAuth = ConfigModel.schema._meta.contextFilter.withoutAuth;
-        const withAuth = ConfigModel.schema._meta.contextFilter.withAuth;
+        const withoutAuth = schema._meta.contextFilter.withoutAuth;
+        const withAuth = schema._meta.contextFilter.withAuth;
 
         expect(withoutAuth).toContain('data.manifest.license.key');
         expect(withAuth).toContain('data.manifest.license.key');

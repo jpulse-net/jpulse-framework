@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.3
+# jPulse Docs / Dev / Work Items v1.6.4
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4571,16 +4571,54 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 ## 🚧 IN_PROGRESS Work Items
 
 ### W-147, v1.6.4, 2026-02-01: config model: make config schema extensible for site and plugin developers
-- status: 🕑 PENDING
+- status: 🚧 IN_PROGRESS
 - type: Feature
-- objective: offer a way to extend the schema for the site configuration in a data-driven way
+- design doc: docs/dev/design/W-147-make-config-schema-extensible.md
+- objective:
+  - extend the site config schema in a data-driven way (ConfigModel baseSchema + extendSchema, mirror UserModel)
+  - move roles and adminRoles into config model (General tab) so site admins can change them via Admin UI without editing app.conf
 - features:
-  - the config can be extended in a similar way like the existing user schema extension feature
-  - make it data driven, e.g. no need to modify webapp/view/admin/config.shtml when the schema is extended
+  - ConfigModel: baseSchema, schemaExtensions, extendSchema(), initializeSchema(), getSchema(); extensions = new config tabs
+  - general tab first with roles + adminRoles; bootstrap from schema defaults when data.general missing (no app.conf read)
+  - all roles/adminRoles consumers read only from config (ConfigModel cache); app.conf controller.user.adminRoles removed in this release (once code stable)
+  - admin config UI: data-driven tabs and panel content from schema (same as user config); validation adminRoles ⊆ roles; self-lockout prevention
+- decisions (reflected in design doc):
+  - effective assignable roles = site roles (config data.general.roles) + additional plugin/site extended roles
+  - app.conf: remove adminRoles in this release (once code stable)
+  - config tab panels: all data-driven from schema (same as existing user config)
+  - cache: implementation must work in multi-server multi-instance deployment (specific approach flexible)
 - deliverables:
-  - FIXME file:
-    - FIXME summary
-
+  - `webapp/model/config.js`:
+    - baseSchema, schemaExtensions, extendSchema(), initializeSchema(), getSchema(); data.general (roles, adminRoles)
+    - ensureGeneralDefaults(id); applyDefaults, validate, updateById for general; cache (location flexible); setEffectiveGeneralCache, getEffectiveAdminRoles(), getEffectiveRoles() — cache must work multi-server multi-instance
+  - `webapp/controller/health.js`:
+    - call ensureGeneralDefaults when data.general missing; set cache from globalConfig.data.general
+  - `webapp/controller/config.js`:
+    - invalidate/update cache on PUT default doc; self-lockout validation (admin cannot remove own admin role)
+  - `webapp/view/admin/config.shtml`:
+    - data-driven tabs and extension panels implemented
+    - tab list built from ConfigModel.getSchema().data (_meta.order), same as existing user config
+    - extension blocks get generic panel (string, number, boolean, array)-
+    - getFormData/populateForm and updateById persist extension block data
+    - general tab first
+  - `webapp/routes.js`, `webapp/controller/auth.js`, `webapp/controller/user.js`, `webapp/controller/cache.js`, `webapp/controller/health.js`, `webapp/controller/handlebar.js`, `webapp/controller/websocket.js`, `webapp/model/user.js`, `webapp/utils/site-controller-registry.js`:
+    - read adminRoles/roles from ConfigModel.getEffectiveAdminRoles(), ConfigModel.getEffectiveRoles() (no app.conf)
+  - `webapp/utils/bootstrap.js`:
+    - ConfigModel.initializeSchema() after UserModel.initializeSchema()
+  - `webapp/app.conf`:
+    - remove controller.user.adminRoles in this release (once code stable); no framework read
+  - `webapp/translations/en.conf`, `webapp/translations/de.conf`:
+    - general tab and field labels (view.admin.config.general.*)
+  - `webapp/tests/unit/config/config-model.test.js`:
+    - W-147 data.general validation
+  - `webapp/tests/unit/config/config-general.test.js`:
+    - schema, effective cache, sort on read/write, ensureGeneralDefaults, findById/updateById
+  - `webapp/tests/unit/config/config-manifest.test.js`:
+    - beforeAll ensure schema init
+  - `webapp/tests/integration/config-admin-roles.test.js`:
+    - admin edit roles, consumer behavior (getEffectiveAdminRoles → requireAdminRole)
+  - `docs/api-reference.md`:
+    - config model subsection: extendSchema, getEffectiveAdminRoles, getEffectiveRoles; admin roles from config note; Configuration Schema data.general + extensible
 
 
 
@@ -4615,8 +4653,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-diff.txt for accuracy and completness of work item
-- assume release: W-145, v1.6.3, 2026-01-31
-- update deliverables in W-145 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-147, v1.6.4, 2026-02-01
+- update deliverables in W-147 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4633,12 +4671,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.3
+node bin/bump-version.js 1.6.4
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.3
+git tag v1.6.4
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

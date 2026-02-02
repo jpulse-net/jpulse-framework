@@ -3,8 +3,8 @@
  * @tagline         Config Model for jPulse Framework WebApp
  * @description     This is the config model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/config.js
- * @version         1.6.4
- * @release         2026-02-01
+ * @version         1.6.5
+ * @release         2026-02-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -29,43 +29,93 @@ class ConfigModel {
         _id: { type: 'string', required: true },
         parent: { type: 'string', default: null },
         data: {
+            // Layout (don't make me think): maxColumns = block; startNewRow = position; fullWidth = size.
+            // - maxColumns: 1 → whole block single-column. No need for startNewRow/fullWidth on fields.
+            // - maxColumns: 2+ → fields can share rows.
+            // - startNewRow: true → "Break to a new row." Field still takes one column (e.g. 50% in 2-col);
+            //   the next field can sit beside it (e.g. useTls checkbox + Test email button).
+            // - fullWidth: true → "Span the full row width." Use with startNewRow when the field should be
+            //   alone on its row and full width (e.g. broadcast.enable). Textareas get fullWidth automatically.
             general: {
-                _meta: { order: 0 },   // W-147: tab order (data-driven config UI)
-                roles: { type: 'array', default: ['user', 'admin', 'root'] },
-                adminRoles: { type: 'array', default: ['admin', 'root'] }
+                _meta: {
+                    order: 0,
+                    tabLabel: '{{i18n.view.admin.config.general.label}}',
+                    description: '{{i18n.view.admin.config.general.description}}'
+                },
+                // W-148 Phase 3: inputType, pattern, normalize, subsetOf, label/placeholder (handlebar format)
+                roles: {
+                    type: 'array', default: ['user', 'admin', 'root'],
+                    inputType: 'tagInput', pattern: '[a-z0-9_-]+', normalize: 'lowercase',
+                    label: '{{i18n.view.admin.config.general.roles}}',
+                    placeholder: '{{i18n.view.admin.config.general.rolesPlaceholder}}'
+                },
+                adminRoles: {
+                    type: 'array', default: ['admin', 'root'],
+                    inputType: 'tagInput', pattern: '[a-z0-9_-]+', normalize: 'lowercase',
+                    subsetOf: 'general.roles',
+                    label: '{{i18n.view.admin.config.general.adminRoles}}',
+                    placeholder: '{{i18n.view.admin.config.general.adminRolesPlaceholder}}'
+                }
             },
             email: {
-                _meta: { order: 10 },
-                adminEmail: { type: 'string', default: '', validate: 'email' },
-                adminName: { type: 'string', default: '' },
-                smtpServer: { type: 'string', default: 'localhost' },
-                smtpPort: { type: 'number', default: 25 },
-                smtpUser: { type: 'string', default: '' },
-                smtpPass: { type: 'string', default: '' },
-                useTls: { type: 'boolean', default: false }
+                _meta: {
+                    order: 10,
+                    tabLabel: '{{i18n.view.admin.config.email.label}}',
+                    description: '{{i18n.view.admin.config.email.description}}',
+                    maxColumns: 2
+                },
+                adminEmail: { type: 'string', default: '', validate: 'email', label: '{{i18n.view.admin.config.email.adminEmail}}', placeholder: 'admin@example.com' },
+                adminName: { type: 'string', default: '', label: '{{i18n.view.admin.config.email.adminName}}', placeholder: 'Site Administrator' },
+                smtpServer: { type: 'string', default: 'localhost', label: '{{i18n.view.admin.config.email.smtpServer}}', placeholder: 'localhost' },
+                smtpPort: { type: 'number', default: 25, label: '{{i18n.view.admin.config.email.smtpPort}}', placeholder: '25' },
+                smtpUser: { type: 'string', default: '', label: '{{i18n.view.admin.config.email.smtpUser}}', placeholder: 'username' },
+                smtpPass: { type: 'string', default: '', inputType: 'password', sensitive: true, label: '{{i18n.view.admin.config.email.smtpPass}}', placeholder: 'password' },
+                useTls: { type: 'boolean', default: false, label: '{{i18n.view.admin.config.email.useTls}}', startNewRow: true },
+                testEmail: { type: 'button', scope: ['view'], label: '{{i18n.view.admin.config.testEmail}}', title: '{{i18n.view.admin.config.testEmailDesc}}', action: 'testEmail' }
             },
             broadcast: {
-                _meta: { order: 20 },
-                enable: { type: 'boolean', default: false },
-                message: { type: 'string', default: '' },     // broadcast message
-                nagTime: { type: 'number', default: 4 },      // hours, 0 to disable
-                disableTime: { type: 'number', default: 0 },  // hours, 0 for no auto-disable
-                enabledAt: { type: 'date', default: null }    // timestamp of when enabled
+                _meta: {
+                    order: 20,
+                    tabLabel: '{{i18n.view.admin.config.broadcast.label}}',
+                    description: '{{i18n.view.admin.config.broadcast.description}}',
+                    maxColumns: 2
+                },
+                enable: { type: 'boolean', default: false, label: '{{i18n.view.admin.config.broadcast.enable}}', startNewRow: true, fullWidth: true },
+                message: { type: 'string', default: '', inputType: 'textarea', label: '{{i18n.view.admin.config.broadcast.message}}', placeholder: '{{i18n.view.admin.config.broadcast.messagePlaceholder}}', startNewRow: true, rows: 6 },
+                nagTime: { type: 'number', default: 4, inputType: 'select', label: '{{i18n.view.admin.config.broadcast.nagTime}}', help: '{{i18n.view.admin.config.broadcast.nagTimeDesc}}', options: [{ value: 0 }, { value: 1 }, { value: 2 }, { value: 4 }, { value: 8 }] },
+                disableTime: { type: 'number', default: 0, inputType: 'select', label: '{{i18n.view.admin.config.broadcast.disableTime}}', help: '{{i18n.view.admin.config.broadcast.disableTimeDesc}}', options: [{ value: 0 }, { value: 1 }, { value: 2 }, { value: 4 }, { value: 8 }, { value: 12 }, { value: 24 }, { value: 48 }] },
+                enabledAt: { type: 'date', default: null, scope: ['model'] }
             },
             manifest: {
-                _meta: { order: 30 },
+                _meta: {
+                    order: 30,
+                    tabLabel: '{{i18n.view.admin.config.manifest.label}}',
+                    description: '{{i18n.view.admin.config.manifest.description}}',
+                    maxColumns: 2
+                },
                 // W-137+: Site manifest, used for jpulse.net integration and services
-                // On schema change, fix ensureManifestDefaults, applyDefaults, updateById functions
-                // and /admin/config.shtml view.
                 license: {
-                    key: { type: 'string', default: '' },     // Commercial license key
-                    tier: { type: 'string', default: 'bsl',
-                        enum: ['bsl', 'commercial', 'enterprise'] }
+                    key: { type: 'string', default: '', inputType: 'password', label: '{{i18n.view.admin.config.manifest.licenseKey}}', placeholder: '{{i18n.view.admin.config.manifest.licenseKeyPlaceholder}}' },
+                    tier: {
+                        type: 'string', default: 'bsl',
+                        enum: ['bsl', 'commercial', 'enterprise'],
+                        inputType: 'select',
+                        label: '{{i18n.view.admin.config.manifest.licenseTier}}',
+                        options: [
+                            { value: 'bsl', label: '{{i18n.view.admin.config.manifest.licenseTierBsl}}' },
+                            { value: 'commercial', label: '{{i18n.view.admin.config.manifest.licenseTierCommercial}}' },
+                            { value: 'enterprise', label: '{{i18n.view.admin.config.manifest.licenseTierEnterprise}}' }
+                        ]
+                    }
                 },
                 compliance: {
-                    siteUuid: { type: 'string', default: '',
-                        pattern: '^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$' },
-                    adminEmailOptIn: { type: 'boolean', default: false }
+                    siteUuid: { type: 'string', default: '', readonly: true, label: '{{i18n.view.admin.config.manifest.siteUuid}}', placeholder: 'Auto-generated',
+                        pattern: '^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$',
+                        help: '{{i18n.view.admin.config.manifest.siteUuidHelp}}' },
+                    adminEmailOptIn: { type: 'boolean', default: false, label: '{{i18n.view.admin.config.manifest.adminEmailOptIn}}', help: '{{i18n.view.admin.config.manifest.adminEmailOptInDesc}}', inputType: 'select', options: [
+                        { value: false, label: '{{i18n.view.admin.config.manifest.adminEmailOptInNo}}' },
+                        { value: true, label: '{{i18n.view.admin.config.manifest.adminEmailOptInYes}}' }
+                    ] }
                 }
             }
         },
@@ -411,7 +461,8 @@ class ConfigModel {
                 if (broadcast.disableTime !== undefined && (typeof broadcast.disableTime !== 'number' || broadcast.disableTime < 0)) {
                     errors.push('data.broadcast.disableTime must be a number >= 0');
                 }
-                if (broadcast.enabledAt !== undefined && broadcast.enabledAt !== null && !(broadcast.enabledAt instanceof Date)) {
+                if (broadcast.enabledAt !== undefined && broadcast.enabledAt !== null &&
+                    !(broadcast.enabledAt instanceof Date)) {
                     errors.push('data.broadcast.enabledAt must be a Date object or null');
                 }
             }

@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.6.4
- * @release         2026-02-01
+ * @version         1.6.5
+ * @release         2026-02-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1481,6 +1481,149 @@ body {
     outline: none;
     border-color: var(--jp-theme-color-primary, #007acc);
     box-shadow: 0 0 0 2px var(--jp-theme-focus-ring, rgba(0, 122, 204, 0.2));
+}
+
+/* Schema-driven form / flow layout (jPulse.UI.tabs.renderTabsAndPanelsFromSchema, _renderSchemaBlockFields) */
+.jp-form-flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+.jp-form-flow-cols-1 .jp-schema-field {
+    flex: 1 1 100%;
+}
+.jp-form-flow-cols-2 .jp-schema-field {
+    flex: 1 1 calc(50% - 10px);
+    min-width: 200px;
+}
+.jp-form-flow-cols-3 .jp-schema-field {
+    flex: 1 1 calc(33.333% - 14px);
+    min-width: 160px;
+}
+.jp-form-flow .jp-schema-field-new-row {
+    clear: both;
+}
+.jp-form-flow .jp-schema-field-full {
+    flex-basis: 100%;
+    width: 100%;
+}
+.jp-panel-description {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--jp-theme-text-primary, #333);
+    margin-bottom: 15px;
+}
+.jp-checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.jp-checkbox-group input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+.jp-checkbox-group label {
+    margin: 0;
+    font-weight: normal;
+}
+.jp-password-field {
+    position: relative;
+}
+.jp-password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--jp-theme-text-secondary, #666);
+    font-size: 14px;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.jp-password-toggle:hover {
+    color: var(--jp-theme-color-primary, #007acc);
+}
+.jp-schema-section {
+    margin-bottom: 30px;
+}
+@media (max-width: 768px) {
+    .jp-form-flow-cols-2 .jp-schema-field,
+    .jp-form-flow-cols-3 .jp-schema-field {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+}
+
+/* Tag input widget (W-148): wrapper looks like single input; tags as pills */
+.jp-taginput-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    min-height: 42px;
+    border: 1px solid var(--jp-theme-border-dark, #ddd);
+    border-radius: 4px;
+    background: var(--jp-theme-bg-primary, #fff);
+    font-size: 14px;
+}
+.jp-taginput-wrap:focus-within {
+    outline: none;
+    border-color: var(--jp-theme-color-primary, #007acc);
+    box-shadow: 0 0 0 2px var(--jp-theme-focus-ring, rgba(0, 122, 204, 0.2));
+}
+/* Value store: hidden so comma-space list is not shown alongside chips */
+.jp-taginput-wrap .jp-taginput-value {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+.jp-taginput-wrap .jp-form-input:not(.jp-taginput-value) {
+    flex: 1 1 120px;
+    min-width: 120px;
+    border: none;
+    padding: 4px 8px;
+    box-shadow: none;
+    background: transparent;
+}
+.jp-taginput-wrap .jp-form-input:not(.jp-taginput-value):focus {
+    box-shadow: none;
+}
+.jp-taginput-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--jp-theme-bg-secondary, #e9ecef);
+    color: var(--jp-theme-text-primary, #333);
+}
+.jp-taginput-tag-remove {
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1.1em;
+    line-height: 1;
+    color: var(--jp-theme-text-muted, #999);
+    opacity: 0.85;
+}
+.jp-taginput-tag-remove:hover {
+    color: var(--jp-theme-color-danger, #dc3545);
+    opacity: 1;
 }
 
 .jp-form-grid {

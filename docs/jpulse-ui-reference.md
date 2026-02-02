@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.4
+# jPulse Docs / jPulse.UI Widget Reference v1.6.5
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -10,6 +10,7 @@ Complete reference documentation for all `jPulse.UI.*` widgets available in the 
 - [Collapsible Components](#collapsible-components) - Expandable/collapsible sections
 - [Accordion Component](#accordion-component) - Grouped sections with mutual exclusion
 - [Tab Interface](#tab-interface) - Navigation and panel tabs
+- [Input utilities (tagInput, setFormData, getFormData)](#input-utilities-taginput-setformdata-getformdata) - tagInput widget, setAllValues/getAllValues, setFormData/getFormData
 - [Source Code Display](#source-code-display) - Syntax-highlighted code blocks
 - [Tooltip Component](#tooltip-component) - Helpful tooltips on any element
 - [Pagination Helper](#pagination-helper) - Cursor-based pagination state management
@@ -505,6 +506,115 @@ const panelTabs = jPulse.UI.tabs.register('content-tabs', {
 - **Responsive design**: Scroll on mobile, wrap on desktop
 - **Slide animations**: Smooth transitions for panel tabs
 - **Icon support**: Optional icons for tab labels
+
+---
+
+## Input utilities (tagInput, setFormData, getFormData)
+
+Input widgets and form-data helpers under `jPulse.UI.input`: tagInput for list-in-one-input (e.g. roles), and setAllValues, getAllValues / setFormData, getFormData for schema-driven config forms. See also [Schema-driven config forms](front-end-development.md#-schema-driven-config-forms) in the Front-End Development Guide.
+
+### tagInput widget
+
+Manage a list of items (tags/chips) in a single `<input>`: type a word and press Enter to add a tag; each tag has an "x" to remove. Value is stored as comma-space string in the input element; init and read like any HTML input.
+
+#### `jPulse.UI.input.tagInput.init(selectorOrElement)`
+
+Enhance an existing `<input>` as a tagInput. The element remains the value store (e.g. for getFormData). Add `data-taginput` and optionally `data-pattern` (e.g. `[a-z0-9_-]+` for roles).
+
+**Parameters:** `selectorOrElement` (string|Element) - CSS selector or DOM element
+
+**Example:**
+```javascript
+const input = document.querySelector('#roles');
+jPulse.UI.input.tagInput.init(input);
+// After populateForm:
+jPulse.UI.input.initAll(configForm);
+```
+
+#### `jPulse.UI.input.tagInput.parseValue(str)`
+
+Static: string → array. Splits on newline, CR, or comma; trims; filters empty; dedupes; sorts. Use when reading for getFormData or getAllValues.
+
+**Parameters:** `str` (string) - Comma-space or newline-separated string
+
+**Returns:** `Array<string>`
+
+**Example:** `jPulse.UI.input.tagInput.parseValue('admin, user, root')` → `['admin', 'root', 'user']`
+
+#### `jPulse.UI.input.tagInput.formatValue(arr)`
+
+Static: array → comma-space string. Sorts then joins with `', '`. Use when setting in setFormData or setAllValues.
+
+**Parameters:** `arr` (Array) - Array of strings
+
+**Returns:** `string`
+
+**Example:** `jPulse.UI.input.tagInput.formatValue(['admin', 'user'])` → `'admin, user'`
+
+#### `jPulse.UI.input.initAll(container?)`
+
+Namespace-level: inits all input widget types in container (e.g. `[data-taginput]` → tagInput.init). One call after populateForm; no listing ids.
+
+**Parameters:** `container` (Element|undefined) - Form or container; defaults to `document` if omitted
+
+---
+
+### setAllValues / getAllValues
+
+Set or read form field values by `data-path`. No schema; use when you have a flat or known data shape.
+
+#### `jPulse.UI.input.setAllValues(form, data)`
+
+Set all form field values from a data object. For each field with `data-path`, assigns value from `data` by path. **Checkboxes:** sets `el.checked` from value (true/false). **tagInput:** uses `tagInput.formatValue(value)` then sets `el.value`. **Others:** sets `el.value` from `String(value)`.
+
+**Parameters:**
+- `form` (HTMLFormElement|Element) - Form or container
+- `data` (Object) - Data keyed by path (e.g. `{ general: { roles: ['admin', 'user'] }, email: { adminEmail: 'a@b.com' } }`)
+
+**Example:** `jPulse.UI.input.setAllValues(configForm, formData);`
+
+#### `jPulse.UI.input.getAllValues(form)`
+
+Build a data object from form fields. For each field with `data-path`: **checkboxes** → `el.checked` (boolean); **tagInput** → `tagInput.parseValue(el.value)`; **others** → `el.value`. Assigns into result by path (setByPath).
+
+**Parameters:** `form` (HTMLFormElement|Element) - Form or container
+
+**Returns:** `Object` - Data keyed by path
+
+**Example:** `const data = jPulse.UI.input.getAllValues(configForm);`
+
+**Convention:** Fields need `data-path` (e.g. `data-path="general.roles"`). tagInput fields also need `data-taginput`.
+
+---
+
+### setFormData / getFormData
+
+One-line populate and get with schema: applies defaults, coercion (number, boolean), and normalize (e.g. lowercase) from the schema. Use when you have a complete schema (e.g. from API with `includeSchema: true`).
+
+#### `jPulse.UI.input.setFormData(form, data, schema)`
+
+Applies schema defaults and `normalize` to `data`, then calls `setAllValues(form, result)`. Use for populateForm when you have config + schema.
+
+**Parameters:**
+- `form` (HTMLFormElement|Element) - Form or container
+- `data` (Object) - Config data (e.g. `config.data`)
+- `schema` (Object) - Resolved schema with `schema.data` (block definitions with field defs)
+
+**Example:** `jPulse.UI.input.setFormData(configForm, config.data, configSchema);`
+
+#### `jPulse.UI.input.getFormData(form, schema)`
+
+Calls `getAllValues(form)`, then coerces by `schema.type` (number, boolean) and applies `schema.normalize`. Returns `{ data: result }` for API payload.
+
+**Parameters:**
+- `form` (HTMLFormElement|Element) - Form or container
+- `schema` (Object) - Resolved schema with `schema.data`
+
+**Returns:** `Object` - `{ data: Object }` suitable for PUT /api/1/config
+
+**Example:** `const payload = jPulse.UI.input.getFormData(configForm, configSchema); await jPulse.api.put('/api/1/config', payload);`
+
+**When to use:** Use **setFormData/getFormData** when you have a complete schema and want one-line set/get with defaults and coercion. Use **setAllValues/getAllValues** when you have no schema or apply defaults yourself.
 
 ---
 

@@ -1,4 +1,4 @@
-# jPulse Docs / Generative-AI Instructions for AI Assistants v1.6.4
+# jPulse Docs / Generative-AI Instructions for AI Assistants v1.6.5
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
@@ -51,6 +51,7 @@ Instructions for AI assistants working with jPulse Framework site development. T
    - Create site utilities in `site/webapp/view/jpulse-common.js` if needed (appended to framework JS)
    - Never modify `webapp/view/jpulse-common.js` (framework-managed)
    - See [jPulse.UI Widget Reference](jpulse-ui-reference.md)
+   - **Config-style forms**: Use schema-driven tabs/panels and setFormData/getFormData; see [Schema-driven config forms](front-end-development.md#-schema-driven-config-forms) in the Front-End Development Guide
 
 7. **ISO Dates**: Always use YYYY-MM-DD format via `jPulse.date.formatLocalDate()`
    - Never use browser's toLocaleDateString() or localized formats

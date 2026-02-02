@@ -1,4 +1,4 @@
-# jPulse Framework v1.6.4
+# jPulse Framework v1.6.5
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -81,7 +81,7 @@ npm start
 - **Health Metrics**: Aggregated across instances on all app servers
 - **Enterprise Security**: Built-in authentication, session management, security headers, and HTML sanitization
 - **Internationalization**: Complete i18n support with dynamic translation loading
-- **Testing Framework**: 2000+ tests with automated cleanup and isolation
+- **Testing Framework**: 2100+ tests with automated cleanup and isolation
 - **Production Ready**: nginx integration, PM2 clustering, MongoDB replica sets
 
 ## Deployment Requirements
@@ -204,6 +204,7 @@ Business Source License 1.1 with Additional Terms
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.5 - Schema-Driven Config Forms & tagInput (W-148)**: tagInput widget for list-in-one-input (e.g. roles); schema-driven config with one-line `setFormData`/`getFormData` and `renderTabsAndPanelsFromSchema` (tabs, flow layout, virtual buttons); Admin config unified from single schema; roles/adminRoles use tagInput with slug pattern. W-148, 2026-02-02
 - ✅ **Version 1.6.4 - Config Schema Extensible (W-147)**: Site config schema is extensible for site and plugin developers. ConfigModel gets `extendSchema(extension)` (tab scope)—each extension block becomes a new tab in Admin → Site Configuration. General tab added with roles and adminRoles; bootstrap from schema defaults when missing (no app.conf read). All admin/roles consumers read from ConfigModel cache: `getEffectiveAdminRoles()`, `getEffectiveRoles()` (sync, cached). Admin config UI is data-driven from schema (tabs + panels); validation adminRoles ⊆ roles; self-lockout prevention. app.conf `controller.user.adminRoles` removed; framework does not read it. Unit tests: config-model, config-general, config-manifest; integration: config-admin-roles. Docs: api-reference (Config model subsection, extendSchema, getEffective*). W-147, 2026-02-01
 - ✅ **Version 1.6.3 - Handlebars Load Components (W-145)**: Server-side API to load and extract registered components from a template file without rendering. Use for email templates (subject/text/html in one file), multi-language content, or any structured data. `HandlebarController.loadComponents(req, assetPath, context)` returns `{ success, error?, components }`; dot notation in `{{#component "email.subject"}}` becomes nested keys. Path via `PathResolver.resolveAsset()` (site overrides supported). API-style return (never throws). Docs: api-reference (full), template-reference, sending-email, genai-instructions (blurbs + links). Unit tests with fixture under tests/fixtures; PathResolver mocked in test only. W-145, 2026-01-31
 - ✅ **Version 1.6.2 - Redis Multi-Site Namespacing (W-146)**: Site-specific namespace isolation for Redis keys to prevent cross-contamination in multi-site deployments. Auto-prepend `${siteId}:${mode}:` prefix to all Redis keys using `app.siteId` from config (or slugified `app.site.shortName`) + `deployment.mode`. Example keys: `bubblemap-net:prod:sess:abc123`, `jpulse-net:dev:bc:controller:config:data:changed`. Extracted `CommonUtils.slugifyString()` from HandlebarController for reusability. Modified `RedisManager.getKey()` to compute and prepend namespace automatically. Health metrics aggregation now filters by matching `siteId:mode` namespace. Bug fixes: Replaced 4 raw Redis operations in health.js with `RedisManager.cacheGetObject/SetObject()`, fixed 2 instances set key operations to use `getKey()`. Added `app.siteId: 'jpulse-framework'` to default app.conf, production uses `JPULSE_SITE_ID` env var. Breaking change: Invalidates all existing Redis keys on upgrade (sessions cleared, cache rebuilt, metrics reset). Updated cache-infrastructure.md, installation.md, deployment.md, api-reference.md. Complete unit and integration tests. W-146, 2026-01-30.

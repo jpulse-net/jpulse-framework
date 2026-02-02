@@ -3,8 +3,8 @@
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/utils/i18n.js
- * @version         1.6.4
- * @release         2026-02-01
+ * @version         1.6.5
+ * @release         2026-02-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -342,6 +342,31 @@ class I18n {
     }
 
     /**
+     * Expand a single i18n handlebar expression to translated string (shared by expandI18nHandlebars and expandI18nDeep)
+     * @param {object} req - Express request object
+     * @param {string} expression - Inner part of handlebar, e.g. 'i18n.view.admin.config.general.roles'
+     * @returns {string} Translated string or original match on failure
+     */
+    _expandI18nExpression(req, expression) {
+        try {
+            const cleanExpression = expression.replace(/^@/, '');
+            const parts = cleanExpression.split(/\s+/);
+            const key = parts[0].replace('i18n.', '');
+            let params = {};
+            if (parts.length > 1) {
+                try {
+                    params = JSON.parse(parts.slice(1).join(' '));
+                } catch (e) {
+                    params = {};
+                }
+            }
+            return this.translate(req, key, params);
+        } catch (error) {
+            return `{{${expression}}}`;
+        }
+    }
+
+    /**
      * Expand only i18n handlebars in content, leaving other handlebars untouched
      * This is used to preprocess i18n translations before main template processing
      * @param {object} req - Express request object (for user language preference)
@@ -349,36 +374,36 @@ class I18n {
      * @returns {string} Content with i18n handlebars expanded
      */
     expandI18nHandlebars(req, content) {
-        // Only process {{i18n.}} and {{@i18n.}} handlebars
         return content.replace(/\{\{(@?i18n\.[^}]+)\}\}/g, (match, expression) => {
-            try {
-                // Remove @ prefix if present (for escaped handlebars)
-                const cleanExpression = expression.replace(/^@/, '');
-
-                // Parse i18n key and parameters
-                const parts = cleanExpression.split(/\s+/);
-                const key = parts[0].replace('i18n.', '');
-
-                // Extract parameters if any
-                let params = {};
-                if (parts.length > 1) {
-                    // Simple parameter parsing - could be enhanced if needed
-                    const paramString = parts.slice(1).join(' ');
-                    try {
-                        params = JSON.parse(paramString);
-                    } catch (e) {
-                        // If JSON parsing fails, use empty params
-                        params = {};
-                    }
-                }
-
-                // Use the translate method - this handles user language preferences automatically
-                return this.translate(req, key, params);
-            } catch (error) {
-                // Return original match if translation fails
-                return match;
-            }
+            return this._expandI18nExpression(req, expression);
         });
+    }
+
+    /**
+     * Deep-expand i18n handlebars in an object. Walks the object recursively; for any string value
+     * that contains the full handlebar pattern {{i18n....}}, replaces it with the translated string.
+     * Consistent with expandI18nHandlebars: only full handlebar pattern is expanded. No third param.
+     * @param {object} req - Express request object (for user language preference)
+     * @param {*} obj - Object (or array, or string) to expand
+     * @returns {*} New structure with i18n handlebars in string values expanded
+     */
+    expandI18nDeep(req, obj) {
+        if (typeof obj === 'string') {
+            return obj.replace(/\{\{(@?i18n\.[^}]+)\}\}/g, (match, expression) => {
+                return this._expandI18nExpression(req, expression);
+            });
+        }
+        if (Array.isArray(obj)) {
+            return obj.map((item) => this.expandI18nDeep(req, item));
+        }
+        if (obj !== null && typeof obj === 'object' && !(obj instanceof Date)) {
+            const out = {};
+            for (const [k, v] of Object.entries(obj)) {
+                out[k] = this.expandI18nDeep(req, v);
+            }
+            return out;
+        }
+        return obj;
     }
 }
 

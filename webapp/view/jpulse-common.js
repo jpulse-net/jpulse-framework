@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.4
- * @release         2026-02-01
+ * @version         1.6.5
+ * @release         2026-02-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -541,6 +541,72 @@ window.jPulse = {
             return div.innerHTML;
         },
 
+        /**
+         * Sanitize HTML from trusted sources (framework, plugin, site). Use for schema descriptions, config text, etc.
+         * @param {string} html - HTML string
+         * @param {boolean} [strict=false] - If true, whitelist only a, strong, em, br (and href/target on <a>). If false, strip only dangerous content (script, iframe, object, embed, form, style, on* attributes, javascript: URLs).
+         * @returns {string} Sanitized HTML string
+         */
+        sanitizeHtml: (html, strict) => {
+            if (!html || typeof html !== 'string') return '';
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            const dangerousTags = ['SCRIPT', 'IFRAME', 'OBJECT', 'EMBED', 'FORM', 'STYLE'];
+            const strictAllowed = { A: ['href', 'target'], STRONG: [], EM: [], BR: [] };
+
+            const stripDangerous = (parent) => {
+                const nodes = Array.from(parent.childNodes);
+                nodes.forEach((node) => {
+                    if (node.nodeType === Node.TEXT_NODE) return;
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        const tag = node.tagName;
+                        if (dangerousTags.indexOf(tag) !== -1) {
+                            parent.replaceChild(document.createTextNode(node.textContent || ''), node);
+                            return;
+                        }
+                        Array.from(node.attributes).forEach((attr) => {
+                            const name = attr.name.toLowerCase();
+                            if (name.startsWith('on')) {
+                                node.removeAttribute(attr.name);
+                                return;
+                            }
+                            const val = (attr.value || '').trim().toLowerCase();
+                            if ((name === 'href' || name === 'src') && (val.startsWith('javascript:') || val.startsWith('data:'))) {
+                                node.removeAttribute(attr.name);
+                            }
+                        });
+                        stripDangerous(node);
+                    }
+                });
+            };
+
+            const strictWhitelist = (parent) => {
+                const nodes = Array.from(parent.childNodes);
+                nodes.forEach((node) => {
+                    if (node.nodeType === Node.TEXT_NODE) return;
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        const tag = node.tagName;
+                        if (!strictAllowed[tag]) {
+                            parent.replaceChild(document.createTextNode(node.textContent || ''), node);
+                            return;
+                        }
+                        const keepAttrs = strictAllowed[tag];
+                        Array.from(node.attributes).forEach((attr) => {
+                            if (keepAttrs.indexOf(attr.name.toLowerCase()) === -1) node.removeAttribute(attr.name);
+                        });
+                        strictWhitelist(node);
+                    }
+                });
+            };
+
+            if (strict) {
+                strictWhitelist(div);
+            } else {
+                stripDangerous(div);
+            }
+            return div.innerHTML;
+        },
+
         capitalize: (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : str,
 
         slugify: (str) => str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -878,6 +944,347 @@ window.jPulse = {
                         jPulse.UI._toastQueue.splice(index, 1);
                     }
                 }, 600); // Match the longer animation time
+            }
+        },
+
+        // ========================================
+        // jPulse.UI.input: form input widgets (W-148)
+        // ========================================
+        input: {
+            /**
+             * Init all input widget types in container (e.g. [data-taginput] -> tagInput).
+             * @param {Element|string} container - Container element or selector (optional; default document)
+             */
+            initAll: (container = null) => {
+                const root = container ? (typeof container === 'string' ? document.querySelector(container) : container) : document;
+                if (!root) return;
+                root.querySelectorAll('[data-taginput]').forEach((el) => {
+                    try {
+                        jPulse.UI.input.tagInput.init(el);
+                    } catch (_) {
+                        // Skip element if init fails (e.g. invalid data-pattern, DOM issue)
+                    }
+                });
+            },
+
+            /**
+             * Get value from object by dotted path (e.g. 'general.roles' -> obj.general.roles).
+             * @param {Object} obj - Source object
+             * @param {string} path - Dotted path
+             * @returns {*}
+             */
+            getByPath: (obj, path) => {
+                if (!obj || !path || typeof path !== 'string') return undefined;
+                const parts = path.trim().split('.');
+                let cur = obj;
+                for (let i = 0; i < parts.length; i++) {
+                    if (cur == null) return undefined;
+                    cur = cur[parts[i]];
+                }
+                return cur;
+            },
+
+            /**
+             * Set value on object by dotted path (e.g. 'general.roles' -> obj.general.roles = value).
+             * @param {Object} obj - Target object
+             * @param {string} path - Dotted path
+             * @param {*} value - Value to set
+             */
+            setByPath: (obj, path, value) => {
+                if (!obj || !path || typeof path !== 'string') return;
+                const parts = path.trim().split('.');
+                let cur = obj;
+                for (let i = 0; i < parts.length - 1; i++) {
+                    const key = parts[i];
+                    if (cur[key] == null || typeof cur[key] !== 'object') cur[key] = {};
+                    cur = cur[key];
+                }
+                if (parts.length > 0) cur[parts[parts.length - 1]] = value;
+            },
+
+            /**
+             * Set form field values from a data object. Fields with data-path are set from data by path;
+             * fields with data-taginput get tagInput.formatValue(value) before setting.
+             * @param {HTMLFormElement|Element} form - Form or container element
+             * @param {Object} data - Data object (e.g. { general: { roles: [], adminRoles: [] } })
+             */
+            setAllValues: (form, data) => {
+                const root = form && (form.nodeName === 'FORM' ? form : form);
+                if (!root || !data || typeof data !== 'object') return;
+                root.querySelectorAll('[data-path]').forEach((el) => {
+                    const path = (el.dataset.path || el.getAttribute('data-path') || '').trim();
+                    if (!path) return;
+                    const value = jPulse.UI.input.getByPath(data, path);
+                    if (el.type === 'checkbox') {
+                        el.checked = value === true || value === 'true';
+                        return;
+                    }
+                    const isTagInput = el.hasAttribute('data-taginput');
+                    const displayValue = isTagInput && Array.isArray(value)
+                        ? jPulse.UI.input.tagInput.formatValue(value)
+                        : (value !== undefined && value !== null ? String(value) : '');
+                    el.value = displayValue;
+                });
+            },
+
+            /**
+             * Build a data object from form fields. Fields with data-path are read; fields with
+             * data-taginput get tagInput.parseValue(el.value). Result is nested by path.
+             * @param {HTMLFormElement|Element} form - Form or container element
+             * @returns {Object} Data object (e.g. { general: { roles: [], adminRoles: [] } })
+             */
+            getAllValues: (form) => {
+                const root = form && (form.nodeName === 'FORM' ? form : form);
+                const result = {};
+                if (!root) return result;
+                root.querySelectorAll('[data-path]').forEach((el) => {
+                    const path = (el.dataset.path || el.getAttribute('data-path') || '').trim();
+                    if (!path) return;
+                    const value = el.type === 'checkbox'
+                        ? el.checked
+                        : (el.hasAttribute('data-taginput') ? jPulse.UI.input.tagInput.parseValue(el.value) : el.value);
+                    jPulse.UI.input.setByPath(result, path, value);
+                });
+                return result;
+            },
+
+            /**
+             * Walk schema and collect (path, fieldDef) for every leaf field.
+             * @param {Object} block - Schema block (e.g. schema.data or nested block)
+             * @param {string} prefix - Dotted path prefix (e.g. 'general', 'manifest.license')
+             * @param {string} [context] - 'view' (form render: skip scope ['model'] only) or 'data' (getFormData/setFormData: skip scope ['view'] only); omit = include all
+             * @returns {Array<{path: string, fieldDef: Object}>}
+             */
+            _walkSchemaFields: (block, prefix, context) => {
+                const out = [];
+                if (!block || typeof block !== 'object') return out;
+                for (const [k, v] of Object.entries(block)) {
+                    if (k === '_meta') continue;
+                    const path = prefix ? prefix + '.' + k : k;
+                    if (v && typeof v === 'object' && (v.type !== undefined || v.inputType !== undefined)) {
+                        if (context === 'view' && v.scope && Array.isArray(v.scope) && !v.scope.includes('view')) continue;
+                        if (context === 'data' && v.scope && Array.isArray(v.scope) && !v.scope.includes('model')) continue;
+                        out.push({ path, fieldDef: v });
+                    } else if (v && typeof v === 'object' && !Array.isArray(v)) {
+                        out.push(...jPulse.UI.input._walkSchemaFields(v, path, context));
+                    }
+                }
+                return out;
+            },
+
+            /**
+             * Set form from data using schema: apply defaults and normalize, then setAllValues.
+             * Use when you have a complete schema (e.g. from API with includeSchema). One-line populate.
+             * @param {HTMLFormElement|Element} form - Form or container element
+             * @param {Object} data - Data object (e.g. config.data)
+             * @param {Object} schema - Schema with schema.data (complete; no framework/extension distinction)
+             */
+            setFormData: (form, data, schema) => {
+                if (!form || !schema || !schema.data) {
+                    if (form && data && typeof data === 'object') jPulse.UI.input.setAllValues(form, data);
+                    return;
+                }
+                const fields = jPulse.UI.input._walkSchemaFields(schema.data, '', 'data');
+                const result = {};
+                for (const { path, fieldDef } of fields) {
+                    let value = jPulse.UI.input.getByPath(data, path);
+                    if (value === undefined) value = fieldDef.default;
+                    if (fieldDef.normalize === 'lowercase') {
+                        if (Array.isArray(value)) value = (value || []).map((v) => String(v).trim().toLowerCase()).filter(Boolean);
+                        else if (typeof value === 'string') value = value.trim().toLowerCase();
+                    }
+                    jPulse.UI.input.setByPath(result, path, value);
+                }
+                jPulse.UI.input.setAllValues(form, result);
+            },
+
+            /**
+             * Get data from form using schema: getAllValues, then coerce by schema.type and apply normalize.
+             * Use when you have a complete schema. Returns { data: result } for API payload.
+             * @param {HTMLFormElement|Element} form - Form or container element
+             * @param {Object} schema - Schema with schema.data (complete)
+             * @returns {Object} { data: Object } suitable for API (e.g. config update)
+             */
+            getFormData: (form, schema) => {
+                const raw = jPulse.UI.input.getAllValues(form);
+                if (!schema || !schema.data) return { data: raw };
+                const fields = jPulse.UI.input._walkSchemaFields(schema.data, '', 'data');
+                const result = {};
+                for (const { path, fieldDef } of fields) {
+                    let value = jPulse.UI.input.getByPath(raw, path);
+                    if (fieldDef.type === 'number') {
+                        const n = parseInt(value, 10);
+                        value = isNaN(n) ? (fieldDef.default !== undefined ? fieldDef.default : 0) : n;
+                    } else if (fieldDef.type === 'boolean') {
+                        value = value === true || value === 'true';
+                    }
+                    if (fieldDef.normalize === 'lowercase') {
+                        if (Array.isArray(value)) value = (value || []).map((v) => String(v).trim().toLowerCase()).filter(Boolean);
+                        else if (typeof value === 'string') value = value.trim().toLowerCase();
+                    }
+                    jPulse.UI.input.setByPath(result, path, value);
+                }
+                return { data: result };
+            },
+
+            tagInput: {
+                /**
+                 * Parse comma/newline-separated string to array (split, trim, filter empty, dedupe, sort).
+                 * @param {string} str - Value string
+                 * @returns {string[]}
+                 */
+                parseValue: (str) => {
+                    if (!str || typeof str !== 'string') return [];
+                    const parts = str.split(/[\n\r,]+/).map(s => s.trim()).filter(Boolean);
+                    const unique = [...new Set(parts)];
+                    return unique.sort();
+                },
+
+                /**
+                 * Format array to comma-space string (sort, then join).
+                 * @param {string[]} arr - Array of tag strings
+                 * @returns {string}
+                 */
+                formatValue: (arr) => {
+                    if (!Array.isArray(arr)) return '';
+                    const sorted = [...arr].filter(Boolean).sort();
+                    return sorted.join(', ');
+                },
+
+                /**
+                 * Enhance an input to behave as tag input (type + Enter -> tag, x to remove). Element remains value store.
+                 * @param {string|Element} selectorOrElement - Input element or selector
+                 */
+                init: (selectorOrElement) => {
+                    const el = typeof selectorOrElement === 'string'
+                        ? document.querySelector(selectorOrElement)
+                        : selectorOrElement;
+                    if (!el || el.tagName !== 'INPUT') return;
+                    if (el.dataset.taginputInited) return;
+                    el.dataset.taginputInited = '1';
+
+                    const maxChars = Number('{{appConfig.view.jPulse.UI.input.tagInput.maxChars}}') || 32;
+                    const patternAttr = (el.dataset.pattern || el.getAttribute('data-pattern') || '').trim();
+                    let allowedRe = null;
+                    if (patternAttr) {
+                        try {
+                            allowedRe = new RegExp('^' + patternAttr + '$');
+                        } catch (_) {
+                            allowedRe = null;
+                        }
+                    }
+
+                    // Real-time character filter: data-pattern (HTML pattern syntax, anchored per-char)
+                    const filterChars = (str) => {
+                        if (!str || typeof str !== 'string') return '';
+                        if (!allowedRe) return str;
+                        return str.split('').filter(c => allowedRe.test(c)).join('');
+                    };
+
+                    const parseDisplay = (str) => {
+                        if (!str || typeof str !== 'string') return [];
+                        return str.split(/[\n\r,]+/).map(s => s.trim()).filter(Boolean);
+                    };
+
+                    let tags = parseDisplay(el.value);
+
+                    const wrap = document.createElement('div');
+                    wrap.className = 'jp-taginput-wrap';
+                    wrap.setAttribute('data-taginput-wrapper', '1');
+                    el.parentNode.insertBefore(wrap, el);
+                    wrap.appendChild(el);
+                    el.classList.add('jp-taginput-value');
+                    el.setAttribute('aria-hidden', 'true');
+                    el.setAttribute('autocomplete', 'off');
+                    el.tabIndex = -1;
+
+                    const typingInput = document.createElement('input');
+                    typingInput.type = 'text';
+                    // Do not copy jp-edit-field: only the hidden el is the value store for snapshot/getFormData
+                    typingInput.className = (el.className || '').replace(/\s*jp-taginput-value\s*/g, '').replace(/\s*jp-edit-field\s*/g, ' ').trim();
+                    if (el.placeholder) typingInput.placeholder = el.placeholder;
+                    typingInput.setAttribute('data-taginput-typing', '1');
+                    typingInput.setAttribute('autocomplete', 'off');
+                    typingInput.setAttribute('data-lpignore', 'true');
+                    typingInput.setAttribute('data-1p-ignore', 'true');
+                    typingInput.maxLength = maxChars;
+
+                    // Filter by preventing invalid keys (keypress) and filtering paste only; never overwrite value on normal key input (fixes every-second-key lost)
+                    if (allowedRe) {
+                        typingInput.addEventListener('keypress', (e) => {
+                            if (e.key && e.key.length === 1 && !allowedRe.test(e.key)) {
+                                e.preventDefault();
+                            }
+                        });
+                        typingInput.addEventListener('paste', () => {
+                            setTimeout(() => {
+                                const val = typingInput.value;
+                                const filtered = filterChars(val);
+                                if (filtered !== val) {
+                                    const start = typingInput.selectionStart;
+                                    const newStart = filterChars(val.slice(0, start)).length;
+                                    typingInput.value = filtered;
+                                    typingInput.setSelectionRange(newStart, newStart);
+                                }
+                            }, 0);
+                        });
+                    }
+
+                    const renderTags = () => {
+                        const existing = wrap.querySelectorAll('.jp-taginput-tag');
+                        existing.forEach(n => n.remove());
+                        tags.forEach((text) => {
+                            const tag = document.createElement('span');
+                            tag.className = 'jp-taginput-tag';
+                            tag.setAttribute('data-taginput-tag', '1');
+                            const label = document.createElement('span');
+                            label.className = 'jp-taginput-tag-label';
+                            label.textContent = text;
+                            const remove = document.createElement('button');
+                            remove.type = 'button';
+                            remove.className = 'jp-taginput-tag-remove';
+                            remove.setAttribute('aria-label', 'Remove');
+                            remove.textContent = '\u00D7';
+                            remove.addEventListener('click', () => {
+                                tags = tags.filter(t => t !== text);
+                                renderTags();
+                                el.value = tags.join(', ');
+                                el.dispatchEvent(new Event('input', { bubbles: true }));
+                            });
+                            tag.appendChild(label);
+                            tag.appendChild(remove);
+                            wrap.insertBefore(tag, typingInput);
+                        });
+                    };
+
+                    const syncValue = () => {
+                        el.value = tags.join(', ');
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                    };
+
+                    typingInput.addEventListener('keydown', (e) => {
+                        if (e.key !== 'Enter') return;
+                        let raw = (typingInput.value || '').trim();
+                        if (allowedRe) raw = filterChars(raw);
+                        if (!raw) return;
+                        e.preventDefault();
+                        const tag = raw.length > maxChars ? raw.slice(0, maxChars) : raw;
+                        if (tags.indexOf(tag) === -1) tags.push(tag);
+                        typingInput.value = '';
+                        renderTags();
+                        syncValue();
+                    });
+
+                    wrap.appendChild(typingInput);
+                    el.addEventListener('focus', () => typingInput.focus());
+                    wrap.addEventListener('click', (e) => {
+                        if (e.target === wrap || e.target.closest('.jp-taginput-tag')) {
+                            typingInput.focus();
+                        }
+                    });
+                    renderTags();
+                    el.value = tags.join(', ');
+                }
             }
         },
 
@@ -2056,6 +2463,169 @@ window.jPulse = {
                     refresh: () => jPulse.UI.tabs._refresh(elementId),
                     destroy: () => jPulse.UI.tabs._destroy(elementId)
                 };
+            },
+
+            /**
+             * Render tabs and panels from a config-style schema (W-148 Phase 4).
+             * Builds all tab buttons and panel content from schema.data, then calls register().
+             * @param {string|Element} tabContainer - Tab strip container (id or element)
+             * @param {string|Element} panelContainer - Container where panels will be built (id or element); panels are moved into .jp-tabs-panels by register()
+             * @param {Object} schema - Resolved schema with schema.data (each block: _meta.order, _meta.tabLabel, _meta.description, and field definitions)
+             * @param {Object} data - Config data (e.g. config.data) to populate panel fields
+             * @param {Object} options - Optional: panelHeight, slideAnimation, responsive, fieldRenderer(blockKey, blockDef, blockData)
+             * @returns {Object|null} Handle from register() or null
+             */
+            renderTabsAndPanelsFromSchema: (tabContainer, panelContainer, schema, data, options = {}) => {
+                if (!schema || !schema.data || typeof schema.data !== 'object') return null;
+                const tabEl = typeof tabContainer === 'string' ? document.getElementById(tabContainer) : tabContainer;
+                const panelEl = typeof panelContainer === 'string' ? document.getElementById(panelContainer) : panelContainer;
+                if (!tabEl || !panelEl) return null;
+
+                const configData = (data && data.data) ? data.data : (data && typeof data === 'object' ? data : {});
+                const blocks = Object.entries(schema.data)
+                    .filter(([, def]) => def && typeof def === 'object')
+                    .map(([blockKey, blockDef]) => ({
+                        blockKey,
+                        blockDef,
+                        order: blockDef._meta?.order ?? 999,
+                        tabLabel: blockDef._meta?.tabLabel ?? blockKey,
+                        description: blockDef._meta?.description ?? ''
+                    }));
+                blocks.sort((a, b) => a.order - b.order || a.blockKey.localeCompare(b.blockKey));
+
+                panelEl.innerHTML = '';
+                const tabs = [];
+                for (const { blockKey, blockDef, tabLabel, description } of blocks) {
+                    const panelId = blockKey + '-panel';
+                    const tabId = blockKey + '-tab';
+                    const blockData = configData[blockKey] ?? {};
+                    const maxCols = Math.max(1, parseInt(blockDef._meta?.maxColumns, 10) || 1);
+                    const flowClass = 'jp-form-flow jp-form-flow-cols-' + maxCols;
+                    const fieldsHtml = options.fieldRenderer && typeof options.fieldRenderer === 'function'
+                        ? options.fieldRenderer(blockKey, blockDef, blockData)
+                        : jPulse.UI.tabs._renderSchemaBlockFields(blockKey, blockDef, blockData);
+                    const actionsHtml = jPulse.UI.tabs._renderSchemaBlockActions(blockDef);
+                    const card = document.createElement('div');
+                    card.id = panelId;
+                    card.className = 'jp-panel';
+                    card.innerHTML = '<div class="jp-card jp-schema-section">' +
+                        (description ? '<div class="jp-panel-description">' + jPulse.string.sanitizeHtml(description) + '</div>' : '') +
+                        '<div class="' + flowClass + '">' + fieldsHtml + actionsHtml + '</div>' +
+                        '</div>';
+                    panelEl.appendChild(card);
+                    tabs.push({ id: tabId, label: tabLabel, panelId: panelId });
+                }
+
+                const tabContainerId = tabEl.id || 'config-tabs';
+                const registerOptions = {
+                    tabs,
+                    panelHeight: options.panelHeight ?? '31rem',
+                    slideAnimation: options.slideAnimation !== false,
+                    responsive: options.responsive ?? 'scroll'
+                };
+                const firstTabId = tabs[0] ? tabs[0].id : null;
+                return jPulse.UI.tabs.register(tabContainerId, registerOptions, firstTabId);
+            },
+
+            /**
+             * Render form fields HTML for one schema block (recursive; supports nested paths).
+             * @param {string} blockKey - Block key (e.g. 'general', 'manifest')
+             * @param {Object} blockDef - Block definition from schema.data[blockKey]
+             * @param {Object} blockData - Block data (e.g. config.data[blockKey])
+             * @returns {string} HTML string for field elements
+             */
+            _renderSchemaBlockFields: (blockKey, blockDef, blockData) => {
+                const fields = jPulse.UI.input._walkSchemaFields(blockDef, '', 'view');
+                const parts = [];
+                for (const { path, fieldDef } of fields) {
+                    const dataPath = blockKey + '.' + path;
+                    const inputId = 'config-' + blockKey + '-' + path.replace(/\./g, '-');
+                    const name = 'data.' + blockKey + '.' + path;
+                    const label = fieldDef.label || path;
+                    let value = jPulse.UI.input.getByPath(blockData, path);
+                    if (value === undefined && fieldDef.default !== undefined) value = fieldDef.default;
+                    const escapedLabel = jPulse.string.escapeHtml(label);
+                    const placeholder = (fieldDef.placeholder && jPulse.string.escapeHtml(fieldDef.placeholder)) || '';
+                    const dataPathAttr = ' data-path="' + jPulse.string.escapeHtml(dataPath) + '"';
+                    const inputType = fieldDef.inputType || (fieldDef.type === 'boolean' ? 'checkbox' : fieldDef.type === 'number' ? 'number' : fieldDef.type === 'button' ? 'button' : (fieldDef.enum || (fieldDef.options && fieldDef.options.length)) ? 'select' : fieldDef.type === 'array' ? 'textarea' : 'text');
+                    const startNewRow = !!fieldDef.startNewRow;
+                    const fullWidth = !!fieldDef.fullWidth || inputType === 'textarea';
+                    const wrapClass = 'jp-schema-field' + (startNewRow ? ' jp-schema-field-new-row' : '') + (fullWidth ? ' jp-schema-field-full' : '');
+                    const helpHtml = (fieldDef.help && typeof fieldDef.help === 'string') ? '<div class="jp-text-small jp-text-muted jp-mt-10">' + jPulse.string.escapeHtml(fieldDef.help) + '</div>' : '';
+
+                    if (inputType === 'checkbox') {
+                        const checked = value === true ? ' checked' : '';
+                        parts.push('<div class="' + wrapClass + '"><div class="jp-checkbox-group">' +
+                            '<input type="checkbox" id="' + inputId + '" name="' + name + '" class="jp-edit-field" ' + dataPathAttr + ' value="true"' + checked + '>' +
+                            '<label for="' + inputId + '">' + escapedLabel + '</label></div>' + helpHtml + '</div>');
+                    } else if (inputType === 'tagInput') {
+                        const arr = Array.isArray(value) ? value : (value != null ? [value] : (fieldDef.default || []));
+                        const displayValue = (jPulse.UI.input.tagInput && typeof jPulse.UI.input.tagInput.formatValue === 'function')
+                            ? jPulse.UI.input.tagInput.formatValue(arr) : arr.join(', ');
+                        const escapedDisplay = jPulse.string.escapeHtml(displayValue);
+                        const patternAttr = (fieldDef.pattern && typeof fieldDef.pattern === 'string') ? ' data-pattern="' + jPulse.string.escapeHtml(fieldDef.pattern) + '"' : '';
+                        parts.push('<div class="' + wrapClass + '"><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
+                            '<input type="text" id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" data-taginput ' + dataPathAttr + patternAttr + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' value="' + escapedDisplay + '">' + helpHtml + '</div></div>');
+                    } else if (inputType === 'textarea') {
+                        const arr = Array.isArray(value) ? value : (value != null ? [value] : (fieldDef.default || []));
+                        const textareaValue = arr.join('\n');
+                        const escapedTextarea = jPulse.string.escapeHtml(textareaValue);
+                        const textareaWrap = 'jp-schema-field jp-schema-field-new-row jp-schema-field-full';
+                        const rows = Math.max(1, parseInt(fieldDef.rows, 10) || 3);
+                        parts.push('<div class="' + textareaWrap + '"><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
+                            '<textarea id="' + inputId + '" name="' + name + '" class="jp-form-textarea jp-edit-field" ' + dataPathAttr + ' rows="' + rows + '">' + escapedTextarea + '</textarea>' + helpHtml + '</div></div>');
+                    } else if (inputType === 'number') {
+                        const escapedValue = value !== undefined && value !== null ? jPulse.string.escapeHtml(String(value)) : '';
+                        parts.push('<div class="' + wrapClass + '"><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
+                            '<input type="number" id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + ' value="' + escapedValue + '">' + helpHtml + '</div></div>');
+                    } else if (inputType === 'select') {
+                        const optionsArr = (fieldDef.options && fieldDef.options.length) ? fieldDef.options : (fieldDef.enum || []).map((v) => ({ value: v, label: String(v) }));
+                        const optionHtml = optionsArr.map((opt) => {
+                            const ov = opt.value !== undefined ? opt.value : opt;
+                            const lab = (opt && opt.label !== undefined) ? jPulse.string.escapeHtml(opt.label) : jPulse.string.escapeHtml(String(ov));
+                            const sel = (value === ov || value === String(ov)) ? ' selected' : '';
+                            return '<option value="' + jPulse.string.escapeHtml(String(ov)) + '"' + sel + '>' + lab + '</option>';
+                        }).join('');
+                        parts.push('<div class="' + wrapClass + '"><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
+                            '<select id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + '>' + optionHtml + '</select>' + helpHtml + '</div></div>');
+                    } else if (inputType === 'button' || fieldDef.type === 'button') {
+                        const titleAttr = (fieldDef.title && typeof fieldDef.title === 'string') ? ' title="' + jPulse.string.escapeHtml(fieldDef.title) + '"' : '';
+                        const actionAttr = (fieldDef.action && typeof fieldDef.action === 'string') ? ' data-action="' + jPulse.string.escapeHtml(fieldDef.action) + '"' : '';
+                        const callbackAttr = (fieldDef.callback && typeof fieldDef.callback === 'string') ? ' data-callback="' + jPulse.string.escapeHtml(fieldDef.callback) + '"' : '';
+                        parts.push('<div class="' + wrapClass + '"><div class="jp-form-group" style="margin:0;"><button type="button" class="jp-btn jp-btn-secondary"' + titleAttr + actionAttr + callbackAttr + '>' + escapedLabel + '</button></div>' + helpHtml + '</div>');
+                    } else {
+                        const escapedValue = value !== undefined && value !== null ? jPulse.string.escapeHtml(String(value)) : '';
+                        const typeAttr = fieldDef.inputType === 'password' ? ' type="password"' : ' type="text"';
+                        const readonlyAttr = fieldDef.readonly ? ' readonly' : '';
+                        const pwdWrapper = fieldDef.inputType === 'password'
+                            ? '<div class="jp-password-field"><input' + typeAttr + ' id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' value="' + escapedValue + '" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true"' + readonlyAttr + '><button type="button" class="jp-password-toggle" data-password-for="' + inputId + '" title="Show/hide password">👁️</button></div>'
+                            : '<input' + typeAttr + ' id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' value="' + escapedValue + '"' + readonlyAttr + '>';
+                        parts.push('<div class="' + wrapClass + '"><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' + pwdWrapper + helpHtml + '</div></div>');
+                    }
+                }
+                return parts.join('');
+            },
+
+            /**
+             * Render view-only action buttons from block _meta.actions (virtual field-like; part of flow).
+             * @param {Object} blockDef - Block definition from schema.data[blockKey]
+             * @returns {string} HTML string for action buttons
+             */
+            _renderSchemaBlockActions: (blockDef) => {
+                const actions = blockDef._meta?.actions;
+                if (!Array.isArray(actions) || actions.length === 0) return '';
+                const parts = [];
+                for (const action of actions) {
+                    if (action.type !== 'button' || !action.label) continue;
+                    const startNewRow = !!action.startNewRow;
+                    const wrapClass = 'jp-schema-field' + (startNewRow ? ' jp-schema-field-new-row' : '');
+                    const escapedLabel = jPulse.string.escapeHtml(action.label);
+                    const titleAttr = (action.title && typeof action.title === 'string') ? ' title="' + jPulse.string.escapeHtml(action.title) + '"' : '';
+                    const actionAttr = (action.action && typeof action.action === 'string') ? ' data-action="' + jPulse.string.escapeHtml(action.action) + '"' : '';
+                    const callbackAttr = (action.callback && typeof action.callback === 'string') ? ' data-callback="' + jPulse.string.escapeHtml(action.callback) + '"' : '';
+                    parts.push('<div class="' + wrapClass + '"><div class="jp-form-group" style="margin:0;"><button type="button" class="jp-btn jp-btn-secondary"' + titleAttr + actionAttr + callbackAttr + '>' + escapedLabel + '</button></div></div>');
+                }
+                return parts.join('');
             },
 
             // ========================================

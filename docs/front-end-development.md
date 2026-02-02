@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.6.4
+# jPulse Docs / Front-End Development Guide v1.6.5
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -507,7 +507,7 @@ const MyApp = {
 
 ## 📝 Form Handling & Validation
 
-The jPulse Framework provides two distinct approaches for form handling, each optimized for different use cases.
+The jPulse Framework provides two distinct approaches for form handling, each optimized for different use cases. For **config-style forms** (tabs/panels from schema, one-line set/get), see [Schema-driven config forms](#-schema-driven-config-forms).
 
 ### bindSubmission - For Simple Forms
 
@@ -627,6 +627,84 @@ jPulse.dom.ready(() => {
     });
 });
 ```
+
+## 📋 Schema-driven config forms
+
+Config-style pages (e.g. Admin > Site configuration) use a **single schema** to drive tabs, panels, field layout, and one-line populate/get. One source of truth, minimal view code. Use this as a template for your own data driven forms.
+
+### Build tabs and panels from schema
+
+Call `jPulse.UI.tabs.renderTabsAndPanelsFromSchema` after fetching config and schema (e.g. from `/api/1/config` with `includeSchema: true`):
+
+```javascript
+// After fetch: result = { data: config, schema: configSchema }
+jPulse.UI.tabs.renderTabsAndPanelsFromSchema(
+    'config-tabs',           // tab container id
+    'config-all-panels',     // panel container id
+    configSchema,
+    result.data,
+    { panelHeight: '31rem' } // optional
+);
+```
+
+- Creates one tab button per block in `schema.data` (ordered by `_meta.order`).
+- Creates one panel per block with a flow layout div (`.jp-form-flow`, `.jp-form-flow-cols-N`).
+- Renders fields from schema (text, password, number, checkbox, select, textarea, tagInput, button).
+- Virtual buttons: `type: 'button'` with `action: 'actionName'` render as buttons; wire handlers via `button[data-action]` delegation.
+
+### One-line populate and get
+
+Use the same schema for setting and reading form values:
+
+```javascript
+// Populate form from config data (applies schema defaults and normalize)
+jPulse.UI.input.setFormData(configForm, config.data, configSchema);
+
+// Read form into payload for API (coerces types, applies normalize, returns { data })
+const payload = jPulse.UI.input.getFormData(configForm, configSchema);
+await jPulse.api.put('/api/1/config', payload);
+```
+
+Fields must have `data-path` (e.g. `data-path="email.adminEmail"`); the schema drives which fields are included and how they are coerced.
+
+### Layout
+
+Layout is controlled by **block-level** and **field-level** schema properties.
+
+| Where | Property | Use |
+|-------|----------|-----|
+| Block `_meta` | `maxColumns: 1` | Whole block single-column (every field stacks). No need for field-level layout on fields. |
+| Block `_meta` | `maxColumns: 2` (or more) | Fields can share rows. |
+| Field | `startNewRow: true` | Break to a new row. Field still takes one column (e.g. 50% in 2-col); next field can sit beside it (e.g. checkbox + button). |
+| Field | `fullWidth: true` | Span the full row width. Use with `startNewRow: true` when the field should be alone on its row at 100%. Textareas get full width automatically. |
+
+- **startNewRow** = position (“new row, one column”).
+- **fullWidth** = size (“span full row”). Use both when you want “new row and full width.”
+
+### Virtual buttons (view-only)
+
+Define buttons in the schema so they participate in the same flow as data fields:
+
+```javascript
+// In schema.data.email (or any block):
+testEmail: {
+    type: 'button',
+    scope: ['view'],
+    label: '{{i18n.view.admin.config.testEmail}}',
+    title: '{{i18n.view.admin.config.testEmailDesc}}',
+    action: 'testEmail'
+}
+```
+
+- `scope: ['view']`: rendered in the form but not in getFormData/setFormData.
+- In the view, use delegated click: `form.addEventListener('click', (e) => { if (e.target.matches('button[data-action]')) { const action = e.target.dataset.action; actionHandlers[action](e.target); } });`
+
+### Reference
+
+- **jPulse.UI.input API**: [Input utilities (tagInput, setFormData/getFormData)](jpulse-ui-reference.md#input-utilities-taginput-setformdata-getformdata) in the jPulse.UI Widget Reference — full docs for `.tagInput`, `.setAllValues`, `.getAllValues`, `.setFormData`, `.getFormData`.
+- **Config UI**: `webapp/view/admin/config.shtml` (minimal HTML; one panel container; one-line setFormData/getFormData).
+- **Schema shape**: `webapp/model/config.js` (baseSchema with `_meta` per block, field definitions with type, label, inputType, startNewRow, fullWidth, help, etc.).
+- **Design**: [W-148 jPulse.UI.input.tagInput Widget](dev/design/W-148-jPulse-UI-input-tagInput-widget.md) (flow control, virtual buttons, scope).
 
 ## 💬 UI Widgets Overview
 
@@ -781,6 +859,13 @@ jPulse.dom.toggle(element);
 const safe = jPulse.string.escapeHtml('<script>alert("xss")</script>');
 const pretty = jPulse.string.capitalize('hello world'); // "Hello world"
 const slug = jPulse.string.slugify('Hello World!'); // "hello-world"
+
+// Sanitize HTML from trusted sources (framework, plugin, site).
+// Strip dangerous tags/attrs only (use escapeHtml for untrusted user input)
+const trustedHtml = jPulse.string.sanitizeHtml(schemaDescription);
+
+// Safe HTML: Whitelist with a, strong, em, br tags only
+const minimalHtml = jPulse.string.sanitizeHtml(panelDescription, true);
 ```
 
 ### URL Parameter Handling

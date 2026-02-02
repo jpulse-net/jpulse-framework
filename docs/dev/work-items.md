@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.4
+# jPulse Docs / Dev / Work Items v1.6.5
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4559,19 +4559,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/view/jpulse-examples/handlebars.shtml`:
     - skipped (page is view-side; loadComponents is controller-side)
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-147, v1.6.4, 2026-02-01: config model: make config schema extensible for site and plugin developers
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - design doc: docs/dev/design/W-147-make-config-schema-extensible.md
 - objective:
@@ -4626,8 +4615,53 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-### Pending
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-148, v1.6.5, 2026-02-02: jPulse UI: schema-driven config forms and tagInput widget
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives: easier way to enter list items, such as roles
+- design doc: docs/dev/design/W-148-jPulse-UI-input-tagInput-widget.md
+- features:
+  - tagInput: type word + Enter → tag with "x" to remove; comma-space in one `<input>`; init(selectorOrElement); parseValue/formatValue
+  - setFormData/getFormData(form, data|form, schema): one-line populate and get with schema defaults/coerce/normalize
+  - renderTabsAndPanelsFromSchema(tabContainer, panelContainer, schema, data): tabs + panels from schema; flow layout (maxColumns, startNewRow, fullWidth); virtual buttons (type: 'button', action)
+- design:
+  - name: `jPulse.UI.input.tagInput`; namespace `jPulse.UI.input.*` for future widgets (e.g. multiSelect)
+  - single-element: one `<input>` is source of truth; schema-driven config forms: one schema for tabs, panels, set/get
+- initial use: site config editor General => roles, adminRoles; Admin config => unified schema-driven tabs/panels
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - add `jPulse.UI.input` functions to enhance input fields with:
+      - `.tagInput`, `.setAllValues`, `.getAllValues`, `.setFormData`, `.getFormData`
+    - add `jPulse.UI.tabs.renderTabsAndPanelsFromSchema()` function to auto-populate tab panels based on schema
+  - `webapp/view/admin/config.shtml`:
+    - reduced to minimal style and HTML due to data-driven approach
+    - auto-configured panel container
+    - one-line setFormData and getFormData
+  - `webapp/view/model/config.js`:
+    - define baseSchema with _meta (order, tabLabel, maxColumns), field defs (startNewRow, fullWidth, help), virtual button in schema
+  - `docs/front-end-development.md`, `docs/genai-instructions.md`, `docs/.md`, `docs/.md`, `docs/plugins/plugin-api-reference.md`:
+    - document schema-driven config forms
+    - blurb and links in relevant docs
+  - `webapp/tests/unit/translations/i18n-variable-content.test.js`, `webapp/tests/unit/utils/jpulse-ui-input-taginput.test.js`, `webapp/tests/unit/utils/jpulse-ui-tabs-schema.test.js`:
+  - enhance and add new unit tests
+
+
+
+
+
+
+
+
+
+
+
+
+### Pending
 
 old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
@@ -4636,7 +4670,7 @@ old pending:
 - how to define the time of valid session?
 
 ### Potential next items:
-- W-0: config model: make config schema extendable for site and plugin developers
+- W-0: jPulse UI: jPulse.UI.input.multiSelect widget to manage selection with search
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-0: deployment: docker strategy
 - W-0: auth controller: authentication with OAuth2 (see W-109 for flow design)
@@ -4652,8 +4686,8 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- review git diff tt-diff.txt for accuracy and completness of work item
-- assume release: W-147, v1.6.4, 2026-02-01
+- review git diff tt-git-diff.txt for accuracy and completness of work item
+- assume release: W-148, v1.6.5, 2026-02-02
 - update deliverables in W-147 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -4671,12 +4705,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.4
+node bin/bump-version.js 1.6.5
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.4
+git tag v1.6.5
 git push origin main --tags
 
 === PLUGIN release & package build on github ===
@@ -4733,6 +4767,17 @@ template:
 - type: Feature
 - objectives:
 - features:
+- deliverables:
+  - FIXME `path/file`:
+    - FIXME summary
+
+### W-0: jPulse UI: jPulse.UI.input.multiSelect widget to manage selection with search
+- status: 🕑 PENDING
+- type: Feature
+- objectives: easier way to manage multi-select fields
+- features:
+- design:
+  - name: `jPulse.UI.input.multiSelect`
 - deliverables:
   - FIXME `path/file`:
     - FIXME summary

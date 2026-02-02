@@ -3,8 +3,8 @@
  * @tagline         Test variable content support in i18n translations
  * @description     Tests the new handlebars-style variable substitution in i18n translations
  * @file            webapp/tests/unit/translations/i18n-variable-content.test.js
- * @version         1.6.4
- * @release         2026-02-01
+ * @version         1.6.5
+ * @release         2026-02-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -135,6 +135,44 @@ describe('I18N Variable Content', () => {
             expect(multiContent).toBe('Profile: Hello John Doe');
         });
 
+    });
+
+    describe('expandI18nDeep', () => {
+        test('should expand handlebar strings in objects (consistent with expandI18nHandlebars)', () => {
+            const req = { session: {} };
+            const obj = {
+                label: '{{i18n.view.admin.config.general.roles}}',
+                placeholder: '{{i18n.view.admin.config.general.rolesPlaceholder}}'
+            };
+            const result = global.i18n.expandI18nDeep(req, obj);
+            expect(result).toHaveProperty('label');
+            expect(result).toHaveProperty('placeholder');
+            expect(result.label).not.toContain('{{i18n.');
+            expect(result.placeholder).not.toContain('{{i18n.');
+            expect(typeof result.label).toBe('string');
+            expect(typeof result.placeholder).toBe('string');
+        });
+
+        test('should leave non-handlebar strings unchanged', () => {
+            const req = { session: {} };
+            const obj = { label: 'Plain text', value: 'no-handlebar' };
+            const result = global.i18n.expandI18nDeep(req, obj);
+            expect(result.label).toBe('Plain text');
+            expect(result.value).toBe('no-handlebar');
+        });
+
+        test('should expand nested objects and arrays (e.g. options)', () => {
+            const req = { session: {} };
+            const obj = {
+                options: [
+                    { value: 'bsl', label: '{{i18n.view.admin.config.manifest.licenseTierBsl}}' }
+                ]
+            };
+            const result = global.i18n.expandI18nDeep(req, obj);
+            expect(Array.isArray(result.options)).toBe(true);
+            expect(result.options[0].value).toBe('bsl');
+            expect(result.options[0].label).not.toContain('{{i18n.');
+        });
     });
 
 });

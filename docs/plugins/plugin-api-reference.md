@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.6.4
+# jPulse Docs / Plugins / Plugins API Reference v1.6.5
 
 Complete API reference for jPulse plugin developers.
 
@@ -104,6 +104,8 @@ Response: { success: true, data: {...} }
     ]
 }
 ```
+
+Plugin config blocks can use the same schema shape and flow as framework config (tabs/panels from schema, layout with `maxColumns` / `startNewRow` / `fullWidth`, virtual buttons). See [Schema-driven config forms](../front-end-development.md#-schema-driven-config-forms) in the Front-End Development Guide.
 
 ## Controller Auto-Discovery
 
@@ -399,9 +401,17 @@ const result = await jPulse.UI.confirmDialog({
 jPulse.UI.tabs.register('tab-id', config);
 jPulse.UI.collapsible.register('collapsible-id', config);
 
-// String utilities
-jPulse.string.escapeHtml(text);
+// String utilities:
+// 1. Escape HTML:
+jPulse.string.escapeHtml(html);
+// 2. Sanitize HTML from trusted sources: strip dangerous tags/attributes
+jPulse.string.sanitizeHtml(html, strict);
+// 3. Safe HTML from untrusted sources: whitelist a, strong, em, br tags only
+jPulse.string.sanitizeHtml(html, strict);
+// 4. Truncate string:
 jPulse.string.truncate(text, length);
+// 5. Slugify string: "Hello World" => "hello-world"
+jPulse.string.slugify(text);
 
 // Form utilities
 jPulse.form.bindSubmission('form-id', endpoint, callback);

@@ -4,8 +4,8 @@
  * @tagline         Site configuration management interface
  * @description     Edit site configuration, for administrators
  * @file            webapp/view/admin/config.shtml
- * @version         1.6.4
- * @release         2026-02-01
+ * @version         1.6.5
+ * @release         2026-02-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,88 +20,10 @@
 
     {{file.include "jpulse-header.tmpl"}}
     <style>
-        /* Page-specific styles only - common styles are in jpulse-common.css */
+        /* Page-specific styles only - schema form styles are in jpulse-common.css */
         .local-config-form {
             max-width: 800px;
             margin: 0 auto;
-        }
-
-        .local-config-section {
-            margin-bottom: 30px;
-        }
-
-        .local-config-section .jp-card-dialog-heading {
-            color: #007acc;
-        }
-
-        .local-config-section .jp-card-subheading {
-            color: #666;
-            font-size: 0.9em;
-        }
-
-        .local-panel-description {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--jp-theme-text-primary, #333);
-            margin-bottom: 15px;
-        }
-
-        .local-form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 15px;
-        }
-
-        .local-form-row.local-full-width {
-            grid-template-columns: 1fr;
-        }
-
-        .local-form-row.local-full-width[style*="justify-content"] {
-            display: flex;
-            grid-template-columns: none;
-        }
-
-        .local-checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .local-checkbox-group input[type="checkbox"] {
-            width: auto;
-            margin: 0;
-        }
-
-        .local-checkbox-group label {
-            margin: 0;
-            font-weight: normal;
-        }
-
-        .local-password-field {
-            position: relative;
-        }
-
-        .local-password-toggle {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #666;
-            font-size: 14px;
-            padding: 0;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .local-password-toggle:hover {
-            color: #007acc;
         }
 
         .local-form-actions {
@@ -110,20 +32,14 @@
             justify-content: center;
             margin-top: 30px;
             padding-top: 20px;
-            border-top: 1px solid #eee;
+            border-top: 1px solid var(--jp-theme-border-color, #eee);
         }
 
         .local-form-actions .jp-btn {
             min-width: 120px;
         }
 
-        /* Responsive adjustments */
         @media (max-width: 768px) {
-            .local-form-row {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-
             .local-form-actions {
                 flex-direction: column;
                 align-items: center;
@@ -154,181 +70,9 @@
             </div>
 
             <form id="configForm" class="local-config-form" data-current-user-roles="{{#each user.roles}}{{this}}{{#unless @last}},{{/unless}}{{/each}}">
-                <!-- Tab Navigation -->
+                <!-- Tab Navigation and Panels (W-148 Phase 4: unified schema-driven) -->
                 <div id="config-tabs" class="jp-tabs"></div>
-
-                <!-- General Panel (W-147) -->
-                <div id="general-panel" class="jp-panel">
-                    <div class="jp-card local-config-section">
-                        <div class="local-panel-description">{{i18n.view.admin.config.general.description}}</div>
-                        <div class="local-form-row local-full-width">
-                            <div class="jp-form-group">
-                                <label for="generalRoles" class="jp-form-label">{{i18n.view.admin.config.general.roles}}</label>
-                                <textarea id="generalRoles" name="generalRoles" class="jp-form-textarea local-edit-field" rows="4" placeholder="{{i18n.view.admin.config.general.rolesPlaceholder}}"></textarea>
-                            </div>
-                            <div class="jp-form-group">
-                                <label for="generalAdminRoles" class="jp-form-label">{{i18n.view.admin.config.general.adminRoles}}</label>
-                                <textarea id="generalAdminRoles" name="generalAdminRoles" class="jp-form-textarea local-edit-field" rows="3" placeholder="{{i18n.view.admin.config.general.adminRolesPlaceholder}}"></textarea>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Email Settings Panel -->
-                <div id="email-panel" class="jp-panel">
-                    <div class="jp-card local-config-section">
-                        <div class="local-panel-description">{{i18n.view.admin.config.email.description}}</div>
-                        <div class="local-form-row">
-                            <div class="jp-form-group">
-                                <label for="adminEmail" class="jp-form-label">{{i18n.view.admin.config.email.adminEmail}}</label>
-                                <input type="email" id="adminEmail" name="adminEmail" class="jp-form-input local-edit-field" placeholder="admin@example.com">
-                            </div>
-                            <div class="jp-form-group">
-                                <label for="adminName" class="jp-form-label">{{i18n.view.admin.config.email.adminName}}</label>
-                                <input type="text" id="adminName" name="adminName" class="jp-form-input local-edit-field" placeholder="Site Administrator">
-                            </div>
-                        </div>
-
-                        <div class="local-form-row">
-                            <div class="jp-form-group">
-                                <label for="smtpServer" class="jp-form-label">{{i18n.view.admin.config.email.smtpServer}}</label>
-                                <input type="text" id="smtpServer" name="smtpServer" class="jp-form-input local-edit-field" placeholder="localhost">
-                            </div>
-                            <div class="jp-form-group">
-                                <label for="smtpPort" class="jp-form-label">{{i18n.view.admin.config.email.smtpPort}}</label>
-                                <input type="number" id="smtpPort" name="smtpPort" class="jp-form-input local-edit-field" placeholder="25" min="1" max="65535">
-                            </div>
-                        </div>
-
-                        <div class="local-form-row">
-                            <div class="jp-form-group">
-                                <label for="smtpUser" class="jp-form-label">{{i18n.view.admin.config.email.smtpUser}}</label>
-                                <input type="text" id="smtpUser" name="smtpUser" class="jp-form-input local-edit-field" placeholder="username">
-                            </div>
-                            <div class="jp-form-group">
-                                <label for="smtpPass" class="jp-form-label">{{i18n.view.admin.config.email.smtpPass}}</label>
-                                <div class="local-password-field">
-                                    <input type="password" id="smtpPass" name="smtpPass" class="jp-form-input local-edit-field" placeholder="password"
-                                        autocomplete="new-password"
-                                        data-lpignore="true"
-                                        data-1p-ignore="true"
-                                        autocapitalize="off"
-                                        autocorrect="off"
-                                        spellcheck="false">
-                                    <button type="button" class="local-password-toggle" onclick="togglePasswordVisibility('smtpPass')" title="Show/hide password">
-                                        👁️
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="local-checkbox-group">
-                            <input type="checkbox" id="useTls" name="useTls" value="true" class="local-edit-field">
-                            <label for="useTls">{{i18n.view.admin.config.email.useTls}}</label>
-                        </div>
-
-                        <div class="local-form-row local-full-width" style="margin-top: -40px; justify-content: flex-end;">
-                            <div class="jp-form-group" style="margin: 0;">
-                                <button type="button" id="testEmailBtn" class="jp-btn jp-btn-secondary">{{i18n.view.admin.config.testEmail}}</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Broadcast Message Panel -->
-                <div id="broadcast-panel" class="jp-panel">
-                    <div class="jp-card local-config-section">
-                        <div class="local-panel-description">{{i18n.view.admin.config.broadcast.description}}</div>
-                        <div class="local-checkbox-group">
-                            <input type="checkbox" id="broadcastEnable" name="broadcastEnable" value="true" class="local-edit-field">
-                            <label for="broadcastEnable">{{i18n.view.admin.config.broadcast.enable}}</label>
-                        </div>
-                        <div class="local-form-row local-full-width jp-mt-15">
-                            <div class="jp-form-group">
-                                <label for="broadcastMessage" class="jp-form-label">{{i18n.view.admin.config.broadcast.message}}</label>
-                                <textarea id="broadcastMessage" name="broadcastMessage" class="jp-form-textarea local-edit-field" rows="5" placeholder="{{i18n.view.admin.config.broadcast.messagePlaceholder}}"></textarea>
-                            </div>
-                        </div>
-                        <div class="local-form-row">
-                            <div class="jp-form-group">
-                                <label for="broadcastNagTime" class="jp-form-label">{{i18n.view.admin.config.broadcast.nagTime}}</label>
-                                <select id="broadcastNagTime" name="broadcastNagTime" class="jp-form-input local-edit-field">
-                                    <option value="0">0</option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="4">4</option>
-                                    <option value="8">8</option>
-                                </select>
-                                <div class="jp-text-small jp-text-muted jp-mt-10">{{i18n.view.admin.config.broadcast.nagTimeDesc}}</div>
-                            </div>
-                            <div class="jp-form-group">
-                                <label for="broadcastDisableTime" class="jp-form-label">{{i18n.view.admin.config.broadcast.disableTime}}</label>
-                                <select id="broadcastDisableTime" name="broadcastDisableTime" class="jp-form-input local-edit-field">
-                                    <option value="0">0</option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="4">4</option>
-                                    <option value="8">8</option>
-                                    <option value="12">12</option>
-                                    <option value="24">24</option>
-                                    <option value="48">48</option>
-                                </select>
-                                <div class="jp-text-small jp-text-muted jp-mt-10">{{i18n.view.admin.config.broadcast.disableTimeDesc}}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Manifest Panel (W-137) -->
-                <div id="manifest-panel" class="jp-panel">
-                    <div class="jp-card local-config-section">
-                        <div class="local-panel-description">{{i18n.view.admin.config.manifest.description}}</div>
-
-                        <div class="local-form-row">
-                            <div class="jp-form-group">
-                                <label for="licenseKey" class="jp-form-label">{{i18n.view.admin.config.manifest.licenseKey}}</label>
-                                <div class="local-password-field">
-                                    <input type="password" id="licenseKey" name="licenseKey" class="jp-form-input local-edit-field" placeholder="{{i18n.view.admin.config.manifest.licenseKeyPlaceholder}}"
-                                        autocomplete="new-password"
-                                        data-lpignore="true"
-                                        data-1p-ignore="true"
-                                        autocapitalize="off"
-                                        autocorrect="off"
-                                        spellcheck="false">
-                                    <button type="button" class="local-password-toggle" onclick="togglePasswordVisibility('licenseKey')" title="Show/hide license key">
-                                        👁️
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="jp-form-group">
-                                <label for="licenseTier" class="jp-form-label">{{i18n.view.admin.config.manifest.licenseTier}}</label>
-                                <select id="licenseTier" name="licenseTier" class="jp-form-input local-edit-field">
-                                    <option value="bsl">{{i18n.view.admin.config.manifest.licenseTierBsl}}</option>
-                                    <option value="commercial">{{i18n.view.admin.config.manifest.licenseTierCommercial}}</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="local-form-row">
-                            <div class="jp-form-group">
-                                <label for="siteUuid" class="jp-form-label">{{i18n.view.admin.config.manifest.siteUuid}}</label>
-                                <input type="text" id="siteUuid" name="siteUuid" class="jp-form-input" readonly placeholder="Auto-generated" title="This UUID is automatically generated and uniquely identifies your deployment">
-                                <div class="jp-text-small jp-text-muted jp-mt-10">{{i18n.view.admin.config.manifest.siteUuidHelp}}</div>
-                            </div>
-                            <div class="jp-form-group">
-                                <label for="adminEmailOptIn" class="jp-form-label">{{i18n.view.admin.config.manifest.adminEmailOptIn}}</label>
-                                <select id="adminEmailOptIn" name="adminEmailOptIn" class="jp-form-input local-edit-field">
-                                    <option value="false">{{i18n.view.admin.config.manifest.adminEmailOptInNo}}</option>
-                                    <option value="true">{{i18n.view.admin.config.manifest.adminEmailOptInYes}}</option>
-                                </select>
-                                <div class="jp-text-small jp-text-muted jp-mt-10">{{i18n.view.admin.config.manifest.adminEmailOptInDesc}}</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- W-147: Extension panels (data-driven from schema; one panel per extended block) -->
-                <div id="config-extension-panels"></div>
+                <div id="config-all-panels"></div>
 
                 <!-- Form Actions (shown below all tab panels) -->
                 <div class="local-form-actions">
@@ -376,28 +120,40 @@
             }
         });
 
-        // Site configuration management (W-147: data-driven tabs and extension panels)
+        // Site configuration management (W-148 Phase 4: unified schema-driven tabs and panels)
         jPulse.dom.ready(() => {
             const configForm = document.getElementById('configForm');
             const saveBtn = document.getElementById('saveBtn');
             const cancelBtn = document.getElementById('cancelBtn');
-            const testEmailBtn = document.getElementById('testEmailBtn');
-            const testEmailBtnTitle = `{{i18n.view.admin.config.testEmailDesc}}`;
-            testEmailBtn.title = jPulse.string.escapeHtml(testEmailBtnTitle);
             let originalDirtySnapshot = '';
             let dirtyTrackingReady = false;
-
-            // W-147: Framework tab labels (server-rendered); extended blocks use _meta.tabLabel or blockKey
-            const frameworkLabels = {
-                general: '{{i18n.view.admin.config.general.label}}',
-                email: '{{i18n.view.admin.config.email.label}}',
-                broadcast: '{{i18n.view.admin.config.broadcast.label}}',
-                manifest: '{{i18n.view.admin.config.manifest.label}}'
-            };
-            const frameworkBlockKeys = ['general', 'email', 'broadcast', 'manifest'];
             let configSchema = null;
 
-            // Load config with schema, then build tabs and populate form
+            // Password toggle: delegated so dynamically rendered password fields work
+            configForm.addEventListener('click', (e) => {
+                const btn = e.target.closest('.jp-password-toggle');
+                if (btn) {
+                    const inputId = btn.getAttribute('data-password-for');
+                    if (inputId) togglePasswordVisibility(inputId);
+                }
+            });
+
+            // Schema action buttons (data-action / data-callback): delegated for schema type: 'button' fields
+            const actionHandlers = { testEmail: handleTestEmail };
+            configForm.addEventListener('click', (e) => {
+                const btn = e.target.closest('button[data-action], button[data-callback]');
+                if (!btn) return;
+                const callbackName = btn.getAttribute('data-callback');
+                const action = btn.getAttribute('data-action');
+                if (callbackName && typeof window[callbackName] === 'function') {
+                    window[callbackName].call(btn);
+                    return;
+                }
+                if (action && actionHandlers[action]) {
+                    actionHandlers[action](btn);
+                }
+            });
+
             loadConfig();
 
             async function loadConfig() {
@@ -406,12 +162,17 @@
                     if (result.success && result.data) {
                         configSchema = (result.schema && (result.schema.schema || result.schema)) || null;
                         if (configSchema && typeof configSchema === 'object' && configSchema.data && typeof configSchema.data === 'object') {
-                            renderExtensionPanels(configSchema, result.data);
-                            buildTabsAndRegister(configSchema);
-                        } else {
-                            registerFrameworkTabsOnly();
+                            jPulse.UI.tabs.renderTabsAndPanelsFromSchema(
+                                'config-tabs',
+                                'config-all-panels',
+                                configSchema,
+                                result.data
+                            );
                         }
                         populateForm(result.data);
+                        if (jPulse.UI.input && jPulse.UI.input.initAll) {
+                            jPulse.UI.input.initAll(configForm);
+                        }
 
                         setTimeout(() => {
                             originalDirtySnapshot = localSerializeDirtySnapshot();
@@ -434,129 +195,48 @@
                 }
             }
 
-            function buildTabsFromSchema(schema) {
-                const data = schema.data || {};
-                const entries = Object.entries(data)
-                    .filter(([key]) => typeof data[key] === 'object' && data[key] !== null)
-                    .map(([blockKey, blockDef]) => {
-                        const order = blockDef._meta?.order ?? 999;
-                        const label = frameworkLabels[blockKey] ?? blockDef._meta?.tabLabel ?? blockKey;
-                        const panelId = frameworkBlockKeys.includes(blockKey)
-                            ? blockKey + '-panel'
-                            : 'ext-' + blockKey + '-panel';
-                        return { blockKey, order, label, panelId };
-                    });
-                entries.sort((a, b) => a.order - b.order || (a.blockKey).localeCompare(b.blockKey));
-                return entries.map(({ blockKey, label, panelId }) => ({
-                    id: blockKey + '-tab',
-                    label: label,
-                    panelId: panelId,
-                    blockKey: blockKey
-                }));
-            }
-
-            function buildTabsAndRegister(schema) {
-                const tabs = buildTabsFromSchema(schema);
-                jPulse.UI.tabs.register('config-tabs', {
-                    tabs: tabs,
-                    panelHeight: '31rem',
-                    slideAnimation: true,
-                    responsive: 'scroll'
-                }, tabs[0]?.id || 'general-tab');
-            }
-
-            function registerFrameworkTabsOnly() {
-                const tabs = [
-                    { id: 'general-tab', label: frameworkLabels.general, panelId: 'general-panel' },
-                    { id: 'email-tab', label: frameworkLabels.email, panelId: 'email-panel' },
-                    { id: 'broadcast-tab', label: frameworkLabels.broadcast, panelId: 'broadcast-panel' },
-                    { id: 'manifest-tab', label: frameworkLabels.manifest, panelId: 'manifest-panel' }
-                ];
-                jPulse.UI.tabs.register('config-tabs', {
-                    tabs: tabs,
-                    panelHeight: '31rem',
-                    slideAnimation: true,
-                    responsive: 'scroll'
-                }, 'general-tab');
-            }
-
-            // Debug: call from DevTools Console to inspect schema and tabs
-            //   await __configDebug()       — log in-memory configSchema and DOM
-            //   await __configDebug(true)   — re-fetch API, log result and parsed schema/tabs
-            // FIXME: DEBUG: remove before release
-            window.__configDebug = async function (reload) {
-                if (reload) {
-                    const result = await jPulse.api.call('/api/1/config/_default?includeSchema=1&_=' + Date.now());
-                    console.log('API result.success', result.success, 'result.schema keys', result.schema ? Object.keys(result.schema) : null);
-                    const parsed = (result.schema && (result.schema.schema || result.schema)) || null;
-                    console.log('Parsed schema.data keys', parsed?.data ? Object.keys(parsed.data) : 'N/A');
-                    const tabs = parsed && parsed.data ? buildTabsFromSchema(parsed) : [];
-                    console.log('buildTabsFromSchema(parsed)', tabs);
-                    return { result, parsed, tabs };
+            async function handleTestEmail(btn) {
+                const adminEmailEl = configForm.querySelector('[data-path="email.adminEmail"]');
+                const adminEmail = adminEmailEl ? adminEmailEl.value.trim() : '';
+                if (!adminEmail) {
+                    jPulse.UI.toast.error(`{{i18n.view.admin.config.testEmailNoRecipient}}`);
+                    if (adminEmailEl) adminEmailEl.focus();
+                    return;
                 }
-                console.log('In-memory configSchema?.data keys', configSchema?.data ? Object.keys(configSchema.data) : 'N/A');
-                if (configSchema?.data) console.log('buildTabsFromSchema(configSchema)', buildTabsFromSchema(configSchema));
-                console.log('#config-extension-panels child count', document.querySelectorAll('#config-extension-panels > *').length);
-                return { configSchema, tabCount: configSchema?.data ? Object.keys(configSchema.data).length : 0 };
-            };
-
-            function renderExtensionPanels(schema, configData) {
-                const container = document.getElementById('config-extension-panels');
-                if (!container) return;
-                container.innerHTML = '';
-                const data = schema.data || {};
-                const extendedBlocks = Object.entries(data).filter(([key]) => !frameworkBlockKeys.includes(key));
-                extendedBlocks.forEach(([blockKey, blockDef]) => {
-                    const panelId = 'ext-' + blockKey + '-panel';
-                    const blockData = (configData && configData.data && configData.data[blockKey]) || {};
-                    const description = blockDef._meta?.description || '';
-                    const fieldsHtml = renderExtensionBlockFields(blockKey, blockDef, blockData);
-                    const card = document.createElement('div');
-                    card.id = panelId;
-                    card.className = 'jp-panel';
-                    card.innerHTML = '<div class="jp-card local-config-section">' +
-                        (description ? '<div class="local-panel-description">' + description + '</div>' : '') +
-                        '<div class="local-form-row local-full-width">' + fieldsHtml + '</div></div>';
-                    container.appendChild(card);
-                });
-            }
-
-            function renderExtensionBlockFields(blockKey, blockDef, blockData) {
-                const parts = [];
-                for (const [fieldKey, fieldDef] of Object.entries(blockDef)) {
-                    if (fieldKey === '_meta') continue;
-                    if (typeof fieldDef !== 'object' || !fieldDef || fieldDef.type === undefined) continue;
-                    const inputId = 'config-ext-' + blockKey + '-' + fieldKey;
-                    const name = 'data.' + blockKey + '.' + fieldKey;
-                    const label = fieldDef.label || fieldKey;
-                    let value = blockData[fieldKey];
-                    if (value === undefined && fieldDef.default !== undefined) value = fieldDef.default;
-                    const escapedLabel = jPulse.string.escapeHtml(label);
-                    const escapedValue = value !== undefined && value !== null ? jPulse.string.escapeHtml(String(value)) : '';
-                    if (fieldDef.type === 'boolean') {
-                        const checked = value === true ? ' checked' : '';
-                        parts.push('<div class="local-checkbox-group">' +
-                            '<input type="checkbox" id="' + inputId + '" name="' + name + '" class="local-edit-field config-ext-field" data-block="' + jPulse.string.escapeHtml(blockKey) + '" data-field="' + jPulse.string.escapeHtml(fieldKey) + '" value="true"' + checked + '>' +
-                            '<label for="' + inputId + '">' + escapedLabel + '</label></div>');
-                    } else if (fieldDef.type === 'array') {
-                        const arr = Array.isArray(value) ? value : (value != null ? [value] : (fieldDef.default || []));
-                        const textareaValue = arr.join('\n');
-                        parts.push('<div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
-                            '<textarea id="' + inputId + '" name="' + name + '" class="jp-form-textarea local-edit-field config-ext-field" data-block="' + jPulse.string.escapeHtml(blockKey) + '" data-field="' + jPulse.string.escapeHtml(fieldKey) + '" rows="3">' + escapedValue + '</textarea></div>');
-                    } else if (fieldDef.type === 'number') {
-                        parts.push('<div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
-                            '<input type="number" id="' + inputId + '" name="' + name + '" class="jp-form-input local-edit-field config-ext-field" data-block="' + jPulse.string.escapeHtml(blockKey) + '" data-field="' + jPulse.string.escapeHtml(fieldKey) + '" value="' + escapedValue + '"></div>');
+                const formData = getFormData();
+                const emailConfig = formData.data.email;
+                try {
+                    if (btn) {
+                        btn.classList.add('jp-btn-loading');
+                        btn.disabled = true;
+                    }
+                    const result = await jPulse.api.call('/api/1/email/send', {
+                        method: 'POST',
+                        body: {
+                            to: adminEmail,
+                            subject: 'Test Email from {{app.site.name}}',
+                            message: `This is a test email from {{app.site.name}} at {{url.hostname}}.\n\nConfiguration:\n- SMTP Server: ${emailConfig.smtpServer}\n- SMTP Port: ${emailConfig.smtpPort || 25}\n\nSent by: {{user.username}}`,
+                            emailConfig: emailConfig
+                        }
+                    });
+                    if (result.success) {
+                        jPulse.UI.toast.success(`{{i18n.view.admin.config.testEmailSuccess}}`);
                     } else {
-                        parts.push('<div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
-                            '<input type="text" id="' + inputId + '" name="' + name + '" class="jp-form-input local-edit-field config-ext-field" data-block="' + jPulse.string.escapeHtml(blockKey) + '" data-field="' + jPulse.string.escapeHtml(fieldKey) + '" value="' + escapedValue + '"></div>');
+                        jPulse.UI.toast.error(result.error || `{{i18n.view.admin.config.testEmailFailed}}`);
+                    }
+                } catch (error) {
+                    jPulse.UI.toast.error(`{{i18n.view.admin.config.testEmailError}}`);
+                } finally {
+                    if (btn) {
+                        btn.classList.remove('jp-btn-loading');
+                        btn.disabled = false;
                     }
                 }
-                return parts.join('');
             }
 
             function localGetDirtySnapshot() {
                 const snapshot = {};
-                configForm.querySelectorAll('.local-edit-field').forEach((el) => {
+                configForm.querySelectorAll('.jp-edit-field').forEach((el) => {
                     const key = el.id || el.name || (el.dataset.block && el.dataset.field ? 'ext.' + el.dataset.block + '.' + el.dataset.field : null);
                     if (!key) return;
                     if (el.type === 'checkbox') {
@@ -572,118 +252,12 @@
                 return JSON.stringify(localGetDirtySnapshot());
             }
 
-            function parseRolesFromText(text) {
-                if (!text || typeof text !== 'string') return [];
-                return text.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
-            }
-
             function populateForm(config) {
-                const data = config.data || {};
-                const general = data.general || {};
-                const email = data.email || {};
-                const broadcast = data.broadcast || {};
-                const manifest = data.manifest || {};
-                const manifestLicense = manifest.license || {};
-                const manifestCompliance = manifest.compliance || {};
-
-                // Populate general fields (W-147)
-                const rolesArr = Array.isArray(general.roles) ? general.roles : ['user', 'admin', 'root'];
-                const adminRolesArr = Array.isArray(general.adminRoles) ? general.adminRoles : ['admin', 'root'];
-                document.getElementById('generalRoles').value = rolesArr.join('\n');
-                document.getElementById('generalAdminRoles').value = adminRolesArr.join('\n');
-
-                // Populate email fields - explicitly handle empty strings
-                document.getElementById('adminEmail').value = email.adminEmail !== undefined ? email.adminEmail : '';
-                document.getElementById('adminName').value = email.adminName !== undefined ? email.adminName : '';
-                document.getElementById('smtpServer').value = email.smtpServer !== undefined ? email.smtpServer : 'localhost';
-                document.getElementById('smtpPort').value = email.smtpPort !== undefined ? email.smtpPort : 25;
-                document.getElementById('smtpUser').value = email.smtpUser !== undefined ? email.smtpUser : '';
-                document.getElementById('smtpPass').value = email.smtpPass !== undefined ? email.smtpPass : '';
-                document.getElementById('useTls').checked = email.useTls !== undefined ? email.useTls : false;
-
-                // Populate broadcast fields
-                document.getElementById('broadcastEnable').checked = broadcast.enable !== undefined ? broadcast.enable : false;
-                document.getElementById('broadcastMessage').value = broadcast.message !== undefined ? broadcast.message : '';
-                document.getElementById('broadcastNagTime').value = broadcast.nagTime !== undefined ? broadcast.nagTime : 4;
-                document.getElementById('broadcastDisableTime').value = broadcast.disableTime !== undefined ? broadcast.disableTime : 0;
-
-                // Populate manifest fields (W-137)
-                document.getElementById('licenseKey').value = manifestLicense.key !== undefined ? manifestLicense.key : '';
-                document.getElementById('licenseTier').value = manifestLicense.tier !== undefined ? manifestLicense.tier : 'bsl';
-                document.getElementById('siteUuid').value = manifestCompliance.siteUuid !== undefined ? manifestCompliance.siteUuid : '';
-                document.getElementById('adminEmailOptIn').value = manifestCompliance.adminEmailOptIn !== undefined ? String(manifestCompliance.adminEmailOptIn) : 'false';
-
-                // W-147: Populate extension panels
-                configForm.querySelectorAll('.config-ext-field').forEach((el) => {
-                    const blockKey = el.dataset.block;
-                    const fieldKey = el.dataset.field;
-                    if (!blockKey || !fieldKey) return;
-                    const blockData = data[blockKey] || {};
-                    let value = blockData[fieldKey];
-                    if (value === undefined && configSchema?.data?.[blockKey]?.[fieldKey]?.default !== undefined) {
-                        value = configSchema.data[blockKey][fieldKey].default;
-                    }
-                    if (el.type === 'checkbox') {
-                        el.checked = value === true;
-                    } else if (el.tagName === 'TEXTAREA' && Array.isArray(value)) {
-                        el.value = value.join('\n');
-                    } else {
-                        el.value = value !== undefined && value !== null ? String(value) : '';
-                    }
-                });
+                jPulse.UI.input.setFormData(configForm, config.data || {}, configSchema);
             }
 
             function getFormData() {
-                const rolesText = document.getElementById('generalRoles').value;
-                const adminRolesText = document.getElementById('generalAdminRoles').value;
-                const roles = parseRolesFromText(rolesText);
-                const adminRoles = parseRolesFromText(adminRolesText);
-                const data = {
-                    general: { roles, adminRoles },
-                    email: {
-                        adminEmail: document.getElementById('adminEmail').value.trim(),
-                        adminName: document.getElementById('adminName').value.trim(),
-                        smtpServer: document.getElementById('smtpServer').value.trim() || 'localhost',
-                        smtpPort: parseInt(document.getElementById('smtpPort').value) || 25,
-                        smtpUser: document.getElementById('smtpUser').value,
-                        smtpPass: document.getElementById('smtpPass').value,
-                        useTls: document.getElementById('useTls').checked
-                    },
-                    broadcast: {
-                        enable: document.getElementById('broadcastEnable').checked,
-                        message: document.getElementById('broadcastMessage').value,
-                        nagTime: parseInt(document.getElementById('broadcastNagTime').value) || 4,
-                        disableTime: parseInt(document.getElementById('broadcastDisableTime').value) || 0
-                    },
-                    manifest: {
-                        license: {
-                            key: document.getElementById('licenseKey').value,
-                            tier: document.getElementById('licenseTier').value || 'bsl'
-                        },
-                        compliance: {
-                            siteUuid: document.getElementById('siteUuid').value,
-                            adminEmailOptIn: document.getElementById('adminEmailOptIn').value === 'true'
-                        }
-                    }
-                };
-                // W-147: Collect extension block data
-                configForm.querySelectorAll('.config-ext-field').forEach((el) => {
-                    const blockKey = el.dataset.block;
-                    const fieldKey = el.dataset.field;
-                    if (!blockKey || !fieldKey) return;
-                    if (!data[blockKey]) data[blockKey] = {};
-                    if (el.type === 'checkbox') {
-                        data[blockKey][fieldKey] = el.checked;
-                    } else if (el.tagName === 'TEXTAREA' && configSchema?.data?.[blockKey]?.[fieldKey]?.type === 'array') {
-                        data[blockKey][fieldKey] = parseRolesFromText(el.value);
-                    } else if (configSchema?.data?.[blockKey]?.[fieldKey]?.type === 'number') {
-                        const n = parseInt(el.value, 10);
-                        data[blockKey][fieldKey] = isNaN(n) ? (configSchema.data[blockKey][fieldKey].default ?? 0) : n;
-                    } else {
-                        data[blockKey][fieldKey] = el.value;
-                    }
-                });
-                return { data: data };
+                return jPulse.UI.input.getFormData(configForm, configSchema);
             }
 
             function checkDirty() {
@@ -699,10 +273,10 @@
 
             // Dirty tracking: use delegation so dynamically added extension-panel fields are included.
             configForm.addEventListener('input', (e) => {
-                if (e.target.matches && e.target.matches('.local-edit-field')) checkDirty();
+                if (e.target.matches && e.target.matches('.jp-edit-field')) checkDirty();
             });
             configForm.addEventListener('change', (e) => {
-                if (e.target.matches && e.target.matches('.local-edit-field')) checkDirty();
+                if (e.target.matches && e.target.matches('.jp-edit-field')) checkDirty();
             });
 
             // Save configuration
@@ -715,29 +289,43 @@
                 const roles = formData.data.general.roles;
                 const adminRoles = formData.data.general.adminRoles;
 
+                // Validate roles: match data-pattern (lowercase, digits, dash, underscore)
+                const rolePattern = /^[a-z0-9_-]+$/;
+                const invalidRoles = [...roles, ...adminRoles].filter(r => !rolePattern.test(r));
+                if (invalidRoles.length > 0) {
+                    const unique = [...new Set(invalidRoles)];
+                    jPulse.UI.toast.error(`{{i18n.view.admin.config.general.rolesInvalidChars}}`.replace('%ROLES%', unique.join(', ')));
+                    const rolesEl = configForm.querySelector('[data-path="general.roles"]');
+                    if (rolesEl) rolesEl.focus();
+                    return;
+                }
+
                 // W-147: Validate adminRoles ⊆ roles
                 const notSubset = adminRoles.filter(r => !roles.includes(r));
                 if (notSubset.length > 0) {
                     jPulse.UI.toast.error(`{{i18n.view.admin.config.general.adminRolesSubset}}`);
-                    document.getElementById('generalAdminRoles').focus();
+                    const adminRolesEl = configForm.querySelector('[data-path="general.adminRoles"]');
+                    if (adminRolesEl) adminRolesEl.focus();
                     return;
                 }
 
                 // W-147: Self-lockout – current user must keep at least one of their roles in admin roles
                 const currentUserRolesStr = (configForm.dataset.currentUserRoles || '').trim();
-                const currentUserRoles = currentUserRolesStr ? currentUserRolesStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+                const currentUserRoles = currentUserRolesStr ? currentUserRolesStr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : [];
                 const userAdminRoles = currentUserRoles.filter(r => adminRoles.includes(r));
                 if (currentUserRoles.length > 0 && userAdminRoles.length === 0) {
                     jPulse.UI.toast.error(`{{i18n.view.admin.config.general.selfLockout}}`);
-                    document.getElementById('generalAdminRoles').focus();
+                    const adminRolesEl = configForm.querySelector('[data-path="general.adminRoles"]');
+                    if (adminRolesEl) adminRolesEl.focus();
                     return;
                 }
 
-                // Validate required fields
-                const adminEmail = document.getElementById('adminEmail').value.trim();
+                // Validate required fields (schema-driven ids: use data-path)
+                const adminEmailEl = configForm.querySelector('[data-path="email.adminEmail"]');
+                const adminEmail = adminEmailEl ? adminEmailEl.value.trim() : '';
                 if (!adminEmail) {
                     jPulse.UI.toast.error(`{{i18n.view.admin.config.adminEmailRequired}}`);
-                    document.getElementById('adminEmail').focus();
+                    if (adminEmailEl) adminEmailEl.focus();
                     return;
                 }
 
@@ -783,54 +371,12 @@
                 window.location.href = '/admin/';
             });
 
-            // Clear error states on input
-            document.querySelectorAll('.jp-form-input, .jp-form-textarea').forEach(input => {
-                input.addEventListener('input', function() {
-                    this.classList.remove('jp-field-error');
-                });
+            // Clear error states on input (delegated so dynamically rendered fields work)
+            configForm.addEventListener('input', (e) => {
+                if (e.target.matches('.jp-form-input, .jp-form-textarea')) e.target.classList.remove('jp-field-error');
             });
-
-            // Test email functionality
-            testEmailBtn.addEventListener('click', async () => {
-                const adminEmail = document.getElementById('adminEmail').value.trim();
-
-                if (!adminEmail) {
-                    jPulse.UI.toast.error(`{{i18n.view.admin.config.testEmailNoRecipient}}`);
-                    document.getElementById('adminEmail').focus();
-                    return;
-                }
-
-                // Get current form values (not saved config)
-                const formData = getFormData();
-                const emailConfig = formData.data.email;
-
-                try {
-                    testEmailBtn.classList.add('jp-btn-loading');
-                    testEmailBtn.disabled = true;
-
-                    // Use /api/1/email/send with emailConfig for testing
-                    // The server will construct the test message with proper i18n
-                    const result = await jPulse.api.call('/api/1/email/send', {
-                        method: 'POST',
-                        body: {
-                            to: adminEmail,
-                            subject: 'Test Email from {{app.site.name}}',
-                            message: `This is a test email from {{app.site.name}} at {{url.hostname}}.\n\nConfiguration:\n- SMTP Server: ${emailConfig.smtpServer}\n- SMTP Port: ${emailConfig.smtpPort || 25}\n\nSent by: {{user.username}}`,
-                            emailConfig: emailConfig  // Override saved config for testing
-                        }
-                    });
-
-                    if (result.success) {
-                        jPulse.UI.toast.success(`{{i18n.view.admin.config.testEmailSuccess}}`);
-                    } else {
-                        jPulse.UI.toast.error(result.error || `{{i18n.view.admin.config.testEmailFailed}}`);
-                    }
-                } catch (error) {
-                    jPulse.UI.toast.error(`{{i18n.view.admin.config.testEmailError}}`);
-                } finally {
-                    testEmailBtn.classList.remove('jp-btn-loading');
-                    testEmailBtn.disabled = false;
-                }
+            configForm.addEventListener('change', (e) => {
+                if (e.target.matches('.jp-form-input, .jp-form-textarea')) e.target.classList.remove('jp-field-error');
             });
         });
     </script>

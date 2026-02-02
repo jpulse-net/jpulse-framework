@@ -1,6 +1,69 @@
-# jPulse Docs / Version History v1.6.4
+# jPulse Docs / Version History v1.6.5
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.5, W-148, 2026-02-02
+
+**Commit:** `W-148, v1.6.5: jPulse UI: schema-driven config forms and tagInput widget`
+
+**FEATURE RELEASE**: tagInput widget for list-in-one-input (e.g. roles), schema-driven config forms with one-line setFormData/getFormData, and unified Admin config UI driven by a single schema (tabs, panels, layout, virtual buttons). Config schema gains _meta (tabLabel, description, maxColumns), inputType, label/placeholder in handlebar format; i18n expandI18nDeep resolves schema before sending to client.
+
+**Objective**: Easier way to enter list items (e.g. roles); single schema for tabs, panels, and form set/get; Admin config minimal view code.
+
+**Key Changes**:
+- **tagInput**: jPulse.UI.input.tagInput.init(selectorOrElement), parseValue(str), formatValue(arr); initAll(container); optional data-pattern (e.g. slug) for real-time character filter; roles/adminRoles normalized to lowercase in config.
+- **Form helpers**: setFormData(form, data, schema), getFormData(form, schema) for one-line populate/get with schema defaults, coercion (number, boolean), normalize; setAllValues(form, data), getAllValues(form) by data-path (no schema).
+- **Tabs/panels from schema**: renderTabsAndPanelsFromSchema(tabContainer, panelContainer, schema, data, options); flow layout (maxColumns, startNewRow, fullWidth); virtual buttons (type: 'button', action) wired via delegation.
+- **Config model**: baseSchema blocks with _meta (order, tabLabel, description, maxColumns); fields with inputType (tagInput, text, password, checkbox, select, textarea), label/placeholder in {{i18n...}} format, startNewRow, fullWidth, help, scope (view/model); email testEmail button; broadcast.enabledAt scope ['model']; manifest select/options, password, readonly.
+- **Config controller**: When includeSchema, call global.i18n.expandI18nDeep(req, fullSchema) before sending so client receives resolved labels.
+- **i18n**: _expandI18nExpression(req, expression) shared by expandI18nHandlebars and expandI18nDeep; expandI18nDeep(req, obj) deep-walks and expands {{i18n...}} strings in objects/arrays.
+- **Admin config view**: Single #config-all-panels; loadConfig calls renderTabsAndPanelsFromSchema; populateForm = setFormData(configForm, config.data, configSchema); getFormData = getFormData(configForm, configSchema); delegated button[data-action], button[data-callback].
+- **app.conf**: controller.view.input.tagInput.maxChars (default 32).
+- **ConfigModel.validate**: enabledAt strictly rejects non-Date, non-null (removed string coercion).
+- **Translations**: view.admin.config.general.rolesPlaceholder, rolesInvalidChars; licenseTierEnterprise (en.conf, de.conf).
+- **Tests**: jpulse-ui-input-taginput.test.js (init, parseValue, formatValue, initAll, setFormData/getFormData, data-pattern); jpulse-ui-tabs-schema.test.js (_walkSchemaFields, renderTabsAndPanelsFromSchema null/empty); i18n-variable-content.test.js (expandI18nDeep); config-model enabledAt validation.
+- **Documentation**: front-end-development.md (Schema-driven config forms: renderTabsAndPanelsFromSchema, setFormData/getFormData, layout table, virtual buttons, reference); jpulse-ui-reference.md (Input utilities: tagInput, setAllValues/getAllValues, setFormData/getFormData); plugin-api-reference.md (plugin config schema blurb + link); genai-instructions.md (Config-style forms bullet); W-148 design doc (Phases 1–4 complete, Phase 6 Docs).
+
+**Code Changes**:
+
+webapp/view/jpulse-common.js:
+- jPulse.UI.input.tagInput (init, parseValue, formatValue), initAll; setAllValues, getAllValues; _walkSchemaFields, setFormData, getFormData; jPulse.UI.tabs.renderTabsAndPanelsFromSchema, _renderSchemaBlockFields, _renderSchemaBlockActions (flow layout, input types, virtual buttons)
+
+webapp/view/admin/config.shtml:
+- Single #config-all-panels; renderTabsAndPanelsFromSchema; one-line setFormData/getFormData; delegated button[data-action], actionHandlers.testEmail
+
+webapp/model/config.js:
+- baseSchema: _meta (tabLabel, description, maxColumns) per block; general.roles/adminRoles inputType tagInput, pattern, normalize, label/placeholder; email/broadcast/manifest _meta and field defs (inputType, label, placeholder, startNewRow, fullWidth, help, options, scope); testEmail button; enabledAt scope ['model']; validate enabledAt no coercion
+
+webapp/controller/config.js:
+- includeSchema: expandI18nDeep(req, fullSchema) before sending
+
+webapp/utils/i18n.js:
+- _expandI18nExpression; expandI18nHandlebars refactored to use it; expandI18nDeep(req, obj)
+
+webapp/app.conf:
+- controller.view.input.tagInput.maxChars
+
+webapp/translations/en.conf, de.conf:
+- general.rolesPlaceholder, rolesInvalidChars; manifest.licenseTierEnterprise
+
+webapp/tests/unit/utils/jpulse-ui-input-taginput.test.js (NEW), jpulse-ui-tabs-schema.test.js (NEW)
+webapp/tests/unit/translations/i18n-variable-content.test.js: expandI18nDeep tests
+webapp/tests/unit/config/config-model.test.js: enabledAt validation (no coercion)
+
+**Documentation**:
+
+docs/front-end-development.md: Schema-driven config forms section; Form Handling pointer
+docs/jpulse-ui-reference.md: Input utilities (tagInput, setAllValues/getAllValues, setFormData/getFormData)
+docs/plugins/plugin-api-reference.md: Plugin config schema blurb + link
+docs/genai-instructions.md: Config-style forms bullet
+docs/dev/design/W-148-jPulse-UI-input-tagInput-widget.md: Phases 1–4 complete, Phase 6 Docs, flow control
+docs/dev/work-items.md: W-148 deliverables (no version bump)
+
+**Work Item**: W-148
+**Version**: v1.6.5
+**Release Date**: 2026-02-02
 
 ________________________________________________
 ## v1.6.4, W-147, 2026-02-01

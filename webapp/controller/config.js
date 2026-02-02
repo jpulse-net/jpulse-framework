@@ -3,8 +3,8 @@
  * @tagline         Config Controller for jPulse Framework WebApp
  * @description     This is the config controller for the jPulse Framework WebApp
  * @file            webapp/controller/config.js
- * @version         1.6.4
- * @release         2026-02-01
+ * @version         1.6.5
+ * @release         2026-02-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -86,13 +86,14 @@ class ConfigController {
                 ConfigModel.setEffectiveGeneralCache(config.data.general);
             }
 
-            // W-115 / W-147: Include schema if requested (data-driven tabs and extension panels)
+            // W-115 / W-147 / W-148: Include schema if requested (data-driven tabs and extension panels)
             const includeSchema = req.query.includeSchema === '1' || req.query.includeSchema === 'true';
             let schema = null;
             if (includeSchema) {
                 const fullSchema = ConfigModel.getSchema();
+                const resolvedSchema = global.i18n.expandI18nDeep(req, fullSchema);
                 schema = {
-                    schema: fullSchema,
+                    schema: resolvedSchema,
                     contextFilter: fullSchema._meta?.contextFilter || null
                 };
             }

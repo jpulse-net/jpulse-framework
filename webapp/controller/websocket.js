@@ -3,8 +3,8 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         1.6.5
- * @release         2026-02-02
+ * @version         1.6.6
+ * @release         2026-02-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -532,9 +532,9 @@ class WebSocketController {
             }
         }
 
-        // Handle messages
+        // Handle messages (void so async _onMessage rejections are handled inside _onMessage)
         ws.on('message', (data) => {
-            this._onMessage(clientId, namespace, user, username, data);
+            void this._onMessage(clientId, namespace, user, username, data);
         });
 
         // Handle pong responses
@@ -555,9 +555,10 @@ class WebSocketController {
 
     /**
      * Handle incoming message
+     * Supports sync and async onMessage handlers; async rejections are sent to client like sync throws.
      * @private
      */
-    static _onMessage(clientId, namespace, user, username, data) {
+    static async _onMessage(clientId, namespace, user, username, data) {
         try {
             const message = JSON.parse(data.toString());
 
@@ -572,10 +573,13 @@ class WebSocketController {
             // Update stats
             this._recordMessage(namespace);
 
-            // Call onMessage handler
+            // Call onMessage handler (may be async)
             if (namespace.onMessage) {
                 try {
-                    namespace.onMessage(clientId, message, user);
+                    const result = namespace.onMessage(clientId, message, user);
+                    if (result != null && typeof result.then === 'function') {
+                        await result;
+                    }
                 } catch (error) {
                     LogController.logError(null, 'websocket._onMessage', `onMessage error: ${error.message}`);
                     // Send error back to client

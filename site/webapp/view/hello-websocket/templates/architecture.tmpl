@@ -4,8 +4,8 @@
  * @tagline         Architecture component of the WebSocket demo
  * @description     This component describes the architecture of the WebSocket demo
  * @file            site/webapp/view/hello-websocket/templates/architecture.tmpl
- * @version         1.6.5
- * @release         2026-02-02
+ * @version         1.6.6
+ * @release         2026-02-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -145,11 +145,14 @@ window.helloWebSocketViews.Architecture = {
         <p>Multiple independent channels on a single WebSocket server:</p>
 
         <div class="local-panel">
-            <pre class="local-panel-pre local-panel-pre-md jp-m-0"><code>// Each namespace is completely isolated
+            <pre class="local-panel-pre local-panel-pre-md jp-m-0"><code>// This demo uses three namespaces
+/api/1/ws/hello-emoji    ← Emoji cursor (ephemeral, no persistence)
+/api/1/ws/hello-todo     ← Collaborative todo (Pattern A: REST + WS sync)
+/api/1/ws/hello-notes    ← Sticky notes (Pattern B: WS for CRUD, Redis store)
+
+// Generic examples
 /api/1/ws/chat           ← Chat messages
 /api/1/ws/notifications  ← System notifications
-/api/1/ws/dashboard      ← Live metrics
-/api/1/ws/game           ← Game state updates
 
 // Different authentication requirements
 /api/1/ws/public-chat         requireAuth: false
@@ -199,7 +202,7 @@ wsHandle.sendToClient(clientId, {
         </div>
 
         <div class="local-panel">
-            <h4 class="jp-m-0">Pattern 3: REST API + WebSocket Hybrid</h4>
+            <h4 class="jp-m-0">Pattern 3: REST API + WebSocket Hybrid (Pattern A)</h4>
             <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Client calls REST API
 const response = await jPulse.api.post('/api/1/todos', { title });
 
@@ -220,6 +223,23 @@ ws.onMessage((data) => {
         addTodoToList(data.todo);
     }
 });</code></pre>
+        </div>
+
+        <div class="local-panel">
+            <h4 class="jp-m-0">Pattern 4: WebSocket for CRUD (Pattern B)</h4>
+            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Client sends mutations over WebSocket (no REST for these)
+ws.send({ type: 'note-create', x, y, text, username: notesUsername() });
+
+// Server: persist (e.g. Redis), then broadcast
+onMessage: async (clientId, data, user) => {
+    const note = await this._notesCreate(...);
+    handle.broadcast({ type: 'note-created', note, username }, username);
+}
+
+// All clients (including sender) receive update; state syncs across instances</code></pre>
+            <p class="jp-help-text jp-mt-10 jp-mb-0">
+                Use for live collaborative UIs (canvas, sticky boards). Server stores in Redis so all instances share state.
+            </p>
         </div>
     </div>
 
@@ -317,6 +337,11 @@ Client A broadcasts → Server 1 publishes to Redis → All servers receive
                 <strong>Setup:</strong> Enable Redis in <code>app.conf</code> and the framework
                 automatically coordinates broadcasts across all server instances.
             </p>
+            <p class="jp-mt-15 jp-mb-0">
+                <strong>Application state:</strong> For Pattern B (e.g. Sticky Notes), store shared data in Redis
+                (<code>RedisManager.cacheGetObject</code> / <code>cacheSetObject</code>) so every instance reads and writes
+                the same state; pub/sub then delivers broadcasts to all instances.
+            </p>
         </div>
     </div>
 
@@ -337,7 +362,7 @@ Client A broadcasts → Server 1 publishes to Redis → All servers receive
     <div class="jp-output jp-output-warning jp-mt-30">
         <h3>🚀 Next Steps</h3>
         <ol class="jp-list">
-            <li>Try the <strong>Emoji Cursor</strong> and <strong>Collaborative Todo</strong> demos</li>
+            <li>Try the <strong>Emoji Cursor</strong>, <strong>Collaborative Todo</strong>, and <strong>Sticky Notes</strong> demos</li>
             <li>Review the <strong>Code Examples</strong> tab for implementation patterns</li>
             <li>Read the <a href="/jpulse-docs/websockets" target="_blank">complete WebSocket documentation</a></li>
             <li>Build your own real-time feature using these patterns</li>

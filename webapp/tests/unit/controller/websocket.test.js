@@ -3,13 +3,13 @@
  * @tagline         Unit tests for WebSocket Controller
  * @description     Tests for WebSocket infrastructure, authentication, broadcasting, and lifecycle
  * @file            webapp/tests/unit/controller/websocket.test.js
- * @version         1.6.5
- * @release         2026-02-02
+ * @version         1.6.6
+ * @release         2026-02-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import { describe, test, expect, beforeEach, beforeAll, afterEach, jest } from '@jest/globals';
@@ -648,6 +648,49 @@ describe('WebSocketController - High Priority Tests', () => {
             // Assert
             const namespace = WebSocketController.namespaces.get('/api/1/ws/test');
             expect(namespace.requireRoles).toEqual(['admin', 'root']);
+        });
+    });
+
+    // =========================================================================
+    // ASYNC onMessage (W-149)
+    // =========================================================================
+
+    describe('Async onMessage', () => {
+
+        test('should send error to client when async onMessage rejects', async () => {
+            // Arrange
+            const clientId = 'test-client-1';
+            const mockWs = new WebSocketTestUtils.MockWebSocket();
+            const namespace = {
+                path: '/api/1/ws/test',
+                clients: new Map(),
+                stats: {
+                    totalMessages: 0,
+                    messagesPerHour: 0,
+                    lastActivity: Date.now(),
+                    messageTimestamps: []
+                },
+                onMessage: jest.fn().mockRejectedValue(new Error('async error'))
+            };
+            namespace.clients.set(clientId, {
+                ws: mockWs,
+                user: null,
+                lastPing: Date.now(),
+                lastPong: Date.now()
+            });
+            const user = { username: 'testuser' };
+            const data = Buffer.from(JSON.stringify({ type: 'test' }));
+
+            // Act
+            await WebSocketController._onMessage(clientId, namespace, user, 'testuser', data);
+
+            // Assert: client receives error message (same format as sync throw)
+            expect(mockWs.sentMessages).toHaveLength(1);
+            const sent = JSON.parse(mockWs.sentMessages[0]);
+            expect(sent.success).toBe(false);
+            expect(sent.error).toBe('async error');
+            expect(sent.code).toBe(500);
+            expect(sent.username).toBe('');
         });
     });
 

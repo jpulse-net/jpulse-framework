@@ -1,6 +1,57 @@
-# jPulse Docs / Version History v1.6.5
+# jPulse Docs / Version History v1.6.6
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.6, W-149, 2026-02-03
+
+**Commit:** `W-149, v1.6.6: websocket: demonstrate and document CRUD operations`
+
+**FEATURE RELEASE**: Two WebSocket usage patterns documented and demonstrated: **Pattern A** (REST for CRUD + WebSocket for sync) and **Pattern B** (WebSocket for CRUD). Framework supports async `onMessage` handlers (await Promise; send error to client on rejection). New **Sticky Notes** demo at `/hello-websocket/`: create/update/delete over WebSocket; server persists in Redis and broadcasts; all clients and instances stay in sync. Demo templates (overview, code-examples, architecture) updated for both patterns; client patterns: debounce text, focus on create, view-supplied username.
+
+**Objective**: Teach that WebSockets can be used in two ways: (A) REST for CRUD with WebSocket for notifications so all views stay in sync; (B) WebSocket for CRUD (e.g. collaborative canvas where updates are saved in real time on the server).
+
+**Key Changes**:
+- **docs/websockets.md**: "Two Ways to Use WebSocket" section — Pattern A (REST for CRUD + WS for sync), Pattern B (WS for CRUD); comparison table; "When to use which"; async onMessage documented (framework awaits, sends errors on rejection); Pattern 2 labeled "(Pattern A)" with pointer to Pattern B; Hello WebSocket Demo lists three demos (Emoji Cursor, Collaborative Todo, Sticky Notes).
+- **webapp/controller/websocket.js**: _onMessage is async; after calling namespace.onMessage(), if return value is thenable, await it; sync throws and async rejections caught and sent to client (same _formatMessage). Message handler uses void this._onMessage(...) so rejections handled inside _onMessage.
+- **webapp/tests/unit/controller/websocket.test.js**: describe "Async onMessage" — test "should send error to client when async onMessage rejects" (mock namespace onMessage rejects; assert client receives success: false, error, code: 500, username: ''). All 27 websocket controller tests pass.
+- **site/webapp/controller/helloWebsocket.js**: wsHandles.notes; NOTES_CACHE_PATH/KEY; _notesGetAll, _notesCreate, _notesUpdate, _notesDelete (RedisManager.cacheGetObject/cacheSetObject); _registerNotesNamespace() for /api/1/ws/hello-notes; onConnect sends notes-init with full list; onMessage async (note-create, note-update, note-delete → store then broadcast); view-supplied username (data.username when present). render passes notesStats.
+- **site/webapp/view/hello-websocket/**: sticky-notes-demo.tmpl (NEW) — Vue component, canvas click to add, drag, debounce text (200ms), focus after create, notesUsername() from window.helloWebSocketUsername; routing.tmpl adds Sticky Notes tab and component; index.shtml sticky-note styles and dark mode; overview.tmpl three patterns (Emoji, Todo, Sticky Notes), Pattern A/B, Key Architectural Insight; code-examples.tmpl Pattern B server/client snippets, debounce pattern, Redis note; architecture.tmpl demo namespaces, Pattern 4 (WS for CRUD), Application state in Redis, Next Steps Sticky Notes.
+- **docs/dev/design/W-149-websocket-crud-ops.md** (NEW): Design doc; status Phase 1/2/3 Complete.
+- **docs/dev/work-items.md**: W-149 in DONE section; status ✅ DONE.
+
+**Code Changes**:
+
+webapp/controller/websocket.js:
+- _onMessage async; check result of onMessage for thenable, await; void this._onMessage(...) in message handler
+
+webapp/tests/unit/controller/websocket.test.js:
+- describe "Async onMessage", test async onMessage rejects → client receives error
+
+site/webapp/controller/helloWebsocket.js:
+- wsHandles.notes; NOTES_CACHE_PATH, NOTES_CACHE_KEY; _notesGetAll, _notesCreate, _notesUpdate, _notesDelete; _registerNotesNamespace (onConnect notes-init, onMessage note-create/update/delete, onDisconnect); render notesStats
+
+site/webapp/view/hello-websocket/templates/sticky-notes-demo.tmpl (NEW):
+- Vue component: canvas, notes array, notesWs, textDebounce, pendingFocusAfterCreate; onCanvasClick, updateNoteText (debounce), deleteNote, drag; notesUsername(); note-created/updated/deleted/notes-init/error handlers
+
+site/webapp/view/hello-websocket/templates/routing.tmpl:
+- include sticky-notes-demo.tmpl; route sticky-notes, StickyNotesDemo; stickyNotesView; v-if sticky-notes
+
+site/webapp/view/hello-websocket/index.shtml:
+- Styles: .local-notes-canvas, .local-note, .local-note-header, .local-note-pin, .local-note-username, .local-note-close, .local-note-text; [data-theme="dark"] overrides
+
+site/webapp/view/hello-websocket/templates/overview.tmpl, code-examples.tmpl, architecture.tmpl:
+- Three demos, Pattern A/B, Sticky Notes (Redis; sync across instances); Pattern B server/client/debounce snippets; Pattern 4; Application state Redis; Next Steps Sticky Notes
+
+**Documentation**:
+
+docs/websockets.md: Two Ways to Use WebSocket; async onMessage; Pattern 2 (Pattern A); Hello WebSocket Demo three demos (Sticky Notes Pattern B)
+docs/dev/design/W-149-websocket-crud-ops.md: Design doc (NEW), status Complete
+docs/dev/work-items.md: W-149 DONE section
+
+**Work Item**: W-149
+**Version**: v1.6.6
+**Release Date**: 2026-02-03
 
 ________________________________________________
 ## v1.6.5, W-148, 2026-02-02

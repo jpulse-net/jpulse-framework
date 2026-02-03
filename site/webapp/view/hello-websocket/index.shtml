@@ -4,8 +4,8 @@
  * @tagline         Real-Time WebSocket Communication Examples
  * @description     Interactive demos: emoji cursor tracking and collaborative todo
  * @file            site/webapp/view/hello-websocket/index.shtml
- * @version         1.6.5
- * @release         2026-02-02
+ * @version         1.6.6
+ * @release         2026-02-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -216,6 +216,135 @@
             font-size: 12px;
             color: var(--jp-theme-text-muted, #6c757d);
             margin-right: 10px;
+        }
+
+        /* Sticky notes canvas (Pattern B) */
+        .local-notes-canvas {
+            position: relative;
+            width: 100%;
+            min-height: 450px;
+            height: 450px;
+            border: 2px solid var(--jp-theme-color-primary, #007acc);
+            border-radius: 8px;
+            background: linear-gradient(135deg, #e8f5e9 0%, #e3f2fd 100%);
+            cursor: crosshair;
+            margin: 0;
+        }
+
+        .local-note {
+            position: absolute;
+            width: 200px;
+            min-height: 120px;
+            border-radius: 6px;
+            box-shadow: var(--jp-theme-shadow-md, 0 4px 12px rgba(0,0,0,0.15));
+            border: 1px solid var(--jp-theme-border-color, #dee2e6);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .local-note-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: move;
+            background: rgba(0,0,0,0.06);
+            color: var(--jp-theme-text-primary, #333);
+            user-select: none;
+        }
+
+        .local-note-pin {
+            flex-shrink: 0;
+            margin-right: 6px;
+        }
+
+        .local-note-username {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .local-note-close {
+            flex-shrink: 0;
+            width: 22px;
+            height: 22px;
+            padding: 0;
+            margin: 0 0 0 6px;
+            border: 1px solid var(--jp-theme-border-color, #dee2e6);
+            border-radius: 4px;
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+            color: var(--jp-theme-text-secondary, #666);
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .local-note-close:hover {
+            background: var(--jp-theme-bg-tertiary, #e9ecef);
+            color: var(--jp-theme-text-primary, #333);
+        }
+
+        .local-note-text {
+            flex: 1;
+            margin: 0;
+            padding: 8px;
+            border: none;
+            resize: none;
+            font-size: 14px;
+            line-height: 1.4;
+            background: transparent;
+            color: var(--jp-theme-text-primary, #333);
+            min-height: 60px;
+        }
+
+        .local-note-text::placeholder {
+            color: var(--jp-theme-text-muted, #999);
+        }
+
+        .local-note-text:focus {
+            outline: none;
+        }
+
+        /* Dark mode: canvas and notes use theme colors for readability */
+        [data-theme="dark"] .local-notes-canvas {
+            background: var(--jp-theme-bg-tertiary, #111827);
+            border-color: var(--jp-theme-border-color, #4b5563);
+        }
+
+        [data-theme="dark"] .local-note {
+            background: var(--jp-theme-bg-primary, #2d3748) !important;
+            border-color: var(--jp-theme-border-color, #4b5563);
+        }
+
+        [data-theme="dark"] .local-note-header {
+            background: rgba(0,0,0,0.2);
+            color: var(--jp-theme-text-primary, #f7fafc);
+        }
+
+        [data-theme="dark"] .local-note-close {
+            background: var(--jp-theme-bg-tertiary, #111827);
+            border-color: var(--jp-theme-border-color, #4b5563);
+            color: var(--jp-theme-text-secondary, #cbd5e0);
+        }
+
+        [data-theme="dark"] .local-note-close:hover {
+            background: var(--jp-theme-border-color, #4b5563);
+            color: var(--jp-theme-text-primary, #f7fafc);
+        }
+
+        [data-theme="dark"] .local-note-text {
+            color: var(--jp-theme-text-primary, #f7fafc);
+        }
+
+        [data-theme="dark"] .local-note-text::placeholder {
+            color: var(--jp-theme-text-muted, #9ca3af);
         }
 
         /* Code example styles */

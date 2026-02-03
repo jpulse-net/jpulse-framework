@@ -1,4 +1,4 @@
-# jPulse Docs / WebSocket Real-Time Communication v1.6.5
+# jPulse Docs / WebSocket Real-Time Communication v1.6.6
 
 > **Need multi-server broadcasting instead?** If you're running multiple server instances and need to synchronize state changes across all servers (like collaborative editing), see [Application Cluster Communication](application-cluster.md) which uses REST API + Redis broadcasts for simpler state synchronization.
 
@@ -24,6 +24,25 @@ The jPulse Framework provides enterprise-grade WebSocket infrastructure for real
 - **Standard API**: Consistent message format matching HTTP API conventions
 - **MPA & SPA Support**: Works seamlessly with both Multi-Page and Single-Page Applications
 - **No Automatic Retry**: Applications control message delivery guarantees (see Best Practices)
+
+---
+
+## Two Ways to Use WebSocket
+
+The framework supports two main patterns for real-time communication:
+
+**Pattern A: REST for CRUD, WebSocket for sync** — Client performs create/update/delete via REST (POST/PUT/DELETE). Server validates, persists, returns response, then **broadcasts** a notification over WebSocket (`entity-created`, `entity-updated`, `entity-deleted`). All connected clients (including the actor) update their views from that broadcast. **Use when:** Single source of truth (REST + DB), strong validation and error handling, and clients that may work without WebSocket (e.g. mobile app, scripts). **Example:** Collaborative todo at `/hello-websocket/` (REST API + WS broadcasts).
+
+**Pattern B: WebSocket for CRUD** — Client sends CRUD **actions** over WebSocket (e.g. `note-create`, `note-update`, `note-delete`). Server validates, persists (e.g. via Redis store or model), and **broadcasts the outcome** to all clients. No REST for these mutations. **Use when:** Collaborative feel (e.g. shared canvas, live editor) where every change is sent and saved in real time; WebSocket is the primary way to mutate and sync. **Example:** Sticky Notes demo at `/hello-websocket/` (see demo tab "Sticky Notes").
+
+| Aspect | Pattern A: REST + WS sync | Pattern B: WS for CRUD |
+|--------|---------------------------|-------------------------|
+| Who does the mutation? | REST endpoint | WebSocket handler (onMessage) |
+| Persistence | REST handler writes to DB | WS handler (or code it calls) writes to store/DB |
+| Sync to other clients | Broadcast after REST success | Broadcast after WS handler success |
+| Best for | Forms, lists, "submit then sync" | Canvas, live collaboration, "edit in real time" |
+
+**When to use which:** Use **Pattern A** when you want a single source of truth (REST + DB), strong validation, and clients that may not use WebSocket. Use **Pattern B** when you want a "live" collaborative experience where mutations go over WebSocket and are saved in real time on the server.
 
 ---
 
@@ -131,8 +150,10 @@ WebSocketController.registerNamespace(path, options)
   - `requireAuth` (boolean): Require user authentication (default: `false`)
   - `requireRoles` (array): Required user roles (default: `[]`)
   - `onConnect` (function): Handler when client connects
-  - `onMessage` (function): Handler when message received
+  - `onMessage` (function): Handler when message received (may be **async**; see below)
   - `onDisconnect` (function): Handler when client disconnects
+
+**Async onMessage:** The `onMessage` handler may be async. If it returns a Promise, the framework awaits it. If the Promise rejects (or the handler throws), the framework sends an error message back to the client in the same format as for synchronous throws (`success: false`, `error`, `code`). This allows CRUD-over-WebSocket handlers to use async models (e.g. Redis, MongoDB) without wrapping in try/catch or an async IIFE.
 
 **Returns:** Namespace handle with methods:
 - `broadcast(data)`: Send to all connected clients
@@ -540,9 +561,9 @@ function handleMouseMove(event) {
 - Perfect for transient data
 - Use throttling for high-frequency events (mouse movements, scroll positions)
 
-### Pattern 2: Hybrid REST + WebSocket Architecture
+### Pattern 2 (Pattern A): REST for CRUD + WebSocket for sync
 
-**Use Case:** Add real-time updates to existing REST API without breaking it.
+**Use Case:** Add real-time updates to existing REST API without breaking it. This is **Pattern A** (REST for CRUD, WebSocket for notifications). For **Pattern B** (WebSocket for CRUD), see the Sticky Notes demo in the same `/hello-websocket/` app.
 
 **Example:** Collaborative todo list from `/hello-websocket/`
 
@@ -924,12 +945,16 @@ A comprehensive interactive demo with two real-world patterns:
 - Perfect example of lightweight real-time tracking
 - **Pattern:** Ephemeral tracking (Pattern 1)
 
-**2. Collaborative Todo List** - Hybrid REST + WebSocket
+**2. Collaborative Todo List** - REST for CRUD + WebSocket for sync (Pattern A)
 - Add, complete, and delete todos with instant sync
 - REST API handles all CRUD operations
 - WebSocket broadcasts changes to all users
 - Shows how to layer real-time onto existing MVC
-- **Pattern:** Hybrid architecture (Pattern 2)
+
+**3. Sticky Notes** - WebSocket for CRUD (Pattern B)
+- Collaborative sticky notes on a canvas; create, update, delete over WebSocket
+- Server persists in Redis and broadcasts; all clients see changes in real time
+- No REST for note mutations; demonstrates Pattern B
 
 **Also includes:**
 - Code examples (copy-paste ready)

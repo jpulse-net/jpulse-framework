@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.5
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.6
 
 **For Site Administrators & Site Developers**
 
@@ -227,6 +227,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.6 - WebSocket CRUD Demo & Two Patterns (W-149)**: **Pattern A** (REST for CRUD + WebSocket for sync) and **Pattern B** (WebSocket for CRUD). Async `onMessage` support; new **Sticky Notes** demo at `/hello-websocket/` (Redis store, broadcast). Docs and demo templates updated. W-149, 2026-02-03
 - ✅ **Version 1.6.5 - Schema-Driven Config Forms & tagInput (W-148)**: tagInput widget for list-in-one-input (e.g. roles); schema-driven config with one-line `setFormData`/`getFormData` and `renderTabsAndPanelsFromSchema` (tabs, flow layout, virtual buttons); Admin config unified from single schema; roles/adminRoles use tagInput with slug pattern. W-148, 2026-02-02
 - ✅ **Version 1.6.4 - Config Schema Extensible (W-147)**: Site config schema is extensible for site and plugin developers. ConfigModel gets `extendSchema(extension)` (tab scope)—each extension block becomes a new tab in Admin → Site Configuration. General tab added with roles and adminRoles; bootstrap from schema defaults when missing (no app.conf read). All admin/roles consumers read from ConfigModel cache: `getEffectiveAdminRoles()`, `getEffectiveRoles()` (sync, cached). Admin config UI is data-driven from schema (tabs + panels); validation adminRoles ⊆ roles; self-lockout prevention. app.conf `controller.user.adminRoles` removed; framework does not read it. Unit tests: config-model, config-general, config-manifest; integration: config-admin-roles. Docs: api-reference (Config model subsection, extendSchema, getEffective*). W-147, 2026-02-01
 - ✅ **Version 1.6.3 - Handlebars Load Components (W-145)**: Server-side API to load and extract registered components from a template file without rendering. Use for email templates (subject/text/html in one file), multi-language content, or any structured data. `HandlebarController.loadComponents(req, assetPath, context)` returns `{ success, error?, components }`; dot notation in `{{#component "email.subject"}}` becomes nested keys. Path via `PathResolver.resolveAsset()` (site overrides supported). API-style return (never throws). Docs: api-reference (full), template-reference, sending-email, genai-instructions (blurbs + links). Unit tests with fixture under tests/fixtures; PathResolver mocked in test only. W-145, 2026-01-31

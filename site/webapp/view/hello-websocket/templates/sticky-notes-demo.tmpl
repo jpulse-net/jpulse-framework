@@ -1,0 +1,281 @@
+// Sticky notes demo component (Pattern B: WS for CRUD), site/webapp/view/hello-websocket/templates/sticky-notes-demo.tmpl
+/**
+ * @name            jPulse Framework / Site / WebApp / View / Hello WebSocket / Templates / Sticky Notes Demo
+ * @tagline         WebSocket-for-CRUD demo (Pattern B)
+ * @description     Collaborative sticky notes: create/update/delete over WebSocket, Redis store, broadcast
+ * @file            site/webapp/view/hello-websocket/templates/sticky-notes-demo.tmpl
+ * @version         1.6.6
+ * @release         2026-02-03
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ */
+
+window.helloWebSocketViews = window.helloWebSocketViews || {};
+
+window.helloWebSocketViews.StickyNotesDemo = {
+    data() {
+        return {
+            notesWs: null,
+            notesStatus: 'disconnected',
+            notes: [],
+            noteUserCount: 0,
+            dragNoteId: null,
+            dragStartX: 0,
+            dragStartY: 0,
+            dragNoteStartX: 0,
+            dragNoteStartY: 0,
+            textDebounce: {},
+            pendingFocusAfterCreate: false
+        };
+    },
+    methods: {
+        connectNotesWs() {
+            if (this.notesWs) return;
+
+            this.notesWs = jPulse.ws.connect('/api/1/ws/hello-notes')
+                .onMessage((data, message) => {
+                    if (data) {
+                        this.handleNotesMessage(data);
+                    } else {
+                        console.error('Notes WS error:', message.error);
+                        if (message.error) {
+                            jPulse.UI.toast.show(message.error, 'error');
+                        }
+                    }
+                })
+                .onStatusChange((status) => {
+                    this.notesStatus = status;
+                });
+        },
+
+        disconnectNotesWs() {
+            Object.keys(this.textDebounce || {}).forEach((id) => {
+                if (this.textDebounce[id] && this.textDebounce[id].timer) {
+                    clearTimeout(this.textDebounce[id].timer);
+                }
+            });
+            this.textDebounce = {};
+            if (this.notesWs) {
+                this.notesWs.disconnect();
+                this.notesWs = null;
+                this.notesStatus = 'disconnected';
+            }
+        },
+
+        handleNotesMessage(data) {
+            if (data.type === 'welcome') {
+                this.noteUserCount = data.userCount || 1;
+            } else if (data.type === 'notes-init') {
+                this.notes = Array.isArray(data.notes) ? data.notes : [];
+            } else if (data.type === 'note-created') {
+                const exists = this.notes.find((n) => n.id === data.note?.id);
+                if (!exists && data.note) {
+                    this.notes.unshift(data.note);
+                    jPulse.UI.toast.show(`${data.username || 'Someone'} added a note`, 'info');
+                    if (this.pendingFocusAfterCreate) {
+                        this.pendingFocusAfterCreate = false;
+                        const noteId = data.note.id;
+                        setTimeout(() => {
+                            const noteEl = this.$el && this.$el.querySelector('.local-note[data-note-id="' + noteId + '"]');
+                            const textarea = noteEl && noteEl.querySelector('.local-note-text');
+                            if (textarea && typeof textarea.focus === 'function') textarea.focus();
+                        }, 100);
+                    }
+                }
+            } else if (data.type === 'note-updated') {
+                const index = this.notes.findIndex((n) => n.id === data.note?.id);
+                if (index !== -1 && data.note) {
+                    this.notes[index] = data.note;
+                }
+            } else if (data.type === 'note-deleted') {
+                const index = this.notes.findIndex((n) => n.id === data.noteId);
+                if (index !== -1) {
+                    this.notes.splice(index, 1);
+                    jPulse.UI.toast.show(`${data.username || 'Someone'} deleted a note`, 'info');
+                }
+            } else if (data.type === 'user-left') {
+                this.noteUserCount = data.userCount || 0;
+            }
+        },
+
+        notesUsername() {
+            return '{{string.default user.username "guest"}}';
+        },
+
+        onCanvasClick(event) {
+            if (!this.notesWs || !this.notesWs.isConnected()) return;
+            const rect = event.currentTarget.getBoundingClientRect();
+            const offsetX = 20;
+            const offsetY = 54;
+            const x = Math.min(90, Math.max(0, ((event.clientX - rect.left - offsetX) / rect.width) * 100));
+            const y = Math.min(90, Math.max(0, ((event.clientY - rect.top - offsetY) / rect.height) * 100));
+            this.pendingFocusAfterCreate = true;
+            this.notesWs.send({
+                type: 'note-create',
+                username: this.notesUsername(),
+                x: Math.round(x * 10) / 10,
+                y: Math.round(y * 10) / 10,
+                text: '',
+                color: '#fff9c4'
+            });
+        },
+
+        updateNoteText(note, event) {
+            const text = (event.target && event.target.value != null) ? String(event.target.value).slice(0, 500) : note.text;
+            if (text === note.text) return;
+            if (!this.notesWs || !this.notesWs.isConnected()) return;
+
+            const id = note.id;
+            if (this.textDebounce[id]) {
+                clearTimeout(this.textDebounce[id].timer);
+            }
+            this.textDebounce[id] = {
+                text: text,
+                timer: setTimeout(() => {
+                    if (!this.notesWs || !this.notesWs.isConnected()) return;
+                    const payload = this.textDebounce[id];
+                    if (payload) {
+                        this.notesWs.send({
+                            type: 'note-update',
+                            username: this.notesUsername(),
+                            id: id,
+                            text: payload.text
+                        });
+                        delete this.textDebounce[id];
+                    }
+                }, 200)
+            };
+        },
+
+        deleteNote(noteId, event) {
+            if (event) event.stopPropagation();
+            if (this.textDebounce[noteId]) {
+                clearTimeout(this.textDebounce[noteId].timer);
+                delete this.textDebounce[noteId];
+            }
+            if (!this.notesWs || !this.notesWs.isConnected()) return;
+            this.notesWs.send({ type: 'note-delete', username: this.notesUsername(), id: noteId });
+        },
+
+        startDrag(note, event) {
+            if (event) event.preventDefault();
+            this.dragNoteId = note.id;
+            this.dragStartX = event.clientX;
+            this.dragStartY = event.clientY;
+            this.dragNoteStartX = note.x;
+            this.dragNoteStartY = note.y;
+            document.addEventListener('mousemove', this.onDragMove);
+            document.addEventListener('mouseup', this.onDragEnd);
+        },
+
+        onDragMove(event) {
+            if (!this.dragNoteId || !this.notesWs || !this.notesWs.isConnected()) return;
+            const canvas = this.$el && this.$el.querySelector('.local-notes-canvas');
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            const dx = ((event.clientX - this.dragStartX) / rect.width) * 100;
+            const dy = ((event.clientY - this.dragStartY) / rect.height) * 100;
+            const note = this.notes.find((n) => n.id === this.dragNoteId);
+            if (!note) return;
+            const newX = Math.min(90, Math.max(0, this.dragNoteStartX + dx));
+            const newY = Math.min(90, Math.max(0, this.dragNoteStartY + dy));
+            note.x = newX;
+            note.y = newY;
+        },
+
+        onDragEnd() {
+            const note = this.dragNoteId ? this.notes.find((n) => n.id === this.dragNoteId) : null;
+            document.removeEventListener('mousemove', this.onDragMove);
+            document.removeEventListener('mouseup', this.onDragEnd);
+            this.dragNoteId = null;
+            if (note && this.notesWs && this.notesWs.isConnected()) {
+                this.notesWs.send({
+                    type: 'note-update',
+                    username: this.notesUsername(),
+                    id: note.id,
+                    x: note.x,
+                    y: note.y
+                });
+            }
+        }
+    },
+    template: `
+<div class="jp-card">
+    <h2>📝 Sticky Notes Demo (Pattern B: WebSocket for CRUD)</h2>
+
+    <div class="jp-info-box">
+        <h3>🎯 What This Demonstrates</h3>
+        <p>Collaborative sticky notes: create, move, edit, and delete over WebSocket. Server stores in Redis and broadcasts — no REST for these mutations. All clients stay in sync.</p>
+        <ul class="jp-list">
+            <li><strong>Pattern B</strong> — WebSocket for CRUD (mutations sent over WS, server persists and broadcasts)</li>
+            <li><strong>Redis store</strong> — Shared state across PM2 workers and servers</li>
+            <li><strong>Click canvas</strong> to add a note; <strong>drag</strong> the note header to move; <strong>edit text</strong>; <strong>delete</strong> with × in the header</li>
+        </ul>
+    </div>
+
+    <div class="local-controls-row">
+        <button v-if="!notesWs"
+                @click="connectNotesWs"
+                class="jp-btn jp-btn-primary">
+            🔌 Connect to Sticky Notes
+        </button>
+        <button v-if="notesWs"
+                @click="disconnectNotesWs"
+                class="jp-btn jp-btn-danger">
+            🔌 Disconnect
+        </button>
+        <div :class="['local-connection-status', notesStatus]">
+            <span :class="['local-status-dot', notesStatus]"></span>
+            <span>{{ notesStatus.charAt(0).toUpperCase() + notesStatus.slice(1) }}</span>
+        </div>
+        <div v-if="notesWs && notesStatus === 'connected'" class="jp-help-text jp-m-0">
+            👥 <strong>{{ noteUserCount }}</strong> {{ noteUserCount === 1 ? 'user' : 'users' }} online
+        </div>
+    </div>
+
+    <div v-if="notesWs && notesStatus === 'connected'" class="jp-card jp-mt-15">
+        <p class="jp-help-text jp-mb-15">Click on the canvas to add a note. Drag the note header to move. Edit text and click × in the header to delete.</p>
+        <div class="local-notes-canvas"
+             @click="onCanvasClick"
+             ref="notesCanvas">
+            <div v-for="note in notes"
+                 :key="note.id"
+                 class="local-note"
+                 :data-note-id="note.id"
+                 :style="{ left: note.x + '%', top: note.y + '%', backgroundColor: note.color || '#fff9c4' }"
+                 @click.stop>
+                <div class="local-note-header"
+                     @mousedown="startDrag(note, $event)">
+                    <span class="local-note-pin">📌</span>
+                    <span class="local-note-username">{{ note.createdBy || 'anonymous' }}</span>
+                    <button type="button"
+                            class="local-note-close"
+                            @click="deleteNote(note.id, $event)"
+                            title="Delete note">×</button>
+                </div>
+                <textarea class="local-note-text"
+                          :value="note.text"
+                          @input="updateNoteText(note, $event)"
+                          placeholder="Type here..."
+                          rows="3"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div v-if="!notesWs || notesStatus !== 'connected'" class="jp-output jp-output-warning jp-mt-15">
+        <h3>👆 Click "Connect to Sticky Notes" to Start</h3>
+        <p>Then open this page in another browser or tab to see real-time collaboration.</p>
+    </div>
+
+    <div class="jp-card jp-mt-30">
+        <h3>🔧 Technical</h3>
+        <p><strong>Namespace:</strong> <code>/api/1/ws/hello-notes</code>. <strong>Store:</strong> Redis (path <code>controller:hello-websocket:notes</code>). Messages: <code>note-create</code>, <code>note-update</code>, <code>note-delete</code> → server persists and broadcasts <code>note-created</code>, <code>note-updated</code>, <code>note-deleted</code>.</p>
+    </div>
+</div>
+`
+};
+
+// EOF site/webapp/view/hello-websocket/templates/sticky-notes-demo.tmpl

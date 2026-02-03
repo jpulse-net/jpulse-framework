@@ -4,8 +4,8 @@
  * @tagline         Overview component of the WebSocket demo
  * @description     This component gives an overview of the WebSocket demo
  * @file            site/webapp/view/hello-websocket/templates/overview.tmpl
- * @version         1.6.5
- * @release         2026-02-02
+ * @version         1.6.6
+ * @release         2026-02-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -25,11 +25,12 @@ window.helloWebSocketViews.Overview = {
         <p>This demo teaches you how to build real-time features using WebSocket infrastructure in the jPulse Framework.</p>
 
         <ul class="jp-list">
-            <li><strong>Emoji Cursor</strong> - Real-time position tracking (ephemeral, no database)</li>
-            <li><strong>Collaborative Todo</strong> - Live updates with database persistence</li>
-            <li><strong>Server Integration</strong> - How to register WebSocket namespaces</li>
-            <li><strong>Client Patterns</strong> - Connection management, message handling</li>
-            <li><strong>MVC Enhancement</strong> - Layer WebSocket onto existing REST API</li>
+            <li><strong>Emoji Cursor</strong> — Real-time position tracking (ephemeral, no database)</li>
+            <li><strong>Collaborative Todo</strong> — REST for CRUD + WebSocket for sync (Pattern A)</li>
+            <li><strong>Sticky Notes</strong> — WebSocket for CRUD, Redis store, broadcast (Pattern B)</li>
+            <li><strong>Server Integration</strong> — Register namespaces, onConnect / onMessage / onDisconnect</li>
+            <li><strong>Client Patterns</strong> — Connection management, message handling, debounce</li>
+            <li><strong>MVC Enhancement</strong> — Layer WebSocket onto existing REST API (Pattern A)</li>
         </ul>
     </div>
 
@@ -62,34 +63,48 @@ window.helloWebSocketViews.Overview = {
     </div>
 
     <div class="jp-card jp-mt-30">
-        <h3>🎯 Two Demo Patterns</h3>
+        <h3>🎯 Three Demo Patterns</h3>
 
         <div class="jp-grid-auto-200 jp-mt-15">
             <div class="jp-card">
                 <h4>😊 Emoji Cursor Demo</h4>
                 <p><strong>Pattern:</strong> Ephemeral real-time tracking</p>
                 <ul class="jp-list">
-                    <li>No database persistence needed</li>
-                    <li>Pure broadcast pattern</li>
+                    <li>No persistence</li>
+                    <li>Pure broadcast</li>
                     <li>Position throttling (50ms)</li>
-                    <li>User presence tracking</li>
+                    <li>User presence</li>
                 </ul>
                 <p class="jp-mt-15 jp-mb-0 jp-text-muted">
-                    <strong>Use cases:</strong> Collaborative cursors, live annotations, multiplayer games
+                    <strong>Use cases:</strong> Cursors, live annotations, games
                 </p>
             </div>
 
             <div class="jp-card">
-                <h4>✅ Collaborative Todo Demo</h4>
-                <p><strong>Pattern:</strong> WebSocket + REST API hybrid</p>
+                <h4>✅ Collaborative Todo (Pattern A)</h4>
+                <p><strong>Pattern:</strong> REST for CRUD + WebSocket for sync</p>
                 <ul class="jp-list">
-                    <li>Database persistence (MongoDB)</li>
-                    <li>REST API handles CRUD operations</li>
-                    <li>WebSocket broadcasts changes</li>
-                    <li>All clients stay synchronized</li>
+                    <li>REST API does create/update/delete</li>
+                    <li>WebSocket broadcasts outcomes</li>
+                    <li>Database (MongoDB) persistence</li>
+                    <li>Single source of truth</li>
                 </ul>
                 <p class="jp-mt-15 jp-mb-0 jp-text-muted">
-                    <strong>Use cases:</strong> Collaborative editing, live dashboards, chat applications
+                    <strong>Use cases:</strong> Forms, lists, existing apps
+                </p>
+            </div>
+
+            <div class="jp-card">
+                <h4>📝 Sticky Notes (Pattern B)</h4>
+                <p><strong>Pattern:</strong> WebSocket for CRUD</p>
+                <ul class="jp-list">
+                    <li>Create/update/delete over WebSocket</li>
+                    <li>Server persists in Redis; syncs across instances</li>
+                    <li>Server broadcasts to all clients</li>
+                    <li>No REST for these mutations</li>
+                </ul>
+                <p class="jp-mt-15 jp-mb-0 jp-text-muted">
+                    <strong>Use cases:</strong> Canvas, live collaboration, sticky boards
                 </p>
             </div>
         </div>
@@ -98,20 +113,22 @@ window.helloWebSocketViews.Overview = {
     <div class="jp-output jp-output-success jp-mt-30">
         <h3>💡 Key Architectural Insight</h3>
         <p>
-            The collaborative todo demo shows how to <strong>layer WebSocket onto an existing REST API</strong>
-            without breaking it. The REST API continues to work normally, and WebSocket provides real-time
-            updates as a bonus. This is the recommended pattern for adding real-time features to existing applications.
+            <strong>Pattern A (Todo):</strong> Layer WebSocket onto an existing REST API — REST does CRUD, WebSocket syncs. Best for adding real-time to existing apps.
+        </p>
+        <p class="jp-mt-15 jp-mb-0">
+            <strong>Pattern B (Sticky Notes):</strong> Mutations go over WebSocket; server persists and broadcasts. Best for live collaborative UIs (canvas, boards).
         </p>
     </div>
 
     <div class="jp-card jp-mt-30">
         <h3>🚀 Ready to Explore?</h3>
-        <p>Click the buttons above to:</p>
+        <p>Click the tabs above to:</p>
         <ol class="jp-mt-15">
-            <li><strong>Emoji Cursor</strong> - See real-time position tracking in action</li>
-            <li><strong>Collaborative Todo</strong> - Experience live updates across multiple browsers</li>
-            <li><strong>Code Examples</strong> - Get copy-paste ready implementation code</li>
-            <li><strong>Architecture</strong> - Understand how everything connects</li>
+            <li><strong>Emoji Cursor</strong> — Real-time position tracking</li>
+            <li><strong>Collaborative Todo</strong> — REST + WebSocket sync (Pattern A)</li>
+            <li><strong>Sticky Notes</strong> — WebSocket for CRUD (Pattern B)</li>
+            <li><strong>Code Examples</strong> — Copy-paste implementation code</li>
+            <li><strong>Architecture</strong> — How everything connects</li>
         </ol>
 
         <p class="jp-help-text jp-mt-15">

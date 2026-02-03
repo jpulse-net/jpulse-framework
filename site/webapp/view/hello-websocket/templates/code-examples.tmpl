@@ -4,8 +4,8 @@
  * @tagline         Code examples component of the WebSocket demo
  * @description     This component shows code examples of the WebSocket demo
  * @file            site/webapp/view/hello-websocket/templates/code-examples.tmpl
- * @version         1.6.5
- * @release         2026-02-02
+ * @version         1.6.6
+ * @release         2026-02-03
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -20,7 +20,7 @@ window.helloWebSocketViews.CodeExamples = {
 <div class="jp-card">
     <h2 class="jp-card-dialog-heading">💻 Code Examples</h2>
 
-    <p>Copy-paste ready code for implementing WebSocket patterns in your own applications.</p>
+    <p>Copy-paste ready code for implementing WebSocket patterns in your own applications. Covers Pattern A (REST + WebSocket sync), Pattern B (WebSocket for CRUD with Redis), and client patterns (debounce, focus, view-supplied username).</p>
 
     <!-- Server-Side Code -->
     <div class="local-code-example">
@@ -268,6 +268,99 @@ export default TodoController;</code></pre>
         <p class="jp-help-text jp-mt-15">
             💡 <strong>Why this pattern?</strong> REST API does validation, persistence, and error handling.
             WebSocket provides instant notifications. Best of both worlds!
+        </p>
+    </div>
+
+    <!-- Pattern B: WebSocket for CRUD -->
+    <div class="local-code-example">
+        <h3>📝 Pattern B: WebSocket for CRUD (Sticky Notes)</h3>
+        <p>For live collaborative UIs (canvas, boards): mutations go over WebSocket; server persists and broadcasts. No REST for these operations.</p>
+
+        <h4>Server-Side: Notes Namespace + Redis Store</h4>
+        <pre><code>// In site/webapp/controller/helloWebsocket.js (notes namespace)
+onMessage: async (clientId, data, user) => {
+    const handle = this.wsHandle;  // from registerNamespace
+    // Prefer view-supplied username (client sends it) for consistency
+    const username = (data.username != null && String(data.username).trim() !== '')
+        ? String(data.username).trim().slice(0, 100)
+        : (user?.username || 'guest');
+
+    if (data.type === 'note-create') {
+        const note = { id: crypto.randomUUID(), x: data.x ?? 20, y: data.y ?? 20,
+            text: (data.text ?? '').slice(0, 500), color: (data.color ?? '#fff9c4').slice(0, 20),
+            createdAt: Date.now(), createdBy: username };
+        await this._notesCreate(note);  // Redis: cacheSetObject
+        handle.broadcast({ type: 'note-created', note, username }, username);
+    } else if (data.type === 'note-update') {
+        const note = await this._notesUpdate(data.id, { x: data.x, y: data.y, text: data.text });
+        if (note) handle.broadcast({ type: 'note-updated', note, username }, username);
+    } else if (data.type === 'note-delete') {
+        const removed = await this._notesDelete(data.id);
+        if (removed) handle.broadcast({ type: 'note-deleted', noteId: data.id, username }, username);
+    }
+}</code></pre>
+        <p class="jp-help-text jp-mt-10">
+            <code>_notesCreate</code> / <code>_notesUpdate</code> / <code>_notesDelete</code> use <code>RedisManager.cacheGetObject</code> and <code>cacheSetObject</code> so notes persist and sync across server instances.
+        </p>
+
+        <h4>Client-Side: Create at Click, Debounce Text, Focus</h4>
+        <pre><code>// Create note at click position (offset so typing area is near click)
+onCanvasClick(event) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const offsetX = 20, offsetY = 54;
+    const x = Math.min(90, Math.max(0, ((event.clientX - rect.left - offsetX) / rect.width) * 100));
+    const y = Math.min(90, Math.max(0, ((event.clientY - rect.top - offsetY) / rect.height) * 100));
+    this.pendingFocusAfterCreate = true;
+    this.notesWs.send({ type: 'note-create', username: this.notesUsername(), x, y, text: '', color: '#fff9c4' });
+}
+
+// When note-created arrives, focus the new note's textarea
+if (this.pendingFocusAfterCreate) {
+    this.pendingFocusAfterCreate = false;
+    const noteId = data.note.id;
+    setTimeout(() => {
+        const textarea = this.$el?.querySelector('.local-note[data-note-id="' + noteId + '"] .local-note-text');
+        if (textarea?.focus) textarea.focus();
+    }, 100);
+}</code></pre>
+
+        <h4>View-Supplied Username (Handlebars)</h4>
+        <pre><code>// In template (expanded server-side): username from session or "guest"
+notesUsername() {
+    return '{{ "{{string.default user.username \"guest\"}}" }}';
+}
+// Send with every note message so server uses it when present
+this.notesWs.send({ type: 'note-create', username: this.notesUsername(), x, y, ... });</code></pre>
+
+        <p class="jp-help-text jp-mt-15">
+            💡 <strong>When to use Pattern B:</strong> Live canvas/boards where every change is sent over WebSocket and saved in real time. Server stores in Redis (or DB) and broadcasts so all clients stay in sync.
+        </p>
+    </div>
+
+    <!-- Debounce Pattern -->
+    <div class="local-code-example">
+        <h3>⏱️ Pattern: Debounce Text Input</h3>
+        <p>For text fields, debounce so you send one update after typing pauses (e.g. 200ms):</p>
+
+        <pre><code>// data: textDebounce: {}
+updateNoteText(note, event) {
+    const text = String(event.target?.value ?? note.text).slice(0, 500);
+    if (text === note.text) return;
+    const id = note.id;
+    if (this.textDebounce[id]) clearTimeout(this.textDebounce[id].timer);
+    this.textDebounce[id] = {
+        text,
+        timer: setTimeout(() => {
+            if (this.notesWs?.isConnected() && this.textDebounce[id]) {
+                this.notesWs.send({ type: 'note-update', username: this.notesUsername(), id, text: this.textDebounce[id].text });
+                delete this.textDebounce[id];
+            }
+        }, 200)
+    };
+}</code></pre>
+
+        <p class="jp-help-text jp-mt-15">
+            💡 <strong>Debounce vs throttle:</strong> Debounce = run once after activity stops (good for text). Throttle = run at most every N ms (good for mouse move).
         </p>
     </div>
 

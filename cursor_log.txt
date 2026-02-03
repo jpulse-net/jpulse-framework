@@ -17762,3 +17762,85 @@ Summary: Release prep for W-148, v1.6.5, 2026-02-02. Reviewed tt-git-diff.txt: d
 
 
 ============================================================
+2026-02-03 00:35
+
+start with docs/dev/design/W-149-websocket-crud-ops.md!
+
+Summary: Implemented W-149 Phase 1 (async onMessage + docs two patterns). webapp/controller/websocket.js: _onMessage is now async; after calling namespace.onMessage(), if return value is a thenable, await it; sync throws and async rejections are caught and sent to client (same _formatMessage). Message handler uses void this._onMessage(...) so rejections are handled inside _onMessage. webapp/tests/unit/controller/websocket.test.js: added describe "Async onMessage" with test "should send error to client when async onMessage rejects" (mock namespace with onMessage that rejects; assert client receives success: false, error, code: 500, username: ''). docs/websockets.md: added "Two Ways to Use WebSocket" section (Pattern A REST for CRUD + WS for sync, Pattern B WS for CRUD, comparison table, "When to use which"); in Registering Namespaces documented async onMessage (framework awaits, sends errors on rejection); Pattern 2 labeled "(Pattern A)" with pointer to Pattern B / Sticky Notes; Examples updated (Collaborative Todo as Pattern A, added Sticky Notes as Pattern B). All 27 websocket controller tests pass.
+
+
+============================================================
+2026-02-03 00:50
+
+I added a second note on 8086 instance (2 instances, the first note was on 8080) [user pasted logs]
+
+Summary: Clarified two-instance sticky-notes behavior from logs. "Broadcast to 0 clients" at 00:46:51 on vm:4 (8086) is expected: no WebSocket clients were connected to 8086 at that moment. Framework always publishes to Redis regardless of local client count (websocket.js broadcast() does _localBroadcast then RedisManager.publishBroadcast). Instance 8080 subscribes via registerBroadcastCallback('controller:websocket:broadcast:*') and forwards to its local clients, so a tab on 8080 should still receive the note. No code change; confirmed architecture supports cross-instance sync.
+
+
+============================================================
+2026-02-03 00:55
+
+indeed, I posted first on 8080 when the ws on 8086 page was not yet open, so expected. I added " on 8080" to the existing note on 8080 [user pasted logs from vm:4 / 8086]
+
+Summary: Logs from 8086 (vm:4) show it processing the note updates: cacheGet/cacheSet notes list, _localBroadcast to 1 client, publish to Redis each time. The burst (00:54:03–00:54:05) is many updates in quick succession—consistent with sticky-notes sending note-update per keystroke/input without debounce. Cross-instance: 8086 publishes to Redis so 8080 would deliver to its tab if open. Optional: add debounce on note text updates to reduce message/log volume when typing.
+
+
+============================================================
+2026-02-03 00:56
+
+oh, yea, my mistake, yes, I type while on 8086. visually all is good. yes, please add a 200ms debounce
+
+Summary: Added 200ms debounce for sticky-notes text updates in site/webapp/view/hello-websocket/templates/sticky-notes-demo.tmpl. data: textDebounce {} (per-note-id { text, timer }). updateNoteText: clear existing timer for note.id, set 200ms timeout to send note-update with latest text. deleteNote: clear pending debounce for that note before sending note-delete. disconnectNotesWs: clear all textDebounce timers and reset object. Reduces WS/log volume when typing.
+
+
+============================================================
+2026-02-03 01:02
+
+I created a new note on 8086 with "new note on 8086". requests: when clicking to create note, make note appear at upper left typing location; set focus so you can start typing immediately.
+
+Summary: (1) Note position: removed transform: translate(-50%, -50%) from .local-note in site/webapp/view/hello-websocket/index.shtml so the note's top-left is at the click (upper-left typing location) instead of centered. (2) Focus: in sticky-notes-demo.tmpl added pendingFocusAfterCreate; set true in onCanvasClick; on note-created clear flag and $nextTick focus textarea via ref 'noteTextarea-' + note.id. Added :ref="'noteTextarea-' + note.id" on the textarea. User can type immediately after creating a note.
+
+
+============================================================
+2026-02-03 01:12
+
+even if logged in I see guest; dark mode issues (note text and drag unreadable); mockup: x button instead of trashcan, username in header and remove drag; set x,y to approximate start type position.
+
+Summary: (1) Username: site/webapp/controller/helloWebsocket.js notes namespace now uses user?.username || user?.displayName || user?.loginId || 'guest' in onConnect, onMessage, onDisconnect so logged-in user name shows when in session. (2) Dark mode: site/webapp/view/hello-websocket/index.shtml — sticky note and canvas use theme vars; added [data-theme="dark"] overrides for .local-notes-canvas (theme bg/border), .local-note (theme bg), .local-note-header, .local-note-close, .local-note-text (theme text/placeholder) so notes are readable in dark mode. (3) UI mockup: sticky-notes-demo.tmpl — header shows username (note.createdBy) and × close button; removed "drag" text and footer (author + trash); close button is .local-note-close (×). index.shtml — .local-note-header flex with .local-note-username and .local-note-close (small gray x button). x,y position was already set (top-left at click) in previous change.
+
+
+============================================================
+2026-02-03 01:18
+
+handlebars are resolved server side, so you see only expanded string in the view. use this directly in the js, such as: const username = '{{string.default user.username "guest"}}';
+
+Summary: Added server-side Handlebars-expanded username to the view JS in site/webapp/view/hello-websocket/templates/routing.tmpl: window.helloWebSocketUsername = '{{string.default user.username "guest"}}'; so the page renders with the actual username (or "guest") and client-side code can use window.helloWebSocketUsername. No controller change; sticky notes still get note.createdBy from WebSocket server.
+
+
+============================================================
+2026-02-03 01:20
+
+ah, on server use req.session, but it might be more consistent to supply everything view-side? e.g. with '{{string.default user.username "guest"}}' ?
+
+Summary: Made username consistently view-side. (1) Client (sticky-notes-demo.tmpl): added notesUsername() returning window.helloWebSocketUsername || 'guest'; send username with note-create, note-update (text and position), note-delete. (2) Server (helloWebsocket.js): in notes onMessage use data.username when present (trimmed, max 100 chars), else fall back to user?.username || user?.displayName || user?.loginId || 'guest'. Single source of truth is the page-rendered {{string.default user.username "guest"}}; server uses it when client sends it.
+
+
+============================================================
+2026-02-03 02:00
+
+the app looks polished now thanks! next: update @site/webapp/view/hello-websocket/templates/code-examples.tmpl @site/webapp/view/hello-websocket/templates/overview.tmpl for new functionality
+
+Updated code-examples.tmpl: intro now mentions Pattern A, Pattern B (Redis), and client patterns (debounce, focus, view-supplied username); Pattern B server snippet fixed with `const handle = this.wsHandle`; added note that _notesCreate/_notesUpdate/_notesDelete use RedisManager for persistence and cross-instance sync. Updated overview.tmpl: Sticky Notes card now says "Server persists in Redis; syncs across instances" for clarity.
+
+
+============================================================
+2026-02-03 02:40
+
+release prep: - review git diff tt-git-diff.txt for accuracy and completeness of work item - assume release: W-149, v1.6.6, 2026-02-03 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script) - update commit-message.txt, following the same format (don't commit) - update cursor_log.txt (append, don't replace)
+
+Diff review (tt-git-diff.txt): Accurate and complete for W-149. Modified files cover: framework async onMessage (websocket.js, websocket.test.js), docs two patterns and async onMessage (docs/websockets.md), site controller notes namespace and Redis store (helloWebsocket.js), sticky-notes demo view/templates (index.shtml, routing.tmpl, overview.tmpl, code-examples.tmpl, architecture.tmpl), work-items (W-148 DONE, W-149 added). Untracked files that must be added for release: docs/dev/design/W-149-websocket-crud-ops.md, site/webapp/view/hello-websocket/templates/sticky-notes-demo.tmpl. No other docs in docs/ required changes beyond websockets.md (already in diff).
+
+Release prep completed: README.md and docs/README.md — Latest Release Highlights: added v1.6.6 W-149 entry (two patterns, async onMessage, Sticky Notes demo, Redis, overview/code-examples/architecture, docs, unit test); kept v1.6.5 W-148 as second bullet. docs/CHANGELOG.md: added full v1.6.6 W-149 entry (commit line, FEATURE RELEASE, objective, key changes, code changes, documentation, work item, version, release date). commit-message.txt: updated with W-149 commit message following W-148 format (objectives, key changes, code changes, documentation, README/CHANGELOG lines). Version numbers in doc headers left unchanged per "don't bump version". Appended this entry to cursor_log.txt.
+
+
+============================================================

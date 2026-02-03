@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.5
+# jPulse Docs / Dev / Work Items v1.6.6
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4609,19 +4609,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/api-reference.md`:
     - config model subsection: extendSchema, getEffectiveAdminRoles, getEffectiveRoles; admin roles from config note; Configuration Schema data.general + extensible
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-148, v1.6.5, 2026-02-02: jPulse UI: schema-driven config forms and tagInput widget
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives: easier way to enter list items, such as roles
 - design doc: docs/dev/design/W-148-jPulse-UI-input-tagInput-widget.md
@@ -4658,10 +4647,51 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-149, v1.6.6, 2026-02-03: websocket: demonstrate and document CRUD operations
+- status: ✅ DONE
+- type: Feature
+- design doc: docs/dev/design/W-149-websocket-crud-ops.md
+- objectives: teach that websockets can be use in two ways:
+  - websocket for notification, and CRUD over REST (current doc and hello-websocket demo)
+  - websocket for CRUD operations (new doc & demo)
+- features:
+  - document two WebSocket usage patterns in `docs/websockets.md`:
+    - pattern A: REST for CRUD, WebSocket for notifications (sync all views); keep/refine existing todo example and "Hybrid REST + WebSocket" section.
+    - pattern B: WebSocket for CRUD (e.g. collaborative canvas); mutations sent over WS, server persists and broadcasts; add new section with comparison table and "when to use which."
+  - WebSocket framework: support async `onMessage` in `webapp/controller/websocket.js` — await handler when it returns a Promise; on rejection, send error to client (same format as sync throws) so CRUD-over-WS handlers can use async models without try/catch IIFE.
+  - new hello-websocket demo: add one page/tab (e.g. "Sticky notes" or "Canvas CRUD") that demonstrates WS-for-CRUD — client sends create/update/delete over WS; server `onMessage` calls model or in-memory store, then broadcasts outcome; all clients see changes in real time.
+  - persistence for WS-CRUD demo: in-memory store or simple MongoDB model called from namespace `onMessage`; document hand-off (controller → model/store → broadcast) in docs and code examples.
+  - update hello-websocket overview, architecture, and code-examples to describe both patterns and link to the new WS-CRUD demo.
+- deliverables:
+  - `docs/websockets.md`:
+    - two-pattern structure: "REST for CRUD + WS for sync" vs "WS for CRUD"; comparison table; when-to-use; async onMessage note if implemented.
+  - `webapp/controller/websocket.js`:
+    - await onMessage when it returns a Promise; on rejection, send error to client (same as sync throw).
+  - `site/webapp/controller/helloWebsocket.js` (or new controller), `site/webapp/view/hello-websocket/` (new tab + template):
+    - new namespace (e.g. `/api/1/ws/hello-notes`) and WS-CRUD demo (e.g. sticky notes or dots); onMessage branches on type, calls store/model, broadcasts.
+  - `site/webapp/model/` (optional) or in-memory in controller:
+    - store for WS-CRUD demo (create/update/delete); minimal schema.
+  - `docs/websockets.md`, `site/webapp/view/hello-websocket/templates/` (overview, code-examples, architecture):
+    - describe both patterns; add/update code samples for WS-for-CRUD and async handler.
+
+
+
+
+
+
+
+
+
 
 
 
 ### Pending
+
+- document CRUD over websocket (our ws demo uses rest for crud, and ws only for notifications, so gives the false impression)
+
 
 old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
@@ -4687,8 +4717,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-148, v1.6.5, 2026-02-02
-- update deliverables in W-147 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-149, v1.6.6, 2026-02-03
+- update deliverables in W-149 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4705,12 +4735,12 @@ git push
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.5
+node bin/bump-version.js 1.6.6
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.5
+git tag v1.6.6
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

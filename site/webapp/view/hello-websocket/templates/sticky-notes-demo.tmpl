@@ -88,6 +88,9 @@ window.helloWebSocketViews.StickyNotesDemo = {
             } else if (data.type === 'note-updated') {
                 const index = this.notes.findIndex((n) => n.id === data.note?.id);
                 if (index !== -1 && data.note) {
+                    // Do not apply incoming update if we have pending debounced input for this note:
+                    // our own broadcast echo would overwrite the textarea with stale text and drop chars.
+                    if (this.textDebounce && this.textDebounce[data.note.id]) return;
                     this.notes[index] = data.note;
                 }
             } else if (data.type === 'note-deleted') {

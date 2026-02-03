@@ -10,7 +10,7 @@
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 window.jpSpaRoutes.CodeExamples = {
@@ -19,7 +19,7 @@ window.jpSpaRoutes.CodeExamples = {
             <h2 class="jp-card-dialog-heading">💻 Code Examples</h2>
             <p class="jp-text">Learn the implementation patterns used in this Vue.js SPA.</p>
 
-            <div class="code-section">
+            <div class="local-code-section">
                 <h3>1. Vue Router Setup</h3>
                 <p class="jp-text">Define routes and create the router with History Mode:</p>
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>// Define routes
@@ -42,7 +42,7 @@ const router = createRouter({
 });</pre></div>
             </div>
 
-            <div class="code-section">
+            <div class="local-code-section">
                 <h3>2. Component Structure</h3>
                 <p class="jp-text">Components have data, computed properties, methods, and templates:</p>
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>window.jpSpaRoutes.TodoDemo = {
@@ -79,7 +79,7 @@ const router = createRouter({
 };</pre></div>
             </div>
 
-            <div class="code-section">
+            <div class="local-code-section">
                 <h3>3. Template Organization</h3>
                 <p class="jp-text">Templates are loaded from separate .tmpl files using server-side includes:</p>
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>// In routing.tmpl
@@ -97,7 +97,7 @@ window.jpSpaRoutes.TodoDemo = {
 };</pre></div>
             </div>
 
-            <div class="code-section">
+            <div class="local-code-section">
                 <h3>4. API Integration with jPulse</h3>
                 <p class="jp-text">jPulse.api.call() uses an options object with method and body:</p>
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>// GET request
@@ -118,7 +118,7 @@ const response = await jPulse.api.call('/api/1/helloTodo/123/toggle', {
 });</pre></div>
             </div>
 
-            <div class="code-section">
+            <div class="local-code-section">
                 <h3>5. Reactive Data Binding</h3>
                 <p class="jp-text">Vue automatically updates the DOM when data changes:</p>
                 <div class="jp-source-code" data-lang="html" data-show-lang="true"><pre>&lt;!-- v-for loops through arrays --&gt;
@@ -136,7 +136,7 @@ const response = await jPulse.api.call('/api/1/helloTodo/123/toggle', {
 &lt;/div&gt;</pre></div>
             </div>
 
-            <div class="code-section">
+            <div class="local-code-section">
                 <h3>6. Router Navigation</h3>
                 <p class="jp-text">Navigate programmatically using this.$router.push():</p>
                 <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>methods: {

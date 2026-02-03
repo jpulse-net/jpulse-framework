@@ -347,7 +347,7 @@
             color: var(--jp-theme-text-muted, #9ca3af);
         }
 
-        /* Code example styles */
+        /* Code example styles (match hello-vue for consistent font size/weight) */
         .local-code-example {
             margin: 20px 0;
         }
@@ -358,17 +358,24 @@
         }
 
         .local-code-example pre {
-            background: var(--jp-theme-bg-secondary, #f5f5f5);
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+            border: 1px solid var(--jp-theme-border-light, #e9ecef);
+            border-radius: 4px;
             padding: 15px;
-            border-radius: 6px;
             overflow-x: auto;
-            border-left: 4px solid var(--jp-theme-color-primary, #007acc);
         }
 
         .local-code-example code {
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            line-height: 1.6;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        /* Override framework .jp-source-code pre code (10pt) */
+        .local-code-example .jp-source-code pre code,
+        .local-code-example .jp-source-code code {
+            font-size: 13px !important;
+            line-height: 1.4;
         }
 
         .local-controls-row {

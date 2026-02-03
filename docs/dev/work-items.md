@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.6
+# jPulse Docs / Dev / Work Items v1.6.5
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4639,17 +4639,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/tests/unit/translations/i18n-variable-content.test.js`, `webapp/tests/unit/utils/jpulse-ui-input-taginput.test.js`, `webapp/tests/unit/utils/jpulse-ui-tabs-schema.test.js`:
   - enhance and add new unit tests
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-149, v1.6.6, 2026-02-03: websocket: demonstrate and document CRUD operations
 - status: ✅ DONE
 - type: Feature
@@ -4685,12 +4674,21 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
+
+
+
+
+
+
+
 
 
 
 ### Pending
-
-- document CRUD over websocket (our ws demo uses rest for crud, and ws only for notifications, so gives the false impression)
 
 
 old pending:
@@ -4725,12 +4723,6 @@ release prep:
 
 ### Misc
 
-=== checkpoint commit ===
-npm test
-git add .
-git commit -m 'Checkpoint commit 1 for: W-069, v0.9.2: view: create site navigation pulldown and hamburger menu'
-git push
-
 === JPULSE release & package build on github ===
 npm test
 git diff
@@ -4755,6 +4747,12 @@ git tag v1.0.5
 git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
+
+=== checkpoint commit ===
+npm test
+git add .
+git commit -m 'Checkpoint commit 1 for: W-069, v0.9.2: view: create site navigation pulldown and hamburger menu'
+git push
 
 === on failed package build on github ===
 git add .

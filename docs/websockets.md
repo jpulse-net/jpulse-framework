@@ -956,6 +956,8 @@ A comprehensive interactive demo with two real-world patterns:
 - Server persists in Redis and broadcasts; all clients see changes in real time
 - No REST for note mutations; demonstrates Pattern B
 
+**Pattern B caveat — echo overwrites typing:** The server broadcasts `note-updated` to all clients, including the sender. If you apply every incoming `note-updated` to your local state, your own (stale) echo can overwrite the textarea while the user is still typing and drop characters — worse under load or in a PM2 cluster. **Fix:** When handling `note-updated`, do not apply the update if you have pending debounced input for that note (e.g. `if (this.textDebounce[data.note.id]) return;`). Apply updates only when you are not currently editing that note.
+
 **Also includes:**
 - Code examples (copy-paste ready)
 - Architecture explanation

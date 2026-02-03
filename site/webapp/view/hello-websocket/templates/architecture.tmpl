@@ -240,6 +240,9 @@ onMessage: async (clientId, data, user) => {
             <p class="jp-help-text jp-mt-10 jp-mb-0">
                 Use for live collaborative UIs (canvas, sticky boards). Server stores in Redis so all instances share state.
             </p>
+            <p class="jp-help-text jp-mt-10 jp-mb-0 jp-output jp-output-warning jp-p-10">
+                ⚠️ <strong>Gotcha:</strong> The sender also receives the broadcast. If you apply every <code>note-updated</code> to local state, your own (stale) echo can overwrite the textarea while the user is typing and drop characters — worse under load or in a cluster. Ignore incoming <code>note-updated</code> for a note when you have pending debounced input for that note (<code>textDebounce[noteId]</code>).
+            </p>
         </div>
     </div>
 

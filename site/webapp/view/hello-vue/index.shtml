@@ -10,7 +10,7 @@
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -195,11 +195,11 @@
             color: var(--jp-theme-text-inverse, #ffffff);
         }
 
-        .code-section {
+        .local-code-section {
             margin: 20px 0;
         }
 
-        .code-section pre {
+        .local-code-section pre {
             background: var(--jp-theme-bg-secondary, #f8f9fa);
             border: 1px solid var(--jp-theme-border-light, #e9ecef);
             border-radius: 4px;
@@ -207,7 +207,7 @@
             overflow-x: auto;
         }
 
-        .code-section code {
+        .local-code-section code {
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 13px;
             line-height: 1.4;

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.6
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.7
 
 **For Site Administrators & Site Developers**
 
@@ -227,6 +227,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.7 - Bump-Version Skip Site Hello Examples (W-150)**: When running `npx jpulse bump-version` on a site install, framework-shipped hello examples are now skipped (site/webapp/controller/hello*.js, site/webapp/model/hello*.js, site/webapp/view/hello**, jpulse-common/jpulse-navigation tmpls, app.conf.tmpl). Uses `findBumpConfig()` to detect site context; framework and plugin context unchanged (all files bumped as before). W-150, 2026-02-04
 - ✅ **Version 1.6.6 - WebSocket CRUD Demo & Two Patterns (W-149)**: **Pattern A** (REST for CRUD + WebSocket for sync) and **Pattern B** (WebSocket for CRUD). Async `onMessage` support; new **Sticky Notes** demo at `/hello-websocket/` (Redis store, broadcast). Docs and demo templates updated. W-149, 2026-02-03
 - ✅ **Version 1.6.5 - Schema-Driven Config Forms & tagInput (W-148)**: tagInput widget for list-in-one-input (e.g. roles); schema-driven config with one-line `setFormData`/`getFormData` and `renderTabsAndPanelsFromSchema` (tabs, flow layout, virtual buttons); Admin config unified from single schema; roles/adminRoles use tagInput with slug pattern. W-148, 2026-02-02
 - ✅ **Version 1.6.4 - Config Schema Extensible (W-147)**: Site config schema is extensible for site and plugin developers. ConfigModel gets `extendSchema(extension)` (tab scope)—each extension block becomes a new tab in Admin → Site Configuration. General tab added with roles and adminRoles; bootstrap from schema defaults when missing (no app.conf read). All admin/roles consumers read from ConfigModel cache: `getEffectiveAdminRoles()`, `getEffectiveRoles()` (sync, cached). Admin config UI is data-driven from schema (tabs + panels); validation adminRoles ⊆ roles; self-lockout prevention. app.conf `controller.user.adminRoles` removed; framework does not read it. Unit tests: config-model, config-general, config-manifest; integration: config-admin-roles. Docs: api-reference (Config model subsection, extendSchema, getEffective*). W-147, 2026-02-01

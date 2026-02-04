@@ -1,6 +1,32 @@
-# jPulse Docs / Version History v1.6.6
+# jPulse Docs / Version History v1.6.7
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.7, W-150, 2026-02-04
+
+**Commit:** `W-150, v1.6.7: build: exclude hello examples from bump-version on site install`
+
+**BUILD RELEASE**: When running `npx jpulse bump-version` on a site install, framework-shipped hello examples are now skipped so only site-owned versioned files are updated. Skip applies only when config is `site/webapp/bump-version.conf` (site context); framework and plugin context unchanged (all files bumped as before).
+
+**Objective**: When a site deployment uses `npx jpulse bump-version <version>`, exclude framework-shipped hello example files so the site's version bump does not overwrite those files' version headers.
+
+**Key Changes**:
+- **bin/bump-version.js**: Hardcoded `SITE_SKIP_PATTERNS` list (site/webapp/controller/hello*.js, site/webapp/model/hello*.js, site/webapp/view/hello**, site/webapp/view/jpulse-common.js.tmpl, site/webapp/view/jpulse-common.css.tmpl, site/webapp/view/jpulse-navigation.js.tmpl, site/webapp/app.conf.tmpl). New `isSiteSkipPath(filePath)` using existing `matchesPattern()`. In `discoverFiles()`, use `findBumpConfig()` to detect site context (`configPath === 'site/webapp/bump-version.conf'`); skip paths matching SITE_SKIP_PATTERNS only when in site context. Framework/plugin runs unchanged.
+
+**Code Changes**:
+
+bin/bump-version.js:
+- SITE_SKIP_PATTERNS constant; isSiteSkipPath(); discoverFiles() calls findBumpConfig(), sets isSiteContext, skipSiteHello = isSiteContext && isSiteSkipPath(relativePath); include file only when shouldInclude && !skipSiteHello
+
+**Documentation**:
+
+README.md, docs/README.md: Latest Release Highlights — added v1.6.7 W-150 entry
+docs/CHANGELOG.md: Added v1.6.7, W-150 entry
+
+**Work Item**: W-150
+**Version**: v1.6.7
+**Release Date**: 2026-02-04
 
 ________________________________________________
 ## v1.6.6, W-149, 2026-02-03

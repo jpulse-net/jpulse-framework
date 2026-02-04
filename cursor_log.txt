@@ -17844,3 +17844,11 @@ Release prep completed: README.md and docs/README.md — Latest Release Highligh
 
 
 ============================================================
+2026-02-04 01:35
+
+release prep: - assume release: W-150, v1.6.7, 2026-02-04 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script) - update commit-message.txt, following the same format (don't commit) - update cursor_log.txt (append, don't replace)
+
+Release prep completed for W-150, v1.6.7, 2026-02-04: README.md and docs/README.md — Latest Release Highlights: added v1.6.7 W-150 entry (bump-version skip site hello examples when running on site install; SITE_SKIP_PATTERNS, isSiteSkipPath, findBumpConfig for site context; framework/plugin unchanged). docs/CHANGELOG.md: added full v1.6.7 W-150 entry (BUILD RELEASE, objective, key changes, code changes, documentation, work item, version, release date). commit-message.txt: updated with W-150 commit message following same format. docs/dev/work-items.md: updated W-150 deliverables to document work done (SITE_SKIP_PATTERNS list, isSiteSkipPath, findBumpConfig site context; fixed typo bumb→bump). No version bump in docs per request. Appended this entry to cursor_log.txt.
+
+
+============================================================

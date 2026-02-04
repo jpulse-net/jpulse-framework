@@ -5,8 +5,8 @@
  * @tagline         Version bump script for jPulse Framework
  * @description     Updates version numbers and release dates across all source files
  * @file            bin/bump-version.js
- * @version         1.6.6
- * @release         2026-02-03
+ * @version         1.6.7
+ * @release         2026-02-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -173,8 +173,25 @@ function matchesPattern(filePath, pattern) {
     return new RegExp(`^${regex}$`).test(filePath);
 }
 
+// Hardcoded site paths to skip (framework-shipped examples, not site-owned)
+const SITE_SKIP_PATTERNS = [
+    'site/webapp/controller/hello*.js',
+    'site/webapp/model/hello*.js',
+    'site/webapp/view/hello**',
+    'site/webapp/view/jpulse-common.js.tmpl',
+    'site/webapp/view/jpulse-common.css.tmpl',
+    'site/webapp/view/jpulse-navigation.js.tmpl',
+    'site/webapp/app.conf.tmpl',
+];
+
+function isSiteSkipPath(filePath) {
+    return SITE_SKIP_PATTERNS.some(pattern => matchesPattern(filePath, pattern));
+}
+
 // Function to discover files recursively
 function discoverFiles(dir = '.') {
+    const configPath = findBumpConfig();
+    const isSiteContext = configPath === 'site/webapp/bump-version.conf';
     const files = [];
     function scanDirectory(currentDir) {
         try {
@@ -189,7 +206,9 @@ function discoverFiles(dir = '.') {
                     const shouldInclude = conf.filePatterns.some(pattern =>
                         matchesPattern(relativePath, pattern)
                     );
-                    if (shouldInclude) {
+                    // Skip framework-shipped site hello examples only when running on a site install
+                    const skipSiteHello = isSiteContext && isSiteSkipPath(relativePath);
+                    if (shouldInclude && !skipSiteHello) {
                         files.push(relativePath);
                     }
                 }

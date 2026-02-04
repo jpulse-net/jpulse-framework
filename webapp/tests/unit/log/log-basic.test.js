@@ -3,8 +3,8 @@
  * @tagline         Unit tests for log model and controller basic functionality
  * @description     This file contains unit tests for the log model and controller
  * @file            webapp/tests/unit/log/log-basic.test.js
- * @version         1.6.6
- * @release         2026-02-03
+ * @version         1.6.7
+ * @release         2026-02-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

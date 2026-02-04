@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.5
+# jPulse Docs / Dev / Work Items v1.6.7
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4677,6 +4677,18 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-150, v1.6.7, 2026-02-04: build: exclude hello examples from bump-version on site install
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives: when a site deployment uses the `npx jpulse bump-version 1.2.3` utility, it should exclude framework supplied hello examples
+- features:
+  - enhance bin/bump-version.js to exclude hello example files when running on a site install (not when running on framework or plugin)
+- deliverables:
+  - `bin/bump-version.js`:
+    - hardcoded SITE_SKIP_PATTERNS list (site/webapp/controller/hello*.js, site/webapp/model/hello*.js, site/webapp/view/hello**, site/webapp/view/jpulse-common.js.tmpl, site/webapp/view/jpulse-common.css.tmpl, site/webapp/view/jpulse-navigation.js.tmpl, site/webapp/app.conf.tmpl)
+    - isSiteSkipPath(filePath) using existing matchesPattern()
+    - discoverFiles() uses findBumpConfig() to detect site context (configPath === 'site/webapp/bump-version.conf'); skip paths matching SITE_SKIP_PATTERNS only when isSiteContext; framework/plugin context unchanged
+
 
 
 
@@ -4715,8 +4727,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-149, v1.6.6, 2026-02-03
-- update deliverables in W-149 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-150, v1.6.7, 2026-02-04
+- update deliverables in W-150 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4727,12 +4739,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.6
+node bin/bump-version.js 1.6.7
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.6
+git tag v1.6.7
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

@@ -1,4 +1,4 @@
-# jPulse Framework v1.6.7
+# jPulse Framework v1.6.8
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -204,6 +204,7 @@ Business Source License 1.1 with Additional Terms
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.8 - jpSelect Widget (W-151)**: Enhanced single/multi-select with optional search, select all/clear all, and checkboxes for multi. Native `<select>` stays source of truth; setAllValues/getAllValues and setFormData/getFormData work with jpSelect. Multi-select trigger shows comma-separated labels when they fit, else "N selected" or "All selected" (i18n separator). initAll wires `select[data-jpselect]`; demo in UI Widgets. W-151, 2026-02-05
 - ✅ **Version 1.6.7 - Bump-Version Skip Site Hello Examples (W-150)**: When running `npx jpulse bump-version` on a site install, framework-shipped hello examples are now skipped (site/webapp/controller/hello*.js, site/webapp/model/hello*.js, site/webapp/view/hello**, jpulse-common/jpulse-navigation tmpls, app.conf.tmpl). Uses `findBumpConfig()` to detect site context; framework and plugin context unchanged (all files bumped as before). W-150, 2026-02-04
 - ✅ **Version 1.6.6 - WebSocket CRUD Demo & Two Patterns (W-149)**: **Pattern A** (REST for CRUD + WebSocket for sync) and **Pattern B** (WebSocket for CRUD). Async `onMessage` support; new **Sticky Notes** demo at `/hello-websocket/` (Redis store, broadcast). Docs and demo templates updated. W-149, 2026-02-03
 - ✅ **Version 1.6.5 - Schema-Driven Config Forms & tagInput (W-148)**: tagInput widget for list-in-one-input (e.g. roles); schema-driven config with one-line `setFormData`/`getFormData` and `renderTabsAndPanelsFromSchema` (tabs, flow layout, virtual buttons); Admin config unified from single schema; roles/adminRoles use tagInput with slug pattern. W-148, 2026-02-02

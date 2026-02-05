@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.7
+# jPulse Docs / Dev / Work Items v1.6.8
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4666,6 +4666,18 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/websockets.md`, `site/webapp/view/hello-websocket/templates/` (overview, code-examples, architecture):
     - describe both patterns; add/update code samples for WS-for-CRUD and async handler.
 
+### W-150, v1.6.7, 2026-02-04: build: exclude hello examples from bump-version on site install
+- status: ✅ DONE
+- type: Feature
+- objectives: when a site deployment uses the `npx jpulse bump-version 1.2.3` utility, it should exclude framework supplied hello examples
+- features:
+  - enhance bin/bump-version.js to exclude hello example files when running on a site install (not when running on framework or plugin)
+- deliverables:
+  - `bin/bump-version.js`:
+    - hardcoded SITE_SKIP_PATTERNS list (site/webapp/controller/hello*.js, site/webapp/model/hello*.js, site/webapp/view/hello**, site/webapp/view/jpulse-common.js.tmpl, site/webapp/view/jpulse-common.css.tmpl, site/webapp/view/jpulse-navigation.js.tmpl, site/webapp/app.conf.tmpl)
+    - isSiteSkipPath(filePath) using existing matchesPattern()
+    - discoverFiles() uses findBumpConfig() to detect site context (configPath === 'site/webapp/bump-version.conf'); skip paths matching SITE_SKIP_PATTERNS only when isSiteContext; framework/plugin context unchanged
+
 
 
 
@@ -4677,17 +4689,67 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-150, v1.6.7, 2026-02-04: build: exclude hello examples from bump-version on site install
-- status: 🚧 IN_PROGRESS
+### W-151, v1.6.8, 2026-02-05: jPulse UI: jPulse.UI.input.jpSelect widget - enhanced select with search, select all
+- status: ✅ DONE
 - type: Feature
-- objectives: when a site deployment uses the `npx jpulse bump-version 1.2.3` utility, it should exclude framework supplied hello examples
+- objectives:
+  - better UX for single and multi-select: search, select all / clear all, checkboxes for multi
+  - keep standard `<select>` and `<select multiple>` as source of truth; enhance with widget only
+  - work with jPulse UI form pipeline: setFormData, getFormData, setAllValues, getAllValues
+- design:
+  - name: `jPulse.UI.input.jpSelect`
+  - source of truth:
+    - native `<select>` element
+    - widget enhances presentation and interaction; value read/written from select
+  - value contract:
+    - single select → value = string (el.value)
+    - multi select → value = array of option values (setAllValues sets selected on options
+    - getAllValues returns Array.from(el.selectedOptions).map(o => o.value))
+    - core setAllValues/getAllValues support multi-select so setFormData/getFormData work without view-level hacks
+  - init: `jPulse.UI.input.jpSelect.init(selectorOrElement, options)`
+    - single vs multi inferred from `<select multiple>`
+  - init options (all optional; defaults below):
+    - search: Boolean — add search filter in dropdown (default: false)
+    - searchPlaceholder: String — default from i18n `view.ui.input.jpSelect.searchPlaceholder`
+      - user can pass hard-coded string or `{{i18n...}}` handlebar (no special i18n handling in widget)
+    - selectAll: Boolean — (multi only) show one control:
+      - if all selected → "Clear all",
+      - else → "Select all"; text from i18n (default: false)
+    - placeholder: String | null — when no selection
+      - default from `placeholder` attribute or i18n (default: '' or attribute)
+    - captionFormatSome: String — (multi) when not all selected, e.g. '%NUM% selected'
+      - default from i18n
+    - captionFormatAll: String — (multi) when all selected, e.g. 'All selected'
+      - default from i18n
+  - i18n path: `view.ui.input.jpSelect.*`
+    - searchPlaceholder, selectAll, clearAll, placeholder, captionFormatSome, captionFormatAll
+  - long option list: dropdown has auto-scrollbar (max-height + overflow)
 - features:
-  - enhance bin/bump-version.js to exclude hello example files when running on a site install (not when running on framework or plugin)
+  - progressive enhancement of `<select>` and `<select multiple>`
+  - optional search filter in dropdown
+  - checkboxes per option for multi
+  - optional Select all / Clear all for multi
+  - accessible (keyboard, ARIA) and themeable via CSS (--jp-theme-*)
 - deliverables:
-  - `bin/bump-version.js`:
-    - hardcoded SITE_SKIP_PATTERNS list (site/webapp/controller/hello*.js, site/webapp/model/hello*.js, site/webapp/view/hello**, site/webapp/view/jpulse-common.js.tmpl, site/webapp/view/jpulse-common.css.tmpl, site/webapp/view/jpulse-navigation.js.tmpl, site/webapp/app.conf.tmpl)
-    - isSiteSkipPath(filePath) using existing matchesPattern()
-    - discoverFiles() uses findBumpConfig() to detect site context (configPath === 'site/webapp/bump-version.conf'); skip paths matching SITE_SKIP_PATTERNS only when isSiteContext; framework/plugin context unchanged
+  - `webapp/view/jpulse-common.js`:
+    - jPulse.UI.input.jpSelect (init with options: search, searchPlaceholder, selectAll, placeholder, captionFormatSome, captionFormatAll, separator)
+    - setAllValues/getAllValues support multi-select (SELECT multiple: value = array; sets selected on options / returns selectedOptions); setAllValues calls _jpSelectUpdateCaption for caption refresh
+    - initAll wires [data-jpselect] to jpSelect.init
+    - multi-select trigger caption: when selected labels fit (measured off-screen), shows comma list with opts.separator; else captionFormatSome / captionFormatAll
+  - `webapp/view/jpulse-common.css`:
+    - jp-jpselect-wrap, jp-jpselect-trigger (with arrow, nowrap/ellipsis), jp-jpselect-dropdown, jp-jpselect-search, jp-jpselect-select-all, jp-jpselect-list (scrollable), jp-jpselect-option (with checkbox for multi)
+    - .jp-tabs:has(.jp-jpselect-dropdown.jp-jpselect-open) z-index for dropdown above content; h1–h6 z-index: 0 for overlay stacking; panel overflow: visible for dropdown
+  - `webapp/translations/en.conf`, `de.conf`:
+    - view.ui.input.jpSelect.* keys (searchPlaceholder, selectAll, clearAll, placeholder, captionFormatSome, captionFormatAll, separator)
+  - `webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js`:
+    - init tests (no-op, enhances select, no double-init); init with search: true adds .jp-jpselect-search; init multi with selectAll: true adds .jp-jpselect-select-all; init multi with custom separator uses it in trigger caption
+    - getAllValues / setAllValues multi-select (array read/write); setAllValues on jpSelect-enhanced form refreshes trigger caption
+  - `docs/jpulse-ui-reference.md`:
+    - input utilities: jpSelect widget subsection (init, options including separator, multi caption behavior, value contract, example)
+    - setAllValues/getAllValues updated to describe SELECT multiple and jpSelect caption refresh
+  - `webapp/view/jpulse-examples/ui-widgets.shtml`: Input Widgets & Form Data section (3.2) with tagInput + jpSelect demo (single search, multi search+selectAll), set sample / get values, source tab; tabs renumbered 3.2→3.6
+  - `webapp/view/jpulse-examples/forms.shtml`: paragraph linking to UI Widgets → Input Widgets & Form Data (tagInput, jpSelect, setAllValues/getAllValues, setFormData/getFormData)
+  - `docs/front-end-development.md`: jPulse.UI.input API link updated to input widgets, set/get form data (tagInput, jpSelect, helpers)
 
 
 
@@ -4707,10 +4769,9 @@ old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
-- how to define the time of valid session?
+- /jpulse-docs/front-end-development#ui-widgets-overview needs jPulse.UI.input docs
 
 ### Potential next items:
-- W-0: jPulse UI: jPulse.UI.input.multiSelect widget to manage selection with search
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-0: deployment: docker strategy
 - W-0: auth controller: authentication with OAuth2 (see W-109 for flow design)
@@ -4727,8 +4788,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-150, v1.6.7, 2026-02-04
-- update deliverables in W-150 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-151, v1.6.8, 2026-02-05
+- update deliverables in W-151 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4739,12 +4800,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.7
+node bin/bump-version.js 1.6.8
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.7
+git tag v1.6.8
 git push origin main --tags
 
 === PLUGIN release & package build on github ===
@@ -4807,17 +4868,6 @@ template:
 - type: Feature
 - objectives:
 - features:
-- deliverables:
-  - FIXME `path/file`:
-    - FIXME summary
-
-### W-0: jPulse UI: jPulse.UI.input.multiSelect widget to manage selection with search
-- status: 🕑 PENDING
-- type: Feature
-- objectives: easier way to manage multi-select fields
-- features:
-- design:
-  - name: `jPulse.UI.input.multiSelect`
 - deliverables:
   - FIXME `path/file`:
     - FIXME summary

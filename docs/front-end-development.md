@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.6.7
+# jPulse Docs / Front-End Development Guide v1.6.8
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -701,10 +701,9 @@ testEmail: {
 
 ### Reference
 
-- **jPulse.UI.input API**: [Input utilities (tagInput, setFormData/getFormData)](jpulse-ui-reference.md#input-utilities-taginput-setformdata-getformdata) in the jPulse.UI Widget Reference — full docs for `.tagInput`, `.setAllValues`, `.getAllValues`, `.setFormData`, `.getFormData`.
+- **jPulse.UI.input API**: [Input utilities: input widgets, set/get form data](jpulse-ui-reference.md#input-utilities-input-widgets-setget-form-data) in the jPulse.UI Widget Reference — full docs for `.tagInput`, `.jpSelect`, `.setAllValues`, `.getAllValues`, `.setFormData`, `.getFormData`.
 - **Config UI**: `webapp/view/admin/config.shtml` (minimal HTML; one panel container; one-line setFormData/getFormData).
 - **Schema shape**: `webapp/model/config.js` (baseSchema with `_meta` per block, field definitions with type, label, inputType, startNewRow, fullWidth, help, etc.).
-- **Design**: [W-148 jPulse.UI.input.tagInput Widget](dev/design/W-148-jPulse-UI-input-tagInput-widget.md) (flow control, virtual buttons, scope).
 
 ## 💬 UI Widgets Overview
 

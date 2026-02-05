@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.7
+# jPulse Docs / jPulse.UI Widget Reference v1.6.8
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -10,7 +10,7 @@ Complete reference documentation for all `jPulse.UI.*` widgets available in the 
 - [Collapsible Components](#collapsible-components) - Expandable/collapsible sections
 - [Accordion Component](#accordion-component) - Grouped sections with mutual exclusion
 - [Tab Interface](#tab-interface) - Navigation and panel tabs
-- [Input utilities (tagInput, setFormData, getFormData)](#input-utilities-taginput-setformdata-getformdata) - tagInput widget, setAllValues/getAllValues, setFormData/getFormData
+- [Input utilities: input widgets, set/get form data)](#input-utilities-input-widgets-setget-form-data) - tagInput widget, jpSelect widget, setAllValues/getAllValues, setFormData/getFormData
 - [Source Code Display](#source-code-display) - Syntax-highlighted code blocks
 - [Tooltip Component](#tooltip-component) - Helpful tooltips on any element
 - [Pagination Helper](#pagination-helper) - Cursor-based pagination state management
@@ -509,9 +509,9 @@ const panelTabs = jPulse.UI.tabs.register('content-tabs', {
 
 ---
 
-## Input utilities (tagInput, setFormData, getFormData)
+## Input utilities: input widgets, set/get form data
 
-Input widgets and form-data helpers under `jPulse.UI.input`: tagInput for list-in-one-input (e.g. roles), and setAllValues, getAllValues / setFormData, getFormData for schema-driven config forms. See also [Schema-driven config forms](front-end-development.md#-schema-driven-config-forms) in the Front-End Development Guide.
+Input widgets and form-data helpers under `jPulse.UI.input`: tagInput for list-in-one-input (e.g. roles), jpSelect for enhanced single/multi-select with search and select all/clear all, and setAllValues, getAllValues / setFormData, getFormData for schema-driven config forms. See also [Schema-driven config forms](front-end-development.md#-schema-driven-config-forms) in the Front-End Development Guide.
 
 ### tagInput widget
 
@@ -553,9 +553,40 @@ Static: array → comma-space string. Sorts then joins with `', '`. Use when set
 
 #### `jPulse.UI.input.initAll(container?)`
 
-Namespace-level: inits all input widget types in container (e.g. `[data-taginput]` → tagInput.init). One call after populateForm; no listing ids.
+Namespace-level: inits all input widget types in container (e.g. `[data-taginput]` → tagInput.init, `select[data-jpselect]` → jpSelect.init). One call after populateForm; no listing ids.
 
 **Parameters:** `container` (Element|undefined) - Form or container; defaults to `document` if omitted
+
+---
+
+### jpSelect widget
+
+Enhance a native `<select>` or `<select multiple>` with a custom dropdown: optional search filter, optional "Select all" / "Clear all" for multi-select, and checkboxes per option in multi mode. Multi-select trigger caption: when selected labels fit (measured off-screen), shows them joined by the locale separator; otherwise shows "N selected" or "All selected". The native select stays in the DOM and remains the value source for setAllValues/getAllValues and setFormData/getFormData.
+
+#### `jPulse.UI.input.jpSelect.init(selectorOrElement, options?)`
+
+Enhance an existing `<select>` as jpSelect. Add `data-jpselect` to the select. Single vs multi is inferred from the `multiple` attribute.
+
+**Parameters:**
+- `selectorOrElement` (string|Element) - Select element or CSS selector
+- `options` (Object, optional):
+  - `search` (boolean) - Show search input in dropdown (default: false)
+  - `searchPlaceholder` (string) - Placeholder for search; default from i18n `view.ui.input.jpSelect.searchPlaceholder`
+  - `selectAll` (boolean) - (Multi only) Show "Select all" / "Clear all" (default: false)
+  - `placeholder` (string) - When nothing selected show "Select…"; default from `placeholder` attribute or i18n
+  - `captionFormatSome` (string) - (Multi) e.g. '%NUM% selected'; default from i18n
+  - `captionFormatAll` (string) - (Multi) e.g. 'All selected'; default from i18n
+  - `separator` (string) - (Multi) Separator between selected labels in trigger (e.g. ', ' or '、'); default from i18n `view.ui.input.jpSelect.separator`
+
+**Example:**
+```javascript
+const sel = document.querySelector('select[data-jpselect]');
+jPulse.UI.input.jpSelect.init(sel, { search: true, selectAll: true });
+// Or after populateForm:
+jPulse.UI.input.initAll(configForm);
+```
+
+**Value contract:** Single select → value is a string; multi select → value is an array of option values. setAllValues/getAllValues and setFormData/getFormData handle both; no special handling needed in the view.
 
 ---
 
@@ -565,7 +596,7 @@ Set or read form field values by `data-path`. No schema; use when you have a fla
 
 #### `jPulse.UI.input.setAllValues(form, data)`
 
-Set all form field values from a data object. For each field with `data-path`, assigns value from `data` by path. **Checkboxes:** sets `el.checked` from value (true/false). **tagInput:** uses `tagInput.formatValue(value)` then sets `el.value`. **Others:** sets `el.value` from `String(value)`.
+Set all form field values from a data object. For each field with `data-path`, assigns value from `data` by path. **Checkboxes:** sets `el.checked` from value (true/false). **SELECT multiple:** sets `selected` on options whose value is in the array. **tagInput:** uses `tagInput.formatValue(value)` then sets `el.value`. **Others:** sets `el.value` from `String(value)`. **jpSelect:** native select is updated; caption refreshes automatically.
 
 **Parameters:**
 - `form` (HTMLFormElement|Element) - Form or container
@@ -575,7 +606,7 @@ Set all form field values from a data object. For each field with `data-path`, a
 
 #### `jPulse.UI.input.getAllValues(form)`
 
-Build a data object from form fields. For each field with `data-path`: **checkboxes** → `el.checked` (boolean); **tagInput** → `tagInput.parseValue(el.value)`; **others** → `el.value`. Assigns into result by path (setByPath).
+Build a data object from form fields. For each field with `data-path`: **checkboxes** → `el.checked` (boolean); **SELECT multiple** → `Array.from(el.selectedOptions).map(o => o.value)`; **tagInput** → `tagInput.parseValue(el.value)`; **others** → `el.value`. Assigns into result by path (setByPath).
 
 **Parameters:** `form` (HTMLFormElement|Element) - Form or container
 
@@ -583,7 +614,7 @@ Build a data object from form fields. For each field with `data-path`: **checkbo
 
 **Example:** `const data = jPulse.UI.input.getAllValues(configForm);`
 
-**Convention:** Fields need `data-path` (e.g. `data-path="general.roles"`). tagInput fields also need `data-taginput`.
+**Convention:** Fields need `data-path` (e.g. `data-path="general.roles"`). tagInput fields also need `data-taginput`. jpSelect fields need `data-jpselect` on the select element.
 
 ---
 

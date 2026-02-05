@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.7
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.8
 
 **For Site Administrators & Site Developers**
 
@@ -227,6 +227,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.8 - jpSelect Widget (W-151)**: Enhanced single/multi-select with optional search, select all/clear all, and checkboxes for multi. Native `<select>` stays source of truth; setAllValues/getAllValues and setFormData/getFormData work with jpSelect. Multi-select trigger shows comma-separated labels when they fit, else "N selected" or "All selected" (i18n separator). initAll wires `select[data-jpselect]`; demo in UI Widgets. W-151, 2026-02-05
 - ✅ **Version 1.6.7 - Bump-Version Skip Site Hello Examples (W-150)**: When running `npx jpulse bump-version` on a site install, framework-shipped hello examples are now skipped (site/webapp/controller/hello*.js, site/webapp/model/hello*.js, site/webapp/view/hello**, jpulse-common/jpulse-navigation tmpls, app.conf.tmpl). Uses `findBumpConfig()` to detect site context; framework and plugin context unchanged (all files bumped as before). W-150, 2026-02-04
 - ✅ **Version 1.6.6 - WebSocket CRUD Demo & Two Patterns (W-149)**: **Pattern A** (REST for CRUD + WebSocket for sync) and **Pattern B** (WebSocket for CRUD). Async `onMessage` support; new **Sticky Notes** demo at `/hello-websocket/` (Redis store, broadcast). Docs and demo templates updated. W-149, 2026-02-03
 - ✅ **Version 1.6.5 - Schema-Driven Config Forms & tagInput (W-148)**: tagInput widget for list-in-one-input (e.g. roles); schema-driven config with one-line `setFormData`/`getFormData` and `renderTabsAndPanelsFromSchema` (tabs, flow layout, virtual buttons); Admin config unified from single schema; roles/adminRoles use tagInput with slug pattern. W-148, 2026-02-02

@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.6.7
- * @release         2026-02-04
+ * @version         1.6.8
+ * @release         2026-02-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1626,6 +1626,141 @@ body {
     opacity: 1;
 }
 
+/* jpSelect widget (W-151): enhanced select with dropdown, optional search, select all/clear all */
+.jp-jpselect-wrap {
+    position: relative;
+    display: block;
+}
+.jp-jpselect-wrap .jp-jpselect-native {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+.jp-jpselect-trigger {
+    position: relative;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    padding-right: 32px;
+    border: 1px solid var(--jp-theme-border-dark, #ddd);
+    border-radius: 4px;
+    background: var(--jp-theme-bg-primary, #fff);
+    color: var(--jp-theme-text-primary, #333);
+    font-size: 14px;
+    cursor: pointer;
+    min-height: 42px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.jp-jpselect-trigger:hover,
+.jp-jpselect-trigger:focus {
+    outline: none;
+    border-color: var(--jp-theme-color-primary, #007acc);
+    box-shadow: 0 0 0 2px var(--jp-theme-focus-ring, rgba(0, 122, 204, 0.2));
+}
+.jp-jpselect-trigger::after {
+    content: '';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--jp-theme-text-muted, #666);
+    pointer-events: none;
+}
+.jp-jpselect-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 2px;
+    max-height: 280px;
+    overflow: hidden;
+    border: 1px solid var(--jp-theme-border-dark, #ddd);
+    border-radius: 4px;
+    background: var(--jp-theme-bg-primary, #fff);
+    box-shadow: var(--jp-theme-shadow-md, 0 2px 10px rgba(0,0,0,0.1));
+    z-index: 1200; /* Above tab panels, section headers, and other content */
+}
+.jp-jpselect-dropdown.jp-jpselect-open {
+    display: block;
+}
+.jp-jpselect-search {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-bottom: 1px solid var(--jp-theme-border-dark, #ddd);
+    background: var(--jp-theme-bg-secondary, #f8f9fa);
+    color: var(--jp-theme-text-primary, #333);
+    font-size: 14px;
+    box-sizing: border-box;
+}
+.jp-jpselect-search:focus {
+    outline: none;
+}
+.jp-jpselect-select-all {
+    display: block;
+    width: 100%;
+    padding: 6px 10px;
+    border: none;
+    border-bottom: 1px solid var(--jp-theme-border-dark, #ddd);
+    background: var(--jp-theme-bg-secondary, #f0f0f0);
+    font-size: 13px;
+    cursor: pointer;
+    text-align: left;
+    color: var(--jp-theme-color-primary, #007acc);
+}
+.jp-jpselect-select-all:hover {
+    background: var(--jp-theme-bg-hover-muted, rgba(0, 0, 0, 0.06));
+    color: var(--jp-theme-color-primary, #007acc);
+}
+[data-theme="dark"] .jp-jpselect-select-all:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--jp-theme-color-primary);
+}
+.jp-jpselect-list {
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+.jp-jpselect-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--jp-theme-text-primary, #333);
+}
+.jp-jpselect-option:hover {
+    /* Muted hover: subtle overlay so text stays readable in light and dark mode */
+    background: var(--jp-theme-bg-hover-muted, rgba(0, 0, 0, 0.06));
+    color: var(--jp-theme-text-primary, #333);
+}
+[data-theme="dark"] .jp-jpselect-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--jp-theme-text-primary);
+}
+.jp-jpselect-option.jp-jpselect-option-selected {
+    background: var(--jp-theme-bg-selected, rgba(0, 122, 204, 0.1));
+    color: var(--jp-theme-color-primary, #007acc);
+}
+.jp-jpselect-option input[type="checkbox"] {
+    margin: 0;
+    flex-shrink: 0;
+}
+.jp-jpselect-option-label {
+    flex: 1;
+    min-width: 0;
+}
+
 .jp-form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -2573,7 +2708,7 @@ body {
     border-radius: 0 0 8px 8px;
     min-height: 200px;
     position: relative;
-    overflow: hidden;
+    overflow: visible; /* Allow jpSelect/dropdowns to extend below panel */
     margin-bottom: 5px;
 }
 
@@ -2601,6 +2736,11 @@ body {
     opacity: 1;
     transform: translateX(0);
     transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+/* When a jpSelect dropdown is open, elevate the tabs widget so the dropdown paints above later content (e.g. section headings). Panels are moved into .jp-tabs by JS; the panel's transform creates a stacking context, so we must elevate the whole .jp-tabs container. Use 900 so dialogs (z-index 1000+) always stay on top. */
+.jp-tabs:has(.jp-jpselect-dropdown.jp-jpselect-open) {
+    z-index: 900;
 }
 
 /* Responsive Design */
@@ -4483,14 +4623,17 @@ h6:target {
     }
 }
 
-/* Ensure headings have room for the anchor */
+/* Ensure headings have room for the anchor (position: relative = containing block for .heading-anchor) */
+/* z-index: 0 so headings stay below overlays (e.g. jpSelect dropdown at z-index 1200) */
 h1 {
     position: relative;
+    z-index: 0;
     padding-left: 0.5em; /* Reduced padding for h1 (less shift to the right) */
 }
 
 h2, h3, h4, h5, h6 {
     position: relative;
+    z-index: 0;
     padding-left: 0.5em; /* Reduced padding to move text left */
 }
 

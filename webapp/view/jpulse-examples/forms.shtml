@@ -4,8 +4,8 @@
  * @tagline         Form handling examples and patterns
  * @description     Comprehensive examples of form handling, validation, and submission in jPulse
  * @file            webapp/view/jpulse-examples/forms.shtml
- * @version         1.6.7
- * @release         2026-02-04
+ * @version         1.6.8
+ * @release         2026-02-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -44,6 +44,7 @@
         <div class="jp-info-box">
             <p>Learn how to create effective forms with validation, AJAX submission, and great user experience patterns in jPulse.</p>
             <p><strong>📖 Documentation:</strong> <a href="/jpulse-docs/front-end-development#form-handling">Form Handling Guide</a> - Comprehensive documentation for form validation, submission, and error handling.</p>
+            <p><strong>📦 Input widgets &amp; form data:</strong> For tagInput (list-in-one input), jpSelect (enhanced select/multi-select), and the <code>setAllValues</code> / <code>getAllValues</code> / <code>setFormData</code> / <code>getFormData</code> helpers, see <a href="/jpulse-examples/ui-widgets.shtml#input-widgets-form-data-utilities">UI Widgets → Input Widgets &amp; Form Data Utilities</a>.</p>
         </div>
 
         <!-- Basic Form Validation -->

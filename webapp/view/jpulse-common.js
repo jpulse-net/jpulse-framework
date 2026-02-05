@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.7
- * @release         2026-02-04
+ * @version         1.6.8
+ * @release         2026-02-05
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -965,6 +965,13 @@ window.jPulse = {
                         // Skip element if init fails (e.g. invalid data-pattern, DOM issue)
                     }
                 });
+                root.querySelectorAll('select[data-jpselect]').forEach((el) => {
+                    try {
+                        jPulse.UI.input.jpSelect.init(el);
+                    } catch (_) {
+                        // Skip element if init fails
+                    }
+                });
             },
 
             /**
@@ -1019,6 +1026,18 @@ window.jPulse = {
                         el.checked = value === true || value === 'true';
                         return;
                     }
+                    if (el.tagName === 'SELECT') {
+                        if (el.multiple && Array.isArray(value)) {
+                            const set = new Set(value.map((v) => String(v)));
+                            Array.from(el.options).forEach((opt) => {
+                                opt.selected = set.has(opt.value);
+                            });
+                        } else {
+                            el.value = value !== undefined && value !== null ? String(value) : '';
+                        }
+                        if (typeof el._jpSelectUpdateCaption === 'function') el._jpSelectUpdateCaption();
+                        return;
+                    }
                     const isTagInput = el.hasAttribute('data-taginput');
                     const displayValue = isTagInput && Array.isArray(value)
                         ? jPulse.UI.input.tagInput.formatValue(value)
@@ -1040,9 +1059,16 @@ window.jPulse = {
                 root.querySelectorAll('[data-path]').forEach((el) => {
                     const path = (el.dataset.path || el.getAttribute('data-path') || '').trim();
                     if (!path) return;
-                    const value = el.type === 'checkbox'
-                        ? el.checked
-                        : (el.hasAttribute('data-taginput') ? jPulse.UI.input.tagInput.parseValue(el.value) : el.value);
+                    let value;
+                    if (el.type === 'checkbox') {
+                        value = el.checked;
+                    } else if (el.tagName === 'SELECT' && el.multiple) {
+                        value = Array.from(el.selectedOptions).map((o) => o.value);
+                    } else if (el.hasAttribute('data-taginput')) {
+                        value = jPulse.UI.input.tagInput.parseValue(el.value);
+                    } else {
+                        value = el.value;
+                    }
                     jPulse.UI.input.setByPath(result, path, value);
                 });
                 return result;
@@ -1284,6 +1310,255 @@ window.jPulse = {
                     });
                     renderTags();
                     el.value = tags.join(', ');
+                }
+            },
+
+            jpSelect: {
+                /**
+                 * Enhance a native <select> (single or multiple) with dropdown UI, optional search, select all/clear all.
+                 * Native select remains in DOM and is the value source for setAllValues/getAllValues.
+                 * @param {string|Element} selectorOrElement - Select element or selector
+                 * @param {Object} [options] - search, searchPlaceholder, selectAll, placeholder, captionFormatSome, captionFormatAll
+                 */
+                init: (selectorOrElement, options = {}) => {
+                    const sel = typeof selectorOrElement === 'string'
+                        ? document.querySelector(selectorOrElement)
+                        : selectorOrElement;
+                    if (!sel || sel.tagName !== 'SELECT') return;
+                    if (sel.dataset.jpselectInited) return;
+                    sel.dataset.jpselectInited = '1';
+
+                    const multi = sel.multiple;
+                    const defaults = {
+                        search: false,
+                        searchPlaceholder: '{{i18n.view.ui.input.jpSelect.searchPlaceholder}}' || 'Search…',
+                        selectAll: false,
+                        placeholder: (sel.getAttribute('placeholder') || '{{i18n.view.ui.input.jpSelect.placeholder}}' || '').trim(),
+                        captionFormatSome: '{{i18n.view.ui.input.jpSelect.captionFormatSome}}' || '%NUM% selected',
+                        captionFormatAll: '{{i18n.view.ui.input.jpSelect.captionFormatAll}}' || 'All selected',
+                        separator: '{{i18n.view.ui.input.jpSelect.separator}}' || ', '
+                    };
+                    const opts = { ...defaults, ...options };
+
+                    const wrap = document.createElement('div');
+                    wrap.className = 'jp-jpselect-wrap';
+                    wrap.setAttribute('data-jpselect-wrapper', '1');
+                    sel.parentNode.insertBefore(wrap, sel);
+                    wrap.appendChild(sel);
+                    sel.classList.add('jp-jpselect-native');
+                    sel.setAttribute('aria-hidden', 'true');
+                    sel.tabIndex = -1;
+
+                    const trigger = document.createElement('button');
+                    trigger.type = 'button';
+                    trigger.className = 'jp-jpselect-trigger jp-form-input jp-edit-field';
+                    trigger.setAttribute('data-jpselect-trigger', '1');
+                    trigger.setAttribute('aria-haspopup', 'listbox');
+                    trigger.setAttribute('aria-expanded', 'false');
+                    if (sel.id) trigger.setAttribute('aria-labelledby', sel.id);
+                    wrap.appendChild(trigger);
+
+                    const dropdown = document.createElement('div');
+                    dropdown.className = 'jp-jpselect-dropdown';
+                    dropdown.setAttribute('data-jpselect-dropdown', '1');
+                    dropdown.setAttribute('role', 'listbox');
+                    dropdown.setAttribute('aria-multiselectable', multi ? 'true' : 'false');
+                    wrap.appendChild(dropdown);
+
+                    let searchInput = null;
+                    let listEl = null;
+                    let selectAllBtn = null;
+
+                    const getSelectedValues = () => Array.from(sel.selectedOptions).map((o) => o.value);
+                    const getOptionLabels = () => Array.from(sel.options).map((o) => ({ value: o.value, label: o.textContent.trim() }));
+
+                    const updateCaption = () => {
+                        const values = getSelectedValues();
+                        const labels = getOptionLabels();
+                        const count = values.length;
+                        if (count === 0) {
+                            trigger.textContent = opts.placeholder || '';
+                        } else if (multi) {
+                            const total = sel.options.length;
+                            const sep = opts.separator || ', ';
+                            const commaList = values.map((v) => (labels.find((l) => l.value === v) || {}).label).filter(Boolean).join(sep);
+                            const availableWidth = trigger.clientWidth - 45;
+                            let useShortCaption = commaList.length === 0;
+                            if (!useShortCaption && availableWidth > 0) {
+                                const style = trigger.ownerDocument.defaultView.getComputedStyle(trigger);
+                                const clone = trigger.ownerDocument.createElement('span');
+                                clone.style.cssText = 'position:absolute;left:-9999px;visibility:hidden;white-space:nowrap;font:' + style.font + ';';
+                                clone.textContent = commaList;
+                                trigger.ownerDocument.body.appendChild(clone);
+                                useShortCaption = clone.offsetWidth > availableWidth;
+                                trigger.ownerDocument.body.removeChild(clone);
+                            }
+                            if (useShortCaption) {
+                                if (count === total) {
+                                    trigger.textContent = opts.captionFormatAll.replace('%NUM%', String(count));
+                                } else {
+                                    trigger.textContent = opts.captionFormatSome.replace('%NUM%', String(count));
+                                }
+                            } else {
+                                trigger.textContent = commaList;
+                            }
+                        } else {
+                            const opt = sel.options[sel.selectedIndex];
+                            trigger.textContent = opt ? opt.textContent.trim() : opts.placeholder;
+                        }
+                    };
+
+                    sel._jpSelectUpdateCaption = updateCaption;
+
+                    const buildList = (filterText) => {
+                        const items = getOptionLabels();
+                        const lower = (filterText || '').trim().toLowerCase();
+                        const filtered = lower
+                            ? items.filter((i) => i.label.toLowerCase().includes(lower))
+                            : items;
+                        listEl.innerHTML = '';
+                        filtered.forEach((item) => {
+                            const selected = getSelectedValues().indexOf(item.value) !== -1;
+                            const div = document.createElement('div');
+                            div.className = 'jp-jpselect-option' + (selected ? ' jp-jpselect-option-selected' : '');
+                            div.setAttribute('data-value', item.value);
+                            div.setAttribute('role', 'option');
+                            div.setAttribute('aria-selected', selected ? 'true' : 'false');
+                            if (multi) {
+                                const cb = document.createElement('input');
+                                cb.type = 'checkbox';
+                                cb.checked = selected;
+                                cb.setAttribute('aria-hidden', 'true');
+                                div.appendChild(cb);
+                            }
+                            const label = document.createElement('span');
+                            label.className = 'jp-jpselect-option-label';
+                            label.textContent = item.label;
+                            div.appendChild(label);
+                            div.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const opt = Array.from(sel.options).find((o) => o.value === item.value);
+                                if (!opt) return;
+                                if (multi) {
+                                    opt.selected = !opt.selected;
+                                    div.classList.toggle('jp-jpselect-option-selected', opt.selected);
+                                    div.setAttribute('aria-selected', opt.selected ? 'true' : 'false');
+                                    const c = div.querySelector('input[type="checkbox"]');
+                                    if (c) c.checked = opt.selected;
+                                    updateSelectAllButton();
+                                } else {
+                                    sel.selectedIndex = Array.from(sel.options).indexOf(opt);
+                                    updateCaption();
+                                    closeDropdown();
+                                }
+                                updateCaption();
+                                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                            });
+                            listEl.appendChild(div);
+                        });
+                    };
+
+                    const updateSelectAllButton = () => {
+                        if (!selectAllBtn || !multi) return;
+                        const total = sel.options.length;
+                        const count = getSelectedValues().length;
+                        if (count === total) {
+                            selectAllBtn.textContent = '{{i18n.view.ui.input.jpSelect.clearAll}}' || 'Clear all';
+                            selectAllBtn.dataset.jpselectAction = 'clearAll';
+                        } else {
+                            selectAllBtn.textContent = '{{i18n.view.ui.input.jpSelect.selectAll}}' || 'Select all';
+                            selectAllBtn.dataset.jpselectAction = 'selectAll';
+                        }
+                    };
+
+                    const openDropdown = () => {
+                        if (dropdown.classList.contains('jp-jpselect-open')) return;
+                        // Close any other open jpSelect dropdown so only one is open at a time
+                        document.querySelectorAll('.jp-jpselect-dropdown.jp-jpselect-open').forEach((el) => {
+                            if (el === dropdown) return;
+                            el.classList.remove('jp-jpselect-open');
+                            const otherWrap = el.closest('.jp-jpselect-wrap');
+                            if (otherWrap) {
+                                const otherTrigger = otherWrap.querySelector('[data-jpselect-trigger="1"]');
+                                if (otherTrigger) otherTrigger.setAttribute('aria-expanded', 'false');
+                            }
+                        });
+                        dropdown.classList.add('jp-jpselect-open');
+                        trigger.setAttribute('aria-expanded', 'true');
+                        buildList(searchInput ? searchInput.value : '');
+                        updateSelectAllButton();
+                        if (searchInput) {
+                            searchInput.value = '';
+                            searchInput.focus();
+                        }
+                    };
+
+                    const closeDropdown = () => {
+                        dropdown.classList.remove('jp-jpselect-open');
+                        trigger.setAttribute('aria-expanded', 'false');
+                    };
+
+                    if (opts.search) {
+                        searchInput = document.createElement('input');
+                        searchInput.type = 'text';
+                        searchInput.className = 'jp-jpselect-search';
+                        searchInput.placeholder = opts.searchPlaceholder;
+                        searchInput.setAttribute('data-jpselect-search', '1');
+                        searchInput.setAttribute('aria-label', opts.searchPlaceholder);
+                        dropdown.appendChild(searchInput);
+                        searchInput.addEventListener('input', () => buildList(searchInput.value));
+                        searchInput.addEventListener('keydown', (e) => e.stopPropagation());
+                    }
+
+                    if (multi && opts.selectAll) {
+                        selectAllBtn = document.createElement('button');
+                        selectAllBtn.type = 'button';
+                        selectAllBtn.className = 'jp-jpselect-select-all';
+                        selectAllBtn.setAttribute('data-jpselect-select-all', '1');
+                        dropdown.appendChild(selectAllBtn);
+                        updateSelectAllButton();
+                        selectAllBtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const action = selectAllBtn.dataset.jpselectAction;
+                            if (action === 'clearAll') {
+                                Array.from(sel.options).forEach((o) => { o.selected = false; });
+                            } else {
+                                Array.from(sel.options).forEach((o) => { o.selected = true; });
+                            }
+                            buildList(searchInput ? searchInput.value : '');
+                            updateSelectAllButton();
+                            updateCaption();
+                            sel.dispatchEvent(new Event('change', { bubbles: true }));
+                        });
+                    }
+
+                    listEl = document.createElement('div');
+                    listEl.className = 'jp-jpselect-list';
+                    listEl.setAttribute('data-jpselect-list', '1');
+                    dropdown.appendChild(listEl);
+
+                    trigger.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (dropdown.classList.contains('jp-jpselect-open')) closeDropdown();
+                        else openDropdown();
+                    });
+
+                    document.addEventListener('click', (e) => {
+                        if (!wrap.contains(e.target)) closeDropdown();
+                    });
+
+                    trigger.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            if (dropdown.classList.contains('jp-jpselect-open')) closeDropdown();
+                            else openDropdown();
+                        }
+                    });
+
+                    updateCaption();
                 }
             }
         },

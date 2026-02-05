@@ -1,6 +1,53 @@
-# jPulse Docs / Version History v1.6.7
+# jPulse Docs / Version History v1.6.8
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.8, W-151, 2026-02-05
+
+**Commit:** `W-151, v1.6.8: jPulse UI: jPulse.UI.input.jpSelect widget - enhanced select with search, select all`
+
+**FEATURE RELEASE**: jpSelect widget for enhanced single and multi-select: optional search filter in dropdown, optional "Select all" / "Clear all" for multi-select, checkboxes per option in multi mode. Native `<select>` remains in the DOM and is the value source for setAllValues/getAllValues and setFormData/getFormData. Multi-select trigger caption: when selected labels fit (measured off-screen), shows them joined by locale separator; otherwise "N selected" or "All selected". initAll wires `select[data-jpselect]` to jpSelect.init. Demo in UI Widgets (Input Widgets & Form Data); forms.shtml links to it.
+
+**Objective**: Better UX for single and multi-select (search, select all/clear all, checkboxes); keep native select as source of truth; work with jPulse UI form pipeline.
+
+**Key Changes**:
+- **jpSelect**: jPulse.UI.input.jpSelect.init(selectorOrElement, options) — options: search, searchPlaceholder, selectAll, placeholder, captionFormatSome, captionFormatAll, separator (i18n default). Single vs multi from select.multiple. Trigger caption: placeholder when none; single = selected option label; multi = comma list when fit, else captionFormatSome/captionFormatAll.
+- **setAllValues/getAllValues**: SELECT multiple supported (value = array; setAllValues sets selected on options; getAllValues returns Array.from(selectedOptions).map(o => o.value)); setAllValues calls _jpSelectUpdateCaption when present for caption refresh.
+- **initAll**: select[data-jpselect] → jpSelect.init.
+- **CSS**: jp-jpselect-wrap, trigger (arrow, nowrap/ellipsis), dropdown, search, select-all, list (scrollable), option (checkbox multi); .jp-tabs:has(.jp-jpselect-open) z-index; h1–h6 z-index: 0; panel overflow visible.
+- **i18n**: view.ui.input.jpSelect.* (searchPlaceholder, selectAll, clearAll, placeholder, captionFormatSome, captionFormatAll, separator) in en.conf, de.conf.
+- **Tests**: jpulse-ui-input-jpselect.test.js — init (no-op, enhances, no double-init, search adds input, selectAll adds button, custom separator in caption); getAllValues/setAllValues multi; setAllValues on jpSelect form refreshes caption.
+- **Docs**: jpulse-ui-reference.md (jpSelect subsection, options including separator, caption behavior, setAllValues/getAllValues SELECT/jpSelect); front-end-development.md (API link to input widgets, jpSelect).
+- **Examples**: ui-widgets.shtml Input Widgets & Form Data section (tagInput + jpSelect demo, set sample/get values, source tab); forms.shtml paragraph to UI Widgets.
+
+**Code Changes**:
+
+webapp/view/jpulse-common.js: initAll select[data-jpselect] → jpSelect.init; setAllValues SELECT multi + _jpSelectUpdateCaption; getAllValues SELECT multi → array; jpSelect.init (wrap, trigger, dropdown, updateCaption with separator/comma list vs short caption, buildList, search, selectAll, list, events)
+
+webapp/view/jpulse-common.css: jpSelect styles (wrap, native hidden, trigger, dropdown, search, select-all, list, option); .jp-tabs:has(.jp-jpselect-open) z-index 900; h1–h6 z-index 0; panel overflow visible
+
+webapp/translations/en.conf, de.conf: view.ui.input.jpSelect.* (searchPlaceholder, selectAll, clearAll, placeholder, captionFormatSome, captionFormatAll, separator)
+
+webapp/view/jpulse-examples/ui-widgets.shtml: Input Widgets & Form Data section 3.2 (form with tagInput, jpSelect single/multi, tabs Example/Source, init, set sample/get values); section renumber 3.2→3.6
+
+webapp/view/jpulse-examples/forms.shtml: paragraph linking to UI Widgets → Input Widgets (tagInput, jpSelect, helpers)
+
+webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js (NEW): init tests, init with search/selectAll, custom separator caption, getAllValues/setAllValues multi, setAllValues caption refresh
+
+**Documentation**:
+
+docs/jpulse-ui-reference.md: Input utilities section retitled; jpSelect widget subsection (init, options including separator, multi caption, value contract, example); setAllValues/getAllValues SELECT multiple and jpSelect caption refresh; convention data-jpselect
+
+docs/front-end-development.md: jPulse.UI.input API link to input widgets, set/get form data (tagInput, jpSelect, helpers)
+
+README.md, docs/README.md: Latest Release Highlights — added v1.6.8 W-151 entry
+
+docs/CHANGELOG.md: Added v1.6.8, W-151 entry
+
+**Work Item**: W-151
+**Version**: v1.6.8
+**Release Date**: 2026-02-05
 
 ________________________________________________
 ## v1.6.7, W-150, 2026-02-04
@@ -100,7 +147,7 @@ ________________________________________________
 - **ConfigModel.validate**: enabledAt strictly rejects non-Date, non-null (removed string coercion).
 - **Translations**: view.admin.config.general.rolesPlaceholder, rolesInvalidChars; licenseTierEnterprise (en.conf, de.conf).
 - **Tests**: jpulse-ui-input-taginput.test.js (init, parseValue, formatValue, initAll, setFormData/getFormData, data-pattern); jpulse-ui-tabs-schema.test.js (_walkSchemaFields, renderTabsAndPanelsFromSchema null/empty); i18n-variable-content.test.js (expandI18nDeep); config-model enabledAt validation.
-- **Documentation**: front-end-development.md (Schema-driven config forms: renderTabsAndPanelsFromSchema, setFormData/getFormData, layout table, virtual buttons, reference); jpulse-ui-reference.md (Input utilities: tagInput, setAllValues/getAllValues, setFormData/getFormData); plugin-api-reference.md (plugin config schema blurb + link); genai-instructions.md (Config-style forms bullet); W-148 design doc (Phases 1–4 complete, Phase 6 Docs).
+- **Documentation**: front-end-development.md (Schema-driven config forms: renderTabsAndPanelsFromSchema, setFormData/getFormData, layout table, virtual buttons, reference); jpulse-ui-reference.md (Input utilities: input widgets, set/get form data); plugin-api-reference.md (plugin config schema blurb + link); genai-instructions.md (Config-style forms bullet); W-148 design doc (Phases 1–4 complete, Phase 6 Docs).
 
 **Code Changes**:
 
@@ -132,7 +179,7 @@ webapp/tests/unit/config/config-model.test.js: enabledAt validation (no coercion
 **Documentation**:
 
 docs/front-end-development.md: Schema-driven config forms section; Form Handling pointer
-docs/jpulse-ui-reference.md: Input utilities (tagInput, setAllValues/getAllValues, setFormData/getFormData)
+docs/jpulse-ui-reference.md: Input utilities: input widgets, set/get form data
 docs/plugins/plugin-api-reference.md: Plugin config schema blurb + link
 docs/genai-instructions.md: Config-style forms bullet
 docs/dev/design/W-148-jPulse-UI-input-tagInput-widget.md: Phases 1–4 complete, Phase 6 Docs, flow control

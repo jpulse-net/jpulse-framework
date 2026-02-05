@@ -1,4 +1,4 @@
-# jPulse Framework / WebApp / Tests / Manual / Deployment Tests v1.6.7
+# jPulse Framework / WebApp / Tests / Manual / Deployment Tests v1.6.8
 
 ## Overview
 

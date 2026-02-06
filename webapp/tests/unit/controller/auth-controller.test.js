@@ -3,13 +3,13 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         1.6.9
- * @release         2026-02-06
+ * @version         1.6.10
+ * @release         2026-02-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 // Import Jest globals and test utilities first
@@ -30,6 +30,9 @@ jest.mock('../../../utils/common.js');
 describe('AuthController', () => {
     // Dynamic imports after appConfig is set up
     beforeAll(async () => {
+        const ConfigModel = (await import('../../../model/config.js')).default;
+        ConfigModel.setEffectiveGeneralCache({ roles: ['user', 'admin', 'root'], adminRoles: ['admin', 'root'] });
+
         AuthController = (await import('../../../controller/auth.js')).default;
         CommonUtils = (await import('../../../utils/common.js')).default;
         LogController = (await import('../../../controller/log.js')).default;
@@ -176,6 +179,105 @@ describe('AuthController', () => {
                 mockReq.session = {};
 
                 const result = AuthController.isAuthorized(mockReq, ['admin']);
+
+                expect(result).toBe(false);
+            });
+
+            test('should accept single string roleOrRoles (array support)', () => {
+                mockReq.session.user = {
+                    isAuthenticated: true,
+                    roles: ['editor']
+                };
+
+                const result = AuthController.isAuthorized(mockReq, 'editor');
+
+                expect(result).toBe(true);
+            });
+
+            test('should return true for unauthenticated when roleOrRoles includes _public', () => {
+                mockReq.session = {};
+
+                const result = AuthController.isAuthorized(mockReq, ['_public', 'admin']);
+
+                expect(result).toBe(true);
+            });
+        });
+
+        describe('isAdmin (W-153)', () => {
+            test('should return true when user has admin role', () => {
+                mockReq.session.user = {
+                    isAuthenticated: true,
+                    roles: ['admin', 'user']
+                };
+
+                const result = AuthController.isAdmin(mockReq);
+
+                expect(result).toBe(true);
+            });
+
+            test('should return false when user lacks admin role', () => {
+                mockReq.session.user = {
+                    isAuthenticated: true,
+                    roles: ['user']
+                };
+
+                const result = AuthController.isAdmin(mockReq);
+
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('userIsAdmin (W-153)', () => {
+            test('should return true when user has admin role', () => {
+                const user = { roles: ['admin', 'user'] };
+
+                const result = AuthController.userIsAdmin(user);
+
+                expect(result).toBe(true);
+            });
+
+            test('should return false when user lacks admin role', () => {
+                const user = { roles: ['user', 'editor'] };
+
+                const result = AuthController.userIsAdmin(user);
+
+                expect(result).toBe(false);
+            });
+
+            test('should return false when user has no roles array', () => {
+                const result = AuthController.userIsAdmin({});
+
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('userIsAuthorized (W-153)', () => {
+            test('should return true when user has required role (single string)', () => {
+                const user = { roles: ['editor'] };
+
+                const result = AuthController.userIsAuthorized(user, 'editor');
+
+                expect(result).toBe(true);
+            });
+
+            test('should return true when user has any of required roles (array)', () => {
+                const user = { roles: ['editor'] };
+
+                const result = AuthController.userIsAuthorized(user, ['admin', 'editor']);
+
+                expect(result).toBe(true);
+            });
+
+            test('should return false when user lacks required role', () => {
+                const user = { roles: ['user'] };
+
+                const result = AuthController.userIsAuthorized(user, ['admin', 'editor']);
+
+                expect(result).toBe(false);
+            });
+
+            test('should return false when user has no roles array', () => {
+                const result = AuthController.userIsAuthorized({}, ['admin']);
 
                 expect(result).toBe(false);
             });

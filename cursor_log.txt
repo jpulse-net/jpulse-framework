@@ -17900,3 +17900,27 @@ Summary: Release prep for W-152, v1.6.9, 2026-02-06. Updated README.md and docs/
 
 
 ============================================================
+2026-02-05 23:15
+
+next: W-153, v1.6.10, 2026-02-07: auth: utility functions for common role checks, @work-items.md (4765-4781)
+
+Summary: Implemented W-153 in webapp/controller/auth.js: added three utility functions after isAuthorized() in the UTILITY FUNCTIONS section: (1) isAdmin(req) - request-based admin check using ConfigModel.getEffectiveAdminRoles() and isAuthorized(); (2) hasAdminRole(user) - user-object-based admin check for models/utilities where req is unavailable, calls hasRole() with admin roles; (3) hasRole(user, roleOrRoles) - user-object-based role check, accepts single string or array, returns true if user has any required role. All three methods follow symmetrical API design matching isAuthorized() pattern. Updated file version to 1.6.10, release date to 2026-02-07. No linter errors. Marked W-153 as DONE in docs/dev/work-items.md. Appended this entry to cursor_log.txt.
+
+
+============================================================
+2026-02-05 23:30
+
+perfect! fix work item; fix code
+
+Summary: Renamed W-153 user-object-based utilities for symmetrical naming: hasAdminRole → userIsAdmin, hasRole → userIsAuthorized. Updated webapp/controller/auth.js (method names, JSDoc, internal call userIsAdmin → userIsAuthorized). Updated docs/dev/work-items.md features and deliverables to userIsAdmin/userIsAuthorized. No callers of old names; no linter errors. Appended to cursor_log.txt.
+
+
+============================================================
+2026-02-06 00:30
+
+release prep: review git diff tt-git-diff.txt for accuracy and completeness of work item; assume release W-153, v1.6.10, 2026-02-07; update README.md, docs/README.md (Latest Release Highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed; update commit-message.txt; update cursor_log.txt (append)
+
+Summary: Release prep for W-153, v1.6.10, 2026-02-07. Reviewed tt-git-diff.txt: diff accurate and complete (auth.js isAuthorized roleOrRoles, isAdmin, userIsAdmin, userIsAuthorized; auth-controller.test.js ConfigModel cache, isAuthorized/userIsAdmin/userIsAuthorized tests; work-items W-153 features/deliverables). Updated README.md and docs/README.md — Latest Release Highlights: added v1.6.10 W-153 entry (auth utility functions, symmetrical isAdmin/userIsAdmin, isAuthorized/userIsAuthorized, roleOrRoles). Updated docs/CHANGELOG.md — full v1.6.10 W-153 entry (FEATURE RELEASE, objective, key/code changes, documentation). Updated docs/api-reference.md — Auth utility functions: isAdmin, userIsAdmin, userIsAuthorized; isAuthorized roleOrRoles. Updated commit-message.txt — W-153 commit message (same format as W-152). Appended this entry to cursor_log.txt. Version not bumped per request.
+
+
+============================================================

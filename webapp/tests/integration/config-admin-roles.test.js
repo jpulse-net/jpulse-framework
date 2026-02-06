@@ -4,8 +4,8 @@
  * @description     Verifies config cache -> getEffectiveAdminRoles -> requireAdminRole flow:
  *                  admin edit roles (via cache), consumer (requireAdminRole) behavior.
  * @file            webapp/tests/integration/config-admin-roles.test.js
- * @version         1.6.9
- * @release         2026-02-06
+ * @version         1.6.10
+ * @release         2026-02-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

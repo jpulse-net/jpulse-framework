@@ -3,8 +3,8 @@
  * @tagline         Integration tests for W-116: Handlebars helper plugin interface
  * @description     Tests plugin helper registration, discovery, and invocation in real bootstrap flow
  * @file            webapp/tests/integration/plugin-handlebars-helpers.test.js
- * @version         1.6.9
- * @release         2026-02-06
+ * @version         1.6.10
+ * @release         2026-02-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

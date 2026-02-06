@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.9
+# jPulse Docs / REST API Reference v1.6.10
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -52,9 +52,14 @@ AuthController.requireRole(['admin', 'root'])(req, res, next)
 // (recommended for admin routes; roles editable in Admin → Site Configuration)
 AuthController.requireAdminRole()(req, res, next)
 
-// Utility functions for controller logic
-AuthController.isAuthenticated(req)           // Returns boolean
-AuthController.isAuthorized(req, roles)       // Returns boolean
+// Utility functions for controller logic (request-based)
+AuthController.isAuthenticated(req)              // Returns boolean
+AuthController.isAuthorized(req, roleOrRoles)    // roleOrRoles: string or array; returns boolean
+AuthController.isAdmin(req)                      // Returns boolean (config-based admin roles)
+
+// User-object-based (for models/utilities when req not available)
+AuthController.userIsAdmin(user)                  // Returns boolean
+AuthController.userIsAuthorized(user, roleOrRoles) // roleOrRoles: string or array; returns boolean
 ```
 
 ### Access Control Levels

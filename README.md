@@ -1,4 +1,4 @@
-# jPulse Framework v1.6.9
+# jPulse Framework v1.6.10
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -204,6 +204,7 @@ Business Source License 1.1 with Additional Terms
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.10 - Auth utility functions for role checks (W-153)**: Symmetrical AuthController utilities: request-based `isAdmin(req)` and `isAuthorized(req, roleOrRoles)` (single string or array); user-object-based `userIsAdmin(user)` and `userIsAuthorized(user, roleOrRoles)` for use in models/utilities. Hides `ConfigModel.getEffectiveAdminRoles()` detail. Unit tests for all four. W-153, 2026-02-07
 - ✅ **Version 1.6.9 - Fix database name in startup log (W-152)**: The "Database: ..." startup log now shows the actual DB name from deployment config (`appConfig.deployment[mode].db`) instead of the wrong fallback. W-152, 2026-02-06
 - ✅ **Version 1.6.8 - jpSelect Widget (W-151)**: Enhanced single/multi-select with optional search, select all/clear all, and checkboxes for multi. Native `<select>` stays source of truth; setAllValues/getAllValues and setFormData/getFormData work with jpSelect. Multi-select trigger shows comma-separated labels when they fit, else "N selected" or "All selected" (i18n separator). initAll wires `select[data-jpselect]`; demo in UI Widgets. W-151, 2026-02-05
 - ✅ **Version 1.6.7 - Bump-Version Skip Site Hello Examples (W-150)**: When running `npx jpulse bump-version` on a site install, framework-shipped hello examples are now skipped (site/webapp/controller/hello*.js, site/webapp/model/hello*.js, site/webapp/view/hello**, jpulse-common/jpulse-navigation tmpls, app.conf.tmpl). Uses `findBumpConfig()` to detect site context; framework and plugin context unchanged (all files bumped as before). W-150, 2026-02-04

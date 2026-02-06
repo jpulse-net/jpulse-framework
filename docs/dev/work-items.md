@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.9
+# jPulse Docs / Dev / Work Items v1.6.10
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4740,17 +4740,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/view/jpulse-examples/forms.shtml`: paragraph linking to UI Widgets → Input Widgets & Form Data (tagInput, jpSelect, setAllValues/getAllValues, setFormData/getFormData)
   - `docs/front-end-development.md`: jPulse.UI.input API link updated to input widgets, set/get form data (tagInput, jpSelect, helpers)
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-152, v1.6.9, 2026-02-06: log: fix database name in startup log
 - status: ✅ DONE
 - type: Bugfix
@@ -4763,6 +4752,31 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - In the server listen callback, set dbName as `appConfig.deployment?.[mode]?.db || 'jp-dev'` so the log line "Database: ${dbName} (${dbMode} mode)" matches the DB used by the database module (which already uses deployment[mode].db).
 
 
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-153, v1.6.10, 2026-02-07: auth: utility functions for common role checks
+- status: ✅ DONE
+- type: Feature
+- objectives: provide symmetrical utility methods in AuthController for common role-checking patterns used throughout controllers and models
+- features:
+  - request-based utilities `isAdmin(req)` and `isAuthorized(req, roleOrRoles)` for controllers
+  - user-object-based utilities `userIsAdmin(user)` and `userIsAuthorized(user, roleOrRoles)` for models/utilities (symmetrical naming)
+  - single method handles both single role string and array of roles
+  - hides `ConfigModel.getEffectiveAdminRoles()` implementation detail
+- deliverables:
+  - `webapp/controller/auth.js`:
+    - add `isAdmin(req)` - check if authenticated user has admin role (request-based)
+    - add `userIsAdmin(user)` - check if user object has admin role (user-based, symmetrical with isAdmin)
+    - add `userIsAuthorized(user, roleOrRoles)` - check if user object has required role(s), handles single string or array (user-based, symmetrical with isAuthorized)
+    - place in "UTILITY FUNCTIONS" section after `isAuthorized()`
 
 
 
@@ -4798,8 +4812,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-152, v1.6.9, 2026-02-06
-- update deliverables in W-152 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-153, v1.6.10, 2026-02-07
+- update deliverables in W-153 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4810,12 +4824,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.9
+node bin/bump-version.js 1.6.10
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.9
+git tag v1.6.10
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

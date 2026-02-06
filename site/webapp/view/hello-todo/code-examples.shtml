@@ -4,8 +4,8 @@
  * @tagline         Code Examples for To-Do MVC Demo
  * @description     Model, View, and Controller code snippets
  * @file            site/webapp/view/hello-todo/code-examples.shtml
- * @version         1.6.9
- * @release         2026-02-06
+ * @version         1.6.10
+ * @release         2026-02-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

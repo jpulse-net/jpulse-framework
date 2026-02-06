@@ -1,6 +1,35 @@
-# jPulse Docs / Version History v1.6.9
+# jPulse Docs / Version History v1.6.10
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.10, W-153, 2026-02-07
+
+**Commit:** `W-153, v1.6.10: auth: utility functions for common role checks`
+
+**FEATURE RELEASE**: Symmetrical AuthController utility methods for common role-checking patterns. **Request-based**: `isAdmin(req)` (admin check using config-based roles) and `isAuthorized(req, roleOrRoles)` (existing; second parameter renamed to `roleOrRoles`, accepts single string or array). **User-object-based** (for models/utilities when request is not available): `userIsAdmin(user)` and `userIsAuthorized(user, roleOrRoles)` (single string or array). All hide `ConfigModel.getEffectiveAdminRoles()` implementation detail. Unit tests: auth-controller.test.js — ConfigModel cache in beforeAll; isAuthorized (single string, _public); isAdmin; userIsAdmin; userIsAuthorized.
+
+**Objective**: Provide symmetrical utility methods in AuthController for common role-checking patterns used throughout controllers and models.
+
+**Key Changes**:
+- **webapp/controller/auth.js**: isAuthorized second param `roleOrRoles` (JSDoc); add isAdmin(req), userIsAdmin(user), userIsAuthorized(user, roleOrRoles) in UTILITY FUNCTIONS section after isAuthorized(); version 1.6.10, release 2026-02-07.
+- **webapp/tests/unit/controller/auth-controller.test.js**: beforeAll sets ConfigModel.setEffectiveGeneralCache for admin roles; new tests for isAuthorized (single string, _public), isAdmin (has/lacks admin), userIsAdmin (has/lacks/none), userIsAuthorized (single string, array, no match, no roles).
+
+**Code Changes**:
+
+webapp/controller/auth.js: isAuthorized(req, roleOrRoles) param name and JSDoc; add isAdmin, userIsAdmin, userIsAuthorized (W-153)
+
+webapp/tests/unit/controller/auth-controller.test.js: ConfigModel cache in beforeAll; describe isAdmin, userIsAdmin, userIsAuthorized; isAuthorized tests (single string, _public)
+
+**Documentation**:
+
+README.md, docs/README.md: Latest Release Highlights — added v1.6.10 W-153 entry
+docs/api-reference.md: Auth utility functions — add isAdmin, userIsAdmin, userIsAuthorized; isAuthorized roleOrRoles
+docs/CHANGELOG.md: Added v1.6.10, W-153 entry
+
+**Work Item**: W-153
+**Version**: v1.6.10
+**Release Date**: 2026-02-07
 
 ________________________________________________
 ## v1.6.9, W-152, 2026-02-06

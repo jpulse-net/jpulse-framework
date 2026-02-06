@@ -3,8 +3,8 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         1.6.9
- * @release         2026-02-06
+ * @version         1.6.10
+ * @release         2026-02-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -131,15 +131,15 @@ class AuthController {
     /**
      * Check if authenticated user has required role(s) (utility function)
      * @param {object} req - Express request object
-     * @param {array|string} roles - Required role(s) - user must have at least one,
-     *                               or '_public' role if not authenticated
+     * @param {array|string} roleOrRoles - Required role(s) - user must have at least one,
+     *                    or '_public' if not authenticated; single string or array
      * @returns {boolean} True if user has at least one of the required roles,
-     *                    or is not authenticated and roles includes '_public' role
+     *                    or is not authenticated and roleOrRoles includes '_public'
      */
-    static isAuthorized(req, roles) {
+    static isAuthorized(req, roleOrRoles) {
 
         // Convert single role to array for consistent handling
-        const requiredRoles = Array.isArray(roles) ? roles : [roles];
+        const requiredRoles = Array.isArray(roleOrRoles) ? roleOrRoles : [roleOrRoles];
 
         if (!AuthController.isAuthenticated(req)) {
             // Authorized if not authenticated and roles includes '_public' role
@@ -153,6 +153,47 @@ class AuthController {
 
         // Authorized if user has any of the required roles
         return req.session.user.roles.some(userRole => requiredRoles.includes(userRole));
+    }
+
+    /**
+     * Check if authenticated user has admin role (utility function, request-based)
+     * W-153: Simplified admin check using config-based admin roles
+     * @param {object} req - Express request object
+     * @returns {boolean} True if user has admin role
+     */
+    static isAdmin(req) {
+        const adminRoles = ConfigModel.getEffectiveAdminRoles();
+        return AuthController.isAuthorized(req, adminRoles);
+    }
+
+    /**
+     * Check if user object has admin role (utility function, user-based)
+     * W-153: Symmetrical with isAdmin(req); for use in models/utilities where request is not available
+     * @param {object} user - User object with roles array
+     * @returns {boolean} True if user has admin role
+     */
+    static userIsAdmin(user) {
+        const adminRoles = ConfigModel.getEffectiveAdminRoles();
+        return AuthController.userIsAuthorized(user, adminRoles);
+    }
+
+    /**
+     * Check if user object has required role(s) (utility function, user-based)
+     * W-153: Symmetrical with isAuthorized(req, roleOrRoles); for use in models/utilities
+     * @param {object} user - User object with roles array
+     * @param {array|string} roleOrRoles - Required role(s) - user must have at least one
+     * @returns {boolean} True if user has at least one of the required roles
+     */
+    static userIsAuthorized(user, roleOrRoles) {
+        // Convert single role to array for consistent handling
+        const requiredRoles = Array.isArray(roleOrRoles) ? roleOrRoles : [roleOrRoles];
+
+        if (!Array.isArray(user?.roles)) {
+            return false;
+        }
+
+        // Return true if user has any of the required roles
+        return user.roles.some(userRole => requiredRoles.includes(userRole));
     }
 
     // ============================================================================

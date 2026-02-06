@@ -4678,17 +4678,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - isSiteSkipPath(filePath) using existing matchesPattern()
     - discoverFiles() uses findBumpConfig() to detect site context (configPath === 'site/webapp/bump-version.conf'); skip paths matching SITE_SKIP_PATTERNS only when isSiteContext; framework/plugin context unchanged
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-151, v1.6.8, 2026-02-05: jPulse UI: jPulse.UI.input.jpSelect widget - enhanced select with search, select all
 - status: ✅ DONE
 - type: Feature
@@ -4750,6 +4739,17 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/view/jpulse-examples/ui-widgets.shtml`: Input Widgets & Form Data section (3.2) with tagInput + jpSelect demo (single search, multi search+selectAll), set sample / get values, source tab; tabs renumbered 3.2→3.6
   - `webapp/view/jpulse-examples/forms.shtml`: paragraph linking to UI Widgets → Input Widgets & Form Data (tagInput, jpSelect, setAllValues/getAllValues, setFormData/getFormData)
   - `docs/front-end-development.md`: jPulse.UI.input API link updated to input widgets, set/get form data (tagInput, jpSelect, helpers)
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
 
 
 

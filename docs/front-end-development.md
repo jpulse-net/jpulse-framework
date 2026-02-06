@@ -711,6 +711,7 @@ The jPulse Framework provides a comprehensive set of UI widgets under the `jPuls
 
 ### Available Widgets
 
+- **[Input utilities: input widgets, set/get form data](jpulse-ui-reference.md#input-utilities-input-widgets-setget-form-data)** - tagInput (list-in-one input), jpSelect (enhanced single/multi-select with search, select all), setAllValues/getAllValues, setFormData/getFormData (`jPulse.UI.input`)
 - **[Toast Notifications](jpulse-ui-reference.md#toast-notifications)** - Non-blocking slide-down messages (`jPulse.UI.toast`)
 - **[Dialog Widgets](jpulse-ui-reference.md#dialog-widgets)** - Modal dialogs (`alertDialog`, `infoDialog`, `successDialog`, `confirmDialog`)
 - **[Sidebars](jpulse-ui-reference.md#sidebars)** - Left/right sidebars with component-based architecture (`jPulse.UI.sidebars`)

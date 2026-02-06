@@ -1,6 +1,31 @@
-# jPulse Docs / Version History v1.6.8
+# jPulse Docs / Version History v1.6.9
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.9, W-152, 2026-02-06
+
+**Commit:** `W-152, v1.6.9: log: fix database name in startup log`
+
+**BUGFIX**: The "Database: ..." startup log line now shows the actual database name from deployment config instead of a wrong fallback. The server listen callback in app.js was using `appConfig.database[dbMode].name` (never set in config); it now uses `appConfig.deployment[mode].db` so the log matches the DB used by the database module. Fallback remains `'jp-dev'`.
+
+**Objective**: Make the startup log "Database: ..." reflect the real DB name (from deployment config), not an incorrect fallback.
+
+**Key Changes**:
+- **webapp/app.js**: In the server listen callback, dbName set to `appConfig.deployment?.[mode]?.db || 'jp-dev'`; log line "Database: ${dbName} (${dbMode} mode)" now matches the database module (which uses `deployment[mode].db`).
+
+**Code Changes**:
+
+webapp/app.js: In server listen callback, dbName from `appConfig.database?.[dbMode]?.name` → `appConfig.deployment?.[mode]?.db` (fallback 'jp-dev' unchanged).
+
+**Documentation**:
+
+README.md, docs/README.md: Latest Release Highlights — added v1.6.9 W-152 entry
+docs/CHANGELOG.md: Added v1.6.9, W-152 entry
+
+**Work Item**: W-152
+**Version**: v1.6.9
+**Release Date**: 2026-02-06
 
 ________________________________________________
 ## v1.6.8, W-151, 2026-02-05

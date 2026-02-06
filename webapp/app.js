@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         1.6.8
- * @release         2026-02-05
+ * @version         1.6.9
+ * @release         2026-02-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -296,7 +296,7 @@ async function startApp() {
     const server = app.listen(appConfig.system.port, () => {
         const mode = appConfig.deployment?.mode || 'dev';
         const dbMode = appConfig.database?.mode || 'standalone';
-        const dbName = appConfig.database?.[dbMode]?.name || 'jp-dev';
+        const dbName = appConfig.deployment?.[mode]?.db || 'jp-dev';
         LogController.logInfo(null, 'app', `jPulse Framework WebApp v${appConfig.app.jPulse.version} (${appConfig.app.jPulse.release})`);
         LogController.logInfo(null, 'app', `Server running in ${mode} mode on port ${appConfig.system.port}`);
         LogController.logInfo(null, 'app', `Database: ${dbName} (${dbMode} mode)`);

@@ -2,8 +2,8 @@
  * @name            jPulse Framework / WebApp / Controller / App Cluster
  * @description     App Cluster controller for multi-instance communication (WebSocket, broadcast, cache)
  * @file            webapp/controller/appCluster.js
- * @version         1.6.8
- * @release         2026-02-05
+ * @version         1.6.9
+ * @release         2026-02-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

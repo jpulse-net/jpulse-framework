@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.8
+# jPulse Docs / Dev / Work Items v1.6.9
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -241,7 +241,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-021, v0.3.0: fix user profile view to read from API
 - status: ✅ DONE
-- type: Bug Fix
+- type: Bugfix
 - user profile view now loads fresh data from /api/1/user/profile API endpoint
 - profile updates work correctly and increment saveCount properly
 - UserModel.updateById() now increments saveCount like ConfigModel
@@ -500,7 +500,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-042, v0.4.7: view: fix slide down message is not cleared bug
 - status: ✅ DONE
-- type: Bug Fix
+- type: Bugfix
 - in the signup page, error messages in the slide down are never cleared
 - this happens when you hit [submit] after a few seconds, rinds and repeat
 - e.g. this is not stacking of multiple messages in rapid succession, which is spec
@@ -945,7 +945,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-067, v0.8.3: regression bug: site/ directory is missing in published package
 - status: ✅ DONE
-- type: Bug Fix
+- type: Bugfix
 - note: this is a critical bug (Regression)
 - Problem: New sites installing the jPulse Framework with "npx jpulse-configure" miss the critical site/ directory and all site templates
 - Root Cause: package.json "files" array was missing "site/" entry, so site templates weren't published to npm
@@ -1773,7 +1773,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-089, v1.1.5: log: log proper external IP address when jPulse is behind a reverse proxy
 - status: ✅ DONE
-- type: Bug Fix
+- type: Bugfix
 - objective: log proper IP address behind a reverse proxy
 - deliverables:
   - webapp/utils/common.js -- IP address based on sequence: x-forwarded-for, x-real-ip, request ip
@@ -1801,7 +1801,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-091, v1.1.7: deploy: bug fixes for site deployments
 - status: ✅ DONE
-- type: Bug Fix
+- type: Bugfix
 - objective: better getting started experience
 - issues:
   - Bug 1: updated docs to use `npm install --registry` flag (KISS solution)
@@ -2081,7 +2081,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-099, v1.2.6: deploy: critical bug fixes for site installation and W-098 navigation
 - status: ✅ DONE
-- type: Bug Fix
+- type: Bugfix
 - objective: fix critical bugs discovered after v1.2.5 deployment affecting site installation and navigation deletion markers
 - issues:
   - bug 1: site/webapp/model/helloTodo.js missing in initial site install
@@ -2158,7 +2158,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-100, v1.3.1: architecture: critical bug fixes for W-045 add plugin infrastructure
 - status: ✅ DONE
-- type: Bug Fix
+- type: Bugfix
 - objective: fix critical bugs discovered after v1.3.0 deployment affecting npm package, CI/CD, and production sites
 - issues:
   - bug 1: npm package missing plugins/hello-world/ directory - package incomplete
@@ -2183,7 +2183,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-101, v1.3.2: architecture: additional bug fixes for W-045 add plugin infrastructure
 - status: ✅ DONE
-- type: Bug Fix
+- type: Bugfix
 - objective: fix four critical bugs discovered after v1.3.1 deployment affecting plugin updates, configuration UX, documentation access, and admin UI state
 - issues:
   - bug 1: jpulse-update.js missing plugin sync - production sites had stale plugins after framework update
@@ -2702,7 +2702,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-111, v1.3.12, 2025-12-08: deploy: bug fixes for plugin installations
 - status: ✅ DONE
-- type: Bug Fix
+- type: Bugfix
 - objective: enable sites to install plugins from npm package
 - issues:
   - bug 1: jPulse dependency check checks minimum required version, not actual version installed
@@ -2815,7 +2815,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-113, v1.3.14, 2025-12-13: metrics: bug fixes for reporting vital statistics of components
 - status: ✅ DONE
-- type: Bug Fix
+- type: Bugfix
 - objective: fix bugs discovered after W-112, v1.3.13 release
 - issues:
   - bug 1: Aggregated components showing unsanitized data (e.g., smtpServer) even when sanitize: true is set
@@ -3336,7 +3336,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-121, v1.3.22, 2025-12-21: markdown: v1.3.21 bug fix for ignore files are accessible in jpulse-docs
 - status: ✅ DONE
-- type: Bug Fix
+- type: Bugfix
 - objective: fix bug discovered after v1.3.21 release
 - issue:
   - bug: files and directories specified in the `[ignore]` section of `docs/.markdown` are not excluded, and accessible:
@@ -3436,7 +3436,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-122, v1.4.2, 2026-01-01: markdown: v1.4.1 bug fix for ignore files still accessible in jpulse-docs
 - status: ✅ DONE
-- type: Bug Fix
+- type: Bugfix
 - objective: fix regression bug discovered after v1.4.1 release that was supposed to be fixed in v1.3.22
 - issue:
   - bug: files and directories specified in the `[ignore]` section of `docs/.markdown` are not excluded, and accessible:
@@ -4353,7 +4353,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-142, v1.5.1, 2026-01-25: deployment: copy LICENSE file to site installations
 - status: ✅ DONE
-- type: Bug Fix
+- type: Bugfix
 - objectives: ensure LICENSE file is available in site installations
 - issue:
   - LICENSE file exists in framework root and is included in npm package
@@ -4751,6 +4751,16 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-152, v1.6.9, 2026-02-06: log: fix database name in startup log
+- status: ✅ DONE
+- type: Bugfix
+- objectives:
+  - Make the "Database: ..." startup log show the actual DB name (from deployment config), not a wrong fallback.
+- features:
+  - Use `appConfig.deployment[mode].db` for the DB name in the server listen callback; remove use of `appConfig.database[dbMode].name` (never set in config).
+- deliverables:
+  - `webapp/app.js`:
+    - In the server listen callback, set dbName as `appConfig.deployment?.[mode]?.db || 'jp-dev'` so the log line "Database: ${dbName} (${dbMode} mode)" matches the DB used by the database module (which already uses deployment[mode].db).
 
 
 
@@ -4788,8 +4798,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-151, v1.6.8, 2026-02-05
-- update deliverables in W-151 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-152, v1.6.9, 2026-02-06
+- update deliverables in W-152 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4800,12 +4810,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.8
+node bin/bump-version.js 1.6.9
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.8
+git tag v1.6.9
 git push origin main --tags
 
 === PLUGIN release & package build on github ===
@@ -4959,7 +4969,7 @@ template:
 
 ### W-0: redis: fix bugs when redis is disabled
 - status: 🕑 PENDING
-- type: Bug Fix
+- type: Bugfix
 - prerequisite
   - W-076, v1.0.0: framework: redis infrastrucure for a scaleable jPulse Framework
 - /hello-websocket/, /hello-app-cluster/ should work properly on its own page, that is no messaging to other tabs with same page open

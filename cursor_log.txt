@@ -17884,3 +17884,19 @@ Summary: Release prep for W-151, v1.6.8, 2026-02-05. Reviewed tt-git-diff.txt: d
 
 
 ============================================================
+2026-02-05 20:40
+
+next: W-152, v1.6.9, 2026-02-06: Fix database name in startup log @work-items.md (4753-4765)
+
+Implemented W-152: in webapp/app.js server listen callback, changed dbName from appConfig.database?.[dbMode]?.name (never set in config) to appConfig.deployment?.[mode]?.db so the "Database: ..." startup log shows the actual DB name used by the database module. Fallback remains 'jp-dev'. No linter errors. Appended to cursor_log.txt.
+
+
+============================================================
+2026-02-05 20:45
+
+release prep: assume release W-152, v1.6.9, 2026-02-06; update README.md, docs/README.md (Latest Release Highlights), docs/CHANGELOG.md; update commit-message.txt; append cursor_log.txt (don't bump version, don't commit)
+
+Summary: Release prep for W-152, v1.6.9, 2026-02-06. Updated README.md and docs/README.md — Latest Release Highlights: added v1.6.9 W-152 entry (fix database name in startup log; use deployment[mode].db). Updated docs/CHANGELOG.md — added full v1.6.9 W-152 entry (BUGFIX, objective, key/code changes, documentation). Updated commit-message.txt — W-152 commit message following same format as W-151. Appended this entry to cursor_log.txt. Version not bumped per request.
+
+
+============================================================

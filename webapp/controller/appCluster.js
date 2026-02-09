@@ -2,8 +2,8 @@
  * @name            jPulse Framework / WebApp / Controller / App Cluster
  * @description     App Cluster controller for multi-instance communication (WebSocket, broadcast, cache)
  * @file            webapp/controller/appCluster.js
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,6 +16,9 @@ import LogController from './log.js';
 import WebSocketController from './websocket.js';
 import RedisManager from '../utils/redis-manager.js';
 import CommonUtils from '../utils/common.js';
+
+/** W-154 Phase 3: default context when none supplied */
+const DEFAULT_CTX = { username: '', ip: '0.0.0.0' };
 
 /**
  * App Cluster Controller
@@ -35,13 +38,13 @@ class AppClusterController {
      */
     static initialize() {
         try {
-            // Register WebSocket namespace for framework broadcast system
-            // Uses jp- prefix to indicate framework-internal WebSocket
-            WebSocketController.registerNamespace('/api/1/ws/jp-broadcast', {
-                onConnect: this.handleConnect.bind(this),
-                onMessage: this.handleMessage.bind(this),
-                onDisconnect: this.handleDisconnect.bind(this)
-            });
+            // Register WebSocket namespace for framework broadcast system (W-154: createNamespace + conn)
+            const path = '/api/1/ws/jp-broadcast';
+            const ns = WebSocketController.createNamespace(path);
+            this.wsNamespace = ns;
+            ns.onConnect((conn) => this.handleConnect(conn))
+                .onMessage((conn) => this.handleMessage(conn))
+                .onDisconnect((conn) => this.handleDisconnect(conn));
 
             // Subscribe to ALL broadcast messages to relay to interested WebSocket clients
             // Use RedisManager callback registration for automatic channel handling
@@ -63,141 +66,83 @@ class AppClusterController {
     }
 
     /**
-     * Handle WebSocket client connection
-     * @param {string} clientId - WebSocket client ID
-     * @param {Object} user - User object (if authenticated)
+     * Handle WebSocket client connection (W-154: conn = { clientId, user, ctx })
      */
-    static handleConnect(clientId, user) {
-        // Initialize client's channel subscriptions in our registry
-        AppClusterController.clientChannels.set(clientId, new Map());
+    static handleConnect(conn) {
+        AppClusterController.clientChannels.set(conn.clientId, new Map());
 
         LogController.logInfo(
-            user ? user.username : null,
+            conn.ctx,
             'appCluster.handleConnect',
-            `Client connected to app cluster namespace (${clientId})`
+            `Client connected to app cluster namespace (${conn.clientId})`
         );
 
-        // Send welcome message
-        WebSocketController.sendToClient(
-            clientId,
-            '/api/1/ws/jp-broadcast',
-            {
-                type: 'welcome',
-                message: 'Connected to App Cluster broadcast system',
-                timestamp: new Date().toISOString()
-            }
-        );
+        AppClusterController.wsNamespace.sendToClient(conn.clientId, {
+            type: 'welcome',
+            data: { message: 'Connected to App Cluster broadcast system', timestamp: new Date().toISOString() }
+        }, conn.ctx);
     }
 
     /**
-     * Handle WebSocket messages from clients
-     * @param {string} clientId - WebSocket client ID
-     * @param {Object} data - Message data from client
-     * @param {Object} user - User object (if authenticated)
+     * Handle WebSocket messages from clients (W-154: conn = { clientId, message, user, ctx })
      */
-    static handleMessage(clientId, data, user) {
+    static handleMessage(conn) {
+        const { clientId, message: data, ctx } = conn;
         try {
             const clientChannels = AppClusterController.clientChannels.get(clientId);
             if (!clientChannels) {
-                LogController.logError(
-                    user ? user.username : null,
-                    'appCluster.handleMessage',
-                    `Client ${clientId} not found in registry`
-                );
+                LogController.logError(ctx, 'appCluster.handleMessage', `Client ${clientId} not found in registry`);
                 return;
             }
 
             if (data.type === 'subscribe') {
-                // Client wants to subscribe to a channel
                 const { channel, omitSelf = false } = data;
                 if (channel && typeof channel === 'string') {
-                    const clientChannels = AppClusterController.clientChannels.get(clientId);
-                    clientChannels.set(channel, { omitSelf });
-
-                    LogController.logInfo(
-                        user ? user.username : null,
-                        'appCluster.handleMessage',
-                        `Client subscribed to channel: ${channel} (omitSelf: ${omitSelf})`
-                    );
-
-                    // Acknowledge subscription
-                    WebSocketController.sendToClient(
-                        clientId,
-                        '/api/1/ws/jp-broadcast',
-                        {
-                            type: 'subscribed',
-                            channel: channel,
-                            timestamp: new Date().toISOString()
-                        }
-                    );
+                    const ch = AppClusterController.clientChannels.get(clientId);
+                    ch.set(channel, { omitSelf });
+                    LogController.logInfo(ctx, 'appCluster.handleMessage', `Client subscribed to channel: ${channel} (omitSelf: ${omitSelf})`);
+                    AppClusterController.wsNamespace.sendToClient(clientId, {
+                        type: 'subscribed',
+                        data: { channel, timestamp: new Date().toISOString() }
+                    }, ctx);
                 }
             } else if (data.type === 'unsubscribe') {
-                // Client wants to unsubscribe from a channel
                 const { channel } = data;
                 if (channel && typeof channel === 'string') {
                     clientChannels.delete(channel);
-
-                    LogController.logInfo(
-                        user ? user.username : null,
-                        'appCluster.handleMessage',
-                        `Client unsubscribed from channel: ${channel}`
-                    );
-
-                    // Acknowledge unsubscription
-                    WebSocketController.sendToClient(
-                        clientId,
-                        '/api/1/ws/jp-broadcast',
-                        {
-                            type: 'unsubscribed',
-                            channel: channel,
-                            timestamp: new Date().toISOString()
-                        }
-                    );
+                    LogController.logInfo(ctx, 'appCluster.handleMessage', `Client unsubscribed from channel: ${channel}`);
+                    AppClusterController.wsNamespace.sendToClient(clientId, {
+                        type: 'unsubscribed',
+                        data: { channel, timestamp: new Date().toISOString() }
+                    }, ctx);
                 }
             } else if (data.type === 'ping') {
-                // Client is sending a ping for connection health check
-                // Respond with pong
-                WebSocketController.sendToClient(
-                    clientId,
-                    '/api/1/ws/jp-broadcast',
-                    {
-                        type: 'pong',
-                        timestamp: new Date().toISOString()
-                    }
-                );
+                AppClusterController.wsNamespace.sendToClient(clientId, {
+                    type: 'pong',
+                    data: { timestamp: new Date().toISOString() }
+                }, ctx);
             } else {
-                LogController.logInfo(
-                    user ? user.username : null,
-                    'appCluster.handleMessage',
-                    `Received unknown message type: ${data.type}`
-                );
+                LogController.logInfo(ctx, 'appCluster.handleMessage', `Received unknown message type: ${data.type}`);
             }
         } catch (error) {
-            LogController.logError(
-                user ? user.username : null,
-                'appCluster.handleMessage',
-                `Error handling message: ${error.message}`
-            );
+            LogController.logError(ctx, 'appCluster.handleMessage', `Error handling message: ${error.message}`);
         }
     }
 
     /**
-     * Handle WebSocket client disconnection
-     * @param {string} clientId - WebSocket client ID
-     * @param {Object} user - User object (if authenticated)
+     * Handle WebSocket client disconnection (W-154: conn = { clientId, user, ctx })
      */
-    static handleDisconnect(clientId, user) {
-        const clientChannels = AppClusterController.clientChannels.get(clientId);
+    static handleDisconnect(conn) {
+        const clientChannels = AppClusterController.clientChannels.get(conn.clientId);
         const channelCount = clientChannels ? clientChannels.size : 0;
 
         LogController.logInfo(
-            user ? user.username : null,
+            conn.ctx,
             'appCluster.handleDisconnect',
-            `Client disconnected from app cluster namespace (${clientId}) - cleaned up ${channelCount} channel subscriptions`
+            `Client disconnected from app cluster namespace (${conn.clientId}) - cleaned up ${channelCount} channel subscriptions`
         );
 
-        // Clean up client's channel subscriptions from our registry
-        AppClusterController.clientChannels.delete(clientId);
+        AppClusterController.clientChannels.delete(conn.clientId);
     }
 
     /**
@@ -208,13 +153,13 @@ class AppClusterController {
      */
     static relayToInterestedClients(channel, data) {
         try {
-            // Get all connected clients in the jp-broadcast namespace
-            const namespace = WebSocketController.namespaces.get('/api/1/ws/jp-broadcast');
+            const namespace = AppClusterController.wsNamespace;
             if (!namespace) {
                 return; // No namespace registered
             }
 
             let relayedCount = 0;
+            const relayCtx = data.ctx ?? DEFAULT_CTX;
 
             // Send to clients interested in this specific channel
             namespace.clients.forEach((client, clientId) => {
@@ -236,9 +181,8 @@ class AppClusterController {
                                 success: true,
                                 data: {
                                     type: 'broadcast',
-                                    channel: channel,
-                                    data: data,
-                                    timestamp: new Date().toISOString()
+                                    data: { channel, data, timestamp: new Date().toISOString() },
+                                    ctx: relayCtx
                                 }
                             };
                             client.ws.send(JSON.stringify(message));
@@ -253,7 +197,7 @@ class AppClusterController {
 
             if (relayedCount > 0) {
                 LogController.logInfo(
-                    null,
+                    relayCtx,
                     'appCluster.relayToInterestedClients',
                     `Relayed broadcast to ${relayedCount} clients on channel: ${channel}`
                 );
@@ -301,11 +245,12 @@ class AppClusterController {
                 return CommonUtils.sendError(req, res, 400, message, 'INVALID_DATA');
             }
 
-            // Pass uuid through if provided by client
+            // Pass uuid and ctx (W-154 Phase 3) through
             const payload = { ...data };
             if (req.body.uuid) {
                 payload.uuid = req.body.uuid;
             }
+            payload.ctx = RedisManager.getBroadcastContext(req);
 
             // Publish broadcast
             const published = await RedisManager.publishBroadcast(channel, payload);

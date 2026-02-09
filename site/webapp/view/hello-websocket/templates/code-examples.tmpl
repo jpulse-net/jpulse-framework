@@ -4,13 +4,13 @@
  * @tagline         Code examples component of the WebSocket demo
  * @description     This component shows code examples of the WebSocket demo
  * @file            site/webapp/view/hello-websocket/templates/code-examples.tmpl
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 window.helloWebSocketViews = window.helloWebSocketViews || {};
@@ -35,41 +35,32 @@ class MyWebsocketController {
     static wsHandle = null;
 
     static async initialize() {
-        // Register WebSocket namespace
-        this.wsHandle = WebSocketController.registerNamespace('/api/1/ws/my-app', {
-            requireAuth: false,      // Set true to require login
-            requireRoles: [],        // e.g., ['admin', 'user']
+        const ns = WebSocketController.createNamespace('/api/1/ws/my-app', {
+            requireAuth: false,
+            requireRoles: []
+        });
+        this.wsHandle = ns;
 
-            onConnect: (clientId, user) => {
-                const username = user?.username || 'guest';
-                console.log(\`\${username} connected\`);
-
-                // Send welcome message to this client
-                this.wsHandle.sendToClient(clientId, {
-                    type: 'welcome',
-                    message: 'Connected to my app!'
-                });
-            },
-
-            onMessage: (clientId, data, user) => {
-                const username = user?.username || 'guest';
-
-                // Handle different message types
-                if (data.type === 'chat-message') {
-                    // Broadcast to all clients
-                    this.wsHandle.broadcast({
-                        type: 'chat-message',
-                        username: username,
-                        message: data.message,
-                        timestamp: Date.now()
-                    }, username);
-                }
-            },
-
-            onDisconnect: (clientId, user) => {
-                const username = user?.username || 'guest';
-                console.log(\`\${username} disconnected\`);
+        ns.onConnect(({ clientId, user, ctx }) => {
+            const username = user?.username || 'guest';
+            console.log(\`\${username} connected\`);
+            ns.sendToClient(clientId, {
+                type: 'welcome',
+                data: { message: 'Connected to my app!' }
+            }, ctx);
+        })
+        .onMessage(({ clientId, message, user, ctx }) => {
+            const username = user?.username || 'guest';
+            if (message.type === 'chat-message') {
+                ns.broadcast({
+                    type: 'chat-message',
+                    data: { username, message: message.message, timestamp: Date.now() }
+                }, ctx);
             }
+        })
+        .onDisconnect(({ clientId, user, ctx }) => {
+            const username = user?.username || 'guest';
+            console.log(\`\${username} disconnected\`);
         });
     }
 }
@@ -92,13 +83,12 @@ mounted() {
 
     // Now connect to WebSocket namespace
     const ws = jPulse.ws.connect('/api/1/ws/my-app')
-        .onMessage((data, message) => {
-            if (data) {
-                // Handle successful message
-                console.log('Received:', data);
+        .onMessage((msg) => {
+            if (msg.success) {
+                // msg.data = app payload { type, data?, username? }
+                console.log('Received:', msg.data?.type, msg.data);
             } else {
-                // Handle error
-                console.error('Error:', message.error);
+                console.error('Error:', msg.error);
             }
         })
         .onStatusChange((status, oldStatus) => {
@@ -106,11 +96,8 @@ mounted() {
             console.log(\`Connection: \${oldStatus} → \${status}\`);
         });
 
-    // Send message
-    ws.send({
-        type: 'chat-message',
-        message: 'Hello, world!'
-    });
+    // Send message (client sends flat; server can use { type, data } for responses)
+    ws.send({ type: 'chat-message', message: 'Hello, world!' });
 
     // Check connection status
     if (ws.isConnected()) {
@@ -152,10 +139,12 @@ mounted() {
     methods: {
         connect() {
             this.ws = jPulse.ws.connect('/api/1/ws/my-app')
-                .onMessage((data) => {
-                    if (data.type === 'chat-message') {
-                        // Reactive update - UI updates automatically
-                        this.messages.push(data);
+                .onMessage((msg) => {
+                    if (msg.success) {
+                        const payload = msg.data ?? {};
+                        if (payload.type === 'chat-message') {
+                            this.messages.push({ ...payload.data, type: payload.type });
+                        }
                     }
                 })
                 .onStatusChange((status) => {
@@ -202,13 +191,12 @@ class TodoController {
             // 1. Validate and create via REST API (existing code)
             const todo = await TodoModel.create(req.body);
 
-            // 2. NEW: Broadcast to WebSocket clients
+            // 2. Broadcast to WebSocket clients (ctx = null when called from REST)
             if (MyWebsocketController.wsHandle) {
                 MyWebsocketController.wsHandle.broadcast({
                     type: 'todo-created',
-                    todo: todo,
-                    username: req.session?.user?.username || 'guest'
-                });
+                    data: { todo, username: req.session?.user?.username || 'guest' }
+                }, null);
             }
 
             // 3. Return REST API response (existing code)
@@ -237,12 +225,13 @@ export default TodoController;</pre></div>
 
         // 2. Connect to WebSocket for live updates
         this.ws = jPulse.ws.connect('/api/1/ws/my-app')
-            .onMessage((data) => {
-                if (data.type === 'todo-created') {
-                    // Add new todo to list (if not already present)
-                    const exists = this.todos.find(t => t._id === data.todo._id);
-                    if (!exists) {
-                        this.todos.unshift(data.todo);
+            .onMessage((msg) => {
+                if (msg.success) {
+                    const payload = msg.data ?? {};
+                    if (payload.type === 'todo-created') {
+                        const d = payload.data ?? {};
+                        const exists = this.todos.find(t => t._id === d.todo?._id);
+                        if (!exists && d.todo) this.todos.unshift(d.todo);
                     }
                 }
             });
@@ -278,9 +267,7 @@ export default TodoController;</pre></div>
 
         <h4>Server-Side: Notes Namespace + Redis Store</h4>
         <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>// In site/webapp/controller/helloWebsocket.js (notes namespace)
-onMessage: async (clientId, data, user) => {
-    const handle = this.wsHandle;  // from registerNamespace
-    // Prefer view-supplied username (client sends it) for consistency
+notes.onMessage(async ({ clientId, message: data, user, ctx }) => {
     const username = (data.username != null && String(data.username).trim() !== '')
         ? String(data.username).trim().slice(0, 100)
         : (user?.username || 'guest');
@@ -289,16 +276,16 @@ onMessage: async (clientId, data, user) => {
         const note = { id: crypto.randomUUID(), x: data.x ?? 20, y: data.y ?? 20,
             text: (data.text ?? '').slice(0, 500), color: (data.color ?? '#fff9c4').slice(0, 20),
             createdAt: Date.now(), createdBy: username };
-        await this._notesCreate(note);  // Redis: cacheSetObject
-        handle.broadcast({ type: 'note-created', note, username }, username);
+        await this._notesCreate(note);
+        notes.broadcast({ type: 'note-created', data: { note, username } }, ctx);
     } else if (data.type === 'note-update') {
         const note = await this._notesUpdate(data.id, { x: data.x, y: data.y, text: data.text });
-        if (note) handle.broadcast({ type: 'note-updated', note, username }, username);
+        if (note) notes.broadcast({ type: 'note-updated', data: { note, username } }, ctx);
     } else if (data.type === 'note-delete') {
         const removed = await this._notesDelete(data.id);
-        if (removed) handle.broadcast({ type: 'note-deleted', noteId: data.id, username }, username);
+        if (removed) notes.broadcast({ type: 'note-deleted', data: { noteId: data.id, username } }, ctx);
     }
-}</pre></div>
+});</pre></div>
         <p class="jp-help-text jp-mt-10">
             <code>_notesCreate</code> / <code>_notesUpdate</code> / <code>_notesDelete</code> use <code>RedisManager.cacheGetObject</code> and <code>cacheSetObject</code> so notes persist and sync across server instances.
         </p>
@@ -314,10 +301,10 @@ onCanvasClick(event) {
     this.notesWs.send({ type: 'note-create', username: this.notesUsername(), x, y, text: '', color: '#fff9c4' });
 }
 
-// When note-created arrives, focus the new note's textarea
+// In handleNotesMessage(msg), payload = msg.data ?? {}; then in note-created branch:
 if (this.pendingFocusAfterCreate) {
     this.pendingFocusAfterCreate = false;
-    const noteId = data.note.id;
+    const noteId = payload.note?.id;
     setTimeout(() => {
         const textarea = this.$el?.querySelector('.local-note[data-note-id="' + noteId + '"] .local-note-text');
         if (textarea?.focus) textarea.focus();
@@ -325,14 +312,12 @@ if (this.pendingFocusAfterCreate) {
 }</pre></div>
 
         <h4>Client-Side: Handling note-updated (avoid echo overwrite)</h4>
-        <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>// In handleNotesMessage (or equivalent): when applying note-updated, skip if we're still typing
-} else if (data.type === 'note-updated') {
-    const index = this.notes.findIndex((n) => n.id === data.note?.id);
-    if (index !== -1 && data.note) {
-        // Do not apply incoming update if we have pending debounced input for this note:
-        // our own broadcast echo would overwrite the textarea with stale text and drop chars.
-        if (this.textDebounce && this.textDebounce[data.note.id]) return;
-        this.notes[index] = data.note;
+        <div class="jp-source-code" data-lang="javascript" data-show-lang="true"><pre>// In handleNotesMessage(msg): payload = msg.data ?? {}
+} else if (msg.type === 'note-updated') {
+    const index = this.notes.findIndex((n) => n.id === payload.note?.id);
+    if (index !== -1 && payload.note) {
+        if (this.textDebounce && this.textDebounce[payload.note.id]) return;
+        this.notes[index] = payload.note;
     }
 }</pre></div>
         <p class="jp-help-text jp-mt-10">
@@ -461,16 +446,18 @@ updateNoteText(note, event) {
         <h3>📦 Message Format Convention</h3>
         <p>All WebSocket messages follow the standard API format:</p>
 
-        <h4>Success Response</h4>
+        <h4>Success Response (wire envelope)</h4>
         <div class="jp-source-code" data-lang="json" data-show-lang="true"><pre>{
-    success: true,
-    data: {
-        type: 'chat-message',      // Your message type
-        username: 'john_doe',      // Automatically added by framework
-        message: 'Hello, world!',  // Your custom data
-        timestamp: 1677123456789
+    "success": true,
+    "data": {
+        "type": "chat-message",
+        "data": { "message": "Hello!", "timestamp": 1677123456789 },
+        "username": "john_doe"
     }
 }</pre></div>
+        <p class="jp-help-text jp-mt-10 jp-mb-0">
+            Payload convention: <code>type</code> + <code>data</code> (event-specific body). <code>username</code> is added by the framework.
+        </p>
 
         <h4>Error Response</h4>
         <div class="jp-source-code" data-lang="json" data-show-lang="true"><pre>{
@@ -481,8 +468,7 @@ updateNoteText(note, event) {
 }</pre></div>
 
         <p class="jp-help-text jp-mt-15">
-            💡 The <code>username</code> field is automatically added to all messages by the framework.
-            It contains the authenticated user's username, or an empty string if not authenticated.
+            💡 In your handler use <code>msg.type</code> and <code>payload = msg.data ?? {}</code> to read the event body.
         </p>
     </div>
 
@@ -512,7 +498,7 @@ updateNoteText(note, event) {
                 </tr>
                 <tr>
                     <td>Listen for messages</td>
-                    <td><code>ws.onMessage((data) => {...})</code></td>
+                    <td><code>ws.onMessage((msg) => { if (msg.success) use msg.data; })</code></td>
                 </tr>
                 <tr>
                     <td>Check status</td>

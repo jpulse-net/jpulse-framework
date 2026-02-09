@@ -3,8 +3,8 @@
  * @tagline         Unit tests for WebSocket Controller
  * @description     Tests for WebSocket infrastructure, authentication, broadcasting, and lifecycle
  * @file            webapp/tests/unit/controller/websocket.test.js
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -185,7 +185,7 @@ describe('WebSocketController - High Priority Tests', () => {
                 requireAuth: true,
                 requireRoles: [],
                 clients: new Map(),
-                onConnect: jest.fn()
+                _onConnect: jest.fn()
             };
             WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
@@ -268,7 +268,7 @@ describe('WebSocketController - High Priority Tests', () => {
                 requireAuth: true,
                 requireRoles: ['admin', 'root'],
                 clients: new Map(),
-                onConnect: jest.fn()
+                _onConnect: jest.fn()
             };
             WebSocketController.namespaces.set('/api/1/ws/admin', namespace);
 
@@ -315,7 +315,7 @@ describe('WebSocketController - High Priority Tests', () => {
                 requireAuth: false,
                 requireRoles: [],
                 clients: new Map(),
-                onConnect: jest.fn()
+                _onConnect: jest.fn()
             };
             WebSocketController.namespaces.set('/api/1/ws/public', namespace);
 
@@ -389,8 +389,8 @@ describe('WebSocketController - High Priority Tests', () => {
 
             const testData = { type: 'notification', message: 'Hello' };
 
-            // Act
-            WebSocketController.broadcast('/api/1/ws/test', testData, 'testuser');
+            // Act (W-154 Phase 3: broadcast(data, ctx))
+            WebSocketController.broadcast('/api/1/ws/test', testData, { username: 'testuser', ip: '0.0.0.0' });
 
             // Assert
             const messages1 = WebSocketTestUtils.getSentMessages(client1.ws);
@@ -399,7 +399,7 @@ describe('WebSocketController - High Priority Tests', () => {
             expect(messages1).toHaveLength(1);
             expect(messages2).toHaveLength(1);
             expect(messages1[0].success).toBe(true);
-            expect(messages1[0].data.username).toBe('testuser');
+            expect(messages1[0].data.ctx).toEqual({ username: 'testuser', ip: '0.0.0.0' });
             expect(messages1[0].data.type).toBe('notification');
             expect(messages1[0].data.message).toBe('Hello');
         });
@@ -426,12 +426,12 @@ describe('WebSocketController - High Priority Tests', () => {
             namespace.clients.set('client1', client);
             WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
-            // Act
-            WebSocketController.broadcast('/api/1/ws/test', { type: 'test' }, 'alice');
+            // Act (W-154 Phase 3: broadcast(data, ctx))
+            WebSocketController.broadcast('/api/1/ws/test', { type: 'test' }, { username: 'alice', ip: '0.0.0.0' });
 
             // Assert
             const messages = WebSocketTestUtils.getSentMessages(client.ws);
-            expect(messages[0].data.username).toBe('alice');
+            expect(messages[0].data.ctx.username).toBe('alice');
         });
 
         test('should format message with success wrapper', () => {
@@ -456,15 +456,16 @@ describe('WebSocketController - High Priority Tests', () => {
             namespace.clients.set('client1', client);
             WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
-            // Act
-            WebSocketController.broadcast('/api/1/ws/test', { type: 'test', payload: 123 });
+            // Act (no ctx => default ctx)
+            WebSocketController.broadcast('/api/1/ws/test', { type: 'test', data: 123 });
 
-            // Assert
+            // Assert (payload has ctx from W-154 Phase 3)
             const messages = WebSocketTestUtils.getSentMessages(client.ws);
             expect(messages[0]).toHaveProperty('success', true);
             expect(messages[0]).toHaveProperty('data');
             expect(messages[0].data.type).toBe('test');
-            expect(messages[0].data.payload).toBe(123);
+            expect(messages[0].data.data).toBe(123);
+            expect(messages[0].data.ctx).toEqual({ username: '', ip: '0.0.0.0' });
         });
 
         test('should only send to clients with readyState === 1 (OPEN)', () => {
@@ -581,72 +582,54 @@ describe('WebSocketController - High Priority Tests', () => {
 
     describe('Namespace Registration', () => {
 
-        test('should register namespace successfully', () => {
-            // Arrange
+        test('should create namespace successfully (W-154)', () => {
             const path = '/api/1/ws/test';
-            const options = {
-                requireAuth: false,
-                onConnect: jest.fn(),
-                onMessage: jest.fn(),
-                onDisconnect: jest.fn()
-            };
+            const ns = WebSocketController.createNamespace(path, { requireAuth: false });
 
-            // Act
-            WebSocketController.registerNamespace(path, options);
-
-            // Assert
             expect(WebSocketController.namespaces.has(path)).toBe(true);
             const namespace = WebSocketController.namespaces.get(path);
             expect(namespace.path).toBe(path);
             expect(namespace.requireAuth).toBe(false);
-            expect(namespace.onConnect).toBe(options.onConnect);
+            expect(ns.broadcast).toBeDefined();
+            expect(ns.sendToClient).toBeDefined();
+            expect(ns.getStats).toBeDefined();
         });
 
         test('should validate /api/1/ws/* path prefix', () => {
-            // Act & Assert
             expect(() => {
-                WebSocketController.registerNamespace('/invalid/path', {});
+                WebSocketController.createNamespace('/invalid/path', {});
             }).toThrow();
         });
 
-        test('should store callbacks correctly', () => {
-            // Arrange
+        test('should store callbacks correctly via .onConnect/.onMessage/.onDisconnect', () => {
             const onConnect = jest.fn();
             const onMessage = jest.fn();
             const onDisconnect = jest.fn();
 
-            // Act
-            WebSocketController.registerNamespace('/api/1/ws/test', {
-                onConnect,
-                onMessage,
-                onDisconnect
-            });
+            const ns = WebSocketController.createNamespace('/api/1/ws/test', {})
+                .onConnect(onConnect)
+                .onMessage(onMessage)
+                .onDisconnect(onDisconnect);
 
-            // Assert
             const namespace = WebSocketController.namespaces.get('/api/1/ws/test');
-            expect(namespace.onConnect).toBe(onConnect);
-            expect(namespace.onMessage).toBe(onMessage);
-            expect(namespace.onDisconnect).toBe(onDisconnect);
+            expect(namespace._onConnect).toBe(onConnect);
+            expect(namespace._onMessage).toBe(onMessage);
+            expect(namespace._onDisconnect).toBe(onDisconnect);
+            expect(ns).toBe(namespace);
         });
 
         test('should handle requireAuth option', () => {
-            // Act
-            WebSocketController.registerNamespace('/api/1/ws/test', { requireAuth: true });
-
-            // Assert
-            const namespace = WebSocketController.namespaces.get('/api/1/ws/test');
+            WebSocketController.createNamespace('/api/1/ws/test-auth', { requireAuth: true });
+            const namespace = WebSocketController.namespaces.get('/api/1/ws/test-auth');
             expect(namespace.requireAuth).toBe(true);
         });
 
         test('should handle requireRoles option', () => {
-            // Act
-            WebSocketController.registerNamespace('/api/1/ws/test', {
+            WebSocketController.createNamespace('/api/1/ws/test-roles', {
                 requireAuth: true,
                 requireRoles: ['admin', 'root']
             });
-
-            // Assert
-            const namespace = WebSocketController.namespaces.get('/api/1/ws/test');
+            const namespace = WebSocketController.namespaces.get('/api/1/ws/test-roles');
             expect(namespace.requireRoles).toEqual(['admin', 'root']);
         });
     });
@@ -670,11 +653,12 @@ describe('WebSocketController - High Priority Tests', () => {
                     lastActivity: Date.now(),
                     messageTimestamps: []
                 },
-                onMessage: jest.fn().mockRejectedValue(new Error('async error'))
+                _onMessage: jest.fn().mockRejectedValue(new Error('async error'))
             };
             namespace.clients.set(clientId, {
                 ws: mockWs,
                 user: null,
+                ctx: { username: '(guest)', ip: '0.0.0.0' },
                 lastPing: Date.now(),
                 lastPong: Date.now()
             });
@@ -705,88 +689,76 @@ describe('WebSocketController - High Priority Tests', () => {
             const namespace = {
                 path: '/api/1/ws/test',
                 clients: new Map(),
-                onConnect: jest.fn()
+                _onConnect: jest.fn()
             };
             const ws = new WebSocketTestUtils.MockWebSocket();
             const user = { username: 'testuser' };
 
-            // Act
-            WebSocketController._onConnection(ws, namespace, user, 'testuser', null);
+            WebSocketController._onConnection(ws, namespace, user, 'testuser', null, '127.0.0.1');
 
-            // Assert
             expect(namespace.clients.size).toBe(1);
             const clientId = Array.from(namespace.clients.keys())[0];
             expect(clientId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
         });
 
         test('should use client-provided UUID if valid', () => {
-            // Arrange
             const namespace = {
                 path: '/api/1/ws/test',
                 clients: new Map(),
-                onConnect: jest.fn()
+                _onConnect: jest.fn()
             };
             const ws = new WebSocketTestUtils.MockWebSocket();
             const clientUUID = '12345678-1234-4567-8901-123456789012';
 
-            // Act
-            WebSocketController._onConnection(ws, namespace, null, '', clientUUID);
+            WebSocketController._onConnection(ws, namespace, null, '', clientUUID, '127.0.0.1');
 
-            // Assert
             expect(namespace.clients.has(clientUUID)).toBe(true);
         });
 
         test('should store client in namespace', () => {
-            // Arrange
             const namespace = {
                 path: '/api/1/ws/test',
                 clients: new Map(),
-                onConnect: jest.fn()
+                _onConnect: jest.fn()
             };
             const ws = new WebSocketTestUtils.MockWebSocket();
 
-            // Act
-            WebSocketController._onConnection(ws, namespace, null, '', null);
+            WebSocketController._onConnection(ws, namespace, null, '', null, '127.0.0.1');
 
-            // Assert
             expect(namespace.clients.size).toBe(1);
             const client = Array.from(namespace.clients.values())[0];
             expect(client.ws).toBe(ws);
         });
 
-        test('should call onConnect callback', () => {
-            // Arrange
-            const onConnect = jest.fn();
+        test('should call onConnect callback with conn (W-154)', () => {
+            const _onConnect = jest.fn();
             const namespace = {
                 path: '/api/1/ws/test',
                 clients: new Map(),
-                onConnect
+                _onConnect
             };
             const ws = new WebSocketTestUtils.MockWebSocket();
             const user = { username: 'testuser' };
 
-            // Act
-            WebSocketController._onConnection(ws, namespace, user, 'testuser', null);
+            WebSocketController._onConnection(ws, namespace, user, 'testuser', null, '127.0.0.1');
 
-            // Assert
-            expect(onConnect).toHaveBeenCalled();
-            const clientId = onConnect.mock.calls[0][0];
-            expect(typeof clientId).toBe('string');
-            expect(onConnect.mock.calls[0][1]).toBe(user);
+            expect(_onConnect).toHaveBeenCalledTimes(1);
+            const conn = _onConnect.mock.calls[0][0];
+            expect(conn.clientId).toBeDefined();
+            expect(conn.user).toBe(user);
+            expect(conn.ctx).toEqual({ username: 'testuser', ip: '127.0.0.1' });
         });
 
         test('should initialize ping/pong timestamps', () => {
-            // Arrange
             const namespace = {
                 path: '/api/1/ws/test',
                 clients: new Map(),
-                onConnect: jest.fn()
+                _onConnect: jest.fn()
             };
             const ws = new WebSocketTestUtils.MockWebSocket();
 
-            // Act
             const beforeTime = Date.now();
-            WebSocketController._onConnection(ws, namespace, null, '', null);
+            WebSocketController._onConnection(ws, namespace, null, '', null, '127.0.0.1');
             const afterTime = Date.now();
 
             // Assert
@@ -848,13 +820,13 @@ describe('WebSocketController - High Priority Tests', () => {
             });
             WebSocketController.sessionMiddleware = mockSessionMiddleware;
 
-            const onConnect = jest.fn();
+            const _onConnect = jest.fn();
             const namespace = {
                 path: '/api/1/ws/test',
                 requireAuth: true,
                 requireRoles: [],
                 clients: new Map(),
-                onConnect
+                _onConnect
             };
             WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
@@ -874,14 +846,11 @@ describe('WebSocketController - High Priority Tests', () => {
             const mockSocket = WebSocketTestUtils.createMockSocket();
             const mockHead = {};
 
-            // Act
             WebSocketController._handleUpgrade(mockRequest, mockSocket, mockHead);
 
-            // Assert
-            // onConnect should be called with the user from session
-            expect(onConnect).toHaveBeenCalled();
-            const calledUser = onConnect.mock.calls[0][1];
-            expect(calledUser).toEqual(testUser);
+            expect(_onConnect).toHaveBeenCalled();
+            const conn = _onConnect.mock.calls[0][0];
+            expect(conn.user).toEqual(testUser);
         });
 
         test('should extract username from user object', () => {
@@ -892,13 +861,13 @@ describe('WebSocketController - High Priority Tests', () => {
             });
             WebSocketController.sessionMiddleware = mockSessionMiddleware;
 
-            const onConnect = jest.fn();
+            const _onConnect = jest.fn();
             const namespace = {
                 path: '/api/1/ws/test',
                 requireAuth: false,
                 requireRoles: [],
                 clients: new Map(),
-                onConnect
+                _onConnect
             };
             WebSocketController.namespaces.set('/api/1/ws/test', namespace);
 
@@ -916,11 +885,9 @@ describe('WebSocketController - High Priority Tests', () => {
             const mockSocket = WebSocketTestUtils.createMockSocket();
             const mockHead = {};
 
-            // Act
             WebSocketController._handleUpgrade(mockRequest, mockSocket, mockHead);
 
-            // Assert - username should be available in connection
-            expect(onConnect).toHaveBeenCalled();
+            expect(_onConnect).toHaveBeenCalled();
         });
     });
 });

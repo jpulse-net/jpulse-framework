@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1175,16 +1175,40 @@ class CommonUtils {
 
     /**
      * Extract context information for logging (username, IP, VM, ID)
-     * @param {object} req - Express request object (optional)
+     * Accepts Express req or a plain context object { username?, ip? } (e.g. from WebSocket).
+     * @param {object} reqOrContext - Express request object, or plain { username?, ip? }; optional
      * @returns {object} Context object with username, ip, vm, id
      */
-    static getLogContext(req = null) {
+    static getLogContext(reqOrContext = null) {
         const context = {
             username: '(guest)',
             ip: '0.0.0.0',
             vm: global.appConfig?.system?.serverId || 0,
             id: global.appConfig?.system?.pm2Id || 0
         };
+
+        if (reqOrContext == null) {
+            return context;
+        }
+
+        // Plain context object (e.g. from WebSocket): has username or ip, no Express shape
+        const looksLikeRequest = typeof reqOrContext === 'object' &&
+            (Object.prototype.hasOwnProperty.call(reqOrContext, 'session') ||
+                Object.prototype.hasOwnProperty.call(reqOrContext, 'headers'));
+        if (!looksLikeRequest && typeof reqOrContext === 'object') {
+            if (reqOrContext.username != null && reqOrContext.username !== '') {
+                context.username = String(reqOrContext.username);
+            }
+            if (reqOrContext.ip != null && reqOrContext.ip !== '') {
+                context.ip = String(reqOrContext.ip);
+                if (context.ip.startsWith('::ffff:')) {
+                    context.ip = context.ip.substring(7);
+                }
+            }
+            return context;
+        }
+
+        const req = reqOrContext;
 
         // Extract username from session
         if (req?.session?.user?.username) {
@@ -1194,27 +1218,25 @@ class CommonUtils {
         // Extract IP address from request
         // Priority: X-Forwarded-For (first IP), X-Real-IP, req.ip, connection remoteAddress
         // This handles proxy scenarios (nginx, load balancers) where real IP is in headers
-        if (req) {
-            if (req.headers?.['x-forwarded-for']) {
-                // X-Forwarded-For can contain multiple IPs: "client, proxy1, proxy2"
-                // The first one is the original client IP
-                context.ip = req.headers['x-forwarded-for'].split(',')[0].trim();
-            } else if (req.headers?.['x-real-ip']) {
-                context.ip = req.headers['x-real-ip'].trim();
-            } else if (req.ip) {
-                context.ip = req.ip;
-            } else if (req.connection?.remoteAddress) {
-                context.ip = req.connection.remoteAddress;
-            } else if (req.socket?.remoteAddress) {
-                context.ip = req.socket.remoteAddress;
-            } else {
-                context.ip = '0.0.0.0';
-            }
+        if (req.headers?.['x-forwarded-for']) {
+            // X-Forwarded-For can contain multiple IPs: "client, proxy1, proxy2"
+            // The first one is the original client IP
+            context.ip = req.headers['x-forwarded-for'].split(',')[0].trim();
+        } else if (req.headers?.['x-real-ip']) {
+            context.ip = req.headers['x-real-ip'].trim();
+        } else if (req.ip) {
+            context.ip = req.ip;
+        } else if (req.connection?.remoteAddress) {
+            context.ip = req.connection.remoteAddress;
+        } else if (req.socket?.remoteAddress) {
+            context.ip = req.socket.remoteAddress;
+        } else {
+            context.ip = '0.0.0.0';
+        }
 
-            // Clean up IPv6 mapped IPv4 addresses (::ffff:127.0.0.1 -> 127.0.0.1)
-            if (context.ip.startsWith('::ffff:')) {
-                context.ip = context.ip.substring(7);
-            }
+        // Clean up IPv6 mapped IPv4 addresses (::ffff:127.0.0.1 -> 127.0.0.1)
+        if (context.ip.startsWith('::ffff:')) {
+            context.ip = context.ip.substring(7);
         }
 
         return context;
@@ -1308,13 +1330,13 @@ class CommonUtils {
      * @param {string} scope - Functional scope (required)
      * @param {string} message - Log message (required)
      * @param {string} level - Log level: 'info' (default), 'warning', 'ERROR'
-     * @param {object} req - Express request object (optional)
+     * @param {object} reqOrContext - Express request or plain { username?, ip? } (optional)
      * @returns {string} Formatted log message in TSV format:
      *                   "-\t<timestamp>\t<level>\t<username>\t<ip>\t<vm>\t<id>\t<scope>\t<message>"
      */
-    static formatLogMessage(scope, message, level = 'info', req = null) {
+    static formatLogMessage(scope, message, level = 'info', reqOrContext = null) {
         const timestamp = CommonUtils.formatTimestamp();
-        const context = CommonUtils.getLogContext(req);
+        const context = CommonUtils.getLogContext(reqOrContext);
         return `-\t${timestamp}\t${level}\t${context.username}\tip:${context.ip}\tvm:${context.vm}\tid:${context.id}\t${scope}\t${message}`;
     }
 

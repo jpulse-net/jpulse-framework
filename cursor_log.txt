@@ -17924,3 +17924,71 @@ Summary: Release prep for W-153, v1.6.10, 2026-02-07. Reviewed tt-git-diff.txt: 
 
 
 ============================================================
+2026-02-08 01-30
+
+helloWebsocket: use destructured conn in all handlers (emoji, todo, notes): onConnect(({ clientId, user, ctx }) => {}), onMessage(({ clientId, message/message: data, user, ctx }) => {}), onDisconnect(({ clientId, user, ctx }) => {}). Replaced conn.* with local vars; minor shorthand (username). No linter errors.
+
+
+============================================================
+2026-02-08 01-54
+
+WebSocket payload consistency: standardized all WS message payloads to use { type, data } (data = event-specific body). helloWebsocket.js: all sendToClient/broadcast use data for payload (welcome, user-emoji, cursor, user-left, todo-created/updated/deleted, notes-init, note-created/updated/deleted, error). Client templates (emoji-demo, todo-demo, sticky-notes-demo): handle*Message use const d = data.data || {} and read from d. appCluster.js: welcome, subscribed, unsubscribed, pong, relay use { type, data }; jpulse-common.js _handleWebSocketMessage reads message.data for broadcast/subscribed/unsubscribed. websocket.js: jpulse-ws-test echo uses { type: 'echo', data: { originalMessage, serverTimestamp, clientId } }; JSDoc updated. websocket.test.js: test payload 123 in data not payload; assert .data.data. All 27 websocket unit tests pass.
+
+
+============================================================
+2026-02-08 02:10
+
+hello-websocket: (1) Handler naming: handleNotesMessage(msg), handleEmojiMessage(msg), handleTodoMessage(msg) with const payload = msg.data ?? {} (replaced data/data.data with msg/payload). onMessage callbacks use (msg, fullMessage). (2) Docs: code-examples.tmpl and architecture.tmpl updated for createNamespace, single conn param with destructuring ({ clientId, user, ctx } / { clientId, message, user, ctx }), { type, data } payload convention, client-side msg and payload = msg.data ?? {}.
+
+
+============================================================
+2026-02-08 02:15
+
+WebSocket onMessage single-param: callback now receives one argument (full wire message). jpulse-common.js: callback(message) in both success/error; pong check message.data?.type === 'pong'. appCluster _handleWebSocketMessage(msg): if (!msg.success) return; use payload = msg.data. Demo templates (emoji, todo, sticky-notes): .onMessage((msg) => { if (msg.success) this.handleXxxMessage(msg.data); else ... }). Admin websocket-status.shtml, websocket-test.shtml: (msg) and msg.success/msg.data/msg.error. code-examples.tmpl, architecture.tmpl, websocket.js and jpulse-common.js JSDoc updated. Cleaner API: if (msg.success) use msg.data.
+
+
+============================================================
+2026-02-08 14:00
+
+enhance @docs/dev/design/W-154-websocket-namespace-as-object.md and @work-items.md (4780-4832) accordingly
+
+Enhanced W-154 design doc and work-items.md: added Phase 3 (planned) for payload { type, data, ctx } with ctx mandatory at top level (default { username: '', ip: '0.0.0.0' }), broadcast(data, ctx) / sendToClient(clientId, data, ctx), Redis pub/sub aligned (same payload, _localBroadcast uses payload.ctx), no namespace._currentConn, jPulse.appCluster.broadcast.* public API unchanged. Updated work-items: objective (3), phase 1 client.ctx (not logContext), phase 3 features and deliverables (websocket.js, call sites, appCluster relay format, client msg.data.ctx, docs).
+
+
+============================================================
+2026-02-08 14:52
+
+start to implement
+
+Continued W-154 Phase 3: (1) appCluster.js: added DEFAULT_CTX; relayToInterestedClients builds client message with data.ctx and uses relayCtx for LogController.logInfo; broadcastPublish adds payload.ctx = CommonUtils.getLogContext(req); handleConnect/handleMessage pass conn.ctx to all sendToClient calls. (2) websocket.test.js: broadcast calls now pass ctx object instead of fromUsername; assertions updated to expect payload.data.ctx (and data.ctx.username where applicable). All 27 websocket unit tests pass; no linter errors.
+
+
+============================================================
+2026-02-08 16:05
+
+same test again 8080: (logs) ... check for other username or ip missed in log entries
+
+Updated webapp/controller/websocket.js so log entries use request or ctx where available: _handleUpgrade (unknown namespace + catch) uses CommonUtils.getLogContext(request); _completeUpgrade uses logCtx = CommonUtils.getLogContext(request) for auth/role errors and catch; broadcast() namespace-not-found uses ctx ?? DEFAULT_CTX; sendToClient() already used logCtx for both error paths. Remaining LogController.log*(null, ...) in websocket.js are startup/background (initialize, createNamespace, Redis) with no request—left as null. view.js already passes req for view.load; only null usages are initialize/refreshViewRegistry/refreshSpaCache. No linter errors.
+
+
+============================================================
+2026-02-08 16:50
+
+- check vue.js if page js code needs update
+- check all hello examples if code-examples and architecture are up to date, fix if needed
+
+Reviewed hello-vue page JS and all hello code-examples/architecture. (1) Vue: Updated hello-vue/templates/code-examples.tmpl Section 3 to list actual template includes: overview.tmpl, todo-demo.tmpl, code-examples.tmpl, architecture.tmpl (was features.tmpl, code.tmpl, about.tmpl). (2) Hello-todo: Updated code-examples.shtml Model to use getCollection(), findAll(), getStats() and match site model; Controller to api() with data+stats (removed index/apiGetAll); View to HelloTodoApp with loadTodos/renderTodos and jPulse.api.call (no location.reload); adjusted Key Patterns and MPA note. (3) Hello-websocket: Updated code-examples.tmpl so onConnect sendToClient and onMessage broadcast use ctx; REST hybrid broadcast(..., null); Pattern B notes broadcast(..., ctx). (4) Hello-app-cluster code-examples and architecture verified; no changes. Vue routing and todo-demo JS were already correct; hello-app-cluster uses HelloTodoModel and Redis broadcast as documented.
+
+
+============================================================
+2026-02-08 17:15
+
+release prep
+
+- update work item as needed: @work-items.md (4780-4845) - is the title good?
+  release prep: update commit-message.txt, following the same format (don't commit); update cursor_log.txt (append, don't replace)
+
+Updated W-154 in work-items.md: set status to ✅ DONE; kept title "websocket: namespace as object, with conn param; logging with req or ctx" (clear and accurate); added completed note summarizing phases, code/files, and docs (noted jpulse-docs assets not edited due to cursorignore). Updated commit-message.txt in same format as W-153: W-154 v1.6.11 one-line subject, FEATURE paragraph, Objectives, Key Changes, Code Changes, Documentation, Work Item/Version/Date. Appended this entry to cursor_log.txt.
+
+
+============================================================

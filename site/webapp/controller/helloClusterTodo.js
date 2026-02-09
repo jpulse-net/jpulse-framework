@@ -3,13 +3,13 @@
  * @tagline         Collaborative Todo Demo Controller - Server-Side Broadcasting Pattern
  * @description     Full MVC pattern with database persistence and Redis broadcasting
  * @file            site/webapp/controller/helloClusterTodo.js
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import HelloTodoModel from '../model/helloTodo.js';
@@ -251,11 +251,13 @@ class HelloClusterTodoController {
             ? 'view:helloClusterTodo:list:changed'
             : 'view:helloClusterTodo:item:updated';
 
+        const ctx = global.RedisManager.getBroadcastContext(req);
         const payload = {
             action: action,
             user: userData,
             todo: todo, // Include the full todo object in the payload
-            uuid: clientUuid
+            uuid: clientUuid,
+            ctx: ctx
         };
 
         try {

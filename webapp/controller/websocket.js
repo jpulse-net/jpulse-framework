@@ -3,8 +3,8 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -22,6 +22,59 @@ const LogController = global.LogController;
 const CommonUtils = global.CommonUtils;
 const ViewController = global.ViewController;
 
+/** W-154 Phase 3: default context when none supplied (system / no user) */
+const DEFAULT_CTX = { username: '', ip: '0.0.0.0' };
+
+/**
+ * WebSocket namespace instance (W-154). Create via WebSocketController.createNamespace(path, options).
+ * Handlers receive a single conn object: onConnect(conn), onMessage(conn), onDisconnect(conn).
+ * conn = { clientId, user, ctx } for onConnect/onDisconnect; onMessage also has conn.message.
+ */
+class WebSocketNamespace {
+    constructor(path, options = {}) {
+        this.path = path;
+        this.requireAuth = options.requireAuth || false;
+        this.requireRoles = options.requireRoles || [];
+        this._onConnect = null;
+        this._onMessage = null;
+        this._onDisconnect = null;
+        this.clients = new Map();
+        this.stats = {
+            totalMessages: 0,
+            messagesPerHour: 0,
+            lastActivity: Date.now(),
+            messageTimestamps: []
+        };
+    }
+
+    onConnect(fn) {
+        this._onConnect = fn;
+        return this;
+    }
+
+    onMessage(fn) {
+        this._onMessage = fn;
+        return this;
+    }
+
+    onDisconnect(fn) {
+        this._onDisconnect = fn;
+        return this;
+    }
+
+    broadcast(data, ctx = null) {
+        return WebSocketController.broadcast(this.path, data, ctx);
+    }
+
+    sendToClient(clientId, data, ctx = null) {
+        return WebSocketController.sendToClient(clientId, this.path, data, ctx);
+    }
+
+    getStats() {
+        return WebSocketController._getNamespaceStats(this.path);
+    }
+}
+
 /**
  * WebSocket Controller - Enterprise-grade WebSocket infrastructure
  *
@@ -33,19 +86,16 @@ const ViewController = global.ViewController;
  * - Activity logging (ephemeral, last 100 messages)
  * - Standard API message format
  *
- * Usage:
- * Server-side (in controller):
- *   WebSocketController.registerNamespace('/api/1/ws/my-app', {
- *     requireAuth: false,
- *     onConnect: (client, user) => {},
- *     onMessage: (client, data, user) => {},
- *     onDisconnect: (client, user) => {}
- *   });
+ * Usage (W-154):
+ *   const ns = WebSocketController.createNamespace('/api/1/ws/my-app', { requireAuth: false });
+ *   ns.onConnect((conn) => {}).onMessage((conn) => {}).onDisconnect((conn) => {});
+ *   ns.broadcast(data); ns.sendToClient(clientId, data);
  *
+ * Message payload convention: use { type, data } for event payloads (data = event-specific body).
  * Client-side (in view):
  *   const ws = jPulse.ws.connect('/api/1/ws/my-app')
- *     .onMessage(data => console.log(data));
- *   ws.send({ type: 'action', payload: {...} });
+ *     .onMessage((msg) => { if (msg.success) use msg.data; });
+ *   ws.send({ type: 'action', data: {...} });
  */
 class WebSocketController {
 
@@ -101,8 +151,8 @@ class WebSocketController {
             this.wss = new WSServer({ noServer: true });
 
             // Handle upgrade requests (HTTP to WebSocket)
-            httpServer.on('upgrade', (request, socket, head) => {
-                this._handleUpgrade(request, socket, head);
+            httpServer.on('upgrade', (req, socket, head) => {
+                this._handleUpgrade(req, socket, head);
             });
 
             // Initialize Redis pub/sub for multi-instance coordination (optional)
@@ -143,112 +193,76 @@ class WebSocketController {
     }
 
     /**
-     * Register a WebSocket namespace
+     * Create a WebSocket namespace (W-154). Returns instance with .onConnect(fn).onMessage(fn).onDisconnect(fn) (chainable) and .broadcast()/.sendToClient()/.getStats().
+     * Handlers receive single conn: onConnect(conn), onMessage(conn), onDisconnect(conn). conn = { clientId, user, ctx }; onMessage conn also has message.
      * @param {string} path - Namespace path (must start with /api/1/ws/)
-     * @param {Object} options - Configuration options
-     * @returns {Object} Namespace handle for broadcasting
+     * @param {Object} options - { requireAuth?, requireRoles? }
+     * @returns {WebSocketNamespace}
      */
-    static registerNamespace(path, options = {}) {
+    static createNamespace(path, options = {}) {
         try {
-            // Validate path prefix (all WebSockets use /api/1/ws/* for consistency)
             if (!path.startsWith('/api/1/ws/')) {
                 throw new Error(`Namespace path must start with /api/1/ws/ (got: ${path})`);
             }
-
-            // Check if namespace already exists
             if (this.namespaces.has(path)) {
                 throw new Error(`Namespace ${path} is already registered`);
             }
-
-            // Create namespace configuration
-            const namespace = {
-                path,
-                requireAuth: options.requireAuth || false,
-                requireRoles: options.requireRoles || [],
-                onConnect: options.onConnect || null,
-                onMessage: options.onMessage || null,
-                onDisconnect: options.onDisconnect || null,
-                clients: new Map(), // clientId -> { ws, user, lastPing, lastPong }
-                stats: {
-                    totalMessages: 0,
-                    messagesPerHour: 0,
-                    lastActivity: Date.now(),
-                    messageTimestamps: [] // For calculating messages/hour
-                }
-            };
-
-            // Register namespace
+            const namespace = new WebSocketNamespace(path, options);
             this.namespaces.set(path, namespace);
-
-            LogController.logInfo(null, 'websocket.registerNamespace', `Registered namespace: ${path}`);
-
-            // Return handle for broadcasting
-            return {
-                broadcast: (data, fromUsername = '') => this.broadcast(path, data, fromUsername),
-                sendToClient: (clientId, data, fromUsername = '') => this.sendToClient(clientId, path, data, fromUsername),
-                getStats: () => this._getNamespaceStats(path)
-            };
-
+            LogController.logInfo(null, 'websocket.createNamespace', `Registered namespace: ${path}`);
+            return namespace;
         } catch (error) {
-            LogController.logError(null, 'websocket.registerNamespace', `error: ${error.message}`);
+            LogController.logError(null, 'websocket.createNamespace', `error: ${error.message}`);
             throw error;
         }
     }
 
     /**
-     * Broadcast message to all clients in namespace
+     * Broadcast message to all clients in namespace (W-154 Phase 3: payload includes ctx)
      * @param {string} namespacePath - Namespace path
-     * @param {Object} data - Data to broadcast
-     * @param {string} fromUsername - Optional username of message originator
+     * @param {Object} data - Data to broadcast ({ type, data } or similar)
+     * @param {Object|null} ctx - Context { username?, ip? }; default DEFAULT_CTX if null/undefined
      */
-    static async broadcast(namespacePath, data, fromUsername = '') {
+    static async broadcast(namespacePath, data, ctx = null) {
         const namespace = this.namespaces.get(namespacePath);
         if (!namespace) {
-            LogController.logError(null, 'websocket.broadcast', `error: Namespace not found: ${namespacePath}`);
+            LogController.logError(ctx, 'websocket.broadcast', `error: Namespace not found: ${namespacePath}`);
             return;
         }
 
-        // Add username to data
-        const dataWithUsername = {
-            ...data,
-            username: fromUsername
-        };
+        const resolvedCtx = ctx ?? DEFAULT_CTX;
+        const payload = { ...data, ctx: resolvedCtx };
 
         // Broadcast to local clients
-        this._localBroadcast(namespacePath, dataWithUsername);
+        this._localBroadcast(namespacePath, payload);
 
         // Publish to Redis for other instances (if Redis is available)
         if (global.RedisManager?.isRedisAvailable()) {
             try {
-                // W-076: Use RedisManager callback-based broadcasting
-                // Create channel name: controller:websocket:broadcast:{namespacePath}
-                // Remove leading slash and replace slashes with colons for clean channel names
                 const channelSuffix = namespacePath.replace(/^\//, '').replace(/\//g, ':');
                 const channel = `controller:websocket:broadcast:${channelSuffix}`;
-                global.RedisManager.publishBroadcast(channel, dataWithUsername);
-                LogController.logInfo(null, 'websocket.broadcast', `Published to Redis channel: ${channel}`);
+                global.RedisManager.publishBroadcast(channel, payload);
+                LogController.logInfo(ctx, 'websocket.broadcast', `Published to Redis channel: ${channel}`);
             } catch (error) {
-                LogController.logError(null, 'websocket.broadcast', `Redis broadcast failed: ${error.message}`);
-                // Continue with local broadcast even if Redis fails
+                LogController.logError(ctx, 'websocket.broadcast', `Redis broadcast failed: ${error.message}`);
             }
         } else {
-            // Redis not available - only local broadcasting (single instance mode)
-            LogController.logInfo(null, 'websocket.broadcast',
-                `Redis not available - single instance mode`);
+            LogController.logInfo(ctx, 'websocket.broadcast',
+                'Redis not available - single instance mode');
         }
     }
 
     /**
-     * Broadcast to local clients only (called by broadcast and Redis subscriber)
+     * Broadcast to local clients only (called by broadcast and Redis subscriber). Payload has ctx (W-154 Phase 3).
      * @private
      */
-    static _localBroadcast(namespacePath, dataWithUsername) {
+    static _localBroadcast(namespacePath, payload) {
         const namespace = this.namespaces.get(namespacePath);
         if (!namespace) {
             return;
         }
 
-        const message = this._formatMessage(true, dataWithUsername);
+        const message = this._formatMessage(true, payload);
         const messageStr = JSON.stringify(message);
 
         let sentCount = 0;
@@ -259,42 +273,36 @@ class WebSocketController {
             }
         });
 
-        // Update stats
         this._recordMessage(namespace);
 
-        // Log activity (skip ping/pong and only log if there are actual clients or Redis is enabled for cross-instance coordination)
-        if (dataWithUsername.type !== 'ping' && dataWithUsername.type !== 'pong' && (sentCount > 0 || this.redis.enabled)) {
-            LogController.logInfo(null, 'websocket._localBroadcast', `Broadcast to ${sentCount} clients in ${namespacePath} (from: ${dataWithUsername.username || 'system'})`);
+        if (payload.type !== 'ping' && payload.type !== 'pong' && (sentCount > 0 || this.redis.enabled)) {
+            LogController.logInfo(payload.ctx, 'websocket._localBroadcast',
+                `Broadcast to ${sentCount} clients in ${namespacePath} (from: ${payload.ctx?.username || 'system'})`);
         }
     }
 
     /**
-     * Send message to specific client
+     * Send message to specific client (W-154 Phase 3: payload includes ctx)
      * @param {string} clientId - Client ID
      * @param {string} namespacePath - Namespace path
      * @param {Object} data - Data to send
-     * @param {string} fromUsername - Optional username of message originator
+     * @param {Object|null} ctx - Context { username?, ip? }; default DEFAULT_CTX if null/undefined
      */
-    static sendToClient(clientId, namespacePath, data, fromUsername = '') {
+    static sendToClient(clientId, namespacePath, data, ctx = null) {
         const namespace = this.namespaces.get(namespacePath);
         if (!namespace) {
-            LogController.logError(null, 'websocket.sendToClient', `error: Namespace not found: ${namespacePath}`);
+            LogController.logError(ctx, 'websocket.sendToClient', `error: Namespace not found: ${namespacePath}`);
             return;
         }
 
         const client = namespace.clients.get(clientId);
         if (!client || client.ws.readyState !== 1) {
-            LogController.logError(null, 'websocket.sendToClient', `error: Client not found or not open: ${clientId}`);
+            LogController.logError(ctx, 'websocket.sendToClient', `error: Client not found or not open: ${clientId}`);
             return;
         }
 
-        // Add username to data
-        const dataWithUsername = {
-            ...data,
-            username: fromUsername
-        };
-
-        const message = this._formatMessage(true, dataWithUsername);
+        const payload = { ...data, ctx: ctx ?? DEFAULT_CTX };
+        const message = this._formatMessage(true, payload);
         client.ws.send(JSON.stringify(message));
 
         this._recordMessage(namespace);
@@ -430,32 +438,32 @@ class WebSocketController {
      * Handle WebSocket upgrade request
      * @private
      */
-    static _handleUpgrade(request, socket, head) {
+    static _handleUpgrade(req, socket, head) {
         try {
-            const urlParts = parseUrl(request.url, true);
+            const urlParts = parseUrl(req.url, true);
             const pathname = urlParts.pathname;
             const query = urlParts.query;
 
             // Find matching namespace
             const namespace = this.namespaces.get(pathname);
             if (!namespace) {
-                LogController.logError(null, 'websocket._handleUpgrade', `error: Unknown namespace: ${pathname}`);
+                LogController.logError(req, 'websocket._handleUpgrade', `error: Unknown namespace: ${pathname}`);
                 socket.destroy();
                 return;
             }
 
             // Parse session using middleware
             const res = {}; // Dummy response object
-            this.sessionMiddleware(request, res, () => {
-                // Session is now available in request.session
-                const user = request.session?.user || null;
+            this.sessionMiddleware(req, res, () => {
+                // Session is now available in req.session
+                const user = req.session?.user || null;
                 const username = user?.username || '';
 
-                this._completeUpgrade(request, socket, head, namespace, user, username, query);
+                this._completeUpgrade(req, socket, head, namespace, user, username, query);
             });
 
         } catch (error) {
-            LogController.logError(null, 'websocket._handleUpgrade', `error: ${error.message}`);
+            LogController.logError(req, 'websocket._handleUpgrade', `error: ${error.message}`);
             socket.destroy();
         }
     }
@@ -464,19 +472,19 @@ class WebSocketController {
      * Complete WebSocket upgrade after session is parsed
      * @private
      */
-    static _completeUpgrade(request, socket, head, namespace, user, username, query) {
+    static _completeUpgrade(req, socket, head, namespace, user, username, query) {
         try {
 
             // Check authentication using AuthController for consistency
-            if (namespace.requireAuth && !AuthController.isAuthenticated(request)) {
-                LogController.logError(null, 'websocket._completeUpgrade', `error: Authentication required for ${namespace.path}`);
+            if (namespace.requireAuth && !AuthController.isAuthenticated(req)) {
+                LogController.logError(req, 'websocket._completeUpgrade', `error: Authentication required for ${namespace.path}`);
                 socket.destroy();
                 return;
             }
 
             // Check roles using AuthController for consistency
-            if (namespace.requireRoles.length > 0 && !AuthController.isAuthorized(request, namespace.requireRoles)) {
-                LogController.logError(null, 'websocket._completeUpgrade', `error: Insufficient roles for ${namespace.path}`);
+            if (namespace.requireRoles.length > 0 && !AuthController.isAuthorized(req, namespace.requireRoles)) {
+                LogController.logError(req, 'websocket._completeUpgrade', `error: Insufficient roles for ${namespace.path}`);
                 socket.destroy();
                 return;
             }
@@ -484,13 +492,18 @@ class WebSocketController {
             // Extract optional client-provided UUID
             const clientUUID = query.uuid || null;
 
+            // Extract IP for logging (W-154); use global at call time in case module loaded before bootstrap
+            const commonUtils = global.CommonUtils;
+            const requestContext = commonUtils ? commonUtils.getLogContext(req) : {};
+            const ip = requestContext.ip || req.socket?.remoteAddress || req.connection?.remoteAddress || '0.0.0.0';
+
             // Complete WebSocket handshake
-            this.wss.handleUpgrade(request, socket, head, (ws) => {
-                this._onConnection(ws, namespace, user, username, clientUUID);
+            this.wss.handleUpgrade(req, socket, head, (ws) => {
+                this._onConnection(ws, namespace, user, username, clientUUID, ip);
             });
 
         } catch (error) {
-            LogController.logError(null, 'websocket._completeUpgrade', `error: ${error.message}`);
+            LogController.logError(req, 'websocket._completeUpgrade', `error: ${error.message}`);
             socket.destroy();
         }
     }
@@ -499,21 +512,23 @@ class WebSocketController {
      * Handle new WebSocket connection
      * @private
      */
-    static _onConnection(ws, namespace, user, username, clientUUID) {
+    static _onConnection(ws, namespace, user, username, clientUUID, ip = '0.0.0.0') {
         // Use client-provided UUID if available, otherwise generate one
         const clientId = clientUUID || this._generateClientId();
 
-        // Store client
+        // Store client with ctx for W-154 (username + IP for logging; extensible for future use)
+        const ctx = { username: username || '(guest)', ip: ip || '0.0.0.0' };
         const client = {
             ws,
             user,
             username,
+            ctx,
             lastPing: Date.now(),
             lastPong: Date.now()
         };
         namespace.clients.set(clientId, client);
 
-        LogController.logInfo(null, 'websocket._onConnection', `Client ${clientId} (${username || 'anonymous'}) connected to ${namespace.path}`);
+        LogController.logInfo(ctx, 'websocket._onConnection', `Client ${clientId} (${username || 'anonymous'}) connected to ${namespace.path}`);
 
         // Send welcome message
         ws.send(JSON.stringify(this._formatMessage(true, {
@@ -523,12 +538,13 @@ class WebSocketController {
             username
         })));
 
-        // Call onConnect handler
-        if (namespace.onConnect) {
+        // Call onConnect handler (W-154: single conn param)
+        if (namespace._onConnect) {
             try {
-                namespace.onConnect(clientId, user);
+                const conn = { clientId, user, ctx };
+                namespace._onConnect(conn);
             } catch (error) {
-                LogController.logError(null, 'websocket._onConnection', `onConnect error: ${error.message}`);
+                LogController.logError(ctx, 'websocket._onConnection', `onConnect error: ${error.message}`);
             }
         }
 
@@ -549,7 +565,7 @@ class WebSocketController {
 
         // Handle errors
         ws.on('error', (error) => {
-            LogController.logError(null, 'websocket._onConnection', `WebSocket error: ${error.message}`);
+            LogController.logError(ctx, 'websocket._onConnection', `WebSocket error: ${error.message}`);
         });
     }
 
@@ -559,6 +575,8 @@ class WebSocketController {
      * @private
      */
     static async _onMessage(clientId, namespace, user, username, data) {
+        const client = namespace.clients.get(clientId);
+        const ctx = client?.ctx || null;
         try {
             const message = JSON.parse(data.toString());
 
@@ -573,15 +591,16 @@ class WebSocketController {
             // Update stats
             this._recordMessage(namespace);
 
-            // Call onMessage handler (may be async)
-            if (namespace.onMessage) {
+            // Call onMessage handler (W-154: single conn param; may be async)
+            if (namespace._onMessage) {
                 try {
-                    const result = namespace.onMessage(clientId, message, user);
+                    const conn = { clientId, message, user, ctx };
+                    const result = namespace._onMessage(conn);
                     if (result != null && typeof result.then === 'function') {
                         await result;
                     }
                 } catch (error) {
-                    LogController.logError(null, 'websocket._onMessage', `onMessage error: ${error.message}`);
+                    LogController.logError(ctx, 'websocket._onMessage', `onMessage error: ${error.message}`);
                     // Send error back to client
                     const client = namespace.clients.get(clientId);
                     if (client) {
@@ -593,13 +612,13 @@ class WebSocketController {
             }
 
         } catch (error) {
-            LogController.logError(null, 'websocket._onMessage', `error: ${error.message}`);
+            LogController.logError(ctx, 'websocket._onMessage', `error: ${error.message}`);
             // Send error back to client
-            const client = namespace.clients.get(clientId);
-            if (client) {
+            const clientForSend = namespace.clients.get(clientId);
+            if (clientForSend) {
                 const errorMsg = this._formatMessage(false, null, 'Invalid message format', 400);
                 errorMsg.username = ''; // System message
-                client.ws.send(JSON.stringify(errorMsg));
+                clientForSend.ws.send(JSON.stringify(errorMsg));
             }
         }
     }
@@ -609,18 +628,21 @@ class WebSocketController {
      * @private
      */
     static _onDisconnect(clientId, namespace, user) {
-        namespace.clients.delete(clientId);
+        const client = namespace.clients.get(clientId);
+        const ctx = client?.ctx || null;
 
-        LogController.logInfo(null, 'websocket._onDisconnect', `Client ${clientId} disconnected from ${namespace.path}`);
-
-        // Call onDisconnect handler
-        if (namespace.onDisconnect) {
+        // Call onDisconnect handler first (W-154: single conn param) so handler can e.g. clear client.statsInterval
+        if (namespace._onDisconnect) {
             try {
-                namespace.onDisconnect(clientId, user);
+                const conn = { clientId, user, ctx };
+                namespace._onDisconnect(conn);
             } catch (error) {
-                LogController.logError(null, 'websocket._onDisconnect', `onDisconnect error: ${error.message}`);
+                LogController.logError(ctx, 'websocket._onDisconnect', `onDisconnect error: ${error.message}`);
             }
         }
+
+        namespace.clients.delete(clientId);
+        LogController.logInfo(ctx, 'websocket._onDisconnect', `Client ${clientId} disconnected from ${namespace.path}`);
     }
 
     /**
@@ -635,7 +657,7 @@ class WebSocketController {
                     const timeSincePong = Date.now() - client.lastPong;
                     if (timeSincePong > this.websocketConf.pongTimeout + this.websocketConf.pingInterval) {
                         // Client is not responding, terminate connection
-                        LogController.logInfo(null, 'websocket._startHealthChecks', `Terminating unresponsive client ${clientId}`);
+                        LogController.logInfo(client.ctx || null, 'websocket._startHealthChecks', `Terminating unresponsive client ${clientId}`);
                         client.ws.terminate();
                         namespace.clients.delete(clientId);
                         return;
@@ -769,65 +791,56 @@ class WebSocketController {
      * @private
      */
     static _registerAdminStatsNamespace() {
-        this.registerNamespace('/api/1/ws/jpulse-ws-status', {
+        const path = '/api/1/ws/jpulse-ws-status';
+        const ns = this.createNamespace(path, {
             requireAuth: true,
-            requireRoles: ConfigModel.getEffectiveAdminRoles(),
-            onConnect: (clientId, user) => {
-                // Send initial stats (extract from metrics)
-                const metrics = this.getMetrics();
-                const stats = {
-                    uptime: metrics.stats.uptime,
-                    totalMessages: metrics.stats.totalMessages,
-                    namespaces: metrics.stats.namespaces,
-                    activityLog: metrics.stats.activityLog
-                };
-                this.sendToClient(clientId, '/api/1/ws/jpulse-ws-status', {
+            requireRoles: ConfigModel.getEffectiveAdminRoles()
+        });
+        ns.onConnect((conn) => {
+            const metrics = this.getMetrics();
+            const stats = {
+                uptime: metrics.stats.uptime,
+                totalMessages: metrics.stats.totalMessages,
+                namespaces: metrics.stats.namespaces,
+                activityLog: metrics.stats.activityLog
+            };
+            ns.sendToClient(conn.clientId, { type: 'stats-update', data: stats }, conn.ctx);
+
+            const interval = setInterval(() => {
+                const namespace = this.namespaces.get(path);
+                const client = namespace?.clients.get(conn.clientId);
+                if (!client || client.ws.readyState !== 1) {
+                    clearInterval(interval);
+                    return;
+                }
+                const m = this.getMetrics();
+                ns.sendToClient(conn.clientId, {
                     type: 'stats-update',
-                    data: stats
-                });
-
-                // Set up interval to send updates every 5 seconds
-                const interval = setInterval(() => {
-                    const namespace = this.namespaces.get('/api/1/ws/jpulse-ws-status');
-                    const client = namespace?.clients.get(clientId);
-                    if (!client || client.ws.readyState !== 1) {
-                        clearInterval(interval);
-                        return;
+                    data: {
+                        uptime: m.stats.uptime,
+                        totalMessages: m.stats.totalMessages,
+                        namespaces: m.stats.namespaces,
+                        activityLog: m.stats.activityLog
                     }
+                }, null);
+            }, 5000);
 
-                    const metrics = this.getMetrics();
-                    const stats = {
-                        uptime: metrics.stats.uptime,
-                        totalMessages: metrics.stats.totalMessages,
-                        namespaces: metrics.stats.namespaces,
-                        activityLog: metrics.stats.activityLog
-                    };
-                    this.sendToClient(clientId, '/api/1/ws/jpulse-ws-status', {
-                        type: 'stats-update',
-                        data: stats
-                    });
-                }, 5000);
-
-                // Store interval on client for cleanup
-                const namespace = this.namespaces.get('/api/1/ws/jpulse-ws-status');
-                const client = namespace.clients.get(clientId);
-                if (client) {
-                    client.statsInterval = interval;
-                }
-            },
-            onMessage: (clientId, message, user) => {
-                // Log admin activity messages (like admin-connected)
-                if (message.type === 'admin-connected') {
-                    LogController.logInfo(null, 'websocket._registerAdminStatsNamespace', `Admin monitoring connected: ${message.message}`);
-                }
-            },
-            onDisconnect: (clientId, user) => {
-                // Clean up interval
-                const namespace = this.namespaces.get('/api/1/ws/jpulse-ws-status');
-                const client = namespace?.clients.get(clientId);
-                if (client && client.statsInterval) {
-                    clearInterval(client.statsInterval);
-                }
+            const namespace = this.namespaces.get(path);
+            const client = namespace.clients.get(conn.clientId);
+            if (client) {
+                client.statsInterval = interval;
+            }
+        });
+        ns.onMessage((conn) => {
+            if (conn.message.type === 'admin-connected') {
+                LogController.logInfo(conn.ctx, 'websocket._registerAdminStatsNamespace', `Admin monitoring connected: ${conn.message.message}`);
+            }
+        });
+        ns.onDisconnect((conn) => {
+            const namespace = this.namespaces.get(path);
+            const c = namespace?.clients.get(conn.clientId);
+            if (c && c.statsInterval) {
+                clearInterval(c.statsInterval);
             }
         });
     }
@@ -838,26 +851,23 @@ class WebSocketController {
      * @private
      */
     static _registerTestNamespace() {
-        this.registerNamespace('/api/1/ws/jpulse-ws-test', {
-            requireAuth: true,
-            onConnect: (clientId, user) => {
-                LogController.logInfo(null, 'websocket._registerTestNamespace', `Test client connected: ${clientId}`);
-            },
-            onMessage: (clientId, message, user) => {
-                // Echo messages back and broadcast to all clients
-                LogController.logInfo(null, 'websocket._registerTestNamespace', `Test message received: ${JSON.stringify(message)}`);
-
-                // Broadcast to all clients in namespace
-                this.broadcast('/api/1/ws/jpulse-ws-test', {
-                    type: 'echo',
-                    originalMessage: message,
+        const ns = this.createNamespace('/api/1/ws/jpulse-ws-test', { requireAuth: true });
+        ns.onConnect((conn) => {
+            LogController.logInfo(conn.ctx, 'websocket._registerTestNamespace', `Test client connected: ${conn.clientId}`);
+        });
+        ns.onMessage((conn) => {
+            LogController.logInfo(conn.ctx, 'websocket._registerTestNamespace', `Test message received: ${JSON.stringify(conn.message)}`);
+            ns.broadcast({
+                type: 'echo',
+                data: {
+                    originalMessage: conn.message,
                     serverTimestamp: new Date().toISOString(),
-                    clientId: clientId
-                }, message.username || user?.username || '');
-            },
-            onDisconnect: (clientId, user) => {
-                LogController.logInfo(null, 'websocket._registerTestNamespace', `Test client disconnected: ${clientId}`);
-            }
+                    clientId: conn.clientId
+                }
+            }, conn.ctx);
+        });
+        ns.onDisconnect((conn) => {
+            LogController.logInfo(conn.ctx, 'websocket._registerTestNamespace', `Test client disconnected: ${conn.clientId}`);
         });
     }
 

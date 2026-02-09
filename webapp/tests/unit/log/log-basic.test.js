@@ -3,13 +3,13 @@
  * @tagline         Unit tests for log model and controller basic functionality
  * @description     This file contains unit tests for the log model and controller
  * @file            webapp/tests/unit/log/log-basic.test.js
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import { describe, test, expect, beforeEach, afterEach, beforeAll, jest } from '@jest/globals';
@@ -488,6 +488,39 @@ describe('Log Controller Context Extraction', () => {
         expect(context.id).toBe(0);
     });
 
+    test('should accept plain context object (W-154: e.g. from WebSocket)', () => {
+        const ctx = { username: 'wsuser', ip: '10.0.0.1' };
+        const context = CommonUtils.getLogContext(ctx);
+
+        expect(context.username).toBe('wsuser');
+        expect(context.ip).toBe('10.0.0.1');
+        expect(context.vm).toBe(0);
+        expect(context.id).toBe(0);
+    });
+
+    test('should accept plain context with only username (ip defaults)', () => {
+        const ctx = { username: 'alice' };
+        const context = CommonUtils.getLogContext(ctx);
+
+        expect(context.username).toBe('alice');
+        expect(context.ip).toBe('0.0.0.0');
+    });
+
+    test('should treat object with session as request not context', () => {
+        const reqLike = { session: { user: { username: 'fromsession' } }, ip: '127.0.0.1' };
+        const context = CommonUtils.getLogContext(reqLike);
+
+        expect(context.username).toBe('fromsession');
+        expect(context.ip).toBe('127.0.0.1');
+    });
+
+    test('should format logMessage with context object (W-154)', () => {
+        const ctx = { username: 'wsuser', ip: '10.0.0.2' };
+        const line = CommonUtils.formatLogMessage('ws.scope', 'Test message', 'info', ctx);
+
+        expect(line).toMatch(/^-\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\tinfo\twsuser\tip:10\.0\.0\.2\tvm:0\tid:0\tws\.scope\tTest message$/);
+    });
+
     test('should format logInfo log correctly', () => {
         const mockReq = {
             session: { user: { username: 'testuser' } },
@@ -522,6 +555,14 @@ describe('Log Controller Context Extraction', () => {
 
         expect(consoleLogs).toHaveLength(1);
         expect(consoleLogs[0]).toMatch(/^-\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\tERROR\ttestuser\tip:192\.168\.1\.100\tvm:0\tid:0\ttest\.scope\terror: Error message$/);
+    });
+
+    test('should format logInfo with context object (W-154)', () => {
+        const ctx = { username: 'wsuser', ip: '10.0.0.3' };
+        LogController.logInfo(ctx, 'ws.scope', 'WebSocket message');
+
+        expect(consoleLogs).toHaveLength(1);
+        expect(consoleLogs[0]).toMatch(/^-\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\tinfo\twsuser\tip:10\.0\.0\.3\tvm:0\tid:0\tws\.scope\tWebSocket message$/);
     });
 
     test('should format timestamp correctly', () => {

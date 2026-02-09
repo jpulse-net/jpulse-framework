@@ -4,13 +4,13 @@
  * @tagline         Emoji cursor demo component of the WebSocket demo
  * @description     This component is a emoji cursor app to demo the WebSocket features
  * @file            site/webapp/view/hello-websocket/templates/emoji-demo.tmpl
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 window.helloWebSocketViews = window.helloWebSocketViews || {};
@@ -41,11 +41,11 @@ window.helloWebSocketViews.EmojiDemo = {
             if (this.emojiWs) return;
 
             this.emojiWs = jPulse.ws.connect('/api/1/ws/hello-emoji')
-                .onMessage((data, message) => {
-                    if (data) {
-                        this.handleEmojiMessage(data);
+                .onMessage((msg) => {
+                    if (msg.success) {
+                        this.handleEmojiMessage(msg.data);
                     } else {
-                        console.error('Emoji WS error:', message.error);
+                        console.error('Emoji WS error:', msg.error);
                     }
                 })
                 .onStatusChange((status, oldStatus) => {
@@ -72,35 +72,33 @@ window.helloWebSocketViews.EmojiDemo = {
             }
         },
 
-        handleEmojiMessage(data) {
-            if (data.type === 'welcome') {
-                this.userCount = data.userCount || 1;
-            } else if (data.type === 'user-emoji') {
-                // Another user selected an emoji
-                if (data.clientId && data.username) {
-                    const existing = this.otherUsers.get(data.clientId) || {};
-                    this.otherUsers.set(data.clientId, {
+        handleEmojiMessage(msg) {
+            const payload = msg.data ?? {};
+            if (msg.type === 'welcome') {
+                this.userCount = payload.userCount ?? 1;
+            } else if (msg.type === 'user-emoji') {
+                if (payload.clientId && payload.username) {
+                    const existing = this.otherUsers.get(payload.clientId) || {};
+                    this.otherUsers.set(payload.clientId, {
                         ...existing,
-                        username: data.username,
-                        emoji: data.emoji
+                        username: payload.username,
+                        emoji: payload.emoji
                     });
                 }
-            } else if (data.type === 'cursor') {
-                // Another user moved their cursor
-                if (data.clientId && data.username) {
-                    this.otherUsers.set(data.clientId, {
-                        username: data.username,
-                        emoji: data.emoji,
-                        x: data.x,
-                        y: data.y
+            } else if (msg.type === 'cursor') {
+                if (payload.clientId && payload.username) {
+                    this.otherUsers.set(payload.clientId, {
+                        username: payload.username,
+                        emoji: payload.emoji,
+                        x: payload.x,
+                        y: payload.y
                     });
                 }
-            } else if (data.type === 'user-left') {
-                // Another user disconnected
-                if (data.clientId) {
-                    this.otherUsers.delete(data.clientId);
+            } else if (msg.type === 'user-left') {
+                if (payload.clientId) {
+                    this.otherUsers.delete(payload.clientId);
                 }
-                this.userCount = data.userCount || 0;
+                this.userCount = payload.userCount ?? 0;
             }
         },
 

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.10
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.11
 
 **For Site Administrators & Site Developers**
 
@@ -227,6 +227,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.11 - WebSocket namespace as object, conn param; logging with ctx (W-154)**: WebSocket API: `createNamespace(path, options?)`; handlers receive single **conn** (`{ clientId, user, ctx }`); `broadcast(data, ctx)`, `sendToClient(clientId, data, ctx)`; payload `{ type, data, ctx }`. LogController/WebSocket use `getLogContext(reqOrContext)`; client `onMessage(message)` with `message.success`, `message.data`. W-154, 2026-02-08
 - ✅ **Version 1.6.10 - Auth utility functions for role checks (W-153)**: Symmetrical AuthController utilities: request-based `isAdmin(req)` and `isAuthorized(req, roleOrRoles)` (single string or array); user-object-based `userIsAdmin(user)` and `userIsAuthorized(user, roleOrRoles)` for use in models/utilities. Hides `ConfigModel.getEffectiveAdminRoles()` detail. Unit tests for all four. W-153, 2026-02-07
 - ✅ **Version 1.6.9 - Fix database name in startup log (W-152)**: The "Database: ..." startup log now shows the actual DB name from deployment config (`appConfig.deployment[mode].db`) instead of the wrong fallback. W-152, 2026-02-06
 - ✅ **Version 1.6.8 - jpSelect Widget (W-151)**: Enhanced single/multi-select with optional search, select all/clear all, and checkboxes for multi. Native `<select>` stays source of truth; setAllValues/getAllValues and setFormData/getFormData work with jpSelect. Multi-select trigger shows comma-separated labels when they fit, else "N selected" or "All selected" (i18n separator). initAll wires `select[data-jpselect]`; demo in UI Widgets. W-151, 2026-02-05

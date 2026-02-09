@@ -4,13 +4,13 @@
  * @tagline         Collaborative to-do demo component
  * @description     Collaborative to-do list demo component of the WebSocket demo
  * @file            site/webapp/view/hello-websocket/templates/todo-demo.tmpl
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 window.helloWebSocketViews = window.helloWebSocketViews || {};
@@ -34,11 +34,11 @@ window.helloWebSocketViews.TodoDemo = {
 
             // Connect to WebSocket for live updates
             this.todoWs = jPulse.ws.connect('/api/1/ws/hello-todo')
-                .onMessage((data, message) => {
-                    if (data) {
-                        this.handleTodoMessage(data);
+                .onMessage((msg) => {
+                    if (msg.success) {
+                        this.handleTodoMessage(msg.data);
                     } else {
-                        console.error('Todo WS error:', message.error);
+                        console.error('Todo WS error:', msg.error);
                     }
                 })
                 .onStatusChange((status, oldStatus) => {
@@ -66,33 +66,31 @@ window.helloWebSocketViews.TodoDemo = {
             }
         },
 
-        handleTodoMessage(data) {
-            if (data.type === 'welcome') {
-                this.todoUserCount = data.userCount || 1;
-            } else if (data.type === 'todo-created') {
-                // Add new todo to list (if not already present)
-                const exists = this.todos.find(t => t._id === data.todo._id);
-                if (!exists) {
-                    this.todos.unshift(data.todo);
-                    jPulse.UI.toast.show(`${data.username || 'Someone'} added a todo`, 'info');
+        handleTodoMessage(msg) {
+            const payload = msg.data ?? {};
+            if (msg.type === 'welcome') {
+                this.todoUserCount = payload.userCount ?? 1;
+            } else if (msg.type === 'todo-created') {
+                const exists = this.todos.find(t => t._id === payload.todo?._id);
+                if (!exists && payload.todo) {
+                    this.todos.unshift(payload.todo);
+                    jPulse.UI.toast.show(`${payload.username || 'Someone'} added a todo`, 'info');
                 }
-            } else if (data.type === 'todo-updated') {
-                // Update existing todo
-                const index = this.todos.findIndex(t => t._id === data.todo._id);
-                if (index !== -1) {
-                    this.todos[index] = data.todo;
-                    const action = data.todo.completed ? 'completed' : 'reopened';
-                    jPulse.UI.toast.show(`${data.username || 'Someone'} ${action} a todo`, 'info');
+            } else if (msg.type === 'todo-updated') {
+                const index = this.todos.findIndex(t => t._id === payload.todo?._id);
+                if (index !== -1 && payload.todo) {
+                    this.todos[index] = payload.todo;
+                    const action = payload.todo.completed ? 'completed' : 'reopened';
+                    jPulse.UI.toast.show(`${payload.username || 'Someone'} ${action} a todo`, 'info');
                 }
-            } else if (data.type === 'todo-deleted') {
-                // Remove deleted todo
-                const index = this.todos.findIndex(t => t._id === data.todoId);
+            } else if (msg.type === 'todo-deleted') {
+                const index = this.todos.findIndex(t => t._id === payload.todoId);
                 if (index !== -1) {
                     this.todos.splice(index, 1);
-                    jPulse.UI.toast.show(`${data.username || 'Someone'} deleted a todo`, 'info');
+                    jPulse.UI.toast.show(`${payload.username || 'Someone'} deleted a todo`, 'info');
                 }
-            } else if (data.type === 'user-left') {
-                this.todoUserCount = data.userCount || 0;
+            } else if (msg.type === 'user-left') {
+                this.todoUserCount = payload.userCount ?? 0;
             }
         },
 

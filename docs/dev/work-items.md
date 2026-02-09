@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.10
+# jPulse Docs / Dev / Work Items v1.6.11
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4751,17 +4751,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/app.js`:
     - In the server listen callback, set dbName as `appConfig.deployment?.[mode]?.db || 'jp-dev'` so the log line "Database: ${dbName} (${dbMode} mode)" matches the DB used by the database module (which already uses deployment[mode].db).
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-153, v1.6.10, 2026-02-07: auth: utility functions for common role checks
 - status: ✅ DONE
 - type: Feature
@@ -4786,6 +4775,103 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-154, v1.6.11, 2026-02-08: websocket: connection object for handlers; ctx in ws & pub/sub; logging with req or ctx
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - (1) LogController accepts Express req or context object; WebSocket captures username and IP per client for logging
+  - (2) WebSocket API: namespace as object (createNamespace), handlers receive single conn param; config at creation; optional chaining
+  - (3) Payload { type, data, ctx } with ctx mandatory at top level; broadcast(data, ctx); Redis and logging use payload.ctx
+- features:
+  - phase 1:
+    - "req or context" for logging;
+    - client.ctx on each WebSocket client (ctx = { username?, ip? });
+    - framework uses it in all client-scoped log calls
+  - phase 2:
+    - createNamespace(path, options?) returns WebSocketNamespace instance
+    - handlers onConnect(conn), onMessage(conn), onDisconnect(conn)
+    - conn = { clientId, user, ctx } (onMessage also has message)
+    - config (requireAuth, requireRoles) at creation
+    - .onConnect/.onMessage/.onDisconnect return this for optional chaining
+  - phase 3:
+    - app payload { type, data, ctx }; ctx mandatory at top level only; default ctx { username: '', ip: '0.0.0.0' }
+    - broadcast(data, ctx), sendToClient(clientId, data, ctx); handlers pass conn.ctx
+    - Redis: same payload (with ctx) published and received; _localBroadcast uses payload.ctx for logging
+    - jPulse.appCluster.broadcast.*: no public API change; relay wire format { type, data, ctx }
+  - docs to update:
+    - docs/websockets.md, docs/api-reference.md, docs/README.md, docs/front-end-development.md
+    - webapp/static/assets/jpulse-docs/websockets.md, genai-instructions.md, api-reference.md, front-end-development.md
+    - site/webapp/view/hello-websocket/templates/code-examples.tmpl, overview.tmpl, architecture.tmpl
+  - health controller:
+    - uses WebSocketController.getMetrics() only
+    - no migration
+    - verify getMetrics() remains on controller
+- deliverables:
+  - phase 1 — Log context and WebSocket ctx:
+    - `webapp/utils/common.js`: getLogContext(reqOrContext) — if Express shape (session/headers) keep current; else plain { username?, ip? } as context; formatLogMessage(..., reqOrContext) unchanged
+    - `webapp/controller/log.js`: logChange and others already pass first arg; ensure logChange uses getLogContext(reqOrContext).username
+    - `webapp/controller/websocket.js`: _completeUpgrade extract IP (getLogContext(request).ip), pass to _onConnection; _onConnection set client.ctx = { username, ip }; all client-scoped LogController calls use client.ctx
+    - Tests: getLogContext/formatLogMessage with context object; existing req tests pass
+  - Phase 2 — namespace as object, conn param:
+    - `webapp/controller/websocket.js`:
+     - add WebSocketNamespace class (same file)
+     - createNamespace(path, options?) creates instance, registers in namespaces map, returns it
+     - instance: path, requireAuth, requireRoles (from options), clients, stats, onConnect(fn), onMessage(fn), onDisconnect(fn) (setters return this), broadcast(), sendToClient(), getStats()
+     - remove registerNamespace
+     - build conn = { clientId, user, ctx } or { clientId, message, user, ctx }; call handler(conn)
+     - internal namespaces (_registerAdminStatsNamespace, _registerTestNamespace) use createNamespace + .onConnect(...).onMessage(...).onDisconnect(...)
+    - `webapp/controller/appCluster.js`:
+      - createNamespace(path), set handlers to (conn)
+      - handleConnect/handleMessage/handleDisconnect(conn)
+      - use conn.clientId, conn.user, conn.ctx, conn.message
+      - LogController.logInfo(conn.ctx, ...)
+    - `site/webapp/controller/helloWebsocket.js`:
+      - three namespaces to createNamespace + .onConnect(...).onMessage(...).onDisconnect(...)
+      - handlers (conn)
+      - use conn.clientId, conn.user, conn.ctx, conn.message
+      - LogController.logInfo(conn.ctx, ...)
+    - tests: websocket.test.js — createNamespace, conn shape assertions; _onConnection/_onMessage/_onDisconnect pass conn
+    - docs: update all listed docs for createNamespace, conn param, and (where relevant) req or context for logging
+  - Phase 3 — payload ctx mandatory, broadcast(data, ctx), Redis aligned:
+    - `webapp/controller/websocket.js`: payload shape { type, data, ctx }; ctx mandatory (default { username: '', ip: '0.0.0.0' }); broadcast(data, ctx), sendToClient(clientId, data, ctx); build payload as { ...data, ctx }; publish same payload to Redis; _localBroadcast(namespacePath, payload) uses payload.ctx for LogController.logInfo
+    - all call sites (helloWebsocket, appCluster, internal namespaces): pass conn.ctx (or default) to broadcast/sendToClient
+    - `webapp/controller/appCluster.js`: relay message format { type, data, ctx }; ctx mandatory (default when from REST/Redis); no change to jPulse.appCluster.broadcast.subscribe/publish or callback(data) signature
+    - client/templates: msg.data.ctx available; demos and docs updated for payload shape
+    - docs: payload { type, data, ctx }, default ctx, broadcast(data, ctx)
+    - Redis caching: out of scope — cache key/value unchanged; optional convention: store { data, ctx? } when attaching context to a cached object
+
+
+
+### W-155: websocket: dynamic namespace per resource (e.g. one namespace per map for bubblemap CRUD)
+- status: 🕑 PENDING
+- type: Feature
+- design: docs/dev/design/W-154-websocket-namespace-as-object.md (Use case: Bubblemap, Option 2); docs/dev/design/W-155-websocket-dynamic-namespace.md
+- objectives:
+  - Enable CRUD over WebSocket scoped per resource (e.g. per mapId) with one namespace per resource
+  - Natural broadcast scoping (only clients on that resource get updates); no client→resourceId tracking in app code
+  - Scale to tens/hundreds of active resources (e.g. maps with ~500 nodes each)
+- features:
+  - Option 2a (pre-create): ensure namespace exists when user opens resource (e.g. map view load or REST get map); client connects to /api/1/ws/bubblemap/:mapId; no framework change
+  - Option 2b (optional): framework path-pattern or get-or-create at upgrade so namespace is created on first connect (lazy); requires upgrade handler change to match pattern and resolve resourceId
+  - Shared handler logic for all dynamic namespaces (e.g. one onConnect/onMessage/onDisconnect factory that receives namespace path or mapId)
+  - Authz at connect (user can access this map); optional per-message validation
+  - Optional: namespace teardown when resource deleted and no clients (or leave namespaces until restart)
+- deliverables:
+  - Framework (only if 2b): websocket.js _handleUpgrade support path pattern (e.g. /api/1/ws/bubblemap/*), extract resourceId, get-or-create namespace, run authz before upgrade; OR document 2a-only and no framework change
+  - App (bubblemap or reference): ensureNamespace(mapId) called when map is opened (view load or REST); createNamespace(/api/1/ws/bubblemap/${mapId}) if not exists; shared handler factory for onConnect/onMessage/onDisconnect; bubble CRUD over WS (create/update/delete, persist, broadcast); client connect to path with mapId, send CRUD messages with { type, data }
+  - Authz: validate map access at connect (and optionally per message)
+  - Docs: dynamic namespace pattern (when to create, lifecycle), reference W-154 bubblemap section
+  - Tests: ensureNamespace / get-or-create behavior; integration test WS CRUD per map
+- effort:
+  - Option 2a only (pre-create, no framework change): app ensureNamespace + shared handlers + CRUD + client + authz ~4–5 d; docs ~0.5 d; tests ~1 d. Total **~5.5–6.5 d (small)**.
+  - Option 2b (framework get-or-create): framework upgrade path-pattern + get-or-create + authz hook ~1.5–2 d; app (handlers + CRUD + client) ~3.5 d; docs + tests ~1.5 d. Total **~6.5–7 d (small–medium)**.
+
+
+
+
 ### Pending
 
 
@@ -4793,7 +4879,6 @@ old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
-- /jpulse-docs/front-end-development#ui-widgets-overview needs jPulse.UI.input docs
 
 ### Potential next items:
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
@@ -4812,7 +4897,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-153, v1.6.10, 2026-02-07
+- assume release: W-154, v1.6.11, 2026-02-08
 - update deliverables in W-153 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -4824,12 +4909,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.10
+node bin/bump-version.js 1.6.11
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.10
+git tag v1.6.11
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

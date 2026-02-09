@@ -4,13 +4,13 @@
  * @tagline         Code Examples for To-Do MVC Demo
  * @description     Model, View, and Controller code snippets
  * @file            site/webapp/view/hello-todo/code-examples.shtml
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -53,54 +53,61 @@
 
 import { ObjectId } from 'mongodb';
 
+const database = global.Database;
+
 class HelloTodoModel {
-    // Get all todos for a user
-    static async getAll(username) {
-        const collection = global.dbCollections.helloTodos;
-        return await collection.find({ username })
-            .sort({ createdAt: -1 })
-            .toArray();
+    static getCollection() {
+        return database.getDb().collection('helloTodos');
     }
 
-    // Create a new todo
+    // Find all todos, sorted by creation date (newest first)
+    static async findAll() {
+        const collection = this.getCollection();
+        return await collection.find({}).sort({ createdAt: -1 }).toArray();
+    }
+
+    // Create a new todo (validates and applies defaults in full implementation)
     static async create(todoData) {
-        const collection = global.dbCollections.helloTodos;
+        const collection = this.getCollection();
         const todo = {
-            title: todoData.title,
+            title: todoData.title.trim(),
             completed: false,
             username: todoData.username,
-            userFirstName: todoData.userFirstName,
-            userLastName: todoData.userLastName,
+            userFirstName: todoData.userFirstName || '',
+            userLastName: todoData.userLastName || '',
             createdAt: new Date(),
             updatedAt: new Date()
         };
         const result = await collection.insertOne(todo);
-        return { _id: result.insertedId, ...todo };
+        return await collection.findOne({ _id: result.insertedId });
     }
 
     // Toggle todo completion
     static async toggleComplete(id) {
-        const collection = global.dbCollections.helloTodos;
+        const collection = this.getCollection();
         const todo = await collection.findOne({ _id: new ObjectId(id) });
-        if (!todo) return null;
-
-        const updated = await collection.findOneAndUpdate(
+        if (!todo) throw new Error('Todo not found');
+        await collection.updateOne(
             { _id: new ObjectId(id) },
-            {
-                $set: {
-                    completed: !todo.completed,
-                    updatedAt: new Date()
-                }
-            },
-            { returnDocument: 'after' }
+            { $set: { completed: !todo.completed, updatedAt: new Date() } }
         );
-        return updated;
+        return await collection.findOne({ _id: new ObjectId(id) });
     }
 
     // Delete a todo
     static async delete(id) {
-        const collection = global.dbCollections.helloTodos;
-        await collection.deleteOne({ _id: new ObjectId(id) });
+        const collection = this.getCollection();
+        const result = await collection.deleteOne({ _id: new ObjectId(id) });
+        if (result.deletedCount === 0) throw new Error('Todo not found');
+    }
+
+    static async getStats() {
+        const collection = this.getCollection();
+        const [total, completed] = await Promise.all([
+            collection.countDocuments({}),
+            collection.countDocuments({ completed: true })
+        ]);
+        return { total, completed, pending: total - completed };
     }
 }
 
@@ -117,22 +124,11 @@ export default HelloTodoModel;</pre>
 import HelloTodoModel from '../model/helloTodo.js';
 
 class HelloTodoController {
-    // Show the main page
-    static async index(req, res) {
-        const username = req.session?.user?.username || 'guest';
-        const todos = await HelloTodoModel.getAll(username);
-
-        res.render('hello-todo/todo-app.shtml', {
-            todos: todos,
-            user: req.session?.user || null
-        });
-    }
-
-    // API: Get all todos (REST endpoint)
-    static async apiGetAll(req, res) {
-        const username = req.session?.user?.username || 'guest';
-        const todos = await HelloTodoModel.getAll(username);
-        res.json({ success: true, data: todos });
+    // API: Get all todos and stats (REST endpoint)
+    static async api(req, res) {
+        const todos = await HelloTodoModel.findAll();
+        const stats = await HelloTodoModel.getStats();
+        res.json({ success: true, data: todos, stats });
     }
 
     // API: Create a new todo
@@ -141,7 +137,7 @@ class HelloTodoController {
         const user = req.session?.user || {};
 
         const todoData = {
-            title,
+            title: title.trim(),
             username: user.username || 'guest',
             userFirstName: user.firstName || '',
             userLastName: user.lastName || ''
@@ -170,61 +166,51 @@ export default HelloTodoController;</pre>
             </div>
 
                 <!-- View Code -->
-                <h3 class="jp-text-warning jp-mt-30">🎨 View: todo-app.shtml (Template)</h3>
-                <p>The View displays data using Handlebars templates:</p>
+                <h3 class="jp-text-warning jp-mt-30">🎨 View: todo-app.shtml (Template + Client JS)</h3>
+                <p>The View provides HTML scaffolding; the browser fetches data via API and updates the DOM with a <code>HelloTodoApp</code> class:</p>
 
                 <div class="jp-source-code" data-lang="html" data-show-lang="true">
-                    <pre>&lt;!-- site/webapp/view/hello-todo/todo-app.shtml --&gt;
+                    <pre>&lt;!-- site/webapp/view/hello-todo/todo-app.shtml: empty list, form, then script --&gt;
 
-&lt;div class="local-todo-list"&gt;
-    &#123;&#123;#each todos&#125;&#125;
-    &lt;div class="local-todo-item &#123;&#123;#if completed&#125;&#125;completed&#123;&#123;/if&#125;&#125;"&gt;
-        &lt;input type="checkbox"
-               &#123;&#123;#if completed&#125;&#125;checked&#123;&#123;/if&#125;&#125;
-               onchange="toggleTodo('&#123;&#123;_id&#125;&#125;')"&gt;
-        &lt;span class="local-todo-title"&gt;&#123;&#123;title&#125;&#125;&lt;/span&gt;
-        &lt;button onclick="deleteTodo('&#123;&#123;_id&#125;&#125;')"
-                class="jp-btn jp-btn-danger jp-btn-sm"&gt;
-            Delete
-        &lt;/button&gt;
-    &lt;/div&gt;
-    &#123;&#123;else&#125;&#125;
-    &lt;p class="jp-help-text"&gt;No todos yet. Add one above!&lt;/p&gt;
-    &#123;&#123;/each&#125;&#125;
-&lt;/div&gt;
+&lt;ul class="local-todo-list" id="todoList"&gt;&lt;/ul&gt;
 
 &lt;script&gt;
-// Client-side JavaScript for API calls
-async function addTodo() {
-    const input = document.getElementById('todoInput');
-    const title = input.value.trim();
-    if (!title) return;
+class HelloTodoApp {
+    constructor() { this.todos = []; this.init(); }
 
-    const response = await jPulse.api.post('/api/1/helloTodo', { title });
-    if (response.success) {
-        location.reload(); // Reload page to show new todo
+    async init() {
+        this.bindEvents();
+        await this.loadTodos();
     }
-}
 
-async function toggleTodo(id) {
-    await jPulse.api.call(`/api/1/helloTodo/${id}/toggle`, {
-        method: 'PUT'
-    });
-    location.reload();
-}
+    async loadTodos() {
+        const response = await jPulse.api.call('/api/1/helloTodo', { method: 'GET' });
+        if (response.success) {
+            this.todos = response.data || [];
+            this.updateStats(response.stats || {});
+            this.renderTodos();
+        }
+    }
 
-async function deleteTodo(id) {
-    const confirmed = await jPulse.UI.confirmDialog({
-        message: 'Delete this todo?',
-        buttons: ['Cancel', 'Delete']
-    });
-    if (confirmed.confirmed) {
-        await jPulse.api.call(`/api/1/helloTodo/${id}`, {
-            method: 'DELETE'
+    async handleAddTodo(e) {
+        e.preventDefault();
+        const title = document.getElementById('todoTitle').value.trim();
+        if (!title) return;
+        const response = await jPulse.api.call('/api/1/helloTodo', {
+            method: 'POST',
+            body: { title }
         });
-        location.reload();
+        if (response.success) {
+            this.todos.unshift(response.data);
+            this.renderTodos();
+        }
+    }
+
+    renderTodos() {
+        // Update DOM from this.todos (no page reload)
     }
 }
+const todoApp = new HelloTodoApp();
 &lt;/script&gt;</pre>
                 </div>
 
@@ -236,14 +222,14 @@ async function deleteTodo(id) {
                         <li><strong>MongoDB ObjectId</strong> - Proper handling of MongoDB IDs</li>
                         <li><strong>Session Management</strong> - Track todos per user via session</li>
                         <li><strong>Client-Server Communication</strong> - API calls with jPulse.api helper</li>
-                        <li><strong>Page Reloads</strong> - Traditional MPA pattern (compare to SPA!)</li>
+                        <li><strong>Client-side rendering</strong> - API fetch then <code>renderTodos()</code> updates DOM (no full page reload)</li>
                     </ul>
                 </div>
 
                 <div class="jp-output jp-output-warning jp-mt-15">
-                    <h4>💡 MPA Pattern Note:</h4>
-                    <p>Notice how each action (add, toggle, delete) ends with <code>location.reload()</code>. This is the traditional MPA approach - the browser reloads the entire page to show updated data.</p>
-                    <p>Compare this to the <a href="/hello-vue/">Vue.js SPA</a> which updates the UI instantly without page reloads!</p>
+                    <h4>💡 Hybrid MPA Pattern:</h4>
+                    <p>Server renders the page structure; the browser fetches data via <code>jPulse.api.call('/api/1/helloTodo')</code> and updates the DOM with <code>renderTodos()</code>—no full page reload on add/toggle/delete.</p>
+                    <p>Compare to the <a href="/hello-vue/">Vue.js SPA</a> for a full client-side framework with reactive components.</p>
                 </div>
             </div>
 

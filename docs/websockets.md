@@ -1,4 +1,4 @@
-# jPulse Docs / WebSocket Real-Time Communication v1.6.10
+# jPulse Docs / WebSocket Real-Time Communication v1.6.11
 
 > **Need multi-server broadcasting instead?** If you're running multiple server instances and need to synchronize state changes across all servers (like collaborative editing), see [Application Cluster Communication](application-cluster.md) which uses REST API + Redis broadcasts for simpler state synchronization.
 
@@ -48,9 +48,9 @@ The framework supports two main patterns for real-time communication:
 
 ## Quick Start
 
-### Server-Side: Register a Namespace
+### Server-Side: Create a Namespace
 
-Controllers can register WebSocket namespaces to handle real-time communication:
+Controllers create WebSocket namespaces with `createNamespace(path, options?)`. Handlers receive a single **conn** object; chain `.onConnect()`, `.onMessage()`, `.onDisconnect()`. Use `broadcast(data, ctx)` and `sendToClient(clientId, data, ctx)` so logging and Redis relay use the connection context.
 
 ```javascript
 // site/webapp/controller/myController.js
@@ -58,55 +58,51 @@ import WebSocketController from '../../../webapp/controller/websocket.js';
 
 class MyController {
     static async initialize() {
-        // Register WebSocket namespace
-        const wsHandle = WebSocketController.registerNamespace('/api/1/ws/my-app', {
-            requireAuth: false,  // Optional authentication
-            requireRoles: [],    // Optional role restrictions
-            onConnect: (clientId, user) => {
-                const username = user?.username || 'anonymous';
-                console.log(`Client ${clientId} (${username}) connected`);
-                // Send welcome message (username automatically included)
-                wsHandle.sendToClient(clientId, {
-                    type: 'welcome',
-                    message: 'Connected to my-app!'
-                });
-            },
-            onMessage: (clientId, data, user) => {
-                // data.username is automatically included
-                console.log(`Message from ${data.username || 'anonymous'}:`, data);
-                // Broadcast to all clients (username automatically included)
-                wsHandle.broadcast({
-                    type: 'update',
-                    from: clientId,
-                    data: data
-                }, user?.username || '');
-            },
-            onDisconnect: (clientId, user) => {
-                console.log(`Client ${clientId} disconnected`);
-            }
+        const ns = WebSocketController.createNamespace('/api/1/ws/my-app', {
+            requireAuth: false,
+            requireRoles: []
         });
 
-        return wsHandle;
+        ns.onConnect(({ clientId, user, ctx }) => {
+            const username = user?.username || 'anonymous';
+            console.log(`Client ${clientId} (${username}) connected`);
+            ns.sendToClient(clientId, {
+                type: 'welcome',
+                data: { message: 'Connected to my-app!' }
+            }, ctx);
+        })
+        .onMessage(({ clientId, message, user, ctx }) => {
+            const username = user?.username || 'anonymous';
+            console.log(`Message from ${username}:`, message);
+            ns.broadcast({
+                type: 'update',
+                data: { from: clientId, ...message }
+            }, ctx);
+        })
+        .onDisconnect(({ clientId, user, ctx }) => {
+            console.log(`Client ${clientId} disconnected`);
+        });
+
+        return ns;
     }
 }
 ```
 
 ### Client-Side: Connect and Communicate
 
-Views can connect to namespaces using the `jPulse.ws` utilities:
+Views connect to namespaces using `jPulse.ws.connect()`. The message handler receives a single **message** object: use `message.success` and `message.data` (app payload with `type`, `data`, and optionally `ctx`).
 
 ```javascript
 // In your view or Vue component
 const ws = jPulse.ws.connect('/api/1/ws/my-app')
-    .onMessage((data, message) => {
-        if (data) {
-            console.log('Received:', data);
-            // Handle successful message
-            if (data.type === 'update') {
-                updateUI(data);
+    .onMessage((message) => {
+        if (message.success) {
+            const payload = message.data ?? {};
+            console.log('Received:', payload.type, payload);
+            if (payload.type === 'update') {
+                updateUI(payload.data);
             }
         } else {
-            // Handle error message
             console.error('Error:', message.error);
         }
     })
@@ -135,12 +131,13 @@ ws.disconnect();
 
 ## Server-Side API
 
-### Registering Namespaces
+### Creating Namespaces
 
 All namespace paths **must** start with `/api/1/ws/` prefix (enforced by framework).
 
 ```javascript
-WebSocketController.registerNamespace(path, options)
+const ns = WebSocketController.createNamespace(path, options?)
+ns.onConnect(fn).onMessage(fn).onDisconnect(fn)  // chainable; each returns the namespace
 ```
 
 **Parameters:**
@@ -149,76 +146,80 @@ WebSocketController.registerNamespace(path, options)
 - `options` (object, optional):
   - `requireAuth` (boolean): Require user authentication (default: `false`)
   - `requireRoles` (array): Required user roles (default: `[]`)
-  - `onConnect` (function): Handler when client connects
-  - `onMessage` (function): Handler when message received (may be **async**; see below)
-  - `onDisconnect` (function): Handler when client disconnects
 
-**Async onMessage:** The `onMessage` handler may be async. If it returns a Promise, the framework awaits it. If the Promise rejects (or the handler throws), the framework sends an error message back to the client in the same format as for synchronous throws (`success: false`, `error`, `code`). This allows CRUD-over-WebSocket handlers to use async models (e.g. Redis, MongoDB) without wrapping in try/catch or an async IIFE.
+**Handlers** (set via chainable setters):
 
-**Returns:** Namespace handle with methods:
-- `broadcast(data)`: Send to all connected clients
-- `sendToClient(clientId, data)`: Send to specific client
-- `getStats()`: Get namespace statistics
+- `onConnect(conn)`: Called when a client connects. **conn** = `{ clientId, user, ctx }` where `ctx` is `{ username?, ip? }` for logging.
+- `onMessage(conn)`: Called when a message is received. **conn** = `{ clientId, message, user, ctx }`.
+- `onDisconnect(conn)`: Called when a client disconnects. **conn** = `{ clientId, user, ctx }`.
+
+**Async onMessage:** The `onMessage` handler may be async. If it returns a Promise, the framework awaits it. If the Promise rejects (or the handler throws), the framework sends an error message back to the client (`success: false`, `error`, `code`). This allows CRUD-over-WebSocket handlers to use async models (e.g. Redis, MongoDB) without wrapping in try/catch.
+
+**Namespace methods:**
+
+- `broadcast(data, ctx)`: Send to all connected clients. **ctx** (optional) is used for logging and Redis relay; pass `conn.ctx` from handlers or `null` when broadcasting from REST (no connection).
+- `sendToClient(clientId, data, ctx)`: Send to a specific client. Pass `conn.ctx` (or `null`).
+- `getStats()`: Get namespace statistics (e.g. `clientCount`).
 
 **Example:**
 
 ```javascript
-const wsHandle = WebSocketController.registerNamespace('/api/1/ws/dashboard', {
+const ns = WebSocketController.createNamespace('/api/1/ws/dashboard', {
     requireAuth: true,
-    requireRoles: ['admin', 'viewer'],
-    onConnect: (clientId, user) => {
-        // Send initial data to new client
-        wsHandle.sendToClient(clientId, {
-            type: 'init',
-            data: getDashboardData()
-        });
-    },
-    onMessage: (clientId, data, user) => {
-        // Process message and broadcast update
-        if (data.type === 'refresh') {
-            wsHandle.broadcast({
-                type: 'data-update',
-                data: getLatestData()
-            });
-        }
-    },
-    onDisconnect: (clientId, user) => {
-        console.log(`User ${user?.username} disconnected`);
+    requireRoles: ['admin', 'viewer']
+});
+
+ns.onConnect(({ clientId, user, ctx }) => {
+    ns.sendToClient(clientId, {
+        type: 'init',
+        data: getDashboardData()
+    }, ctx);
+})
+.onMessage(({ clientId, message, user, ctx }) => {
+    if (message.type === 'refresh') {
+        ns.broadcast({
+            type: 'data-update',
+            data: getLatestData()
+        }, ctx);
     }
+})
+.onDisconnect(({ clientId, user, ctx }) => {
+    console.log(`User ${user?.username} disconnected`);
 });
 ```
 
 ### Broadcasting Messages
 
-**Broadcast to all clients in namespace:**
+**Broadcast to all clients in namespace:** Pass **ctx** (e.g. `conn.ctx`) for logging and Redis relay; use `null` when broadcasting from a REST handler (no connection context).
 
 ```javascript
-wsHandle.broadcast({
+ns.broadcast({
     type: 'notification',
-    message: 'Server restarting in 5 minutes'
-});
+    data: { message: 'Server restarting in 5 minutes' }
+}, ctx);
 ```
 
 **Send to specific client:**
 
 ```javascript
-wsHandle.sendToClient(clientId, {
+ns.sendToClient(clientId, {
     type: 'private-message',
-    message: 'This is just for you!'
-});
+    data: { message: 'This is just for you!' }
+}, ctx);
 ```
 
 ### Message Format
 
-All messages follow the standard API format:
+**Wire format** (what the client receives):
 
 **Success:**
 ```javascript
 {
     success: true,
     data: {
-        // Your data here
-        username: 'john_doe'  // Automatically added by framework
+        type: 'welcome',      // or your app type
+        data: { ... },        // app payload
+        ctx: { username: 'john_doe', ip: '1.2.3.4' }  // for logging/display
     }
 }
 ```
@@ -228,15 +229,11 @@ All messages follow the standard API format:
 {
     success: false,
     error: 'Error message',
-    code: 500,
-    username: ''  // Empty for system messages
+    code: 500
 }
 ```
 
-**Important:** All messages include `username` field:
-- Set to the authenticated user's username if logged in
-- Empty string (`''`) if not authenticated or for system messages
-- Automatically added by framework to all outgoing messages
+**Server payload convention:** When you call `broadcast(data, ctx)` or `sendToClient(clientId, data, ctx)`, the framework builds the app payload as `{ type, data, ctx }`. Your **data** object should have `type` and `data` (event body); **ctx** is added by the framework from the argument you pass (default `{ username: '', ip: '0.0.0.0' }` if null). This ensures consistent logging and Redis relay across all namespaces.
 
 ---
 
@@ -286,17 +283,17 @@ Returns `true` if sent successfully, `false` if connection not open.
 
 #### onMessage(callback)
 
-Register message handler. Callback receives `(data, message)` where:
-- `data`: The data payload (if success), or `null` (if error)
-- `message`: Full message object with `success`, `data`, `error`, etc.
+Register message handler. Callback receives a single **message** object:
+- `message.success`: `true` or `false`
+- `message.data`: App payload when success — `{ type, data?, ctx? }`
+- `message.error`, `message.code`: When success is false
 
 ```javascript
-ws.onMessage((data, message) => {
-    if (data) {
-        // Handle success
-        console.log('Received:', data);
+ws.onMessage((message) => {
+    if (message.success) {
+        const payload = message.data ?? {};
+        console.log('Received:', payload.type, payload.data);
     } else {
-        // Handle error
         console.error('Error:', message.error);
     }
 });
@@ -435,12 +432,11 @@ This ensures both sides detect dead connections quickly.
 ### Requiring Authentication
 
 ```javascript
-WebSocketController.registerNamespace('/api/1/ws/secure-chat', {
-    requireAuth: true,  // Users must be logged in
-    onConnect: (clientId, user) => {
-        // user object available
-        console.log(`User ${user.username} connected`);
-    }
+const ns = WebSocketController.createNamespace('/api/1/ws/secure-chat', {
+    requireAuth: true
+});
+ns.onConnect(({ clientId, user, ctx }) => {
+    console.log(`User ${user?.username} connected`);
 });
 ```
 
@@ -449,27 +445,28 @@ If user is not authenticated, connection is rejected.
 ### Requiring Specific Roles
 
 ```javascript
-WebSocketController.registerNamespace('/api/1/ws/admin-panel', {
+const ns = WebSocketController.createNamespace('/api/1/ws/admin-panel', {
     requireAuth: true,
-    requireRoles: ['admin', 'root'],  // Only admins
-    onConnect: (clientId, user) => {
-        console.log(`Admin ${user.username} connected`);
-    }
+    requireRoles: ['admin', 'root']
+});
+ns.onConnect(({ clientId, user, ctx }) => {
+    console.log(`Admin ${user?.username} connected`);
 });
 ```
 
 If user doesn't have required role, connection is rejected.
 
-### Accessing User Information
+### Accessing User and Context
 
-The `user` object is available in all handlers when authentication is enabled:
+Handlers receive **conn** with `clientId`, `user`, and `ctx` (`{ username?, ip? }` for logging). Use `conn.ctx` when calling `broadcast()` or `sendToClient()` so logs and Redis relay include the correct context.
 
 ```javascript
-onMessage: (clientId, data, user) => {
+ns.onMessage(({ clientId, message, user, ctx }) => {
     if (user) {
-        console.log(`Message from ${user.username}:`, data);
+        console.log(`Message from ${user.username}:`, message);
     }
-}
+    ns.broadcast({ type: 'echo', data: message }, ctx);
+});
 ```
 
 ---
@@ -524,19 +521,20 @@ const stats = WebSocketController.getStats();
 
 ```javascript
 // Server: Simply broadcast positions, no database
-onMessage: (clientId, data, user) => {
+ns.onMessage(({ clientId, message: data, user, ctx }) => {
     if (data.type === 'cursor-move') {
-        // Broadcast position to all other clients
-        wsHandle.broadcast({
+        ns.broadcast({
             type: 'cursor',
-            clientId: clientId,
-            username: user?.username || 'guest',
-            emoji: data.emoji,
-            x: data.x,
-            y: data.y
-        }, user?.username || '');
+            data: {
+                clientId,
+                username: user?.username || 'guest',
+                emoji: data.emoji,
+                x: data.x,
+                y: data.y
+            }
+        }, ctx);
     }
-}
+});
 
 // Client: Throttle high-frequency events
 let lastSent = 0;
@@ -571,42 +569,40 @@ function handleMouseMove(event) {
 // Server: Enhance existing REST controller with WebSocket broadcasts
 class TodoController {
     static async apiCreate(req, res) {
-        // Existing REST API logic (validation, database, etc.)
         const todo = await TodoModel.create(todoData);
         res.json({ success: true, data: todo });
 
-        // NEW: Broadcast to WebSocket clients
+        // Broadcast to WebSocket clients (ctx from req for logging)
         if (HelloWebsocketController.broadcastTodoCreated) {
-            HelloWebsocketController.broadcastTodoCreated(todo, username);
+            HelloWebsocketController.broadcastTodoCreated(todo, username, req);
         }
     }
 }
 
-// WebSocket controller: Just handle broadcasts, no business logic
+// WebSocket controller: broadcast with ctx for logging/relay
 class HelloWebsocketController {
-    static broadcastTodoCreated(todo, username) {
-        this.wsHandles.todo.broadcast({
-            type: 'todo-created',
-            todo: todo,
-            username: username
-        });
+    static broadcastTodoCreated(todo, username, req = null) {
+        if (this.wsHandles.todo) {
+            const ctx = global.RedisManager.getBroadcastContext(req);
+            this.wsHandles.todo.broadcast({
+                type: 'todo-created',
+                data: { todo, username }
+            }, ctx);
+        }
     }
 }
 
 // Client: Use REST for actions, WebSocket for notifications
 async function addTodo(title) {
-    // Use REST API for the action (validation, persistence)
     const response = await jPulse.api.post('/api/1/todo', { title });
-
-    // WebSocket will notify everyone (including us) when it's saved
-    // No need to manually update UI here
+    // WebSocket will notify everyone when it's saved
 }
 
-// Client: Listen for WebSocket updates
-ws.onMessage((data) => {
-    if (data.type === 'todo-created') {
-        // Update UI reactively
-        todos.push(data.todo);
+// Client: Listen for WebSocket updates (single message arg)
+ws.onMessage((message) => {
+    if (message.success && message.data?.type === 'todo-created') {
+        const d = message.data.data ?? {};
+        if (d.todo) todos.push(d.todo);
     }
 });
 ```
@@ -623,16 +619,16 @@ ws.onMessage((data) => {
 
 ```javascript
 // Server: Broadcast notification to all clients
-wsHandle.broadcast({
+ns.broadcast({
     type: 'notification',
-    level: 'info',
-    message: 'New feature released!'
-});
+    data: { level: 'info', message: 'New feature released!' }
+}, ctx);
 
 // Client: Display notification
-ws.onMessage((data) => {
-    if (data.type === 'notification') {
-        jPulse.UI.toast.show(data.message, data.level);
+ws.onMessage((message) => {
+    if (message.success && message.data?.type === 'notification') {
+        const d = message.data.data ?? {};
+        jPulse.UI.toast.show(d.message, d.level);
     }
 });
 ```
@@ -641,17 +637,14 @@ ws.onMessage((data) => {
 
 ```javascript
 // Server: Send updates when data changes
-function onDataChange(newData) {
-    wsHandle.broadcast({
-        type: 'data-update',
-        data: newData
-    });
+function onDataChange(newData, ctx) {
+    ns.broadcast({ type: 'data-update', data: newData }, ctx);
 }
 
 // Client: Update UI reactively
-ws.onMessage((data) => {
-    if (data.type === 'data-update') {
-        updateDashboard(data.data);
+ws.onMessage((message) => {
+    if (message.success && message.data?.type === 'data-update') {
+        updateDashboard(message.data.data);
     }
 });
 ```
@@ -662,28 +655,28 @@ ws.onMessage((data) => {
 // Server: Track connected users
 const connectedUsers = new Map();
 
-onConnect: (clientId, user) => {
-    connectedUsers.set(clientId, user.username);
-    wsHandle.broadcast({
+ns.onConnect(({ clientId, user, ctx }) => {
+    connectedUsers.set(clientId, user?.username);
+    ns.broadcast({
         type: 'user-joined',
-        username: user.username,
-        count: connectedUsers.size
-    });
-},
-onDisconnect: (clientId, user) => {
+        data: { username: user?.username, count: connectedUsers.size }
+    }, ctx);
+})
+.onDisconnect(({ clientId, user, ctx }) => {
     connectedUsers.delete(clientId);
-    wsHandle.broadcast({
+    ns.broadcast({
         type: 'user-left',
-        username: user.username,
-        count: connectedUsers.size
-    });
-}
+        data: { username: user?.username, count: connectedUsers.size }
+    }, ctx);
+});
 
 // Client: Show user count
-ws.onMessage((data) => {
-    if (data.type === 'user-joined' || data.type === 'user-left') {
+ws.onMessage((message) => {
+    if (!message.success) return;
+    const payload = message.data ?? {};
+    if (payload.type === 'user-joined' || payload.type === 'user-left') {
         document.getElementById('userCount').textContent =
-            `${data.count} users online`;
+            `${payload.data?.count ?? 0} users online`;
     }
 });
 ```
@@ -699,30 +692,30 @@ ws.send({
     query: { foo: 'bar' }
 });
 
-ws.onMessage((data) => {
-    if (data.type === 'response' && data.requestId === requestId) {
-        console.log('Response received:', data.result);
+ws.onMessage((message) => {
+    if (message.success && message.data?.type === 'response') {
+        const d = message.data.data ?? {};
+        if (d.requestId === requestId) console.log('Response received:', d.result);
     }
 });
 
 // Server: Send response with matching ID
-onMessage: (clientId, data) => {
+ns.onMessage(({ clientId, message: data, ctx }) => {
     if (data.type === 'get-data') {
         const result = processQuery(data.query);
-        wsHandle.sendToClient(clientId, {
+        ns.sendToClient(clientId, {
             type: 'response',
-            requestId: data.requestId,
-            result: result
-        });
+            data: { requestId: data.requestId, result }
+        }, ctx);
     }
-}
+});
 ```
 
 ---
 
 ## Vue.js Integration
 
-WebSocket works seamlessly with Vue.js reactive data:
+WebSocket works seamlessly with Vue.js reactive data. Use the single-argument message callback (`message.success`, `message.data`):
 
 ```javascript
 const HelloApp = {
@@ -735,32 +728,27 @@ const HelloApp = {
     },
     mounted() {
         this.ws = jPulse.ws.connect('/api/1/ws/my-app')
-            .onMessage((data) => {
-                // Reactive update
-                this.messages.push(data);
+            .onMessage((message) => {
+                if (message.success && message.data) {
+                    this.messages.push(message.data);
+                }
             })
             .onStatusChange((status) => {
-                // Reactive update
                 this.connectionStatus = status;
             });
     },
     beforeUnmount() {
-        if (this.ws) {
-            this.ws.disconnect();
-        }
+        if (this.ws) this.ws.disconnect();
     },
     methods: {
         sendMessage(text) {
-            this.ws.send({
-                type: 'message',
-                text: text
-            });
+            this.ws.send({ type: 'message', text });
         }
     },
     template: `
         <div>
             <div>Status: {{ connectionStatus }}</div>
-            <div v-for="msg in messages">{{ msg.text }}</div>
+            <div v-for="msg in messages">{{ msg.data?.text ?? msg.type }}</div>
             <button @click="sendMessage('Hello!')">Send</button>
         </div>
     `
@@ -818,12 +806,12 @@ window.addEventListener('beforeunload', () => {
 Always validate incoming messages:
 
 ```javascript
-ws.onMessage((data, message) => {
-    if (!data || !data.type) {
-        console.warn('Invalid message:', message);
+ws.onMessage((message) => {
+    if (!message.success || !message.data?.type) {
+        console.warn('Invalid or error message:', message);
         return;
     }
-    // Process valid message
+    // Process valid message: message.data.type, message.data.data
 });
 ```
 
@@ -908,22 +896,21 @@ function checkAck(ws, id) {
 }
 
 // Handle acknowledgments
-ws.onMessage((data) => {
-    if (data.type === 'ack' && data.messageId) {
-        pendingMessages.delete(data.messageId);
+ws.onMessage((message) => {
+    if (message.success && message.data?.type === 'ack') {
+        const mid = message.data.data?.messageId;
+        if (mid) pendingMessages.delete(mid);
     }
 });
 
 // Server-side: Send acknowledgments
-onMessage: (clientId, data) => {
+ns.onMessage(({ clientId, message: data, ctx }) => {
     // Process message...
-
-    // Send acknowledgment
-    wsHandle.sendToClient(clientId, {
+    ns.sendToClient(clientId, {
         type: 'ack',
-        messageId: data.id
-    });
-}
+        data: { messageId: data.id }
+    }, ctx);
+});
 ```
 
 This gives you full control over retry logic, timeouts, and failure handling based on your application's needs.
@@ -1023,19 +1010,23 @@ Real-time monitoring dashboard (requires admin role):
 ### Server-Side
 
 ```javascript
-WebSocketController.registerNamespace(path, options)
-wsHandle.broadcast(data)
-wsHandle.sendToClient(clientId, data)
-wsHandle.getStats()
+const ns = WebSocketController.createNamespace(path, options?)
+ns.onConnect((conn) => {}).onMessage((conn) => {}).onDisconnect((conn) => {})
+ns.broadcast(data, ctx)
+ns.sendToClient(clientId, data, ctx)
+ns.getStats()
 WebSocketController.getStats()
 ```
+
+- **conn**: `{ clientId, user, ctx }` (onMessage also has `message`). **ctx** = `{ username?, ip? }` for logging.
+- **data**: Object with `type` and `data` (event body). Framework adds **ctx** to payload for wire/Redis.
 
 ### Client-Side
 
 ```javascript
 jPulse.ws.connect(path, options)
 ws.send(data)
-ws.onMessage(callback)
+ws.onMessage((message) => {})   // message.success, message.data, message.error
 ws.onStatusChange(callback)
 ws.getStatus()
 ws.isConnected()

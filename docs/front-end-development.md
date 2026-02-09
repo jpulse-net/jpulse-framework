@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.6.10
+# jPulse Docs / Front-End Development Guide v1.6.11
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -422,13 +422,17 @@ For simple request/response patterns, use REST API instead.
 
 ### Quick Start
 
-**Connect to namespace:**
+**Connect to namespace:** The message callback receives a single **message** object; use `message.success` and `message.data` (app payload with `type`, `data`, and optionally `ctx`).
 
 ```javascript
 const ws = jPulse.ws.connect('/api/1/ws/my-app')
-    .onMessage((data, message) => {
-        console.log('Received:', data);
-        updateUI(data);
+    .onMessage((message) => {
+        if (message.success) {
+            console.log('Received:', message.data);
+            updateUI(message.data);
+        } else {
+            console.error('Error:', message.error);
+        }
     })
     .onStatusChange((status) => {
         console.log('Status:', status);
@@ -488,8 +492,10 @@ const MyApp = {
     },
     mounted() {
         this.ws = jPulse.ws.connect('/api/1/ws/my-app')
-            .onMessage((data) => {
-                this.messages.push(data); // Reactive!
+            .onMessage((message) => {
+                if (message.success && message.data) {
+                    this.messages.push(message.data); // Reactive!
+                }
             })
             .onStatusChange((status) => {
                 this.connectionStatus = status; // Reactive!

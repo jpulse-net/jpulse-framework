@@ -3,8 +3,8 @@
  * @tagline         Redis connection management with cluster support and graceful fallback
  * @description     Manages Redis connections for sessions, WebSocket, broadcasting, and metrics
  * @file            webapp/utils/redis-manager.js
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -567,6 +567,16 @@ class RedisManager {
      */
 
     /**
+     * Get request context for broadcast payloads (username, ip, vm, id).
+     * Attach to payload.ctx so logs (publishBroadcast, app cluster relay) show the correct user.
+     * @param {Object} req - Express request object (or null for default context)
+     * @returns {Object} Context { username, ip, vm, id }
+     */
+    static getBroadcastContext(req) {
+        return global.CommonUtils.getLogContext(req);
+    }
+
+    /**
      * Publish message to broadcast channel
      * @param {string} channel - Channel name (e.g., 'controller:helloDashboard:update', 'view:userProfile:refresh')
      * @param {Object} data - Message data to broadcast
@@ -594,11 +604,13 @@ class RedisManager {
                 const key = RedisManager.getKey('broadcast', channel);
                 await publisher.publish(key, JSON.stringify(message));
 
-                global.LogController?.logInfo(null, 'redis-manager.publishBroadcast',
+                const logCtx = data?.ctx ?? null;
+                global.LogController?.logInfo(logCtx, 'redis-manager.publishBroadcast',
                     `Broadcast published: ${channel} from ${RedisManager.instanceId}`);
                 return true;
             } catch (error) {
-                global.LogController?.logError(null, 'redis-manager.publishBroadcast',
+                const logCtx = data?.ctx ?? null;
+                global.LogController?.logError(logCtx, 'redis-manager.publishBroadcast',
                     `Failed to publish broadcast ${channel}: ${error.message}`);
                 // Fallback to local callbacks on error
                 await RedisManager._handleCallbackMessage(channel, data, RedisManager.instanceId);
@@ -607,7 +619,8 @@ class RedisManager {
         } else {
             // Redis not available - call local callbacks directly (single-instance mode)
             await RedisManager._handleCallbackMessage(channel, data, RedisManager.instanceId);
-            global.LogController?.logInfo(null, 'redis-manager.publishBroadcast',
+            const logCtx = data?.ctx ?? null;
+            global.LogController?.logInfo(logCtx, 'redis-manager.publishBroadcast',
                 `Broadcast handled locally (Redis unavailable): ${channel} from ${RedisManager.instanceId}`);
             return true;
         }

@@ -3,8 +3,8 @@
  * @tagline         WebSocket Demo Controller for Real-Time Communication Examples
  * @description     Demonstrates WebSocket patterns: emoji cursor tracking and collaborative todo
  * @file            site/webapp/controller/helloWebsocket.js
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -17,7 +17,6 @@ import HelloTodoController from './helloTodo.js';
 
 // Access global utilities
 const LogController = global.LogController;
-const CommonUtils = global.CommonUtils;
 
 /**
  * Hello WebSocket Controller
@@ -70,68 +69,46 @@ class HelloWebsocketController {
      * @private
      */
     static _registerEmojiNamespace() {
-        this.wsHandles.emoji = WebSocketController.registerNamespace('/api/1/ws/hello-emoji', {
-            requireAuth: false,
-            requireRoles: [],
+        const emoji = WebSocketController.createNamespace('/api/1/ws/hello-emoji', { requireAuth: false, requireRoles: [] });
+        this.wsHandles.emoji = emoji;
 
-            onConnect: (clientId, user) => {
-                const username = user?.username || 'guest';
-                LogController.logInfo(null, 'helloWebsocket.emoji.onConnect',
-                    `Client ${clientId} (${username}) connected to emoji demo`);
+        emoji.onConnect(({ clientId, user, ctx }) => {
+            const username = user?.username || 'guest';
+            LogController.logInfo(ctx, 'helloWebsocket.emoji.onConnect',
+                `Client ${clientId} (${username}) connected to emoji demo`);
+            const stats = emoji.getStats();
+            emoji.sendToClient(clientId, {
+                type: 'welcome',
+                data: { message: 'Connected to emoji cursor demo', userCount: stats.clientCount }
+            }, ctx);
+        });
 
-                // Send welcome message with current user count
-                const stats = this.wsHandles.emoji.getStats();
-                this.wsHandles.emoji.sendToClient(clientId, {
-                    type: 'welcome',
-                    message: 'Connected to emoji cursor demo',
-                    userCount: stats.clients
-                });
-            },
-
-            onMessage: (clientId, data, user) => {
-                const username = user?.username || 'guest';
-
-                // Handle different message types
-                if (data.type === 'emoji-select') {
-                    // User selected an emoji - broadcast to all
-                    LogController.logInfo(null, 'helloWebsocket.emoji.onMessage',
-                        `${username} selected emoji: ${data.emoji}`);
-
-                    this.wsHandles.emoji.broadcast({
-                        type: 'user-emoji',
-                        clientId: clientId,
-                        username: username,
-                        emoji: data.emoji
-                    }, username);
-
-                } else if (data.type === 'cursor-move') {
-                    // User moved cursor - broadcast position
-                    // Note: Client should throttle these messages (every 50ms)
-                    this.wsHandles.emoji.broadcast({
-                        type: 'cursor',
-                        clientId: clientId,
-                        username: username,
-                        emoji: data.emoji,
-                        x: data.x,
-                        y: data.y
-                    }, username);
-                }
-            },
-
-            onDisconnect: (clientId, user) => {
-                const username = user?.username || 'guest';
-                LogController.logInfo(null, 'helloWebsocket.emoji.onDisconnect',
-                    `Client ${clientId} (${username}) disconnected from emoji demo`);
-
-                // Notify others that user left
-                const stats = this.wsHandles.emoji.getStats();
-                this.wsHandles.emoji.broadcast({
-                    type: 'user-left',
-                    clientId: clientId,
-                    username: username,
-                    userCount: stats.clients
-                }, '');
+        emoji.onMessage(({ clientId, message: data, user, ctx }) => {
+            const username = user?.username || 'guest';
+            if (data.type === 'emoji-select') {
+                LogController.logInfo(ctx, 'helloWebsocket.emoji.onMessage',
+                    `${username} selected emoji: ${data.emoji}`);
+                emoji.broadcast({
+                    type: 'user-emoji',
+                    data: { clientId, username, emoji: data.emoji }
+                }, ctx);
+            } else if (data.type === 'cursor-move') {
+                emoji.broadcast({
+                    type: 'cursor',
+                    data: { clientId, username, emoji: data.emoji, x: data.x, y: data.y }
+                }, ctx);
             }
+        });
+
+        emoji.onDisconnect(({ clientId, user, ctx }) => {
+            const username = user?.username || 'guest';
+            LogController.logInfo(ctx, 'helloWebsocket.emoji.onDisconnect',
+                `Client ${clientId} (${username}) disconnected from emoji demo`);
+            const stats = emoji.getStats();
+            emoji.broadcast({
+                type: 'user-left',
+                data: { clientId, username, userCount: stats.clientCount }
+            }, ctx);
         });
     }
 
@@ -140,53 +117,38 @@ class HelloWebsocketController {
      * @private
      */
     static _registerTodoNamespace() {
-        this.wsHandles.todo = WebSocketController.registerNamespace('/api/1/ws/hello-todo', {
-            requireAuth: false,
-            requireRoles: [],
+        const todo = WebSocketController.createNamespace('/api/1/ws/hello-todo', { requireAuth: false, requireRoles: [] });
+        this.wsHandles.todo = todo;
 
-            onConnect: (clientId, user) => {
-                const username = user?.username || 'guest';
-                LogController.logInfo(null, 'helloWebsocket.todo.onConnect',
-                    `Client ${clientId} (${username}) connected to todo demo`);
+        todo.onConnect(({ clientId, user, ctx }) => {
+            const username = user?.username || 'guest';
+            LogController.logInfo(ctx, 'helloWebsocket.todo.onConnect',
+                `Client ${clientId} (${username}) connected to todo demo`);
+            const stats = todo.getStats();
+            todo.sendToClient(clientId, {
+                type: 'welcome',
+                data: { message: 'Connected to collaborative todo demo', userCount: stats.clientCount }
+            }, ctx);
+        });
 
-                // Send welcome message
-                const stats = this.wsHandles.todo.getStats();
-                this.wsHandles.todo.sendToClient(clientId, {
-                    type: 'welcome',
-                    message: 'Connected to collaborative todo demo',
-                    userCount: stats.clients
-                });
-            },
-
-            onMessage: (clientId, data, user) => {
-                const username = user?.username || 'guest';
-                LogController.logInfo(null, 'helloWebsocket.todo.onMessage',
-                    `${username} sent: ${data.type}`);
-
-                // For todo demo, we primarily receive events, not handle them here
-                // The REST API (helloTodo controller) will broadcast changes
-                // But we can echo presence/typing indicators here if needed
-                if (data.type === 'ping') {
-                    this.wsHandles.todo.sendToClient(clientId, {
-                        type: 'pong',
-                        timestamp: Date.now()
-                    }, username);
-                }
-            },
-
-            onDisconnect: (clientId, user) => {
-                const username = user?.username || 'guest';
-                LogController.logInfo(null, 'helloWebsocket.todo.onDisconnect',
-                    `Client ${clientId} (${username}) disconnected from todo demo`);
-
-                // Notify others
-                const stats = this.wsHandles.todo.getStats();
-                this.wsHandles.todo.broadcast({
-                    type: 'user-left',
-                    username: username,
-                    userCount: stats.clients
-                }, '');
+        todo.onMessage(({ clientId, message, user, ctx }) => {
+            const username = user?.username || 'guest';
+            LogController.logInfo(ctx, 'helloWebsocket.todo.onMessage',
+                `${username} sent: ${message.type}`);
+            if (message.type === 'ping') {
+                todo.sendToClient(clientId, { type: 'pong', data: { timestamp: Date.now() } }, ctx);
             }
+        });
+
+        todo.onDisconnect(({ clientId, user, ctx }) => {
+            const username = user?.username || 'guest';
+            LogController.logInfo(ctx, 'helloWebsocket.todo.onDisconnect',
+                `Client ${clientId} (${username}) disconnected from todo demo`);
+            const stats = todo.getStats();
+            todo.broadcast({
+                type: 'user-left',
+                data: { username, userCount: stats.clientCount }
+            }, ctx);
         });
     }
 
@@ -245,142 +207,128 @@ class HelloWebsocketController {
      * @private
      */
     static _registerNotesNamespace() {
-        const wsHandle = WebSocketController.registerNamespace('/api/1/ws/hello-notes', {
-            requireAuth: false,
-            requireRoles: [],
+        const notes = WebSocketController.createNamespace('/api/1/ws/hello-notes', { requireAuth: false, requireRoles: [] });
+        this.wsHandles.notes = notes;
 
-            onConnect: async (clientId, user) => {
-                const username = user?.username || 'guest';
-                LogController.logInfo(null, 'helloWebsocket.notes.onConnect',
-                    `Client ${clientId} (${username}) connected to notes demo`);
-
-                const stats = this.wsHandles.notes.getStats();
-                this.wsHandles.notes.sendToClient(clientId, {
-                    type: 'welcome',
-                    message: 'Connected to sticky notes demo',
-                    userCount: stats.clients
-                }, username);
-
-                // Send current notes so new client gets state
-                try {
-                    const notes = await this._notesGetAll();
-                    this.wsHandles.notes.sendToClient(clientId, {
-                        type: 'notes-init',
-                        notes: notes,
-                        username: ''
-                    }, '');
-                } catch (err) {
-                    LogController.logError(null, 'helloWebsocket.notes.onConnect', `notes-init: ${err.message}`);
-                }
-            },
-
-            onMessage: async (clientId, data, user) => {
-                // Prefer view-supplied username ({{string.default user.username "guest"}}) for consistency
-                const username = (data.username != null && String(data.username).trim() !== '')
-                    ? String(data.username).trim().slice(0, 100)
-                    : (user?.username || user?.displayName || user?.loginId || 'guest');
-                const handle = this.wsHandles.notes;
-                if (!handle) return;
-
-                try {
-                    if (data.type === 'note-create') {
-                        const id = (typeof crypto !== 'undefined' && crypto.randomUUID)
-                            ? crypto.randomUUID() : `n-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-                        const note = {
-                            id,
-                            x: typeof data.x === 'number' ? data.x : 20,
-                            y: typeof data.y === 'number' ? data.y : 20,
-                            text: (data.text != null ? String(data.text) : '').slice(0, 500),
-                            color: (data.color != null ? String(data.color) : '#fff9c4').slice(0, 20),
-                            createdAt: Date.now(),
-                            createdBy: username
-                        };
-                        await this._notesCreate(note);
-                        handle.broadcast({ type: 'note-created', note, username }, username);
-                    } else if (data.type === 'note-update') {
-                        const id = data.id;
-                        if (!id) return;
-                        const updates = {};
-                        if (typeof data.x === 'number') updates.x = data.x;
-                        if (typeof data.y === 'number') updates.y = data.y;
-                        if (data.text !== undefined) updates.text = String(data.text).slice(0, 500);
-                        if (data.color !== undefined) updates.color = String(data.color).slice(0, 20);
-                        const note = await this._notesUpdate(id, updates);
-                        if (note) {
-                            handle.broadcast({ type: 'note-updated', note, username }, username);
-                        }
-                    } else if (data.type === 'note-delete') {
-                        const id = data.id;
-                        if (!id) return;
-                        const removed = await this._notesDelete(id);
-                        if (removed) {
-                            handle.broadcast({ type: 'note-deleted', noteId: id, username }, username);
-                        }
-                    }
-                } catch (err) {
-                    LogController.logError(null, 'helloWebsocket.notes.onMessage', err.message);
-                    handle.sendToClient(clientId, {
-                        type: 'error',
-                        error: err.message
-                    }, '');
-                }
-            },
-
-            onDisconnect: (clientId, user) => {
-                const username = user?.username || 'guest';
-                LogController.logInfo(null, 'helloWebsocket.notes.onDisconnect',
-                    `Client ${clientId} (${username}) disconnected from notes demo`);
-                const stats = this.wsHandles.notes.getStats();
-                this.wsHandles.notes.broadcast({
-                    type: 'user-left',
-                    username: username,
-                    userCount: stats.clients
-                }, '');
+        notes.onConnect(async ({ clientId, user, ctx }) => {
+            const username = user?.username || 'guest';
+            LogController.logInfo(ctx, 'helloWebsocket.notes.onConnect',
+                `Client ${clientId} (${username}) connected to notes demo`);
+            const stats = notes.getStats();
+            notes.sendToClient(clientId, {
+                type: 'welcome',
+                data: { message: 'Connected to sticky notes demo', userCount: stats.clientCount }
+            }, ctx);
+            try {
+                const notesList = await this._notesGetAll();
+                notes.sendToClient(clientId, {
+                    type: 'notes-init',
+                    data: { notes: notesList, username: '' }
+                }, null);
+            } catch (err) {
+                LogController.logError(ctx, 'helloWebsocket.notes.onConnect', `notes-init: ${err.message}`);
             }
         });
 
-        this.wsHandles.notes = wsHandle;
+        notes.onMessage(async ({ clientId, message: data, user, ctx }) => {
+            const username = (data.username != null && String(data.username).trim() !== '')
+                ? String(data.username).trim().slice(0, 100)
+                : (user?.username || user?.displayName || user?.loginId || 'guest');
+            try {
+                if (data.type === 'note-create') {
+                    const id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                        ? crypto.randomUUID() : `n-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+                    const note = {
+                        id,
+                        x: typeof data.x === 'number' ? data.x : 20,
+                        y: typeof data.y === 'number' ? data.y : 20,
+                        text: (data.text != null ? String(data.text) : '').slice(0, 500),
+                        color: (data.color != null ? String(data.color) : '#fff9c4').slice(0, 20),
+                        createdAt: Date.now(),
+                        createdBy: username
+                    };
+                    await this._notesCreate(note);
+                    notes.broadcast({ type: 'note-created', data: { note, username } }, ctx);
+                } else if (data.type === 'note-update') {
+                    const id = data.id;
+                    if (!id) return;
+                    const updates = {};
+                    if (typeof data.x === 'number') updates.x = data.x;
+                    if (typeof data.y === 'number') updates.y = data.y;
+                    if (data.text !== undefined) updates.text = String(data.text).slice(0, 500);
+                    if (data.color !== undefined) updates.color = String(data.color).slice(0, 20);
+                    const note = await this._notesUpdate(id, updates);
+                    if (note) {
+                        notes.broadcast({ type: 'note-updated', data: { note, username } }, ctx);
+                    }
+                } else if (data.type === 'note-delete') {
+                    const id = data.id;
+                    if (!id) return;
+                    const removed = await this._notesDelete(id);
+                    if (removed) {
+                        notes.broadcast({ type: 'note-deleted', data: { noteId: id, username } }, ctx);
+                    }
+                }
+            } catch (err) {
+                LogController.logError(ctx, 'helloWebsocket.notes.onMessage', err.message);
+                notes.sendToClient(clientId, { type: 'error', data: { error: err.message } }, null);
+            }
+        });
+
+        notes.onDisconnect(({ clientId, user, ctx }) => {
+            const username = user?.username || 'guest';
+            LogController.logInfo(ctx, 'helloWebsocket.notes.onDisconnect',
+                `Client ${clientId} (${username}) disconnected from notes demo`);
+            const stats = notes.getStats();
+            notes.broadcast({
+                type: 'user-left',
+                data: { username, userCount: stats.clientCount }
+            }, ctx);
+        });
     }
 
     /**
      * Broadcast todo created event
      * Called by helloTodo controller after successful creation
+     * @param {Object} req - Optional Express request (for log context)
      */
-    static broadcastTodoCreated(todo, username) {
+    static broadcastTodoCreated(todo, username, req = null) {
         if (this.wsHandles.todo) {
+            const ctx = global.RedisManager.getBroadcastContext(req);
             this.wsHandles.todo.broadcast({
                 type: 'todo-created',
-                todo: todo,
-                username: username
-            }, username);
+                data: { todo, username }
+            }, ctx);
         }
     }
 
     /**
      * Broadcast todo updated event
      * Called by helloTodo controller after successful update
+     * @param {Object} req - Optional Express request (for log context)
      */
-    static broadcastTodoUpdated(todo, username) {
+    static broadcastTodoUpdated(todo, username, req = null) {
         if (this.wsHandles.todo) {
+            const ctx = global.RedisManager.getBroadcastContext(req);
             this.wsHandles.todo.broadcast({
                 type: 'todo-updated',
-                todo: todo,
-                username: username
-            }, username);
+                data: { todo, username }
+            }, ctx);
         }
     }
 
     /**
      * Broadcast todo deleted event
      * Called by helloTodo controller after successful deletion
+     * @param {Object} req - Optional Express request (for log context)
      */
-    static broadcastTodoDeleted(todoId, username) {
+    static broadcastTodoDeleted(todoId, username, req = null) {
         if (this.wsHandles.todo) {
+            const ctx = global.RedisManager.getBroadcastContext(req);
             this.wsHandles.todo.broadcast({
                 type: 'todo-deleted',
-                todoId: todoId,
-                username: username
-            }, username);
+                data: { todoId, username }
+            }, ctx);
         }
     }
 

@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.10
+# jPulse Docs / REST API Reference v1.6.11
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -370,6 +370,26 @@ export default class ProductController {
     }
 }
 ```
+
+## ⚡ WebSocket Controller API
+
+> **📖 Full guide:** [WebSocket Real-Time Communication](websockets.md) for setup, patterns, and client API.
+
+Server-side WebSocket namespaces are created with `WebSocketController.createNamespace(path, options?)`. Handlers receive a single **conn** object; pass **ctx** to `broadcast()` and `sendToClient()` for logging and Redis relay.
+
+**Create namespace (chainable):**
+```javascript
+const ns = WebSocketController.createNamespace('/api/1/ws/my-app', { requireAuth: false, requireRoles: [] });
+ns.onConnect((conn) => {}).onMessage((conn) => {}).onDisconnect((conn) => {});
+```
+
+- **conn**: `{ clientId, user, ctx }` (onMessage also has `message`). **ctx** = `{ username?, ip? }` for logging.
+- **ns.broadcast(data, ctx)**: Send to all clients. **ctx** = `conn.ctx` in handlers or `null` when broadcasting from REST.
+- **ns.sendToClient(clientId, data, ctx)**: Send to one client.
+- **ns.getStats()**: Namespace statistics (e.g. `clientCount`).
+- **Payload**: App payload is `{ type, data, ctx }`; framework adds ctx to wire and Redis.
+
+**Log context:** `CommonUtils.getLogContext(reqOrContext)` returns `{ username?, ip? }` for Express `req` or plain context; use for LogController when request is not available. Redis broadcast context: `RedisManager.getBroadcastContext(req)` for server-side broadcasts from REST handlers.
 
 ## 👤 User Management API
 

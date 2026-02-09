@@ -3,13 +3,13 @@
  * @tagline         Demo Todo Controller for MVC Learning
  * @description     Example of complete MVC pattern with REST API endpoints
  * @file            site/webapp/controller/helloTodo.js
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import HelloTodoModel from '../model/helloTodo.js';
@@ -114,7 +114,7 @@ class HelloTodoController {
 
             // Broadcast to WebSocket clients if available
             if (HelloWebsocketController.broadcastTodoCreated) {
-                HelloWebsocketController.broadcastTodoCreated(todo, username);
+                HelloWebsocketController.broadcastTodoCreated(todo, username, req);
             }
 
             res.json({
@@ -166,7 +166,7 @@ class HelloTodoController {
 
             // Broadcast to WebSocket clients if available
             if (HelloWebsocketController.broadcastTodoUpdated) {
-                HelloWebsocketController.broadcastTodoUpdated(todo, username);
+                HelloWebsocketController.broadcastTodoUpdated(todo, username, req);
             }
 
             res.json({
@@ -227,7 +227,7 @@ class HelloTodoController {
 
             // Broadcast to WebSocket clients if available
             if (HelloWebsocketController.broadcastTodoDeleted) {
-                HelloWebsocketController.broadcastTodoDeleted(id, username);
+                HelloWebsocketController.broadcastTodoDeleted(id, username, req);
             }
 
             res.json({

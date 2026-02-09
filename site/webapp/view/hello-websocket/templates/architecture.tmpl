@@ -4,13 +4,13 @@
  * @tagline         Architecture component of the WebSocket demo
  * @description     This component describes the architecture of the WebSocket demo
  * @file            site/webapp/view/hello-websocket/templates/architecture.tmpl
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 window.helloWebSocketViews = window.helloWebSocketViews || {};
@@ -45,9 +45,9 @@ window.helloWebSocketViews.Architecture = {
 │                                                                 │
 │  Vue Component                                                  │
 │  ├─ jPulse.ws.connect('/api/1/ws/my-app')                       │
-│  ├─ .onMessage((data) => { ... })                               │
+│  ├─ .onMessage((msg) => { if (msg.success) use msg.data; })     │
 │  ├─ .onStatusChange((status) => { ... })                        │
-│  └─ .send({ type: 'action', ... })                              │
+│  └─ .send({ type: 'action', data: ... })                        │
 │                                                                 │
 │  WebSocket Client (jpulse-common.js)                            │
 │  ├─ Connection management                                       │
@@ -100,7 +100,7 @@ window.helloWebSocketViews.Architecture = {
                 <li>Client initiates WebSocket connection: <code>ws://host/api/1/ws/my-app?uuid=xxx</code></li>
                 <li>Server validates authentication (if required)</li>
                 <li>Server stores client in namespace registry</li>
-                <li><code>onConnect</code> handler called with clientId and user</li>
+                <li><code>onConnect(conn)</code> called with <code>conn = { clientId, user, ctx }</code></li>
                 <li>Client receives <code>status: 'connected'</code></li>
             </ol>
         </div>
@@ -108,11 +108,11 @@ window.helloWebSocketViews.Architecture = {
         <div class="local-panel">
             <h4 class="jp-m-0">2️⃣ Message Exchange</h4>
             <ol class="jp-list">
-                <li>Client sends: <code>ws.send({type: 'action', data: ...})</code></li>
+                <li>Client sends: <code>ws.send({ type: 'action', data: ... })</code></li>
                 <li>Server receives and validates message format</li>
-                <li><code>onMessage</code> handler called with clientId, data, and user</li>
-                <li>Handler processes and optionally broadcasts to other clients</li>
-                <li>Clients receive: <code>{success: true, data: {...}, username: 'john'}</code></li>
+                <li><code>onMessage(conn)</code> called with <code>conn = { clientId, message, user, ctx }</code></li>
+                <li>Handler broadcasts/sends using <code>{ type, data }</code> payload convention</li>
+                <li>Clients receive: <code>{ success: true, data: { type, data: {...}, username } }</code></li>
             </ol>
         </div>
 
@@ -176,67 +176,54 @@ window.helloWebSocketViews.Architecture = {
 
         <div class="local-panel">
             <h4 class="jp-m-0">Pattern 1: Broadcast to All</h4>
-            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Server broadcasts message to all connected clients in namespace
+            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Server: use { type, data } for payload
 wsHandle.broadcast({
     type: 'notification',
-    message: 'New feature released!'
+    data: { message: 'New feature released!' }
 });
 
-// All clients receive it
-ws.onMessage((data) => {
-    if (data.type === 'notification') {
-        showNotification(data.message);
+// Client: msg.type and msg.data (payload)
+ws.onMessage((msg) => {
+    if (msg.success) {
+        const payload = msg.data ?? {};
+        if (payload.type === 'notification') showNotification(payload.data?.message);
     }
 });</code></pre>
         </div>
 
         <div class="local-panel">
             <h4 class="jp-m-0">Pattern 2: Send to Specific Client</h4>
-            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Server sends to one specific client
+            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Server
 wsHandle.sendToClient(clientId, {
     type: 'private-message',
-    message: 'Just for you!'
-});
-
-// Only that client receives it</code></pre>
+    data: { message: 'Just for you!' }
+});</code></pre>
         </div>
 
         <div class="local-panel">
             <h4 class="jp-m-0">Pattern 3: REST API + WebSocket Hybrid (Pattern A)</h4>
-            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Client calls REST API
-const response = await jPulse.api.post('/api/1/todos', { title });
+            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Server: broadcast with { type, data }
+wsHandle.broadcast({ type: 'todo-created', data: { todo, username } }, username);
 
-// Server processes via REST endpoint
-static async apiCreate(req, res) {
-    const todo = await TodoModel.create(req.body);
-
-    // Broadcast via WebSocket
-    wsHandle.broadcast({ type: 'todo-created', todo });
-
-    // Return REST response
-    res.json({ success: true, data: todo });
-}
-
-// All clients receive WebSocket notification
-ws.onMessage((data) => {
-    if (data.type === 'todo-created') {
-        addTodoToList(data.todo);
+// Client
+ws.onMessage((msg) => {
+    if (msg.success) {
+        const payload = msg.data ?? {};
+        if (payload.type === 'todo-created') addTodoToList(payload.data?.todo);
     }
 });</code></pre>
         </div>
 
         <div class="local-panel">
             <h4 class="jp-m-0">Pattern 4: WebSocket for CRUD (Pattern B)</h4>
-            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Client sends mutations over WebSocket (no REST for these)
+            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Client
 ws.send({ type: 'note-create', x, y, text, username: notesUsername() });
 
-// Server: persist (e.g. Redis), then broadcast
-onMessage: async (clientId, data, user) => {
+// Server: onMessage(conn), conn = { clientId, message, user, ctx }
+notes.onMessage(async ({ clientId, message: data, user, ctx }) => {
     const note = await this._notesCreate(...);
-    handle.broadcast({ type: 'note-created', note, username }, username);
-}
-
-// All clients (including sender) receive update; state syncs across instances</code></pre>
+    notes.broadcast({ type: 'note-created', data: { note, username } }, username);
+});</code></pre>
             <p class="jp-help-text jp-mt-10 jp-mb-0">
                 Use for live collaborative UIs (canvas, sticky boards). Server stores in Redis so all instances share state.
             </p>
@@ -261,15 +248,13 @@ onMessage: async (clientId, data, user) => {
                 <li>Connection rejected if authentication/authorization fails</li>
             </ol>
 
-            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Register namespace with authentication
-WebSocketController.registerNamespace('/api/1/ws/admin-panel', {
-    requireAuth: true,              // Must be logged in
-    requireRoles: ['admin', 'root'], // Must have admin or root role
-
-    onConnect: (clientId, user) => {
-        // user object is guaranteed to exist here
-        console.log(\`Admin \${user.username} connected\`);
-    }
+            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Create namespace with authentication
+const ns = WebSocketController.createNamespace('/api/1/ws/admin-panel', {
+    requireAuth: true,
+    requireRoles: ['admin', 'root']
+});
+ns.onConnect(({ clientId, user, ctx }) => {
+    console.log(\`Admin \${user?.username} connected\`);
 });</code></pre>
         </div>
 

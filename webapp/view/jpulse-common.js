@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.10
- * @release         2026-02-07
+ * @version         1.6.11
+ * @release         2026-02-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -8255,9 +8255,9 @@ window.jPulse = {
      *
      *   // Connect to WebSocket namespace
      *   const ws = jPulse.ws.connect('/api/1/ws/my-app')
-     *     .onMessage(data => console.log(data))
+     *     .onMessage((msg) => { if (msg.success) console.log(msg.data); })
      *     .onStatusChange(status => console.log(status));
-     *   ws.send({ type: 'action', payload: {...} });
+     *   ws.send({ type: 'action', data: {...} });
      */
     ws: {
         // Active connections registry
@@ -8498,20 +8498,15 @@ window.jPulse = {
                         const message = JSON.parse(event.data);
 
                         // Handle pong message responses (if server sends them)
-                        if (message.type === 'pong') {
+                        if (message.success && message.data && message.data.type === 'pong') {
                             connection.lastPong = Date.now(); // Update for message-based pong
                             return; // Silent acknowledgment
                         }
 
-                        // Call message handlers
+                        // Call message handlers with single param: full wire message { success, data?, error?, code? }
                         connection.messageCallbacks.forEach(callback => {
                             try {
-                                // Pass data if success, or error object if failure
-                                if (message.success) {
-                                    callback(message.data, message);
-                                } else {
-                                    callback(null, message); // null data, full message for error handling
-                                }
+                                callback(message);
                             } catch (error) {
                                 console.error('- jPulse.ws: Message handler error:', error);
                             }
@@ -8792,8 +8787,8 @@ window.jPulse = {
                     if (self._websocket) return; // Already connecting or connected
 
                     self._websocket = jPulse.ws.connect('/api/1/ws/jp-broadcast')
-                        .onMessage((data) => {
-                            self._handleWebSocketMessage(data);
+                        .onMessage((msg) => {
+                            self._handleWebSocketMessage(msg);
                         })
                         .onStatusChange((status) => {
                             if (status === 'connected') {
@@ -8807,23 +8802,25 @@ window.jPulse = {
                  * Handle WebSocket messages
              * @private
              */
-                _handleWebSocketMessage: function(message) {
-                    if (message.type === 'connected') {
-                        // Store the server-confirmed UUID on the WebSocket object (not localStorage)
-                        // Each tab needs its own unique UUID for omitSelf to work correctly
-                        if (message.clientId) {
-                            self._websocket.uuid = message.clientId;
+                _handleWebSocketMessage: function(msg) {
+                    if (!msg.success || !msg.data) return;
+                    const payload = msg.data;
+                    if (payload.type === 'connected') {
+                        if (payload.clientId) {
+                            self._websocket.uuid = payload.clientId;
                         }
-                    } else if (message.type === 'welcome') {
-                        // Process any pending subscriptions now that we are connected
+                    } else if (payload.type === 'welcome') {
                         self._processPendingSubscriptions();
-                    } else if (message.type === 'broadcast') {
-                        const { channel, data } = message;
+                    } else if (payload.type === 'broadcast') {
+                        const d = payload.data || {};
+                        const { channel, data } = d;
                         self._publishLocal(channel, data);
-                    } else if (message.type === 'subscribed') {
-                        console.log(`- jPulse.appCluster: Server confirmed subscription to ${message.channel}`);
-                    } else if (message.type === 'unsubscribed') {
-                        console.log(`- jPulse.appCluster: Server confirmed unsubscription from ${message.channel}`);
+                    } else if (payload.type === 'subscribed') {
+                        const d = payload.data || {};
+                        console.log(`- jPulse.appCluster: Server confirmed subscription to ${d.channel}`);
+                    } else if (payload.type === 'unsubscribed') {
+                        const d = payload.data || {};
+                        console.log(`- jPulse.appCluster: Server confirmed unsubscription from ${d.channel}`);
                     }
                 },
 

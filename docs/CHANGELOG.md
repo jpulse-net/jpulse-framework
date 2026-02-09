@@ -1,6 +1,31 @@
-# jPulse Docs / Version History v1.6.10
+# jPulse Docs / Version History v1.6.11
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.11, W-154, 2026-02-08
+
+**Commit:** `W-154, v1.6.11: websocket: connection object for handlers; ctx in ws & pub/sub; logging with req or ctx`
+
+**FEATURE RELEASE**: WebSocket API and logging alignment. **(1) Log context:** LogController and WebSocket use a consistent context: Express `req` or plain `{ username?, ip? }`. `CommonUtils.getLogContext(reqOrContext)`; each WebSocket client has `client.ctx` used for client-scoped log calls. **(2) Namespace as object:** `WebSocketController.createNamespace(path, options?)` returns a namespace instance; handlers receive a single **conn** param: `onConnect(conn)`, `onMessage(conn)`, `onDisconnect(conn)` with `conn = { clientId, user, ctx }` (onMessage also has `message`). Chainable `.onConnect().onMessage().onDisconnect()`. **(3) Payload and broadcast:** App payload shape `{ type, data, ctx }` with ctx mandatory at top level (default `{ username: '', ip: '0.0.0.0' }`). `broadcast(data, ctx)`, `sendToClient(clientId, data, ctx)`; handlers pass `conn.ctx`. Redis relay and _localBroadcast use payload.ctx for logging. `jPulse.appCluster.broadcast.*` public API unchanged; relay wire format `{ type, data, ctx }`. **Server:** websocket.js (createNamespace, WebSocketNamespace, conn, DEFAULT_CTX, broadcast/sendToClient with ctx); appCluster.js (relay message format, handleConnect/Message/Disconnect pass ctx, getBroadcastContext); helloWebsocket.js (createNamespace, destructured conn, all broadcast/sendToClient with ctx); helloTodo/helloClusterTodo pass req into broadcast helpers; RedisManager.getBroadcastContext(req). **Client:** onMessage receives single `message` with message.success, message.data (type, data, ctx). **Docs:** websockets.md, front-end-development.md, api-reference.md updated for createNamespace, conn, payload ctx, broadcast(data, ctx). **Tests:** websocket.test.js updated for new signatures and payload shape; log-basic.test.js getLogContext with context object. All unit tests pass.
+
+**Objective**: (1) LogController accepts Express req or context object; WebSocket captures username and IP per client for logging. (2) WebSocket API: namespace as object (createNamespace), handlers receive single conn param. (3) Payload { type, data, ctx } with ctx mandatory; broadcast(data, ctx); Redis and logging use payload.ctx.
+
+**Key Changes**:
+- **webapp/controller/websocket.js**: createNamespace(path, options?), WebSocketNamespace class; handlers receive conn; broadcast(data, ctx), sendToClient(clientId, data, ctx); payload { type, data, ctx }; DEFAULT_CTX; _localBroadcast uses payload.ctx; LogController calls use request/ctx where available.
+- **webapp/controller/appCluster.js**: relay { type, data, ctx }; handleConnect/handleMessage/handleDisconnect(conn); sendToClient with conn.ctx; broadcastPublish adds payload.ctx = getBroadcastContext(req).
+- **webapp/utils/common.js**: getLogContext(reqOrContext) supports plain { username?, ip? }.
+- **webapp/utils/redis-manager.js**: getBroadcastContext(req) for server-side broadcast context.
+- **site/webapp/controller/helloWebsocket.js**: createNamespace for emoji, todo, notes; onConnect/onMessage/onDisconnect with destructured conn; all broadcast/sendToClient with ctx; broadcastTodoCreated/Updated/Deleted(todoOrId, username, req) using getBroadcastContext(req).
+- **site/webapp/controller/helloTodo.js**: broadcastTodoCreated/Updated/Deleted now pass req.
+- **site/webapp/controller/helloClusterTodo.js**: _broadcastChange adds payload.ctx = getBroadcastContext(req).
+- **Client views**: jpulse-common.js, hello-websocket demos, admin websocket-status/websocket-test use single-arg onMessage(message) and message.success/message.data.
+- **docs/websockets.md**: createNamespace, conn param, payload { type, data, ctx }, broadcast(data, ctx), sendToClient(clientId, data, ctx); client onMessage(message); all examples updated.
+- **docs/front-end-development.md**, **docs/api-reference.md**: WebSocket client onMessage(message); api-reference WebSocket Controller API subsection.
+
+**Work Item**: W-154
+**Version**: v1.6.11
+**Release Date**: 2026-02-08
 
 ________________________________________________
 ## v1.6.10, W-153, 2026-02-07

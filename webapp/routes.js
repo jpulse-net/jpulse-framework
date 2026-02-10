@@ -3,8 +3,8 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.6.12
- * @release         2026-02-09
+ * @version         1.6.13
+ * @release         2026-02-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -56,11 +56,11 @@ router.get('/api/1/config', ConfigController.list);
 router.get('/api/1/config/_default', ConfigController.get);  // Default config (reserved ID)
 router.get('/api/1/config/:id', ConfigController.get);
 router.get('/api/1/config/:id/effective', ConfigController.getEffective);
-router.post('/api/1/config', ConfigController.create);
-router.put('/api/1/config/_default', ConfigController.upsert);  // Default config upsert (reserved ID)
-router.put('/api/1/config/:id', ConfigController.update);
-router.put('/api/1/config/:id/upsert', ConfigController.upsert);
-router.delete('/api/1/config/:id', ConfigController.delete);
+router.post('/api/1/config', AuthController.requireAdminRole(), ConfigController.create);
+router.put('/api/1/config/_default', AuthController.requireAdminRole(), ConfigController.upsert);
+router.put('/api/1/config/:id', AuthController.requireAdminRole(), ConfigController.update);
+router.put('/api/1/config/:id/upsert', AuthController.requireAdminRole(), ConfigController.upsert);
+router.delete('/api/1/config/:id', AuthController.requireAdminRole(), ConfigController.delete);
 
 // Plugin API routes (W-045)
 // Public endpoint (no auth required) - must come before authenticated :name route

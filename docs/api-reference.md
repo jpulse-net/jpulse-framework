@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.12
+# jPulse Docs / REST API Reference v1.6.13
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -1234,6 +1234,8 @@ GET /api/1/config/global?includeSchema=1
 }
 ```
 
+**Sanitization:** For non-admin callers, sensitive fields defined in `contextFilter.withoutAuth` (e.g. `data.email.smtp*`, `data.email.*pass`, `data.manifest.license.key`) are obfuscated to `********` in the response. The framework uses `CommonUtils.sanitizeObject()` for this; see [CommonUtils.sanitizeObject](#commonutilssanitizeobject) below for use in site/plugin code.
+
 #### Create Configuration
 Create a new configuration document.
 
@@ -2313,6 +2315,36 @@ The framework uses `CommonUtils.sendError()` for intelligent error responses:
 **Web requests render error pages directly without redirecting:**
 - Original URL is preserved
 - Error details available via template variables
+
+### CommonUtils.sanitizeObject {#commonutilssanitizeobject}
+
+Server-side utility to sanitize an object by applying path patterns to a deep clone; sensitive leaves are obfuscated or removed. Used by the framework for config responses and change logs. Available for site/plugin code in `webapp/utils/common.js`.
+
+**Signature:**
+```javascript
+CommonUtils.sanitizeObject(obj, pathPatterns, options)
+```
+
+**Parameters:**
+- `obj` (object) – Plain object to sanitize (not mutated).
+- `pathPatterns` (string[]) – Dot-notation paths, e.g. `['data.email.smtp*', 'data.email.*pass', 'data.manifest.license.key']`.
+- `options` (object, optional):
+  - `mode` – `'obfuscate'` (default): set matched leaves to placeholder; `'remove'`: delete matched keys.
+  - `placeholder` – String when `mode` is `'obfuscate'` (default: `'********'`).
+
+**Path rules:** Last segment may be a wildcard: `prefix*` (e.g. `smtp*`), `*suffix` (e.g. `*pass`), or an exact key. Matching is case-insensitive.
+
+**Returns:** Deep clone of `obj` with patterns applied; original is unchanged.
+
+**Example:**
+```javascript
+import CommonUtils from '../utils/common.js';
+
+const doc = { data: { email: { smtpUser: 'u', smtpPass: 'secret' } } };
+const safe = CommonUtils.sanitizeObject(doc, ['data.email.smtp*', 'data.email.*pass']);
+// safe.data.email.smtpUser === '********', safe.data.email.smtpPass === '********'
+// doc is unchanged
+```
 
 ## 🚀 Usage Examples
 

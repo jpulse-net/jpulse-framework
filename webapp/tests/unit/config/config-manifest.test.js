@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-137 manifest storage and defaults
  * @description     Tests for ConfigModel.ensureManifestDefaults() and related schema behavior
  * @file            webapp/tests/unit/config/config-manifest.test.js
- * @version         1.6.12
- * @release         2026-02-09
+ * @version         1.6.13
+ * @release         2026-02-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -70,7 +70,7 @@ describe('ConfigModel W-137 manifest', () => {
         expect(getCollectionSpy).toHaveBeenCalledTimes(1);
         expect(findOne).toHaveBeenCalledWith({ _id: id });
         expect(updateOne).toHaveBeenCalledTimes(1);
-        expect(findByIdSpy).toHaveBeenCalledWith(id);
+        expect(findByIdSpy).toHaveBeenCalledWith(id, true);
 
         // Existing values preserved
         expect(result.data.manifest.license.tier).toBe('commercial');

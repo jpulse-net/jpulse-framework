@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.12
+# jPulse Docs / Dev / Work Items v1.6.13
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4832,17 +4832,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - docs: payload { type, data, ctx }, default ctx, broadcast(data, ctx)
     - Redis caching: out of scope — cache key/value unchanged; optional convention: store { data, ctx? } when attaching context to a cached object
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-155, v1.6.12, 2026-02-09: websocket: dynamic namespace with path pattern, one namespace per resource/room
 - status: 🚧 IN_PROGRESS
 - type: Feature
@@ -4906,6 +4895,45 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-156, v1.6.13, 2026-02-10: config: sanitize sensitive fields for non-administrators
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - do not expose sensitive config data, such as SMTP credentials
+  - provide a common sanitize object function for general use, including site developers
+- features:
+  - config API getters return sanitized data when caller is not admin (findById, getEffectiveConfig, find use isAdmin; default sanitized).
+  - authz: create/update/upsert/delete require admin role (routes.js).
+  - change log and console never store or print raw config secrets (LogModel sanitizes before diff).
+- deliverables:
+  - `webapp/utils/common.js`:
+    - CommonUtils.sanitizeObject(obj, pathPatterns, options): deep-clone and apply path patterns (obfuscate or remove); dot notation with last-segment wildcards (prefix*, *suffix); case-insensitive; named export.
+  - `webapp/model/config.js`:
+    - _sanitizeForResponse(doc) using schema _meta.contextFilter.withoutAuth and sanitizeObject (obfuscate); findById(id, isAdmin), getEffectiveConfig(id, isAdmin), find(filter, isAdmin) return sanitized when !isAdmin; internal callers use findById(id, true) for full doc.
+  - `webapp/model/log.js`:
+    - logChange: when docType === 'config', sanitize oldDoc/newDoc via ConfigModel.getSchema().contextFilter.withoutAuth and sanitizeObject before createFieldDiff so stored log and console never contain raw secrets.
+  - `webapp/controller/config.js`:
+    - get/update/upsert/delete use findById(id, true) for old/existing config where full doc needed (self-lockout); response data comes from model (already sanitized for get when !isAdmin).
+  - `webapp/routes.js`:
+    - Config create/update/upsert/delete routes use AuthController.requireAdminRole().
+  - `webapp/tests/unit/utils/common-utils.test.js`:
+    - describe sanitizeObject: exact path obfuscate, smtp* prefix, *pass suffix, mode remove, no mutation.
+  - `webapp/tests/unit/config/config-model.test.js`:
+    - describe Response sanitization: _sanitizeForResponse obfuscates withoutAuth paths, preserves others, does not mutate original.
+  - `webapp/tests/unit/log/log-basic.test.js`:
+    - describe logChange config sanitization: stored log entry must not contain raw config secrets (smtpPass, license.key).
+
+
+
+
+
+
+
 ### Pending
 
 
@@ -4931,8 +4959,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-155, v1.6.12, 2026-02-09
-- update deliverables in W-155 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-156, v1.6.13, 2026-02-10
+- update deliverables in W-156 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4943,12 +4971,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.12
+node bin/bump-version.js 1.6.13
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.12
+git tag v1.6.13
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

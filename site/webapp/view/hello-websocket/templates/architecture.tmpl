@@ -4,8 +4,8 @@
  * @tagline         Architecture component of the WebSocket demo
  * @description     This component describes the architecture of the WebSocket demo
  * @file            site/webapp/view/hello-websocket/templates/architecture.tmpl
- * @version         1.6.12
- * @release         2026-02-09
+ * @version         1.6.13
+ * @release         2026-02-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -100,7 +100,7 @@ window.helloWebSocketViews.Architecture = {
                 <li>Client initiates WebSocket connection: <code>ws://host/api/1/ws/my-app?uuid=xxx</code></li>
                 <li>Server validates authentication (if required)</li>
                 <li>Server stores client in namespace registry</li>
-                <li><code>onConnect(conn)</code> called with <code>conn = { clientId, user, ctx }</code></li>
+                <li><code>onConnect(conn)</code> called with <code>conn = { clientId, ctx }</code></li>
                 <li>Client receives <code>status: 'connected'</code></li>
             </ol>
         </div>
@@ -110,9 +110,9 @@ window.helloWebSocketViews.Architecture = {
             <ol class="jp-list">
                 <li>Client sends: <code>ws.send({ type: 'action', data: ... })</code></li>
                 <li>Server receives and validates message format</li>
-                <li><code>onMessage(conn)</code> called with <code>conn = { clientId, message, user, ctx }</code></li>
-                <li>Handler broadcasts/sends using <code>{ type, data }</code> payload convention</li>
-                <li>Clients receive: <code>{ success: true, data: { type, data: {...}, username } }</code></li>
+                <li><code>onMessage(conn)</code> called with <code>conn = { clientId, message, ctx }</code></li>
+                <li>Handler broadcasts/sends using <code>ns.broadcast({ type, data }, ctx)</code> or <code>ns.sendToClient(clientId, { type, data }, ctx)</code></li>
+                <li>Clients receive: <code>{ success: true, data: { type, data: {...}, ctx } }</code>; use <code>message.success</code>, <code>message.data</code>; on failure <code>message.error</code>, <code>message.code</code></li>
             </ol>
         </div>
 
@@ -176,16 +176,16 @@ window.helloWebSocketViews.Architecture = {
 
         <div class="local-panel">
             <h4 class="jp-m-0">Pattern 1: Broadcast to All</h4>
-            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Server: use { type, data } for payload
-wsHandle.broadcast({
+            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Server: pass ctx (e.g. conn.ctx) for logging and Redis relay
+ns.broadcast({
     type: 'notification',
     data: { message: 'New feature released!' }
-});
+}, ctx);
 
-// Client: msg.type and msg.data (payload)
-ws.onMessage((msg) => {
-    if (msg.success) {
-        const payload = msg.data ?? {};
+// Client: single-arg onMessage(message), message.success, message.data
+ws.onMessage((message) => {
+    if (message.success) {
+        const payload = message.data ?? {};
         if (payload.type === 'notification') showNotification(payload.data?.message);
     }
 });</code></pre>
@@ -193,22 +193,22 @@ ws.onMessage((msg) => {
 
         <div class="local-panel">
             <h4 class="jp-m-0">Pattern 2: Send to Specific Client</h4>
-            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Server
-wsHandle.sendToClient(clientId, {
+            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Server: pass ctx (e.g. conn.ctx)
+ns.sendToClient(clientId, {
     type: 'private-message',
     data: { message: 'Just for you!' }
-});</code></pre>
+}, ctx);</code></pre>
         </div>
 
         <div class="local-panel">
             <h4 class="jp-m-0">Pattern 3: REST API + WebSocket Hybrid (Pattern A)</h4>
-            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Server: broadcast with { type, data }
-wsHandle.broadcast({ type: 'todo-created', data: { todo, username } }, username);
+            <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Server: broadcast with ctx = null when called from REST (no connection)
+ns.broadcast({ type: 'todo-created', data: { todo, username } }, null);
 
 // Client
-ws.onMessage((msg) => {
-    if (msg.success) {
-        const payload = msg.data ?? {};
+ws.onMessage((message) => {
+    if (message.success) {
+        const payload = message.data ?? {};
         if (payload.type === 'todo-created') addTodoToList(payload.data?.todo);
     }
 });</code></pre>
@@ -219,10 +219,11 @@ ws.onMessage((msg) => {
             <pre class="local-panel-pre local-panel-pre-compact jp-mt-15"><code>// Client
 ws.send({ type: 'note-create', x, y, text, username: notesUsername() });
 
-// Server: onMessage(conn), conn = { clientId, message, user, ctx }
-notes.onMessage(async ({ clientId, message: data, user, ctx }) => {
+// Server: conn = { clientId, message, ctx }; pass conn.ctx to broadcast
+notes.onMessage(async ({ clientId, message: data, ctx }) => {
+    const username = ctx?.username || 'guest';
     const note = await this._notesCreate(...);
-    notes.broadcast({ type: 'note-created', data: { note, username } }, username);
+    notes.broadcast({ type: 'note-created', data: { note, username } }, ctx);
 });</code></pre>
             <p class="jp-help-text jp-mt-10 jp-mb-0">
                 Use for live collaborative UIs (canvas, sticky boards). Server stores in Redis so all instances share state.
@@ -253,20 +254,20 @@ const ns = WebSocketController.createNamespace('/api/1/ws/admin-panel', {
     requireAuth: true,
     requireRoles: ['admin', 'root']
 });
-ns.onConnect(({ clientId, user, ctx }) => {
-    console.log(\`Admin \${user?.username} connected\`);
+ns.onConnect(({ clientId, ctx }) => {
+    console.log(\`Admin \${ctx?.username} connected\`);
 });</code></pre>
         </div>
 
         <div class="local-panel">
-            <h4 class="jp-m-0">Username Tracking</h4>
+            <h4 class="jp-m-0">Context (ctx) in Payload</h4>
             <p class="jp-mt-15 jp-mb-0">
-                All messages automatically include <code>username</code> field:
+                All messages include <code>ctx</code> in the app payload (e.g. <code>message.data.ctx</code>):
             </p>
             <ul class="jp-list">
-                <li>Authenticated user: <code>username: 'john_doe'</code></li>
-                <li>Anonymous user: <code>username: ''</code> (empty string)</li>
-                <li>System messages: <code>username: ''</code></li>
+                <li>Authenticated user: <code>ctx.username: 'john_doe'</code></li>
+                <li>Anonymous user: <code>ctx.username: ''</code> (empty string)</li>
+                <li>System broadcasts: <code>ctx.username: '_system'</code></li>
             </ul>
         </div>
     </div>

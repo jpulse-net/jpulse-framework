@@ -3,8 +3,8 @@
  * @tagline         Unit tests for log model and controller basic functionality
  * @description     This file contains unit tests for the log model and controller
  * @file            webapp/tests/unit/log/log-basic.test.js
- * @version         1.6.12
- * @release         2026-02-09
+ * @version         1.6.13
+ * @release         2026-02-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -225,6 +225,40 @@ describe('Log Model Basic Functionality', () => {
         test('should format dates as ISO strings', () => {
             const date = new Date('2025-08-24T12:00:00.000Z');
             expect(LogModel.formatValue(date)).toBe('2025-08-24T12:00:00.000Z');
+        });
+    });
+
+    describe('logChange config sanitization', () => {
+        test('should not store raw config secrets in change log', async () => {
+            const rawSecret = 'plaintext-smtp-secret';
+            const oldDoc = {
+                _id: 'global',
+                data: {
+                    email: { smtpPass: rawSecret, adminEmail: 'old@example.com' },
+                    manifest: { license: { key: 'old-license' } }
+                }
+            };
+            const newDoc = {
+                _id: 'global',
+                data: {
+                    email: { smtpPass: 'new-secret', adminEmail: 'new@example.com' },
+                    manifest: { license: { key: 'new-license' } }
+                }
+            };
+
+            let insertedDoc;
+            mockCollection.insertOne = jest.fn().mockImplementation((doc) => {
+                insertedDoc = doc;
+                return Promise.resolve({ insertedId: 'log-id' });
+            });
+
+            await LogModel.logChange('config', 'update', 'global', oldDoc, newDoc, 'testuser');
+
+            const logEntryStr = JSON.stringify(insertedDoc);
+            expect(logEntryStr).not.toContain(rawSecret);
+            expect(logEntryStr).not.toContain('new-secret');
+            expect(logEntryStr).not.toContain('old-license');
+            expect(logEntryStr).not.toContain('new-license');
         });
     });
 });

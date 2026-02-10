@@ -3,8 +3,8 @@
  * @tagline         Unit tests for ConfigModel
  * @description     Tests for config model validation, CRUD operations, and inheritance
  * @file            webapp/tests/unit/config/config-model.test.js
- * @version         1.6.12
- * @release         2026-02-09
+ * @version         1.6.13
+ * @release         2026-02-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -300,6 +300,36 @@ describe('ConfigModel', () => {
             };
             expect(() => ConfigModel.validate(invalidData))
                 .toThrow('data.general.adminRoles must be an array');
+        });
+    });
+
+    describe('Response sanitization (_sanitizeForResponse)', () => {
+        test('should obfuscate contextFilter.withoutAuth paths', () => {
+            const doc = {
+                _id: 'global',
+                data: {
+                    email: {
+                        adminEmail: 'admin@example.com',
+                        smtpServer: 'smtp.example.com',
+                        smtpPort: 587,
+                        smtpUser: 'user',
+                        smtpPass: 'secret'
+                    },
+                    manifest: {
+                        license: { key: 'license-key-123', tier: 'bsl' }
+                    }
+                }
+            };
+            const out = ConfigModel._sanitizeForResponse(doc);
+
+            expect(out.data.email.smtpServer).toBe('********');
+            expect(out.data.email.smtpPort).toBe('********');
+            expect(out.data.email.smtpUser).toBe('********');
+            expect(out.data.email.smtpPass).toBe('********');
+            expect(out.data.manifest.license.key).toBe('********');
+            expect(out.data.email.adminEmail).toBe('admin@example.com');
+            expect(out.data.manifest.license.tier).toBe('bsl');
+            expect(doc.data.email.smtpPass).toBe('secret');
         });
     });
 

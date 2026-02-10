@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.6.12
- * @release         2026-02-09
+ * @version         1.6.13
+ * @release         2026-02-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -786,6 +786,85 @@ class CommonUtils {
         }
 
         return target;
+    }
+
+    /**
+     * Sanitize an object by applying path patterns to a deep clone; sensitive leaves are obfuscated or removed.
+     * Used for config/API responses so sensitive fields (e.g. smtpPass, license.key) are not exposed.
+     * Path patterns use dot notation; the last segment may be a wildcard: prefix* (e.g. smtp*), *suffix (e.g. *pass), or exact key.
+     *
+     * @param {object} obj - Plain object to sanitize (not mutated)
+     * @param {string[]} pathPatterns - Dot-notation paths, e.g. ['data.email.smtp*', 'data.email.*pass', 'data.manifest.license.key']
+     * @param {object} options - Optional settings
+     * @param {string} [options.mode='obfuscate'] - 'obfuscate' = set matched leaves to placeholder; 'remove' = delete matched keys
+     * @param {string} [options.placeholder='********'] - Value to set when mode is 'obfuscate'
+     * @returns {object} Deep clone of obj with patterns applied (original unchanged)
+     */
+    static sanitizeObject(obj, pathPatterns, options = {}) {
+        if (obj == null || typeof obj !== 'object') {
+            return obj;
+        }
+        if (!Array.isArray(pathPatterns) || pathPatterns.length === 0) {
+            return JSON.parse(JSON.stringify(obj));
+        }
+        const mode = options.mode === 'remove' ? 'remove' : 'obfuscate';
+        const placeholder = options.placeholder !== undefined ? options.placeholder : '********';
+        const clone = JSON.parse(JSON.stringify(obj));
+        for (const pattern of pathPatterns) {
+            if (typeof pattern !== 'string' || !pattern.trim()) continue;
+            this._sanitizeObjectApplyPath(clone, pattern.trim(), mode, placeholder);
+        }
+        return clone;
+    }
+
+    /**
+     * Apply a single path pattern to obj (mutates obj). Dot notation; last segment may be prefix*, *suffix, or exact.
+     * @param {object} obj - Object to mutate (clone)
+     * @param {string} pattern - Path pattern
+     * @param {string} mode - 'obfuscate' | 'remove'
+     * @param {string} placeholder - Value when obfuscate
+     * @private
+     */
+    static _sanitizeObjectApplyPath(obj, pattern, mode, placeholder) {
+        const parts = pattern.split('.');
+        const lastPart = parts[parts.length - 1];
+        const prefixParts = parts.slice(0, -1);
+
+        let current = obj;
+        for (let i = 0; i < prefixParts.length; i++) {
+            const part = prefixParts[i];
+            if (current == null || typeof current !== 'object') return;
+            if (!(part in current)) return;
+            current = current[part];
+        }
+        if (current == null || typeof current !== 'object') return;
+
+        if (lastPart.includes('*')) {
+            if (lastPart.startsWith('*')) {
+                const suffix = lastPart.replace(/^\*/, '');
+                const suffixLower = suffix.toLowerCase();
+                for (const key of Object.keys(current)) {
+                    if (key.toLowerCase().endsWith(suffixLower)) {
+                        if (mode === 'remove') delete current[key];
+                        else current[key] = placeholder;
+                    }
+                }
+            } else if (lastPart.endsWith('*')) {
+                const prefix = lastPart.replace(/\*$/, '');
+                const prefixLower = prefix.toLowerCase();
+                for (const key of Object.keys(current)) {
+                    if (key.toLowerCase().startsWith(prefixLower)) {
+                        if (mode === 'remove') delete current[key];
+                        else current[key] = placeholder;
+                    }
+                }
+            }
+        } else {
+            if (lastPart in current) {
+                if (mode === 'remove') delete current[lastPart];
+                else current[lastPart] = placeholder;
+            }
+        }
     }
 
     /**
@@ -1804,6 +1883,7 @@ export const {
     setValueByPath,
     deleteValueByPath,
     deepMerge,
+    sanitizeObject,
     normalizeForContext,
     formatValue,
     generateUuid,

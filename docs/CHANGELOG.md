@@ -1,6 +1,31 @@
-# jPulse Docs / Version History v1.6.12
+# jPulse Docs / Version History v1.6.13
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.13, W-156, 2026-02-10
+
+**Commit:** `W-156, v1.6.13: config: sanitize sensitive fields for non-administrators`
+
+**FEATURE RELEASE**: Config sanitization and authz. **(1) Config API:** Getters (get, getEffective, list) return sanitized data when caller is not admin: sensitive fields (per schema _meta.contextFilter.withoutAuth, e.g. data.email.smtp*, data.email.*pass, data.manifest.license.key) are obfuscated to ********. **(2) Authz:** Config create, update, upsert, delete routes use AuthController.requireAdminRole(). **(3) Log safety:** LogModel.logChange sanitizes oldDoc/newDoc for docType === 'config' before createFieldDiff so stored log entries and console never contain raw secrets. **(4) Utility:** CommonUtils.sanitizeObject(obj, pathPatterns, options) — deep-clone and apply path patterns (obfuscate or remove); dot notation with last-segment wildcards (prefix*, *suffix); case-insensitive; named export. ConfigModel._sanitizeForResponse(doc); findById/getEffectiveConfig/find(idOrFilter, isAdmin); internal callers use findById(id, true). **(5) Docs:** api-reference.md — Config Get Sanitization paragraph, new subsection CommonUtils.sanitizeObject (signature, parameters, path rules, example). **(6) Tests:** common-utils.test.js sanitizeObject; config-model.test.js _sanitizeForResponse; log-basic.test.js logChange config sanitization; config-manifest.test.js findById(id, true).
+
+**Objective**: Do not expose sensitive config data (e.g. SMTP credentials) to non-admins; provide reusable sanitize utility for site/plugin code.
+
+**Key Changes**:
+- **webapp/utils/common.js**: sanitizeObject(obj, pathPatterns, options), _sanitizeObjectApplyPath; named export sanitizeObject.
+- **webapp/model/config.js**: _sanitizeForResponse(doc); findById(id, isAdmin), getEffectiveConfig(id, isAdmin), find(filter, isAdmin); internal findById(id, true) for create/update/delete/ensureDefaults/upsert; getEffectiveConfig merge shape (data spread).
+- **webapp/model/log.js**: logChange sanitizes config oldDoc/newDoc via contextFilter.withoutAuth and sanitizeObject before createFieldDiff.
+- **webapp/controller/config.js**: AuthController.isAdmin(req); findById(id, isAdmin), getEffectiveConfig(id, isAdmin), find(filter, isAdmin) for getters; findById(id, true) for update/upsert/delete (old doc).
+- **webapp/routes.js**: Config create/update/upsert/delete use AuthController.requireAdminRole().
+- **docs/api-reference.md**: Config Get Sanitization note; CommonUtils.sanitizeObject subsection (signature, params, path rules, example).
+- **webapp/tests/unit/utils/common-utils.test.js**: describe sanitizeObject (exact, prefix*, *pass, mode remove, no mutation).
+- **webapp/tests/unit/config/config-model.test.js**: describe Response sanitization (_sanitizeForResponse).
+- **webapp/tests/unit/log/log-basic.test.js**: describe logChange config sanitization.
+- **webapp/tests/unit/config/config-manifest.test.js**: findById(id, true) expectation.
+
+**Work Item**: W-156
+**Version**: v1.6.13
+**Release Date**: 2026-02-10
 
 ________________________________________________
 ## v1.6.12, W-155, 2026-02-09

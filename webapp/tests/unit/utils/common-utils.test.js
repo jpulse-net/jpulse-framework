@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for CommonUtils
  * @description     Tests for common utility functions
  * @file            webapp/tests/unit/utils/common-utils.test.js
- * @version         1.6.12
- * @release         2026-02-09
+ * @version         1.6.13
+ * @release         2026-02-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -285,6 +285,46 @@ describe('CommonUtils', () => {
         test('should trim whitespace', () => {
             const result = CommonUtils.sanitizeString('  test  ');
             expect(result).toBe('test');
+        });
+    });
+
+    describe('sanitizeObject', () => {
+        test('should obfuscate exact path by default', () => {
+            const obj = { data: { email: { smtpPass: 'secret' } } };
+            const result = CommonUtils.sanitizeObject(obj, ['data.email.smtpPass']);
+            expect(result.data.email.smtpPass).toBe('********');
+            expect(obj.data.email.smtpPass).toBe('secret');
+        });
+
+        test('should obfuscate prefix wildcard (smtp*)', () => {
+            const obj = { data: { email: { smtpServer: 'smtp.x.com', smtpPort: 587, smtpUser: 'u', adminEmail: 'a@b.com' } } };
+            const result = CommonUtils.sanitizeObject(obj, ['data.email.smtp*']);
+            expect(result.data.email.smtpServer).toBe('********');
+            expect(result.data.email.smtpPort).toBe('********');
+            expect(result.data.email.smtpUser).toBe('********');
+            expect(result.data.email.adminEmail).toBe('a@b.com');
+        });
+
+        test('should obfuscate suffix wildcard (*pass)', () => {
+            const obj = { data: { email: { smtpPass: 'p1', otherPass: 'p2', user: 'u' } } };
+            const result = CommonUtils.sanitizeObject(obj, ['data.email.*pass']);
+            expect(result.data.email.smtpPass).toBe('********');
+            expect(result.data.email.otherPass).toBe('********');
+            expect(result.data.email.user).toBe('u');
+        });
+
+        test('should support mode remove', () => {
+            const obj = { data: { email: { smtpPass: 'secret' } } };
+            const result = CommonUtils.sanitizeObject(obj, ['data.email.smtpPass'], { mode: 'remove' });
+            expect(result.data.email.smtpPass).toBeUndefined();
+            expect(obj.data.email.smtpPass).toBe('secret');
+        });
+
+        test('should not mutate original', () => {
+            const obj = { a: { b: 'v' } };
+            const result = CommonUtils.sanitizeObject(obj, ['a.b']);
+            expect(result).not.toBe(obj);
+            expect(obj.a.b).toBe('v');
         });
     });
 

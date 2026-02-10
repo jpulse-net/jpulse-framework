@@ -18008,3 +18008,27 @@ Reviewed tt-git-diff.txt: matches W-155 scope (conn refactor, dynamic namespaces
 
 
 ============================================================
+2026-02-09 23:15
+
+BUG: /api/1/config/_default?includeSchema=1 - has provisions to sanitize/filter for not-auth user but it does not work, smtp usr & passwords are exposed!
+
+Fixed: ConfigController.get() was returning raw config without applying the schema's contextFilter. Now it applies contextFilter before sending: for unauthenticated users uses withoutAuth (data.email.smtp*, data.email.*pass, data.manifest.license.key), for authenticated uses withAuth (data.email.smtpPass, data.manifest.license.key). Added imports for AuthController and HandlebarController; clone config and call HandlebarController._removePath() for each filter path, then send the filtered clone as response.data. handlebar-context-filter and config-manifest unit tests pass.
+
+
+============================================================
+2026-02-10 01:20
+
+check if utils are documented anywhere - if so, add docs for new function
+
+Utils are not documented in one place; CommonUtils is referenced in api-reference.md (sendError, getLogContext) and genai-instructions.md. Added docs in docs/api-reference.md: (1) Config API Get section — Sanitization paragraph explaining non-admin obfuscation via contextFilter.withoutAuth and link to CommonUtils.sanitizeObject; (2) new subsection "CommonUtils.sanitizeObject" after Error Handling: signature, parameters (obj, pathPatterns, options), path rules (prefix*, *suffix, exact), returns, and example. Link text in Config section points to #commonutilssanitizeobject.
+
+
+============================================================
+2026-02-10 01:30
+
+release prep - review git diff tt-git-diff.txt for accuracy and completeness of work item; assume release W-156, v1.6.13, 2026-02-10; update README.md, docs/README.md, docs/CHANGELOG.md, commit-message.txt, cursor_log.txt (append). Don't bump version, don't commit.
+
+Reviewed tt-git-diff.txt: matches W-156 scope (config sanitization, CommonUtils.sanitizeObject, ConfigModel/LogModel/ConfigController/routes, tests, api-reference.md, work-items W-156 block). Diff also includes hello-websocket template updates (conn/ctx, W-155-related) and plugins.shtml (access denied → jp-error-box). Updated README.md and docs/README.md Latest Release Highlights with v1.6.13 W-156. Added v1.6.13 section to docs/CHANGELOG.md. Wrote commit-message.txt for W-156 in same format as W-155. Appended this entry to cursor_log.txt. No version bump; no git commands run.
+
+
+============================================================

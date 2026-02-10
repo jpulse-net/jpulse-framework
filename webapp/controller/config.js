@@ -3,8 +3,8 @@
  * @tagline         Config Controller for jPulse Framework WebApp
  * @description     This is the config controller for the jPulse Framework WebApp
  * @file            webapp/controller/config.js
- * @version         1.6.12
- * @release         2026-02-09
+ * @version         1.6.13
+ * @release         2026-02-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -14,6 +14,7 @@
 
 import ConfigModel from '../model/config.js';
 import LogController from './log.js';
+import AuthController from './auth.js';
 // i18n will be available globally after bootstrap
 
 /**
@@ -56,7 +57,8 @@ class ConfigController {
         LogController.logRequest(req, 'config.get', id || '');
         try {
 
-            let config = await ConfigModel.findById(id);
+            const isAdmin = AuthController.isAdmin(req);
+            let config = await ConfigModel.findById(id, isAdmin);
 
             // If config not found and this is the default config, create it
             // W-131: Let model's applyDefaults() handle defaults (single source of truth)
@@ -138,7 +140,8 @@ class ConfigController {
                 const message = global.i18n.translate(req, 'controller.config.configIdRequired');
                 return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_ID');
             }
-            const config = await ConfigModel.getEffectiveConfig(id);
+            const isAdmin = AuthController.isAdmin(req);
+            const config = await ConfigModel.getEffectiveConfig(id, isAdmin);
             if (!config) {
                 LogController.logError(req, 'config.getEffective', `error: config not found for id: ${id}`);
                 const message = global.i18n.translate(req, 'controller.config.configNotFound', { id });
@@ -175,7 +178,8 @@ class ConfigController {
             if (parent !== undefined) {
                 filter.parent = parent === 'null' ? null : parent;
             }
-            const configs = await ConfigModel.find(filter);
+            const isAdmin = AuthController.isAdmin(req);
+            const configs = await ConfigModel.find(filter, isAdmin);
             LogController.logInfo(req, 'config.list', `success: configs retrieved, count: ${configs.length}`);
             const message = global.i18n.translate(req, 'controller.config.configListRetrieved', { count: configs.length });
             res.json({
@@ -265,8 +269,8 @@ class ConfigController {
                 return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_DATA');
             }
 
-            // Get old document for logging
-            const oldConfig = await ConfigModel.findById(id);
+            // Get old document for logging and self-lockout check (full doc needed for adminRoles)
+            const oldConfig = await ConfigModel.findById(id, true);
             if (!oldConfig) {
                 LogController.logError(req, 'config.update', `error: config not found for id: ${id}`);
                 const message = global.i18n.translate(req, 'controller.config.configNotFound', { id });
@@ -360,8 +364,8 @@ class ConfigController {
                 configData.updatedBy = req.session.user.id || req.session.user.loginId || '';
             }
 
-            // Check if config exists to determine if this is create or update
-            const existingConfig = await ConfigModel.findById(id);
+            // Check if config exists to determine if this is create or update (full doc for self-lockout check)
+            const existingConfig = await ConfigModel.findById(id, true);
             const isUpdate = !!existingConfig;
 
             // W-147: Self-lockout prevention on upsert (when updating)
@@ -446,7 +450,7 @@ class ConfigController {
             }
 
             // Get document before deletion for logging
-            const oldConfig = await ConfigModel.findById(id);
+            const oldConfig = await ConfigModel.findById(id, true);
             if (!oldConfig) {
                 LogController.logError(req, 'config.delete', `error: config not found for id: ${id}`);
                 const message = global.i18n.translate(req, 'controller.config.configNotFound', { id });

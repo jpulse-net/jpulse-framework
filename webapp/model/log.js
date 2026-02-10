@@ -3,8 +3,8 @@
  * @tagline         Log Model for jPulse Framework WebApp
  * @description     This is the log model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/log.js
- * @version         1.6.12
- * @release         2026-02-09
+ * @version         1.6.13
+ * @release         2026-02-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -14,6 +14,7 @@
 
 import database from '../database.js';
 import CommonUtils from '../utils/common.js';
+import ConfigModel from './config.js';
 
 /**
  * Log Model - handles logging infrastructure with native MongoDB driver
@@ -324,6 +325,16 @@ class LogModel {
      * @returns {Promise<object>} Created log entry
      */
     static async logChange(docType, action, docId, oldDoc = null, newDoc = null, createdBy = '') {
+        // Never store sensitive config values in change log (admin log UI and console)
+        if (docType === 'config') {
+            const pathList = ConfigModel.getSchema()?._meta?.contextFilter?.withoutAuth;
+            if (Array.isArray(pathList) && pathList.length > 0) {
+                const opts = { mode: 'obfuscate', placeholder: '********' };
+                if (oldDoc) oldDoc = CommonUtils.sanitizeObject(oldDoc, pathList, opts);
+                if (newDoc) newDoc = CommonUtils.sanitizeObject(newDoc, pathList, opts);
+            }
+        }
+
         let changes = [];
         if (action === 'create') {
             changes = LogModel.createDocumentCreatedChanges(newDoc);

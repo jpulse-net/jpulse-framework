@@ -3,13 +3,13 @@
  * @tagline         Config Model for jPulse Framework WebApp
  * @description     This is the config model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/config.js
- * @version         1.6.12
- * @release         2026-02-09
+ * @version         1.6.13
+ * @release         2026-02-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
  */
 
 import database from '../database.js';
@@ -238,6 +238,20 @@ class ConfigModel {
     }
 
     /**
+     * Internal: apply contextFilter.withoutAuth via CommonUtils.sanitizeObject (obfuscate mode).
+     * @param {object} doc - Config document
+     * @returns {object} Sanitized clone
+     * @private
+     */
+    static _sanitizeForResponse(doc) {
+        if (doc == null || typeof doc !== 'object') return doc;
+        const schema = this.getSchema();
+        const pathList = schema?._meta?.contextFilter?.withoutAuth;
+        if (!Array.isArray(pathList) || pathList.length === 0) return JSON.parse(JSON.stringify(doc));
+        return CommonUtils.sanitizeObject(doc, pathList, { mode: 'obfuscate', placeholder: '********' });
+    }
+
+    /**
      * Get MongoDB collection
      * @returns {Collection} MongoDB collection instance
      */
@@ -323,7 +337,7 @@ class ConfigModel {
             );
 
             // Return fresh document (gets actual written values in case of race)
-            return await this.findById(id);
+            return await this.findById(id, true);
 
         } catch (error) {
             throw new Error(`Failed to ensure manifest defaults: ${error.message}`);
@@ -363,7 +377,7 @@ class ConfigModel {
                     $inc: { saveCount: 1 }
                 }
             );
-            return await this.findById(id);
+            return await this.findById(id, true);
         } catch (error) {
             throw new Error(`Failed to ensure general defaults: ${error.message}`);
         }
@@ -560,9 +574,10 @@ class ConfigModel {
     /**
      * Find config by ID
      * @param {string} id - Config ID
+     * @param {boolean} isAdmin - If true return full document; if false/omitted return sanitized (sensitive fields obfuscated)
      * @returns {Promise<object|null>} Config document or null if not found
      */
-    static async findById(id) {
+    static async findById(id, isAdmin = false) {
         try {
             const collection = this.getCollection();
             let doc = await collection.findOne({ _id: id });
@@ -579,6 +594,7 @@ class ConfigModel {
                     }
                 };
             }
+            if (!isAdmin) return this._sanitizeForResponse(doc);
             return doc;
         } catch (error) {
             throw new Error(`Failed to find config by ID: ${error.message}`);
@@ -588,12 +604,16 @@ class ConfigModel {
     /**
      * Find all configs
      * @param {object} filter - MongoDB filter object
+     * @param {boolean} isAdmin - If true return full documents; if false/omitted return sanitized
      * @returns {Promise<Array>} Array of config documents
      */
-    static async find(filter = {}) {
+    static async find(filter = {}, isAdmin = false) {
         try {
             const collection = this.getCollection();
             const result = await collection.find(filter).toArray();
+            if (!isAdmin && result.length > 0) {
+                return result.map((doc) => this._sanitizeForResponse(doc));
+            }
             return result;
         } catch (error) {
             throw new Error(`Failed to find configs: ${error.message}`);
@@ -623,7 +643,7 @@ class ConfigModel {
             }
 
             // Get the created document
-            const createdDoc = await this.findById(configData._id);
+            const createdDoc = await this.findById(configData._id, true);
 
             return createdDoc;
         } catch (error) {
@@ -643,7 +663,7 @@ class ConfigModel {
             this.validate(data, true);
 
             // Get current document to increment saveCount and for logging
-            const current = await this.findById(id);
+            const current = await this.findById(id, true);
             if (!current) {
                 return null;
             }
@@ -738,7 +758,7 @@ class ConfigModel {
             }
 
             // Get updated document
-            const updatedDoc = await this.findById(id);
+            const updatedDoc = await this.findById(id, true);
 
             return updatedDoc;
         } catch (error) {
@@ -754,7 +774,7 @@ class ConfigModel {
     static async deleteById(id) {
         try {
             // Get current document for logging
-            const current = await this.findById(id);
+            const current = await this.findById(id, true);
             if (!current) {
                 return false;
             }
@@ -773,45 +793,45 @@ class ConfigModel {
     /**
      * Get effective config by resolving inheritance chain
      * @param {string} id - Config ID
+     * @param {boolean} isAdmin - If true return full merged config; if false/omitted return sanitized
      * @returns {Promise<object|null>} Merged config with inheritance resolved
      */
-    static async getEffectiveConfig(id) {
+    static async getEffectiveConfig(id, isAdmin = false) {
         try {
-            const config = await this.findById(id);
+            const config = await this.findById(id, true);
             if (!config) {
                 return null;
             }
 
-            // If no parent, return as-is
+            // If no parent, return as-is (sanitize if needed)
             if (!config.parent) {
-                return config;
+                return isAdmin ? config : this._sanitizeForResponse(config);
             }
 
-            // Get parent config recursively
-            const parentConfig = await this.getEffectiveConfig(config.parent);
+            // Get parent config recursively (raw for merge)
+            const parentConfig = await this.getEffectiveConfig(config.parent, true);
             if (!parentConfig) {
-                // Parent not found, return current config
-                return config;
+                return isAdmin ? config : this._sanitizeForResponse(config);
             }
 
             // Merge parent and current config (current overrides parent)
             const mergedData = {
                 email: {
-                    ...parentConfig.data.email,
-                    ...config.data.email
+                    ...parentConfig.data?.email,
+                    ...config.data?.email
                 },
                 broadcast: {
-                    ...parentConfig.data.broadcast,
-                    ...config.data.broadcast
+                    ...parentConfig.data?.broadcast,
+                    ...config.data?.broadcast
                 }
             };
 
-            // Return merged config with current metadata
-            return {
+            const merged = {
                 ...config,
-                data: mergedData,
+                data: { ...config.data, ...mergedData },
                 _effectiveParent: parentConfig._id
             };
+            return isAdmin ? merged : this._sanitizeForResponse(merged);
         } catch (error) {
             throw new Error(`Failed to get effective config: ${error.message}`);
         }
@@ -825,7 +845,7 @@ class ConfigModel {
      */
     static async upsert(id, data) {
         try {
-            const existing = await this.findById(id);
+            const existing = await this.findById(id, true);
 
             if (existing) {
                 return await this.updateById(id, data);

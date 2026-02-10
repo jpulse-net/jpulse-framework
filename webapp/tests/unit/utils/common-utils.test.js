@@ -296,11 +296,12 @@ describe('CommonUtils', () => {
             expect(obj.data.email.smtpPass).toBe('secret');
         });
 
-        test('should obfuscate prefix wildcard (smtp*)', () => {
+        test('should obfuscate prefix wildcard (smtp*) and preserve type', () => {
             const obj = { data: { email: { smtpServer: 'smtp.x.com', smtpPort: 587, smtpUser: 'u', adminEmail: 'a@b.com' } } };
             const result = CommonUtils.sanitizeObject(obj, ['data.email.smtp*']);
             expect(result.data.email.smtpServer).toBe('********');
-            expect(result.data.email.smtpPort).toBe('********');
+            expect(result.data.email.smtpPort).toBe(9999);
+            expect(typeof result.data.email.smtpPort).toBe('number');
             expect(result.data.email.smtpUser).toBe('********');
             expect(result.data.email.adminEmail).toBe('a@b.com');
         });
@@ -325,6 +326,16 @@ describe('CommonUtils', () => {
             const result = CommonUtils.sanitizeObject(obj, ['a.b']);
             expect(result).not.toBe(obj);
             expect(obj.a.b).toBe('v');
+        });
+
+        test('should use custom stringPlaceholder and numberPlaceholder', () => {
+            const obj = { data: { email: { smtpPass: 'secret', smtpPort: 587 } } };
+            const result = CommonUtils.sanitizeObject(obj, ['data.email.smtp*'], {
+                stringPlaceholder: '***',
+                numberPlaceholder: 0
+            });
+            expect(result.data.email.smtpPass).toBe('***');
+            expect(result.data.email.smtpPort).toBe(0);
         });
     });
 

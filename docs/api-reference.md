@@ -1234,7 +1234,7 @@ GET /api/1/config/global?includeSchema=1
 }
 ```
 
-**Sanitization:** For non-admin callers, sensitive fields defined in `contextFilter.withoutAuth` (e.g. `data.email.smtp*`, `data.email.*pass`, `data.manifest.license.key`) are obfuscated to `********` in the response. The framework uses `CommonUtils.sanitizeObject()` for this; see [CommonUtils.sanitizeObject](#commonutilssanitizeobject) below for use in site/plugin code.
+**Sanitization:** For non-admin callers, sensitive fields defined in `contextFilter.withoutAuth` (e.g. `data.email.smtp*`, `data.email.*pass`, `data.manifest.license.key`) are obfuscated with type preserved: strings → `********`, numbers → `9999`. The framework uses `CommonUtils.sanitizeObject()` for this; see [CommonUtils.sanitizeObject](#commonutilssanitizeobject) below for use in site/plugin code.
 
 #### Create Configuration
 Create a new configuration document.
@@ -2316,9 +2316,9 @@ The framework uses `CommonUtils.sendError()` for intelligent error responses:
 - Original URL is preserved
 - Error details available via template variables
 
-### CommonUtils.sanitizeObject {#commonutilssanitizeobject}
+### CommonUtils.sanitizeObject
 
-Server-side utility to sanitize an object by applying path patterns to a deep clone; sensitive leaves are obfuscated or removed. Used by the framework for config responses and change logs. Available for site/plugin code in `webapp/utils/common.js`.
+Server-side utility to sanitize an object by applying path patterns to a deep clone; sensitive leaves are obfuscated or removed. Obfuscation preserves type (string→stringPlaceholder, number→numberPlaceholder, boolean→false, null→null, object→{}, array→[]). Used by the framework for config responses and change logs. Available for site/plugin code in `webapp/utils/common.js`.
 
 **Signature:**
 ```javascript
@@ -2329,8 +2329,9 @@ CommonUtils.sanitizeObject(obj, pathPatterns, options)
 - `obj` (object) – Plain object to sanitize (not mutated).
 - `pathPatterns` (string[]) – Dot-notation paths, e.g. `['data.email.smtp*', 'data.email.*pass', 'data.manifest.license.key']`.
 - `options` (object, optional):
-  - `mode` – `'obfuscate'` (default): set matched leaves to placeholder; `'remove'`: delete matched keys.
-  - `placeholder` – String when `mode` is `'obfuscate'` (default: `'********'`).
+  - `mode` – `'obfuscate'` (default): set matched leaves to type-preserving placeholder; `'remove'`: delete matched keys.
+  - `stringPlaceholder` – Value when obfuscated leaf is a string (default: `'********'`).
+  - `numberPlaceholder` – Value when obfuscated leaf is a number (default: `9999`).
 
 **Path rules:** Last segment may be a wildcard: `prefix*` (e.g. `smtp*`), `*suffix` (e.g. `*pass`), or an exact key. Matching is case-insensitive.
 
@@ -2340,9 +2341,9 @@ CommonUtils.sanitizeObject(obj, pathPatterns, options)
 ```javascript
 import CommonUtils from '../utils/common.js';
 
-const doc = { data: { email: { smtpUser: 'u', smtpPass: 'secret' } } };
+const doc = { data: { email: { smtpUser: 'u', smtpPort: 587, smtpPass: 'secret' } } };
 const safe = CommonUtils.sanitizeObject(doc, ['data.email.smtp*', 'data.email.*pass']);
-// safe.data.email.smtpUser === '********', safe.data.email.smtpPass === '********'
+// safe.data.email.smtpUser === '********', safe.data.email.smtpPort === 9999, safe.data.email.smtpPass === '********'
 // doc is unchanged
 ```
 

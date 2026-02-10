@@ -323,7 +323,8 @@ describe('ConfigModel', () => {
             const out = ConfigModel._sanitizeForResponse(doc);
 
             expect(out.data.email.smtpServer).toBe('********');
-            expect(out.data.email.smtpPort).toBe('********');
+            expect(out.data.email.smtpPort).toBe(9999);
+            expect(typeof out.data.email.smtpPort).toBe('number');
             expect(out.data.email.smtpUser).toBe('********');
             expect(out.data.email.smtpPass).toBe('********');
             expect(out.data.manifest.license.key).toBe('********');

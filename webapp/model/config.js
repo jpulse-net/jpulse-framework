@@ -248,7 +248,7 @@ class ConfigModel {
         const schema = this.getSchema();
         const pathList = schema?._meta?.contextFilter?.withoutAuth;
         if (!Array.isArray(pathList) || pathList.length === 0) return JSON.parse(JSON.stringify(doc));
-        return CommonUtils.sanitizeObject(doc, pathList, { mode: 'obfuscate', placeholder: '********' });
+        return CommonUtils.sanitizeObject(doc, pathList, { mode: 'obfuscate' });
     }
 
     /**

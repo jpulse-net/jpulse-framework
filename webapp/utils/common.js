@@ -791,13 +791,15 @@ class CommonUtils {
     /**
      * Sanitize an object by applying path patterns to a deep clone; sensitive leaves are obfuscated or removed.
      * Used for config/API responses so sensitive fields (e.g. smtpPass, license.key) are not exposed.
+     * Obfuscation preserves type: string→stringPlaceholder, number→numberPlaceholder, boolean→false, null→null, object→{}, array→[].
      * Path patterns use dot notation; the last segment may be a wildcard: prefix* (e.g. smtp*), *suffix (e.g. *pass), or exact key.
      *
      * @param {object} obj - Plain object to sanitize (not mutated)
      * @param {string[]} pathPatterns - Dot-notation paths, e.g. ['data.email.smtp*', 'data.email.*pass', 'data.manifest.license.key']
      * @param {object} options - Optional settings
-     * @param {string} [options.mode='obfuscate'] - 'obfuscate' = set matched leaves to placeholder; 'remove' = delete matched keys
-     * @param {string} [options.placeholder='********'] - Value to set when mode is 'obfuscate'
+     * @param {string} [options.mode='obfuscate'] - 'obfuscate' = set matched leaves to type-preserving placeholder; 'remove' = delete matched keys
+     * @param {string} [options.stringPlaceholder='********'] - Value when obfuscated leaf is a string
+     * @param {number} [options.numberPlaceholder=9999] - Value when obfuscated leaf is a number
      * @returns {object} Deep clone of obj with patterns applied (original unchanged)
      */
     static sanitizeObject(obj, pathPatterns, options = {}) {
@@ -808,13 +810,31 @@ class CommonUtils {
             return JSON.parse(JSON.stringify(obj));
         }
         const mode = options.mode === 'remove' ? 'remove' : 'obfuscate';
-        const placeholder = options.placeholder !== undefined ? options.placeholder : '********';
+        const stringPlaceholder = options.stringPlaceholder !== undefined ? options.stringPlaceholder : '********';
+        const numberPlaceholder = options.numberPlaceholder !== undefined ? options.numberPlaceholder : 9999;
+        const placeholders = { stringPlaceholder, numberPlaceholder };
         const clone = JSON.parse(JSON.stringify(obj));
         for (const pattern of pathPatterns) {
             if (typeof pattern !== 'string' || !pattern.trim()) continue;
-            this._sanitizeObjectApplyPath(clone, pattern.trim(), mode, placeholder);
+            this._sanitizeObjectApplyPath(clone, pattern.trim(), mode, placeholders);
         }
         return clone;
+    }
+
+    /**
+     * Return type-preserving obfuscation value for a leaf.
+     * @param {*} value - Current value at the leaf
+     * @param {{ stringPlaceholder: string, numberPlaceholder: number }} placeholders - Options
+     * @returns {*} Placeholder matching original type
+     * @private
+     */
+    static _sanitizeObjectPlaceholderForValue(value, placeholders) {
+        if (value === null) return null;
+        if (typeof value === 'string') return placeholders.stringPlaceholder;
+        if (typeof value === 'number') return placeholders.numberPlaceholder;
+        if (Array.isArray(value)) return [];
+        if (typeof value === 'object') return {};
+        return placeholders.stringPlaceholder;
     }
 
     /**
@@ -822,10 +842,10 @@ class CommonUtils {
      * @param {object} obj - Object to mutate (clone)
      * @param {string} pattern - Path pattern
      * @param {string} mode - 'obfuscate' | 'remove'
-     * @param {string} placeholder - Value when obfuscate
+     * @param {{ stringPlaceholder: string, numberPlaceholder: number }} placeholders - When obfuscate (type-preserving)
      * @private
      */
-    static _sanitizeObjectApplyPath(obj, pattern, mode, placeholder) {
+    static _sanitizeObjectApplyPath(obj, pattern, mode, placeholders) {
         const parts = pattern.split('.');
         const lastPart = parts[parts.length - 1];
         const prefixParts = parts.slice(0, -1);
@@ -846,7 +866,7 @@ class CommonUtils {
                 for (const key of Object.keys(current)) {
                     if (key.toLowerCase().endsWith(suffixLower)) {
                         if (mode === 'remove') delete current[key];
-                        else current[key] = placeholder;
+                        else current[key] = this._sanitizeObjectPlaceholderForValue(current[key], placeholders);
                     }
                 }
             } else if (lastPart.endsWith('*')) {
@@ -855,14 +875,14 @@ class CommonUtils {
                 for (const key of Object.keys(current)) {
                     if (key.toLowerCase().startsWith(prefixLower)) {
                         if (mode === 'remove') delete current[key];
-                        else current[key] = placeholder;
+                        else current[key] = this._sanitizeObjectPlaceholderForValue(current[key], placeholders);
                     }
                 }
             }
         } else {
             if (lastPart in current) {
                 if (mode === 'remove') delete current[lastPart];
-                else current[lastPart] = placeholder;
+                else current[lastPart] = this._sanitizeObjectPlaceholderForValue(current[lastPart], placeholders);
             }
         }
     }

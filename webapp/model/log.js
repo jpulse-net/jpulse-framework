@@ -329,7 +329,7 @@ class LogModel {
         if (docType === 'config') {
             const pathList = ConfigModel.getSchema()?._meta?.contextFilter?.withoutAuth;
             if (Array.isArray(pathList) && pathList.length > 0) {
-                const opts = { mode: 'obfuscate', placeholder: '********' };
+                const opts = { mode: 'obfuscate' };
                 if (oldDoc) oldDoc = CommonUtils.sanitizeObject(oldDoc, pathList, opts);
                 if (newDoc) newDoc = CommonUtils.sanitizeObject(newDoc, pathList, opts);
             }

@@ -1,6 +1,30 @@
-# jPulse Docs / Version History v1.6.11
+# jPulse Docs / Version History v1.6.12
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.12, W-155, 2026-02-09
+
+**Commit:** `W-155, v1.6.12: websocket: dynamic namespace with path pattern, one namespace per resource/room`
+
+**FEATURE RELEASE**: WebSocket dynamic namespaces and conn refactor. **(1) Dynamic namespaces:** Path pattern with `:param` (e.g. `/api/1/ws/hello-rooms/:roomName`). Framework registers pattern; on first connect to a matching path, get-or-create namespace, run `onCreate(req, ctx)` (return ctx to accept, null to reject). **ctx** includes **params** extracted from path (e.g. `{ roomName: 'lobby' }`). **removeNamespace(path, { removeIfEmpty })**, **namespace.removeIfEmpty()** for teardown when empty. No sticky sessions required for multi-instance. **(2) Conn refactor:** **conn** = `{ clientId, ctx }` only (onMessage adds `message`); no `conn.user`. **ctx** = `{ username, ip, roles, firstName, lastName, initials, params }` built once at upgrade. All handlers and app code use `conn.ctx` only. **(3) Reference app:** Dynamic Rooms in `/hello-websocket/` — room select, chat, Redis-based room user count (room-stats, user-left), fallback to local clientCount when Redis unavailable. **(4) Docs:** websockets.md v1.6.12 — Dynamic Namespaces (Per-Resource Rooms), Handling Reconnect and Missed Updates, Multi-instance behavior; app-layer responsibilities (catch-up via REST on reconnect). api-reference.md, front-end-development.md blurbs updated. **(5) Tests:** websocket.test.js — beforeEach clear patternNamespaces; describe "W-155 Dynamic Namespaces" (pattern registration, param extraction, removeNamespace, removeIfEmpty). All unit tests pass.
+
+**Objective**: Enable one WebSocket namespace per resource (e.g. per room or per map); natural broadcast scoping; clean conn API (ctx-only identity).
+
+**Key Changes**:
+- **webapp/controller/websocket.js**: ctx built at _completeUpgrade; client.ctx; conn = { clientId, ctx } / { clientId, message, ctx }. patternNamespaces array; createNamespace with :param registers pattern; _handleUpgrade pattern match, extract params, get-or-create, onCreate; removeNamespace(path, { removeIfEmpty }), namespace.removeIfEmpty(). _onDisconnect removes client from namespace.clients before app handler.
+- **webapp/controller/appCluster.js**: conn shape comments (no conn.user).
+- **site/webapp/controller/helloWebsocket.js**: All handlers conn.ctx only. Dynamic Rooms namespace /api/1/ws/hello-rooms/:roomName, onCreate; room chat; Redis cacheIncr/cacheDecr room count; room-stats, user-left broadcasts.
+- **site/webapp/view/hello-websocket/**: index.shtml Dynamic Rooms tab and .local-dynamic-rooms styles; routing.tmpl Dynamic Rooms route; dynamic-rooms.tmpl (new) room select, chat, message list, room-stats.
+- **docs/websockets.md**: conn/ctx only; Dynamic Namespaces section; Reconnect/Missed Updates; Multi-instance behavior; all examples ctx-only.
+- **docs/api-reference.md**, **docs/front-end-development.md**: WebSocket blurbs (dynamic namespaces, conn/ctx, reconnect).
+- **docs/dev/design/W-154-websocket-namespace-as-object.md**: Note ctx-only follow-up is W-155.
+- **docs/dev/design/W-155-websocket-dynamic-namespace.md**: Status Done; full implementation plan, reference app, tech debt (reconnect/replay).
+- **webapp/tests/unit/controller/websocket.test.js**: W-155 Dynamic Namespaces tests (pattern, params, removeNamespace, removeIfEmpty).
+
+**Work Item**: W-155
+**Version**: v1.6.12
+**Release Date**: 2026-02-09
 
 ________________________________________________
 ## v1.6.11, W-154, 2026-02-08

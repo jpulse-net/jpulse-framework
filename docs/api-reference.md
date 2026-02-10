@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.11
+# jPulse Docs / REST API Reference v1.6.12
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -373,9 +373,9 @@ export default class ProductController {
 
 ## ⚡ WebSocket Controller API
 
-> **📖 Full guide:** [WebSocket Real-Time Communication](websockets.md) for setup, patterns, and client API.
+> **📖 Full guide:** [WebSocket Real-Time Communication](websockets.md) — setup, patterns, client API, dynamic namespaces (path patterns, onCreate, removeNamespace), conn = { clientId, ctx }, and reconnect/missed-updates handling.
 
-Server-side WebSocket namespaces are created with `WebSocketController.createNamespace(path, options?)`. Handlers receive a single **conn** object; pass **ctx** to `broadcast()` and `sendToClient()` for logging and Redis relay.
+Server-side WebSocket namespaces are created with `WebSocketController.createNamespace(path, options?)`. Handlers receive **conn** = `{ clientId, ctx }` (onMessage adds `message`); pass **ctx** to `broadcast()` and `sendToClient()` for logging and Redis relay.
 
 **Create namespace (chainable):**
 ```javascript

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.11
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.12
 
 **For Site Administrators & Site Developers**
 
@@ -227,6 +227,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.12 - WebSocket dynamic namespace with path pattern (W-155)**: Dynamic namespaces (path pattern, one per resource/room); lazy get-or-create, onCreate, removeNamespace/removeIfEmpty. Conn = { clientId, ctx } only; ctx includes params from path. Dynamic Rooms demo in /hello-websocket/; multi-instance room count via Redis. Docs: websockets.md updated. W-155, 2026-02-09
 - ✅ **Version 1.6.11 - WebSocket namespace as object, conn param; logging with ctx (W-154)**: WebSocket API: `createNamespace(path, options?)`; handlers receive single **conn** (`{ clientId, user, ctx }`); `broadcast(data, ctx)`, `sendToClient(clientId, data, ctx)`; payload `{ type, data, ctx }`. LogController/WebSocket use `getLogContext(reqOrContext)`; client `onMessage(message)` with `message.success`, `message.data`. W-154, 2026-02-08
 - ✅ **Version 1.6.10 - Auth utility functions for role checks (W-153)**: Symmetrical AuthController utilities: request-based `isAdmin(req)` and `isAuthorized(req, roleOrRoles)` (single string or array); user-object-based `userIsAdmin(user)` and `userIsAuthorized(user, roleOrRoles)` for use in models/utilities. Hides `ConfigModel.getEffectiveAdminRoles()` detail. Unit tests for all four. W-153, 2026-02-07
 - ✅ **Version 1.6.9 - Fix database name in startup log (W-152)**: The "Database: ..." startup log now shows the actual DB name from deployment config (`appConfig.deployment[mode].db`) instead of the wrong fallback. W-152, 2026-02-06

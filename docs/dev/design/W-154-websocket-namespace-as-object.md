@@ -5,9 +5,11 @@
 - **Phase 2:** Done — Namespace as object (`createNamespace`), single `conn` param, `{ type, data }` payload, single-param client `onMessage(msg)`
 - **Phase 3 (planned):** Payload `{ type, data, ctx }` with mandatory top-level ctx; `broadcast(data, ctx)`; Redis pub/sub aligned; broadcast log context from payload
 
+**Note:** A follow-up to consolidate identity into **ctx** only (conn = `{ clientId, ctx }`, no `conn.user`; ctx = `{ username, ip, roles, firstName, lastName, initials }` — no id, user operations by username; initials for convenience) is planned as part of **W-155** (dynamic namespace), not as a separate W-154 phase.
+
 ## Overview
 
-W-154 improves the WebSocket API and logging in two phases (done) and a third (planned): (1) LogController and WebSocket use a consistent context (Express `req` or plain `{ username?, ip? }`), and each WebSocket client has a `ctx` used for client-scoped log calls; (2) the WebSocket namespace is created via `createNamespace(path, options?)`, with handlers receiving a single `conn` and a consistent message payload; (3) app payload becomes `{ type, data, ctx }` with **ctx mandatory** at top level (default `{ username: '', ip: '0.0.0.0' }`), and `broadcast(data, ctx)` / `sendToClient(clientId, data, ctx)` so ctx flows in the payload—enabling correct broadcast logging and Redis relay without extra parameters. Client-side `onMessage` receives wire `{ success, data?, error?, code? }`; app payload in `msg.data` includes `ctx` for use in the browser when needed.
+W-154 improves the WebSocket API and logging in two phases (done) and a third (planned): (1) LogController and WebSocket use a consistent context (Express `req` or plain `{ username?, ip? }`), and each WebSocket client has a `ctx` used for client-scoped log calls; (2) the WebSocket namespace is created via `createNamespace(path, options?)`, with handlers receiving a single `conn` and a consistent message payload; (3) app payload becomes `{ type, data, ctx }` with **ctx mandatory** at top level (default `{ username: '', ip: '0.0.0.0' }`), and `broadcast(data, ctx)` / `sendToClient(clientId, data, ctx)` so ctx flows in the payload—enabling correct broadcast logging and Redis relay. Client-side `onMessage` receives wire `{ success, data?, error?, code? }`; app payload in `msg.data` includes `ctx` for use in the browser when needed.
 
 ## Objectives (from work-items)
 

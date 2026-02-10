@@ -4,13 +4,13 @@
  * @tagline         Routing and Vue.js Logic for WebSocket Demo SPA
  * @description     This file defines the Vue.js application logic for the WebSocket demo
  * @file            site/webapp/view/hello-websocket/templates/routing.tmpl
- * @version         1.6.11
- * @release         2026-02-08
+ * @version         1.6.12
+ * @release         2026-02-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
 -->
 
 <script type="text/javascript">
@@ -26,6 +26,7 @@
 {{file.include "hello-websocket/templates/emoji-demo.tmpl"}}
 {{file.include "hello-websocket/templates/todo-demo.tmpl"}}
 {{file.include "hello-websocket/templates/sticky-notes-demo.tmpl"}}
+{{file.include "hello-websocket/templates/dynamic-rooms.tmpl"}}
 {{file.include "hello-websocket/templates/code-examples.tmpl"}}
 {{file.include "hello-websocket/templates/architecture.tmpl"}}
 
@@ -62,6 +63,13 @@ window.helloWebSocketRoutes = [
         description: 'WebSocket for CRUD (Pattern B)'
     },
     {
+        hash: 'dynamic-rooms',
+        component: 'DynamicRooms',
+        title: 'Dynamic Rooms',
+        icon: '🚪',
+        description: 'Dynamic namespaces per room'
+    },
+    {
         hash: 'code',
         component: 'CodeExamples',
         title: 'Code Examples',
@@ -83,6 +91,7 @@ const HelloWebSocketApp = {
         'emojiView': window.helloWebSocketViews.EmojiDemo,
         'todoView': window.helloWebSocketViews.TodoDemo,
         'stickyNotesView': window.helloWebSocketViews.StickyNotesDemo,
+        'dynamicRoomsView': window.helloWebSocketViews.DynamicRooms,
         'codeView': window.helloWebSocketViews.CodeExamples,
         'architectureView': window.helloWebSocketViews.Architecture
     },
@@ -137,6 +146,7 @@ const HelloWebSocketApp = {
                 <emojiView v-if="currentView === 'emoji'"></emojiView>
                 <todoView v-if="currentView === 'todo'"></todoView>
                 <stickyNotesView v-if="currentView === 'sticky-notes'"></stickyNotesView>
+                <dynamicRoomsView v-if="currentView === 'dynamic-rooms'"></dynamicRoomsView>
                 <codeView v-if="currentView === 'code'"></codeView>
                 <architectureView v-if="currentView === 'architecture'"></architectureView>
             </div>

@@ -3,8 +3,8 @@
  * @tagline         Unit tests for WebSocket Controller
  * @description     Tests for WebSocket infrastructure, authentication, broadcasting, and lifecycle
  * @file            webapp/tests/unit/controller/websocket.test.js
- * @version         1.6.11
- * @release         2026-02-08
+ * @version         1.6.12
+ * @release         2026-02-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -54,6 +54,7 @@ describe('WebSocketController - High Priority Tests', () => {
 
         // Reset WebSocketController state
         WebSocketController.namespaces.clear();
+        WebSocketController.patternNamespaces.length = 0;
         WebSocketController.stats = {
             startTime: Date.now(),
             totalMessages: 0,
@@ -91,15 +92,18 @@ describe('WebSocketController - High Priority Tests', () => {
             AuthController.isAuthenticated = jest.fn().mockReturnValue(true);
             AuthController.isAuthorized = jest.fn().mockReturnValue(true);
 
-            // Act
+            // W-155: New signature with patternMatch, extractedParams, pathname
             WebSocketController._completeUpgrade(
                 mockRequest,
                 mockSocket,
                 mockHead,
                 namespace,
+                null, // patternMatch
+                {}, // extractedParams
                 mockRequest.session.user,
                 mockRequest.session.user.username,
-                {}
+                {},
+                '/api/1/ws/test' // pathname
             );
 
             // Assert
@@ -127,15 +131,18 @@ describe('WebSocketController - High Priority Tests', () => {
             AuthController.isAuthenticated = jest.fn().mockReturnValue(true);
             AuthController.isAuthorized = jest.fn().mockReturnValue(true);
 
-            // Act
+            // W-155: New signature
             WebSocketController._completeUpgrade(
                 mockRequest,
                 mockSocket,
                 mockHead,
                 namespace,
+                null, // patternMatch
+                {}, // extractedParams
                 mockRequest.session.user,
                 mockRequest.session.user.username,
-                {}
+                {},
+                '/api/1/ws/test' // pathname
             );
 
             // Assert
@@ -208,15 +215,18 @@ describe('WebSocketController - High Priority Tests', () => {
                 handleUpgrade: handleUpgradeMock
             };
 
-            // Act
+            // W-155: New signature
             WebSocketController._completeUpgrade(
                 mockRequest,
                 mockSocket,
                 mockHead,
                 namespace,
+                null, // patternMatch
+                {}, // extractedParams
                 mockRequest.session.user,
                 mockRequest.session.user.username,
-                {}
+                {},
+                '/api/1/ws/test' // pathname
             );
 
             // Assert
@@ -244,15 +254,18 @@ describe('WebSocketController - High Priority Tests', () => {
             AuthController.isAuthenticated = jest.fn().mockReturnValue(true);
             AuthController.isAuthorized = jest.fn().mockReturnValue(false);
 
-            // Act
+            // W-155: New signature
             WebSocketController._completeUpgrade(
                 mockRequest,
                 mockSocket,
                 mockHead,
                 namespace,
+                null, // patternMatch
+                {}, // extractedParams
                 mockRequest.session.user,
                 mockRequest.session.user.username,
-                {}
+                {},
+                '/api/1/ws/admin' // pathname
             );
 
             // Assert
@@ -292,15 +305,18 @@ describe('WebSocketController - High Priority Tests', () => {
                 handleUpgrade: handleUpgradeMock
             };
 
-            // Act
+            // W-155: New signature
             WebSocketController._completeUpgrade(
                 mockRequest,
                 mockSocket,
                 mockHead,
                 namespace,
+                null, // patternMatch
+                {}, // extractedParams
                 mockRequest.session.user,
                 mockRequest.session.user.username,
-                {}
+                {},
+                '/api/1/ws/admin' // pathname
             );
 
             // Assert
@@ -335,15 +351,18 @@ describe('WebSocketController - High Priority Tests', () => {
                 handleUpgrade: handleUpgradeMock
             };
 
-            // Act
+            // W-155: New signature
             WebSocketController._completeUpgrade(
                 mockRequest,
                 mockSocket,
                 mockHead,
                 namespace,
-                null,
-                '',
-                {}
+                null, // patternMatch
+                {}, // extractedParams
+                null, // user
+                '', // username
+                {},
+                '/api/1/ws/public' // pathname
             );
 
             // Assert
@@ -459,13 +478,21 @@ describe('WebSocketController - High Priority Tests', () => {
             // Act (no ctx => default ctx)
             WebSocketController.broadcast('/api/1/ws/test', { type: 'test', data: 123 });
 
-            // Assert (payload has ctx from W-154 Phase 3)
+            // Assert (payload has ctx from W-155: full DEFAULT_CTX)
             const messages = WebSocketTestUtils.getSentMessages(client.ws);
             expect(messages[0]).toHaveProperty('success', true);
             expect(messages[0]).toHaveProperty('data');
             expect(messages[0].data.type).toBe('test');
             expect(messages[0].data.data).toBe(123);
-            expect(messages[0].data.ctx).toEqual({ username: '', ip: '0.0.0.0' });
+            expect(messages[0].data.ctx).toEqual({
+                username: '_system',
+                ip: '0.0.0.0',
+                roles: [],
+                firstName: '',
+                lastName: '',
+                initials: '',
+                params: {}
+            });
         });
 
         test('should only send to clients with readyState === 1 (OPEN)', () => {
@@ -657,16 +684,14 @@ describe('WebSocketController - High Priority Tests', () => {
             };
             namespace.clients.set(clientId, {
                 ws: mockWs,
-                user: null,
-                ctx: { username: '(guest)', ip: '0.0.0.0' },
+                ctx: { username: '(guest)', ip: '0.0.0.0', roles: [], firstName: '', lastName: '', initials: '', params: {} },
                 lastPing: Date.now(),
                 lastPong: Date.now()
             });
-            const user = { username: 'testuser' };
             const data = Buffer.from(JSON.stringify({ type: 'test' }));
 
-            // Act
-            await WebSocketController._onMessage(clientId, namespace, user, 'testuser', data);
+            // W-155: New signature (no user, username)
+            await WebSocketController._onMessage(clientId, namespace, data);
 
             // Assert: client receives error message (same format as sync throw)
             expect(mockWs.sentMessages).toHaveLength(1);
@@ -692,9 +717,17 @@ describe('WebSocketController - High Priority Tests', () => {
                 _onConnect: jest.fn()
             };
             const ws = new WebSocketTestUtils.MockWebSocket();
-            const user = { username: 'testuser' };
+            const ctx = {
+                username: 'testuser',
+                ip: '127.0.0.1',
+                roles: [],
+                firstName: '',
+                lastName: '',
+                initials: '',
+                params: {}
+            };
 
-            WebSocketController._onConnection(ws, namespace, user, 'testuser', null, '127.0.0.1');
+            WebSocketController._onConnection(ws, namespace, ctx, null);
 
             expect(namespace.clients.size).toBe(1);
             const clientId = Array.from(namespace.clients.keys())[0];
@@ -710,7 +743,17 @@ describe('WebSocketController - High Priority Tests', () => {
             const ws = new WebSocketTestUtils.MockWebSocket();
             const clientUUID = '12345678-1234-4567-8901-123456789012';
 
-            WebSocketController._onConnection(ws, namespace, null, '', clientUUID, '127.0.0.1');
+            const ctx = {
+                username: '(guest)',
+                ip: '127.0.0.1',
+                roles: [],
+                firstName: '',
+                lastName: '',
+                initials: '',
+                params: {}
+            };
+
+            WebSocketController._onConnection(ws, namespace, ctx, clientUUID);
 
             expect(namespace.clients.has(clientUUID)).toBe(true);
         });
@@ -722,15 +765,24 @@ describe('WebSocketController - High Priority Tests', () => {
                 _onConnect: jest.fn()
             };
             const ws = new WebSocketTestUtils.MockWebSocket();
+            const ctx = {
+                username: '(guest)',
+                ip: '127.0.0.1',
+                roles: [],
+                firstName: '',
+                lastName: '',
+                initials: '',
+                params: {}
+            };
 
-            WebSocketController._onConnection(ws, namespace, null, '', null, '127.0.0.1');
+            WebSocketController._onConnection(ws, namespace, ctx, null);
 
             expect(namespace.clients.size).toBe(1);
             const client = Array.from(namespace.clients.values())[0];
             expect(client.ws).toBe(ws);
         });
 
-        test('should call onConnect callback with conn (W-154)', () => {
+        test('should call onConnect callback with conn (W-155: ctx-only)', () => {
             const _onConnect = jest.fn();
             const namespace = {
                 path: '/api/1/ws/test',
@@ -738,15 +790,23 @@ describe('WebSocketController - High Priority Tests', () => {
                 _onConnect
             };
             const ws = new WebSocketTestUtils.MockWebSocket();
-            const user = { username: 'testuser' };
+            const ctx = {
+                username: 'testuser',
+                ip: '127.0.0.1',
+                roles: [],
+                firstName: '',
+                lastName: '',
+                initials: '',
+                params: {}
+            };
 
-            WebSocketController._onConnection(ws, namespace, user, 'testuser', null, '127.0.0.1');
+            WebSocketController._onConnection(ws, namespace, ctx, null);
 
             expect(_onConnect).toHaveBeenCalledTimes(1);
             const conn = _onConnect.mock.calls[0][0];
             expect(conn.clientId).toBeDefined();
-            expect(conn.user).toBe(user);
-            expect(conn.ctx).toEqual({ username: 'testuser', ip: '127.0.0.1' });
+            expect(conn.user).toBeUndefined(); // W-155: no conn.user
+            expect(conn.ctx).toEqual(ctx);
         });
 
         test('should initialize ping/pong timestamps', () => {
@@ -757,8 +817,18 @@ describe('WebSocketController - High Priority Tests', () => {
             };
             const ws = new WebSocketTestUtils.MockWebSocket();
 
+            const ctx = {
+                username: '(guest)',
+                ip: '127.0.0.1',
+                roles: [],
+                firstName: '',
+                lastName: '',
+                initials: '',
+                params: {}
+            };
+
             const beforeTime = Date.now();
-            WebSocketController._onConnection(ws, namespace, null, '', null, '127.0.0.1');
+            WebSocketController._onConnection(ws, namespace, ctx, null);
             const afterTime = Date.now();
 
             // Assert
@@ -850,7 +920,9 @@ describe('WebSocketController - High Priority Tests', () => {
 
             expect(_onConnect).toHaveBeenCalled();
             const conn = _onConnect.mock.calls[0][0];
-            expect(conn.user).toEqual(testUser);
+            expect(conn.user).toBeUndefined(); // W-155: no conn.user
+            expect(conn.ctx.username).toEqual('alice');
+            expect(conn.ctx.roles).toEqual(['admin']);
         });
 
         test('should extract username from user object', () => {
@@ -888,6 +960,92 @@ describe('WebSocketController - High Priority Tests', () => {
             WebSocketController._handleUpgrade(mockRequest, mockSocket, mockHead);
 
             expect(_onConnect).toHaveBeenCalled();
+        });
+    });
+
+    // =========================================================================
+    // W-155: Dynamic Namespaces (low-hanging unit tests)
+    // =========================================================================
+
+    describe('W-155 Dynamic Namespaces', () => {
+
+        test('createNamespace with :param registers pattern and does not add to namespaces', () => {
+            const ns = WebSocketController.createNamespace('/api/1/ws/hello-rooms/:roomName', { requireAuth: false });
+            expect(WebSocketController.namespaces.has('/api/1/ws/hello-rooms/:roomName')).toBe(false);
+            expect(WebSocketController.namespaces.size).toBe(0);
+            expect(WebSocketController.patternNamespaces).toHaveLength(1);
+            expect(WebSocketController.patternNamespaces[0].pattern).toBe('/api/1/ws/hello-rooms/:roomName');
+            expect(WebSocketController.patternNamespaces[0].paramNames).toEqual(['roomName']);
+            expect(ns).toBe(WebSocketController.patternNamespaces[0].templateNsObject);
+        });
+
+        test('pattern regex matches path and extracts params', () => {
+            WebSocketController.createNamespace('/api/1/ws/rooms/:roomName', {});
+            const { regex, paramNames } = WebSocketController.patternNamespaces[0];
+            const pathname = '/api/1/ws/rooms/amsterdam';
+            const match = pathname.match(regex);
+            expect(match).not.toBeNull();
+            expect(match[1]).toBe('amsterdam');
+            const params = {};
+            paramNames.forEach((name, i) => { params[name] = match[i + 1]; });
+            expect(params).toEqual({ roomName: 'amsterdam' });
+        });
+
+        test('pattern with multiple params extracts all', () => {
+            WebSocketController.createNamespace('/api/1/ws/maps/:mapId/bubbles/:bubbleId', {});
+            expect(WebSocketController.patternNamespaces).toHaveLength(1);
+            const { regex, paramNames } = WebSocketController.patternNamespaces[0];
+            expect(paramNames).toEqual(['mapId', 'bubbleId']);
+            const pathname = '/api/1/ws/maps/123/bubbles/456';
+            const match = pathname.match(regex);
+            expect(match).not.toBeNull();
+            expect(match[1]).toBe('123');
+            expect(match[2]).toBe('456');
+        });
+
+        test('removeNamespace returns false when path not found', () => {
+            const result = WebSocketController.removeNamespace('/api/1/ws/nonexistent', { removeIfEmpty: true });
+            expect(result).toBe(false);
+        });
+
+        test('removeNamespace with removeIfEmpty true and no clients removes namespace', () => {
+            WebSocketController.createNamespace('/api/1/ws/remove-me', {});
+            expect(WebSocketController.namespaces.has('/api/1/ws/remove-me')).toBe(true);
+            const result = WebSocketController.removeNamespace('/api/1/ws/remove-me', { removeIfEmpty: true });
+            expect(result).toBe(true);
+            expect(WebSocketController.namespaces.has('/api/1/ws/remove-me')).toBe(false);
+        });
+
+        test('removeNamespace with removeIfEmpty true and clients present returns false', () => {
+            const ns = WebSocketController.createNamespace('/api/1/ws/has-clients', {});
+            ns.clients.set('client-1', { ws: {}, ctx: {}, lastPing: 0, lastPong: 0 });
+            const result = WebSocketController.removeNamespace('/api/1/ws/has-clients', { removeIfEmpty: true });
+            expect(result).toBe(false);
+            expect(WebSocketController.namespaces.has('/api/1/ws/has-clients')).toBe(true);
+        });
+
+        test('removeNamespace with removeIfEmpty false removes namespace even with clients', () => {
+            const ns = WebSocketController.createNamespace('/api/1/ws/force-remove', {});
+            ns.clients.set('client-1', { ws: {}, ctx: {}, lastPing: 0, lastPong: 0 });
+            const result = WebSocketController.removeNamespace('/api/1/ws/force-remove', { removeIfEmpty: false });
+            expect(result).toBe(true);
+            expect(WebSocketController.namespaces.has('/api/1/ws/force-remove')).toBe(false);
+        });
+
+        test('namespace.removeIfEmpty() returns true when no clients', () => {
+            const ns = WebSocketController.createNamespace('/api/1/ws/empty-room', {});
+            expect(WebSocketController.namespaces.has('/api/1/ws/empty-room')).toBe(true);
+            const result = ns.removeIfEmpty();
+            expect(result).toBe(true);
+            expect(WebSocketController.namespaces.has('/api/1/ws/empty-room')).toBe(false);
+        });
+
+        test('namespace.removeIfEmpty() returns false when clients present', () => {
+            const ns = WebSocketController.createNamespace('/api/1/ws/occupied', {});
+            ns.clients.set('c1', { ws: {}, ctx: {}, lastPing: 0, lastPong: 0 });
+            const result = ns.removeIfEmpty();
+            expect(result).toBe(false);
+            expect(WebSocketController.namespaces.has('/api/1/ws/occupied')).toBe(true);
         });
     });
 });

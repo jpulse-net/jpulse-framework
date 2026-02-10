@@ -3,8 +3,8 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         1.6.11
- * @release         2026-02-08
+ * @version         1.6.12
+ * @release         2026-02-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -22,19 +22,21 @@ const LogController = global.LogController;
 const CommonUtils = global.CommonUtils;
 const ViewController = global.ViewController;
 
-/** W-154 Phase 3: default context when none supplied (system / no user) */
-const DEFAULT_CTX = { username: '', ip: '0.0.0.0' };
+/** W-155: default context when none supplied (system / no user) */
+const DEFAULT_CTX = { username: '_system', ip: '0.0.0.0', roles: [], firstName: '', lastName: '', initials: '', params: {} };
 
 /**
- * WebSocket namespace instance (W-154). Create via WebSocketController.createNamespace(path, options).
+ * WebSocket namespace instance (W-154/W-155). Create via WebSocketController.createNamespace(path, options).
  * Handlers receive a single conn object: onConnect(conn), onMessage(conn), onDisconnect(conn).
- * conn = { clientId, user, ctx } for onConnect/onDisconnect; onMessage also has conn.message.
+ * W-155: conn = { clientId, ctx } for onConnect/onDisconnect; onMessage also has conn.message.
+ * ctx = { username, ip, roles, firstName, lastName, initials, params }.
  */
 class WebSocketNamespace {
     constructor(path, options = {}) {
         this.path = path;
         this.requireAuth = options.requireAuth || false;
         this.requireRoles = options.requireRoles || [];
+        this.onCreate = options.onCreate || null; // W-155: onCreate hook for dynamic namespaces
         this._onConnect = null;
         this._onMessage = null;
         this._onDisconnect = null;
@@ -73,6 +75,14 @@ class WebSocketNamespace {
     getStats() {
         return WebSocketController._getNamespaceStats(this.path);
     }
+
+    /**
+     * W-155: Remove this namespace if it has no connected clients
+     * @returns {boolean} True if namespace was removed, false if it still has clients
+     */
+    removeIfEmpty() {
+        return WebSocketController.removeNamespace(this.path, { removeIfEmpty: true });
+    }
 }
 
 /**
@@ -105,6 +115,13 @@ class WebSocketController {
     // Session middleware (for parsing sessions during upgrade)
     static sessionMiddleware = null;
 
+    // Registered namespaces (path → WebSocketNamespace instance)
+    static namespaces = new Map();
+
+    // W-155: Pattern namespaces (for dynamic namespace creation)
+    // Array of { pattern, regex, paramNames, templateNsObject } for path-param matching
+    static patternNamespaces = [];
+
     // Redis clients for multi-instance coordination (optional)
     static redis = {
         publisher: null,
@@ -116,9 +133,6 @@ class WebSocketController {
     // Instance registry for cross-instance broadcasting when Redis is unavailable
     static instanceRegistry = new Map();
     static lastRegistryUpdate = 0;
-
-    // Namespace registry
-    static namespaces = new Map();
 
     // Global statistics
     static stats = {
@@ -193,10 +207,15 @@ class WebSocketController {
     }
 
     /**
-     * Create a WebSocket namespace (W-154). Returns instance with .onConnect(fn).onMessage(fn).onDisconnect(fn) (chainable) and .broadcast()/.sendToClient()/.getStats().
-     * Handlers receive single conn: onConnect(conn), onMessage(conn), onDisconnect(conn). conn = { clientId, user, ctx }; onMessage conn also has message.
-     * @param {string} path - Namespace path (must start with /api/1/ws/)
-     * @param {Object} options - { requireAuth?, requireRoles? }
+     * Create a WebSocket namespace (W-154/W-155).
+     * Returns instance with .onConnect(fn).onMessage(fn).onDisconnect(fn) (chainable) and .broadcast()/.sendToClient()/.getStats().
+     * Handlers receive single conn: onConnect(conn), onMessage(conn), onDisconnect(conn). W-155: conn = { clientId, ctx }; onMessage conn also has message.
+     *
+     * W-155: For dynamic namespaces, provide path with :param placeholders (e.g. /api/1/ws/bubblemap/:mapId).
+     * Set options.onCreate = (req, ctx) => ctx | null | number for per-connect authz and ctx amendment.
+     *
+     * @param {string} path - Namespace path (must start with /api/1/ws/). May include :param placeholders for dynamic namespaces.
+     * @param {Object} options - { requireAuth?, requireRoles?, onCreate? }
      * @returns {WebSocketNamespace}
      */
     static createNamespace(path, options = {}) {
@@ -204,16 +223,85 @@ class WebSocketController {
             if (!path.startsWith('/api/1/ws/')) {
                 throw new Error(`Namespace path must start with /api/1/ws/ (got: ${path})`);
             }
-            if (this.namespaces.has(path)) {
-                throw new Error(`Namespace ${path} is already registered`);
+
+            // W-155: Check if path contains :param patterns
+            const hasParams = path.includes(':');
+
+            if (hasParams) {
+                // Pattern namespace: store pattern + template namespace object for lazy creation
+                // Convert Express-style :param to regex and extract param names
+                const paramNames = [];
+                const regexPattern = path
+                    .split('/')
+                    .map(segment => {
+                        if (segment.startsWith(':')) {
+                            paramNames.push(segment.slice(1));
+                            return '([^/]+)'; // match any non-slash chars
+                        }
+                        return segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // escape special chars
+                    })
+                    .join('/');
+                const regex = new RegExp(`^${regexPattern}$`);
+
+                // Create template namespace object (not yet in namespaces map)
+                const templateNsObject = new WebSocketNamespace(path, options);
+
+                // Store pattern
+                this.patternNamespaces.push({
+                    pattern: path,
+                    regex,
+                    paramNames,
+                    templateNsObject
+                });
+
+                LogController.logInfo(null, 'websocket.createNamespace', `Registered pattern namespace: ${path}`);
+                return templateNsObject;
+
+            } else {
+                // Literal namespace: create immediately
+                if (this.namespaces.has(path)) {
+                    throw new Error(`Namespace ${path} is already registered`);
+                }
+                const namespace = new WebSocketNamespace(path, options);
+                this.namespaces.set(path, namespace);
+                LogController.logInfo(null, 'websocket.createNamespace', `Registered namespace: ${path}`);
+                return namespace;
             }
-            const namespace = new WebSocketNamespace(path, options);
-            this.namespaces.set(path, namespace);
-            LogController.logInfo(null, 'websocket.createNamespace', `Registered namespace: ${path}`);
-            return namespace;
+
         } catch (error) {
             LogController.logError(null, 'websocket.createNamespace', `error: ${error.message}`);
             throw error;
+        }
+    }
+
+    /**
+     * W-155: Remove a namespace (optionally only if empty)
+     * @param {string} path - Namespace path to remove
+     * @param {Object} options - { removeIfEmpty?: boolean }
+     * @returns {boolean} True if namespace was removed, false otherwise
+     */
+    static removeNamespace(path, options = {}) {
+        try {
+            const namespace = this.namespaces.get(path);
+            if (!namespace) {
+                LogController.logInfo(null, 'websocket.removeNamespace', `Namespace not found (already removed?): ${path}`);
+                return false;
+            }
+
+            if (options.removeIfEmpty) {
+                if (namespace.clients.size > 0) {
+                    LogController.logInfo(null, 'websocket.removeNamespace', `Namespace ${path} still has ${namespace.clients.size} clients, not removing`);
+                    return false;
+                }
+            }
+
+            this.namespaces.delete(path);
+            LogController.logInfo(null, 'websocket.removeNamespace', `Removed namespace: ${path}`);
+            return true;
+
+        } catch (error) {
+            LogController.logError(null, 'websocket.removeNamespace', `error: ${error.message}`);
+            return false;
         }
     }
 
@@ -337,11 +425,11 @@ class WebSocketController {
                 status = 'green';
             }
 
-            // Count active authenticated users (for admin status page)
+            // Count active authenticated users (for admin status page; W-155: use ctx)
             const activeUsers = new Set();
             namespace.clients.forEach((client) => {
-                if (client.user) {
-                    activeUsers.add(client.user.username);
+                if (client.ctx?.username && client.ctx.username !== '(guest)' && client.ctx.username !== '_system') {
+                    activeUsers.add(client.ctx.username);
                 }
             });
 
@@ -436,6 +524,7 @@ class WebSocketController {
 
     /**
      * Handle WebSocket upgrade request
+     * W-155: Enhanced with pattern matching for dynamic namespaces
      * @private
      */
     static _handleUpgrade(req, socket, head) {
@@ -444,9 +533,28 @@ class WebSocketController {
             const pathname = urlParts.pathname;
             const query = urlParts.query;
 
-            // Find matching namespace
-            const namespace = this.namespaces.get(pathname);
-            if (!namespace) {
+            // W-155: Try exact match first, then pattern match
+            let namespace = this.namespaces.get(pathname);
+            let patternMatch = null;
+            let extractedParams = {};
+
+            // Always try pattern matching to extract params (even if exact namespace exists)
+            // This ensures params are populated on every connection, not just first creation
+            for (const pattern of this.patternNamespaces) {
+                const match = pathname.match(pattern.regex);
+                if (match) {
+                    patternMatch = pattern;
+                    // Extract params from match groups
+                    for (let i = 0; i < pattern.paramNames.length; i++) {
+                        extractedParams[pattern.paramNames[i]] = match[i + 1];
+                    }
+                    LogController.logInfo(req, 'websocket._handleUpgrade', `Pattern matched: ${pattern.pattern}, extracted params: ${JSON.stringify(extractedParams)}`);
+                    break;
+                }
+            }
+
+            // If no exact namespace and no pattern match, reject
+            if (!namespace && !patternMatch) {
                 LogController.logError(req, 'websocket._handleUpgrade', `error: Unknown namespace: ${pathname}`);
                 socket.destroy();
                 return;
@@ -459,7 +567,7 @@ class WebSocketController {
                 const user = req.session?.user || null;
                 const username = user?.username || '';
 
-                this._completeUpgrade(req, socket, head, namespace, user, username, query);
+                this._completeUpgrade(req, socket, head, namespace, patternMatch, extractedParams, user, username, query, pathname);
             });
 
         } catch (error) {
@@ -470,10 +578,32 @@ class WebSocketController {
 
     /**
      * Complete WebSocket upgrade after session is parsed
+     * W-155: Enhanced with onCreate hook and dynamic namespace creation
      * @private
      */
-    static _completeUpgrade(req, socket, head, namespace, user, username, query) {
+    static _completeUpgrade(req, socket, head, namespace, patternMatch, extractedParams, user, username, query, pathname) {
         try {
+
+            // W-155: If pattern match, get-or-create literal namespace
+            if (patternMatch) {
+                // Check if literal namespace already exists
+                if (!this.namespaces.has(pathname)) {
+                    // Create literal namespace by copying template
+                    const template = patternMatch.templateNsObject;
+                    const literalNs = new WebSocketNamespace(pathname, {
+                        requireAuth: template.requireAuth,
+                        requireRoles: template.requireRoles,
+                        onCreate: template.onCreate
+                    });
+                    // Copy handlers from template
+                    literalNs._onConnect = template._onConnect;
+                    literalNs._onMessage = template._onMessage;
+                    literalNs._onDisconnect = template._onDisconnect;
+                    this.namespaces.set(pathname, literalNs);
+                    LogController.logInfo(req, 'websocket._completeUpgrade', `Created literal namespace from pattern: ${pathname}`);
+                }
+                namespace = this.namespaces.get(pathname);
+            }
 
             // Check authentication using AuthController for consistency
             if (namespace.requireAuth && !AuthController.isAuthenticated(req)) {
@@ -492,14 +622,49 @@ class WebSocketController {
             // Extract optional client-provided UUID
             const clientUUID = query.uuid || null;
 
-            // Extract IP for logging (W-154); use global at call time in case module loaded before bootstrap
+            // W-155: Build ctx with all identity fields from session + request
             const commonUtils = global.CommonUtils;
             const requestContext = commonUtils ? commonUtils.getLogContext(req) : {};
             const ip = requestContext.ip || req.socket?.remoteAddress || req.connection?.remoteAddress || '0.0.0.0';
 
+            let ctx = {
+                username: user?.username || '',
+                ip,
+                roles: user?.roles || [],
+                firstName: user?.firstName || '',
+                lastName: user?.lastName || '',
+                initials: user?.initials || '',
+                params: extractedParams || {}  // W-155: populated for dynamic namespaces
+            };
+
+            // W-155: Call onCreate hook if present (pattern namespaces)
+            if (namespace.onCreate) {
+                try {
+                    const onCreateResult = namespace.onCreate(req, ctx);
+                    if (onCreateResult === null) {
+                        // Reject with default code
+                        LogController.logError(req, 'websocket._completeUpgrade', `onCreate rejected connection for ${namespace.path}`);
+                        socket.destroy();
+                        return;
+                    } else if (typeof onCreateResult === 'number') {
+                        // Reject with custom close code
+                        LogController.logError(req, 'websocket._completeUpgrade', `onCreate rejected connection with code ${onCreateResult} for ${namespace.path}`);
+                        socket.destroy();
+                        return;
+                    } else if (typeof onCreateResult === 'object' && onCreateResult !== null) {
+                        // Accept and amend ctx
+                        ctx = onCreateResult;
+                    }
+                } catch (error) {
+                    LogController.logError(req, 'websocket._completeUpgrade', `onCreate error: ${error.message}`);
+                    socket.destroy();
+                    return;
+                }
+            }
+
             // Complete WebSocket handshake
             this.wss.handleUpgrade(req, socket, head, (ws) => {
-                this._onConnection(ws, namespace, user, username, clientUUID, ip);
+                this._onConnection(ws, namespace, ctx, clientUUID);
             });
 
         } catch (error) {
@@ -510,47 +675,52 @@ class WebSocketController {
 
     /**
      * Handle new WebSocket connection
+     * W-155: ctx-only identity (no user/username params)
      * @private
      */
-    static _onConnection(ws, namespace, user, username, clientUUID, ip = '0.0.0.0') {
+    static _onConnection(ws, namespace, ctx, clientUUID) {
         // Use client-provided UUID if available, otherwise generate one
         const clientId = clientUUID || this._generateClientId();
 
-        // Store client with ctx for W-154 (username + IP for logging; extensible for future use)
-        const ctx = { username: username || '(guest)', ip: ip || '0.0.0.0' };
+        // W-155: Store client with ctx only (no user, username)
         const client = {
             ws,
-            user,
-            username,
             ctx,
             lastPing: Date.now(),
             lastPong: Date.now()
         };
         namespace.clients.set(clientId, client);
 
-        LogController.logInfo(ctx, 'websocket._onConnection', `Client ${clientId} (${username || 'anonymous'}) connected to ${namespace.path}`);
+        LogController.logInfo(ctx, 'websocket._onConnection', `Client ${clientId} (${ctx.username}) connected to ${namespace.path}`);
 
-        // Send welcome message
+        // Send welcome message with sanitized ctx
         ws.send(JSON.stringify(this._formatMessage(true, {
             type: 'connected',
             clientId,
             namespace: namespace.path,
-            username
+            ctx: {
+                username: ctx.username,
+                roles: ctx.roles,
+                firstName: ctx.firstName,
+                lastName: ctx.lastName,
+                initials: ctx.initials
+                // Omit: ip (sensitive), params (internal)
+            }
         })));
 
-        // Call onConnect handler (W-154: single conn param)
+        // Call onConnect handler (W-155: conn = { clientId, ctx })
         if (namespace._onConnect) {
             try {
-                const conn = { clientId, user, ctx };
+                const conn = { clientId, ctx };
                 namespace._onConnect(conn);
             } catch (error) {
                 LogController.logError(ctx, 'websocket._onConnection', `onConnect error: ${error.message}`);
             }
         }
 
-        // Handle messages (void so async _onMessage rejections are handled inside _onMessage)
+        // Handle messages
         ws.on('message', (data) => {
-            void this._onMessage(clientId, namespace, user, username, data);
+            void this._onMessage(clientId, namespace, data);
         });
 
         // Handle pong responses
@@ -560,7 +730,7 @@ class WebSocketController {
 
         // Handle disconnection
         ws.on('close', () => {
-            this._onDisconnect(clientId, namespace, user);
+            this._onDisconnect(clientId, namespace);
         });
 
         // Handle errors
@@ -571,17 +741,18 @@ class WebSocketController {
 
     /**
      * Handle incoming message
+     * W-155: ctx-only (no user/username params)
      * Supports sync and async onMessage handlers; async rejections are sent to client like sync throws.
      * @private
      */
-    static async _onMessage(clientId, namespace, user, username, data) {
+    static async _onMessage(clientId, namespace, data) {
         const client = namespace.clients.get(clientId);
         const ctx = client?.ctx || null;
         try {
             const message = JSON.parse(data.toString());
 
             // Add username to incoming message
-            message.username = username;
+            message.username = ctx?.username || '';
 
             // Log activity (skip ping/pong)
             if (message.type !== 'ping' && message.type !== 'pong') {
@@ -591,10 +762,10 @@ class WebSocketController {
             // Update stats
             this._recordMessage(namespace);
 
-            // Call onMessage handler (W-154: single conn param; may be async)
+            // Call onMessage handler (W-155: conn = { clientId, message, ctx })
             if (namespace._onMessage) {
                 try {
-                    const conn = { clientId, message, user, ctx };
+                    const conn = { clientId, message, ctx };
                     const result = namespace._onMessage(conn);
                     if (result != null && typeof result.then === 'function') {
                         await result;
@@ -625,24 +796,25 @@ class WebSocketController {
 
     /**
      * Handle client disconnection
+     * W-155: ctx-only (no user param)
      * @private
      */
-    static _onDisconnect(clientId, namespace, user) {
+    static _onDisconnect(clientId, namespace) {
         const client = namespace.clients.get(clientId);
         const ctx = client?.ctx || null;
 
-        // Call onDisconnect handler first (W-154: single conn param) so handler can e.g. clear client.statsInterval
+        // Remove client first so onDisconnect handler sees correct client count (e.g. for user-left broadcast)
+        namespace.clients.delete(clientId);
+        LogController.logInfo(ctx, 'websocket._onDisconnect', `Client ${clientId} disconnected from ${namespace.path}`);
+
         if (namespace._onDisconnect) {
             try {
-                const conn = { clientId, user, ctx };
+                const conn = { clientId, ctx };
                 namespace._onDisconnect(conn);
             } catch (error) {
                 LogController.logError(ctx, 'websocket._onDisconnect', `onDisconnect error: ${error.message}`);
             }
         }
-
-        namespace.clients.delete(clientId);
-        LogController.logInfo(ctx, 'websocket._onDisconnect', `Client ${clientId} disconnected from ${namespace.path}`);
     }
 
     /**

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.11
+# jPulse Docs / Dev / Work Items v1.6.12
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4767,17 +4767,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - add `userIsAuthorized(user, roleOrRoles)` - check if user object has required role(s), handles single string or array (user-based, symmetrical with isAuthorized)
     - place in "UTILITY FUNCTIONS" section after `isAuthorized()`
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-154, v1.6.11, 2026-02-08: websocket: connection object for handlers; ctx in ws & pub/sub; logging with req or ctx
 - status: ✅ DONE
 - type: Feature
@@ -4845,29 +4834,74 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-### W-155: websocket: dynamic namespace per resource (e.g. one namespace per map for bubblemap CRUD)
-- status: 🕑 PENDING
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-155, v1.6.12, 2026-02-09: websocket: dynamic namespace with path pattern, one namespace per resource/room
+- status: 🚧 IN_PROGRESS
 - type: Feature
-- design: docs/dev/design/W-154-websocket-namespace-as-object.md (Use case: Bubblemap, Option 2); docs/dev/design/W-155-websocket-dynamic-namespace.md
+- design:
+  - docs/dev/design/W-154-websocket-namespace-as-object.md -- use case: Bubblemap, Option 2
+  - docs/dev/design/W-155-websocket-dynamic-namespace.md
 - objectives:
-  - Enable CRUD over WebSocket scoped per resource (e.g. per mapId) with one namespace per resource
-  - Natural broadcast scoping (only clients on that resource get updates); no client→resourceId tracking in app code
-  - Scale to tens/hundreds of active resources (e.g. maps with ~500 nodes each)
+  - enable CRUD over WebSocket scoped per resource (e.g. per mapId) with one namespace per resource
+  - natural broadcast scoping (only clients on that resource get updates)
+  - no client→resourceId tracking in app code
+  - scale to tens/hundreds of active resources (e.g. maps with ~500 nodes each)
+  - clean WebSocket conn API:
+    - conn = { clientId, ctx } only (no conn.user)
+    - ctx = { username, ip, roles, firstName, lastName, initials } for identity and logging (no id; user ops by username; initials for convenience)
 - features:
-  - Option 2a (pre-create): ensure namespace exists when user opens resource (e.g. map view load or REST get map); client connects to /api/1/ws/bubblemap/:mapId; no framework change
-  - Option 2b (optional): framework path-pattern or get-or-create at upgrade so namespace is created on first connect (lazy); requires upgrade handler change to match pattern and resolve resourceId
-  - Shared handler logic for all dynamic namespaces (e.g. one onConnect/onMessage/onDisconnect factory that receives namespace path or mapId)
-  - Authz at connect (user can access this map); optional per-message validation
-  - Optional: namespace teardown when resource deleted and no clients (or leave namespaces until restart)
+  - conn refactor (included in W-155):
+    - build ctx once at upgrade (username, ip, roles, firstName, lastName, initials from session)
+    - conn = { clientId, ctx } / { clientId, message, ctx }
+    - no conn.user
+    - update websocket.js, appCluster, helloWebsocket, admin/test namespaces, tests, docs
+  - option 2a (pre-create):
+    - ensure namespace exists when user opens resource (e.g. map view load or REST get map)
+    - client connects to /api/1/ws/bubblemap/:mapId
+    - no framework change
+  - option 2b (optional):
+    - framework path-pattern or get-or-create at upgrade so namespace is created on first connect (lazy)
+    - requires upgrade handler change to match pattern and resolve resourceId
+  - shared handler logic for all dynamic namespaces (e.g. one onConnect/onMessage/onDisconnect factory that receives namespace path or mapId)
+  - authorization at connect (user can access this map)
+  - optional per-message validation
+  - optional: namespace teardown when resource deleted and no clients (or leave namespaces until restart)
 - deliverables:
-  - Framework (only if 2b): websocket.js _handleUpgrade support path pattern (e.g. /api/1/ws/bubblemap/*), extract resourceId, get-or-create namespace, run authz before upgrade; OR document 2a-only and no framework change
-  - App (bubblemap or reference): ensureNamespace(mapId) called when map is opened (view load or REST); createNamespace(/api/1/ws/bubblemap/${mapId}) if not exists; shared handler factory for onConnect/onMessage/onDisconnect; bubble CRUD over WS (create/update/delete, persist, broadcast); client connect to path with mapId, send CRUD messages with { type, data }
-  - Authz: validate map access at connect (and optionally per message)
-  - Docs: dynamic namespace pattern (when to create, lifecycle), reference W-154 bubblemap section
-  - Tests: ensureNamespace / get-or-create behavior; integration test WS CRUD per map
-- effort:
-  - Option 2a only (pre-create, no framework change): app ensureNamespace + shared handlers + CRUD + client + authz ~4–5 d; docs ~0.5 d; tests ~1 d. Total **~5.5–6.5 d (small)**.
-  - Option 2b (framework get-or-create): framework upgrade path-pattern + get-or-create + authz hook ~1.5–2 d; app (handlers + CRUD + client) ~3.5 d; docs + tests ~1.5 d. Total **~6.5–7 d (small–medium)**.
+  - `webapp/controller/websocket.js`:
+    - conn refactor: build ctx at _completeUpgrade (username, ip, roles, firstName, lastName, initials, params); client = { ws, ctx, ... }; conn = { clientId, ctx } / { clientId, message, ctx }; no conn.user. Pattern namespaces: path with :param → patternNamespaces; _handleUpgrade pattern match, extract params, get-or-create namespace, onCreate(req, ctx); removeNamespace(path, { removeIfEmpty }), namespace.removeIfEmpty(). _onDisconnect removes client from namespace.clients before app handler so user-left count correct
+  - `webapp/controller/appCluster.js`:
+    - conn = { clientId, ctx } / { clientId, message, ctx }; comments updated, no conn.user
+  - `site/webapp/controller/helloWebsocket.js`:
+    - all handlers use conn.ctx only (no user). Dynamic Rooms: createNamespace('/api/1/ws/hello-rooms/:roomName', { onCreate }); room chat; Redis cacheIncr/cacheDecr for room count; room-stats and user-left broadcasts; fallback to getStats().clientCount when Redis unavailable
+  - `site/webapp/view/hello-websocket/index.shtml`:
+    - Dynamic Rooms tab; styles under #wsApp .local-dynamic-rooms
+  - `site/webapp/view/hello-websocket/templates/routing.tmpl`:
+    - Dynamic Rooms route/tab
+  - `site/webapp/view/hello-websocket/templates/dynamic-rooms.tmpl`:
+    - Dynamic Rooms UI: room select (Amsterdam, Berlin, Cairo), chat input, message list, room-stats
+  - `docs/websockets.md`:
+    - v1.6.12; conn/ctx only, full ctx shape and params; Dynamic Namespaces (Per-Resource Rooms) section (pattern, onCreate, removeNamespace, lifecycle, app-layer responsibilities); Handling Reconnect and Missed Updates; Multi-instance behavior; Key Features, examples, API Summary ctx-only
+  - `docs/api-reference.md`:
+    - WebSocket Controller API blurb: dynamic namespaces, conn shape, reconnect
+  - `docs/front-end-development.md`:
+    - WebSocket guide blurb: dynamic namespaces, conn/ctx, reconnects
+  - `docs/dev/design/W-154-websocket-namespace-as-object.md`:
+    - Note that ctx-only follow-up is W-155
+  - `docs/dev/design/W-155-websocket-dynamic-namespace.md`:
+    - Status Done; Reference link to websockets.md; full implementation plan, ctx structure, onCreate, removeNamespace, lifecycle, tech debt (reconnect/replay), reference app Dynamic Rooms, implementation phases
+  - `webapp/tests/unit/controller/websocket.test.js`:
+    - beforeEach clear patternNamespaces; describe "W-155 Dynamic Namespaces": pattern registration, param extraction (single/multiple), removeNamespace (not found, removeIfEmpty with/without clients), removeIfEmpty instance method
+
+
+
 
 
 
@@ -4897,8 +4931,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-154, v1.6.11, 2026-02-08
-- update deliverables in W-153 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-155, v1.6.12, 2026-02-09
+- update deliverables in W-155 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4909,12 +4943,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.11
+node bin/bump-version.js 1.6.12
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.11
+git tag v1.6.12
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

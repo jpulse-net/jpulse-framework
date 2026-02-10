@@ -1,0 +1,246 @@
+// Dynamic Rooms demo component, site/webapp/view/hello-websocket/templates/dynamic-rooms.tmpl
+/**
+ * @name            jPulse Framework / Site / WebApp / View / Hello WebSocket / Templates / Dynamic Rooms Demo
+ * @tagline         Dynamic rooms demo component of the WebSocket demo (W-155)
+ * @description     This component demonstrates dynamic WebSocket namespaces (one namespace per room)
+ * @file            site/webapp/view/hello-websocket/templates/dynamic-rooms.tmpl
+ * @version         1.6.12
+ * @release         2026-02-09
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
+ */
+
+window.helloWebSocketViews = window.helloWebSocketViews || {};
+
+window.helloWebSocketViews.DynamicRooms = {
+    data() {
+        return {
+            roomWs: null,
+            roomStatus: 'disconnected',
+            currentRoom: null,
+            availableRooms: ['Amsterdam', 'Berlin', 'Cairo'],
+            chatMessages: [],
+            chatInput: '',
+            userCount: 0,
+            userText: 'users',
+            username: '{{user.username}}' || 'Guest'
+        };
+    },
+    computed: {
+        isConnected() {
+            return this.roomStatus === 'connected';
+        },
+        statusClass() {
+            return {
+                'connected': 'connected',
+                'connecting': 'connecting',
+                'reconnecting': 'reconnecting',
+                'disconnected': 'disconnected'
+            }[this.roomStatus] || 'disconnected';
+        },
+        statusText() {
+            return {
+                'connected': 'Connected',
+                'connecting': 'Connecting...',
+                'reconnecting': 'Reconnecting...',
+                'disconnected': 'Disconnected'
+            }[this.roomStatus] || 'Disconnected';
+        }
+    },
+    methods: {
+        connectToRoom(roomName) {
+            // Disconnect from current room if any
+            if (this.roomWs) {
+                this.disconnectFromRoom();
+            }
+
+            this.currentRoom = roomName;
+            this.chatMessages = [];
+
+            // W-155: Connect to dynamic namespace per room
+            const roomPath = `/api/1/ws/hello-rooms/${roomName.toLowerCase()}`;
+            this.roomWs = jPulse.ws.connect(roomPath)
+                .onMessage((msg) => {
+                    if (msg.success) {
+                        this.handleRoomMessage(msg.data);
+                    } else {
+                        console.error('Room WS error:', msg.error);
+                        jPulse.UI.toast.show(`Error: ${msg.error}`, 'error');
+                    }
+                })
+                .onStatusChange((status) => {
+                    this.roomStatus = status;
+                    if (status === 'connected') {
+                        jPulse.UI.toast.show(`Joined room: ${roomName}`, 'success');
+                    } else if (status === 'disconnected' && this.currentRoom) {
+                        jPulse.UI.toast.show(`Left room: ${roomName}`, 'info');
+                    }
+                });
+        },
+
+        disconnectFromRoom() {
+            if (this.roomWs) {
+                this.roomWs.disconnect();
+                this.roomWs = null;
+                this.roomStatus = 'disconnected';
+                this.currentRoom = null;
+                this.chatMessages = [];
+            }
+        },
+
+        handleRoomMessage(msg) {
+            const payload = msg.data ?? {};
+            if (msg.type === 'welcome') {
+                this.userCount = payload.userCount ?? 1;
+                this.userText = this.userCount === 1 ? 'user' : 'users';
+                this.chatMessages.push({
+                    type: 'system',
+                    text: payload.message || `Welcome to room ${this.currentRoom}!`,
+                    timestamp: Date.now()
+                });
+            } else if (msg.type === 'room-stats') {
+                this.userCount = payload.userCount ?? this.userCount;
+                this.userText = this.userCount === 1 ? 'user' : 'users';
+            } else if (msg.type === 'chat') {
+                this.chatMessages.push({
+                    type: 'chat',
+                    username: payload.username || 'Unknown',
+                    text: payload.text || '',
+                    timestamp: payload.timestamp || Date.now()
+                });
+                // Auto-scroll to bottom
+                this.$nextTick(() => {
+                    const chatArea = this.$refs.chatArea;
+                    if (chatArea) {
+                        chatArea.scrollTop = chatArea.scrollHeight;
+                    }
+                });
+            } else if (msg.type === 'user-left') {
+                this.userCount = payload.userCount ?? 0;
+                this.userText = this.userCount === 1 ? 'user' : 'users';
+                this.chatMessages.push({
+                    type: 'system',
+                    text: `${payload.username || 'Someone'} left the room`,
+                    timestamp: Date.now()
+                });
+            }
+        },
+
+        sendChatMessage() {
+            if (!this.chatInput.trim() || !this.roomWs || !this.isConnected) {
+                return;
+            }
+
+            this.roomWs.send({
+                type: 'chat',
+                data: {
+                    text: this.chatInput.trim()
+                }
+            });
+
+            this.chatInput = '';
+        },
+
+        formatMessageTime(timestamp) {
+            return jPulse.date.formatLocalTime(timestamp);
+        }
+    },
+    mounted() {
+        // Auto-connect to first room on mount
+        this.connectToRoom(this.availableRooms[0]);
+    },
+    beforeUnmount() {
+        this.disconnectFromRoom();
+    },
+    template: `
+        <div class="jp-card local-dynamic-rooms">
+            <h2>🚪 Dynamic Rooms</h2>
+            <p class="jp-m-0">Demonstrates dynamic WebSocket namespaces — one namespace created per room on first connect.</p>
+
+            <div class="jp-flex jp-flex-between jp-gap-10 jp-flex-wrap jp-mt-15">
+                <div class="jp-flex jp-gap-10 jp-flex-wrap local-select-button-container">
+                    <strong class="local-select-text">Select Room:</strong>
+                    <button
+                        v-for="room in availableRooms"
+                        :key="room"
+                        @click="connectToRoom(room)"
+                        class="jp-btn"
+                        :class="{ 'jp-btn-primary': currentRoom === room, 'jp-btn-outline': currentRoom !== room }"
+                    >
+                        🚪 {{ room }}
+                    </button>
+                    <div v-if="currentRoom">
+                        <button @click="disconnectFromRoom" class="jp-btn jp-btn-outline local-disconnect-room-button">Disconnect</button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="currentRoom" class="jp-flex jp-gap-20 local-chat-columns jp-mt-15">
+                <div class="local-chat-left">
+                    <div class="jp-output jp-output-info jp-m-0">
+                        <span class="local-status-dot" :class="statusClass"></span>
+                        <span>{{ statusText }}</span>
+                        <span> — Room: {{ currentRoom }}</span>
+                        <span v-if="isConnected"> — {{ userCount }} {{ userText }} online</span>
+                    </div>
+                    <div class="jp-flex jp-gap-10 jp-mt-15 local-chat-input-wrap">
+                        <input
+                            v-model="chatInput"
+                            @keyup.enter="sendChatMessage"
+                            type="text"
+                            placeholder="Type a message..."
+                            class="jp-form-input"
+                            :disabled="!isConnected"
+                        />
+                        <button
+                            @click="sendChatMessage"
+                            class="jp-btn jp-btn-primary"
+                            :disabled="!isConnected || !chatInput.trim()"
+                        >
+                            Send
+                        </button>
+                    </div>
+                </div>
+                <div class="local-chat-right">
+                    <div class="jp-output local-chat-area jp-m-0" ref="chatArea">
+                        <div v-if="chatMessages.length === 0" class="jp-text-muted jp-text-left">
+                            <div>💬</div>
+                            <div><strong>No messages yet</strong></div>
+                            <div>Start a conversation!</div>
+                        </div>
+                        <div
+                            v-for="(msg, index) in chatMessages"
+                            :key="index"
+                            class="local-chat-message"
+                            :class="{ 'local-chat-system': msg.type === 'system' }"
+                        >
+                            <span class="local-chat-text jp-text-primary">{{ msg.text }}</span>
+                            <span class="local-chat-meta jp-text-muted">by {{ msg.type === 'system' ? 'system' : (msg.username || 'guest') }}, {{ formatMessageTime(msg.timestamp) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-else class="jp-output jp-mt-15">
+                <p class="jp-m-0">Select a room above to start chatting.</p>
+            </div>
+
+            <div class="jp-output jp-output-info jp-mt-30">
+                <h4 class="jp-mt-0 jp-mb-10">🔧 Technical Details (W-155)</h4>
+                <ul class="jp-m-0 jp-mb-0" style="padding-left: 20px; line-height: 1.6;">
+                    <li><strong>Pattern Registration:</strong> <code>/api/1/ws/hello-rooms/:roomName</code></li>
+                    <li><strong>Lazy Creation:</strong> Namespace created on first connect to each room</li>
+                    <li><strong>onCreate Hook:</strong> Validates room name (only Amsterdam, Berlin, Cairo allowed)</li>
+                    <li><strong>Isolation:</strong> Messages only broadcast within the same room</li>
+                    <li><strong>Handler Sharing:</strong> Same handlers (onConnect/onMessage/onDisconnect) used for all rooms</li>
+                    <li><strong>ctx.params:</strong> Server handlers access room name via <code>ctx.params.roomName</code></li>
+                </ul>
+            </div>
+        </div>
+    `
+};
+
+// EOF site/webapp/view/hello-websocket/templates/dynamic-rooms.tmpl

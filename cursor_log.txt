@@ -17992,3 +17992,19 @@ Updated W-154 in work-items.md: set status to ✅ DONE; kept title "websocket: n
 
 
 ============================================================
+2026-02-08 20:15
+
+new tests pass, thanks. next: doc updates - omit changelogs and readmes for now; focus on docs/websockets.md to reflect latest enhancements; add pointers in other docs as needed, with intro blurb.
+
+Updated docs for W-155: (1) docs/websockets.md v1.6.12 — conn/ctx only (no conn.user), full ctx shape and params; new "Dynamic Namespaces (Per-Resource Rooms)" (pattern registration, onCreate, removeNamespace, lifecycle, multi-instance); new "Handling Reconnect and Missed Updates"; Key Features bullet; all handler examples and Common Patterns use ctx; Examples added Dynamic Rooms; API Summary updated. (2) Pointers: W-155 design doc (status Done, Reference link to websockets.md); work-items W-155 (docs line with link and blurb); front-end-development.md and api-reference.md (intro blurbs for WebSocket guide). No changelogs or READMEs.
+
+
+============================================================
+2026-02-08 20:55
+
+release prep: review git diff tt-git-diff.txt for accuracy and completeness of work item; assume release W-155, v1.6.12, 2026-02-09; update deliverables in W-155 work-items to document work done (path/file + summary format); update README.md, docs/README.md, docs/CHANGELOG.md; update commit-message.txt; append cursor_log.txt. Don't change status, don't bump version.
+
+Reviewed tt-git-diff.txt: matches W-155 scope (conn refactor, dynamic namespaces, Dynamic Rooms reference app, docs, tests). Updated docs/dev/work-items.md W-155 deliverables to path/file + summary format (websocket.js, appCluster.js, helloWebsocket.js, hello-websocket view/templates, docs/websockets.md, api-reference.md, front-end-development.md, W-154/W-155 design docs, websocket.test.js). Added v1.6.12 W-155 to README.md and docs/README.md Latest Release Highlights. Added v1.6.12 W-155 section to docs/CHANGELOG.md. Wrote commit-message.txt for W-155 in same format as W-154. Appended this entry to cursor_log.txt. No version bump; no git commands run.
+
+
+============================================================

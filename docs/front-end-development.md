@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.6.11
+# jPulse Docs / Front-End Development Guide v1.6.12
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -509,7 +509,7 @@ const MyApp = {
 };
 ```
 
-> **See Complete Guide:** [WebSocket Documentation](websockets.md) for server-side setup, authentication, monitoring, and advanced patterns.
+> **See Complete Guide:** [WebSocket Real-Time Communication](websockets.md) for server-side setup, authentication, monitoring, dynamic namespaces (one per room/resource), connection context (conn/ctx), and handling reconnects.
 
 ## 📝 Form Handling & Validation
 

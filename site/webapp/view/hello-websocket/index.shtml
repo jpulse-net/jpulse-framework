@@ -4,8 +4,8 @@
  * @tagline         Real-Time WebSocket Communication Examples
  * @description     Interactive demos: emoji cursor tracking and collaborative todo
  * @file            site/webapp/view/hello-websocket/index.shtml
- * @version         1.6.11
- * @release         2026-02-08
+ * @version         1.6.12
+ * @release         2026-02-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -499,6 +499,122 @@
             .local-emoji-btn {
                 font-size: 24px;
                 padding: 8px;
+            }
+        }
+
+        /* Dynamic Rooms: force full width and message row alignment (page-level so they apply) */
+        #wsApp .local-dynamic-rooms {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+            box-sizing: border-box;
+        }
+        #wsApp .local-dynamic-rooms .local-chat-columns {
+            display: flex !important;
+            flex-direction: row !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+        #wsApp .local-dynamic-rooms .local-chat-columns > .local-chat-left {
+            flex: 0 0 auto;
+            min-width: 280px;
+            max-width: 100%;
+        }
+        #wsApp .local-dynamic-rooms .local-chat-columns > .local-chat-right {
+            flex: 1 1 0% !important;
+            min-width: 0;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        #wsApp .local-dynamic-rooms .local-chat-area {
+            max-height: 50vh;
+            overflow-y: auto;
+            padding-top: 5px;
+            padding-bottom: 5px;
+        }
+        #wsApp .local-dynamic-rooms .local-chat-message {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap;
+            align-items: baseline;
+            justify-content: space-between;
+            width: 100%;
+            gap: 10px;
+            padding: 3px 0;
+            border-bottom: 1px solid var(--jp-theme-border-light, #e9ecef);
+        }
+        #wsApp .local-dynamic-rooms .local-chat-message:last-child {
+            border-bottom: none;
+        }
+        #wsApp .local-dynamic-rooms .local-chat-text {
+            flex: 1 1 auto;
+            min-width: 0;
+            text-align: left;
+        }
+        #wsApp .local-dynamic-rooms .local-chat-meta {
+            flex: 0 0 auto !important;
+            margin-left: auto !important;
+            text-align: right;
+            white-space: nowrap;
+            font-size: 0.75rem;
+            color: var(--jp-theme-text-muted, #6c757d);
+        }
+        #wsApp .local-dynamic-rooms .local-select-button-container button {
+            width: 8rem;
+        }
+        #wsApp .local-dynamic-rooms .local-select-button-container .local-disconnect-room-button {
+            margin-left: 2rem;
+        }
+        #wsApp .local-dynamic-rooms .local-select-text {
+            padding-top: 0.5rem;
+        }
+        #wsApp .local-dynamic-rooms .local-chat-input-wrap .jp-form-input {
+            flex: 1;
+            min-width: 0;
+            padding: 8px 12px;
+        }
+        #wsApp .local-dynamic-rooms .local-status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        #wsApp .local-dynamic-rooms .local-status-dot.connected {
+            background: var(--jp-theme-color-success, #28a745);
+        }
+        #wsApp .local-dynamic-rooms .local-status-dot.connecting,
+        #wsApp .local-dynamic-rooms .local-status-dot.reconnecting {
+            background: var(--jp-theme-color-warning, #ffc107);
+        }
+        #wsApp .local-dynamic-rooms .local-status-dot.disconnected {
+            background: var(--jp-theme-text-muted, #6c757d);
+        }
+        #wsApp .local-dynamic-rooms .local-chat-system .local-chat-text {
+            font-style: italic;
+        }
+        /* Stack columns earlier so message list is not squeezed into a narrow strip */
+        @media (max-width: 900px) {
+            #wsApp .local-dynamic-rooms .local-chat-columns {
+                flex-direction: column !important;
+            }
+            #wsApp .local-dynamic-rooms .local-chat-columns > .local-chat-left {
+                min-width: 0;
+                width: 100%;
+                max-width: 100%;
+            }
+            #wsApp .local-dynamic-rooms .local-chat-columns > .local-chat-right {
+                width: 100%;
+                max-width: 100%;
+            }
+            #wsApp .local-dynamic-rooms .local-chat-message {
+                flex-wrap: wrap;
+            }
+            #wsApp .local-dynamic-rooms .local-chat-meta {
+                white-space: normal;
             }
         }
     </style>

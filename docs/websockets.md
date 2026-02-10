@@ -1,4 +1,4 @@
-# jPulse Docs / WebSocket Real-Time Communication v1.6.11
+# jPulse Docs / WebSocket Real-Time Communication v1.6.12
 
 > **Need multi-server broadcasting instead?** If you're running multiple server instances and need to synchronize state changes across all servers (like collaborative editing), see [Application Cluster Communication](application-cluster.md) which uses REST API + Redis broadcasts for simpler state synchronization.
 
@@ -23,6 +23,7 @@ The jPulse Framework provides enterprise-grade WebSocket infrastructure for real
 - **Statistics**: Built-in monitoring and activity logging
 - **Standard API**: Consistent message format matching HTTP API conventions
 - **MPA & SPA Support**: Works seamlessly with both Multi-Page and Single-Page Applications
+- **Dynamic Namespaces**: One namespace per resource (e.g. per room or per map) via path patterns and lazy creation — see [Dynamic Namespaces (Per-Resource Rooms)](#dynamic-namespaces-per-resource-rooms)
 - **No Automatic Retry**: Applications control message delivery guarantees (see Best Practices)
 
 ---
@@ -50,7 +51,7 @@ The framework supports two main patterns for real-time communication:
 
 ### Server-Side: Create a Namespace
 
-Controllers create WebSocket namespaces with `createNamespace(path, options?)`. Handlers receive a single **conn** object; chain `.onConnect()`, `.onMessage()`, `.onDisconnect()`. Use `broadcast(data, ctx)` and `sendToClient(clientId, data, ctx)` so logging and Redis relay use the connection context.
+Controllers create WebSocket namespaces with `createNamespace(path, options?)`. Handlers receive a single **conn** object with `clientId` and **ctx** (no separate `user`); chain `.onConnect()`, `.onMessage()`, `.onDisconnect()`. Use `broadcast(data, ctx)` and `sendToClient(clientId, data, ctx)` so logging and Redis relay use the connection context.
 
 ```javascript
 // site/webapp/controller/myController.js
@@ -63,23 +64,21 @@ class MyController {
             requireRoles: []
         });
 
-        ns.onConnect(({ clientId, user, ctx }) => {
-            const username = user?.username || 'anonymous';
-            console.log(`Client ${clientId} (${username}) connected`);
+        ns.onConnect(({ clientId, ctx }) => {
+            console.log(`Client ${clientId} (${ctx?.username || 'anonymous'}) connected`);
             ns.sendToClient(clientId, {
                 type: 'welcome',
                 data: { message: 'Connected to my-app!' }
             }, ctx);
         })
-        .onMessage(({ clientId, message, user, ctx }) => {
-            const username = user?.username || 'anonymous';
-            console.log(`Message from ${username}:`, message);
+        .onMessage(({ clientId, message, ctx }) => {
+            console.log(`Message from ${ctx?.username || 'anonymous'}:`, message);
             ns.broadcast({
                 type: 'update',
                 data: { from: clientId, ...message }
             }, ctx);
         })
-        .onDisconnect(({ clientId, user, ctx }) => {
+        .onDisconnect(({ clientId, ctx }) => {
             console.log(`Client ${clientId} disconnected`);
         });
 
@@ -142,16 +141,17 @@ ns.onConnect(fn).onMessage(fn).onDisconnect(fn)  // chainable; each returns the 
 
 **Parameters:**
 
-- `path` (string, required): Namespace path, must start with `/api/1/ws/`
+- `path` (string, required): Namespace path, must start with `/api/1/ws/`. For per-resource rooms (e.g. one room per ID), use a **path pattern** with `:param` — see [Dynamic Namespaces (Per-Resource Rooms)](#dynamic-namespaces-per-resource-rooms).
 - `options` (object, optional):
   - `requireAuth` (boolean): Require user authentication (default: `false`)
   - `requireRoles` (array): Required user roles (default: `[]`)
+  - `onCreate` (function): For dynamic namespaces only — called when a namespace is created from a pattern; see [Dynamic Namespaces](#dynamic-namespaces-per-resource-rooms).
 
 **Handlers** (set via chainable setters):
 
-- `onConnect(conn)`: Called when a client connects. **conn** = `{ clientId, user, ctx }` where `ctx` is `{ username?, ip? }` for logging.
-- `onMessage(conn)`: Called when a message is received. **conn** = `{ clientId, message, user, ctx }`.
-- `onDisconnect(conn)`: Called when a client disconnects. **conn** = `{ clientId, user, ctx }`.
+- `onConnect(conn)`: Called when a client connects. **conn** = `{ clientId, ctx }`. **ctx** = `{ username, ip, roles, firstName, lastName, initials, params }` (identity and logging; `params` from path for dynamic namespaces).
+- `onMessage(conn)`: Called when a message is received. **conn** = `{ clientId, message, ctx }`.
+- `onDisconnect(conn)`: Called when a client disconnects. **conn** = `{ clientId, ctx }`.
 
 **Async onMessage:** The `onMessage` handler may be async. If it returns a Promise, the framework awaits it. If the Promise rejects (or the handler throws), the framework sends an error message back to the client (`success: false`, `error`, `code`). This allows CRUD-over-WebSocket handlers to use async models (e.g. Redis, MongoDB) without wrapping in try/catch.
 
@@ -169,13 +169,13 @@ const ns = WebSocketController.createNamespace('/api/1/ws/dashboard', {
     requireRoles: ['admin', 'viewer']
 });
 
-ns.onConnect(({ clientId, user, ctx }) => {
+ns.onConnect(({ clientId, ctx }) => {
     ns.sendToClient(clientId, {
         type: 'init',
         data: getDashboardData()
     }, ctx);
 })
-.onMessage(({ clientId, message, user, ctx }) => {
+.onMessage(({ clientId, message, ctx }) => {
     if (message.type === 'refresh') {
         ns.broadcast({
             type: 'data-update',
@@ -183,10 +183,48 @@ ns.onConnect(({ clientId, user, ctx }) => {
         }, ctx);
     }
 })
-.onDisconnect(({ clientId, user, ctx }) => {
-    console.log(`User ${user?.username} disconnected`);
+.onDisconnect(({ clientId, ctx }) => {
+    console.log(`User ${ctx?.username} disconnected`);
 });
 ```
+
+### Dynamic Namespaces (Per-Resource Rooms)
+
+Use **dynamic namespaces** when you need one logical channel per resource (e.g. one room per `roomName`, one map per `mapId`) instead of a single shared namespace. The framework creates namespaces **lazily** when the first client connects to a path that matches a registered pattern.
+
+**When to use:** Per-resource isolation (chat rooms, collaborative maps, game instances). For a single shared channel, use a literal path like `/api/1/ws/my-chat`.
+
+**Registration:** Pass a path **pattern** with `:param` segments. The framework registers both the pattern and a template; when a client connects to a concrete path (e.g. `/api/1/ws/hello-rooms/lobby`), it either finds an existing namespace or creates one and runs `onCreate`.
+
+```javascript
+// One namespace per room; path pattern with :roomName
+const ns = WebSocketController.createNamespace('/api/1/ws/hello-rooms/:roomName', {
+    requireAuth: false,
+    onCreate: async (req, ctx) => {
+        // Validate or init: ctx.params = { roomName: 'lobby' }
+        if (!ctx.params?.roomName || ctx.params.roomName.length > 64) return null;  // reject
+        return ctx;  // accept; return number to close with custom code
+    }
+});
+ns.onConnect(({ clientId, ctx }) => { /* ... */ })
+  .onMessage(({ clientId, message, ctx }) => { /* ... */ })
+  .onDisconnect(({ clientId, ctx }) => { /* ... */ });
+```
+
+**onCreate(req, ctx):** Called when a new namespace is created for a matched path. **ctx** includes `params` (e.g. `{ roomName: 'lobby' }`). Return **ctx** to accept the connection, **null** to reject, or a **number** to close with a custom close code.
+
+**Lifecycle:** Namespaces are created on first connect. When a namespace has zero clients, you can remove it so the next connect creates a fresh one: use **removeNamespace** or **namespace.removeIfEmpty()** (see below). The framework does not require sticky sessions for multi-instance; use Redis (or similar) for cross-instance counts or broadcasts.
+
+**Removing namespaces:**
+
+- `WebSocketController.removeNamespace(path, { removeIfEmpty })` — **path** is the concrete path (e.g. `/api/1/ws/hello-rooms/lobby`). If `removeIfEmpty: true`, the namespace is removed only when it has no connected clients.
+- `namespace.removeIfEmpty()` — instance method; removes this namespace if client count is zero.
+
+**Multi-instance:** With multiple server instances, a given room may have clients on different instances. For room-wide user counts, use a shared counter (e.g. Redis) and broadcast counts (e.g. `room-stats`, `user-left`) so all clients see the same value. See the Dynamic Rooms demo at `/hello-websocket/` for a reference.
+
+**App-layer responsibilities (limitations):** The framework does not replay or store messages for disconnected clients. After a temporary connection outage, the client rejoins the same namespace (or a newly created one for that path) but receives no catch-up of messages sent while offline. The **app layer** must handle sync: for example, on reconnect (e.g. via `onStatusChange` → `'connected'`), refetch current state via REST (e.g. load room messages, map state, or user list) so the client is up to date. See [Handling Reconnect and Missed Updates](#handling-reconnect-and-missed-updates) for the recommended pattern.
+
+---
 
 ### Broadcasting Messages
 
@@ -405,6 +443,24 @@ After `maxReconnectAttempts` (default 10):
 
 No more automatic reconnection attempts. User must manually reconnect or reload page.
 
+### Handling Reconnect and Missed Updates
+
+The framework **auto-reconnects** with progressive backoff but does not replay messages that were sent while the client was disconnected. Recommended approach:
+
+- **Baseline:** On reconnect, refetch state via REST (e.g. load list, open item) so the client is in sync. Use **onStatusChange** to detect when status becomes `'connected'` and trigger a refresh.
+
+```javascript
+ws.onStatusChange((status, oldStatus) => {
+    if (status === 'connected' && oldStatus === 'reconnecting') {
+        // Refetch current view state from REST
+        loadTodos();
+    }
+});
+```
+
+- **Optional:** Use **onStatusChange** to show a "Reconnecting…" indicator and clear it when `status === 'connected'`.
+- **Future:** Message replay or "missed events" APIs are not implemented; treat as tech debt if needed.
+
 ---
 
 ## Connection Health
@@ -435,8 +491,8 @@ This ensures both sides detect dead connections quickly.
 const ns = WebSocketController.createNamespace('/api/1/ws/secure-chat', {
     requireAuth: true
 });
-ns.onConnect(({ clientId, user, ctx }) => {
-    console.log(`User ${user?.username} connected`);
+ns.onConnect(({ clientId, ctx }) => {
+    console.log(`User ${ctx?.username} connected`);
 });
 ```
 
@@ -449,8 +505,8 @@ const ns = WebSocketController.createNamespace('/api/1/ws/admin-panel', {
     requireAuth: true,
     requireRoles: ['admin', 'root']
 });
-ns.onConnect(({ clientId, user, ctx }) => {
-    console.log(`Admin ${user?.username} connected`);
+ns.onConnect(({ clientId, ctx }) => {
+    console.log(`Admin ${ctx?.username} connected`);
 });
 ```
 
@@ -458,12 +514,12 @@ If user doesn't have required role, connection is rejected.
 
 ### Accessing User and Context
 
-Handlers receive **conn** with `clientId`, `user`, and `ctx` (`{ username?, ip? }` for logging). Use `conn.ctx` when calling `broadcast()` or `sendToClient()` so logs and Redis relay include the correct context.
+Handlers receive **conn** with `clientId` and **ctx** only (there is no `conn.user`). **ctx** = `{ username, ip, roles, firstName, lastName, initials, params }` for identity and logging; **params** is set for dynamic namespaces (e.g. `{ roomName: 'lobby' }`). Use `conn.ctx` when calling `broadcast()` or `sendToClient()` so logs and Redis relay include the correct context.
 
 ```javascript
-ns.onMessage(({ clientId, message, user, ctx }) => {
-    if (user) {
-        console.log(`Message from ${user.username}:`, message);
+ns.onMessage(({ clientId, message, ctx }) => {
+    if (ctx.username) {
+        console.log(`Message from ${ctx.username}:`, message);
     }
     ns.broadcast({ type: 'echo', data: message }, ctx);
 });
@@ -521,13 +577,13 @@ const stats = WebSocketController.getStats();
 
 ```javascript
 // Server: Simply broadcast positions, no database
-ns.onMessage(({ clientId, message: data, user, ctx }) => {
+ns.onMessage(({ clientId, message: data, ctx }) => {
     if (data.type === 'cursor-move') {
         ns.broadcast({
             type: 'cursor',
             data: {
                 clientId,
-                username: user?.username || 'guest',
+                username: ctx?.username || 'guest',
                 emoji: data.emoji,
                 x: data.x,
                 y: data.y
@@ -655,18 +711,18 @@ ws.onMessage((message) => {
 // Server: Track connected users
 const connectedUsers = new Map();
 
-ns.onConnect(({ clientId, user, ctx }) => {
-    connectedUsers.set(clientId, user?.username);
+ns.onConnect(({ clientId, ctx }) => {
+    connectedUsers.set(clientId, ctx?.username);
     ns.broadcast({
         type: 'user-joined',
-        data: { username: user?.username, count: connectedUsers.size }
+        data: { username: ctx?.username, count: connectedUsers.size }
     }, ctx);
 })
-.onDisconnect(({ clientId, user, ctx }) => {
+.onDisconnect(({ clientId, ctx }) => {
     connectedUsers.delete(clientId);
     ns.broadcast({
         type: 'user-left',
-        data: { username: user?.username, count: connectedUsers.size }
+        data: { username: ctx?.username, count: connectedUsers.size }
     }, ctx);
 });
 
@@ -943,6 +999,11 @@ A comprehensive interactive demo with two real-world patterns:
 - Server persists in Redis and broadcasts; all clients see changes in real time
 - No REST for note mutations; demonstrates Pattern B
 
+**4. Dynamic Rooms** - Per-resource namespaces (dynamic namespaces)
+- One WebSocket namespace per room; path pattern `/api/1/ws/hello-rooms/:roomName`
+- `onCreate` validation, room chat, multi-instance user count via Redis + `room-stats` / `user-left` broadcasts
+- See [Dynamic Namespaces (Per-Resource Rooms)](#dynamic-namespaces-per-resource-rooms)
+
 **Pattern B caveat — echo overwrites typing:** The server broadcasts `note-updated` to all clients, including the sender. If you apply every incoming `note-updated` to your local state, your own (stale) echo can overwrite the textarea while the user is still typing and drop characters — worse under load or in a PM2 cluster. **Fix:** When handling `note-updated`, do not apply the update if you have pending debounced input for that note (e.g. `if (this.textDebounce[data.note.id]) return;`). Apply updates only when you are not currently editing that note.
 
 **Also includes:**
@@ -958,6 +1019,10 @@ Real-time monitoring dashboard (requires admin role):
 - Message rates and activity logs
 - Connection health indicators
 - **Pattern:** Live data updates (Pattern 4)
+
+### Multi-instance behavior
+
+When you run two or more server instances (e.g. behind a load balancer), each instance holds its **own** WebSocket clients per namespace — there is no shared connection list. When your code calls `broadcast(data, ctx)`, the framework (1) sends the payload to that instance’s local clients only (`_localBroadcast` to N clients) and (2) publishes the same payload to a Redis channel for that namespace. Every instance (including the one that broadcast) subscribes to that channel; when a message is received from Redis, the framework runs `_localBroadcast` to its local clients in that namespace. So all clients in the namespace get the message whether they are on the same instance as the sender or another one. **Logs:** on the instance where the message originated you see your app log (e.g. `onMessage` or `helloTodo.apiCreate`) plus “Broadcast to N clients” and “Published to Redis channel”; on other instances you see only “Broadcast to N clients” (delivery from Redis). No sticky sessions are required; which instance handles the HTTP upgrade is independent of which instance later broadcasts.
 
 ---
 
@@ -1018,7 +1083,7 @@ ns.getStats()
 WebSocketController.getStats()
 ```
 
-- **conn**: `{ clientId, user, ctx }` (onMessage also has `message`). **ctx** = `{ username?, ip? }` for logging.
+- **conn**: `{ clientId, ctx }` (onMessage also has `message`). **ctx** = `{ username, ip, roles, firstName, lastName, initials, params }` for identity and logging; **params** for dynamic namespaces.
 - **data**: Object with `type` and `data` (event body). Framework adds **ctx** to payload for wire/Redis.
 
 ### Client-Side

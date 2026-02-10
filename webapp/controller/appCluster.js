@@ -2,8 +2,8 @@
  * @name            jPulse Framework / WebApp / Controller / App Cluster
  * @description     App Cluster controller for multi-instance communication (WebSocket, broadcast, cache)
  * @file            webapp/controller/appCluster.js
- * @version         1.6.11
- * @release         2026-02-08
+ * @version         1.6.12
+ * @release         2026-02-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -66,7 +66,7 @@ class AppClusterController {
     }
 
     /**
-     * Handle WebSocket client connection (W-154: conn = { clientId, user, ctx })
+     * Handle WebSocket client connection (W-155: conn = { clientId, ctx })
      */
     static handleConnect(conn) {
         AppClusterController.clientChannels.set(conn.clientId, new Map());
@@ -84,7 +84,7 @@ class AppClusterController {
     }
 
     /**
-     * Handle WebSocket messages from clients (W-154: conn = { clientId, message, user, ctx })
+     * Handle WebSocket messages from clients (W-155: conn = { clientId, message, ctx })
      */
     static handleMessage(conn) {
         const { clientId, message: data, ctx } = conn;
@@ -130,7 +130,7 @@ class AppClusterController {
     }
 
     /**
-     * Handle WebSocket client disconnection (W-154: conn = { clientId, user, ctx })
+     * Handle WebSocket client disconnection (W-155: conn = { clientId, ctx })
      */
     static handleDisconnect(conn) {
         const clientChannels = AppClusterController.clientChannels.get(conn.clientId);

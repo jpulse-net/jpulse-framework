@@ -1,4 +1,4 @@
-# jPulse Framework v1.6.11
+# jPulse Framework v1.6.12
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -204,6 +204,7 @@ Business Source License 1.1 with Additional Terms
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.12 - WebSocket dynamic namespace with path pattern (W-155)**: Dynamic namespaces (path pattern, one per resource/room); lazy get-or-create, onCreate, removeNamespace/removeIfEmpty. Conn = { clientId, ctx } only; ctx includes params from path. Dynamic Rooms demo in /hello-websocket/; multi-instance room count via Redis. Docs: websockets.md updated. W-155, 2026-02-09
 - ✅ **Version 1.6.11 - WebSocket namespace as object, conn param; logging with ctx (W-154)**: WebSocket API: `createNamespace(path, options?)` returns namespace instance; handlers receive single **conn** (`{ clientId, user, ctx }`; onMessage also has `message`). `broadcast(data, ctx)`, `sendToClient(clientId, data, ctx)`; payload `{ type, data, ctx }` for logging and Redis relay. LogController and WebSocket use `getLogContext(reqOrContext)`; each client has `ctx` for client-scoped logs. Client `onMessage(message)` with `message.success`, `message.data`. appCluster relay format and hello-websocket/helloTodo/helloClusterTodo updated. W-154, 2026-02-08
 - ✅ **Version 1.6.10 - Auth utility functions for role checks (W-153)**: Symmetrical AuthController utilities: request-based `isAdmin(req)` and `isAuthorized(req, roleOrRoles)` (single string or array); user-object-based `userIsAdmin(user)` and `userIsAuthorized(user, roleOrRoles)` for use in models/utilities. Hides `ConfigModel.getEffectiveAdminRoles()` detail. Unit tests for all four. W-153, 2026-02-07
 - ✅ **Version 1.6.9 - Fix database name in startup log (W-152)**: The "Database: ..." startup log now shows the actual DB name from deployment config (`appConfig.deployment[mode].db`) instead of the wrong fallback. W-152, 2026-02-06

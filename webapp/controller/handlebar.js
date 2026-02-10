@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.6.13
- * @release         2026-02-10
+ * @version         1.6.14
+ * @release         2026-02-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -144,10 +144,10 @@ class HandlebarController {
         this.includeCache = cacheManager.register(includeCacheConfig, 'IncludeCache');
         LogController.logInfo(null, 'handlebar.initialize', 'IncludeCache initialized');
 
-        // Load default config once
+        // Load default config once (full doc; _filterContext sanitizes per-request)
         try {
             const defaultDocName = global.ConfigController.getDefaultDocName();
-            this.globalConfig = await configModel.findById(defaultDocName);
+            this.globalConfig = await configModel.findById(defaultDocName, true);
             LogController.logInfo(null, 'handlebar.initialize', `Default config loaded: ${defaultDocName}`);
         } catch (error) {
             LogController.logError(null, 'handlebar.initialize', `Failed to load default config: ${error.message}`);
@@ -532,7 +532,7 @@ class HandlebarController {
     static async refreshGlobalConfig() {
         try {
             const defaultDocName = global.ConfigController.getDefaultDocName();
-            const newGlobalConfig = await configModel.findById(defaultDocName);
+            const newGlobalConfig = await configModel.findById(defaultDocName, true);
             this.globalConfig = newGlobalConfig;
             LogController.logInfo(null, 'handlebar.refreshGlobalConfig', `Default config refreshed from database: ${defaultDocName}`);
             return true;

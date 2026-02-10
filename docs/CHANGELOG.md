@@ -1,6 +1,30 @@
-# jPulse Docs / Version History v1.6.13
+# jPulse Docs / Version History v1.6.14
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.14, W-157, 2026-02-11
+
+**Commit:** `W-157, v1.6.14: config bugfix: type-preserving sanitization and server-side config load`
+
+**BUGFIX RELEASE**: Follow-up to W-156 config sanitization. **(1) Type-preserving sanitization:** Sanitized config was replacing all values with string `'********'`, so numeric fields (e.g. smtpPort) became strings and broke clients and email transporter verification (getaddrinfo ENOTFOUND ********). Fixed: CommonUtils.sanitizeObject now uses options.stringPlaceholder (default `'********'`) and options.numberPlaceholder (default 9999); _sanitizeObjectPlaceholderForValue preserves type (string, number, boolean, null, object, array). Config and log models use defaults only (no explicit placeholder). **(2) Server-side config load:** Email initialize, handlebar globalConfig, and health globalConfig were calling findById/getEffectiveConfig without the admin flag and received sanitized config. Fixed: email getEffectiveConfig(defaultDocName, true); handlebar and health findById(defaultDocName, true) in initialize and refreshGlobalConfig. **(3) Plugin pattern:** hello-world plugin uses AuthController.isAdmin(req) and findById(defaultDocName, isAdmin) for educational consistency. **Docs:** api-reference.md updated for type-preserving placeholders. **Tests:** common-utils smtpPort expects 9999 and typeof number; config-model same; custom stringPlaceholder/numberPlaceholder test.
+
+**Objective**: Preserve field types when obfuscating; ensure server-side code that needs real config loads full doc.
+
+**Key Changes**:
+- **webapp/utils/common.js**: stringPlaceholder, numberPlaceholder; _sanitizeObjectPlaceholderForValue; _sanitizeObjectApplyPath uses placeholders object.
+- **webapp/model/config.js**, **webapp/model/log.js**: sanitizeObject with { mode: 'obfuscate' } only (use util defaults).
+- **webapp/controller/email.js**: getEffectiveConfig(defaultDocName, true).
+- **webapp/controller/handlebar.js**: findById(defaultDocName, true) in initialize and refreshGlobalConfig.
+- **webapp/controller/health.js**: findById(defaultDocName, true) in initialize and refreshGlobalConfig.
+- **plugins/hello-world/webapp/controller/helloPlugin.js**: AuthController import; isAdmin(req); findById(defaultDocName, isAdmin).
+- **webapp/tests/unit/utils/common-utils.test.js**: sanitizeObject type-preserving and custom placeholders tests.
+- **webapp/tests/unit/config/config-model.test.js**: Response sanitization smtpPort 9999 and typeof number.
+- **docs/api-reference.md**: Config Sanitization type-preserving note; CommonUtils.sanitizeObject stringPlaceholder, numberPlaceholder.
+
+**Work Item**: W-157
+**Version**: v1.6.14
+**Release Date**: 2026-02-11
 
 ________________________________________________
 ## v1.6.13, W-156, 2026-02-10

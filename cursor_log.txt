@@ -18032,3 +18032,11 @@ Reviewed tt-git-diff.txt: matches W-156 scope (config sanitization, CommonUtils.
 
 
 ============================================================
+2026-02-10 12:48
+
+release prep: assume release W-157, v1.6.14, 2026-02-11; update deliverables in W-157 work-items to document work done (don't change status); update README.md, docs/README.md, docs/CHANGELOG.md, commit-message.txt; append cursor_log.txt. Don't bump version, don't commit.
+
+W-157 deliverables in work-items.md already document work done; left status and rest of file unchanged. Added v1.6.14 W-157 to README.md and docs/README.md Latest Release Highlights. Added v1.6.14 section to docs/CHANGELOG.md. Wrote commit-message.txt for W-157 in same format as W-156. Appended this entry to cursor_log.txt. No version bump; no git commands run.
+
+
+============================================================

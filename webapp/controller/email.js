@@ -3,8 +3,8 @@
  * @tagline         Email Controller for jPulse Framework
  * @description     Provides email sending capability and API endpoint for jPulse Framework
  * @file            webapp/controller/email.js
- * @version         1.6.13
- * @release         2026-02-10
+ * @version         1.6.14
+ * @release         2026-02-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -46,9 +46,9 @@ class EmailController {
         }
 
         try {
-            // Get default config document ID
+            // Get default config document ID (full doc needed for SMTP connection)
             const defaultDocName = ConfigController.getDefaultDocName();
-            const configDoc = await ConfigModel.getEffectiveConfig(defaultDocName);
+            const configDoc = await ConfigModel.getEffectiveConfig(defaultDocName, true);
 
             if (!configDoc || !configDoc.data || !configDoc.data.email) {
                 LogController.logInfo(null, 'email.initialize',

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.13
+# jPulse Docs / Dev / Work Items v1.6.14
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4889,17 +4889,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/tests/unit/controller/websocket.test.js`:
     - beforeEach clear patternNamespaces; describe "W-155 Dynamic Namespaces": pattern registration, param extraction (single/multiple), removeNamespace (not found, removeIfEmpty with/without clients), removeIfEmpty instance method
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-156, v1.6.13, 2026-02-10: config: sanitize sensitive fields for non-administrators
 - status: ✅ DONE
 - type: Feature
@@ -4934,6 +4923,49 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-157, v1.6.14, 2026-02-11: config bugfix: type-preserving sanitization and server-side config load
+- status: 🚧 IN_PROGRESS
+- type: Bugfix
+- objectives:
+  - preserve field types when obfuscating (e.g. smtpPort stays number, not string)
+  - ensure server-side code that needs real config (email, handlebar, health) loads full doc
+- bugfix:
+  - (1) type-preserving sanitization: sanitized config was replacing all values with string `'********'`, so numeric fields (e.g. smtpPort) became strings and broke clients / email transporter verification (getaddrinfo ENOTFOUND ********). Fixed by obfuscating by type: string → stringPlaceholder, number → numberPlaceholder (default 9999), boolean → false, null → null, object → {}, array → []
+  - (2) server-side config load: email initialize, handlebar globalConfig, and health globalConfig were calling findById/defaultDocName or getEffectiveConfig without the admin flag, so they received sanitized config and used placeholders as real values. Fixed by passing true where full doc is required for server-side use (email SMTP, handlebar context before _filterContext, health compliance/cache)
+  - (3) plugin pattern: hello-world plugin uses isAdmin(req) and findById(defaultDocName, isAdmin) for educational consistency
+- deliverables:
+  - `webapp/utils/common.js`:
+    - sanitizeObject: options.stringPlaceholder and options.numberPlaceholder (defaults '********', 9999); _sanitizeObjectPlaceholderForValue(value, placeholders) for type-preserving obfuscation; _sanitizeObjectApplyPath uses placeholders object
+  - `webapp/model/config.js`:
+    - _sanitizeForResponse calls sanitizeObject with { mode: 'obfuscate' } only (use util defaults)
+  - `webapp/model/log.js`:
+    - logChange config sanitization uses opts = { mode: 'obfuscate' } only (use util defaults)
+  - `webapp/tests/unit/utils/common-utils.test.js`:
+    - sanitizeObject: smtpPort expects 9999 and typeof number; test custom stringPlaceholder/numberPlaceholder
+  - `webapp/tests/unit/config/config-model.test.js`:
+    - Response sanitization: smtpPort expects 9999 and typeof number
+  - `docs/api-reference.md`:
+    - Config Sanitization note: type preserved (strings→********, numbers→9999); CommonUtils.sanitizeObject subsection: stringPlaceholder, numberPlaceholder, type-preserving behavior, example with smtpPort
+  - `webapp/controller/email.js`:
+    - getEffectiveConfig(defaultDocName, true) so SMTP transporter gets real host/port/auth
+  - `webapp/controller/handlebar.js`:
+    - initialize and refreshGlobalConfig: configModel.findById(defaultDocName, true) so _filterContext can sanitize per-request
+  - `webapp/controller/health.js`:
+    - initialize and refreshGlobalConfig: ConfigModel.findById(defaultDocName, true) for compliance and setEffectiveGeneralCache
+  - `plugins/hello-world/webapp/controller/helloPlugin.js`:
+    - AuthController import; isAdmin = AuthController.isAdmin(req); findById(defaultDocName, isAdmin) (educational pattern)
+
+
+
+
+
+
+
 ### Pending
 
 
@@ -4959,8 +4991,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-156, v1.6.13, 2026-02-10
-- update deliverables in W-156 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-157, v1.6.14, 2026-02-11
+- update deliverables in W-157 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -4971,12 +5003,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.13
+node bin/bump-version.js 1.6.14
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.13
+git tag v1.6.14
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

@@ -5,8 +5,8 @@
  *                  for non-admin users in the _sanitizeMetricsData() method!
  * @description     This is the health controller for the jPulse Framework WebApp
  * @file            webapp/controller/health.js
- * @version         1.6.13
- * @release         2026-02-10
+ * @version         1.6.14
+ * @release         2026-02-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -165,10 +165,10 @@ class HealthController {
      * Called during application bootstrap
      */
     static async initialize() {
-        // W-137: Load global config for compliance reporting
+        // W-137: Load global config for compliance reporting (full doc for server-side use)
         try {
             const defaultDocName = global.ConfigController?.getDefaultDocName() || 'global';
-            this.globalConfig = await ConfigModel.findById(defaultDocName);
+            this.globalConfig = await ConfigModel.findById(defaultDocName, true);
 
             // W-137: Ensure manifest structure exists with schema defaults
             // ConfigModel handles schema, race conditions, and atomic updates
@@ -1991,7 +1991,7 @@ class HealthController {
     static async refreshGlobalConfig() {
         try {
             const defaultDocName = global.ConfigController?.getDefaultDocName() || 'global';
-            this.globalConfig = await ConfigModel.findById(defaultDocName);
+            this.globalConfig = await ConfigModel.findById(defaultDocName, true);
             ConfigModel.setEffectiveGeneralCache(this.globalConfig?.data?.general);
             LogController.logInfo(null, 'health.compliance', 'Config refreshed for compliance reporting');
         } catch (error) {

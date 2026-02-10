@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.6.13
- * @release         2026-02-10
+ * @version         1.6.14
+ * @release         2026-02-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -791,7 +791,7 @@ class CommonUtils {
     /**
      * Sanitize an object by applying path patterns to a deep clone; sensitive leaves are obfuscated or removed.
      * Used for config/API responses so sensitive fields (e.g. smtpPass, license.key) are not exposed.
-     * Obfuscation preserves type: string→stringPlaceholder, number→numberPlaceholder, boolean→false, null→null, object→{}, array→[].
+     * Obfuscation preserves type: string → stringPlaceholder, number → numberPlaceholder, boolean → false, null → null, object → {}, array → [].
      * Path patterns use dot notation; the last segment may be a wildcard: prefix* (e.g. smtp*), *suffix (e.g. *pass), or exact key.
      *
      * @param {object} obj - Plain object to sanitize (not mutated)
@@ -810,9 +810,9 @@ class CommonUtils {
             return JSON.parse(JSON.stringify(obj));
         }
         const mode = options.mode === 'remove' ? 'remove' : 'obfuscate';
-        const stringPlaceholder = options.stringPlaceholder !== undefined ? options.stringPlaceholder : '********';
-        const numberPlaceholder = options.numberPlaceholder !== undefined ? options.numberPlaceholder : 9999;
-        const placeholders = { stringPlaceholder, numberPlaceholder };
+        const str = options.stringPlaceholder !== undefined ? options.stringPlaceholder : '********';
+        const num = options.numberPlaceholder !== undefined ? options.numberPlaceholder : 9999;
+        const placeholders = { str, num };
         const clone = JSON.parse(JSON.stringify(obj));
         for (const pattern of pathPatterns) {
             if (typeof pattern !== 'string' || !pattern.trim()) continue;
@@ -824,17 +824,18 @@ class CommonUtils {
     /**
      * Return type-preserving obfuscation value for a leaf.
      * @param {*} value - Current value at the leaf
-     * @param {{ stringPlaceholder: string, numberPlaceholder: number }} placeholders - Options
+     * @param {{ str: string, num: number }} placeholders - Options
      * @returns {*} Placeholder matching original type
      * @private
      */
     static _sanitizeObjectPlaceholderForValue(value, placeholders) {
-        if (value === null) return null;
-        if (typeof value === 'string') return placeholders.stringPlaceholder;
-        if (typeof value === 'number') return placeholders.numberPlaceholder;
-        if (Array.isArray(value)) return [];
-        if (typeof value === 'object') return {};
-        return placeholders.stringPlaceholder;
+        if (value === null)             return null;
+        if (typeof value === 'string')  return placeholders.str;
+        if (typeof value === 'number')  return placeholders.num;
+        if (typeof value === 'boolean') return false;
+        if (Array.isArray(value))       return [];
+        if (typeof value === 'object')  return {};
+        return placeholders.str;
     }
 
     /**
@@ -842,7 +843,7 @@ class CommonUtils {
      * @param {object} obj - Object to mutate (clone)
      * @param {string} pattern - Path pattern
      * @param {string} mode - 'obfuscate' | 'remove'
-     * @param {{ stringPlaceholder: string, numberPlaceholder: number }} placeholders - When obfuscate (type-preserving)
+     * @param {{ str: string, num: number }} placeholders - When obfuscate (type-preserving)
      * @private
      */
     static _sanitizeObjectApplyPath(obj, pattern, mode, placeholders) {

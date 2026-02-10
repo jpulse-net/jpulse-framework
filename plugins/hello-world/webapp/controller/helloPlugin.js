@@ -3,7 +3,7 @@
  * @tagline         Hello Plugin Controller
  * @description     Simple API controller demonstrating plugin structure
  * @file            plugins/hello-world/webapp/controller/helloPlugin.js
- * @version         1.6.13
+ * @version         1.6.14
  * @author          jPulse Team, https://jpulse.net
  * @license         BSL 1.1
  * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
@@ -12,6 +12,7 @@
 import HelloPluginModel from '../model/helloPlugin.js';
 import PluginModel from '../../../../webapp/model/plugin.js';
 import LogController from '../../../../webapp/controller/log.js';
+import AuthController from '../../../../webapp/controller/auth.js';
 
 /**
  * Hello Plugin Controller - demonstrates plugin API endpoints
@@ -99,11 +100,12 @@ class HelloPluginController {
                 enabled: true
             };
 
-            // W-147: Get site config (Hello tab) for demo – values from Admin → Site Configuration → Hello
+            // W-147: Get site config (Hello tab) for demo – use isAdmin so non-admins get sanitized config (educational pattern)
             let helloWorldConfig = { message: 'Hello from the plugin!', showBadge: true };
             if (global.ConfigModel && typeof global.ConfigModel.findById === 'function') {
                 const defaultDocName = global.appConfig?.controller?.config?.defaultDocName || 'global';
-                const siteConfig = await global.ConfigModel.findById(defaultDocName);
+                const isAdmin = AuthController.isAdmin(req);
+                const siteConfig = await global.ConfigModel.findById(defaultDocName, isAdmin);
                 if (siteConfig?.data?.helloWorldConfig) {
                     helloWorldConfig = { ...helloWorldConfig, ...siteConfig.data.helloWorldConfig };
                 }

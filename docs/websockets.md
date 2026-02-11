@@ -1,4 +1,4 @@
-# jPulse Docs / WebSocket Real-Time Communication v1.6.14
+# jPulse Docs / WebSocket Real-Time Communication v1.6.15
 
 > **Need multi-server broadcasting instead?** If you're running multiple server instances and need to synchronize state changes across all servers (like collaborative editing), see [Application Cluster Communication](application-cluster.md) which uses REST API + Redis broadcasts for simpler state synchronization.
 
@@ -512,9 +512,30 @@ ns.onConnect(({ clientId, ctx }) => {
 
 If user doesn't have required role, connection is rejected.
 
+### Public Access (Demo / Non-Admin)
+
+When **public access** is enabled in config, unauthenticated or non-admin users may connect to **whitelisted** namespaces and receive limited data. Use this for admin-demo pages or read-only dashboards.
+
+**Config** (`app.conf` → `controller.websocket.publicAccess`):
+
+- `enabled` (boolean): When `true`, whitelisted namespaces accept connections without requiring auth/admin. Default `false`.
+- `whitelisted` (array of strings): Namespace path patterns. Entries are matched against the full path (e.g. `/api/1/ws/jpulse-ws-status`): exact suffix (e.g. `jpulse-ws-status`) or prefix pattern (e.g. `hello-*` for `/api/1/ws/hello-emoji`, `/api/1/ws/hello-todo`).
+
+When a client connects via public access (path whitelisted and `enabled`), the server sets **ctx.isPublic** for that connection. For the **jpulse-ws-status** namespace, clients with `ctx.isPublic` receive stats filtered by the same whitelist: only whitelisted namespaces and activity-log entries appear; no field-level sanitization. Other namespaces (e.g. jpulse-ws-test) do not change payload for public clients but are still subject to message limits.
+
+### Message Limits (DoS Protection)
+
+**Config** (`app.conf` → `controller.websocket.messageLimits`):
+
+- `maxSize` (number): Max size in bytes for a single incoming message (default 65536 = 64 KB). Larger messages are dropped.
+- `interval` (number): Time window in milliseconds for rate limiting (default 1000).
+- `maxMessages` (number): Max messages per client per `interval` (default 50). Excess messages in the window are dropped.
+
+Limits apply per connection. Dropped messages are not processed and are logged at info level.
+
 ### Accessing User and Context
 
-Handlers receive **conn** with `clientId` and **ctx** only (there is no `conn.user`). **ctx** = `{ username, ip, roles, firstName, lastName, initials, params }` for identity and logging; **params** is set for dynamic namespaces (e.g. `{ roomName: 'lobby' }`). Use `conn.ctx` when calling `broadcast()` or `sendToClient()` so logs and Redis relay include the correct context.
+Handlers receive **conn** with `clientId` and **ctx** only (there is no `conn.user`). **ctx** = `{ username, ip, roles, firstName, lastName, initials, params, isPublic? }` for identity and logging; **params** is set for dynamic namespaces (e.g. `{ roomName: 'lobby' }`); **isPublic** is set when the client connected via public access (whitelisted namespace and `publicAccess.enabled`). Use `conn.ctx` when calling `broadcast()` or `sendToClient()` so logs and Redis relay include the correct context.
 
 ```javascript
 ns.onMessage(({ clientId, message, ctx }) => {

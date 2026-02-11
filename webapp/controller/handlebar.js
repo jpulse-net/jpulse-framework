@@ -3,7 +3,7 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.6.14
+ * @version         1.6.15
  * @release         2026-02-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -2411,9 +2411,13 @@ class HandlebarController {
                 return 0;
             }
 
-            // Convert to numbers with type coercion
+            // Convert to numbers with type coercion (allow date-like values: Date or ISO string -> timestamp)
             const numbers = args.map((arg, index) => {
-                const num = Number(arg);
+                let num = Number(arg);
+                if (isNaN(num) && (arg instanceof Date || (typeof arg === 'string' && arg.trim() !== ''))) {
+                    const ts = arg instanceof Date ? arg.getTime() : new Date(arg).getTime();
+                    if (!isNaN(ts)) num = ts;
+                }
                 if (isNaN(num)) {
                     LogController.logWarning(req, `handlebar.${operation}`,
                         `Invalid number at position ${index}: ${arg}, treating as 0`);

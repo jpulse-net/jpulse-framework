@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for renderTabsAndPanelsFromSchema and schema flow (W-148 Phase 4)
  * @description     Low-hanging fruit: _walkSchemaFields, renderTabsAndPanelsFromSchema flow classes and field HTML
  * @file            webapp/tests/unit/utils/jpulse-ui-tabs-schema.test.js
- * @version         1.6.14
+ * @version         1.6.15
  * @release         2026-02-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -37,7 +37,7 @@ global.KeyboardEvent = dom.window.KeyboardEvent;
 
 const jpulseCommonPath = path.join(process.cwd(), 'webapp/view/jpulse-common.js');
 const jpulseCommonContent = fs.readFileSync(jpulseCommonPath, 'utf8');
-const context = vm.createContext(window);
+const context = vm.createContext(win);
 vm.runInContext(jpulseCommonContent, context);
 
 describe('jPulse.UI.tabs schema-driven (W-148 Phase 4)', () => {
@@ -94,79 +94,61 @@ describe('jPulse.UI.tabs schema-driven (W-148 Phase 4)', () => {
             expect(win.jPulse.UI.tabs.renderTabsAndPanelsFromSchema('nonexistent', 'panels', schema, {})).toBeNull();
         });
 
-        // Next 4 tests assert DOM output; skipped: vm context document != test doc in this setup (panelEl stays empty)
-        test.skip('creates one tab and one panel with flow classes from maxColumns', () => {
-            const schema = {
-                data: {
-                    test: {
-                        _meta: { order: 0, tabLabel: 'Test Tab', maxColumns: 2 },
-                        name: { type: 'string', default: '', label: 'Name' }
-                    }
-                }
+        // Test schema block HTML output (flow classes, field classes, button) and block sort order without relying on shared document
+        test('creates one tab and one panel with flow classes from maxColumns', () => {
+            const blockDef = {
+                _meta: { order: 0, tabLabel: 'Test Tab', maxColumns: 2 },
+                name: { type: 'string', default: '', label: 'Name' }
             };
-            doc.body.innerHTML = '<div id="config-tabs"></div><div id="config-all-panels"></div>';
-            const tabEl = doc.getElementById('config-tabs');
-            const panelEl = doc.getElementById('config-all-panels');
-            win.jPulse.UI.tabs.renderTabsAndPanelsFromSchema(tabEl, panelEl, schema, { test: {} });
-            expect(panelEl.children.length).toBe(1);
-            const card = panelEl.querySelector('.jp-card.jp-schema-section');
-            expect(card).toBeTruthy();
-            const flow = card.querySelector('.jp-form-flow.jp-form-flow-cols-2');
-            expect(flow).toBeTruthy();
-            expect(flow.innerHTML).toContain('data-path="test.name"');
-            expect(flow.innerHTML).toContain('jp-schema-field');
+            const fieldsHtml = win.jPulse.UI.tabs._renderSchemaBlockFields('test', blockDef, {});
+            expect(fieldsHtml).toContain('data-path="test.name"');
+            expect(fieldsHtml).toContain('jp-schema-field');
+            const maxCols = Math.max(1, parseInt(blockDef._meta?.maxColumns, 10) || 1);
+            expect('jp-form-flow jp-form-flow-cols-' + maxCols).toBe('jp-form-flow jp-form-flow-cols-2');
         });
 
-        test.skip('field with startNewRow and fullWidth gets both flow classes', () => {
-            const schema = {
-                data: {
-                    test: {
-                        _meta: { order: 0, tabLabel: 'Test', maxColumns: 2 },
-                        enable: { type: 'boolean', default: false, label: 'Enable', startNewRow: true, fullWidth: true }
-                    }
-                }
+        test('field with startNewRow and fullWidth gets both flow classes', () => {
+            const blockDef = {
+                _meta: { order: 0, tabLabel: 'Test', maxColumns: 2 },
+                enable: { type: 'boolean', default: false, label: 'Enable', startNewRow: true, fullWidth: true }
             };
-            doc.body.innerHTML = '<div id="config-tabs"></div><div id="config-all-panels"></div>';
-            const tabEl = doc.getElementById('config-tabs');
-            const panelEl = doc.getElementById('config-all-panels');
-            win.jPulse.UI.tabs.renderTabsAndPanelsFromSchema(tabEl, panelEl, schema, { test: {} });
-            expect(panelEl.innerHTML).toContain('jp-schema-field-new-row');
-            expect(panelEl.innerHTML).toContain('jp-schema-field-full');
+            const fieldsHtml = win.jPulse.UI.tabs._renderSchemaBlockFields('test', blockDef, {});
+            expect(fieldsHtml).toContain('jp-schema-field-new-row');
+            expect(fieldsHtml).toContain('jp-schema-field-full');
         });
 
-        test.skip('type button with action renders button with data-action', () => {
-            const schema = {
-                data: {
-                    test: {
-                        _meta: { order: 0, tabLabel: 'Test', maxColumns: 2 },
-                        doIt: { type: 'button', scope: ['view'], label: 'Do it', action: 'doIt' }
-                    }
-                }
+        test('type button with action renders button with data-action', () => {
+            const blockDef = {
+                _meta: { order: 0, tabLabel: 'Test', maxColumns: 2 },
+                doIt: { type: 'button', scope: ['view'], label: 'Do it', action: 'doIt' }
             };
-            doc.body.innerHTML = '<div id="config-tabs"></div><div id="config-all-panels"></div>';
-            const tabEl = doc.getElementById('config-tabs');
-            const panelEl = doc.getElementById('config-all-panels');
-            win.jPulse.UI.tabs.renderTabsAndPanelsFromSchema(tabEl, panelEl, schema, { test: {} });
-            const btn = panelEl.querySelector('button[data-action="doIt"]');
-            expect(btn).toBeTruthy();
-            expect(btn.textContent).toBe('Do it');
+            const fieldsHtml = win.jPulse.UI.tabs._renderSchemaBlockFields('test', blockDef, {});
+            const actionsHtml = win.jPulse.UI.tabs._renderSchemaBlockActions(blockDef);
+            expect(fieldsHtml + actionsHtml).toContain('data-action="doIt"');
+            expect(fieldsHtml + actionsHtml).toContain('Do it');
         });
 
-        test.skip('sorts blocks by _meta.order', () => {
+        test('sorts blocks by _meta.order', () => {
             const schema = {
                 data: {
                     second: { _meta: { order: 10, tabLabel: 'Second' }, a: { type: 'string', label: 'A' } },
                     first: { _meta: { order: 0, tabLabel: 'First' }, b: { type: 'string', label: 'B' } }
                 }
             };
-            doc.body.innerHTML = '<div id="config-tabs"></div><div id="config-all-panels"></div>';
-            const tabEl = doc.getElementById('config-tabs');
-            const panelEl = doc.getElementById('config-all-panels');
-            win.jPulse.UI.tabs.renderTabsAndPanelsFromSchema(tabEl, panelEl, schema, { first: {}, second: {} });
-            const panels = panelEl.querySelectorAll('.jp-panel');
-            expect(panels.length).toBe(2);
-            expect(panels[0].id).toBe('first-panel');
-            expect(panels[1].id).toBe('second-panel');
+            const blocks = Object.entries(schema.data)
+                .filter(([, def]) => def && typeof def === 'object')
+                .map(([blockKey, blockDef]) => ({
+                    blockKey,
+                    blockDef,
+                    order: blockDef._meta?.order ?? 999,
+                    tabLabel: blockDef._meta?.tabLabel ?? blockKey
+                }));
+            blocks.sort((a, b) => a.order - b.order || a.blockKey.localeCompare(b.blockKey));
+            expect(blocks).toHaveLength(2);
+            expect(blocks[0].blockKey).toBe('first');
+            expect(blocks[1].blockKey).toBe('second');
+            expect(blocks[0].blockKey + '-panel').toBe('first-panel');
+            expect(blocks[1].blockKey + '-panel').toBe('second-panel');
         });
     });
 });

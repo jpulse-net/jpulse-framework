@@ -3,7 +3,7 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         1.6.14
+ * @version         1.6.15
  * @release         2026-02-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -523,6 +523,55 @@ class WebSocketController {
     // ===== INTERNAL METHODS =====
 
     /**
+     * W-158: Check if namespace path is in publicAccess whitelist.
+     * Whitelist entries: exact suffix (e.g. 'jpulse-ws-status') or prefix pattern (e.g. 'hello-*').
+     * @param {string} path - Full path e.g. /api/1/ws/jpulse-ws-status
+     * @returns {boolean}
+     * @private
+     */
+    static _isPathWhitelisted(path) {
+        const list = global.appConfig?.controller?.websocket?.publicAccess?.whitelisted;
+        if (!Array.isArray(list) || list.length === 0) return false;
+        const base = '/api/1/ws/';
+        const suffix = path.startsWith(base) ? path.slice(base.length) : path;
+        for (const entry of list) {
+            if (typeof entry !== 'string' || !entry.trim()) continue;
+            const t = entry.trim();
+            if (t.endsWith('*')) {
+                const prefix = t.slice(0, -1);
+                if (suffix.startsWith(prefix)) return true;
+            } else if (suffix === t || path === base + t) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * W-158: Filter metrics stats to only whitelisted namespaces (for public clients).
+     * @param {Object} metrics - Full getMetrics() result
+     * @returns {Object} New object with stats.namespaces and stats.activityLog filtered
+     * @private
+     */
+    static _filterStatsByWhitelist(metrics) {
+        const list = global.appConfig?.controller?.websocket?.publicAccess?.whitelisted;
+        if (!Array.isArray(list) || list.length === 0) {
+            return { ...metrics, stats: { ...metrics.stats, namespaces: [], activityLog: [] } };
+        }
+        const isWhitelisted = (path) => this._isPathWhitelisted(path);
+        const namespaces = (metrics.stats?.namespaces || []).filter(ns => isWhitelisted(ns.path));
+        const activityLog = (metrics.stats?.activityLog || []).filter(entry => isWhitelisted(entry.namespace));
+        return {
+            ...metrics,
+            stats: {
+                ...metrics.stats,
+                namespaces,
+                activityLog
+            }
+        };
+    }
+
+    /**
      * Handle WebSocket upgrade request
      * W-155: Enhanced with pattern matching for dynamic namespaces
      * @private
@@ -605,18 +654,21 @@ class WebSocketController {
                 namespace = this.namespaces.get(pathname);
             }
 
-            // Check authentication using AuthController for consistency
-            if (namespace.requireAuth && !AuthController.isAuthenticated(req)) {
-                LogController.logError(req, 'websocket._completeUpgrade', `error: Authentication required for ${namespace.path}`);
-                socket.destroy();
-                return;
-            }
+            // W-158: When publicAccess.enabled and path whitelisted, allow without auth/roles
+            const publicAccess = global.appConfig?.controller?.websocket?.publicAccess;
+            const allowPublic = publicAccess?.enabled === true && this._isPathWhitelisted(pathname);
 
-            // Check roles using AuthController for consistency
-            if (namespace.requireRoles.length > 0 && !AuthController.isAuthorized(req, namespace.requireRoles)) {
-                LogController.logError(req, 'websocket._completeUpgrade', `error: Insufficient roles for ${namespace.path}`);
-                socket.destroy();
-                return;
+            if (!allowPublic) {
+                if (namespace.requireAuth && !AuthController.isAuthenticated(req)) {
+                    LogController.logError(req, 'websocket._completeUpgrade', `error: Authentication required for ${namespace.path}`);
+                    socket.destroy();
+                    return;
+                }
+                if (namespace.requireRoles.length > 0 && !AuthController.isAuthorized(req, namespace.requireRoles)) {
+                    LogController.logError(req, 'websocket._completeUpgrade', `error: Insufficient roles for ${namespace.path}`);
+                    socket.destroy();
+                    return;
+                }
             }
 
             // Extract optional client-provided UUID
@@ -636,6 +688,10 @@ class WebSocketController {
                 initials: user?.initials || '',
                 params: extractedParams || {}  // W-155: populated for dynamic namespaces
             };
+            if (allowPublic) {
+                const adminRoles = ConfigModel.getEffectiveAdminRoles();
+                ctx.isPublic = !AuthController.isAuthorized(req, adminRoles);
+            }
 
             // W-155: Call onCreate hook if present (pattern namespaces)
             if (namespace.onCreate) {
@@ -682,12 +738,13 @@ class WebSocketController {
         // Use client-provided UUID if available, otherwise generate one
         const clientId = clientUUID || this._generateClientId();
 
-        // W-155: Store client with ctx only (no user, username)
+        // W-155: Store client with ctx only (no user, username). W-158: messageTimestamps for rate limit
         const client = {
             ws,
             ctx,
             lastPing: Date.now(),
-            lastPong: Date.now()
+            lastPong: Date.now(),
+            messageTimestamps: []
         };
         namespace.clients.set(clientId, client);
 
@@ -748,6 +805,30 @@ class WebSocketController {
     static async _onMessage(clientId, namespace, data) {
         const client = namespace.clients.get(clientId);
         const ctx = client?.ctx || null;
+
+        // W-158: Message size limit
+        const limits = global.appConfig?.controller?.websocket?.messageLimits;
+        const maxSize = limits?.maxSize ?? 65536;
+        const rawLength = Buffer.isBuffer(data) ? data.length : (typeof data === 'string' ? Buffer.byteLength(data, 'utf8') : 0);
+        if (rawLength > maxSize) {
+            LogController.logInfo(ctx, 'websocket._onMessage', `Dropped oversized message: ${rawLength} > ${maxSize}`);
+            return;
+        }
+
+        // W-158: Per-client rate limit
+        const interval = limits?.interval ?? 1000;
+        const maxMessages = limits?.maxMessages ?? 50;
+        const now = Date.now();
+        const timestamps = client?.messageTimestamps || [];
+        const windowStart = now - interval;
+        const recent = timestamps.filter(t => t > windowStart);
+        if (recent.length >= maxMessages) {
+            LogController.logInfo(ctx, 'websocket._onMessage', `Rate limit exceeded: ${recent.length} in ${interval}ms`);
+            return;
+        }
+        recent.push(now);
+        if (client) client.messageTimestamps = recent;
+
         try {
             const message = JSON.parse(data.toString());
 
@@ -970,11 +1051,12 @@ class WebSocketController {
         });
         ns.onConnect((conn) => {
             const metrics = this.getMetrics();
+            const filtered = conn.ctx.isPublic ? this._filterStatsByWhitelist(metrics) : metrics;
             const stats = {
-                uptime: metrics.stats.uptime,
-                totalMessages: metrics.stats.totalMessages,
-                namespaces: metrics.stats.namespaces,
-                activityLog: metrics.stats.activityLog
+                uptime: filtered.stats.uptime,
+                totalMessages: filtered.stats.totalMessages,
+                namespaces: filtered.stats.namespaces,
+                activityLog: filtered.stats.activityLog
             };
             ns.sendToClient(conn.clientId, { type: 'stats-update', data: stats }, conn.ctx);
 
@@ -986,13 +1068,14 @@ class WebSocketController {
                     return;
                 }
                 const m = this.getMetrics();
+                const filteredPeriodic = client.ctx?.isPublic ? this._filterStatsByWhitelist(m) : m;
                 ns.sendToClient(conn.clientId, {
                     type: 'stats-update',
                     data: {
-                        uptime: m.stats.uptime,
-                        totalMessages: m.stats.totalMessages,
-                        namespaces: m.stats.namespaces,
-                        activityLog: m.stats.activityLog
+                        uptime: filteredPeriodic.stats.uptime,
+                        totalMessages: filteredPeriodic.stats.totalMessages,
+                        namespaces: filteredPeriodic.stats.namespaces,
+                        activityLog: filteredPeriodic.stats.activityLog
                     }
                 }, null);
             }, 5000);

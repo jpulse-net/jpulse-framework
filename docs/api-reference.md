@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.14
+# jPulse Docs / REST API Reference v1.6.15
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -373,7 +373,7 @@ export default class ProductController {
 
 ## ⚡ WebSocket Controller API
 
-> **📖 Full guide:** [WebSocket Real-Time Communication](websockets.md) — setup, patterns, client API, dynamic namespaces (path patterns, onCreate, removeNamespace), conn = { clientId, ctx }, and reconnect/missed-updates handling.
+> **📖 Full guide:** [WebSocket Real-Time Communication](websockets.md) — setup, patterns, client API, dynamic namespaces (path patterns, onCreate, removeNamespace), conn = { clientId, ctx }, public access (whitelist), message limits, and reconnect/missed-updates handling.
 
 Server-side WebSocket namespaces are created with `WebSocketController.createNamespace(path, options?)`. Handlers receive **conn** = `{ clientId, ctx }` (onMessage adds `message`); pass **ctx** to `broadcast()` and `sendToClient()` for logging and Redis relay.
 
@@ -383,11 +383,12 @@ const ns = WebSocketController.createNamespace('/api/1/ws/my-app', { requireAuth
 ns.onConnect((conn) => {}).onMessage((conn) => {}).onDisconnect((conn) => {});
 ```
 
-- **conn**: `{ clientId, user, ctx }` (onMessage also has `message`). **ctx** = `{ username?, ip? }` for logging.
+- **conn**: `{ clientId, ctx }` (onMessage also has `message`). **ctx** = `{ username?, ip?, roles?, firstName?, lastName?, initials?, params?, isPublic? }` for identity and logging; **isPublic** is set when the client connected via public access (whitelisted namespace and `controller.websocket.publicAccess.enabled`).
 - **ns.broadcast(data, ctx)**: Send to all clients. **ctx** = `conn.ctx` in handlers or `null` when broadcasting from REST.
 - **ns.sendToClient(clientId, data, ctx)**: Send to one client.
 - **ns.getStats()**: Namespace statistics (e.g. `clientCount`).
 - **Payload**: App payload is `{ type, data, ctx }`; framework adds ctx to wire and Redis.
+- **Config** (`app.conf` → `controller.websocket`): **publicAccess** (`enabled`, `whitelisted`) for non-admin access to whitelisted namespaces with filtered stats; **messageLimits** (`maxSize`, `interval`, `maxMessages`) for DoS protection. See [websockets.md](websockets.md#public-access-demo--non-admin).
 
 **Log context:** `CommonUtils.getLogContext(reqOrContext)` returns `{ username?, ip? }` for Express `req` or plain context; use for LogController when request is not available. Redis broadcast context: `RedisManager.getBroadcastContext(req)` for server-side broadcasts from REST handlers.
 

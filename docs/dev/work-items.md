@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.14
+# jPulse Docs / Dev / Work Items v1.6.15
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4917,19 +4917,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/tests/unit/log/log-basic.test.js`:
     - describe logChange config sanitization: stored log entry must not contain raw config secrets (smtpPass, license.key).
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-157, v1.6.14, 2026-02-11: config bugfix: type-preserving sanitization and server-side config load
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bugfix
 - objectives:
   - preserve field types when obfuscating (e.g. smtpPort stays number, not string)
@@ -4966,6 +4955,44 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-158, v1.6.15, 2026-02-11: websocket: rate limit messages; whitelist status for non-administrators
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - ensure WebSocket namespaces do not leak data from non-whitelisted namespaces to unauthenticated or non-admin clients
+  - support safe demo or read-only exposure when enabled by config (whitelist filter only; no field-level sanitization)
+  - mitigate DoS: message size cap and per-client rate limit
+- design:
+  - config: `controller.websocket.publicAccess.enabled` (false = admin/auth only; true = allow public to connect to whitelisted namespaces). `publicAccess.whitelisted`: array of path patterns (e.g. `['hello-*', 'jpulse-ws-status', 'jpulse-ws-test']`). Entries matched against namespace path (suffix or prefix pattern)
+  - no sanitization: for non-admin clients, filter stats by whitelist only — namespaces array and activityLog include only entries whose namespace path matches whitelist; all fields (path, lastActivity, activeUsers, etc.) kept as-is for whitelisted namespaces
+  - DoS: `controller.websocket.messageLimits` — maxSize (64 KB), interval (ms), maxMessages per interval per client. Enforce in _onMessage (size before parse; rate limit per clientId; on exceed drop message only)
+- features:
+  - when publicAccess.enabled and connection path is whitelisted: allow unauthenticated/non-admin to connect; set ctx.isPublic. When disabled or path not whitelisted: existing requireAuth/requireRoles apply
+  - jpulse-ws-status: for isPublic clients, send stats with namespaces and activityLog filtered to whitelisted namespaces only
+  - messageLimits: reject oversized frames; rate limit messages per client per interval (drop message when exceeded)
+- deliverables:
+  - `webapp/app.conf`:
+    - add `controller.websocket.publicAccess` (`enabled`, `whitelisted`) and `messageLimits` (`maxSize`, `interval`, `maxMessages`)
+  - `webapp/controller/websocket.js`:
+    - _isPathWhitelisted(path): match path against publicAccess.whitelisted (exact/suffix and prefix pattern e.g. hello-*)
+    - _completeUpgrade: if publicAccess.enabled and _isPathWhitelisted(pathname), allow connection even if !requireAuth/!requireRoles; set ctx.isPublic = true
+    - _filterStatsByWhitelist(metrics): return metrics with namespaces and activityLog filtered to whitelisted paths only
+    - _registerAdminStatsNamespace: when sending stats, if conn.ctx.isPublic use _filterStatsByWhitelist(metrics) before sendToClient
+    - _onMessage: enforce maxSize (data.length) before JSON.parse; enforce per-client rate limit (messageLimits); on violation drop message (do not process)
+  - `docs/websockets.md`, `docs/api-reference.md`:
+    - document publicAccess (enabled, whitelisted) and messageLimits; what non-admin sees (whitelisted namespaces and activity only)
+
+
+
+
+
+
+
 ### Pending
 
 
@@ -4991,8 +5018,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-157, v1.6.14, 2026-02-11
-- update deliverables in W-157 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-158, v1.6.15, 2026-02-11
+- update deliverables in W-158 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5003,12 +5030,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.14
+node bin/bump-version.js 1.6.15
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.14
+git tag v1.6.15
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

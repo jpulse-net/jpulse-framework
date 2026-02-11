@@ -1,6 +1,30 @@
-# jPulse Docs / Version History v1.6.14
+# jPulse Docs / Version History v1.6.15
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.15, W-158, 2026-02-11
+
+**Commit:** `W-158, v1.6.15: websocket: rate limit messages; whitelist status for non-administrators`
+
+**FEATURE RELEASE**: WebSocket public access and DoS protection. **(1) Public access:** When `controller.websocket.publicAccess.enabled` is true, unauthenticated or non-admin clients may connect to whitelisted namespaces (path patterns: exact suffix e.g. `jpulse-ws-status`, or prefix e.g. `hello-*`). Server sets **ctx.isPublic** for such connections. **(2) Whitelist filter:** For jpulse-ws-status, clients with ctx.isPublic receive stats filtered by the same whitelist (namespaces and activityLog only include whitelisted paths); no field-level sanitization. **(3) Message limits:** `controller.websocket.messageLimits` (maxSize default 64 KB, interval, maxMessages per client per interval). _onMessage enforces size before JSON.parse and per-client rate limit; excess messages dropped (not processed), logged at info. **(4) Config:** app.conf adds publicAccess (enabled, whitelisted) and messageLimits (maxSize, interval, maxMessages). **(5) Docs:** websockets.md — Public Access, Message Limits; api-reference.md — conn/ctx (isPublic), config bullet, link to websockets. **(6) Tests:** websocket.test.js — W-158 public access whitelist (_isPathWhitelisted, _filterStatsByWhitelist), W-158 message limits (oversized drop, rate limit). **Other:** Handlebar broadcast: jpulse-footer.tmpl uses date.parse(siteConfig.broadcast.enabledAt) for math.subtract; _handleMathVariadic coerces Date/ISO string to timestamp. Admin logs: formatDetailedChanges escapes HTML and formats change values safely. jpulse-ui-tabs-schema.test.js: four tests unskipped (assert on _renderSchemaBlockFields/_renderSchemaBlockActions and block sort).
+
+**Objective**: Safe demo/read-only WebSocket exposure via whitelist; no leak of non-whitelisted namespace data; DoS mitigation via message size and rate limits.
+
+**Key Changes**:
+- **webapp/app.conf**: controller.websocket.messageLimits (maxSize, interval, maxMessages), publicAccess (enabled, whitelisted).
+- **webapp/controller/websocket.js**: _isPathWhitelisted(path), _filterStatsByWhitelist(metrics); _completeUpgrade allowPublic path, ctx.isPublic; client.messageTimestamps; _onMessage maxSize and rate limit; jpulse-ws-status send filtered stats when conn.ctx.isPublic.
+- **docs/websockets.md**: Public Access (enabled, whitelisted), Message Limits; ctx.isPublic in Accessing User and Context.
+- **docs/api-reference.md**: WebSocket subsection — conn/ctx (isPublic), config (publicAccess, messageLimits), link to websockets.md.
+- **webapp/controller/handlebar.js**: _handleMathVariadic coerces Date or ISO string to timestamp before Number().
+- **webapp/view/jpulse-footer.tmpl**: math.subtract uses (date.parse siteConfig.broadcast.enabledAt).
+- **webapp/view/admin/logs.shtml**: formatChangeValueForDisplay, escapeHtml in formatDetailedChanges; white-space: pre-wrap for change detail.
+- **webapp/tests/unit/controller/websocket.test.js**: W-158 public access whitelist (5 tests), W-158 message limits (2 tests).
+- **webapp/tests/unit/utils/jpulse-ui-tabs-schema.test.js**: four tests unskipped; assert on _renderSchemaBlockFields/_renderSchemaBlockActions and block sort.
+
+**Work Item**: W-158
+**Version**: v1.6.15
+**Release Date**: 2026-02-11
 
 ________________________________________________
 ## v1.6.14, W-157, 2026-02-11

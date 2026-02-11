@@ -4,7 +4,7 @@
  * @tagline         Multi-Server Application Clustering Examples
  * @description     Interactive demos: global notifications and collaborative todo with Redis broadcasting
  * @file            site/webapp/view/hello-app-cluster/index.shtml
- * @version         1.6.14
+ * @version         1.6.15
  * @release         2026-02-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

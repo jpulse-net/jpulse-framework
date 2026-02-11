@@ -4,7 +4,7 @@
  * @tagline         Comprehensive CLI validation tests to catch deployment issues early
  * @description     Advanced testing for configuration, template expansion, and deployment validation
  * @file            bin/test-cli-enhanced.js
- * @version         1.6.14
+ * @version         1.6.15
  * @release         2026-02-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -3,7 +3,7 @@
  * @tagline         Unit tests for WebSocket Controller
  * @description     Tests for WebSocket infrastructure, authentication, broadcasting, and lifecycle
  * @file            webapp/tests/unit/controller/websocket.test.js
- * @version         1.6.14
+ * @version         1.6.15
  * @release         2026-02-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1046,6 +1046,180 @@ describe('WebSocketController - High Priority Tests', () => {
             const result = ns.removeIfEmpty();
             expect(result).toBe(false);
             expect(WebSocketController.namespaces.has('/api/1/ws/occupied')).toBe(true);
+        });
+    });
+
+    // =========================================================================
+    // W-158: PUBLIC ACCESS WHITELIST
+    // =========================================================================
+
+    describe('W-158: Public access whitelist', () => {
+
+        let savedWebsocketConfig;
+
+        beforeEach(() => {
+            savedWebsocketConfig = global.appConfig?.controller?.websocket;
+        });
+
+        afterEach(() => {
+            if (global.appConfig?.controller) {
+                global.appConfig.controller.websocket = savedWebsocketConfig;
+            }
+        });
+
+        test('_isPathWhitelisted returns true for exact suffix match', () => {
+            global.appConfig = global.appConfig || {};
+            global.appConfig.controller = global.appConfig.controller || {};
+            global.appConfig.controller.websocket = {
+                publicAccess: { enabled: true, whitelisted: ['jpulse-ws-status', 'jpulse-ws-test'] }
+            };
+            expect(WebSocketController._isPathWhitelisted('/api/1/ws/jpulse-ws-status')).toBe(true);
+            expect(WebSocketController._isPathWhitelisted('/api/1/ws/jpulse-ws-test')).toBe(true);
+        });
+
+        test('_isPathWhitelisted returns true for prefix pattern (hello-*)', () => {
+            global.appConfig = global.appConfig || {};
+            global.appConfig.controller = global.appConfig.controller || {};
+            global.appConfig.controller.websocket = {
+                publicAccess: { enabled: true, whitelisted: ['hello-*'] }
+            };
+            expect(WebSocketController._isPathWhitelisted('/api/1/ws/hello-emoji')).toBe(true);
+            expect(WebSocketController._isPathWhitelisted('/api/1/ws/hello-todo')).toBe(true);
+        });
+
+        test('_isPathWhitelisted returns false for non-whitelisted path', () => {
+            global.appConfig = global.appConfig || {};
+            global.appConfig.controller = global.appConfig.controller || {};
+            global.appConfig.controller.websocket = {
+                publicAccess: { enabled: true, whitelisted: ['jpulse-ws-status', 'hello-*'] }
+            };
+            expect(WebSocketController._isPathWhitelisted('/api/1/ws/internal-admin')).toBe(false);
+            expect(WebSocketController._isPathWhitelisted('/api/1/ws/other')).toBe(false);
+        });
+
+        test('_isPathWhitelisted returns false when whitelist empty or missing', () => {
+            global.appConfig = global.appConfig || {};
+            global.appConfig.controller = global.appConfig.controller || {};
+            global.appConfig.controller.websocket = { publicAccess: { enabled: true, whitelisted: [] } };
+            expect(WebSocketController._isPathWhitelisted('/api/1/ws/jpulse-ws-status')).toBe(false);
+        });
+
+        test('_filterStatsByWhitelist keeps only whitelisted namespaces and activity log entries', () => {
+            global.appConfig = global.appConfig || {};
+            global.appConfig.controller = global.appConfig.controller || {};
+            global.appConfig.controller.websocket = {
+                publicAccess: { enabled: true, whitelisted: ['jpulse-ws-status', 'hello-*'] }
+            };
+            const metrics = {
+                component: 'WebSocketController',
+                stats: {
+                    uptime: 100,
+                    totalMessages: 50,
+                    namespaces: [
+                        { path: '/api/1/ws/jpulse-ws-status', status: 'green', clientCount: 1 },
+                        { path: '/api/1/ws/hello-emoji', status: 'red', clientCount: 0 },
+                        { path: '/api/1/ws/internal', status: 'red', clientCount: 0 }
+                    ],
+                    activityLog: [
+                        { namespace: '/api/1/ws/jpulse-ws-status', message: 'a' },
+                        { namespace: '/api/1/ws/internal', message: 'b' },
+                        { namespace: '/api/1/ws/hello-todo', message: 'c' }
+                    ]
+                }
+            };
+            const out = WebSocketController._filterStatsByWhitelist(metrics);
+            expect(out.stats.namespaces).toHaveLength(2);
+            expect(out.stats.namespaces.map(n => n.path)).toEqual(['/api/1/ws/jpulse-ws-status', '/api/1/ws/hello-emoji']);
+            expect(out.stats.activityLog).toHaveLength(2);
+            expect(out.stats.activityLog.map(e => e.namespace)).toEqual(['/api/1/ws/jpulse-ws-status', '/api/1/ws/hello-todo']);
+        });
+    });
+
+    // =========================================================================
+    // W-158: MESSAGE LIMITS (RATE LIMIT AND SIZE)
+    // =========================================================================
+
+    describe('W-158: Message limits', () => {
+
+        let savedWebsocketConfig;
+
+        beforeEach(() => {
+            savedWebsocketConfig = global.appConfig?.controller?.websocket;
+        });
+
+        afterEach(() => {
+            if (global.appConfig?.controller) {
+                global.appConfig.controller.websocket = savedWebsocketConfig;
+            }
+        });
+
+        test('drops oversized message and does not call onMessage handler', async () => {
+            global.appConfig = global.appConfig || {};
+            global.appConfig.controller = global.appConfig.controller || {};
+            global.appConfig.controller.websocket = {
+                messageLimits: { maxSize: 10, interval: 1000, maxMessages: 100 }
+            };
+            const clientId = 'rate-test-client';
+            const mockWs = new WebSocketTestUtils.MockWebSocket();
+            const onMessage = jest.fn();
+            const namespace = {
+                path: '/api/1/ws/test',
+                clients: new Map(),
+                stats: {
+                    totalMessages: 0,
+                    messagesPerHour: 0,
+                    lastActivity: Date.now(),
+                    messageTimestamps: []
+                },
+                _onMessage: onMessage
+            };
+            namespace.clients.set(clientId, {
+                ws: mockWs,
+                ctx: { username: 'u', ip: '0.0.0.0', roles: [], firstName: '', lastName: '', initials: '', params: {} },
+                lastPing: Date.now(),
+                lastPong: Date.now(),
+                messageTimestamps: []
+            });
+            const data = Buffer.alloc(11);
+
+            await WebSocketController._onMessage(clientId, namespace, data);
+
+            expect(onMessage).not.toHaveBeenCalled();
+        });
+
+        test('drops message when rate limit exceeded (maxMessages per interval)', async () => {
+            global.appConfig = global.appConfig || {};
+            global.appConfig.controller = global.appConfig.controller || {};
+            global.appConfig.controller.websocket = {
+                messageLimits: { maxSize: 65536, interval: 10000, maxMessages: 2 }
+            };
+            const clientId = 'rate-test-client';
+            const mockWs = new WebSocketTestUtils.MockWebSocket();
+            const onMessage = jest.fn();
+            const namespace = {
+                path: '/api/1/ws/test',
+                clients: new Map(),
+                stats: {
+                    totalMessages: 0,
+                    messagesPerHour: 0,
+                    lastActivity: Date.now(),
+                    messageTimestamps: []
+                },
+                _onMessage: onMessage
+            };
+            namespace.clients.set(clientId, {
+                ws: mockWs,
+                ctx: { username: 'u', ip: '0.0.0.0', roles: [], firstName: '', lastName: '', initials: '', params: {} },
+                lastPing: Date.now(),
+                lastPong: Date.now(),
+                messageTimestamps: []
+            });
+
+            await WebSocketController._onMessage(clientId, namespace, Buffer.from(JSON.stringify({ type: '1' })));
+            await WebSocketController._onMessage(clientId, namespace, Buffer.from(JSON.stringify({ type: '2' })));
+            await WebSocketController._onMessage(clientId, namespace, Buffer.from(JSON.stringify({ type: '3' })));
+
+            expect(onMessage).toHaveBeenCalledTimes(2);
         });
     });
 });

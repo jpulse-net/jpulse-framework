@@ -4,7 +4,7 @@
  * @description     Manages plugin hook registration, execution, and lifecycle.
  *                  Plugins declare hooks in static `hooks` object, PluginManager auto-registers.
  * @file            webapp/utils/hook-manager.js
- * @version         1.6.14
+ * @version         1.6.15
  * @release         2026-02-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

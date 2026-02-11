@@ -1,4 +1,4 @@
-# jPulse Framework v1.6.14
+# jPulse Framework v1.6.15
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -81,7 +81,7 @@ npm start
 - **Health Metrics**: Aggregated across instances on all app servers
 - **Enterprise Security**: Built-in authentication, session management, security headers, and HTML sanitization
 - **Internationalization**: Complete i18n support with dynamic translation loading
-- **Testing Framework**: 2100+ tests with automated cleanup and isolation
+- **Testing Framework**: 2200+ tests with automated cleanup and isolation
 - **Production Ready**: nginx integration, PM2 clustering, MongoDB replica sets
 
 ## Deployment Requirements
@@ -204,6 +204,7 @@ Business Source License 1.1 with Additional Terms
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.15 - WebSocket: public access whitelist and message limits (W-158)**: Public access for whitelisted namespaces when `controller.websocket.publicAccess.enabled`; unauthenticated/non-admin can connect to whitelisted paths (e.g. jpulse-ws-status, hello-*); ctx.isPublic set; jpulse-ws-status sends whitelist-filtered stats to public clients. Message limits (maxSize, interval, maxMessages) in _onMessage for DoS protection; oversized and rate-limited messages dropped. app.conf: publicAccess (enabled, whitelisted), messageLimits. Docs: websockets.md, api-reference.md. Also: handlebar math.subtract accepts Date/ISO string; broadcast template uses date.parse for enabledAt; admin logs change-detail escaping; jpulse-ui-tabs-schema tests unskipped. W-158, 2026-02-11
 - ✅ **Version 1.6.14 - Config bugfix: type-preserving sanitization and server-side config load (W-157)**: Sanitization now preserves field types (strings→********, numbers→9999) so smtpPort stays a number; email transporter and clients no longer break. CommonUtils.sanitizeObject options: stringPlaceholder, numberPlaceholder. Server-side loaders (email, handlebar, health) use findById(..., true) or getEffectiveConfig(..., true) so they get full config; hello-world plugin demonstrates isAdmin(req) pattern. W-157, 2026-02-11
 - ✅ **Version 1.6.13 - Config: sanitize sensitive fields for non-administrators (W-156)**: Config API getters return sanitized data when caller is not admin (sensitive fields obfuscated per contextFilter.withoutAuth). Config create/update/upsert/delete require admin role. Change log and console never store raw config secrets. CommonUtils.sanitizeObject(obj, pathPatterns, options) for path-pattern obfuscate/remove. Docs: api-reference.md (Config Sanitization, CommonUtils.sanitizeObject). W-156, 2026-02-10
 - ✅ **Version 1.6.12 - WebSocket dynamic namespace with path pattern (W-155)**: Dynamic namespaces (path pattern, one per resource/room); lazy get-or-create, onCreate, removeNamespace/removeIfEmpty. Conn = { clientId, ctx } only; ctx includes params from path. Dynamic Rooms demo in /hello-websocket/; multi-instance room count via Redis. Docs: websockets.md updated. W-155, 2026-02-09

@@ -4,7 +4,7 @@
  * @tagline         Footer template for jPulse pages
  * @description     Footer included in all jPulse pages to provide a consistent page layout
  * @file            webapp/view/jpulse-footer.tmpl
- * @version         1.6.14
+ * @version         1.6.15
  * @release         2026-02-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -45,7 +45,7 @@
 
 <!-- W-131: Broadcast Message (positioned below header) -->
 {{#if (and siteConfig.broadcast.enable siteConfig.broadcast.message)}}
-  {{#if (or (eq siteConfig.broadcast.disableTime 0) (not siteConfig.broadcast.enabledAt) (lt (math.subtract (date.now) siteConfig.broadcast.enabledAt) (math.multiply siteConfig.broadcast.disableTime 3600000)))}}
+  {{#if (or (eq siteConfig.broadcast.disableTime 0) (not siteConfig.broadcast.enabledAt) (lt (math.subtract (date.now) (date.parse siteConfig.broadcast.enabledAt)) (math.multiply siteConfig.broadcast.disableTime 3600000)))}}
     <button id="jp-broadcast-toggle" class="jp-broadcast-toggle" aria-label="Toggle broadcast message">＋</button>
     <div id="jp-broadcast-message" class="jp-broadcast-message jp-broadcast-hidden">
         <div class="jp-broadcast-content">{{appConfig.system.broadcastMessage}}</div>

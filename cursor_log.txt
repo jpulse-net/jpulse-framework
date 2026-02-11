@@ -18040,3 +18040,38 @@ W-157 deliverables in work-items.md already document work done; left status and 
 
 
 ============================================================
+
+2026-02-10 20:40
+
+any open questions? update work item
+
+Identified open questions for W-158 (exact sanitization path patterns; drop vs disconnect on rate limit). Updated W-158 in work-items.md with design (publicAccess, CommonUtils.sanitizeObject, messageLimits), features, concrete deliverables (app.conf, websocket.js, docs), and open questions section.
+
+
+============================================================
+
+2026-02-10 21:15
+
+the 404 is expected
+
+investigate the handlebar issue
+- can I help with pinpointing? or are you good
+
+Investigated handlebar.subtract warning "Invalid number at position 1: 2026-02-01T22:53:08.947Z, treating as 0". Root cause: jpulse-footer.tmpl line 48 passes siteConfig.broadcast.enabledAt (which can be an ISO date string after JSON/DB round-trip) to math.subtract; math.subtract expects numbers. Fixed by: (1) template now uses (date.parse siteConfig.broadcast.enabledAt) so a number is always passed; (2) in handlebar.js _handleMathVariadic, added coercion so Date or ISO string args are converted to timestamp before Number(), avoiding the warning for any similar usage.
+
+
+============================================================
+
+2026-02-10 21:30
+
+release prep:
+- review git diff tt-git-diff.txt for accuracy and completness of work item
+- assume release: W-158, v1.6.15, 2026-02-11
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- update cursor_log.txt (append, don't replace)
+
+Reviewed tt-git-diff.txt: W-158 deliverables complete (app.conf publicAccess/messageLimits; websocket.js _isPathWhitelisted, _filterStatsByWhitelist, _completeUpgrade allowPublic, ctx.isPublic, _onMessage limits, jpulse-ws-status filtered; docs websockets.md, api-reference.md). Additional changes in diff: handlebar broadcast date fix, admin logs escaping, jpulse-ui-tabs-schema tests unskipped—included in release notes. Updated README.md and docs/README.md Latest Release Highlights with v1.6.15 W-158. Added v1.6.15 full entry to docs/CHANGELOG.md. Wrote commit-message.txt for W-158 in same format as W-157. Appended this entry to cursor_log.txt. No version bump in doc headers; no git commands run.
+
+
+============================================================

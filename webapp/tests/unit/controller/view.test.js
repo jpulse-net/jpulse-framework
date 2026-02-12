@@ -3,8 +3,8 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         1.6.15
- * @release         2026-02-11
+ * @version         1.6.16
+ * @release         2026-02-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -471,6 +471,26 @@ describe('View Controller Unit Tests', () => {
             const content = '<div class="user">{{user.firstName}}</div>';
             const result = await HandlebarController.expandHandlebars(mockReq, content, mockContext);
             expect(result).toBe(`<div class="user">${mockContext.user.firstName}</div>`);
+        });
+    });
+
+    describe('W-159: _detectBodyDisableSidebars()', () => {
+        test('returns true when body has data-jp-disable-sidebars="true"', () => {
+            expect(ViewController._detectBodyDisableSidebars('<body data-jp-disable-sidebars="true">')).toBe(true);
+            expect(ViewController._detectBodyDisableSidebars('<body class="x" data-jp-disable-sidebars="true">')).toBe(true);
+            expect(ViewController._detectBodyDisableSidebars('<body data-jp-disable-sidebars="true" class="jp-main-wrapper">')).toBe(true);
+        });
+        test('returns false when body has no such attribute', () => {
+            expect(ViewController._detectBodyDisableSidebars('<body>')).toBe(false);
+            expect(ViewController._detectBodyDisableSidebars('<body class="jp-main-wrapper">')).toBe(false);
+        });
+        test('returns false when attribute is in content but not on body tag', () => {
+            expect(ViewController._detectBodyDisableSidebars('<body><div data-jp-disable-sidebars="true">')).toBe(false);
+        });
+        test('returns false for non-string or empty', () => {
+            expect(ViewController._detectBodyDisableSidebars('')).toBe(false);
+            expect(ViewController._detectBodyDisableSidebars(null)).toBe(false);
+            expect(ViewController._detectBodyDisableSidebars(undefined)).toBe(false);
         });
     });
 });

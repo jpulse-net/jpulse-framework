@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.15
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.16
 
 **For Site Administrators & Site Developers**
 
@@ -227,6 +227,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.16 - View: disable sidebars per page (W-159)**: Pages can disable left/right sidebars by setting `<body data-jp-disable-sidebars="true">` in the view. Framework detects the attribute at view load, sets `pageDisableSidebars` in Handlebars context, and footer omits sidebar/backdrop markup; JS skips move and sidebar init. Single source of truth; no new globals; CSP-friendly. Docs: sidebars.md "Disable sidebars per page". Homepage example. W-159, 2026-02-12
 - ✅ **Version 1.6.15 - WebSocket: public access whitelist and message limits (W-158)**: Public access for whitelisted namespaces (publicAccess.enabled, whitelisted paths); ctx.isPublic; jpulse-ws-status sends whitelist-filtered stats to public clients. Message limits (maxSize, interval, maxMessages) for DoS protection. Docs: websockets.md, api-reference.md. Also: handlebar broadcast date fix; admin logs escaping; jpulse-ui-tabs-schema tests. W-158, 2026-02-11
 - ✅ **Version 1.6.14 - Config bugfix: type-preserving sanitization and server-side config load (W-157)**: Type-preserving obfuscation (strings→********, numbers→9999); stringPlaceholder/numberPlaceholder options. Email, handlebar, health load full config (findById(..., true)); hello-world plugin uses isAdmin(req) pattern. W-157, 2026-02-11
 - ✅ **Version 1.6.13 - Config: sanitize sensitive fields for non-administrators (W-156)**: Config API getters return sanitized data when caller is not admin (sensitive fields obfuscated per contextFilter.withoutAuth). Config create/update/upsert/delete require admin role. Change log and console never store raw config secrets. CommonUtils.sanitizeObject(obj, pathPatterns, options) for path-pattern obfuscate/remove. Docs: api-reference.md (Config Sanitization, CommonUtils.sanitizeObject). W-156, 2026-02-10

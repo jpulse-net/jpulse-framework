@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.15
+# jPulse Docs / Dev / Work Items v1.6.16
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4987,6 +4987,35 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-159, v1.6.16, 2026-02-12: view: disable sidebars per page via body data attribute
+- status: ✅ DONE
+- type: Feature
+- objective: allow individual pages to disable left/right sidebars so they are not initialized (and ideally not rendered).
+- approach: declarative data attribute on `<body>`; no new globals; CSP-friendly.
+- pros:
+  - no new globals
+  - declarative
+  - easy to see in HTML which page disables sidebars
+  - works well with CSP
+- behavior:
+  - view sets `<body data-jp-disable-sidebars="true">` on pages that do not need sidebars.
+  - in `jPulse.dom.ready()` (in jpulse-footer.tmpl), before sidebar init and before moving sidebar elements into `.jp-main`, check `document.body.getAttribute('data-jp-disable-sidebars') === 'true'` and skip:
+    - moving sidebar DOM into `.jp-main`
+    - `jPulse.UI.sidebars.init(...)`
+    - empty-sidebar checks and related sidebar logic for that page
+  - if the template can know "this page disables sidebars" (e.g. view model flag such as `page.disableSidebars` set by controller or by view context), wrap the sidebar markup blocks in jpulse-footer.tmpl in a conditional (e.g. `{{#unless pageDisableSidebars}}`) so sidebar HTML is not emitted at all when sidebars are disabled for that page
+- deliverables:
+  - `webapp/view/jpulse-footer.tmpl`:
+    - in the ready() block, guard sidebar move + init + empty checks with a check for `data-jp-disable-sidebars` (implemented)
+    - CSS added to hide .jp-sidebar, .jp-sidebar-separator, .jp-sidebar-backdrop when body has the attribute (implemented)
+    - omit markup: implemented via view load scan; footer uses `{{#unless pageDisableSidebars}}`
+  - `webapp/controller/view.js`: at view load (before Handlebars expand), scan view content for `<body ... data-jp-disable-sidebars="true" ... >`, set `req.pageDisableSidebars` (implemented); add `_detectBodyDisableSidebars(content)` helper (implemented)
+  - `webapp/controller/handlebar.js`: add `pageDisableSidebars: !!req.pageDisableSidebars` to baseContext (implemented)
+  - `docs/sidebars.md` docs:
+    - new section "Disable sidebars per page" with usage and example (implemented)
+  - `webapp/tests/unit/controller/view.test.js` tests:
+    - W-159 _detectBodyDisableSidebars tests implemented
+
 
 
 
@@ -5019,8 +5048,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-158, v1.6.15, 2026-02-11
-- update deliverables in W-158 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-159, v1.6.16, 2026-02-12
+- update deliverables in W-159 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5031,12 +5060,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.15
+node bin/bump-version.js 1.6.16
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.15
+git tag v1.6.16
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

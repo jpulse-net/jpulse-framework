@@ -1,4 +1,4 @@
-# jPulse Docs / Sidebars Guide v1.6.15
+# jPulse Docs / Sidebars Guide v1.6.16
 
 Complete guide to using and configuring sidebars in the jPulse Framework for desktop and mobile.
 
@@ -6,6 +6,7 @@ Complete guide to using and configuring sidebars in the jPulse Framework for des
 
 **💡 Quick Links:**
 - [Configuration (app.conf)](#configuration-appconf)
+- [Disable sidebars per page](#disable-sidebars-per-page)
 - [Sidebar Modes](#sidebar-modes)
 - [Built-in Components](#built-in-components)
 - [JavaScript API](#javascript-api-jpulseuisidebars)
@@ -125,6 +126,35 @@ view: {
 #### Component-Specific Settings
 
 Component settings are defined under `sidebar.components.<componentName>`. See [Built-in Components](#built-in-components) for details.
+
+---
+
+## Disable sidebars per page
+
+Some pages (e.g. login, full-width dashboards, or embedded tools) do not need left or right sidebars. You can disable sidebars for a single page without changing global configuration.
+
+**How:** Set a data attribute on the `<body>` tag in your view:
+
+```html
+<body data-jp-disable-sidebars="true">
+```
+
+When this attribute is present and set to `"true"`:
+
+- The framework detects it at view load time and omits left/right sidebar and backdrop markup from the response (they are not sent in the HTML).
+- Sidebar JavaScript is not initialized (no move into `.jp-main`, no `jPulse.UI.sidebars.init()`).
+- No new globals are used; the check is declarative and works well with Content-Security-Policy.
+
+**Example:** In your view file (e.g. `site/webapp/view/auth/login.shtml`), use:
+
+```html
+<body data-jp-disable-sidebars="true" class="jp-main-wrapper">
+    <main class="jp-main">
+        <!-- your page content -->
+    </main>
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+```
 
 ---
 

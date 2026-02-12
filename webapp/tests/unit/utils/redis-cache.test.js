@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Redis cache wrapper operations (W-143)
  * @description     Tests cache operations, pattern methods, JSON handling, and rate limiting
  * @file            webapp/tests/unit/utils/redis-cache.test.js
- * @version         1.6.15
- * @release         2026-02-11
+ * @version         1.6.16
+ * @release         2026-02-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

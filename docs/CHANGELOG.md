@@ -1,6 +1,27 @@
-# jPulse Docs / Version History v1.6.15
+# jPulse Docs / Version History v1.6.16
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.16, W-159, 2026-02-12
+
+**Commit:** `W-159, v1.6.16: view: disable sidebars per page via body data attribute`
+
+**FEATURE RELEASE**: Disable left/right sidebars per page. **(1) Data attribute:** View sets `<body data-jp-disable-sidebars="true">` on pages that do not need sidebars (e.g. login, full-width dashboards). **(2) View load scan:** ViewController reads view source before Handlebars expand, detects the attribute in the body tag via _detectBodyDisableSidebars(content), sets req.pageDisableSidebars. **(3) Handlebars context:** baseContext includes pageDisableSidebars so footer template can conditionally omit markup. **(4) Footer:** {{#unless pageDisableSidebars}} wraps left sidebar, right sidebar, and backdrop so they are not emitted when flag is true. In jPulse.dom.ready(), check document.body.getAttribute('data-jp-disable-sidebars') === 'true' and skip moving sidebar elements into .jp-main and jPulse.UI.sidebars.init(). **(5) Docs:** sidebars.md — new section "Disable sidebars per page" with usage and example. **(6) Example:** home/index.shtml uses the attribute for a full-width welcome page. **(7) Tests:** view.test.js W-159 _detectBodyDisableSidebars (body with/without attribute, attribute elsewhere, non-string). No new globals; declarative; CSP-friendly.
+
+**Objective**: Allow individual pages to disable sidebars without changing global config; omit sidebar markup when possible and skip init.
+
+**Key Changes**:
+- **webapp/controller/view.js**: After reading view content (for .shtml), call _detectBodyDisableSidebars(content), set req.pageDisableSidebars; add static _detectBodyDisableSidebars(content) (find <body> tag, check for data-jp-disable-sidebars="true").
+- **webapp/controller/handlebar.js**: baseContext.pageDisableSidebars = !!req.pageDisableSidebars.
+- **webapp/view/jpulse-footer.tmpl**: {{#unless pageDisableSidebars}} around left sidebar, right sidebar, backdrop; in ready(), disableSidebars check, skip move and sidebars.init() when true.
+- **webapp/view/home/index.shtml**: <body data-jp-disable-sidebars="true"> (example).
+- **docs/sidebars.md**: Quick link; section "Disable sidebars per page" (how, behavior, example).
+- **webapp/tests/unit/controller/view.test.js**: describe "W-159: _detectBodyDisableSidebars()" (returns true/false for body tag, attribute elsewhere, non-string).
+
+**Work Item**: W-159
+**Version**: v1.6.16
+**Release Date**: 2026-02-12
 
 ________________________________________________
 ## v1.6.15, W-158, 2026-02-11

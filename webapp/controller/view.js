@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         1.6.15
- * @release         2026-02-11
+ * @version         1.6.16
+ * @release         2026-02-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -408,6 +408,11 @@ class ViewController {
                 content = this.templateCache.getFileSync(fullPath);
             }
 
+            // W-159: Detect data-jp-disable-sidebars in view's <body> so footer can omit sidebar markup
+            if (filePath.endsWith('.shtml')) {
+                req.pageDisableSidebars = this._detectBodyDisableSidebars(content);
+            }
+
             // Preprocess i18n handlebars first (only {{i18n.}} expressions),
             // because it may return content with new handlebars
             content = global.i18n.expandI18nHandlebars(req, content);
@@ -451,6 +456,22 @@ class ViewController {
             const message = global.i18n.translate(req, 'controller.view.internalServerError', { error: error.message });
             return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR');
         }
+    }
+
+    /**
+     * W-159: Detect if view source has <body ... data-jp-disable-sidebars="true" ... >
+     * Used at view load time so Handlebars context can set pageDisableSidebars and footer can omit sidebar markup.
+     * @param {string} content - Raw view file content
+     * @returns {boolean}
+     */
+    static _detectBodyDisableSidebars(content) {
+        if (typeof content !== 'string') return false;
+        const bodyStart = content.indexOf('<body');
+        if (bodyStart === -1) return false;
+        const tagEnd = content.indexOf('>', bodyStart);
+        if (tagEnd === -1) return false;
+        const tag = content.slice(bodyStart, tagEnd + 1);
+        return tag.includes('data-jp-disable-sidebars="true"');
     }
 
     static _buildViewRegistry() {

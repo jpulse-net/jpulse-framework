@@ -18075,3 +18075,30 @@ Reviewed tt-git-diff.txt: W-158 deliverables complete (app.conf publicAccess/mes
 
 
 ============================================================
+
+2026-02-12 13:10
+
+new work item: a way to disable the sidebars per page
+- some pages do not need the sidebars, and it would help to completely remove (or better, not initialize them)
+Data attribute on <body>
+Idea: View sets <body data-jp-disable-sidebars="true">. Footer in jPulse.dom.ready() checks e.g. document.body.getAttribute('data-jp-disable-sidebars') === 'true' and skips sidebar init (and ideally doesn't render the sidebar markup when that attribute is present, if the template has access to it).
+Pros: No new globals, declarative, easy to see in the HTML which page disables sidebars, and works well with CSP.
+
+Added W-159 to docs/dev/work-items.md (PENDING): view: disable sidebars per page via body data attribute. Work item specifies: view sets data-jp-disable-sidebars on body; footer ready() checks attribute and skips sidebar move, jPulse.UI.sidebars.init(), and empty-sidebar logic; optional enhancement to skip sidebar markup in template via view-model flag; deliverables (jpulse-footer.tmpl changes, docs); pros (no globals, declarative, CSP-friendly). Appended this entry to cursor_log.txt.
+
+
+============================================================
+
+2026-02-12 14:00
+
+release prep:
+- review git diff tt-git-diff.txt for accuracy and completness of work item
+- assume release: W-159, v1.6.16, 2026-02-12
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- update cursor_log.txt (append, don't replace)
+
+Reviewed tt-git-diff.txt: W-159 deliverables match diff (view.js scan + _detectBodyDisableSidebars; handlebar.js pageDisableSidebars; jpulse-footer.tmpl {{#unless pageDisableSidebars}}, CSS, disableSidebars in ready(); home/index.shtml body attribute; sidebars.md section; view.test.js W-159 tests; work-items updates). No missing files. Updated README.md and docs/README.md Latest Release Highlights with v1.6.16 W-159. Added v1.6.16 full entry to docs/CHANGELOG.md. Wrote commit-message.txt for W-159 in same format as W-158. Appended this entry to cursor_log.txt. No version bump in doc headers; no git commands run.
+
+
+============================================================

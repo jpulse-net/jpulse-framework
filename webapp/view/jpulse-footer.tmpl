@@ -4,8 +4,8 @@
  * @tagline         Footer template for jPulse pages
  * @description     Footer included in all jPulse pages to provide a consistent page layout
  * @file            webapp/view/jpulse-footer.tmpl
- * @version         1.6.15
- * @release         2026-02-11
+ * @version         1.6.16
+ * @release         2026-02-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -59,6 +59,8 @@
 <nav class="jp-mobile-menu" id="jp-mobile-menu" aria-label="{{i18n.view.pageDecoration.sidebar.mobileNavigation}}"></nav>
 {{/if}}
 
+{{!-- W-159: Omit sidebar markup when view sets data-jp-disable-sidebars (pageDisableSidebars from view load scan) --}}
+{{#unless pageDisableSidebars}}
 <!-- Left Sidebar (W-068) -->
 {{#if appConfig.view.pageDecoration.sidebar.left.enabled}}
 <aside id="jp-sidebar-left" class="jp-sidebar jp-sidebar-left jp-sidebar-mode-{{appConfig.view.pageDecoration.sidebar.left.mode}} jp-sidebar-{{appConfig.view.pageDecoration.sidebar.left.behavior}}" data-sidebar="left">
@@ -103,6 +105,7 @@
 
 {{!-- Mobile backdrop overlay (hidden by default, shown by JavaScript when sidebar opens on mobile) --}}
 <div class="jp-sidebar-backdrop" id="jp-sidebar-backdrop"></div>
+{{/unless}}
 
 <!-- Footer -->
 <footer class="jp-footer">
@@ -126,9 +129,12 @@
 </style>
 <script>
 jPulse.dom.ready(() => {
+    // W-159: Per-page sidebar disable via body data attribute
+    const disableSidebars = document.body.getAttribute('data-jp-disable-sidebars') === 'true';
+
     // Move sidebar elements into .jp-main on DOM ready to avoid initial layout flash
     const main = document.querySelector('.jp-main');
-    if (main) {
+    if (main && !disableSidebars) {
         let frag;
         {{#if appConfig.view.pageDecoration.sidebar.left.enabled}}
         frag = document.createDocumentFragment();
@@ -211,8 +217,8 @@ jPulse.dom.ready(() => {
         }
     });
 
-    // W-068: Initialize sidebars
-    if (jPulse.UI?.sidebars) {
+    // W-068: Initialize sidebars (skipped when body has data-jp-disable-sidebars="true", W-159)
+    if (!disableSidebars && jPulse.UI?.sidebars) {
         jPulse.UI.sidebars.init({
             left: JSON.parse('{{appConfig.view.pageDecoration.sidebar.left}}'),
             right: JSON.parse('{{appConfig.view.pageDecoration.sidebar.right}}'),

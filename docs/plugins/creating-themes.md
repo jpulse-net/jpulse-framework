@@ -4,7 +4,7 @@ This guide explains how to create **custom themes** for jPulse.
 
 ## Key idea
 
-The framework UI uses **CSS variables** (`--jp-theme-*`) defined in `webapp/view/jpulse-common.css`.  
+The framework UI uses **CSS variables** (`--jp-theme-*`) defined in `webapp/view/jpulse-common.css`.
 A theme overrides those variables via a selector like:
 
 ```css

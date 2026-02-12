@@ -115,7 +115,7 @@
             <a href="/" class="jp-btn jp-btn-outline">🏠 Home</a>
             <span class="jp-btn-nav-arrow">→</span>
             <a href="/hello/" class="jp-btn jp-btn-active">🌐 Hello World Site Demos</a>
-        </div> 
+        </div>
 
         <script>
             jPulse.dom.ready(() => {

@@ -471,7 +471,7 @@ describe('jPulse.UI.navigation Widget (W-069)', () => {
         };
 
         const actualDepth = getMaxDepth(pages);
-        
+
         // Should be limited to reasonable depth (MAX_DEPTH = 16)
         // At depth 16, the function returns empty {} so actual nested depth is ~15-16
         expect(actualDepth).toBeLessThanOrEqual(16);
@@ -919,7 +919,7 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
         expect(result).toBeTruthy();
         expect(typeof result.refresh).toBe('function');
         expect(typeof result.destroy).toBe('function');
-        
+
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
         expect(breadcrumbDiv).not.toBeNull();
         expect(breadcrumbDiv.classList.contains('jp-breadcrumb')).toBe(true);
@@ -934,7 +934,7 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
 
         expect(result).toBeNull();
         expect(window.jPulse.UI.breadcrumbs._initialized).toBe(false);
-        
+
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
         expect(breadcrumbDiv).toBeNull();
     });
@@ -946,14 +946,14 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
             homeLabel: 'Home'
         });
         const firstElement = document.querySelector('.jp-breadcrumb');
-        
+
         const result2 = window.jPulse.UI.breadcrumbs.init({
             currentUrl: '/admin/config.shtml',
             navigation: window.jPulseSiteNavigation,
             homeLabel: 'Home'
         });
         const secondElement = document.querySelector('.jp-breadcrumb');
-        
+
         expect(result1).toBeTruthy();
         expect(result2).toBeUndefined(); // Second call returns undefined
         expect(firstElement).toBe(secondElement);
@@ -1034,7 +1034,7 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
 
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
         const firstLink = breadcrumbDiv.querySelector('.jp-breadcrumb-link');
-        
+
         expect(firstLink).not.toBeNull();
         expect(firstLink.textContent).toContain('Home');
         expect(firstLink.getAttribute('href')).toBe('/');
@@ -1051,7 +1051,7 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
         const adminLink = Array.from(breadcrumbDiv.querySelectorAll('.jp-breadcrumb-link')).find(
             link => link.textContent.includes('Admin')
         );
-        
+
         expect(adminLink).not.toBeNull();
         expect(adminLink.innerHTML).toContain('⚙️');
     });
@@ -1143,7 +1143,7 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
         });
 
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
-        
+
         // Mock scrollWidth > clientWidth
         Object.defineProperty(breadcrumbDiv, 'scrollWidth', { value: 1000 });
         Object.defineProperty(breadcrumbDiv, 'clientWidth', { value: 500 });
@@ -1161,7 +1161,7 @@ describe('jPulse.UI.breadcrumbs (W-070)', () => {
         });
 
         const breadcrumbDiv = document.querySelector('.jp-breadcrumb');
-        
+
         // Mock scrollWidth <= clientWidth
         Object.defineProperty(breadcrumbDiv, 'scrollWidth', { value: 500 });
         Object.defineProperty(breadcrumbDiv, 'clientWidth', { value: 1000 });

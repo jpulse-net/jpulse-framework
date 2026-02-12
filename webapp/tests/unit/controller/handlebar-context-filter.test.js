@@ -52,20 +52,20 @@ describe('W-115: Handlebars Context Filter - siteConfig filtering', () => {
     test('should filter smtp* fields for unauthenticated users', async () => {
         // Mock unauthenticated user
         mockReq.session.user = null;
-        
+
         const template = '{{siteConfig.email.smtpServer}}';
         const result = await HandlebarController.expandHandlebars(mockReq, template, {});
-        
+
         // Should be empty (filtered out)
         expect(result.trim()).toBe('');
     });
 
     test('should filter *pass fields for unauthenticated users', async () => {
         mockReq.session.user = null;
-        
+
         const template = '{{siteConfig.email.smtpPass}}';
         const result = await HandlebarController.expandHandlebars(mockReq, template, {});
-        
+
         // Should be empty (filtered out)
         expect(result.trim()).toBe('');
     });
@@ -79,17 +79,17 @@ describe('W-115: Handlebars Context Filter - siteConfig filtering', () => {
 
         const template = '{{siteConfig.email.smtpPass}}';
         const result = await HandlebarController.expandHandlebars(mockReq, template, {});
-        
+
         // Should be empty even for authenticated users
         expect(result.trim()).toBe('');
     });
 
     test('should preserve non-sensitive fields', async () => {
         mockReq.session.user = null;
-        
+
         const template = '{{siteConfig.email.adminEmail}}';
         const result = await HandlebarController.expandHandlebars(mockReq, template, {});
-        
+
         // Should contain non-sensitive fields (may be empty if not set, but should not error)
         expect(result).toBeDefined();
     });

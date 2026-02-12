@@ -190,7 +190,7 @@ describe('jPulse.ws - Client API (Simplified)', () => {
             const uuid1 = jPulse.ws._getClientUUID();
             const uuid2 = jPulse.ws._getClientUUID();
             const uuid3 = jPulse.ws._getClientUUID();
-            
+
             expect(uuid1).toBe(uuid2);
             expect(uuid2).toBe(uuid3);
         });
@@ -255,11 +255,11 @@ describe('jPulse.ws - Client API (Simplified)', () => {
         test('would use wss:// for https://', () => {
             // Save original
             const originalProtocol = window.location.protocol;
-            
+
             // Test the logic directly
             const protocolForHttp = 'http:' === 'https:' ? 'wss:' : 'ws:';
             const protocolForHttps = 'https:' === 'https:' ? 'wss:' : 'ws:';
-            
+
             expect(protocolForHttp).toBe('ws:');
             expect(protocolForHttps).toBe('wss:');
         });

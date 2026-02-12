@@ -119,7 +119,7 @@ function findDynamicKeys() {
 }
 
 // Run if called directly
-const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
+const isMainModule = import.meta.url === `file://${process.argv[1]}` ||
                      process.argv[1]?.endsWith('find-dynamic-keys.js');
 if (isMainModule) {
     findDynamicKeys();

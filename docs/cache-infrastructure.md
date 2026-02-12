@@ -273,9 +273,9 @@ class MyController {
         // ALWAYS check Redis availability first
         if (!RedisManager.isAvailable) {
             // Handle gracefully - cache operations will fail
-            return res.json({ 
-                success: true, 
-                message: 'Operation completed (cache unavailable)' 
+            return res.json({
+                success: true,
+                message: 'Operation completed (cache unavailable)'
             });
         }
 
@@ -554,10 +554,10 @@ static async apiGetAnalytics(req, res) {
                 cacheKey
             );
             if (cached) {
-                return res.json({ 
-                    success: true, 
-                    data: cached, 
-                    cached: true 
+                return res.json({
+                    success: true,
+                    data: cached,
+                    cached: true
                 });
             }
         }
@@ -645,8 +645,8 @@ static async apiStartExport(req, res) {
             );
         }
 
-        return res.json({ 
-            success: true, 
+        return res.json({
+            success: true,
             exportId: exportId,
             message: 'Export started, check status with /api/1/export/status'
         });
@@ -670,9 +670,9 @@ static async apiGetExportStatus(req, res) {
             }
         }
 
-        return res.json({ 
-            success: false, 
-            error: 'Export not found or expired' 
+        return res.json({
+            success: false,
+            error: 'Export not found or expired'
         });
     } catch (error) {
         return CommonUtils.sendError(res, error.message);
@@ -808,23 +808,23 @@ if (!RedisManager.isAvailable) {
 try {
     // Cache operation
     const cached = await RedisManager.cacheGet(category, key);
-    
+
     if (cached) {
         return useCachedData(cached);
     }
-    
+
     // Cache miss - get from source
     const data = await getDataFromSource();
-    
+
     // Cache for next time (best effort)
     await RedisManager.cacheSet(category, key, data, ttl);
-    
+
     return data;
-    
+
 } catch (error) {
     // Log error but continue without cache
     LogController.logError(req, 'controller.method', 'Cache error: ' + error.message);
-    
+
     // Fallback to source
     return await getDataFromSource();
 }

@@ -39,14 +39,14 @@ describe('PluginModel (W-045)', () => {
     describe('validateConfig', () => {
         test('should pass validation with no schema', () => {
             const result = PluginModel.validateConfig('test-plugin', { foo: 'bar' }, null);
-            
+
             expect(result.valid).toBe(true);
             expect(result.errors).toEqual([]);
         });
 
         test('should pass validation with empty schema', () => {
             const result = PluginModel.validateConfig('test-plugin', { foo: 'bar' }, []);
-            
+
             expect(result.valid).toBe(true);
             expect(result.errors).toEqual([]);
         });

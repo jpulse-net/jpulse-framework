@@ -52,7 +52,7 @@ webapp/view/user/
 ```javascript
 model: {
     user: {
-        reservedUsernames: [ 'settings', 'me' ],  // Used in user page routing 
+        reservedUsernames: [ 'settings', 'me' ],  // Used in user page routing
     }
 },
 controller: {
@@ -124,7 +124,7 @@ view: {
 
 **Design Decision - Always-Included Fields**:
 - **Always included**: `username`, `profile.firstName`, `profile.lastName`, `initials` (computed)
-- **Rationale**: 
+- **Rationale**:
   - These fields are essential for identifying a user in any profile view
   - Keeps config simple (no need to list obvious fields)
   - Ensures consistent UX (every profile shows at least name/username)
@@ -181,27 +181,27 @@ static _checkPublicProfilePolicy(req, res) {
     const profileConfig = global.appConfig?.controller?.user?.profile || {};
     const adminRoles = global.appConfig?.controller?.user?.adminRoles || ['admin', 'root'];
     const isAuthenticated = AuthController.isAuthenticated(req);
-    
+
     // Admins always have access (preserve admin access)
     if (isAuthenticated && AuthController.isAuthorized(req, adminRoles)) {
         return true; // Admin access granted
     }
-    
+
     // Determine which policy to check based on auth state
-    const policyConfig = isAuthenticated 
-        ? profileConfig.withAuth 
+    const policyConfig = isAuthenticated
+        ? profileConfig.withAuth
         : profileConfig.withoutAuth;
-    
+
     // Check if access is allowed
     if (!policyConfig || !policyConfig.allowed) {
         const authState = isAuthenticated ? 'authenticated' : 'unauthenticated';
-        LogController.logError(req, 'user._checkPublicProfilePolicy', 
+        LogController.logError(req, 'user._checkPublicProfilePolicy',
             `error: Public profile access denied for ${authState} user`);
         const message = global.i18n.translate(req, 'controller.user.publicProfileAccessDenied');
         global.CommonUtils.sendError(req, res, 403, message, 'PUBLIC_PROFILE_ACCESS_DENIED');
         return false;
     }
-    
+
     return true; // Access allowed
 }
 ```
@@ -223,12 +223,12 @@ static _filterPublicProfileFields(user, req) {
     const adminRoles = global.appConfig?.controller?.user?.adminRoles || ['admin', 'root'];
     const isAuthenticated = AuthController.isAuthenticated(req);
     const isAdmin = isAuthenticated && AuthController.isAuthorized(req, adminRoles);
-    
+
     // Determine which fields config to use based on auth state
-    const fieldsConfig = isAuthenticated 
+    const fieldsConfig = isAuthenticated
         ? (profileConfig.withAuth?.fields || [])
         : (profileConfig.withoutAuth?.fields || []);
-    
+
     // Start with always-included fields
     const filtered = {
         username: user.username,
@@ -238,7 +238,7 @@ static _filterPublicProfileFields(user, req) {
         },
         initials: ((user.profile?.firstName?.[0] || '') + (user.profile?.lastName?.[0] || '')).toUpperCase()
     };
-    
+
     // Add configured additional fields (handle dot notation)
     fieldsConfig.forEach(fieldPath => {
         const value = this._getNestedValue(user, fieldPath);
@@ -246,15 +246,15 @@ static _filterPublicProfileFields(user, req) {
             this._setNestedValue(filtered, fieldPath, value);
         }
     });
-    
+
     // Admins can see additional fields (e.g., uuid)
     if (isAdmin && user.uuid) {
         filtered.uuid = user.uuid;
     }
-    
+
     // Always exclude sensitive fields
     // passwordHash, etc. are never included
-    
+
     return filtered;
 }
 
@@ -392,7 +392,7 @@ const route = match ? match[1] : '';
 // Route handler
 function handleRoute() {
     const contentEl = document.getElementById('user-content');
-    
+
     if (route === 'settings') {
         // Check authentication (server-side check also needed)
         if (!user.isAuthenticated) {
@@ -449,7 +449,7 @@ handleRoute(); // Initial load
 **profile.tmpl**:
 - Public profile view (visibility controlled by `controller.user.profile.withoutAuth.allowed`)
 - Loads user data via `/api/1/user/public/:username` API
-- **Error handling**: 
+- **Error handling**:
   - 404 if user not found
   - 403 if profile access denied (redirect or show error message)
 - Always shows: username, firstName, lastName, initials (computed)
@@ -462,7 +462,7 @@ handleRoute(); // Initial load
 **settings.tmpl**:
 - Move content from current `profile.shtml`
 - Full settings UI (profile, preferences, security, plugin cards)
-- **Requires authentication**: 
+- **Requires authentication**:
   - Server-side: Check `{{#if user.isAuthenticated}}` in template
   - Client-side: Redirect to login if not authenticated
   - API calls: All settings endpoints require authentication

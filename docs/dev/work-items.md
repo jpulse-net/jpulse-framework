@@ -4949,17 +4949,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `plugins/hello-world/webapp/controller/helloPlugin.js`:
     - AuthController import; isAdmin = AuthController.isAdmin(req); findById(defaultDocName, isAdmin) (educational pattern)
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-158, v1.6.15, 2026-02-11: websocket: rate limit messages; whitelist status for non-administrators
 - status: ✅ DONE
 - type: Feature
@@ -4986,6 +4975,18 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - _onMessage: enforce maxSize (data.length) before JSON.parse; enforce per-client rate limit (messageLimits); on violation drop message (do not process)
   - `docs/websockets.md`, `docs/api-reference.md`:
     - document publicAccess (enabled, whitelisted) and messageLimits; what non-admin sees (whitelisted namespaces and activity only)
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
 
 
 

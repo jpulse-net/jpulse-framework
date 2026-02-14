@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.16
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.17
 
 **For Site Administrators & Site Developers**
 
@@ -227,6 +227,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.17 - Redis: get cache by key pattern (W-160)**: cacheGetByPattern(path, keyPattern) → string[]; cacheGetObjectsByPattern(path, keyPattern) → Object[]. Same path/keyPattern as cacheDelPattern; SCAN + MGET; [] when Redis down. Docs: cache-infrastructure.md, api-reference.md, genai-instructions.md. Unit tests redis-cache.test.js. W-160, 2026-02-14
 - ✅ **Version 1.6.16 - View: disable sidebars per page (W-159)**: Pages can disable left/right sidebars by setting `<body data-jp-disable-sidebars="true">` in the view. Framework detects the attribute at view load, sets `pageDisableSidebars` in Handlebars context, and footer omits sidebar/backdrop markup; JS skips move and sidebar init. Single source of truth; no new globals; CSP-friendly. Docs: sidebars.md "Disable sidebars per page". Homepage example. W-159, 2026-02-12
 - ✅ **Version 1.6.15 - WebSocket: public access whitelist and message limits (W-158)**: Public access for whitelisted namespaces (publicAccess.enabled, whitelisted paths); ctx.isPublic; jpulse-ws-status sends whitelist-filtered stats to public clients. Message limits (maxSize, interval, maxMessages) for DoS protection. Docs: websockets.md, api-reference.md. Also: handlebar broadcast date fix; admin logs escaping; jpulse-ui-tabs-schema tests. W-158, 2026-02-11
 - ✅ **Version 1.6.14 - Config bugfix: type-preserving sanitization and server-side config load (W-157)**: Type-preserving obfuscation (strings→********, numbers→9999); stringPlaceholder/numberPlaceholder options. Email, handlebar, health load full config (findById(..., true)); hello-world plugin uses isAdmin(req) pattern. W-157, 2026-02-11

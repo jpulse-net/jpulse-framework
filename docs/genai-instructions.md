@@ -1,4 +1,4 @@
-# jPulse Docs / Generative-AI Instructions for AI Assistants v1.6.16
+# jPulse Docs / Generative-AI Instructions for AI Assistants v1.6.17
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
@@ -597,6 +597,7 @@ await RedisManager.cacheSet('controller:myapp', 'last_run', Date.now(), 3600);
 const cached = await RedisManager.cacheGet('controller:myapp', 'last_run');
 await RedisManager.cacheSetObject('model:user', 'prefs', {theme: 'dark'}, 3600);
 const prefs = await RedisManager.cacheGetObject('model:user', 'prefs');
+const occupants = await RedisManager.cacheGetObjectsByPattern('controller:presence:occupants', mapId + ':*');  // get by pattern
 
 // Key format: category:key (e.g., 'controller:health', 'report_time')
 // See [Cache Infrastructure](cache-infrastructure.md) for complete guide

@@ -3,8 +3,8 @@
  * @tagline         Redis connection management with cluster support and graceful fallback
  * @description     Manages Redis connections for sessions, WebSocket, broadcasting, and metrics
  * @file            webapp/utils/redis-manager.js
- * @version         1.6.16
- * @release         2026-02-12
+ * @version         1.6.17
+ * @release         2026-02-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1200,6 +1200,77 @@ class RedisManager {
     }
 
     /**
+     * Get all cache values matching key pattern (W-160)
+     * Uses SCAN + MGET internally; returns values in stable key order. Returns empty array when
+     * Redis unavailable or on error.
+     * @param {string} path - Colon-separated path: 'component:namespace:category[:subcategory]*'
+     * @param {string} keyPattern - Key pattern (can include wildcards, e.g. mapId + ':*', '*')
+     * @returns {Promise<string[]>} Array of string values (empty if none or Redis unavailable)
+     *
+     * @example
+     * // Get all occupant entries for a map (presence)
+     * const values = await RedisManager.cacheGetByPattern('controller:presence:occupants', mapId + ':*');
+     */
+    static async cacheGetByPattern(path, keyPattern) {
+        const parsed = RedisManager._parseCachePath(path);
+        if (!parsed || !keyPattern) {
+            return [];
+        }
+
+        const redis = RedisManager.getClient('cache');
+        if (!redis) {
+            return [];
+        }
+
+        try {
+            const pattern = RedisManager._buildCacheKey(parsed.component, parsed.namespace, parsed.category, keyPattern);
+
+            const keys = [];
+            let cursor = '0';
+            do {
+                const [nextCursor, foundKeys] = await redis.scan(
+                    cursor,
+                    'MATCH',
+                    pattern,
+                    'COUNT',
+                    100
+                );
+                cursor = nextCursor;
+                keys.push(...foundKeys);
+            } while (cursor !== '0');
+
+            if (keys.length === 0) return [];
+
+            keys.sort();
+
+            const batchSize = 100;
+            const values = [];
+            for (let i = 0; i < keys.length; i += batchSize) {
+                const batch = keys.slice(i, i + batchSize);
+                const batchValues = await redis.mget(...batch);
+                for (const v of batchValues) {
+                    if (v != null) {
+                        values.push(v);
+                        RedisManager._cacheStats.gets++;
+                        RedisManager._cacheStats.hits++;
+                    } else {
+                        RedisManager._cacheStats.gets++;
+                        RedisManager._cacheStats.misses++;
+                    }
+                }
+            }
+
+            global.LogController?.logInfo(null, 'redis-manager.cacheGetByPattern',
+                `Cache get-by-pattern: ${values.length} values for pattern: ${pattern}`);
+            return values;
+        } catch (error) {
+            global.LogController?.logError(null, 'redis-manager.cacheGetByPattern',
+                `Failed to get by pattern: ${error.message}`);
+            return [];
+        }
+    }
+
+    /**
      * Delete cache value
      * @param {string} path - Colon-separated path: 'component:namespace:category[:subcategory]*'
      * @param {string} key - Primary identifier
@@ -1295,6 +1366,38 @@ class RedisManager {
             global.LogController?.logError(null, 'redis-manager.cacheGetObject',
                 `Failed to parse object: ${error.message}`);
             return null;
+        }
+    }
+
+    /**
+     * Get all cache values matching key pattern as parsed JSON objects (W-160)
+     * Uses cacheGetByPattern; invalid JSON entries are skipped and logged. Returns empty array
+     * when Redis unavailable or on error.
+     * @param {string} path - Colon-separated path: 'component:namespace:category[:subcategory]*'
+     * @param {string} keyPattern - Key pattern (can include wildcards, e.g. mapId + ':*', '*')
+     * @returns {Promise<Object[]>} Array of parsed objects (invalid JSON skipped)
+     *
+     * @example
+     * // Get all occupants for a map (presence list)
+     * const occupants = await RedisManager.cacheGetObjectsByPattern('controller:presence:occupants', mapId + ':*');
+     */
+    static async cacheGetObjectsByPattern(path, keyPattern) {
+        try {
+            const values = await RedisManager.cacheGetByPattern(path, keyPattern);
+            const result = [];
+            for (const value of values) {
+                try {
+                    result.push(JSON.parse(value));
+                } catch (parseError) {
+                    global.LogController?.logError(null, 'redis-manager.cacheGetObjectsByPattern',
+                        `Failed to parse object: ${parseError.message}`);
+                }
+            }
+            return result;
+        } catch (error) {
+            global.LogController?.logError(null, 'redis-manager.cacheGetObjectsByPattern',
+                `Failed to get objects by pattern: ${error.message}`);
+            return [];
         }
     }
 

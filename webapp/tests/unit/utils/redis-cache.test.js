@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Redis cache wrapper operations (W-143)
  * @description     Tests cache operations, pattern methods, JSON handling, and rate limiting
  * @file            webapp/tests/unit/utils/redis-cache.test.js
- * @version         1.6.16
- * @release         2026-02-12
+ * @version         1.6.17
+ * @release         2026-02-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -65,6 +65,7 @@ describe('Redis Cache Operations (W-143)', () => {
             ttl: jest.fn().mockResolvedValue(-1),
             expire: jest.fn().mockResolvedValue(1),
             scan: jest.fn().mockResolvedValue(['0', []]),
+            mget: jest.fn().mockResolvedValue([]),
             quit: jest.fn().mockResolvedValue('OK')
         };
 
@@ -885,6 +886,131 @@ describe('Redis Cache Operations (W-143)', () => {
                 });
             });
         });
+
+        describe('Get by pattern (W-160)', () => {
+            describe('cacheGetByPattern()', () => {
+                it('should return array of values for keys matching pattern', async () => {
+                    mockRedisClient.scan
+                        .mockResolvedValueOnce(['0', ['key1', 'key2']]);
+                    mockRedisClient.mget.mockResolvedValue(['v1', 'v2']);
+
+                    const result = await RedisManager.cacheGetByPattern(
+                        'controller:presence:occupants',
+                        'map123:*'
+                    );
+
+                    expect(result).toEqual(['v1', 'v2']);
+                    expect(mockRedisClient.scan).toHaveBeenCalledWith(
+                        '0', 'MATCH', expect.stringContaining('map123'), 'COUNT', 100
+                    );
+                    expect(mockRedisClient.mget).toHaveBeenCalledWith('key1', 'key2');
+                });
+
+                it('should return empty array when no keys match', async () => {
+                    mockRedisClient.scan.mockResolvedValue(['0', []]);
+
+                    const result = await RedisManager.cacheGetByPattern(
+                        'controller:presence:occupants',
+                        'map999:*'
+                    );
+
+                    expect(result).toEqual([]);
+                    expect(mockRedisClient.mget).not.toHaveBeenCalled();
+                });
+
+                it('should return empty array when Redis unavailable', async () => {
+                    RedisManager.connections.cache = null;
+
+                    const result = await RedisManager.cacheGetByPattern(
+                        'controller:presence:occupants',
+                        'map123:*'
+                    );
+
+                    expect(result).toEqual([]);
+                });
+
+                it('should return empty array for invalid path', async () => {
+                    const result = await RedisManager.cacheGetByPattern(
+                        'invalid:path',
+                        '*'
+                    );
+
+                    expect(result).toEqual([]);
+                });
+
+                it('should return empty array for empty keyPattern', async () => {
+                    const result = await RedisManager.cacheGetByPattern(
+                        'controller:presence:occupants',
+                        ''
+                    );
+
+                    expect(result).toEqual([]);
+                });
+
+                it('should track cache stats (gets, hits)', async () => {
+                    mockRedisClient.scan.mockResolvedValueOnce(['0', ['k1']]);
+                    mockRedisClient.mget.mockResolvedValue(['val1']);
+
+                    RedisManager._cacheStats.gets = 0;
+                    RedisManager._cacheStats.hits = 0;
+
+                    await RedisManager.cacheGetByPattern(
+                        'controller:test:data',
+                        '*'
+                    );
+
+                    expect(RedisManager._cacheStats.gets).toBe(1);
+                    expect(RedisManager._cacheStats.hits).toBe(1);
+                });
+            });
+
+            describe('cacheGetObjectsByPattern()', () => {
+                it('should return array of parsed objects', async () => {
+                    const obj1 = { id: 'a', name: 'Alice' };
+                    const obj2 = { id: 'b', name: 'Bob' };
+                    mockRedisClient.scan.mockResolvedValueOnce(['0', ['k1', 'k2']]);
+                    mockRedisClient.mget.mockResolvedValue([
+                        JSON.stringify(obj1),
+                        JSON.stringify(obj2)
+                    ]);
+
+                    const result = await RedisManager.cacheGetObjectsByPattern(
+                        'controller:presence:occupants',
+                        'map123:*'
+                    );
+
+                    expect(result).toEqual([obj1, obj2]);
+                });
+
+                it('should skip and log invalid JSON entries', async () => {
+                    mockRedisClient.scan.mockResolvedValueOnce(['0', ['k1', 'k2']]);
+                    mockRedisClient.mget.mockResolvedValue(['{"valid":true}', 'not-json']);
+
+                    const result = await RedisManager.cacheGetObjectsByPattern(
+                        'controller:presence:occupants',
+                        '*'
+                    );
+
+                    expect(result).toEqual([{ valid: true }]);
+                    expect(global.LogController.logError).toHaveBeenCalledWith(
+                        null,
+                        'redis-manager.cacheGetObjectsByPattern',
+                        expect.stringContaining('Failed to parse object')
+                    );
+                });
+
+                it('should return empty array when Redis unavailable', async () => {
+                    RedisManager.connections.cache = null;
+
+                    const result = await RedisManager.cacheGetObjectsByPattern(
+                        'controller:presence:occupants',
+                        'map123:*'
+                    );
+
+                    expect(result).toEqual([]);
+                });
+            });
+        });
     });
 
     // ========================================================================
@@ -1145,6 +1271,8 @@ describe('Redis Cache Operations (W-143)', () => {
             expect(await RedisManager.cacheGetToken('controller:auth:dash', 'k')).toBe(null);
             expect(await RedisManager.cacheDelToken('controller:auth:dash', 'k')).toBe(false);
             expect(await RedisManager.cacheDelPattern('controller:test:*', '*')).toBe(0);
+            expect(await RedisManager.cacheGetByPattern('controller:test:data', '*')).toEqual([]);
+            expect(await RedisManager.cacheGetObjectsByPattern('controller:test:data', '*')).toEqual([]);
 
             // Rate limiting should fail open (allow)
             const rateLimitResult = await RedisManager.cacheCheckRateLimit(

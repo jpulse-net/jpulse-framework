@@ -18102,3 +18102,11 @@ Reviewed tt-git-diff.txt: W-159 deliverables match diff (view.js scan + _detectB
 
 
 ============================================================
+2026-02-13 15:30
+
+release prep: @work-items.md (5067-5071) always ignore webapp/static/assets/jpulse-docs/! @work-items.md (5067-5071). always ignore webapp/static/assets/jpulse-docs/!
+
+Release prep for W-160 v1.6.17 (2026-02-14): Updated work-items.md W-160 deliverables with "Done" lines (redis-manager.js, docs/ only for docs—jpulse-docs ignored, optional tests). Added v1.6.17 W-160 to README.md and docs/README.md Latest Release Highlights. Inserted full v1.6.17 W-160 entry at top of docs/CHANGELOG.md. Replaced commit-message.txt with W-160 in same format as W-159. Appended this entry to cursor_log.txt. No version bump; no git commands. jpulse-docs not touched per user.
+
+
+============================================================

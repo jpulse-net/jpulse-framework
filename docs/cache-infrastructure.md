@@ -1,4 +1,4 @@
-# jPulse Docs / Cache Infrastructure v1.6.16
+# jPulse Docs / Cache Infrastructure v1.6.17
 
 ## Overview
 
@@ -366,6 +366,29 @@ await RedisManager.cacheDelPattern(
 // 'user:123:*'    - All keys for user 123
 // '*:cache'       - All keys ending with ":cache"
 ```
+
+### Get by pattern (v1.6.17)
+
+Fetch all values for keys matching a pattern. Uses the same path and keyPattern convention as `cacheDelPattern`. Returns empty array when Redis is unavailable or no keys match.
+
+- **`cacheGetByPattern(path, keyPattern)`** — returns `Promise<string[]>` (raw values, stable key order).
+- **`cacheGetObjectsByPattern(path, keyPattern)`** — returns `Promise<Object[]>` (JSON-parsed; invalid entries skipped and logged).
+
+```javascript
+// Get all occupant entries for a map (e.g. presence list)
+const occupants = await RedisManager.cacheGetObjectsByPattern(
+    'controller:presence:occupants',
+    mapId + ':*'
+);
+
+// Get raw string values
+const values = await RedisManager.cacheGetByPattern(
+    'controller:presence:occupants',
+    mapId + ':*'
+);
+```
+
+Path: `component:namespace:category` (e.g. `controller:presence:occupants`). Key pattern supports Redis-style wildcards (e.g. `mapId + ':*'`, `'*'`).
 
 ### Rate Limiting
 

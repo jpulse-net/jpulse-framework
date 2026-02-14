@@ -1,6 +1,26 @@
-# jPulse Docs / Version History v1.6.16
+# jPulse Docs / Version History v1.6.17
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.17, W-160, 2026-02-14
+
+**Commit:** `W-160, v1.6.17: redis: get cache object by key pattern`
+
+**FEATURE RELEASE**: Get cache values by key pattern. **(1) cacheGetByPattern(path, keyPattern):** Returns array of string values for all keys matching the pattern; uses SCAN + MGET internally; keys sorted for stable order; updates _cacheStats.gets/hits/misses per key; returns [] when Redis unavailable or invalid path/keyPattern. **(2) cacheGetObjectsByPattern(path, keyPattern):** Returns array of parsed JSON objects; calls cacheGetByPattern then JSON.parse per value; invalid JSON entries skipped and logged. Same path convention as existing cache (component:namespace:category); keyPattern supports wildcards (e.g. mapId + ':*'). Placed below cacheGet and cacheGetObject in redis-manager.js. **(3) Docs:** cache-infrastructure.md "Get by pattern (W-160)" with path/keyPattern rules and presence example; api-reference.md cache snippet; genai-instructions.md one-liner. **(4) Tests:** redis-cache.test.js — mock mget; describe "Get by pattern (W-160)" for both methods (values, empty when no match/Redis down/invalid path/empty keyPattern, stats, objects parse/skip invalid); graceful fallback assertions.
+
+**Objective**: Allow listing cache entries by key pattern via Redis wrapper only (e.g. all occupants for a map / presence); no raw Redis in site/plugins.
+
+**Key Changes**:
+- **webapp/utils/redis-manager.js**: cacheGetByPattern(path, keyPattern) below cacheGet; cacheGetObjectsByPattern(path, keyPattern) below cacheGetObject; JSDoc; SCAN + MATCH same as cacheDelPattern, keys.sort(), MGET in batches of 100; return [] on error or Redis down.
+- **docs/cache-infrastructure.md**: Subsection "Get by pattern (W-160)" with both methods, path/keyPattern, example (presence list for mapId).
+- **docs/api-reference.md**: Cache snippet — cacheGetByPattern, cacheGetObjectsByPattern with return types.
+- **docs/genai-instructions.md**: One-line example cacheGetObjectsByPattern for presence occupants.
+- **webapp/tests/unit/utils/redis-cache.test.js**: mock mget; Get by pattern (W-160) describe (cacheGetByPattern 6 tests, cacheGetObjectsByPattern 3 tests); graceful fallback lines for both.
+
+**Work Item**: W-160
+**Version**: v1.6.17
+**Release Date**: 2026-02-14
 
 ________________________________________________
 ## v1.6.16, W-159, 2026-02-12

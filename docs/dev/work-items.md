@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.16
+# jPulse Docs / Dev / Work Items v1.6.17
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4976,17 +4976,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/websockets.md`, `docs/api-reference.md`:
     - document publicAccess (enabled, whitelisted) and messageLimits; what non-admin sees (whitelisted namespaces and activity only)
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-159, v1.6.16, 2026-02-12: view: disable sidebars per page via body data attribute
 - status: ✅ DONE
 - type: Feature
@@ -5023,6 +5012,40 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-160, v1.6.17, 2026-02-14: redis: get cache object by key pattern
+- status: PENDING
+- type: Feature
+- objectives:
+  - allow listing cache entries by key pattern via the Redis wrapper only (no raw Redis in site/plugins)
+  - support use cases like “all occupants for a map” (e.g. presence) that need "get all values for keys matching pattern"
+- features:
+  - new cache API: get-by-pattern (e.g. **cacheGetByPattern**(path, keyPattern) or **cacheGetObjectsByPattern**(path, keyPattern))
+  - same path convention as existing cache (component:namespace:category); keyPattern supports wildcard (e.g. `mapId + ':*'`)
+  - implementation uses SCAN + GET (or MGET) internally; only wrapper API is public
+  - behavior when Redis is unavailable: return empty array or equivalent, consistent with existing cache behavior
+- deliverables:
+  - `webapp/utils/redis-manager.js`:
+    - add cacheGetByPattern (below cacheGet), cacheGetObjectsByPattern (below cacheGetObject); JSDoc; SCAN + MGET, keys sorted, _cacheStats gets/hits/misses; return [] when Redis unavailable or invalid path/keyPattern. cacheGetObjectsByPattern skips invalid JSON, logs error
+  - `webapp/static/assets/jpulse-docs/cache-infrastructure.md`:
+    - document the new method(s), path/keyPattern rules, and example (e.g. presence list for mapId)
+  - `webapp/static/assets/jpulse-docs/api-reference.md`:
+    - add doc snippet
+  - `webapp/static/assets/jpulse-docs/genai-instructions.md`:
+    - add one-liner
+  - `webapp/tests/unit/utils/redis-cache.test.js`:
+    - mock mget; describe "Get by pattern (W-160)" (cacheGetByPattern + cacheGetObjectsByPattern tests)
+    - graceful fallback assertions
+
+
+
+
+
+
+
 ### Pending
 
 
@@ -5042,14 +5065,14 @@ old pending:
 
 next work item: W-0...
 - review task, ask questions if unclear
-- suggest change of spec if any, goal is a good UX, good usability, good onboarding & learning experience for site admins and developers; use the "don't make me think" paradigm
+- suggest change of spec if any, goal is a good DX, good usability, good onboarding & learning experience for site admins and developers; use the "don't make me think" paradigm
 - plan how to implement (wait for my go ahead)
 
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-159, v1.6.16, 2026-02-12
-- update deliverables in W-159 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-160, v1.6.17, 2026-02-14
+- update deliverables in W-160 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5060,12 +5083,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.16
+node bin/bump-version.js 1.6.17
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.16
+git tag v1.6.17
 git push origin main --tags
 
 === PLUGIN release & package build on github ===
@@ -5117,7 +5140,8 @@ npm test -- --testPathPattern=jpulse-ui-navigation
 npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 npx jest webapp/tests/unit/controller/handlebar-logical-helpers.test.js
 
-
+=== Count lines ===
+find . -type f -not -path '*/common/*' -not -path './tt-*' -not -path '*/node_modules/*' -not -path './coverage/*' -not -path '*/tmp*' -not -path './.*' -not -path '*/.git*' -not -path './cursor*' -not -path '*/fixtures/*' -not -path './package-lock.json' | xargs wc -l
 
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items

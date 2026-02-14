@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.16
+# jPulse Docs / REST API Reference v1.6.17
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -2255,6 +2255,10 @@ const newValue = await RedisManager.cacheIncr(category, key, ttl);  // Increment
 
 // Pattern-based deletion
 await RedisManager.cacheDelPattern(category, pattern);  // e.g., pattern = 'user:*'
+
+// Get by pattern (returns array; empty when Redis unavailable or no match)
+const values = await RedisManager.cacheGetByPattern(category, pattern);  // string[]
+const objects = await RedisManager.cacheGetObjectsByPattern(category, pattern);  // Object[]
 
 // Rate limiting
 const result = await RedisManager.cacheCheckRateLimit(category, identifier, maxRequests, windowSeconds);

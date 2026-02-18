@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Architecture v1.6.17
+# jPulse Docs / Plugins / Plugin Architecture v1.6.18
 
 Understanding how the jPulse plugin system works under the hood.
 

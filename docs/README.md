@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.17
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.18
 
 **For Site Administrators & Site Developers**
 
@@ -227,6 +227,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.18 - User settings single edit mode (W-161)**: Settings always-edit; Back/Discard/Save; buttons disabled when not dirty. In-SPA: discard dialog (Keep Editing / Discard Changes); on Discard Changes clear state then navigate; pageshow(persisted) clears dirty on Back; beforeunload only on settings path. Breadcrumb User > Me > Settings. Route titles, view.user.me i18n. W-161, 2026-02-18
 - ✅ **Version 1.6.17 - Redis: get cache by key pattern (W-160)**: cacheGetByPattern(path, keyPattern) → string[]; cacheGetObjectsByPattern(path, keyPattern) → Object[]. Same path/keyPattern as cacheDelPattern; SCAN + MGET; [] when Redis down. Docs: cache-infrastructure.md, api-reference.md, genai-instructions.md. Unit tests redis-cache.test.js. W-160, 2026-02-14
 - ✅ **Version 1.6.16 - View: disable sidebars per page (W-159)**: Pages can disable left/right sidebars by setting `<body data-jp-disable-sidebars="true">` in the view. Framework detects the attribute at view load, sets `pageDisableSidebars` in Handlebars context, and footer omits sidebar/backdrop markup; JS skips move and sidebar init. Single source of truth; no new globals; CSP-friendly. Docs: sidebars.md "Disable sidebars per page". Homepage example. W-159, 2026-02-12
 - ✅ **Version 1.6.15 - WebSocket: public access whitelist and message limits (W-158)**: Public access for whitelisted namespaces (publicAccess.enabled, whitelisted paths); ctx.isPublic; jpulse-ws-status sends whitelist-filtered stats to public clients. Message limits (maxSize, interval, maxMessages) for DoS protection. Docs: websockets.md, api-reference.md. Also: handlebar broadcast date fix; admin logs escaping; jpulse-ui-tabs-schema tests. W-158, 2026-02-11

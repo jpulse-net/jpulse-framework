@@ -4,8 +4,8 @@
  * @tagline         User SPA - Dashboard, Profiles, and Settings
  * @description     Single Page Application for user profiles, dashboard, and settings with config-driven behavior
  * @file            webapp/view/user/index.shtml
- * @version         1.6.17
- * @release         2026-02-14
+ * @version         1.6.18
+ * @release         2026-02-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -198,6 +198,19 @@
         {{components.userSpa.settingsJs}}
         {{components.userSpa.profileJs}}
 
+        // i18n for settings dirty-check dialog (same as settings.tmpl)
+        const USER_SPA_SETTINGS_DISCARD_TITLE = `{{i18n.view.user.settings.discardChangesTitle}}`;
+        const USER_SPA_SETTINGS_DISCARD_MESSAGE = `{{i18n.view.user.settings.discardChangesMessage}}`;
+        const USER_SPA_SETTINGS_KEEP_EDITING = `{{i18n.view.user.settings.keepEditing}}`;
+        const USER_SPA_SETTINGS_DISCARD_BTN = `{{i18n.view.user.settings.discardChanges}}`;
+
+        // Page titles per route (document.title when navigating within user SPA)
+        const USER_SPA_ROUTE_TITLES = {
+            '/user/':           `{{i18n.view.user.index.title}}`,
+            '/user/me':         `{{i18n.view.user.me.title}}`,
+            '/user/settings':   `{{i18n.view.user.settings.title}}`
+        };
+
         // W-134: Simple SPA routing - show/hide included content
         const routeMapping = {
             '/user/': 'route-dashboard',
@@ -236,6 +249,16 @@
                 if (routeEl) {
                     routeEl.classList.remove('jp-hidden');
 
+                    // Update document.title for this route (like docs SPA)
+                    const routeTitle = USER_SPA_ROUTE_TITLES[normalizedPath] || USER_SPA_ROUTE_TITLES[path];
+                    if (routeTitle) {
+                        const shortName = document.title.includes(' - ') ? document.title.split(' - ').slice(-1)[0] : '{{app.site.shortName}}';
+                        document.title = `${routeTitle} - ${shortName}`;
+                    } else if (routeId === 'route-profile' && path.match(/^\/user\/([^/]+)$/)) {
+                        const shortName = document.title.includes(' - ') ? document.title.split(' - ').slice(-1)[0] : '{{app.site.shortName}}';
+                        document.title = `{{i18n.view.user.profile.title}} - ${shortName}`;
+                    }
+
                     // Call init function if it exists
                     if (initFn && window[initFn]) {
                         await window[initFn]();
@@ -271,14 +294,26 @@
                 await loadRoute(window.location.pathname);
             });
 
-            // Intercept clicks on internal links for SPA navigation
-            document.addEventListener('click', (e) => {
+            // Intercept clicks on internal links for SPA navigation; prompt if settings has unsaved changes
+            document.addEventListener('click', async (e) => {
                 const link = e.target.closest('a[href^="/user/"]');
-                if (link && !link.hasAttribute('target')) {
-                    e.preventDefault();
-                    const href = link.getAttribute('href');
-                    navigateTo(href);
+                if (!link || link.hasAttribute('target')) return;
+                e.preventDefault();
+                const href = link.getAttribute('href');
+                const targetPath = (href.split('?')[0] || '').replace(/\/$/, '') || '/';
+                const currentPath = (window.location.pathname || '').replace(/\/$/, '') || '/';
+                const isLeavingSettings = currentPath === '/user/settings' && targetPath !== '/user/settings';
+                if (isLeavingSettings && typeof window.jPulse?.userSpa?.getSettingsDirty === 'function' && window.jPulse.userSpa.getSettingsDirty()) {
+                    const result = await jPulse.UI.confirmDialog({
+                        title: USER_SPA_SETTINGS_DISCARD_TITLE,
+                        message: USER_SPA_SETTINGS_DISCARD_MESSAGE,
+                        buttons: [USER_SPA_SETTINGS_KEEP_EDITING, USER_SPA_SETTINGS_DISCARD_BTN]
+                    });
+                    if (result.button === USER_SPA_SETTINGS_KEEP_EDITING) return;
+                    // Discard changes and clear dirty state before navigating so reload on profile won't prompt
+                    if (typeof revertChanges === 'function') await revertChanges({ skipConfirm: true });
                 }
+                navigateTo(href);
             });
         });
 

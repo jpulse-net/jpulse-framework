@@ -2,10 +2,10 @@
 {{!--
  * @name            jPulse Framework / WebApp / View / User / Settings Template
  * @tagline         User SPA - Settings template
- * @description     W-134: Settings template of user profile Single Page Application
+ * @description     W-134: Settings template of user profile SPA. W-161: Single mode (always edit).
  * @file            webapp/view/user/settings.tmpl
- * @version         1.6.17
- * @release         2026-02-14
+ * @version         1.6.18
+ * @release         2026-02-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -34,17 +34,17 @@
                 <div class="jp-form-grid">
                     <div class="jp-form-group">
                         <label for="firstName" class="jp-form-label">{{i18n.view.user.settings.firstName}}</label>
-                        <input type="text" id="firstName" name="firstName" class="jp-form-input jp-read-only-field" value="{{user.firstName}}" readonly>
+                        <input type="text" id="firstName" name="firstName" class="jp-form-input" value="{{user.firstName}}">
                     </div>
                     <div class="jp-form-group">
                         <label for="lastName" class="jp-form-label">{{i18n.view.user.settings.lastName}}</label>
-                        <input type="text" id="lastName" name="lastName" class="jp-form-input jp-read-only-field" value="{{user.lastName}}" readonly>
+                        <input type="text" id="lastName" name="lastName" class="jp-form-input" value="{{user.lastName}}">
                     </div>
                 </div>
                 <div class="jp-form-grid">
                     <div class="jp-form-group">
                         <label for="nickName" class="jp-form-label">{{i18n.view.user.settings.nickName}}</label>
-                        <input type="text" id="nickName" name="nickName" class="jp-form-input jp-read-only-field" value="{{user.nickName}}" readonly>
+                        <input type="text" id="nickName" name="nickName" class="jp-form-input" value="{{user.nickName}}">
                     </div>
                     <div class="jp-form-group">
                         <label for="email" class="jp-form-label">{{i18n.view.user.settings.email}}</label>
@@ -60,26 +60,22 @@
                 <div class="jp-form-grid">
                     <div class="jp-form-group">
                         <label for="language" class="jp-form-label">{{i18n.view.user.settings.language}}</label>
-                        <select id="language" name="language" class="jp-form-select" disabled>
+                        <select id="language" name="language" class="jp-form-select">
                             <!-- Options will be replaced dynamically -->
-                            <option value="{{string.default user.preferences.language "en"}}" disabled selected>{{string.default user.preferences.language "en"}}</option>
+                            <option value="{{string.default user.preferences.language "en"}}" selected>{{string.default user.preferences.language "en"}}</option>
                         </select>
 
                         <label for="theme" class="jp-form-label">{{i18n.view.user.settings.theme}}</label>
-                        <select id="theme" name="theme" class="jp-form-select" disabled>
+                        <select id="theme" name="theme" class="jp-form-select">
                             <!-- Options will be replaced dynamically -->
-                            <option value="{{string.default user.preferences.theme "light"}}" disabled selected>{{string.default user.preferences.theme "light"}}</option>
+                            <option value="{{string.default user.preferences.theme "light"}}" selected>{{string.default user.preferences.theme "light"}}</option>
                         </select>
                     </div>
                 </div>
             </form>
         </div>
 
-        <div class="jp-card local-profile-section jp-view-mode-only">
-            <h3 class="local-no-content-header">{{i18n.view.user.settings.security}}</h3>
-        </div>
-
-        <div id="securitySection" class="jp-collapsible jp-edit-mode-only">
+        <div id="securitySection" class="jp-collapsible">
             <h3>{{i18n.view.user.settings.security}}</h3>
             <div class="jp-collapsible-content">
                 <div class="jp-alert jp-alert-info">
@@ -112,9 +108,9 @@
         </div>
 
         <div class="jp-btn-group">
-            <button id="editBtn" class="jp-btn jp-btn-primary" onclick="toggleEditMode()">{{i18n.view.user.settings.edit}}</button>
-            <button id="saveBtn" class="jp-btn jp-btn-success jp-hidden" onclick="saveProfile()">{{i18n.view.user.settings.save}}</button>
-            <button id="cancelBtn" class="jp-btn jp-btn-secondary jp-hidden" onclick="cancelEdit()">{{i18n.view.user.settings.cancel}}</button>
+            <a href="/user/me" class="jp-btn jp-btn-secondary" id="backBtn">{{i18n.view.user.settings.back}}</a>
+            <button id="discardBtn" class="jp-btn jp-btn-secondary" onclick="revertChanges()" disabled>{{i18n.view.user.settings.discard}}</button>
+            <button id="saveBtn" class="jp-btn jp-btn-success" onclick="saveProfile()" disabled>{{i18n.view.user.settings.save}}</button>
         </div>
     </div>
 {{else}}
@@ -126,6 +122,7 @@
 {{#component "userSpa.settingsJs"}}
 {{#if user.isAuthenticated}}
     // W-134: Settings page initialization function (called by SPA router)
+    // W-161: Single mode (always edit); originalValues set after load for revert/change detection
     async function initSettings() {
         await loadSettingsProfile();
         await loadSettingsLanguages();
@@ -148,9 +145,36 @@
                 });
             }
         });
+
+        // W-161: Baseline for revert and unsaved-changes detection (always-edit mode)
+        originalValues = JSON.parse(JSON.stringify(getCurrentFormValues()));
+        originalThemePreview = document.documentElement.getAttribute('data-theme') || (document.getElementById('theme')?.value || 'light');
+
+        // W-129: Instant theme preview when changing the theme dropdown (no persistence until save)
+        const themeSelect = document.getElementById('theme');
+        if (themeSelect && !themeSelect.dataset.previewBound) {
+            themeSelect.addEventListener('change', () => {
+                applyThemePreview(themeSelect.value);
+            });
+            themeSelect.dataset.previewBound = '1';
+        }
+
+        // Expose dirty getter for SPA router (index.shtml) so in-user navigation can prompt before leaving
+        if (typeof window.jPulse === 'undefined') window.jPulse = {};
+        if (typeof window.jPulse.userSpa === 'undefined') window.jPulse.userSpa = {};
+        window.jPulse.userSpa.getSettingsDirty = function () {
+            return window.location.pathname === '/user/settings' && typeof hasFormChanges === 'function' && hasFormChanges();
+        };
+
+        // Discard/Save disabled when not dirty; enable on any form change
+        updateSettingsActionButtons();
+        const settingsContainer = document.querySelector('.local-user-profile');
+        if (settingsContainer) {
+            settingsContainer.addEventListener('input', updateSettingsActionButtons);
+            settingsContainer.addEventListener('change', updateSettingsActionButtons);
+        }
     }
 
-    let editMode = false;
     let originalValues = {};
     let schemaMetadata = {};  // W-107: Schema extensions metadata
     let currentUserData = {}; // W-107: Current user data for plugin cards
@@ -188,71 +212,24 @@
         }
     }
 
-    // Warn user when navigating away with unsaved changes
+    // Warn user when navigating away with unsaved changes (W-161: always-edit, no editMode)
+    // Only run on settings route; after SPA navigate away the form is gone and discard already cleared dirty
     window.addEventListener('beforeunload', (event) => {
-        // Only warn if in edit mode AND there are actual changes
-        if (editMode && hasFormChanges()) {
+        if (window.location.pathname !== '/user/settings') return;
+        if (hasFormChanges()) {
             event.preventDefault();
-            // Modern browsers ignore custom messages and show their own generic prompt
-            // Setting returnValue to any truthy value triggers the dialog
             event.returnValue = true;
             return true;
         }
     });
 
-    function toggleEditMode() {
-        editMode = !editMode;
-        const editBtn = document.getElementById('editBtn');
-        const saveBtn = document.getElementById('saveBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-        const passwordFields = document.getElementById('passwordFields');
-
-        if (editMode) {
-            // Add edit mode class to container to show/hide sections
-            const container = document.querySelector('.jp-container-800');
-            container.classList.add('jp-edit-mode');
-
-            // Ensure security section starts collapsed when entering edit mode
-            if (securityCollapsible && securityCollapsible.isExpanded()) {
-                securityCollapsible.collapse();
-            }
-
-            // Store original values at edit start (deep copy for comparison)
-            originalValues = JSON.parse(JSON.stringify(getCurrentFormValues()));
-            originalThemePreview = document.documentElement.getAttribute('data-theme') || (originalValues.theme || 'light');
-
-            // Enable editing for profile fields
-            ['firstName', 'lastName', 'nickName'].forEach(id => {
-                const field = document.getElementById(id);
-                field.readOnly = false;
-                field.classList.remove('jp-read-only-field');
-            });
-
-            // Enable editing for preference fields
-            ['language', 'theme'].forEach(id => {
-                const field = document.getElementById(id);
-                field.disabled = false;
-                field.classList.remove('jp-read-only-field');
-            });
-
-            // W-129: Instant theme preview when changing the theme dropdown (no persistence until save)
-            const themeSelect = document.getElementById('theme');
-            if (themeSelect && !themeSelect.dataset.previewBound) {
-                themeSelect.addEventListener('change', () => {
-                    if (!editMode) return;
-                    applyThemePreview(themeSelect.value);
-                });
-                themeSelect.dataset.previewBound = '1';
-            }
-
-            // Update buttons
-            jPulse.dom.hide(editBtn);
-            jPulse.dom.show(saveBtn);
-            jPulse.dom.show(cancelBtn);
-        } else {
-            cancelEdit();
+    // Coming back via browser Back (e.g. from docs): page may be restored from bfcache with old dirty state.
+    // Clear it so reload doesn't prompt and user sees last-saved state.
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted && window.location.pathname === '/user/settings' && typeof revertChanges === 'function') {
+            revertChanges({ skipConfirm: true });
         }
-    }
+    });
 
     // Get current form values as an object (for comparison)
     function getCurrentFormValues() {
@@ -276,65 +253,56 @@
         return !jPulse.utils.deepEqual(getCurrentFormValues(), originalValues);
     }
 
-    async function cancelEdit(options = {}) {
-        const { revertTheme = true } = options;
-        // Check if form has actual changes (only show dialog if there are changes)
-        if (editMode && hasFormChanges()) {
+    // Enable/disable Discard and Save based on dirty state (disabled on load when not dirty)
+    function updateSettingsActionButtons() {
+        const dirty = hasFormChanges();
+        const discardBtn = document.getElementById('discardBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        if (discardBtn) discardBtn.disabled = !dirty;
+        if (saveBtn) saveBtn.disabled = !dirty;
+    }
+
+    // W-161: Revert to last saved state (stay on page); no edit/view mode
+    // skipConfirm: true = revert without dialog (e.g. when SPA navigation already confirmed discard)
+    async function revertChanges(options = {}) {
+        const { revertTheme = true, skipConfirm = false } = options;
+        if (!skipConfirm && hasFormChanges()) {
             const result = await jPulse.UI.confirmDialog({
                 title: `{{i18n.view.user.settings.discardChangesTitle}}`,
                 message: `{{i18n.view.user.settings.discardChangesMessage}}`,
-                buttons: [`{{i18n.view.user.settings.backToEdit}}`, `{{i18n.view.user.settings.discardChanges}}`]
+                buttons: [`{{i18n.view.user.settings.keepEditing}}`, `{{i18n.view.user.settings.discardChanges}}`]
             });
-            if (result.button === `{{i18n.view.user.settings.backToEdit}}`) {
+            if (result.button === `{{i18n.view.user.settings.keepEditing}}`) {
                 return;
             }
         }
 
-        editMode = false;
-
-        // Remove edit mode class from container
-        const container = document.querySelector('.jp-container-800');
-        container.classList.remove('jp-edit-mode');
-
-        // Restore original values
+        // Restore form fields and plugin data from baseline (clears dirty state)
         Object.keys(originalValues).forEach(key => {
             const field = document.getElementById(key);
             if (field) {
                 field.value = originalValues[key];
+            } else {
+                currentUserData[key] = originalValues[key];
             }
         });
+        renderPluginCards();
 
-        // W-129: Revert any temporary theme preview changes
         if (revertTheme) {
             const themeField = document.getElementById('theme');
             const revertThemeId = themeField ? (themeField.value || originalThemePreview || 'light') : (originalThemePreview || 'light');
             applyThemePreview(revertThemeId);
         }
 
-        // Disable editing for profile fields
-        ['firstName', 'lastName', 'nickName'].forEach(id => {
-            const field = document.getElementById(id);
-            field.readOnly = true;
-            field.classList.add('jp-read-only-field');
-        });
-
-        // Disable editing for preference fields
-        ['language', 'theme'].forEach(id => {
-            const field = document.getElementById(id);
-            field.disabled = true;
-            field.classList.add('jp-read-only-field');
-        });
-
-        // Hide password fields and clear them
         jPulse.dom.hide(document.getElementById('passwordFields'));
         ['currentPassword', 'newPassword', 'confirmPassword'].forEach(id => {
-            document.getElementById(id).value = '';
+            const el = document.getElementById(id);
+            if (el) el.value = '';
         });
-
-        // Update buttons
-        jPulse.dom.show(document.getElementById('editBtn'));
-        jPulse.dom.hide(document.getElementById('saveBtn'));
-        jPulse.dom.hide(document.getElementById('cancelBtn'));
+        if (securityCollapsible && securityCollapsible.isExpanded()) {
+            securityCollapsible.collapse();
+        }
+        updateSettingsActionButtons();
     }
 
     async function saveProfile() {
@@ -416,28 +384,27 @@
             jPulse.UI.toast.success(successMessage);
 
             // W-129: Apply updated theme immediately (no page reload needed)
-            (function applyThemeIfChanged() {
-                const newThemeRaw = profileData?.preferences?.theme || 'light';
-                const newTheme = (/^[a-zA-Z0-9_-]+$/.test(newThemeRaw) ? newThemeRaw : 'light');
-                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newThemeRaw = profileData?.preferences?.theme || 'light';
+            const newTheme = (/^[a-zA-Z0-9_-]+$/.test(newThemeRaw) ? newThemeRaw : 'light');
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            if (newTheme !== currentTheme) {
+                applyThemePreview(newTheme);
+            }
+            originalThemePreview = newTheme;
 
-                if (newTheme !== currentTheme) {
-                    // Use the same preview helper (updates theme CSS + Prism CSS)
-                    applyThemePreview(newTheme);
-                }
-
-                // Ensure the "original" theme for this edit session reflects the saved state
-                originalThemePreview = newTheme;
-                if (originalValues && typeof originalValues === 'object') {
-                    originalValues.theme = newTheme;
-                }
-            })();
-
-            // Exit edit mode and reload data
-            editMode = false;
-            // Do not revert theme after save (keep the saved theme active)
-            cancelEdit({ revertTheme: false });
             await loadSettingsProfile();
+            originalValues = JSON.parse(JSON.stringify(getCurrentFormValues()));
+
+            // Collapse security and clear password fields
+            jPulse.dom.hide(document.getElementById('passwordFields'));
+            ['currentPassword', 'newPassword', 'confirmPassword'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            if (securityCollapsible && securityCollapsible.isExpanded()) {
+                securityCollapsible.collapse();
+            }
+            updateSettingsActionButtons();
 
         } catch (error) {
             jPulse.UI.toast.error(`{{i18n.view.user.settings.networkError}}`.replace('%ERROR%', error.message));
@@ -769,13 +736,8 @@
             if (result.button !== '{{i18n.view.user.settings.continue}}') return;
         }
 
-        // Handle different action types
+        // Handle different action types (W-161: always edit, no toggle)
         if (action.setFields) {
-            // Enter edit mode FIRST to capture original values before modification
-            if (!editMode) {
-                toggleEditMode();
-            }
-
             // Apply setFields to currentUserData (local modification)
             for (const [path, value] of Object.entries(action.setFields)) {
                 setSettingsNestedValue(currentUserData, path, value);
@@ -789,8 +751,7 @@
                 jPulse.UI.toast.info(action.toast);
             }
         } else if (action.navigate) {
-            // Check for unsaved changes
-            if (editMode) {
+            if (hasFormChanges()) {
                 const result = await jPulse.UI.confirmDialog({
                     title: `{{i18n.view.user.settings.unsavedChangesTitle}}`,
                     message: `{{i18n.view.user.settings.unsavedChangesMessage}}`,

@@ -1,6 +1,26 @@
-# jPulse Docs / Version History v1.6.17
+# jPulse Docs / Version History v1.6.18
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.18, W-161, 2026-02-18
+
+**Commit:** `W-161, v1.6.18: user view: user settings with single edit mode`
+
+**FEATURE RELEASE**: User settings page has a single always-edit mode (no view/edit toggle). **(1) Settings UI:** Back, Discard, Save Changes; Discard and Save buttons disabled when form is not dirty, enabled on input/change. **(2) In-SPA navigation:** When leaving /user/settings with unsaved changes, jPulse confirm dialog (Keep Editing / Discard Changes); on Discard Changes, revertChanges({ skipConfirm: true }) runs to clear dirty state then navigate so reload on profile does not prompt. **(3) Browser Back:** When returning via Back from another page (e.g. docs), page may be restored from bfcache with old dirty state; pageshow(persisted) calls revertChanges({ skipConfirm: true }) to clear dirty so reload does not prompt. **(4) beforeunload:** Only runs when pathname === '/user/settings' so reload on profile never prompts. **(5) Breadcrumb:** /user/settings shows User > Me > Settings (settings nested under me in jpulse-navigation.js). **(6) Other:** User SPA route titles (document.title per route); view.user.me i18n section; dashboard cards and translations use view.user.me.*; obsolete view.user.index keys removed.
+
+**Objective**: Settings is the place to change things; single mode, clear discard/save behavior, no stale dirty state after discard or Back.
+
+**Key Changes**:
+- **webapp/view/user/settings.tmpl**: View mode removed; originalValues after load; revertChanges(), hasFormChanges(), updateSettingsActionButtons(); beforeunload with pathname check; pageshow(persisted) to clear dirty on Back; revertChanges({ skipConfirm }) for SPA and pageshow; Discard and Save Changes buttons disabled when not dirty; plugin actions without toggleEditMode.
+- **webapp/view/user/index.shtml**: getSettingsDirty() on in-SPA link click; confirm dialog (Keep Editing / Discard Changes); on Discard Changes call revertChanges({ skipConfirm: true }) then navigateTo(); USER_SPA_ROUTE_TITLES and document.title in loadRoute().
+- **webapp/view/jpulse-navigation.js**: settings nested under me for breadcrumb User > Me > Settings.
+- **webapp/view/user/dashboard.tmpl**, **webapp/translations/en.conf**, **webapp/translations/de.conf**: dashboard cards use view.user.me.*; view.user.me section; obsolete view.user.index keys removed.
+- **docs/template-reference.md**, **docs/mpa-vs-spa.md**: Examples updated to view.user.me.*.
+
+**Work Item**: W-161
+**Version**: v1.6.18
+**Release Date**: 2026-02-18
 
 ________________________________________________
 ## v1.6.17, W-160, 2026-02-14

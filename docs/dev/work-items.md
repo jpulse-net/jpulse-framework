@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.17
+# jPulse Docs / Dev / Work Items v1.6.18
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5005,19 +5005,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/tests/unit/controller/view.test.js` tests:
     - W-159 _detectBodyDisableSidebars tests implemented
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-160, v1.6.17, 2026-02-14: redis: get cache object by key pattern
-- status: PENDING
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - allow listing cache entries by key pattern via the Redis wrapper only (no raw Redis in site/plugins)
@@ -5039,6 +5028,50 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/tests/unit/utils/redis-cache.test.js`:
     - mock mget; describe "Get by pattern (W-160)" (cacheGetByPattern + cacheGetObjectsByPattern tests)
     - graceful fallback assertions
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-161, v1.6.18, 2026-02-18: user view: user settings with single edit mode
+- status: 🕑 PENDING
+- type: Feature
+- objective: settings page has only one mode — always edit, no more view/edit toggle
+- features:
+  - remove the view/edit toggle; align with profile (/user/me) vs settings (/user/settings) split so settings is the place to change things
+  - [← Back] link to /user/me; [Discard] = revert in place and stay on /user/settings; [Save Changes] = save and stay on page (no redirect)
+  - Discard and Save Changes buttons disabled when form not dirty; enabled on input/change
+  - in-SPA navigation from settings: when user confirms Discard Changes in jPulse dialog, `revertChanges({ skipConfirm: true })` runs to clear dirty state, then navigate (reload on profile no longer prompts)
+  - browser Back from another page (e.g. docs): pageshow(persisted) clears dirty via `revertChanges({ skipConfirm: true })` so reload does not prompt
+  - beforeunload only when pathname === '/user/settings' (avoids prompt on reload of profile after in-SPA navigate)
+  - breadcrumb on /user/settings shows "… User > Me > Settings" by nesting settings under me in site nav (jpulse-navigation.js)
+  - user SPA route titles (document.title) per route; view.user.me i18n section; settings/me/dashboard translation cleanup
+- deliverables:
+  - `webapp/view/user/settings.tmpl`:
+    - done: view mode removed (no Edit button, no toggleEditMode); fields always editable; Security collapsible only; originalValues set after load; revertChanges() and hasFormChanges(); beforeunload (pathname check); pageshow(persisted) to clear dirty on Back; updateSettingsActionButtons() so Discard/Save Changes disabled when not dirty; revertChanges({ skipConfirm }) for SPA discard and pageshow; plugin actions without toggleEditMode
+  - `webapp/view/jpulse-navigation.js`:
+    - done: nest `settings` under `me` (user.pages.me.pages.settings) so breadcrumb is User > Me > Settings; url/labels/hideInDropdown kept
+  - `webapp/view/user/index.shtml`:
+    - done: getSettingsDirty() used on in-SPA link click; confirm dialog (Keep Editing / Discard Changes); on Discard Changes call revertChanges({ skipConfirm: true }) then navigateTo(); route titles (USER_SPA_ROUTE_TITLES, document.title in loadRoute)
+  - `webapp/view/user/dashboard.tmpl`, `webapp/translations/en.conf`, `webapp/translations/de.conf`:
+    - done: dashboard cards use view.user.me.*; view.user.me section (title, titleDesc, settings, settingsDesc, adminDashboard, adminDashboardDesc, lastLogin, accountStatus, memberSince, never, unknown); obsolete keys removed from view.user.index
+  - optional: test in `webapp/tests/unit/utils/jpulse-ui-navigation.test.js` for breadcrumb trail on /user/settings including Me (not done)
+
+
+
+
+
+
+
+
+pending:
+- enter in confirm dialog means 'yes', or better, enable and set enter-button in options
+- user settings page only edit mode, not view & edit
 
 
 
@@ -5071,8 +5104,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-160, v1.6.17, 2026-02-14
-- update deliverables in W-160 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-161, v1.6.18, 2026-02-18
+- update features & deliverables in W-161 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5083,12 +5116,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.17
+node bin/bump-version.js 1.6.18
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.17
+git tag v1.6.18
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

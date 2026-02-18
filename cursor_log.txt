@@ -18110,3 +18110,27 @@ Release prep for W-160 v1.6.17 (2026-02-14): Updated work-items.md W-160 deliver
 
 
 ============================================================
+2026-02-18 11:00
+
+ok, makes sense - in this case we should add me into the breadcrumb between users and settings. create work item @work-items.md (5041-5049), follow same pattern like existing ones.
+
+Created W-161 work item in docs/dev/work-items.md: "user: breadcrumb for settings includes Me between User and Settings". Objective: on /user/settings breadcrumb shows ... User > Me > Settings. Approach: nest settings under me in site nav (jpulse-navigation.js) so breadcrumb trail auto-includes Me. Deliverables: jpulse-navigation.js nest settings under me; optional test for breadcrumb trail. Followed existing work item pattern (objective, approach, deliverables with path and bullets).
+
+
+============================================================
+2026-02-18 12:30
+
+stuck?
+
+Completed obsolete-key balance: dashboard.tmpl now uses view.user.me.* for all three nav cards (title, titleDesc, settings, settingsDesc, adminDashboard, adminDashboardDesc). Added view.user.me.titleDesc in en.conf and de.conf. Removed from view.user.index in both: myDashboard, myDashboardDesc, settings, settingsDesc, adminDashboard, adminDashboardDesc. Updated docs (template-reference.md, mpa-vs-spa.md) to use view.user.me.*. Net: 11 keys in me (10 + titleDesc), 11 removed from index (5 earlier + 6 here).
+
+
+============================================================
+2026-02-18 13:55
+
+release prep: @work-items.md (5094-5102) (but omit run tests)
+
+Release prep done (tests omitted): Updated W-161 features & deliverables in docs/dev/work-items.md to document work done (single edit mode, Back/Discard/Save, dirty state, in-SPA discard clear, pageshow clear on Back, beforeunload pathname check, breadcrumb, route titles, view.user.me i18n). Added v1.6.18 to README.md and docs/README.md Latest Release Highlights. Added v1.6.18 W-161 entry to docs/CHANGELOG.md and updated doc title to v1.6.18. Updated commit-message.txt in same format as W-160. Appended this to cursor_log.txt. Version bump not done (per instructions).
+
+
+============================================================

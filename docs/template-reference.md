@@ -1,4 +1,4 @@
-# jPulse Docs / Template Reference v1.6.17
+# jPulse Docs / Template Reference v1.6.18
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -269,7 +269,7 @@ The i18n system supports handlebars-style variable substitution within translati
 {{!-- Template usage: --}}
 <div class="welcome-message">
     <h2>{{i18n.view.home.welcomeBack}}</h2>     <!-- Welcome back, John! -->
-    <p>{{i18n.view.user.index.lastLogin}}</p>   <!-- Last login: 2025-09-07 -->
+    <p>{{i18n.view.user.me.lastLogin}}</p>   <!-- Last login: 2025-09-07 -->
     <small>{{i18n.view.contact.emailNotification}}</small> <!-- Email sent to john@example.com -->
 </div>
 ```

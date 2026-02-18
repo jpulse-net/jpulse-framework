@@ -4,8 +4,8 @@
  * @tagline         User SPA - Dashboard template
  * @description     W-134: My Dashboard template of user profile SPA, authenticated only
  * @file            webapp/view/user/dashboard.tmpl
- * @version         1.6.17
- * @release         2026-02-14
+ * @version         1.6.18
+ * @release         2026-02-18
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,22 +15,22 @@
 {{#component "userSpa.meHtml"}}
 {{#if user.isAuthenticated}}
     <div class="jp-page-header">
-        <h1>{{i18n.view.user.index.myDashboard}}</h1>
+        <h1>{{i18n.view.user.me.title}}</h1>
     </div>
 
     <!-- User Stats -->
     <div class="jp-stats-grid" id="userStatsGrid">
         <div class="jp-stat-card">
             <div class="jp-stat-number" id="lastLogin">-</div>
-            <div class="jp-stat-label">{{i18n.view.user.index.lastLogin}}</div>
+            <div class="jp-stat-label">{{i18n.view.user.me.lastLogin}}</div>
         </div>
         <div class="jp-stat-card">
             <div class="jp-stat-number" id="accountStatus">-</div>
-            <div class="jp-stat-label">{{i18n.view.user.index.accountStatus}}</div>
+            <div class="jp-stat-label">{{i18n.view.user.me.accountStatus}}</div>
         </div>
         <div class="jp-stat-card">
             <div class="jp-stat-number" id="memberSince">-</div>
-            <div class="jp-stat-label">{{i18n.view.user.index.memberSince}}</div>
+            <div class="jp-stat-label">{{i18n.view.user.me.memberSince}}</div>
         </div>
     </div>
 
@@ -40,8 +40,8 @@
             <div class="jp-icon-container">
                 {{components.jpIcons.userSvg size="64" _inline=true}}
             </div>
-            <h3 class="jp-card-title">{{i18n.view.user.index.settings}}</h3>
-            <p class="jp-card-description">{{i18n.view.user.index.settingsDesc}}</p>
+            <h3 class="jp-card-title">{{i18n.view.user.me.settings}}</h3>
+            <p class="jp-card-description">{{i18n.view.user.me.settingsDesc}}</p>
         </a>
 
         {{#if user.isAdmin}}
@@ -49,8 +49,8 @@
             <div class="jp-icon-container">
                 {{components.jpIcons.configSvg size="64"}}
             </div>
-            <h3 class="jp-card-title">{{i18n.view.user.index.adminDashboard}}</h3>
-            <p class="jp-card-description">{{i18n.view.user.index.adminDashboardDesc}}</p>
+            <h3 class="jp-card-title">{{i18n.view.user.me.adminDashboard}}</h3>
+            <p class="jp-card-description">{{i18n.view.user.me.adminDashboardDesc}}</p>
         </a>
         {{/if}}
     </div>
@@ -80,14 +80,14 @@
                         const date = new Date(user.lastLogin);
                         lastLoginEl.textContent = date.toISOString().split('T')[0];
                     } else {
-                        lastLoginEl.textContent = '{{i18n.view.user.index.never}}';
+                        lastLoginEl.textContent = '{{i18n.view.user.me.never}}';
                     }
                 }
 
                 // Update account status
                 const statusEl = document.getElementById('accountStatus');
                 if (statusEl) {
-                    statusEl.textContent = user.status || '{{i18n.view.user.index.unknown}}';
+                    statusEl.textContent = user.status || '{{i18n.view.user.me.unknown}}';
                 }
 
                 // Update member since
@@ -97,7 +97,7 @@
                         const date = new Date(user.createdAt);
                         memberSinceEl.textContent = date.toISOString().split('T')[0];
                     } else {
-                        memberSinceEl.textContent = '{{i18n.view.user.index.unknown}}';
+                        memberSinceEl.textContent = '{{i18n.view.user.me.unknown}}';
                     }
                 }
             }

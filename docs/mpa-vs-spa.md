@@ -1,4 +1,4 @@
-# jPulse Docs / MPA vs. SPA: Architecture Comparison v1.6.17
+# jPulse Docs / MPA vs. SPA: Architecture Comparison v1.6.18
 
 Understanding the key differences between Multi-Page Applications (MPA) and Single Page Applications (SPA) helps you choose the right architecture for your web application.
 
@@ -344,7 +344,7 @@ webapp/view/user/
             {{#each appConfig.view.user.index.withAuth.navCards}}
                 {{#if (eq this "me")}}
                 <a href="/user/me" class="jp-card-dashboard jp-icon-btn">
-                    <h3>{{i18n.view.user.index.myDashboard}}</h3>
+                    <h3>{{i18n.view.user.me.title}}</h3>
                 </a>
                 {{/if}}
             {{/each}}

@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.18
+# jPulse Docs / jPulse.UI Widget Reference v1.6.19
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -762,6 +762,28 @@ jPulse.UI.tooltip.init('.my-dialog-container');
 // Initialize all tooltips in a container (by element)
 const dialog = document.getElementById('my-dialog');
 jPulse.UI.tooltip.init(dialog);
+```
+
+#### `jPulse.UI.tooltip.closeActive()`
+
+Programmatically close the currently active tooltip immediately. Cancels any pending show/hide timers and resets internal active state. Safe to call when no tooltip is active (no-op).
+
+**Parameters:** None.
+
+**Returns:** Nothing.
+
+**Examples:**
+```javascript
+// Close the active tooltip when the user starts panning a canvas
+canvas.addEventListener('pointerdown', () => {
+    jPulse.UI.tooltip.closeActive();
+    startPanning();
+});
+
+// Close tooltip on any custom event (e.g., opening a sidebar)
+sidebar.addEventListener('jp-sidebar-open', () => {
+    jPulse.UI.tooltip.closeActive();
+});
 ```
 
 ### HTML Attributes

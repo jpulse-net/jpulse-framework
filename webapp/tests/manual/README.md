@@ -1,4 +1,4 @@
-# jPulse Framework / WebApp / Tests / Manual / Manual Testing Guide v1.6.18
+# jPulse Framework / WebApp / Tests / Manual / Manual Testing Guide v1.6.19
 
 ## Overview
 

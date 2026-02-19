@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.18
- * @release         2026-02-18
+ * @version         1.6.19
+ * @release         2026-02-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -5679,6 +5679,17 @@ window.jPulse = {
                 } else {
                     // Otherwise, treat as container and initialize all tooltips within it
                     this.initAll(element);
+                }
+            },
+
+            /**
+             * Programmatically close the currently active tooltip immediately.
+             * Cancels any pending show/hide timers and resets active state.
+             * Safe to call when no tooltip is active (no-op).
+             */
+            closeActive: function() {
+                if (this._activeTooltip) {
+                    this._hideTooltipImmediate(this._activeTooltip);
                 }
             },
 

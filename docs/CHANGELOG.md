@@ -1,6 +1,24 @@
-# jPulse Docs / Version History v1.6.18
+# jPulse Docs / Version History v1.6.19
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.19, W-162, 2026-02-19
+
+**Commit:** `W-162, v1.6.19: jPulse.UI: programmatically dismiss jPulse tooltips`
+
+**FEATURE RELEASE**: New public API `jPulse.UI.tooltip.closeActive()` to programmatically dismiss the active tooltip immediately without synthesizing keyboard events. **(1) API:** `jPulse.UI.tooltip.closeActive()` — cancels any pending show/hide timers, removes `jp-tooltip-show` class, and resets `_activeTooltip`/`_activeTrigger` state; safe no-op when no tooltip is active. Delegates to the existing private `_hideTooltipImmediate()`. Works regardless of trigger type (hover, focus, touch tap). **(2) Docs:** `docs/jpulse-ui-reference.md` — new `closeActive()` API section with parameters (none), return value (nothing), and two practical examples (canvas pan via `pointerdown`, sidebar open via custom event). **(3) Tests:** `jpulse-ui-widgets.test.js` — new `jPulse.UI Tooltip Widget (W-162)` describe block with 6 tests across 3 groups: no active tooltip (safe no-op); active visible tooltip (removes show class, clears `_activeTooltip`, clears `_activeTrigger`); pending show timer (timer cancelled, tooltip does not appear after close). All tests pass.
+
+**Objective**: Provide a clean, supported way to dismiss tooltips from app code without synthesizing Escape key events, eliminating side effects in applications that use canvas panning, sidebar interactions, or other UI gestures.
+
+**Key Changes**:
+- **webapp/view/jpulse-common.js**: `jPulse.UI.tooltip.closeActive()` added as a public method (after `init`); delegates to `_hideTooltipImmediate(this._activeTooltip)` with null guard.
+- **docs/jpulse-ui-reference.md**: `closeActive()` section added after `init()` in the Tooltip API Reference; parameters, return value, and two usage examples.
+- **webapp/tests/unit/utils/jpulse-ui-widgets.test.js**: `jPulse.UI Tooltip Widget (W-162)` describe block with 6 unit tests; file header updated to v1.6.19.
+
+**Work Item**: W-162
+**Version**: v1.6.19
+**Release Date**: 2026-02-19
 
 ________________________________________________
 ## v1.6.18, W-161, 2026-02-18

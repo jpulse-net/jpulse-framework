@@ -4,8 +4,8 @@
  * @description     Provides efficient in-memory counters with rolling time windows
  *                  for tracking events (emails sent, pages served, etc.) over time
  * @file            webapp/utils/time-based-counters.js
- * @version         1.6.18
- * @release         2026-02-18
+ * @version         1.6.19
+ * @release         2026-02-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

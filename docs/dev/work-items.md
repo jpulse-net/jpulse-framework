@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.18
+# jPulse Docs / Dev / Work Items v1.6.19
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5029,17 +5029,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - mock mget; describe "Get by pattern (W-160)" (cacheGetByPattern + cacheGetObjectsByPattern tests)
     - graceful fallback assertions
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-161, v1.6.18, 2026-02-18: user view: user settings with single edit mode
-- status: 🕑 PENDING
+- status: ✅ DONE
 - type: Feature
 - objective: settings page has only one mode — always edit, no more view/edit toggle
 - features:
@@ -5065,6 +5056,60 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-162, v1.6.19, 2026-02-19: jPulse.UI: programmatically dismiss jPulse tooltips
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - provide a supported way for applications to programmatically dismiss the active tooltip (desktop + mobile), without synthesizing keyboard events
+  - prevent app-level side effects caused by workarounds that dispatch synthetic `Escape` key events to close tooltips
+- features:
+  - public tooltip dismissal API: `jPulse.UI.tooltip.closeActive()`
+  - works regardless of trigger type (hover, focus, touch tap)
+  - no dependency on keyboard event synthesis
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - done: added `jPulse.UI.tooltip.closeActive()` as a public API; immediately hides active tooltip, cancels pending show/hide timers, resets `_activeTooltip`/`_activeTrigger` state; delegates to existing `_hideTooltipImmediate()`
+  - `docs/jpulse-ui-reference.md`:
+    - done: documented `jPulse.UI.tooltip.closeActive()`, parameters (none), and examples (canvas pan, sidebar open)
+  - `webapp/tests/unit/utils/jpulse-ui-widgets.test.js`:
+    - done: added jPulse.UI Tooltip Widget (W-162) describe block with 6 tests (no-op, hide visible tooltip, clear `_activeTooltip`/`_activeTrigger`, cancel pending show timer, no show after close)
+
+
+
+
+
+
+
+
+### W-163, v1.6.20, 2026-02-20: jPulse dialog: keyboard nav with default behavior
+- status: 🕑 PENDING
+- objective: make dialog boxes easy to navigate by keyboard: select OK/Cancel (or custom button row), define default button and initial focus; support custom dialogs with input fields
+- design notes:
+  - defaultButton: `0 | 1 | 'OK' | 'Cancel'` (index or button label)
+    - which button gets default styling and, when enterActivatesDefault is on, Enter-from-content action
+  - custom dialogs with inputs:
+    - define default Enter action when focus is in an input (e.g. submit = activate default button)
+    - enable with a flag; default off for backward compatibility
+    - example: `enterActivatesDefault: true`
+  - initial focus: configurable
+    - option e.g. `initialFocus: 'defaultButton' | 'firstInput' | 'first'`
+      - `'first'` = current behavior (first focusable in DOM order)
+      - `'defaultButton'` = focus the default button when dialog opens
+      - `'firstInput'` = focus first input (if any), else fallback to default button or first
+  - Tab cycle: all focusable (inputs + buttons) in DOM order
+    - current behavior; keep it
+    - standard and accessible
+    - Tab/Shift+Tab cycle the whole dialog
+    - no "inputs only" mode (that would trap users in inputs without a clear way to reach buttons)
+- deliverables:
+  - FIXME `path/file`:
+    - FIXME summary
 
 
 
@@ -5104,8 +5149,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-161, v1.6.18, 2026-02-18
-- update features & deliverables in W-161 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-162, v1.6.19, 2026-02-19
+- update features & deliverables in W-162 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5116,12 +5161,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.18
+node bin/bump-version.js 1.6.19
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.18
+git tag v1.6.19
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

@@ -1,10 +1,10 @@
 /**
  * @name            jPulse Framework / WebApp / Tests / Unit / Utils / jPulse UI Widgets
- * @tagline         Unit Tests for jPulse.UI Dialog and Accordion Widgets (W-048)
- * @description     Tests for client-side UI widgets: alertDialog, infoDialog, accordion
+ * @tagline         Unit Tests for jPulse.UI Dialog, Accordion, Tab, and Tooltip Widgets
+ * @description     Tests for client-side UI widgets: alertDialog, infoDialog, accordion, tabs, tooltip
  * @file            webapp/tests/unit/utils/jpulse-ui-widgets.test.js
- * @version         1.6.18
- * @release         2026-02-18
+ * @version         1.6.19
+ * @release         2026-02-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -989,6 +989,111 @@ describe('jPulse.UI Tabs Widget (W-064)', () => {
                 expect(panel2.classList.contains('jp-panel-active')).toBe(true);
                 done();
             }, 200);
+        });
+    });
+});
+
+describe('jPulse.UI Tooltip Widget (W-162)', () => {
+
+    beforeEach(() => {
+        document.body.innerHTML = '';
+        // Reset tooltip state between tests
+        window.jPulse.UI.tooltip._activeTooltip = null;
+        window.jPulse.UI.tooltip._activeTrigger = null;
+        window.jPulse.UI.tooltip._tooltipTimers = new WeakMap();
+    });
+
+    afterEach(() => {
+        // Remove any tooltip popups added to the body
+        document.querySelectorAll('.jp-tooltip-popup').forEach(el => el.remove());
+    });
+
+    describe('closeActive() - no active tooltip', () => {
+        test('should be a no-op when no tooltip is active', () => {
+            expect(() => {
+                window.jPulse.UI.tooltip.closeActive();
+            }).not.toThrow();
+            expect(window.jPulse.UI.tooltip._activeTooltip).toBeNull();
+            expect(window.jPulse.UI.tooltip._activeTrigger).toBeNull();
+        });
+    });
+
+    describe('closeActive() - with active tooltip', () => {
+        let trigger, tooltipEl;
+
+        beforeEach(() => {
+            // Set up a trigger element
+            document.body.innerHTML = `
+                <button id="tip-trigger" class="jp-tooltip" data-tooltip="Hello">Hover</button>
+            `;
+            trigger = document.getElementById('tip-trigger');
+            window.jPulse.UI.tooltip.init(trigger);
+            tooltipEl = trigger._jpTooltip;
+
+            // Manually mark the tooltip as active and visible (simulates a shown tooltip)
+            tooltipEl.classList.add('jp-tooltip-show');
+            window.jPulse.UI.tooltip._activeTooltip = tooltipEl;
+            window.jPulse.UI.tooltip._activeTrigger = trigger;
+        });
+
+        test('should remove jp-tooltip-show class from active tooltip', () => {
+            expect(tooltipEl.classList.contains('jp-tooltip-show')).toBe(true);
+
+            window.jPulse.UI.tooltip.closeActive();
+
+            expect(tooltipEl.classList.contains('jp-tooltip-show')).toBe(false);
+        });
+
+        test('should clear _activeTooltip state', () => {
+            window.jPulse.UI.tooltip.closeActive();
+
+            expect(window.jPulse.UI.tooltip._activeTooltip).toBeNull();
+        });
+
+        test('should clear _activeTrigger state', () => {
+            window.jPulse.UI.tooltip.closeActive();
+
+            expect(window.jPulse.UI.tooltip._activeTrigger).toBeNull();
+        });
+    });
+
+    describe('closeActive() - with pending show timer', () => {
+        let trigger, tooltipEl;
+
+        beforeEach(() => {
+            jest.useFakeTimers();
+            document.body.innerHTML = `
+                <button id="tip-trigger2" class="jp-tooltip" data-tooltip="Hello">Hover</button>
+            `;
+            trigger = document.getElementById('tip-trigger2');
+            window.jPulse.UI.tooltip.init(trigger);
+            tooltipEl = trigger._jpTooltip;
+
+            // Simulate a pending show: set active but showTimer not yet fired
+            window.jPulse.UI.tooltip._activeTooltip = tooltipEl;
+            window.jPulse.UI.tooltip._activeTrigger = trigger;
+            const timers = { showTimer: setTimeout(() => {}, 5000), hideTimer: null };
+            window.jPulse.UI.tooltip._tooltipTimers.set(tooltipEl, timers);
+        });
+
+        afterEach(() => {
+            jest.useRealTimers();
+        });
+
+        test('should cancel pending show timer', () => {
+            window.jPulse.UI.tooltip.closeActive();
+
+            const timers = window.jPulse.UI.tooltip._tooltipTimers.get(tooltipEl);
+            expect(timers.showTimer).toBeNull();
+        });
+
+        test('should not show the tooltip after closeActive() even when timer fires', () => {
+            window.jPulse.UI.tooltip.closeActive();
+
+            // Advance timers — tooltip should not appear
+            jest.runAllTimers();
+
+            expect(tooltipEl.classList.contains('jp-tooltip-show')).toBe(false);
         });
     });
 });

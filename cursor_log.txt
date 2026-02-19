@@ -18134,3 +18134,34 @@ Release prep done (tests omitted): Updated W-161 features & deliverables in docs
 
 
 ============================================================
+
+2026-02-18 16:00
+
+I like: defaultButton 0|1|'OK'|'Cancel'; custom dialogs have input fields so default enter action needs to be defined (enabled with flag? default off?); define which field has initial focus?; should tab cycle just among input elements or all around including buttons?
+
+Refined dialog keyboard-nav idea and added it to docs/dev/work-items.md as "W-0: dialog keyboard nav and default button (Idea)": defaultButton (index or label), enterActivatesDefault flag default off, initialFocus 'defaultButton'|'firstInput'|'first', Tab cycles all focusable (inputs + buttons).
+
+
+============================================================
+
+2026-02-19 00:45
+
+W-162, v1.6.19: jPulse.UI: add programmatic close of jPulse tooltips
+
+Reviewed and updated W-162 spec (fixed typo, locked to closeActive(), corrected doc path, removed escape-handler language). Implemented in three files:
+- webapp/view/jpulse-common.js: added public closeActive() method to jPulse.UI.tooltip, delegating to _hideTooltipImmediate() with a null guard
+- docs/jpulse-ui-reference.md: documented closeActive() with parameters (none) and two usage examples (canvas pan, sidebar open)
+- webapp/tests/unit/utils/jpulse-ui-widgets.test.js: added jPulse.UI Tooltip Widget (W-162) describe block with 6 passing tests (no-op, hide visible tooltip, clear _activeTooltip/_activeTrigger, cancel pending show timer, no show after close); updated file header to v1.6.19
+All tests pass.
+
+
+============================================================
+
+2026-02-19 01:00
+
+sorry for my mess, reorg again! assume release: W-162, v1.6.19, 2026-02-19
+
+Release prep for W-162, v1.6.19 (tooltip closeActive). Re-organized work-items.md: W-162 (tooltip) set to DONE with actual deliverables; W-163 (jPulse dialog keyboard nav) kept as PENDING future item with typo fix (keybaord→keyboard). Updated README.md and docs/README.md Latest Release Highlights (added v1.6.19 W-162 entry). Updated docs/CHANGELOG.md: title bumped to v1.6.19, new v1.6.19 W-162 section added. Created commit-message.txt for W-162, v1.6.19. Version bump not done (per instructions).
+
+
+============================================================

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.18
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.19
 
 **For Site Administrators & Site Developers**
 
@@ -227,6 +227,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.19 - jPulse.UI.tooltip.closeActive() (W-162)**: New public API `jPulse.UI.tooltip.closeActive()` to programmatically dismiss the active tooltip immediately — no synthetic keyboard events needed. Cancels pending show/hide timers and resets internal active state; safe no-op when no tooltip is active. docs/jpulse-ui-reference.md: new `closeActive()` section with parameter docs and examples. Unit tests: 6 new tests. W-162, 2026-02-19
 - ✅ **Version 1.6.18 - User settings single edit mode (W-161)**: Settings always-edit; Back/Discard/Save; buttons disabled when not dirty. In-SPA: discard dialog (Keep Editing / Discard Changes); on Discard Changes clear state then navigate; pageshow(persisted) clears dirty on Back; beforeunload only on settings path. Breadcrumb User > Me > Settings. Route titles, view.user.me i18n. W-161, 2026-02-18
 - ✅ **Version 1.6.17 - Redis: get cache by key pattern (W-160)**: cacheGetByPattern(path, keyPattern) → string[]; cacheGetObjectsByPattern(path, keyPattern) → Object[]. Same path/keyPattern as cacheDelPattern; SCAN + MGET; [] when Redis down. Docs: cache-infrastructure.md, api-reference.md, genai-instructions.md. Unit tests redis-cache.test.js. W-160, 2026-02-14
 - ✅ **Version 1.6.16 - View: disable sidebars per page (W-159)**: Pages can disable left/right sidebars by setting `<body data-jp-disable-sidebars="true">` in the view. Framework detects the attribute at view load, sets `pageDisableSidebars` in Handlebars context, and footer omits sidebar/backdrop markup; JS skips move and sidebar init. Single source of truth; no new globals; CSP-friendly. Docs: sidebars.md "Disable sidebars per page". Homepage example. W-159, 2026-02-12

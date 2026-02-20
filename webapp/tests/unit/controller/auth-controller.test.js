@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         1.6.19
- * @release         2026-02-19
+ * @version         1.6.20
+ * @release         2026-02-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -67,9 +67,7 @@ describe('AuthController', () => {
         mockNext = jest.fn();
 
         // W-105: Clear HookManager hooks to isolate tests
-        if (global.HookManager) {
-            global.HookManager.clear();
-        }
+        global.HookManager?.clear?.();
 
         // Mock i18n translate function with new signature: translate(req, key, context)
         global.i18n = {
@@ -662,6 +660,90 @@ describe('AuthController', () => {
 
             // Should call authenticate with username/password
             expect(UserModelMock.authenticate).toHaveBeenCalledWith('testuser', 'testpass');
+        });
+    });
+
+    describe('getStatus (W-163)', () => {
+        test('should return authenticated:true with username and roles when session is active', async () => {
+            mockReq.session.user = {
+                isAuthenticated: true,
+                username: 'jsmith',
+                roles: ['user', 'editor']
+            };
+
+            await AuthController.getStatus(mockReq, mockRes);
+
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: true,
+                data: {
+                    authenticated: true,
+                    username: 'jsmith',
+                    roles: ['user', 'editor']
+                }
+            });
+        });
+
+        test('should return authenticated:false when session has no user', async () => {
+            mockReq.session = {};
+
+            await AuthController.getStatus(mockReq, mockRes);
+
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: true,
+                data: { authenticated: false }
+            });
+        });
+
+        test('should return authenticated:false when isAuthenticated is false', async () => {
+            mockReq.session.user = { isAuthenticated: false, username: 'jsmith' };
+
+            await AuthController.getStatus(mockReq, mockRes);
+
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: true,
+                data: { authenticated: false }
+            });
+        });
+
+        test('should return authenticated:false when session is missing', async () => {
+            delete mockReq.session;
+
+            await AuthController.getStatus(mockReq, mockRes);
+
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: true,
+                data: { authenticated: false }
+            });
+        });
+
+        test('should return empty roles array when user has no roles', async () => {
+            mockReq.session.user = {
+                isAuthenticated: true,
+                username: 'jsmith'
+                // no roles property
+            };
+
+            await AuthController.getStatus(mockReq, mockRes);
+
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: true,
+                data: {
+                    authenticated: true,
+                    username: 'jsmith',
+                    roles: []
+                }
+            });
+        });
+
+        test('should always return HTTP 200 regardless of auth state', async () => {
+            mockReq.session = {};
+
+            await AuthController.getStatus(mockReq, mockRes);
+
+            expect(mockRes.status).not.toHaveBeenCalled();
+            expect(mockRes.json).toHaveBeenCalledWith(
+                expect.objectContaining({ success: true })
+            );
         });
     });
 });

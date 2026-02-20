@@ -1,6 +1,34 @@
-# jPulse Docs / Version History v1.6.19
+# jPulse Docs / Version History v1.6.20
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.20, W-163, 2026-02-20
+
+**Commit:** `W-163, v1.6.20: auth: add status endpoint; WS: add session-expiry signal; jPulse.UI: confirmDialog onClose fix`
+
+**FEATURE + BUGFIX RELEASE**: Three improvements surfaced by T-009 site app feedback. **(1) Auth status endpoint:** New `GET /api/1/auth/status` — lightweight REST endpoint that reads only `req.session`, zero DB queries, always returns HTTP 200. Authenticated: `{ success:true, data:{ authenticated:true, username, roles } }`. Unauthenticated: `{ success:true, data:{ authenticated:false } }`. Ideal for polling session state from client apps. **(2) WebSocket session-expiry signal (Option B — heartbeat auth check):** Server re-validates the session cookie on every ping cycle for clients on a `requireAuth` namespace. On expiry: sends `{ success:false, code:'SESSION_EXPIRED' }` message then closes socket with WS close code 4401. Client library maps 4401 → `'auth-required'` status, removes connection from registry, suppresses auto-reconnect. Apps handle `onStatusChange('auth-required')` with a redirect to login. **(3) confirmDialog onClose bug fix:** `config.onClose` was silently ignored on all close paths because `_closeDialog` had no reference to the config object. Fix: store callback as `overlay._onCloseCallback` at dialog creation time; `_closeDialog` invokes and clears it (with try/catch) before the animate-out sequence. Now fires on button click, ESC key, and programmatic close.
+
+**Objectives**:
+- Ability to query login status without DB queries via a clean, documented REST endpoint
+- Ability to detect expired sessions in WebSocket clients without polling
+- Fix `confirmDialog({ onClose })` callback being silently ignored
+
+**Key Changes**:
+- **webapp/controller/auth.js**: `static async getStatus(req, res)` — pure session read, no logging, always 200
+- **webapp/routes.js**: `GET /api/1/auth/status` → `AuthController.getStatus`
+- **webapp/controller/websocket.js**: `_onConnection` stores upgrade `req` on client; `_startHealthChecks` re-validates session per ping cycle for `requireAuth` namespaces; sends `SESSION_EXPIRED` + `ws.close(4401)` on expiry
+- **webapp/view/jpulse-common.js**: `onclose` detects code 4401, surfaces `'auth-required'`, suppresses reconnect; `onmessage` swallows `SESSION_EXPIRED` notice; `confirmDialog` stores `config.onClose` as `overlay._onCloseCallback`; `_closeDialog` invokes and clears `overlay._onCloseCallback`
+- **docs/api-reference.md**: Authentication Status endpoint section with request/response examples
+- **docs/websockets.md**: `onStatusChange`/`getStatus` updated with `'auth-required'`; new "Handle Session Expiry" best-practices section
+- **docs/security-and-auth.md**: `GET /api/1/auth/status` added to Public Endpoints list
+- **docs/jpulse-ui-reference.md**: `confirmDialog` onClose description clarified — fires on all close paths
+- **webapp/tests/unit/controller/auth-controller.test.js**: `getStatus (W-163)` describe block with 6 tests; fixed pre-existing `HookManager.clear()` guard
+- **webapp/tests/unit/utils/jpulse-ui-widgets.test.js**: `confirmDialog - onClose callback (W-163)` describe block with 4 tests
+
+**Work Item**: W-163
+**Version**: v1.6.20
+**Release Date**: 2026-02-20
 
 ________________________________________________
 ## v1.6.19, W-162, 2026-02-19

@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.6.19
+# jPulse Docs / Security & Authentication v1.6.20
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -216,6 +216,7 @@ if (AuthController.isAuthorized(req, '_public')) {
 #### Public Endpoints (No Authentication Required)
 
 - `POST /api/1/auth/login` - User login
+- `GET /api/1/auth/status` - Session authentication status (zero DB queries)
 - `GET /api/1/health/status` - System health check
 
 #### Authenticated Endpoints (Login Required)

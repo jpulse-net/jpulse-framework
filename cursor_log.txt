@@ -18165,3 +18165,120 @@ Release prep for W-162, v1.6.19 (tooltip closeActive). Re-organized work-items.m
 
 
 ============================================================
+2026-02-19 19:20
+
+feedback/enhancement requests from site app:
+
+Framework Enhancements Identified in T-009
+
+1. confirmDialog — onClose callback never called (bug)
+Found while: Diagnosing the M/C keyboard shortcut regression.
+Issue: jPulse.UI.confirmDialog accepts an onClose option and calls onOpen correctly, but _closeDialog is never wired to invoke config.onClose. The option is silently ignored on all close paths (button click, ESC, programmatic close).
+Workaround applied (app-side): Replaced onClose with .then() on the Promise that confirmDialog returns — that resolves on all close paths.
+Upstream fix: In _closeDialog, call config.onClose?.() (or equivalent) before tearing down the overlay.
+
+2. WebSocket — no server-side session-expiry signal (missing feature)
+Found while: Implementing the WS connection status indicator. After a session is destroyed (logout on another tab, session timeout), the server refuses WS reconnect attempts with AUTH_REQUIRED — but an already-connected WS socket stays open silently. The client cannot distinguish "WS down" from "session expired" without polling.
+Workaround applied (app-side): A 15-second REST poll using POST /api/1/handlebar/expand checks {{user.isAuthenticated}} against the live session.
+Upstream improvement (two options):
+Option A — server-push on session destroy
+Option B — heartbeat auth check
+
+3. No built-in lightweight auth-status REST endpoint (missing convenience)
+Found while: Choosing what to poll. A dedicated endpoint was created then deleted (too heavy); GET /api/1/bubble-map/:id was tried then rejected (too expensive); the workaround landed on POST /api/1/handlebar/expand.
+Upstream improvement: Add a first-class GET /api/1/auth/status (or HEAD) to the framework that returns 200 { authenticated: true, username } or 401 { authenticated: false } with zero DB queries — just a req.session read.
+
+Implemented three framework enhancements (W-164, W-165, W-166, all v1.6.20):
+
+W-164 — confirmDialog onClose bug fix (webapp/view/jpulse-common.js):
+- Root cause: _closeDialog had no reference to config.onClose; it is a standalone function.
+- Fix: store callback as overlay._onCloseCallback after overlay creation in confirmDialog; invoke and clear it in _closeDialog before the animate-out sequence, with try/catch; fires on all close paths (button click, ESC, programmatic).
+
+W-165 — WebSocket session-expiry signal via heartbeat, Option B (webapp/controller/websocket.js + webapp/view/jpulse-common.js):
+- Server: pass upgrade req into _onConnection (5th param); store as client.req; in _startHealthChecks, re-run sessionMiddleware with stored cookie header on every ping cycle for requireAuth namespaces; on session expiry send { success:false, code:'SESSION_EXPIRED' } and ws.close(4401).
+- Client: onclose handler checks event.code === 4401, sets status 'auth-required', clears connection, suppresses auto-reconnect; onmessage silently discards SESSION_EXPIRED message; getStatus() JSDoc updated.
+
+W-166 — GET /api/1/auth/status endpoint (webapp/controller/auth.js + webapp/routes.js):
+- Added AuthController.getStatus(): pure req.session read, zero DB queries; returns 200 { authenticated:true, username, roles } or 401 { authenticated:false }.
+- Registered route GET /api/1/auth/status in routes.js.
+
+Also: bumped version to 1.6.20 in all 4 modified files; added W-164/W-165/W-166 as DONE items in docs/dev/work-items.md; bumped work-items.md title to v1.6.20.
+
+
+============================================================
+2026-02-19 20:10
+
+what docs need to be updated? - @docs/api-reference.md - @docs/websockets.md - what else? (omit readme, changelog for now)
+
+[follow-up] do docs
+
+Updated four documentation files for W-164/W-165/W-166:
+
+docs/api-reference.md:
+- Added GET /api/1/auth/status to Public Endpoints quick-reference list
+- Added full Authentication Status endpoint section (after User Logout) with request/response examples and note that it always returns HTTP 200
+
+docs/websockets.md:
+- onStatusChange() status values list: expanded from bullet list and added 'auth-required' (server closed with code 4401, auto-reconnect suppressed)
+- getStatus() return value: added 'auth-required' to comment
+- Added new "3. Handle Session Expiry" best-practices section explaining close code 4401, framework internals (4-step flow), redirect pattern, and polling alternative using GET /api/1/auth/status
+- Renumbered subsequent best-practices sections (old 3-7 → new 4-9)
+
+docs/security-and-auth.md:
+- Added GET /api/1/auth/status to Public Endpoints list
+
+docs/jpulse-ui-reference.md:
+- Sharpened confirmDialog onOpen/onClose parameter descriptions: onOpen notes it receives dialog element; onClose notes it fires on all close paths (button click, ESC, programmatic)
+
+docs/front-end-development.md: no change needed (only collapsible onClose referenced there, not confirmDialog)
+
+
+============================================================
+2026-02-19 20:30
+
+let merge into this single work item: W-163, v1.6.20, 2026-02-20: auth: add get status endpoint; WebSocket: session-expiry signal via heartbeat - merge this into one with objectives, problem, features, deliverables
+
+Consolidated W-164/W-165/W-166 into a single W-163 work item in docs/dev/work-items.md. The three loose blocks (auth status endpoint, WS session expiry, confirmDialog onClose bug fix) were merged into one clean entry with unified objectives, features, and deliverables sections. The old separate W-164/W-165/W-166 entries are gone. The pre-existing W-163 dialog keyboard nav item was already renumbered to W-16x (pending, no number assigned yet).
+
+
+============================================================
+2026-02-19 20:45
+
+any low hanging fruits unit tests?
+
+Added 10 new unit tests across two files; all 2096 tests pass:
+
+webapp/tests/unit/controller/auth-controller.test.js:
+- added getStatus (W-163) describe block with 6 tests: authenticated returns username+roles,
+  unauthenticated (no user), unauthenticated (isAuthenticated false), missing session,
+  empty roles fallback, always HTTP 200 regardless of auth state
+- fixed pre-existing HookManager.clear() guard: changed if+call to global.HookManager?.clear?.()
+  (Login Flow tests leave a mock without .clear(), which was breaking the outer beforeEach
+  for any describe block placed after them)
+
+webapp/tests/unit/utils/jpulse-ui-widgets.test.js:
+- added confirmDialog - onClose callback (W-163) describe block with 4 tests: called on button
+  click, called on ESC key, NOT called when dontClose:true is returned, no error thrown when
+  onClose option is omitted
+
+Both test files bumped to version 1.6.20.
+W-163 deliverables section updated with test details.
+
+
+============================================================
+2026-02-19 20:55
+
+release prep: work-items.md (5202-5207) - W-163, v1.6.20, 2026-02-20
+
+Release prep for W-163, v1.6.20. No tt-git-diff.txt found; worked from W-163 work item directly.
+
+docs/CHANGELOG.md: title bumped to v1.6.20; new v1.6.20 W-163 section prepended with commit line, FEATURE+BUGFIX summary, objectives, and key changes for all three deliverables.
+
+README.md: title bumped to v1.6.20; W-163 highlight prepended to Latest Release Highlights (one-liner covering auth status endpoint, WS session-expiry, confirmDialog onClose fix, 10 new tests).
+
+docs/README.md: same W-163 highlight prepended to Latest Release Highlights.
+
+commit-message.txt: written for W-163 v1.6.20 following same format as W-162; includes objectives, key changes, documentation, tests, work item/version/release date.
+
+
+============================================================

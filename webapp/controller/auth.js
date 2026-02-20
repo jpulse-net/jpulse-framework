@@ -3,8 +3,8 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         1.6.19
- * @release         2026-02-19
+ * @version         1.6.20
+ * @release         2026-02-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -595,6 +595,33 @@ class AuthController {
                 details: error.message
             });
         }
+    }
+
+    /**
+     * Get authentication status — zero-DB-query session read
+     * GET /api/1/auth/status
+     * Returns 200 { authenticated: true, username, roles } when session is active,
+     * or 401 { authenticated: false } when no valid session exists.
+     * Designed as a lightweight polling endpoint that requires no DB access.
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async getStatus(req, res) {
+        const isAuthenticated = req.session?.user?.isAuthenticated === true;
+        if (isAuthenticated) {
+            return res.json({
+                success: true,
+                data: {
+                    authenticated: true,
+                    username: req.session.user.username,
+                    roles: req.session.user.roles || []
+                }
+            });
+        }
+        return res.json({
+            success: true,
+            data: { authenticated: false }
+        });
     }
 
     /**

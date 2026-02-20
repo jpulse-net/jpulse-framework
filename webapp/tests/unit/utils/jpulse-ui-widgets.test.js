@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI Dialog, Accordion, Tab, and Tooltip Widgets
  * @description     Tests for client-side UI widgets: alertDialog, infoDialog, accordion, tabs, tooltip
  * @file            webapp/tests/unit/utils/jpulse-ui-widgets.test.js
- * @version         1.6.19
- * @release         2026-02-19
+ * @version         1.6.20
+ * @release         2026-02-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -210,6 +210,70 @@ describe('jPulse.UI Dialog Widgets (W-048)', () => {
             buttons.forEach(button => button.click());
 
             await Promise.all([dialog1Promise, dialog2Promise]);
+        });
+    });
+
+    describe('confirmDialog - onClose callback (W-163)', () => {
+
+        test('should call onClose when a button is clicked', async () => {
+            const onClose = jest.fn();
+            const dialogPromise = window.jPulse.UI.confirmDialog({
+                message: 'Confirm?',
+                buttons: ['Cancel', 'OK'],
+                onClose
+            });
+
+            const buttons = document.querySelectorAll('.jp-dialog-btn');
+            buttons[1].click(); // OK
+            await dialogPromise;
+
+            expect(onClose).toHaveBeenCalledTimes(1);
+        });
+
+        test('should call onClose when ESC key is pressed', async () => {
+            const onClose = jest.fn();
+            const dialogPromise = window.jPulse.UI.confirmDialog({
+                message: 'Confirm?',
+                buttons: ['Cancel', 'OK'],
+                onClose
+            });
+
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+            await dialogPromise;
+
+            expect(onClose).toHaveBeenCalledTimes(1);
+        });
+
+        test('should not call onClose when dontClose is returned', async () => {
+            const onClose = jest.fn();
+            let callCount = 0;
+            window.jPulse.UI.confirmDialog({
+                message: 'Confirm?',
+                buttons: {
+                    'Stay': () => { callCount++; return { dontClose: true }; }
+                },
+                onClose
+            });
+
+            const button = document.querySelector('.jp-dialog-btn');
+            button.click();
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            expect(callCount).toBe(1);      // button callback fired
+            expect(onClose).not.toHaveBeenCalled(); // dialog stayed open
+        });
+
+        test('should work without onClose option (no error thrown)', async () => {
+            const dialogPromise = window.jPulse.UI.confirmDialog({
+                message: 'Confirm?',
+                buttons: ['Cancel', 'OK']
+            });
+
+            const buttons = document.querySelectorAll('.jp-dialog-btn');
+            buttons[0].click(); // Cancel
+            await dialogPromise;
+
+            // No error thrown — test passes if we get here
         });
     });
 });

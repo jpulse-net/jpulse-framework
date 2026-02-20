@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.19
+# jPulse Docs / jPulse.UI Widget Reference v1.6.20
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -258,8 +258,8 @@ const result = await jPulse.UI.confirmDialog({
   - `height` (number|string): Dialog height
   - `minHeight` (number): Minimum dialog height (default: 200)
   - `zIndex` (number): Custom z-index (default: auto-calculated)
-  - `onOpen` (Function): Callback when dialog opens
-  - `onClose` (Function): Callback when dialog closes
+  - `onOpen` (Function): Callback when dialog opens; receives `dialog` element as argument
+  - `onClose` (Function): Callback when dialog closes; fired on **all** close paths — button click, ESC key, and programmatic close
 
 **Returns:** `Promise<Object>` - Resolves with user choice:
 - `confirmed` (boolean): True if user clicked a non-cancel button

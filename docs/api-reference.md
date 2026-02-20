@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.19
+# jPulse Docs / REST API Reference v1.6.20
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -66,6 +66,7 @@ AuthController.userIsAuthorized(user, roleOrRoles) // roleOrRoles: string or arr
 
 #### Public Endpoints (No Authentication Required)
 - `POST /api/1/auth/login` - User login
+- `GET /api/1/auth/status` - Session authentication status (zero DB queries)
 - `GET /api/1/health/status` - System health check
 
 #### Authenticated Endpoints (Login Required)
@@ -447,6 +448,38 @@ End user session and clear authentication.
     "message": "Logout successful"
 }
 ```
+
+#### Authentication Status
+Check whether the current session is authenticated. Pure session read — no database queries.
+Designed as a lightweight polling endpoint (e.g. to detect session expiry after logout on another tab).
+
+**Route:** `GET /api/1/auth/status`
+**Middleware:** None (public endpoint)
+**Authentication:** Not required
+
+**Response — authenticated (200):**
+```json
+{
+    "success": true,
+    "data": {
+        "authenticated": true,
+        "username": "jsmith",
+        "roles": ["user"]
+    }
+}
+```
+
+**Response — not authenticated (200):**
+```json
+{
+    "success": true,
+    "data": {
+        "authenticated": false
+    }
+}
+```
+
+> **Note:** Always returns HTTP 200. Use `data.authenticated` to determine session state, not the HTTP status code.
 
 ### User Profile Management
 

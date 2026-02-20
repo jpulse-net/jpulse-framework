@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.19
- * @release         2026-02-19
+ * @version         1.6.20
+ * @release         2026-02-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1622,6 +1622,10 @@ window.jPulse = {
                 // Create dialog elements
                 const overlay = jPulse.UI._createDialogOverlay();
                 const dialog = jPulse.UI._createDialogElement(title, config.message, config.type, config);
+
+                // Store onClose callback on overlay so _closeDialog can invoke it
+                overlay._onCloseCallback = (config.onClose && typeof config.onClose === 'function')
+                    ? config.onClose : null;
 
                 // Handle different button configurations
                 const buttonContainer = dialog.querySelector('.jp-dialog-buttons');
@@ -5344,6 +5348,16 @@ window.jPulse = {
                 }, 50);
             }
 
+            // Call onClose callback if provided
+            if (overlay._onCloseCallback) {
+                try {
+                    overlay._onCloseCallback();
+                } catch (error) {
+                    console.error('- jPulse.UI._closeDialog: onClose callback error:', error);
+                }
+                overlay._onCloseCallback = null;
+            }
+
             // Animate out
             overlay.classList.remove('jp-dialog-show');
             dialog.classList.remove('jp-dialog-show');
@@ -8439,7 +8453,7 @@ window.jPulse = {
 
                 /**
                  * Get current connection status
-                 * @returns {string} 'connecting' | 'connected' | 'disconnected' | 'reconnecting'
+                 * @returns {string} 'connecting' | 'connected' | 'disconnected' | 'reconnecting' | 'auth-required'
                  */
                 getStatus: () => {
                     return connection.status;
@@ -8514,6 +8528,12 @@ window.jPulse = {
                             return; // Silent acknowledgment
                         }
 
+                        // Session-expired notice from server (close code 4401 will follow immediately)
+                        if (!message.success && message.code === 'SESSION_EXPIRED') {
+                            console.warn(`- jPulse.ws: Session expired on ${connection.path}`);
+                            return; // Handled by onclose with code 4401
+                        }
+
                         // Call message handlers with single param: full wire message { success, data?, error?, code? }
                         connection.messageCallbacks.forEach(callback => {
                             try {
@@ -8528,13 +8548,23 @@ window.jPulse = {
                 };
 
                 // Connection closed
-                connection.ws.onclose = () => {
+                connection.ws.onclose = (event) => {
                     console.log(`- jPulse.ws: Disconnected from ${connection.path}`);
 
                     // Clear ping timer (even though we don't use it, just in case)
                     if (connection.pingTimer) {
                         clearInterval(connection.pingTimer);
                         connection.pingTimer = null;
+                    }
+
+                    // Close code 4401: server signalled session expiry — surface as 'auth-required',
+                    // suppress auto-reconnect so the app can redirect to login immediately.
+                    if (event.code === 4401) {
+                        console.warn(`- jPulse.ws: Session expired (4401) on ${connection.path}, stopping reconnect`);
+                        connection.shouldReconnect = false;
+                        jPulse.ws._connections.delete(connection.path);
+                        this._updateStatus(connection, 'auth-required');
+                        return;
                     }
 
                     // Attempt reconnection if appropriate

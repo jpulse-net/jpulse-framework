@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.19
+# jPulse Docs / Dev / Work Items v1.6.20
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5044,23 +5044,14 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - user SPA route titles (document.title) per route; view.user.me i18n section; settings/me/dashboard translation cleanup
 - deliverables:
   - `webapp/view/user/settings.tmpl`:
-    - done: view mode removed (no Edit button, no toggleEditMode); fields always editable; Security collapsible only; originalValues set after load; revertChanges() and hasFormChanges(); beforeunload (pathname check); pageshow(persisted) to clear dirty on Back; updateSettingsActionButtons() so Discard/Save Changes disabled when not dirty; revertChanges({ skipConfirm }) for SPA discard and pageshow; plugin actions without toggleEditMode
+    - view mode removed (no Edit button, no toggleEditMode); fields always editable; Security collapsible only; originalValues set after load; revertChanges() and hasFormChanges(); beforeunload (pathname check); pageshow(persisted) to clear dirty on Back; updateSettingsActionButtons() so Discard/Save Changes disabled when not dirty; revertChanges({ skipConfirm }) for SPA discard and pageshow; plugin actions without toggleEditMode
   - `webapp/view/jpulse-navigation.js`:
-    - done: nest `settings` under `me` (user.pages.me.pages.settings) so breadcrumb is User > Me > Settings; url/labels/hideInDropdown kept
+    - nest `settings` under `me` (user.pages.me.pages.settings) so breadcrumb is User > Me > Settings; url/labels/hideInDropdown kept
   - `webapp/view/user/index.shtml`:
-    - done: getSettingsDirty() used on in-SPA link click; confirm dialog (Keep Editing / Discard Changes); on Discard Changes call revertChanges({ skipConfirm: true }) then navigateTo(); route titles (USER_SPA_ROUTE_TITLES, document.title in loadRoute)
+    - getSettingsDirty() used on in-SPA link click; confirm dialog (Keep Editing / Discard Changes); on Discard Changes call revertChanges({ skipConfirm: true }) then navigateTo(); route titles (USER_SPA_ROUTE_TITLES, document.title in loadRoute)
   - `webapp/view/user/dashboard.tmpl`, `webapp/translations/en.conf`, `webapp/translations/de.conf`:
-    - done: dashboard cards use view.user.me.*; view.user.me section (title, titleDesc, settings, settingsDesc, adminDashboard, adminDashboardDesc, lastLogin, accountStatus, memberSince, never, unknown); obsolete keys removed from view.user.index
+    - dashboard cards use view.user.me.*; view.user.me section (title, titleDesc, settings, settingsDesc, adminDashboard, adminDashboardDesc, lastLogin, accountStatus, memberSince, never, unknown); obsolete keys removed from view.user.index
   - optional: test in `webapp/tests/unit/utils/jpulse-ui-navigation.test.js` for breadcrumb trail on /user/settings including Me (not done)
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
 
 ### W-162, v1.6.19, 2026-02-19: jPulse.UI: programmatically dismiss jPulse tooltips
 - status: ✅ DONE
@@ -5074,11 +5065,11 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - no dependency on keyboard event synthesis
 - deliverables:
   - `webapp/view/jpulse-common.js`:
-    - done: added `jPulse.UI.tooltip.closeActive()` as a public API; immediately hides active tooltip, cancels pending show/hide timers, resets `_activeTooltip`/`_activeTrigger` state; delegates to existing `_hideTooltipImmediate()`
+    - added `jPulse.UI.tooltip.closeActive()` as a public API; immediately hides active tooltip, cancels pending show/hide timers, resets `_activeTooltip`/`_activeTrigger` state; delegates to existing `_hideTooltipImmediate()`
   - `docs/jpulse-ui-reference.md`:
-    - done: documented `jPulse.UI.tooltip.closeActive()`, parameters (none), and examples (canvas pan, sidebar open)
+    - documented `jPulse.UI.tooltip.closeActive()`, parameters (none), and examples (canvas pan, sidebar open)
   - `webapp/tests/unit/utils/jpulse-ui-widgets.test.js`:
-    - done: added jPulse.UI Tooltip Widget (W-162) describe block with 6 tests (no-op, hide visible tooltip, clear `_activeTooltip`/`_activeTrigger`, cancel pending show timer, no show after close)
+    - added jPulse.UI Tooltip Widget (W-162) describe block with 6 tests (no-op, hide visible tooltip, clear `_activeTooltip`/`_activeTrigger`, cancel pending show timer, no show after close)
 
 
 
@@ -5087,7 +5078,67 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-### W-163, v1.6.20, 2026-02-20: jPulse dialog: keyboard nav with default behavior
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-163, v1.6.20, 2026-02-20: auth: add status endpoint; WS: add session-expiry signal; jPulse.UI: confirmDialog onClose fix
+- status: ✅ DONE
+- type: Feature + Bugfix
+- discovered while: T-009 site app feedback — diagnosing keyboard shortcut regression and
+  implementing WS connection-status indicator
+- objectives:
+  - ability to query login status without DB queries
+  - ability to detect expired session in a websocket client connection
+  - fix a missing confirmDialog({ onClose }) callback
+- features:
+  - add lightweight `GET /api/1/auth/status` REST endpoint for session-state polling (zero DB queries)
+    - always 200; returns `{ authenticated:true, username, roles }` or `{ authenticated:false }`
+  - add server-side session-expiry signal to WebSocket: server detects expired session on heartbeat
+    and closes socket with code 4401 so client can surface `'auth-required'` and redirect to login
+    — heartbeat auth check: on every ping cycle the server re-validates the session for each client on a `requireAuth` namespace
+    - on expiry sends `{ success:false, code:'SESSION_EXPIRED' }` then closes with WS close code 4401
+    - client maps 4401 → `'auth-required'` status and suppresses auto-reconnect
+  - fix `confirmDialog` `onClose` callback silently ignored on all close paths (bug)
+    - callback now fires on all close paths — button click, ESC key, and programmatic close
+    - stored on `overlay._onCloseCallback` and invoked in `_closeDialog`
+- deliverables:
+  - `webapp/controller/auth.js`:
+    - added `static async getStatus(req, res)` — reads `req.session.user.isAuthenticated`
+    - returns `{ authenticated:true, username, roles }` or `{ authenticated:false }`; no logging
+  - `webapp/routes.js`:
+    - registered `GET /api/1/auth/status` → `AuthController.getStatus`
+  - `webapp/controller/websocket.js`:
+    - `_onConnection` accepts optional `req` param; stores on client object for session re-use
+    - `_completeUpgrade` passes `req` to `_onConnection`
+    - `_startHealthChecks` re-validates session per ping cycle for `requireAuth` namespaces
+    - sends `SESSION_EXPIRED` + `ws.close(4401)` on expiry
+  - `webapp/view/jpulse-common.js`:
+    - `onclose` handler receives `event`, detects code 4401, surfaces `'auth-required'`,
+      suppresses reconnect
+    - `onmessage` silently returns on `SESSION_EXPIRED` code
+    - `getStatus()` JSDoc updated to include `'auth-required'`
+    - `confirmDialog` stores `config.onClose` as `overlay._onCloseCallback` after overlay creation
+    - `_closeDialog` invokes and clears `overlay._onCloseCallback` before animate-out
+  - `docs/api-reference.md`, `docs/websockets.md`, `docs/security-and-auth.md`,
+    `docs/jpulse-ui-reference.md`: updated to document all three changes
+  - `webapp/tests/unit/controller/auth-controller.test.js`:
+    - added `getStatus (W-163)` describe block with 6 tests (authenticated, unauthenticated
+      variants, missing session, empty roles, always HTTP 200)
+    - fixed pre-existing `HookManager.clear()` guard using optional chaining
+  - `webapp/tests/unit/utils/jpulse-ui-widgets.test.js`:
+    - added `confirmDialog - onClose callback (W-163)` describe block with 4 tests
+      (button click, ESC key, dontClose suppresses onClose, no error without onClose option)
+
+
+
+
+
+
+
+
+### W-16x, v1.6., 2026-02-: jPulse dialog: keyboard nav with default behavior
 - status: 🕑 PENDING
 - objective: make dialog boxes easy to navigate by keyboard: select OK/Cancel (or custom button row), define default button and initial focus; support custom dialogs with input fields
 - design notes:
@@ -5149,8 +5200,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-162, v1.6.19, 2026-02-19
-- update features & deliverables in W-162 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-163, v1.6.20, 2026-02-20
+- update features & deliverables in W-163 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5161,12 +5212,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.19
+node bin/bump-version.js 1.6.20
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.19
+git tag v1.6.20
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

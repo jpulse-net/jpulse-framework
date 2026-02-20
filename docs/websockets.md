@@ -1,4 +1,4 @@
-# jPulse Docs / WebSocket Real-Time Communication v1.6.19
+# jPulse Docs / WebSocket Real-Time Communication v1.6.20
 
 > **Need multi-server broadcasting instead?** If you're running multiple server instances and need to synchronize state changes across all servers (like collaborative editing), see [Application Cluster Communication](application-cluster.md) which uses REST API + Redis broadcasts for simpler state synchronization.
 
@@ -343,12 +343,20 @@ Returns connection handle for chaining.
 
 Register status change handler. Callback receives `(newStatus, oldStatus)`.
 
-Status values: `'connecting'`, `'connected'`, `'reconnecting'`, `'disconnected'`
+Status values:
+- `'connecting'` — initial connection attempt in progress
+- `'connected'` — socket open and healthy
+- `'reconnecting'` — connection lost, auto-reconnect scheduled
+- `'disconnected'` — max reconnect attempts exhausted, connection abandoned
+- `'auth-required'` — server closed socket with code 4401 (session expired); auto-reconnect suppressed
 
 ```javascript
 ws.onStatusChange((status, oldStatus) => {
     console.log(`Status: ${oldStatus} -> ${status}`);
     updateConnectionIndicator(status);
+    if (status === 'auth-required') {
+        window.location.href = '/auth/login.shtml';
+    }
 });
 ```
 
@@ -360,7 +368,7 @@ Get current connection status.
 
 ```javascript
 const status = ws.getStatus();
-// Returns: 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
+// Returns: 'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'auth-required'
 ```
 
 #### isConnected()
@@ -853,16 +861,54 @@ Always respond to connection status changes:
 ```javascript
 ws.onStatusChange((status) => {
     if (status === 'disconnected') {
-        // Inform user, disable features, etc.
         showWarning('Connection lost. Please reload.');
+    } else if (status === 'reconnecting') {
+        showWarning('Reconnecting…');
     } else if (status === 'connected') {
-        // Re-enable features
         hideWarning();
+    } else if (status === 'auth-required') {
+        // Session expired — redirect to login immediately
+        window.location.href = '/auth/login.shtml';
     }
 });
 ```
 
-### 3. Clean Up Connections
+### 3. Handle Session Expiry
+
+When a user's session is destroyed (logout on another tab, session timeout) the server
+detects the expired session on the next ping cycle and closes the socket with close code **4401**.
+The client library maps this to `'auth-required'` status and **suppresses auto-reconnect** —
+attempting to reconnect would fail with `AUTH_REQUIRED` anyway.
+
+```javascript
+// Minimal pattern: redirect on session expiry
+const ws = jPulse.ws.connect('/api/1/ws/my-app')
+    .onStatusChange((status) => {
+        if (status === 'auth-required') {
+            window.location.href = '/auth/login.shtml';
+        }
+    });
+```
+
+**How it works (framework internals):**
+1. Server sends `{ success: false, code: 'SESSION_EXPIRED' }` message
+2. Server closes socket with WS close code 4401
+3. Client `onclose` handler detects code 4401, sets status `'auth-required'`, removes connection
+4. No reconnect timer is scheduled — the connection is gone
+
+**Polling alternative (no WebSocket):**
+If you need to detect session expiry without an active WebSocket, poll the zero-cost endpoint:
+
+```javascript
+setInterval(async () => {
+    const result = await jPulse.api.get('/api/1/auth/status');
+    if (result.success && !result.data.authenticated) {
+        window.location.href = '/auth/login.shtml';
+    }
+}, 15000); // Every 15 seconds
+```
+
+### 5. Clean Up Connections
 
 Always disconnect when component unmounts or page unloads:
 
@@ -878,7 +924,7 @@ window.addEventListener('beforeunload', () => {
 });
 ```
 
-### 4. Validate Messages
+### 6. Validate Messages
 
 Always validate incoming messages:
 
@@ -892,7 +938,7 @@ ws.onMessage((message) => {
 });
 ```
 
-### 5. Rate Limiting
+### 7. Rate Limiting
 
 Don't flood the server with messages:
 
@@ -909,7 +955,7 @@ function sendSafe(data) {
 }
 ```
 
-### 6. Use Namespaces Wisely
+### 8. Use Namespaces Wisely
 
 Create separate namespaces for different purposes:
 
@@ -920,7 +966,7 @@ Create separate namespaces for different purposes:
 
 Don't mix unrelated functionality in one namespace.
 
-### 7. Message Delivery is "Fire and Forget"
+### 9. Message Delivery is "Fire and Forget"
 
 **Important:** The WebSocket framework does **not** automatically retry failed messages or track message delivery.
 

@@ -3,8 +3,8 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         1.6.19
- * @release         2026-02-19
+ * @version         1.6.20
+ * @release         2026-02-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -720,7 +720,7 @@ class WebSocketController {
 
             // Complete WebSocket handshake
             this.wss.handleUpgrade(req, socket, head, (ws) => {
-                this._onConnection(ws, namespace, ctx, clientUUID);
+                this._onConnection(ws, namespace, ctx, clientUUID, req);
             });
 
         } catch (error) {
@@ -734,14 +734,16 @@ class WebSocketController {
      * W-155: ctx-only identity (no user/username params)
      * @private
      */
-    static _onConnection(ws, namespace, ctx, clientUUID) {
+    static _onConnection(ws, namespace, ctx, clientUUID, req = null) {
         // Use client-provided UUID if available, otherwise generate one
         const clientId = clientUUID || this._generateClientId();
 
         // W-155: Store client with ctx only (no user, username). W-158: messageTimestamps for rate limit
+        // req is stored for session re-validation during health checks (session-expiry detection)
         const client = {
             ws,
             ctx,
+            req,
             lastPing: Date.now(),
             lastPong: Date.now(),
             messageTimestamps: []
@@ -914,6 +916,33 @@ class WebSocketController {
                         client.ws.terminate();
                         namespace.clients.delete(clientId);
                         return;
+                    }
+
+                    // Session expiry check (Option B): re-validate session for auth-required namespaces.
+                    // Uses the stored upgrade req (cookie header) to re-read the session from the store.
+                    // If the session is gone or user is no longer authenticated, sends { type: 'session-expired' }
+                    // and closes the socket with close code 4401 so the client can surface 'auth-required' status.
+                    if (namespace.requireAuth && client.req && client.ws.readyState === 1) {
+                        const cookieHeader = client.req.headers?.cookie || '';
+                        const fakeReq = { headers: { cookie: cookieHeader } };
+                        this.sessionMiddleware(fakeReq, {}, () => {
+                            if (!fakeReq.session?.user?.isAuthenticated) {
+                                LogController.logInfo(client.ctx || null, 'websocket._startHealthChecks',
+                                    `Session expired for client ${clientId} (${client.ctx?.username || '?'}), closing with 4401`);
+                                try {
+                                    if (client.ws.readyState === 1) {
+                                        client.ws.send(JSON.stringify(this._formatMessage(
+                                            false, null, 'Session expired', 'SESSION_EXPIRED'
+                                        )));
+                                        client.ws.close(4401, 'Session expired');
+                                    }
+                                } catch (err) {
+                                    LogController.logError(client.ctx || null, 'websocket._startHealthChecks',
+                                        `Error closing expired session for ${clientId}: ${err.message}`);
+                                    try { client.ws.terminate(); } catch (_) {}
+                                }
+                            }
+                        });
                     }
 
                     // Send ping

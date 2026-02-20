@@ -3,8 +3,8 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.6.19
- * @release         2026-02-19
+ * @version         1.6.20
+ * @release         2026-02-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -81,6 +81,7 @@ router.post('/api/1/plugin/:name/install-dependencies', AuthController.requireAd
 // Auth API routes
 router.post('/api/1/auth/login', AuthController.login);
 router.post('/api/1/auth/logout', AuthController.logout);
+router.get('/api/1/auth/status', AuthController.getStatus);
 router.get('/api/1/auth/languages', AuthController.getLanguages);
 
 // Markdown API routes

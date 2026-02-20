@@ -3,8 +3,8 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         1.6.20
- * @release         2026-02-20
+ * @version         1.6.21
+ * @release         2026-02-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -924,8 +924,11 @@ class WebSocketController {
                     // and closes the socket with close code 4401 so the client can surface 'auth-required' status.
                     if (namespace.requireAuth && client.req && client.ws.readyState === 1) {
                         const cookieHeader = client.req.headers?.cookie || '';
-                        const fakeReq = { headers: { cookie: cookieHeader } };
-                        this.sessionMiddleware(fakeReq, {}, () => {
+                        // express-session requires url/originalUrl for parseUrl.original(req)
+                        // and may call res.setHeader/getHeader/end when refreshing the session cookie
+                        const fakeReq = { headers: { cookie: cookieHeader }, url: '/', originalUrl: '/' };
+                        const fakeRes = { setHeader: () => {}, getHeader: () => null, end: () => {} };
+                        this.sessionMiddleware(fakeReq, fakeRes, () => {
                             if (!fakeReq.session?.user?.isAuthenticated) {
                                 LogController.logInfo(client.ctx || null, 'websocket._startHealthChecks',
                                     `Session expired for client ${clientId} (${client.ctx?.username || '?'}), closing with 4401`);

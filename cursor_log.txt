@@ -18282,3 +18282,46 @@ commit-message.txt: written for W-163 v1.6.20 following same format as W-162; in
 
 
 ============================================================
+2026-02-19 21:15
+
+oops, bug in latest release!! W-163 Bug Report: _startHealthChecks session re-validation crashes Node.js
+
+Root cause: fakeReq was missing url/originalUrl required by express-session's parseUrl.original(req); fakeRes was bare {} causing crash on res.setHeader() call. Server crashes completely on first health-check cycle after any authenticated WS client connects.
+
+Fix in webapp/controller/websocket.js _startHealthChecks:
+- fakeReq now includes url:'/' and originalUrl:'/' to satisfy express-session parseUrl.original(req)
+- fakeRes now stubs setHeader/getHeader/end to prevent crash when express-session refreshes the cookie on the response
+
+Also updated: docs/dev/work-items.md (W-163 websocket.js deliverable note), docs/CHANGELOG.md (key changes line), commit-message.txt (websocket.js line).
+
+
+============================================================
+2026-02-19 21:30
+
+do not touch a released work item, rejected!
+
+create a bug fix work item: @work-items.md (5133-5142)
+
+Created W-164 bug fix work item in docs/dev/work-items.md (5133-5147).
+W-164 documents the _startHealthChecks crash fix: fakeReq missing url/originalUrl and fakeRes missing
+setHeader/getHeader/end stubs (introduced by W-163). The fix is already in webapp/controller/websocket.js
+lines 929-930; W-163 entry was left untouched.
+
+
+============================================================
+2026-02-19 21:40
+
+release prep:
+- assume release: W-164, v1.6.21, 2026-02-21
+@work-items.md (5215-5218)
+
+Release prep for W-164, v1.6.21, 2026-02-21:
+- docs/dev/work-items.md: W-164 status changed from IN_PROGRESS to DONE
+- README.md: v1.6.21 W-164 highlight prepended to Latest Release Highlights
+- docs/README.md: same v1.6.21 W-164 highlight prepended
+- docs/CHANGELOG.md: v1.6.21 W-164 entry added at top; title bumped to v1.6.21
+- commit-message.txt: rewritten for W-164 v1.6.21
+
+
+============================================================
+

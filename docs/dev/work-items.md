@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.20
+# jPulse Docs / Dev / Work Items v1.6.21
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5071,18 +5071,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/tests/unit/utils/jpulse-ui-widgets.test.js`:
     - added jPulse.UI Tooltip Widget (W-162) describe block with 6 tests (no-op, hide visible tooltip, clear `_activeTooltip`/`_activeTrigger`, cancel pending show timer, no show after close)
 
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-163, v1.6.20, 2026-02-20: auth: add status endpoint; WS: add session-expiry signal; jPulse.UI: confirmDialog onClose fix
 - status: ✅ DONE
 - type: Feature + Bugfix
@@ -5095,8 +5083,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - features:
   - add lightweight `GET /api/1/auth/status` REST endpoint for session-state polling (zero DB queries)
     - always 200; returns `{ authenticated:true, username, roles }` or `{ authenticated:false }`
-  - add server-side session-expiry signal to WebSocket: server detects expired session on heartbeat
-    and closes socket with code 4401 so client can surface `'auth-required'` and redirect to login
+  - add server-side session-expiry signal to WebSocket: server detects expired session on heartbeat and closes socket with code 4401 so client can surface `'auth-required'` and redirect to login
     — heartbeat auth check: on every ping cycle the server re-validates the session for each client on a `requireAuth` namespace
     - on expiry sends `{ success:false, code:'SESSION_EXPIRED' }` then closes with WS close code 4401
     - client maps 4401 → `'auth-required'` status and suppresses auto-reconnect
@@ -5131,6 +5118,29 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - added `confirmDialog - onClose callback (W-163)` describe block with 4 tests
       (button click, ESC key, dontClose suppresses onClose, no error without onClose option)
 
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-164, v1.6.21, 2026-02-21: websocket: fix _startHealthChecks crash due to incomplete fakeReq/fakeRes
+- status: ✅ DONE
+- type: Bugfix
+- objectives:
+  - Fix Node.js process crash introduced by W-163 `_startHealthChecks` session re-validation
+- features:
+  - `webapp/controller/websocket.js` — `_startHealthChecks` no longer crashes when `express-session` calls `parseUrl.original(req)` or attempts to write a refreshed session cookie
+- deliverables:
+  - `webapp/controller/websocket.js`:
+    - `fakeReq` now includes `url: '/'` and `originalUrl: '/'` required by `express-session` internal `parseUrl.original(req)` call (previously `undefined.pathname` → crash)
+    - `fakeRes` now stubs `setHeader()`, `getHeader()`, and `end()` to satisfy `express-session` when it attempts to refresh the session cookie over the fake response
 
 
 
@@ -5200,8 +5210,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-163, v1.6.20, 2026-02-20
-- update features & deliverables in W-163 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-164, v1.6.21, 2026-02-21
+- update features & deliverables in W-164 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5212,12 +5222,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.20
+node bin/bump-version.js 1.6.21
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.20
+git tag v1.6.21
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

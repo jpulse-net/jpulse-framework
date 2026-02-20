@@ -1,6 +1,23 @@
-# jPulse Docs / Version History v1.6.20
+# jPulse Docs / Version History v1.6.21
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.21, W-164, 2026-02-21
+
+**Commit:** `W-164, v1.6.21: websocket: fix _startHealthChecks crash due to incomplete fakeReq/fakeRes`
+
+**BUGFIX RELEASE**: Hotfix for Node.js process crash introduced in v1.6.20 WebSocket session re-validation. `_startHealthChecks` constructed a minimal `fakeReq = { headers: { cookie } }` and bare `fakeRes = {}` to pass to `express-session` for re-validating authenticated WebSocket client sessions on each ping cycle. `express-session` internally calls `parseUrl.original(req)` which reads `req.url` or `req.originalUrl` — both were missing, causing `TypeError: Cannot read properties of undefined (reading 'pathname')` and a full Node.js process crash on the first health-check cycle after any authenticated client connected. Additionally, `express-session` may call `res.setHeader`, `res.getHeader`, and `res.end` when refreshing the session cookie; the bare `{}` fakeRes would crash on these too. Fix: `fakeReq` now includes `url: '/'` and `originalUrl: '/'`; `fakeRes` now stubs `setHeader()`, `getHeader()`, and `end()`.
+
+**Objective**:
+- Fix Node.js process crash introduced by W-163 `_startHealthChecks` session re-validation
+
+**Key Changes**:
+- **webapp/controller/websocket.js**: `fakeReq` adds `url: '/'` and `originalUrl: '/'`; `fakeRes` stubs `setHeader`/`getHeader`/`end` to satisfy express-session
+
+**Work Item**: W-164
+**Version**: v1.6.21
+**Release Date**: 2026-02-21
 
 ________________________________________________
 ## v1.6.20, W-163, 2026-02-20

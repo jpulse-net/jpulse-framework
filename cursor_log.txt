@@ -18348,3 +18348,11 @@ Release prep done for W-165, v1.6.22, 2026-02-22: Updated W-165 deliverables in 
 
 
 ============================================================
+2026-02-22 22:10
+
+Bug: pressing Enter on delete-confirm dialog triggers site's page-level key handler (bubble phase) instead of / in addition to the button click. Framework's handleKeydown runs in capture phase but did not call e.stopPropagation(), so bubble-phase handlers fired after.
+
+Fixed in webapp/view/jpulse-common.js _trapFocus handleKeydown: added e.stopPropagation() immediately after top-of-stack guard, so all keyboard events are fully contained within the topmost modal dialog. Updated W-165 deliverable in work-items.md.
+
+
+============================================================

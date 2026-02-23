@@ -5449,6 +5449,10 @@ window.jPulse = {
                     const stack = jPulse.UI._dialogStack;
                     if (!stack.length || stack[stack.length - 1].overlay !== overlay) return;
 
+                    // Stop propagation so no page-level bubble-phase handlers (e.g. canvas key
+                    // handlers, shortcut listeners) can intercept keys while a modal is open
+                    e.stopPropagation();
+
                     const target = e.target;
                     const isInput = target.tagName === 'INPUT' || target.tagName === 'SELECT';
                     const isTextarea = target.tagName === 'TEXTAREA';

@@ -1,6 +1,29 @@
-# jPulse Docs / Version History v1.6.21
+# jPulse Docs / Version History v1.6.22
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.22, W-165, 2026-02-22
+
+**Commit:** `W-165, v1.6.22: jPulse.UI dialog: keyboard nav with default behavior`
+
+**FEATURE RELEASE**: All dialog types (`confirmDialog`, `alert`, `info`, `success`) are now fully keyboard-navigable. Enter activates the default button (last button, or explicit `defaultButton: index|label` option; excluded inside `<textarea>`); letter keys activate buttons by first letter (underlined in label; first-button-wins on conflict; inactive when focus is in an input/select/textarea); Left/Right arrows cycle button focus within the button row; Up/Down arrows blocked to prevent page scroll behind the dialog; Tab/Shift+Tab cycles all focusable elements (inputs + buttons) wrapping at dialog boundaries. Initial focus auto-detects: first `<input>`/`<select>` if present, else the default button. Stacked dialogs handled correctly — each dialog's keyboard handler checks it is the topmost in the stack before acting. Default button has a visible at-rest ring indicator so the user always knows which button Enter will activate. All buttons have an enhanced focus ring (white inner gap + primary outer ring). Shortcut letter is underlined in button text. Critical fix: dialog overlay changed from `visibility:hidden` to `pointer-events:none` so dialog elements are focusable immediately at DOM-insertion time (`visibility:hidden` was silently blocking all `focus()` calls on the overlay's descendants).
+
+**Objectives**:
+- Full keyboard navigation for all dialog types
+- Consistent default button behavior (Enter key, initial focus, visual at-rest indicator)
+- Per-button letter-key shortcuts with underline visibility
+- Left/Right arrow navigation between buttons in button row
+- Correct stacked-dialog keyboard isolation
+
+**Key Changes**:
+- **webapp/view/jpulse-common.js**: `confirmDialog` adds `defaultButton` option (index|label; default = last button); collects `buttonEls`; marks default with `jp-dialog-btn-default`; assigns letter shortcuts (underlined, first-button-wins on conflict). `_trapFocus` rewritten: top-of-stack guard; immediate focus on first input/select or default button; Enter activates default (not textarea/button); ArrowUp/Down block page scroll; Left/Right cycle buttons; letter-key shortcuts; Tab/Shift+Tab wraps.
+- **webapp/view/jpulse-common.css**: overlay `visibility:hidden` → `pointer-events:none` (immediate focusability); `.jp-dialog-btn:focus` enhanced ring; `.jp-dialog-btn-default` at-rest + focused rings; `.jp-dialog-btn u` shortcut underline.
+- **docs/jpulse-ui-reference.md**: `defaultButton` option documented; "Dialog Features" section expanded with full keyboard navigation reference.
+
+**Work Item**: W-165
+**Version**: v1.6.22
+**Release Date**: 2026-02-22
 
 ________________________________________________
 ## v1.6.21, W-164, 2026-02-21

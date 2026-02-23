@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.6.21
- * @release         2026-02-21
+ * @version         1.6.22
+ * @release         2026-02-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -3847,14 +3847,14 @@ body.jp-mobile-menu-open {
     align-items: center;
     justify-content: center;
     opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
+    pointer-events: none; /* visibility:hidden blocks focus; opacity+pointer-events does not */
+    transition: opacity 0.3s ease;
     z-index: 2000; /* Base z-index, will be overridden */
 }
 
 .jp-dialog-overlay.jp-dialog-show {
     opacity: 1;
-    visibility: visible;
+    pointer-events: auto;
 }
 
 /* Dialog Container */
@@ -3948,6 +3948,32 @@ body.jp-mobile-menu-open {
 
 .jp-dialog-btn {
     min-width: 80px;
+}
+
+/* Enhanced focus ring for dialog buttons (overrides global .jp-btn:focus) */
+.jp-dialog-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--jp-theme-bg-modal, #fff),
+                0 0 0 5px var(--jp-color-primary, #007acc);
+}
+
+/* Default button: at-rest visual indicator (subtle outer ring) */
+.jp-dialog-btn-default {
+    box-shadow: 0 0 0 2px var(--jp-theme-bg-modal, #fff),
+                0 0 0 3px var(--jp-color-primary, #007acc);
+}
+
+/* Default button when focused: stronger combined ring */
+.jp-dialog-btn-default:focus {
+    box-shadow: 0 0 0 2px var(--jp-theme-bg-modal, #fff),
+                0 0 0 6px var(--jp-color-primary, #007acc);
+}
+
+/* Keyboard shortcut underline inside dialog button */
+.jp-dialog-btn u {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
 }
 
 /* Mobile Responsive */

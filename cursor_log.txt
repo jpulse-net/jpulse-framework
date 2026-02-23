@@ -18324,4 +18324,27 @@ Release prep for W-164, v1.6.21, 2026-02-21:
 
 
 ============================================================
+2026-02-22 19:00
 
+Should the default button have a visual "at rest" indicator? Yes, nice to have.
+
+Finalized and rewrote the W-165 spec in docs/dev/work-items.md with complete design decisions: defaultButton (last button default); at-rest extra outline + enhanced focus ring; Enter activates default (except textarea); button key shortcuts via first letter (underlined, first-button-wins on conflict, inactive in input/select/textarea); auto initial focus (first input if any, else default button); Left/Right arrows in button row; Tab cycles all focusable; ESC unchanged; applies to all dialog types.
+
+
+============================================================
+2026-02-22 20:30
+
+ready to implement W-165? start if no more questions
+
+Implemented W-165 (jPulse dialog keyboard nav): jpulse-common.js: added defaultButton option to confirmDialog (index or label, default = last button); collect buttonEls; mark default with jp-dialog-btn-default; assign letter shortcuts (first-button-wins, underlined); pass to _trapFocus. Rewrote _trapFocus: initial focus = first input/select or default button; Enter activates default (not in textarea/button); Left/Right arrows cycle buttons; letter shortcuts (not in input/textarea/select); Tab trap unchanged. jpulse-common.css: enhanced .jp-dialog-btn:focus ring (white inner + primary outer), at-rest .jp-dialog-btn-default ring, stronger .jp-dialog-btn-default:focus, shortcut underline style. Updated W-165 deliverables in work-items.md.
+
+
+============================================================
+2026-02-22 21:30
+
+release prep: @work-items.md (5222-5228)
+
+Release prep done for W-165, v1.6.22, 2026-02-22: Updated W-165 deliverables in docs/dev/work-items.md (added overlay CSS fix, stacked-dialog guard, ArrowUp/Down blocking, docs/jpulse-ui-reference.md entry). Added v1.6.22 highlight to README.md and docs/README.md. Added v1.6.22 W-165 entry to docs/CHANGELOG.md and bumped title to v1.6.22. Rewrote commit-message.txt for W-165. Appended to cursor_log.txt.
+
+
+============================================================

@@ -7,8 +7,8 @@
  * @site            %SITE_NAME%
  * @generated       %GENERATION_DATE%
  * @file            templates/deploy/ecosystem.prod.config.cjs
- * @version         1.6.21
- * @release         2026-02-21
+ * @version         1.6.22
+ * @release         2026-02-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

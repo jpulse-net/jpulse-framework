@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.21
+# jPulse Docs / jPulse.UI Widget Reference v1.6.22
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -209,7 +209,8 @@ Show confirm dialog with custom buttons and callbacks. Most flexible dialog opti
 const result = await jPulse.UI.confirmDialog({
     title: 'Confirm Action',
     message: 'Are you sure you want to proceed?',
-    buttons: ['Cancel', 'Yes, Continue']
+    buttons: ['Cancel', 'Yes, Continue'],
+    defaultButton: 'Yes, Continue'  // optional; last button is default when omitted
 });
 
 if (result.button === 'Yes, Continue') {
@@ -252,6 +253,8 @@ const result = await jPulse.UI.confirmDialog({
   - `buttons` (Array|Object): Button configuration
     - Array: `['Cancel', 'OK']` - Returns result with `button`, `confirmed`, `buttonIndex`
     - Object: `{ 'Cancel': () => {}, 'OK': () => {} }` - Custom callbacks
+  - `defaultButton` (number|string): Index or label of the default button (default: last button)
+    - The default button: receives initial focus if no inputs are present; is activated by Enter key; has a visible at-rest ring indicator
   - `type` (string): Dialog type for styling: `'alert'`, `'info'`, `'success'`, `'confirm'` (default: `'confirm'`)
   - `width` (number|string): Dialog width
   - `minWidth` (number): Minimum dialog width (default: 400)
@@ -269,10 +272,18 @@ const result = await jPulse.UI.confirmDialog({
 
 ### Dialog Features
 - **Draggable headers**: All dialogs can be dragged by their header
-- **Dialog stacking**: Multiple dialogs stack with automatic z-index management
+- **Dialog stacking**: Multiple dialogs stack with automatic z-index management; only the topmost dialog responds to keyboard events
 - **HTML support**: Message content supports simple HTML (site owner controlled)
-- **Keyboard support**: ESC key closes dialogs
-- **Focus management**: Automatic focus trapping for accessibility
+- **Keyboard navigation** (all dialog types):
+  - **Enter**: activates the default button (last button, or `defaultButton` option); excluded inside `<textarea>`
+  - **ESC**: closes dialog with `cancelled: true`
+  - **Letter keys**: first letter of each button label activates it (e.g. `o` → OK, `c` → Cancel); inactive while focus is in an input/select/textarea
+  - **Left / Right arrows**: move focus between buttons in the button row
+  - **Up / Down arrows**: blocked (prevents page scrolling while dialog is open)
+  - **Tab / Shift+Tab**: cycle through all focusable elements (inputs + buttons); wraps at boundaries
+- **Focus management**: Initial focus goes to first `<input>`/`<select>` in the dialog, or the default button if no inputs are present; focus is restored to the triggering element when the dialog closes
+- **Default button styling**: default button has a visible at-rest ring indicator; all buttons have an enhanced focus ring
+- **Button shortcut underline**: the shortcut letter (first letter of label) is underlined in the button text
 - **i18n support**: Default titles and buttons from translation system
 
 ---

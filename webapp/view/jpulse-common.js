@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.21
- * @release         2026-02-21
+ * @version         1.6.22
+ * @release         2026-02-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1603,6 +1603,7 @@ window.jPulse = {
                 title: null,
                 message: 'Are you sure?',
                 buttons: ['Cancel', 'OK'],
+                defaultButton: null, // index or label of default button; null = last button
                 type: 'confirm', // Dialog type for styling: 'alert', 'info', 'success', or 'confirm'
                 width: null,
                 minWidth: 400,
@@ -1629,6 +1630,7 @@ window.jPulse = {
 
                 // Handle different button configurations
                 const buttonContainer = dialog.querySelector('.jp-dialog-buttons');
+                const buttonEls = []; // { text, el } for each button in order
 
                 if (Array.isArray(config.buttons)) {
                     // Simple array of button labels - return Promise with result
@@ -1643,6 +1645,7 @@ window.jPulse = {
                             resolve(result);
                         });
                         buttonContainer.appendChild(button);
+                        buttonEls.push({ text: buttonText, el: button });
                     });
                 } else if (typeof config.buttons === 'object') {
                     // Object with button text as keys and callbacks as values
@@ -1671,8 +1674,46 @@ window.jPulse = {
                             }
                         });
                         buttonContainer.appendChild(button);
+                        buttonEls.push({ text: buttonText, el: button });
                     });
                 }
+
+                // Resolve default button (last button if not specified)
+                let defaultButtonEl = buttonEls.length > 0
+                    ? buttonEls[buttonEls.length - 1].el : null;
+                if (config.defaultButton !== null && config.defaultButton !== undefined) {
+                    if (typeof config.defaultButton === 'number' && buttonEls[config.defaultButton]) {
+                        defaultButtonEl = buttonEls[config.defaultButton].el;
+                    } else if (typeof config.defaultButton === 'string') {
+                        const found = buttonEls.find(b => b.text === config.defaultButton);
+                        if (found) defaultButtonEl = found.el;
+                    }
+                }
+                if (defaultButtonEl) {
+                    defaultButtonEl.classList.add('jp-dialog-btn-default');
+                }
+
+                // Assign keyboard shortcuts: first letter of label (case-insensitive)
+                // First button wins on conflict; shortcut letter is underlined in label
+                const shortcuts = {}; // letter -> button element
+                const letterCount = {};
+                buttonEls.forEach(({ text }) => {
+                    if (text && text.length > 0) {
+                        const letter = text[0].toLowerCase();
+                        letterCount[letter] = (letterCount[letter] || 0) + 1;
+                    }
+                });
+                buttonEls.forEach(({ text, el }) => {
+                    if (!text || text.length === 0) return;
+                    const letter = text[0].toLowerCase();
+                    if (!shortcuts[letter]) {
+                        // Unique first letter, or first button with this letter (wins on conflict)
+                        shortcuts[letter] = el;
+                        const escaped = jPulse.string.escapeHtml(text);
+                        el.innerHTML = `<u>${escaped[0]}</u>${escaped.slice(1)}`;
+                    }
+                    // Subsequent conflicting buttons get no shortcut; textContent stays as-is
+                });
 
                 // Add to DOM and show
                 overlay.appendChild(dialog);
@@ -1712,7 +1753,7 @@ window.jPulse = {
                 }
 
                 // Focus management
-                jPulse.UI._trapFocus(dialog, overlay);
+                jPulse.UI._trapFocus(dialog, overlay, defaultButtonEl, buttonEls, shortcuts);
             });
         },
 
@@ -5372,33 +5413,89 @@ window.jPulse = {
 
 
         /**
-         * Trap focus within dialog for accessibility
+         * Trap focus within dialog and handle keyboard navigation
          * @param {Element} dialog - Dialog element
          * @param {Element} overlay - Dialog overlay element
+         * @param {Element|null} defaultButtonEl - Default button element (Enter activates this)
+         * @param {Array} buttonEls - Array of { text, el } for each dialog button
+         * @param {Object} shortcuts - Map of letter -> button element for key shortcuts
          */
-        _trapFocus: (dialog, overlay) => {
+        _trapFocus: (dialog, overlay, defaultButtonEl = null, buttonEls = [], shortcuts = {}) => {
             // Store currently focused element to restore later
             if (!jPulse.UI._previousFocus && document.activeElement) {
                 jPulse.UI._previousFocus = document.activeElement;
             }
 
             // Get all focusable elements in the dialog
-            const focusableElements = dialog.querySelectorAll(
+            const focusableElements = Array.from(dialog.querySelectorAll(
                 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-            );
+            ));
 
             if (focusableElements.length > 0) {
-                // Focus the first element
-                focusableElements[0].focus();
+                // Initial focus: first input/select if present, else default button, else first element
+                // Note: overlay uses opacity:0/pointer-events:none (not visibility:hidden) so
+                // elements are focusable immediately — no setTimeout needed
+                const firstInput = focusableElements.find(
+                    el => el.tagName === 'INPUT' || el.tagName === 'SELECT'
+                );
+                const initialEl = firstInput || defaultButtonEl || focusableElements[0];
+                initialEl.focus();
 
-                // Prevent keyboard events from reaching background elements
+                const btns = buttonEls.map(b => b.el);
+
                 const handleKeydown = (e) => {
-                    // Prevent Enter/Space from triggering background buttons
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        // Only allow these keys if focus is on a dialog element
-                        if (!dialog.contains(e.target)) {
+                    // Only handle keyboard events for the topmost dialog; lower dialogs in the
+                    // stack stay silent to avoid interference with the active dialog
+                    const stack = jPulse.UI._dialogStack;
+                    if (!stack.length || stack[stack.length - 1].overlay !== overlay) return;
+
+                    const target = e.target;
+                    const isInput = target.tagName === 'INPUT' || target.tagName === 'SELECT';
+                    const isTextarea = target.tagName === 'TEXTAREA';
+                    // Use document.activeElement + btns array to identify current focused button
+                    const focusedBtnIdx = btns.indexOf(document.activeElement);
+                    const isOnButton = focusedBtnIdx !== -1;
+
+                    // Prevent page scrolling with arrow keys while dialog is open
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        return;
+                    }
+
+                    // Enter key: activate default button (not in textarea, not on a button)
+                    // This must come before the general Enter/Space background check below,
+                    // because focus may legitimately be outside the dialog when Enter is pressed
+                    if (e.key === 'Enter' && !isTextarea && !isOnButton && defaultButtonEl) {
+                        e.preventDefault();
+                        defaultButtonEl.click();
+                        return;
+                    }
+
+                    // Prevent Enter/Space from triggering background elements
+                    if ((e.key === 'Enter' || e.key === ' ') && !dialog.contains(target)) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
+
+                    // Left/Right arrows: move focus between buttons (only when on a dialog button)
+                    if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') &&
+                            isOnButton && btns.length > 1) {
+                        e.preventDefault();
+                        const next = e.key === 'ArrowRight'
+                            ? (focusedBtnIdx + 1) % btns.length
+                            : (focusedBtnIdx - 1 + btns.length) % btns.length;
+                        btns[next].focus();
+                        return;
+                    }
+
+                    // Letter key shortcuts (not in input/textarea/select, no modifier keys)
+                    if (e.key.length === 1 && !isInput && !isTextarea &&
+                            !e.ctrlKey && !e.altKey && !e.metaKey) {
+                        const letter = e.key.toLowerCase();
+                        if (shortcuts[letter]) {
                             e.preventDefault();
-                            e.stopPropagation();
+                            shortcuts[letter].click();
                             return;
                         }
                     }

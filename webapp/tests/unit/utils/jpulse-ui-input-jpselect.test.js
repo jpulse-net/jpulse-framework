@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.input.jpSelect (W-151)
  * @description     Tests for jpSelect init, setAllValues/getAllValues multi-select
  * @file            webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js
- * @version         1.6.21
- * @release         2026-02-21
+ * @version         1.6.22
+ * @release         2026-02-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

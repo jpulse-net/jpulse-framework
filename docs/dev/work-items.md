@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.21
+# jPulse Docs / Dev / Work Items v1.6.22
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5118,18 +5118,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - added `confirmDialog - onClose callback (W-163)` describe block with 4 tests
       (button click, ESC key, dontClose suppresses onClose, no error without onClose option)
 
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-164, v1.6.21, 2026-02-21: websocket: fix _startHealthChecks crash due to incomplete fakeReq/fakeRes
 - status: ✅ DONE
 - type: Bugfix
@@ -5148,29 +5136,55 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-### W-16x, v1.6., 2026-02-: jPulse dialog: keyboard nav with default behavior
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-165, v1.6.22, 2026-02-22: jPulse.UI dialog: keyboard nav with default behavior
 - status: 🕑 PENDING
-- objective: make dialog boxes easy to navigate by keyboard: select OK/Cancel (or custom button row), define default button and initial focus; support custom dialogs with input fields
+- type: Feature
+- objective: make dialog boxes fully keyboard-navigable: default button, key shortcuts per button, enhanced focus styling, arrow nav in button row; applies to all dialog types
 - design notes:
-  - defaultButton: `0 | 1 | 'OK' | 'Cancel'` (index or button label)
-    - which button gets default styling and, when enterActivatesDefault is on, Enter-from-content action
-  - custom dialogs with inputs:
-    - define default Enter action when focus is in an input (e.g. submit = activate default button)
-    - enable with a flag; default off for backward compatibility
-    - example: `enterActivatesDefault: true`
-  - initial focus: configurable
-    - option e.g. `initialFocus: 'defaultButton' | 'firstInput' | 'first'`
-      - `'first'` = current behavior (first focusable in DOM order)
-      - `'defaultButton'` = focus the default button when dialog opens
-      - `'firstInput'` = focus first input (if any), else fallback to default button or first
-  - Tab cycle: all focusable (inputs + buttons) in DOM order
-    - current behavior; keep it
-    - standard and accessible
-    - Tab/Shift+Tab cycle the whole dialog
-    - no "inputs only" mode (that would trap users in inputs without a clear way to reach buttons)
+  - **`defaultButton`**: `0 | 1 | 'OK' | 'Cancel'` (index or button label)
+    - selects which button is the "default action"
+    - when not specified: last button in the row (typically OK)
+    - effect 1 — at-rest visual: default button has a subtle extra outline/border even when not focused, so user knows "Enter will do this"
+    - effect 2 — focus visual: all buttons get a more prominent focus ring (thicker border + stronger shadow) compared to current barely-noticeable style
+    - effect 3 — Enter key: pressing Enter anywhere in the dialog (except `<textarea>`) activates the default button
+  - **button key shortcuts**:
+    - auto-assigned: first letter of button label (case-insensitive)
+    - active when focus is NOT in an `<input>`, `<textarea>`, or `<select>` (avoids conflict with typing)
+    - conflict rule: if two buttons share the same first letter, the first button in the row gets the shortcut; the others get none
+    - visibility: the shortcut letter is underlined in the button label (standard UX convention)
+    - object-style buttons (`{ 'Cancel': fn, 'OK': fn }`): key shortcut triggers the same fn as clicking — no conflict between fn callbacks and keyboard nav
+  - **initial focus** (auto-detected, no option needed):
+    - if the dialog contains `<input>` or `<select>` elements: focus the first one
+    - else: focus the default button
+  - **Tab / Shift+Tab**:
+    - cycles all focusable elements (inputs + buttons) in DOM order
+    - wraps around (first ↔ last)
+    - standard and accessible; no "inputs only" mode
+  - **Left / Right arrow keys**:
+    - when focus is on a button in `.jp-dialog-buttons`, Left/Right moves focus between buttons (wraps around)
+    - excluded from `<input>` and `<textarea>` fields (arrow keys move the cursor there as normal)
+  - **ESC key**: unchanged — closes dialog with `confirmed: false, cancelled: true`
+  - **`<textarea>` exclusion**: Enter inside a `<textarea>` inserts a newline as normal; does NOT activate the default button
+  - **scope**: applies to all dialog types — `confirmDialog`, `alert`, `info`, `success`
 - deliverables:
-  - FIXME `path/file`:
-    - FIXME summary
+  - `webapp/view/jpulse-common.js`:
+    - `confirmDialog`: added `defaultButton` option (index or label; default = last button); collects `buttonEls`; resolves and marks `defaultButtonEl` with `jp-dialog-btn-default`; assigns letter shortcuts (first letter of label, underlined, first-button-wins on conflict); passes `defaultButtonEl, buttonEls, shortcuts` to `_trapFocus`
+    - `_trapFocus`: new signature with `defaultButtonEl, buttonEls, shortcuts`; initial focus = first `<input>`/`<select>` or default button (immediate — no delay — since overlay no longer uses `visibility:hidden`); top-of-stack guard so only the topmost dialog handles keyboard events; Enter (not in `<textarea>`, not on button) activates default button; ArrowUp/Down blocked to prevent page scroll; Left/Right cycle focus among buttons; letter-key shortcuts (not in input/textarea/select, no modifier keys); Tab/Shift+Tab wraps at dialog boundaries
+  - `webapp/view/jpulse-common.css`:
+    - overlay: `visibility:hidden` → `pointer-events:none` so dialog elements are focusable immediately at DOM-insertion time (critical fix — `visibility:hidden` was silently blocking all `focus()` calls)
+    - enhanced focus ring for `.jp-dialog-btn:focus` (white inner ring + primary outer ring)
+    - at-rest default indicator for `.jp-dialog-btn-default` (subtle outer ring)
+    - stronger combined ring for `.jp-dialog-btn-default:focus`
+    - underline style for `.jp-dialog-btn u` (shortcut letter)
+  - `docs/jpulse-ui-reference.md`:
+    - `confirmDialog` API: added `defaultButton` option with description
+    - "Dialog Features": expanded keyboard navigation section with full reference
 
 
 
@@ -5210,8 +5224,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-164, v1.6.21, 2026-02-21
-- update features & deliverables in W-164 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-165, v1.6.22, 2026-02-22
+- update features & deliverables in W-165 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5222,12 +5236,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.21
+node bin/bump-version.js 1.6.22 2026-02-22
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.21
+git tag v1.6.22
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

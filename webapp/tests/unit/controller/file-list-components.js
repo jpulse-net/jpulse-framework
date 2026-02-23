@@ -3,8 +3,8 @@
  * @tagline         Unit tests for file.list and file.includeComponents helpers
  * @description     Tests for file listing and component inclusion features (W-094, W-102)
  * @file            webapp/tests/unit/controller/file-list-extract.test.js
- * @version         1.6.21
- * @release         2026-02-21
+ * @version         1.6.22
+ * @release         2026-02-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -4,8 +4,8 @@
  * @tagline         User SPA - Settings template
  * @description     W-134: Settings template of user profile SPA. W-161: Single mode (always edit).
  * @file            webapp/view/user/settings.tmpl
- * @version         1.6.22
- * @release         2026-02-22
+ * @version         1.6.23
+ * @release         2026-02-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -170,9 +170,36 @@
         updateSettingsActionButtons();
         const settingsContainer = document.querySelector('.local-user-profile');
         if (settingsContainer) {
-            settingsContainer.addEventListener('input', updateSettingsActionButtons);
-            settingsContainer.addEventListener('change', updateSettingsActionButtons);
+            settingsContainer.addEventListener('input', (e) => {
+                syncSettingsPluginFieldFromElement(e.target);
+                updateSettingsActionButtons();
+            });
+            settingsContainer.addEventListener('change', (e) => {
+                syncSettingsPluginFieldFromElement(e.target);
+                updateSettingsActionButtons();
+            });
         }
+    }
+
+    // W-107: Sync plugin card input value to currentUserData (user settings)
+    function syncSettingsPluginFieldFromElement(el) {
+        if (!el || !el.getAttribute) return;
+        const blockKey = el.getAttribute('data-plugin-block');
+        const fieldKey = el.getAttribute('data-plugin-field');
+        if (!blockKey || !fieldKey) return;
+
+        let value;
+        if (el.type === 'checkbox') {
+            value = el.checked;
+        } else if (el.type === 'number') {
+            const v = parseFloat(el.value);
+            value = isNaN(v) ? el.value : v;
+        } else {
+            value = el.value;
+        }
+
+        if (!currentUserData[blockKey]) currentUserData[blockKey] = {};
+        currentUserData[blockKey][fieldKey] = value;
     }
 
     let originalValues = {};
@@ -642,7 +669,7 @@
         target[last] = value;
     }
 
-    // W-107: Render card fields (using userCard visibility)
+    // W-107: Render card fields (display-only or editable based on userCard.readOnly)
     function renderCardFields(blockKey, blockDef, userData) {
         const fields = [];
 
@@ -666,15 +693,53 @@
             }
 
             const label = fieldDef.label || fieldKey;
-            const displayValue = formatSettingsFieldValue(value, fieldDef);
+            const isEditable = fieldDef.userCard?.readOnly !== true;
+            const fieldId = `settings-plugin-${blockKey}-${fieldKey}`;
 
-            fields.push(`
-                <div class="local-plugin-field-label">${label}:</div>
-                <div class="local-plugin-field-value">${displayValue}</div>
-            `);
+            if (isEditable) {
+                const inputHtml = renderSettingsPluginFieldInput(blockKey, fieldKey, fieldDef, value, fieldId);
+                fields.push(`
+                    <div class="local-plugin-field-label"><label for="${fieldId}">${jPulse.string.escapeHtml(label)}:</label></div>
+                    <div class="local-plugin-field-value">${inputHtml}</div>
+                `);
+            } else {
+                const displayValue = formatSettingsFieldValue(value, fieldDef);
+                fields.push(`
+                    <div class="local-plugin-field-label">${jPulse.string.escapeHtml(label)}:</div>
+                    <div class="local-plugin-field-value">${displayValue}</div>
+                `);
+            }
         }
 
         return fields.join('');
+    }
+
+    // W-107: Render editable input for plugin card field (user settings)
+    function renderSettingsPluginFieldInput(blockKey, fieldKey, fieldDef, value, fieldId) {
+        const inputType = fieldDef.inputType || fieldDef.type || 'string';
+        const esc = (v) => (v === null || v === undefined ? '' : jPulse.string.escapeHtml(String(v)));
+        const dataAttrs = `data-plugin-block="${jPulse.string.escapeHtml(blockKey)}" data-plugin-field="${jPulse.string.escapeHtml(fieldKey)}"`;
+
+        if (inputType === 'checkbox' || (fieldDef.type === 'boolean' && !fieldDef.inputType)) {
+            const checked = value ? 'checked' : '';
+            return `<input type="checkbox" id="${fieldId}" class="jp-form-input" ${dataAttrs} ${checked}>`;
+        }
+        if (inputType === 'textarea') {
+            const rows = fieldDef.rows || 3;
+            return `<textarea id="${fieldId}" name="${fieldKey}" rows="${rows}" class="jp-form-input jp-form-textarea" ${dataAttrs}>${esc(value)}</textarea>`;
+        }
+        if (inputType === 'select' && fieldDef.options) {
+            const opts = (fieldDef.options || []).map(opt => {
+                const ov = typeof opt === 'object' ? opt.value : opt;
+                const ol = typeof opt === 'object' ? (opt.label || opt.value) : opt;
+                const sel = value === ov ? ' selected' : '';
+                return `<option value="${esc(ov)}"${sel}>${esc(ol)}</option>`;
+            }).join('');
+            return `<select id="${fieldId}" name="${fieldKey}" class="jp-form-select" ${dataAttrs}>${opts}</select>`;
+        }
+        const type = (inputType === 'number' || fieldDef.type === 'number') ? 'number' : 'text';
+        const numVal = (type === 'number' && (value === null || value === undefined)) ? '' : esc(value);
+        return `<input type="${type}" id="${fieldId}" name="${fieldKey}" value="${numVal}" class="jp-form-input" ${dataAttrs}>`;
     }
 
     // W-107: Format field value based on displayAs

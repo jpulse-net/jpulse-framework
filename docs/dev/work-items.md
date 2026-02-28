@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.22
+# jPulse Docs / Dev / Work Items v1.6.23
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5130,20 +5130,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - `fakeReq` now includes `url: '/'` and `originalUrl: '/'` required by `express-session` internal `parseUrl.original(req)` call (previously `undefined.pathname` → crash)
     - `fakeRes` now stubs `setHeader()`, `getHeader()`, and `end()` to satisfy `express-session` when it attempts to refresh the session cookie over the fake response
 
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-165, v1.6.22, 2026-02-22: jPulse.UI dialog: keyboard nav with default behavior
-- status: 🕑 PENDING
+- status: ✅ DONE
 - type: Feature
 - objective: make dialog boxes fully keyboard-navigable: default button, key shortcuts per button, enhanced focus styling, arrow nav in button row; applies to all dialog types
 - design notes:
@@ -5189,9 +5177,39 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-pending:
-- enter in confirm dialog means 'yes', or better, enable and set enter-button in options
-- user settings page only edit mode, not view & edit
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-166, v1.6.23, 2026-02-27: site: configurable logo; admin edit user page change
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - make site logo configurable via app.conf (no hard-coded path)
+  - align admin user profile UX with /user/settings (always-edit, Back/Discard/Save)
+  - support editable input fields in plugin cards when schema sets readOnly: false
+- features:
+  - **Configurable logo**: app.site.logoUrl and app.site.logoAlt in app.conf; default `/images/jpulse-logo/jpulse-logo-reverse.svg`, `jPulse`; sites override in site/webapp/app.conf; expected size 22×22 px documented
+  - **Admin user profile UX**: removed view/edit toggle; always-edit mode; Back (→ /admin/users.shtml), Discard, Save Changes; Discard/Save disabled when not dirty; revertChanges with confirm; beforeunload and pageshow (bfcache) handling
+  - **Plugin card editable fields**: when adminCard.readOnly or userCard.readOnly is not true (missing or false = editable), render inputs (text, textarea, number, checkbox, select) instead of display-only; sync to currentUserData on input/change; data-plugin-block/data-plugin-field attributes
+- deliverables:
+  - `webapp/app.conf`, `site/webapp/app.conf.tmpl`:
+    - added app.site.logoUrl, app.site.logoAlt defaults
+  - `webapp/view/jpulse-footer.tmpl`:
+    - img src/alt use {{app.site.logoUrl}}, {{app.site.logoAlt}}
+  - `docs/handlebars.md`, `docs/site-customization.md`:
+    - documented logoUrl, logoAlt, 22×22 expected size; "Site Identity and Branding" section
+  - `webapp/view/admin/user-profile.shtml`:
+    - replaced Edit/Save/Cancel with Back, Discard, Save; fields editable on load; revertChanges(); updateAdminActionButtons(); syncPluginFieldFromElement for plugin inputs; renderPluginFieldInput when adminCard.readOnly !== true
+  - `webapp/view/user/settings.tmpl`:
+    - renderSettingsPluginFieldInput when userCard.readOnly !== true; syncSettingsPluginFieldFromElement
+  - `webapp/translations/en.conf`, `webapp/translations/de.conf`:
+    - admin.userProfile: added back, discard; removed edit, cancel
+  - `docs/plugins/plugin-api-reference.md`:
+    - documented editable fields (readOnly not true = editable), supported inputType (text, textarea, number, checkbox, select)
 
 
 
@@ -5201,6 +5219,8 @@ pending:
 
 ### Pending
 
+- site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
+- ui widget: add horizontal slider for integer value with min/max
 
 old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
@@ -5224,8 +5244,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-165, v1.6.22, 2026-02-22
-- update features & deliverables in W-165 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-166, v1.6.23, 2026-02-27
+- update features & deliverables in W-166 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5236,12 +5256,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.22 2026-02-22
+node bin/bump-version.js 1.6.23 2026-02-27
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.22
+git tag v1.6.23
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

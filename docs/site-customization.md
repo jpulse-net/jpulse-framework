@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v1.6.22
+# jPulse Docs / Site Customization Guide v1.6.23
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -109,6 +109,30 @@ jPulse automatically merges configurations in priority order:
 4. Environment variables
 
 **Note**: Site settings always have highest priority, allowing you to override both framework and plugin defaults.
+
+### Site Identity and Branding
+
+Override site name, logo, and branding in `site/webapp/app.conf` under `app.site`:
+
+```javascript
+app: {
+    site: {
+        name:       'My Organization Portal',
+        shortName:  'My Site',
+        logoUrl:    '/images/jpulse-logo/jpulse-logo-reverse.svg',
+        logoAlt:    'My Organization'
+    }
+}
+```
+
+- **name** – Full site name (footer, about pages)
+- **shortName** – Short name for headers and page titles
+- **logoUrl** – Header logo image URL
+  - use a path like `/images/site-logo.svg`
+  - place the file in `site/webapp/static/images/site-logo.svg` to override the default
+  - external URLs are also supported
+  - expected size: 22×22 pixels
+- **logoAlt** – Alt text for the logo (accessibility)
 
 ### View Configuration
 

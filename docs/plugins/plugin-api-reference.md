@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.6.22
+# jPulse Docs / Plugins / Plugins API Reference v1.6.23
 
 Complete API reference for jPulse plugin developers.
 
@@ -289,6 +289,7 @@ UserModel.extendSchema({
             }
         },
         // Field definitions with display attributes
+        // readOnly: true = display-only; readOnly: false or missing = editable input
         enabled: {
             type: 'boolean',
             default: false,
@@ -321,6 +322,10 @@ UserModel.extendSchema({
 | `setFields` | Modifies form data locally; user clicks "Save" to persist |
 | `navigate` | Redirects to another page (with unsaved changes warning) |
 | `handler` | Calls custom handler: `jPulse.schemaHandlers['plugin.method']` |
+
+**Editable Fields** (adminCard/userCard `readOnly` not true):
+
+When `readOnly` is missing or `false`, the profile page renders an input. Use `readOnly: true` for display-only. Supported `inputType`: `text`, `textarea`, `number`, `checkbox` (or `type: 'boolean'`), `select` (with `options` array of `{ value, label }` or strings).
 
 **ShowIf Conditions:**
 

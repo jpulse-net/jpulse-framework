@@ -3,8 +3,8 @@
  * @tagline         Bump version script configuration
  * @description     Configuration file for version bumping across site files
  * @file            site/webapp/bump-version.conf
- * @version         1.6.22
- * @release         2026-02-22
+ * @version         1.6.23
+ * @release         2026-02-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Site Administrator
  * @copyright       2025 Site Administrator
@@ -19,6 +19,13 @@
         'README.md',
         'package.json',
         'package-lock.json',
+
+        // Bin directory (JS, shell, Python scripts)
+        'bin/*.conf',
+        'bin/*.js',
+        'bin/*.sh',
+        'bin/*.py',
+        'bin/*.md',
 
         // Site directory
         'site/webapp/*.conf',

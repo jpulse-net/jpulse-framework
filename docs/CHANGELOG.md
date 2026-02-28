@@ -1,6 +1,36 @@
-# jPulse Docs / Version History v1.6.22
+# jPulse Docs / Version History v1.6.23
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.23, W-166, 2026-02-27
+
+**Commit:** `W-166, v1.6.23: site: configurable logo; admin user profile UX; plugin card editable fields`
+
+**FEATURE RELEASE**: Three improvements for site branding and admin/user profile UX. **(1) Configurable logo:** Site logo and alt text are now configurable via `app.site.logoUrl` and `app.site.logoAlt` in app.conf; default `/images/jpulse-logo/jpulse-logo-reverse.svg` and `jPulse`; sites override in site/webapp/app.conf; expected size 22×22 px documented. **(2) Admin user profile UX:** Aligned with /user/settings — always-edit mode (no view/edit toggle); Back (→ /admin/users.shtml), Discard, Save Changes; Discard/Save disabled when not dirty, enabled on input/change; revertChanges() with confirm dialog; beforeunload and pageshow (bfcache) handling to clear dirty state on browser Back. **(3) Plugin card editable fields:** When `adminCard.readOnly` or `userCard.readOnly` is not true (missing or false), profile pages render inputs (text, textarea, number, checkbox, select) instead of display-only divs; event delegation syncs values to currentUserData on input/change; data-plugin-block and data-plugin-field attributes for identification.
+
+**Objectives**:
+- Make site logo configurable via app.conf (no hard-coded path)
+- Align admin user profile UX with /user/settings (always-edit, Back/Discard/Save)
+- Support editable input fields in plugin cards when schema sets readOnly to false or omits it
+
+**Changes**:
+- **webapp/app.conf**, **site/webapp/app.conf.tmpl**: Added app.site.logoUrl, app.site.logoAlt defaults
+- **webapp/view/jpulse-footer.tmpl**: img src/alt use {{app.site.logoUrl}}, {{app.site.logoAlt}}
+- **webapp/view/admin/user-profile.shtml**: Replaced Edit/Save/Cancel with Back, Discard, Save; fields editable on load; revertChanges(); updateAdminActionButtons(); syncPluginFieldFromElement; renderPluginFieldInput when adminCard.readOnly !== true
+- **webapp/view/user/settings.tmpl**: renderSettingsPluginFieldInput when userCard.readOnly !== true; syncSettingsPluginFieldFromElement
+- **webapp/translations/en.conf**, **webapp/translations/de.conf**: admin.userProfile: added back, discard; removed edit, cancel
+- **docs/handlebars.md**: Added app.site.logoUrl, logoAlt, shortName to app.site list
+- **docs/site-customization.md**: New "Site Identity and Branding" section (name, shortName, logoUrl, logoAlt, 22×22 px)
+- **docs/plugins/plugin-api-reference.md**: Documented editable fields (readOnly not true), supported inputType (text, textarea, number, checkbox, select)
+- **templates/webapp/bump-version.conf.tmpl**: Added bin directory file patterns (bin/*.conf, bin/*.js, bin/*.sh, bin/*.py, bin/*.md) for version bumping of scripts
+- **webapp/view/jpulse-common.js**: ESC key in _trapFocus — early return for Escape so bubble-phase handleEscape runs (fixes ESC not closing dialogs)
+- **webapp/view/jpulse-common.css**: Toast z-index above dialog overlay (`body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast { z-index: 2100 }`)
+- **site/webapp/view/jpulse-common.css.tmpl**: Added "See examples" comment
+
+**Work Item**: W-166
+**Version**: v1.6.23
+**Release Date**: 2026-02-27
 
 ________________________________________________
 ## v1.6.22, W-165, 2026-02-22

@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.6.22
+# jPulse Docs / Handlebars Templating v1.6.23
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -126,9 +126,12 @@ The jPulse Framework provides several context objects that are available in all 
 - `{{app.jPulse.version}}` - Current jPulse Framework application version
 - `{{app.jPulse.release}}` - Current jPulse Framework application release date
 - `{{app.site.name}}` - Custom site name
+- `{{app.site.shortName}}` - Short site name (header, titles)
 - `{{app.site.version}}` - Current site version
 - `{{app.site.release}}` - Current site release date
 - `{{app.site.copyright}}` - Custom site copyright notice
+- `{{app.site.logoUrl}}` - Header logo image URL (override in site/webapp/app.conf; expected size 22×22 px)
+- `{{app.site.logoAlt}}` - Logo alt text for accessibility
 
 ### `{{appCluster.*}}` - Redis Cluster Information
 

@@ -18356,3 +18356,55 @@ Fixed in webapp/view/jpulse-common.js _trapFocus handleKeydown: added e.stopProp
 
 
 ============================================================
+2026-02-26 22:30
+
+in a site project I have a .py script with this header:
+
+#!/usr/bin/env python3
+"""
+@name           BubbleMap App / Bin / Convert Prototype App JSON
+...
+@version        0.5.19
+@release        2026-02-28
+...
+"""
+
+can you enhance bin/bump-version.js to support the python header as well for version bump? I already added this to the config, but it did not help: 'bin/*.py'
+
+Enhanced bump-version.js, bin/bump-version.conf, and templates/webapp/bump-version.conf.tmpl to support Python docstring headers. Changed updateFileHeaders() in bump-version.js to accept headerUpdatePatterns.version/.release as either a single regex or an array of regexes (first match wins, backward-compatible). Updated both conf files to use arrays: first pattern handles JS/CSS/shell (requires * or # prefix), second handles Python docstrings (^[ \t]*@version at line-start, multiline). Also added bin/*.py to filePatterns in the template.
+
+
+============================================================
+2025-02-27 18:30
+
+option 3 is the cleanest - how to set site name is already documented, so adding a custom settings for site logo and alt is most discoverable
+
+Implemented Option 3 (config-driven logo). Added app.site.logoUrl and app.site.logoAlt to webapp/app.conf and site/webapp/app.conf.tmpl (defaults: /images/jpulse-logo/jpulse-logo-reverse.svg, "jPulse"). Updated jpulse-footer.tmpl to use {{app.site.logoUrl}} and {{app.site.logoAlt}}. Documented in docs/handlebars.md (app.site.* list) and docs/site-customization.md (new "Site Identity and Branding" section with name, shortName, logoUrl, logoAlt).
+
+
+============================================================
+2025-02-27 18:45
+
+next: admin: user settings page only has an edit mode, not view & edit - uri: /admin/user-profile.shtml?username=ptester12 - compare to: /user/settings
+
+Refactored admin user-profile to match /user/settings UX: always-edit mode (no view/edit toggle). Replaced Edit/Save/Cancel with Back (link to /admin/users.shtml), Discard, Save Changes. Fields (email, status, roles, profile, preferences) editable on load. Discard/Save disabled when not dirty; enabled on input/change. revertChanges() with confirm dialog; beforeunload and pageshow (bfcache) handling. Added i18n back, discard (removed edit, cancel). EN and DE translations.
+
+
+============================================================
+2025-02-27 19:00
+
+The auth-mfa has no edit settings - check if the code runs properly for plugins that have input fields
+
+Added editable field support for plugin cards. When adminCard.readOnly or userCard.readOnly is false, profile pages now render inputs (text, textarea, number, checkbox, select) instead of display-only divs. Implemented in admin user-profile.shtml and user settings.tmpl: renderPluginFieldInput/renderSettingsPluginFieldInput, syncPluginFieldFromElement/syncSettingsPluginFieldFromElement, data-plugin-block/data-plugin-field attributes. Event delegation updates currentUserData on input/change. Documented in plugin-api-reference.md.
+
+
+============================================================
+2026-02-27 19:30
+
+release prep: review git diff @tt-git-diff.txt for accuracy and completness of work item; assume release: W-166, v1.6.23, 2026-02-27; @work-items.md (5248-5252)
+
+Reviewed tt-git-diff.txt against W-166: diff accurate and complete for all three features (configurable logo, admin user profile UX, plugin card editable fields). Updated docs/dev/work-items.md W-166 deliverables only: clarified readOnly !== true (missing or false = editable); updated plugin-api-reference deliverable with supported inputType list. Updated README.md and docs/README.md — Latest Release Highlights: added v1.6.23 W-166 entry. Updated docs/CHANGELOG.md: added full v1.6.23 W-166 entry (FEATURE RELEASE, objectives, key changes, work item). Created commit-message.txt following same format as prior releases. Appended this entry to cursor_log.txt. Note: tt-git-diff also includes bump-version Python support and jpulse-common.js/css dialog fixes — those are outside W-166 scope; release prep focused on W-166.
+
+
+============================================================
+

@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.22
- * @release         2026-02-22
+ * @version         1.6.23
+ * @release         2026-02-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -5448,6 +5448,9 @@ window.jPulse = {
                     // stack stay silent to avoid interference with the active dialog
                     const stack = jPulse.UI._dialogStack;
                     if (!stack.length || stack[stack.length - 1].overlay !== overlay) return;
+
+                    // Let Escape be handled by bubble-phase handleEscape
+                    if (e.key === 'Escape') return;
 
                     // Stop propagation so no page-level bubble-phase handlers (e.g. canvas key
                     // handlers, shortcut listeners) can intercept keys while a modal is open

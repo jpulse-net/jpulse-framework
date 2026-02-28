@@ -2,10 +2,10 @@
 <!--
  * @name            jPulse Framework / WebApp / View / Admin / User Profile
  * @tagline         Admin user profile management with view and edit capabilities
- * @description     Admin user profile management with view and edit modes
+ * @description     Admin user profile management (always-edit, aligned with /user/settings)
  * @file            webapp/view/admin/user-profile.shtml
- * @version         1.6.22
- * @release         2026-02-22
+ * @version         1.6.23
+ * @release         2026-02-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -228,7 +228,7 @@
                         <div class="jp-form-grid">
                             <div class="jp-form-group">
                                 <label for="email" class="jp-form-label">{{i18n.view.admin.userProfile.email}}</label>
-                                <input type="email" id="email" name="email" class="jp-form-input jp-read-only-field" readonly>
+                                <input type="email" id="email" name="email" class="jp-form-input">
                             </div>
                         </div>
                         <div class="jp-form-group">
@@ -239,7 +239,7 @@
                         </div>
                         <div class="jp-form-group">
                             <label for="status" class="jp-form-label">{{i18n.view.admin.userProfile.status}}</label>
-                            <select id="status" name="status" class="jp-form-select" disabled>
+                            <select id="status" name="status" class="jp-form-select">
                                 <!-- Options will be populated dynamically -->
                             </select>
                         </div>
@@ -259,17 +259,17 @@
                         <div class="jp-form-grid">
                             <div class="jp-form-group">
                                 <label for="firstName" class="jp-form-label">{{i18n.view.admin.userProfile.firstName}}</label>
-                                <input type="text" id="firstName" name="firstName" class="jp-form-input jp-read-only-field" readonly>
+                                <input type="text" id="firstName" name="firstName" class="jp-form-input">
                             </div>
                             <div class="jp-form-group">
                                 <label for="lastName" class="jp-form-label">{{i18n.view.admin.userProfile.lastName}}</label>
-                                <input type="text" id="lastName" name="lastName" class="jp-form-input jp-read-only-field" readonly>
+                                <input type="text" id="lastName" name="lastName" class="jp-form-input">
                             </div>
                         </div>
                         <div class="jp-form-grid">
                             <div class="jp-form-group">
                                 <label for="nickName" class="jp-form-label">{{i18n.view.admin.userProfile.nickName}}</label>
-                                <input type="text" id="nickName" name="nickName" class="jp-form-input jp-read-only-field" readonly>
+                                <input type="text" id="nickName" name="nickName" class="jp-form-input">
                             </div>
                         </div>
                     </form>
@@ -282,13 +282,13 @@
                         <div class="jp-form-grid">
                             <div class="jp-form-group">
                                 <label for="language" class="jp-form-label">{{i18n.view.admin.userProfile.language}}</label>
-                                <select id="language" name="language" class="jp-form-select" disabled>
+                                <select id="language" name="language" class="jp-form-select">
                                     <!-- Options will be replaced dynamically -->
                                 </select>
                             </div>
                             <div class="jp-form-group">
                                 <label for="theme" class="jp-form-label">{{i18n.view.admin.userProfile.theme}}</label>
-                                <select id="theme" name="theme" class="jp-form-select" disabled>
+                                <select id="theme" name="theme" class="jp-form-select">
                                     <!-- Options will be replaced dynamically -->
                                 </select>
                             </div>
@@ -297,9 +297,9 @@
                 </div>
 
                 <div class="jp-btn-group">
-                    <button id="editBtn" class="jp-btn jp-btn-primary" onclick="toggleEditMode()">{{i18n.view.admin.userProfile.edit}}</button>
-                    <button id="saveBtn" class="jp-btn jp-btn-success jp-hidden" onclick="saveUser()">{{i18n.view.admin.userProfile.save}}</button>
-                    <button id="cancelBtn" class="jp-btn jp-btn-secondary jp-hidden" onclick="cancelEdit()">{{i18n.view.admin.userProfile.cancel}}</button>
+                    <a href="/admin/users.shtml" class="jp-btn jp-btn-secondary" id="backBtn">{{i18n.view.admin.userProfile.back}}</a>
+                    <button id="discardBtn" class="jp-btn jp-btn-secondary" onclick="revertChanges()" disabled>{{i18n.view.admin.userProfile.discard}}</button>
+                    <button id="saveBtn" class="jp-btn jp-btn-success" onclick="saveUser()" disabled>{{i18n.view.admin.userProfile.save}}</button>
                 </div>
             </div>
 
@@ -316,7 +316,6 @@
 
     <script>
         {{#if user.isAdmin}}
-        let editMode = false;
         let originalValues = {};
         let currentUsername = null;
         let availableRoles = [];
@@ -326,13 +325,17 @@
 
         // Warn user when navigating away with unsaved changes
         window.addEventListener('beforeunload', (event) => {
-            // Only warn if in edit mode AND there are actual changes
-            if (editMode && hasFormChanges()) {
+            if (typeof hasFormChanges === 'function' && hasFormChanges()) {
                 event.preventDefault();
-                // Modern browsers ignore custom messages and show their own generic prompt
-                // Setting returnValue to any truthy value triggers the dialog
                 event.returnValue = true;
                 return true;
+            }
+        });
+
+        // Coming back via browser Back: page may be restored from bfcache with old dirty state; clear it
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted && window.location.pathname.indexOf('/admin/user-profile') !== -1 && typeof revertChanges === 'function') {
+                revertChanges({ skipConfirm: true });
             }
         });
 
@@ -356,7 +359,41 @@
             await loadLanguages();
             await loadThemes();
             await loadUser();
+
+            // Wire input/change to enable Discard/Save when dirty (once)
+            const container = document.querySelector('.local-user-profile');
+            if (container) {
+                container.addEventListener('input', (e) => {
+                    syncPluginFieldFromElement(e.target);
+                    updateAdminActionButtons();
+                });
+                container.addEventListener('change', (e) => {
+                    syncPluginFieldFromElement(e.target);
+                    updateAdminActionButtons();
+                });
+            }
         });
+
+        // W-107: Sync plugin card input value to currentUserData
+        function syncPluginFieldFromElement(el) {
+            if (!el || !el.getAttribute) return;
+            const blockKey = el.getAttribute('data-plugin-block');
+            const fieldKey = el.getAttribute('data-plugin-field');
+            if (!blockKey || !fieldKey) return;
+
+            let value;
+            if (el.type === 'checkbox') {
+                value = el.checked;
+            } else if (el.type === 'number') {
+                const v = parseFloat(el.value);
+                value = isNaN(v) ? el.value : v;
+            } else {
+                value = el.value;
+            }
+
+            if (!currentUserData[blockKey]) currentUserData[blockKey] = {};
+            currentUserData[blockKey][fieldKey] = value;
+        }
 
         async function loadUser() {
             try {
@@ -606,7 +643,7 @@
             target[last] = value;
         }
 
-        // W-107: Render card fields
+        // W-107: Render card fields (display-only or editable based on adminCard.readOnly)
         function renderCardFields(blockKey, blockDef, userData) {
             const fields = [];
 
@@ -630,15 +667,53 @@
                 }
 
                 const label = fieldDef.label || fieldKey;
-                const displayValue = formatFieldValue(value, fieldDef);
+                const isEditable = fieldDef.adminCard?.readOnly !== true;
+                const fieldId = `plugin-${blockKey}-${fieldKey}`;
 
-                fields.push(`
-                    <div class="local-plugin-field-label">${label}:</div>
-                    <div class="local-plugin-field-value">${displayValue}</div>
-                `);
+                if (isEditable) {
+                    const inputHtml = renderPluginFieldInput(blockKey, fieldKey, fieldDef, value, fieldId);
+                    fields.push(`
+                        <div class="local-plugin-field-label"><label for="${fieldId}">${jPulse.string.escapeHtml(label)}:</label></div>
+                        <div class="local-plugin-field-value">${inputHtml}</div>
+                    `);
+                } else {
+                    const displayValue = formatFieldValue(value, fieldDef);
+                    fields.push(`
+                        <div class="local-plugin-field-label">${jPulse.string.escapeHtml(label)}:</div>
+                        <div class="local-plugin-field-value">${displayValue}</div>
+                    `);
+                }
             }
 
             return fields.join('');
+        }
+
+        // W-107: Render editable input for plugin card field
+        function renderPluginFieldInput(blockKey, fieldKey, fieldDef, value, fieldId) {
+            const inputType = fieldDef.inputType || fieldDef.type || 'string';
+            const esc = (v) => (v === null || v === undefined ? '' : jPulse.string.escapeHtml(String(v)));
+            const dataAttrs = `data-plugin-block="${jPulse.string.escapeHtml(blockKey)}" data-plugin-field="${jPulse.string.escapeHtml(fieldKey)}"`;
+
+            if (inputType === 'checkbox' || (fieldDef.type === 'boolean' && !fieldDef.inputType)) {
+                const checked = value ? 'checked' : '';
+                return `<input type="checkbox" id="${fieldId}" class="jp-form-input" ${dataAttrs} ${checked}>`;
+            }
+            if (inputType === 'textarea') {
+                const rows = fieldDef.rows || 3;
+                return `<textarea id="${fieldId}" name="${fieldKey}" rows="${rows}" class="jp-form-input jp-form-textarea" ${dataAttrs}>${esc(value)}</textarea>`;
+            }
+            if (inputType === 'select' && fieldDef.options) {
+                const opts = (fieldDef.options || []).map(opt => {
+                    const ov = typeof opt === 'object' ? opt.value : opt;
+                    const ol = typeof opt === 'object' ? (opt.label || opt.value) : opt;
+                    const sel = value === ov ? ' selected' : '';
+                    return `<option value="${esc(ov)}"${sel}>${esc(ol)}</option>`;
+                }).join('');
+                return `<select id="${fieldId}" name="${fieldKey}" class="jp-form-select" ${dataAttrs}>${opts}</select>`;
+            }
+            const type = (inputType === 'number' || fieldDef.type === 'number') ? 'number' : 'text';
+            const numVal = (type === 'number' && (value === null || value === undefined)) ? '' : esc(value);
+            return `<input type="${type}" id="${fieldId}" name="${fieldKey}" value="${numVal}" class="jp-form-input" ${dataAttrs}>`;
         }
 
         // W-107: Format field value based on displayAs
@@ -702,18 +777,14 @@
 
             // Handle different action types
             if (action.setFields) {
-                // Enter edit mode FIRST to capture original values before modification
-                if (!editMode) {
-                    toggleEditMode();
-                }
-
                 // Apply setFields to currentUserData (local modification)
                 for (const [path, value] of Object.entries(action.setFields)) {
                     setNestedValue(currentUserData, path, value);
                 }
 
-                // Re-render the card
+                // Re-render the card and enable Discard/Save if now dirty
                 renderPluginCards();
+                updateAdminActionButtons();
 
                 // Show toast
                 if (action.toast) {
@@ -721,13 +792,13 @@
                 }
             } else if (action.navigate) {
                 // Check for unsaved changes
-                if (editMode) {
+                if (hasFormChanges()) {
                     const result = await jPulse.UI.confirmDialog({
                         title: `{{i18n.view.admin.userProfile.unsavedChangesTitle}}`,
                         message: `{{i18n.view.admin.userProfile.unsavedChangesMessage}}`,
-                        buttons: [`{{i18n.view.admin.userProfile.cancel}}`, `{{i18n.view.admin.userProfile.saveAndContinue}}`]
+                        buttons: [`{{i18n.view.admin.userProfile.backToEdit}}`, `{{i18n.view.admin.userProfile.saveAndContinue}}`]
                     });
-                    if (result.button === `{{i18n.view.admin.userProfile.cancel}}`) return;
+                    if (result.button === `{{i18n.view.admin.userProfile.backToEdit}}`) return;
                     await saveUser();
                 }
                 window.location.href = action.navigate;
@@ -777,8 +848,18 @@
             document.getElementById('language').value = user.preferences?.language || 'en';
             document.getElementById('theme').value = user.preferences?.theme || 'light';
 
-            // Show user content
+            // Store baseline for dirty detection; show user content
+            originalValues = JSON.parse(JSON.stringify(getCurrentFormValues()));
             document.getElementById('userContent').classList.remove('jp-hidden');
+            updateAdminActionButtons();
+        }
+
+        function updateAdminActionButtons() {
+            const dirty = hasFormChanges();
+            const discardBtn = document.getElementById('discardBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            if (discardBtn) discardBtn.disabled = !dirty;
+            if (saveBtn) saveBtn.disabled = !dirty;
         }
 
         function updateRolesCheckboxes(userRoles) {
@@ -790,7 +871,7 @@
                 const checkbox = document.createElement('div');
                 checkbox.className = 'local-role-checkbox';
                 checkbox.innerHTML = `
-                    <input type="checkbox" id="role_${role}" value="${role}" ${isChecked ? 'checked' : ''} disabled>
+                    <input type="checkbox" id="role_${role}" value="${role}" ${isChecked ? 'checked' : ''}>
                     <label for="role_${role}">${role}</label>
                 `;
                 container.appendChild(checkbox);
@@ -886,47 +967,44 @@
             }
         }
 
-        function toggleEditMode() {
-            editMode = !editMode;
-            const editBtn = document.getElementById('editBtn');
-            const saveBtn = document.getElementById('saveBtn');
-            const cancelBtn = document.getElementById('cancelBtn');
-
-            if (editMode) {
-                // Store original values at edit start (deep copy for comparison)
-                originalValues = JSON.parse(JSON.stringify(getCurrentFormValues()));
-
-                // Enable editing for admin fields
-                document.getElementById('email').readOnly = false;
-                document.getElementById('email').classList.remove('jp-read-only-field');
-                document.getElementById('status').disabled = false;
-
-                // Enable role checkboxes
-                availableRoles.forEach(role => {
-                    const checkbox = document.getElementById(`role_${role}`);
-                    if (checkbox) checkbox.disabled = false;
+        async function revertChanges(options = {}) {
+            const { skipConfirm = false } = options;
+            if (!skipConfirm && hasFormChanges()) {
+                const result = await jPulse.UI.confirmDialog({
+                    title: `{{i18n.view.admin.userProfile.discardChangesTitle}}`,
+                    message: `{{i18n.view.admin.userProfile.discardChangesMessage}}`,
+                    buttons: [`{{i18n.view.admin.userProfile.backToEdit}}`, `{{i18n.view.admin.userProfile.discardChanges}}`]
                 });
-
-                // Enable editing for profile fields
-                ['firstName', 'lastName', 'nickName'].forEach(id => {
-                    const field = document.getElementById(id);
-                    field.readOnly = false;
-                    field.classList.remove('jp-read-only-field');
-                });
-
-                // Enable editing for preference fields
-                ['language', 'theme'].forEach(id => {
-                    const field = document.getElementById(id);
-                    field.disabled = false;
-                });
-
-                // Update buttons
-                jPulse.dom.hide(editBtn);
-                jPulse.dom.show(saveBtn);
-                jPulse.dom.show(cancelBtn);
-            } else {
-                cancelEdit();
+                if (result.button === `{{i18n.view.admin.userProfile.backToEdit}}`) {
+                    return;
+                }
             }
+
+            // Restore form fields from baseline
+            if (originalValues.email !== undefined) {
+                document.getElementById('email').value = originalValues.email;
+                document.getElementById('status').value = originalValues.status;
+                document.getElementById('firstName').value = originalValues.firstName;
+                document.getElementById('lastName').value = originalValues.lastName;
+                document.getElementById('nickName').value = originalValues.nickName;
+                document.getElementById('language').value = originalValues.language;
+                document.getElementById('theme').value = originalValues.theme;
+                if (originalValues.roles) {
+                    availableRoles.forEach(role => {
+                        const checkbox = document.getElementById(`role_${role}`);
+                        if (checkbox) checkbox.checked = originalValues.roles.includes(role);
+                    });
+                }
+            }
+            if (originalValues && typeof originalValues === 'object') {
+                for (const key of Object.keys(schemaMetadata)) {
+                    if (originalValues[key] !== undefined) {
+                        currentUserData[key] = originalValues[key];
+                    }
+                }
+                renderPluginCards();
+            }
+            updateAdminActionButtons();
         }
 
         function getSelectedRoles() {
@@ -965,72 +1043,6 @@
             return !jPulse.utils.deepEqual(getCurrentFormValues(), originalValues);
         }
 
-        async function cancelEdit() {
-            // Check if form has actual changes (only show dialog if there are changes)
-            if (editMode && hasFormChanges()) {
-                const result = await jPulse.UI.confirmDialog({
-                    title: `{{i18n.view.admin.userProfile.discardChangesTitle}}`,
-                    message: `{{i18n.view.admin.userProfile.discardChangesMessage}}`,
-                    buttons: [`{{i18n.view.admin.userProfile.backToEdit}}`, `{{i18n.view.admin.userProfile.discardChanges}}`]
-                });
-                if (result.button === `{{i18n.view.admin.userProfile.backToEdit}}`) {
-                    return;
-                }
-            }
-
-            editMode = false;
-
-            // Restore original values
-            if (originalValues.email !== undefined) {
-                document.getElementById('email').value = originalValues.email;
-                document.getElementById('status').value = originalValues.status;
-                document.getElementById('firstName').value = originalValues.firstName;
-                document.getElementById('lastName').value = originalValues.lastName;
-                document.getElementById('nickName').value = originalValues.nickName;
-                document.getElementById('language').value = originalValues.language;
-                document.getElementById('theme').value = originalValues.theme;
-
-                // Restore roles
-                if (originalValues.roles) {
-                    availableRoles.forEach(role => {
-                        const checkbox = document.getElementById(`role_${role}`);
-                        if (checkbox) {
-                            checkbox.checked = originalValues.roles.includes(role);
-                        }
-                    });
-                }
-            }
-
-            // Disable editing for admin fields
-            document.getElementById('email').readOnly = true;
-            document.getElementById('email').classList.add('jp-read-only-field');
-            document.getElementById('status').disabled = true;
-
-            // Disable role checkboxes
-            availableRoles.forEach(role => {
-                const checkbox = document.getElementById(`role_${role}`);
-                if (checkbox) checkbox.disabled = true;
-            });
-
-            // Disable editing for profile fields
-            ['firstName', 'lastName', 'nickName'].forEach(id => {
-                const field = document.getElementById(id);
-                field.readOnly = true;
-                field.classList.add('jp-read-only-field');
-            });
-
-            // Disable editing for preference fields
-            ['language', 'theme'].forEach(id => {
-                const field = document.getElementById(id);
-                field.disabled = true;
-            });
-
-            // Update buttons
-            jPulse.dom.show(document.getElementById('editBtn'));
-            jPulse.dom.hide(document.getElementById('saveBtn'));
-            jPulse.dom.hide(document.getElementById('cancelBtn'));
-        }
-
         async function saveUser() {
             try {
                 // Prepare update data
@@ -1060,8 +1072,8 @@
 
                 if (result.success) {
                     jPulse.UI.toast.success(`{{i18n.view.admin.userProfile.userUpdatedSuccess}}`);
-                    editMode = false;
-                    cancelEdit();
+                    originalValues = JSON.parse(JSON.stringify(getCurrentFormValues()));
+                    updateAdminActionButtons();
                     await loadUser();
                 } else {
                     jPulse.UI.toast.error(result.error || `{{i18n.view.admin.userProfile.failedToUpdateUser}}`);

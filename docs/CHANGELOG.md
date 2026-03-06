@@ -1,6 +1,28 @@
-# jPulse Docs / Version History v1.6.23
+# jPulse Docs / Version History v1.6.24
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.24, W-167, 2026-03-06
+
+**Commit:** `W-167, v1.6.24: jPulse.UI jpSelect: optional onOptionPreview hook & keyboard navigation`
+
+**FEATURE RELEASE**: jpSelect gains an optional `onOptionPreview(value, label)` callback and full keyboard navigation. **(1) onOptionPreview:** When provided, fired when the user hovers over or keyboard-navigates to an option (value and label); called with `(null, null)` when leaving the list, clicking an option, or closing the dropdown — so consumers can show live previews (e.g. icon) without changing the selected value. Implemented via delegation on the list DOM so it works with search filtering and re-built lists. **(2) Keyboard navigation:** ArrowUp/ArrowDown move highlight between options; Home/End jump to first/last; Enter or Space select the highlighted option; Escape closes and returns focus to the trigger; Tab closes the dropdown. From the search field: ArrowDown/ArrowUp move focus to the list and set highlight. No-search mode: opening focuses the list directly. `.jp-jpselect-option-highlighted` CSS for keyboard focus styling.
+
+**Objectives**:
+- Allow consumers to show live preview while browsing options (hover or keyboard)
+- Full keyboard accessibility for jpSelect dropdown
+
+**Key Changes**:
+- **webapp/view/jpulse-common.js**: `onOptionPreview` option; delegated mouseover/mouseleave on listEl; (null, null) on option click and in closeDropdown; highlightedIndex, updateHighlight, scrollOptionIntoView, selectHighlightedOption; listEl tabindex=0; keydown handlers for ArrowUp/Down, Home, End, Enter, Space, Escape, Tab; search keydown for ArrowDown/ArrowUp to focus list
+- **webapp/view/jpulse-common.css**: .jp-jpselect-option-highlighted (light/dark theme)
+- **docs/jpulse-ui-reference.md**: onOptionPreview documented (hover + keyboard); Keyboard subsection
+- **webapp/view/jpulse-examples/ui-widgets.shtml**: country select demo with onOptionPreview; label row with preview span (local-country-label-row)
+- **webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js**: tests for hover/leave and empty value
+
+**Work Item**: W-167
+**Version**: v1.6.24
+**Release Date**: 2026-03-06
 
 ________________________________________________
 ## v1.6.23, W-166, 2026-02-27

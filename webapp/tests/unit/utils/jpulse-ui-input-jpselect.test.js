@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.input.jpSelect (W-151)
  * @description     Tests for jpSelect init, setAllValues/getAllValues multi-select
  * @file            webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js
- * @version         1.6.23
- * @release         2026-02-27
+ * @version         1.6.24
+ * @release         2026-03-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -110,6 +110,52 @@ describe('jPulse.UI.input.jpSelect (W-151)', () => {
 
             const wrap = sel.closest('.jp-jpselect-wrap');
             expect(wrap.querySelector('.jp-jpselect-select-all')).toBeTruthy();
+        });
+
+        test('init with onOptionPreview calls callback on option hover and (null, null) on leave', () => {
+            const sel = document.createElement('select');
+            sel.innerHTML = '<option value="x">OptionX</option><option value="y">OptionY</option>';
+            sel.setAttribute('data-jpselect', '1');
+            document.body.appendChild(sel);
+
+            const onOptionPreview = jest.fn();
+            window.jPulse.UI.input.jpSelect.init(sel, { onOptionPreview });
+
+            const wrap = sel.closest('.jp-jpselect-wrap');
+            const trigger = wrap.querySelector('.jp-jpselect-trigger');
+            const dropdown = wrap.querySelector('.jp-jpselect-dropdown');
+            const listEl = wrap.querySelector('.jp-jpselect-list');
+
+            trigger.click();
+            const options = listEl.querySelectorAll('.jp-jpselect-option');
+            expect(options.length).toBe(2);
+
+            options[0].dispatchEvent(new window.MouseEvent('mouseover', { bubbles: true }));
+            expect(onOptionPreview).toHaveBeenLastCalledWith('x', 'OptionX');
+
+            options[1].dispatchEvent(new window.MouseEvent('mouseover', { bubbles: true }));
+            expect(onOptionPreview).toHaveBeenLastCalledWith('y', 'OptionY');
+
+            listEl.dispatchEvent(new window.MouseEvent('mouseleave', { bubbles: true }));
+            expect(onOptionPreview).toHaveBeenLastCalledWith(null, null);
+        });
+
+        test('onOptionPreview with empty value passes "" and (null, null) on leave', () => {
+            const sel = document.createElement('select');
+            sel.innerHTML = '<option value="">— Select —</option><option value="a">A</option>';
+            sel.setAttribute('data-jpselect', '1');
+            document.body.appendChild(sel);
+
+            const onOptionPreview = jest.fn();
+            window.jPulse.UI.input.jpSelect.init(sel, { onOptionPreview });
+
+            const wrap = sel.closest('.jp-jpselect-wrap');
+            wrap.querySelector('.jp-jpselect-trigger').click();
+            const options = wrap.querySelector('.jp-jpselect-list').querySelectorAll('.jp-jpselect-option');
+            options[0].dispatchEvent(new window.MouseEvent('mouseover', { bubbles: true }));
+            expect(onOptionPreview).toHaveBeenLastCalledWith('', '— Select —');
+            wrap.querySelector('.jp-jpselect-list').dispatchEvent(new window.MouseEvent('mouseleave', { bubbles: true }));
+            expect(onOptionPreview).toHaveBeenLastCalledWith(null, null);
         });
 
         test('init multi with custom separator uses it in trigger caption', () => {

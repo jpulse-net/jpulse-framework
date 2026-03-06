@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.23
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.24
 
 **For Site Administrators & Site Developers**
 
@@ -227,6 +227,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.24 - jpSelect: onOptionPreview hook + keyboard navigation (W-167)**: Optional `onOptionPreview(value, label)` when hovering or keyboard-navigating options; `(null, null)` on leave/close. ArrowUp/Down/Home/End/Enter/Space/Escape/Tab. Demo in UI Widgets. Docs: jpulse-ui-reference.md. W-167, 2026-03-06
 - ✅ **Version 1.6.23 - Site: configurable logo; admin user profile UX; plugin card editable fields (W-166)**: **(1)** Configurable logo via app.site.logoUrl/logoAlt (override in site/webapp/app.conf; 22×22 px). **(2)** Admin user profile: always-edit mode; Back, Discard, Save; dirty-state handling with beforeunload/pageshow. **(3)** Plugin cards: editable inputs when readOnly not true (text, textarea, number, checkbox, select). Docs: handlebars.md, site-customization.md, plugin-api-reference.md. Also: bump-version bin patterns (bin/*.py etc.); dialog ESC fix; toast z-index above dialogs. W-166, 2026-02-27
 - ✅ **Version 1.6.22 - jPulse dialog: keyboard nav with default behavior (W-165)**: All dialog types (`confirmDialog`, `alert`, `info`, `success`) are now fully keyboard-navigable. Enter activates the default button (last button, or explicit `defaultButton: index|label` option); letter keys activate buttons by first letter (underlined; first-button-wins on conflict; inactive inside input/select/textarea); Left/Right arrows cycle button focus; Up/Down blocked to prevent page scroll; Tab/Shift+Tab cycles all focusable elements wrapping at boundaries. Initial focus: first `<input>`/`<select>` if present, else the default button. Stacked dialogs: only the topmost responds to keyboard events. Default button has a visible at-rest ring indicator; all buttons have an enhanced focus ring. Fixed overlay `visibility:hidden` → `pointer-events:none` for immediate focusability. W-165, 2026-02-22
 - ✅ **Version 1.6.21 - WebSocket: fix _startHealthChecks crash (W-164)**: Hotfix for Node.js process crash introduced in v1.6.20. `_startHealthChecks` built a bare `fakeReq`/`fakeRes` for express-session to re-validate WS client sessions; `fakeReq` was missing `url`/`originalUrl` causing `parseUrl.original(req)` → `undefined.pathname` crash on the first health-check cycle after an authenticated client connected. Fix: `fakeReq` gains `url: '/'` and `originalUrl: '/'`; `fakeRes` stubs `setHeader`, `getHeader`, and `end` to satisfy express-session when it refreshes the session cookie. W-164, 2026-02-21

@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.23
+# jPulse Docs / jPulse.UI Widget Reference v1.6.24
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -588,6 +588,9 @@ Enhance an existing `<select>` as jpSelect. Add `data-jpselect` to the select. S
   - `captionFormatSome` (string) - (Multi) e.g. '%NUM% selected'; default from i18n
   - `captionFormatAll` (string) - (Multi) e.g. 'All selected'; default from i18n
   - `separator` (string) - (Multi) Separator between selected labels in trigger (e.g. ', ' or '、'); default from i18n `view.ui.input.jpSelect.separator`
+  - `onOptionPreview` (function) - Optional callback `(value, label)` fired when the user hovers over or keyboard-navigates to an option; called with `(null, null)` when leaving the list or closing the dropdown so the consumer can revert the preview (e.g. show live icon preview)
+
+**Keyboard:** When the dropdown is open, focus is on the search field (if present) or the option list. ArrowDown/ArrowUp from the search field move focus to the list. In the list: ArrowUp/ArrowDown move the highlight between options; Home/End jump to first/last; Enter or Space select the highlighted option; Escape closes and returns focus to the trigger; Tab closes the dropdown.
 
 **Example:**
 ```javascript

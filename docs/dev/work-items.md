@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.23
+# jPulse Docs / Dev / Work Items v1.6.24
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5174,17 +5174,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - `confirmDialog` API: added `defaultButton` option with description
     - "Dialog Features": expanded keyboard navigation section with full reference
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
-### W-166, v1.6.23, 2026-02-27: site: configurable logo; admin edit user page change
+### W-166, v1.6.23, 2026-02-27: site: configurable logo; admin user profile UX; plugin card editable fields
 - status: ✅ DONE
 - type: Feature
 - objectives:
@@ -5217,10 +5207,42 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-167, v1.6.24, 2026-03-06: jPulse.UI jpSelect: optional onOptionPreview hook & keyboard navigation
+- status: ✅ DONE
+- type: Feature
+- objectives: allow consumers to show a live preview (e.g. icon) while the user browses options in the dropdown, without changing the selected value
+- features:
+  - optional `onOptionPreview(value, label)` in `jpSelect.init(sel, options)`
+  - when provided, call it on `mouseover` of a `.jp-jpselect-option` with that option’s `data-value` and label; call with `(null, null)` on `mouseleave` of the list, on option click (before selection), and when dropdown closes
+  - implement via delegation on the list DOM so it works with search filtering and re-built lists
+  - keyboard navigation: ArrowUp/ArrowDown move highlight; Home/End jump; Enter/Space select; Escape closes; Tab from search moves focus to list
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - onOptionPreview (mouseover/mouseleave, click, closeDropdown)
+    - keyboard (highlightedIndex, listEl tabindex, ArrowUp/Down/Home/End/Enter/Space/Escape/Tab, search ArrowDown/Up)
+  - `webapp/view/jpulse-common.css`:
+    - .jp-jpselect-option-highlighted
+  - `docs/jpulse-ui-reference.md`:
+    - onOptionPreview + Keyboard subsection
+  - `webapp/view/jpulse-examples/ui-widgets.shtml`:
+    - country demo with onOptionPreview, label row with preview span
+  - `webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js`:
+    - tests for hover/leave and empty value
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
 - ui widget: add horizontal slider for integer value with min/max
+- toast: small x on upper right to dismiss toast early
 
 old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
@@ -5244,8 +5266,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-166, v1.6.23, 2026-02-27
-- update features & deliverables in W-166 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-167, v1.6.24, 2026-03-06
+- update features & deliverables in W-167 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5256,12 +5278,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.23 2026-02-27
+node bin/bump-version.js 1.6.24 2026-03-06
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.23
+git tag v1.6.24
 git push origin main --tags
 
 === PLUGIN release & package build on github ===
@@ -5314,7 +5336,9 @@ npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 npx jest webapp/tests/unit/controller/handlebar-logical-helpers.test.js
 
 === Count lines ===
-find . -type f -not -path '*/common/*' -not -path './tt-*' -not -path '*/node_modules/*' -not -path './coverage/*' -not -path '*/tmp*' -not -path './.*' -not -path '*/.git*' -not -path './cursor*' -not -path '*/fixtures/*' -not -path './package-lock.json' | xargs wc -l
+cloc --timeout 0 --force-lang="Text",conf --force-lang="Text",tmpl --force-lang="Text",shtml --force-lang="JavaScript",cjs --force-lang="Text",webmanifest --force-lang="Text",txt --force-lang="Markdown",markdown --list-file=<(find . -type f -not -path '*.png' -not -path '*.jpg' -not -path '*.svg' -not -path '*.save*' -not -path '*/common/*' -not -path './tt-*' -not -path '*/node_modules/*' -not -path './coverage/*' -not -path '*/tmp*' -not -path './.*' -not -path '*/.git*' -not -path './cursor*' -not -path '*/fixtures/*' -not -path './package-lock.json' -print)
+
+find . -type f -not -path '*.png' -not -path '*.jpg' -not -path '*.svg' -not -path '*.save*' -not -path '*/common/*' -not -path './tt-*' -not -path '*/node_modules/*' -not -path './coverage/*' -not -path '*/tmp*' -not -path './.*' -not -path '*/.git*' -not -path './cursor*' -not -path '*/fixtures/*' -not -path './package-lock.json' | xargs wc -l
 
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items

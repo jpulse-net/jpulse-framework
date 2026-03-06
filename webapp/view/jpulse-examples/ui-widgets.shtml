@@ -4,8 +4,8 @@
  * @tagline         Interactive UI widget examples and demonstrations
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
- * @version         1.6.23
- * @release         2026-02-27
+ * @version         1.6.24
+ * @release         2026-03-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -59,6 +59,19 @@
 
         .local-dialog-file-row input[type="checkbox"] {
             margin-right: 8px;
+        }
+
+        /* Country jpSelect: preview to the right of the label */
+        .local-country-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 5px;
+        }
+        .local-country-preview {
+            font-size: 0.9em;
+            flex-shrink: 0;
+            margin-left: 0.5rem;
         }
     </style>
 </head>
@@ -696,7 +709,10 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
                     <input type="text" id="input-widgets-demo-roles" name="roles" class="jp-form-input" data-taginput data-pattern="[a-z0-9_-]+" data-path="demo.roles" placeholder="Type a role and press Enter">
                 </div>
                 <div class="jp-form-group">
-                    <label for="input-widgets-demo-country">Country (jpSelect single, search)</label>
+                    <div class="local-country-label-row">
+                        <label for="input-widgets-demo-country">Country (jpSelect single, search, onOptionPreview)</label>
+                        <span id="input-widgets-demo-country-preview" class="jp-text-muted local-country-preview"></span>
+                    </div>
                     <select id="input-widgets-demo-country" name="country" class="jp-form-input" data-jpselect data-path="demo.country">
                         <option value="">— Select —</option>
                         <option value="au">Australia</option>
@@ -736,7 +752,11 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
 &lt;!-- tagInput: list-in-one input --&gt;
 &lt;input type="text" data-taginput data-pattern="[a-z0-9_-]+" data-path="demo.roles" placeholder="Type and press Enter"&gt;
 
-&lt;!-- jpSelect: single with search --&gt;
+&lt;!-- jpSelect: single with search + onOptionPreview --&gt;
+&lt;div class="local-country-label-row"&gt;
+    &lt;label for="demo-country"&gt;Country (jpSelect single, search, onOptionPreview)&lt;/label&gt;
+    &lt;span id="country-preview" class="jp-text-muted local-country-preview"&gt;&lt;/span&gt;
+&lt;/div&gt;
 &lt;select id="demo-country" data-jpselect data-path="demo.country"&gt;
     &lt;option value=""&gt;— Select —&lt;/option&gt;
     &lt;option value="us"&gt;United States&lt;/option&gt;
@@ -750,9 +770,15 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
 &lt;/select&gt;
 
 &lt;script&gt;
-// After DOM ready: init tagInput, then jpSelect with search / selectAll
+// After DOM ready: init tagInput, then jpSelect with search / selectAll / onOptionPreview
 jPulse.UI.input.tagInput.init(document.querySelector('#demo-roles'));
-jPulse.UI.input.jpSelect.init(document.querySelector('#demo-country'), { search: true });
+jPulse.UI.input.jpSelect.init(document.querySelector('#demo-country'), {
+    search: true,
+    onOptionPreview: (value, label) => {
+        const el = document.getElementById('country-preview');
+        if (el) el.textContent = value != null ? `Preview: ${value} — ${label}` : '';
+    }
+});
 jPulse.UI.input.jpSelect.init(document.querySelector('#demo-tags'), { search: true, selectAll: true });
 
 // Set values (e.g. after loading from API)
@@ -1206,8 +1232,16 @@ jPulse.UI.sourceCode.initAll();
                 const rolesInput = document.getElementById('input-widgets-demo-roles');
                 if (rolesInput) { jPulse.UI.input.tagInput.init(rolesInput); }
                 const countrySelect = document.getElementById('input-widgets-demo-country');
+                const countryPreview = document.getElementById('input-widgets-demo-country-preview');
                 if (countrySelect && typeof jPulse.UI.input.jpSelect !== 'undefined') {
-                    jPulse.UI.input.jpSelect.init(countrySelect, { search: true });
+                    jPulse.UI.input.jpSelect.init(countrySelect, {
+                        search: true,
+                        onOptionPreview: (value, label) => {
+                            if (countryPreview) {
+                                countryPreview.textContent = value != null ? `Preview: ${value} — ${label}` : '';
+                            }
+                        }
+                    });
                 }
                 const tagsSelect = document.getElementById('input-widgets-demo-tags');
                 if (tagsSelect && typeof jPulse.UI.input.jpSelect !== 'undefined') {

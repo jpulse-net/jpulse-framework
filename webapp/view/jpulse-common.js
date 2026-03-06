@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.23
- * @release         2026-02-27
+ * @version         1.6.24
+ * @release         2026-03-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1318,7 +1318,7 @@ window.jPulse = {
                  * Enhance a native <select> (single or multiple) with dropdown UI, optional search, select all/clear all.
                  * Native select remains in DOM and is the value source for setAllValues/getAllValues.
                  * @param {string|Element} selectorOrElement - Select element or selector
-                 * @param {Object} [options] - search, searchPlaceholder, selectAll, placeholder, captionFormatSome, captionFormatAll
+                 * @param {Object} [options] - search, searchPlaceholder, selectAll, placeholder, captionFormatSome, captionFormatAll, onOptionPreview
                  */
                 init: (selectorOrElement, options = {}) => {
                     const sel = typeof selectorOrElement === 'string'
@@ -1368,6 +1368,7 @@ window.jPulse = {
                     let searchInput = null;
                     let listEl = null;
                     let selectAllBtn = null;
+                    let highlightedIndex = -1;
 
                     const getSelectedValues = () => Array.from(sel.selectedOptions).map((o) => o.value);
                     const getOptionLabels = () => Array.from(sel.options).map((o) => ({ value: o.value, label: o.textContent.trim() }));
@@ -1438,6 +1439,7 @@ window.jPulse = {
                             div.addEventListener('click', (e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
+                                if (typeof opts.onOptionPreview === 'function') opts.onOptionPreview(null, null);
                                 const opt = Array.from(sel.options).find((o) => o.value === item.value);
                                 if (!opt) return;
                                 if (multi) {
@@ -1457,6 +1459,34 @@ window.jPulse = {
                             });
                             listEl.appendChild(div);
                         });
+                        highlightedIndex = Math.max(-1, Math.min(highlightedIndex, listEl.children.length - 1));
+                        updateHighlight();
+                    };
+
+                    const getOptionAt = (idx) => listEl && idx >= 0 && idx < listEl.children.length ? listEl.children[idx] : null;
+
+                    const updateHighlight = () => {
+                        const opts_list = listEl ? Array.from(listEl.querySelectorAll('.jp-jpselect-option')) : [];
+                        opts_list.forEach((opt, i) => {
+                            opt.classList.toggle('jp-jpselect-option-highlighted', i === highlightedIndex);
+                        });
+                        if (typeof opts.onOptionPreview === 'function' && opts_list[highlightedIndex]) {
+                            const opt = opts_list[highlightedIndex];
+                            const value = opt.getAttribute('data-value');
+                            const labelEl = opt.querySelector('.jp-jpselect-option-label');
+                            const label = labelEl ? labelEl.textContent.trim() : '';
+                            opts.onOptionPreview(value, label);
+                        }
+                    };
+
+                    const scrollOptionIntoView = (idx) => {
+                        const opt = getOptionAt(idx);
+                        if (opt) opt.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    };
+
+                    const selectHighlightedOption = () => {
+                        const opt = getOptionAt(highlightedIndex);
+                        if (opt) opt.click();
                     };
 
                     const updateSelectAllButton = () => {
@@ -1488,13 +1518,19 @@ window.jPulse = {
                         trigger.setAttribute('aria-expanded', 'true');
                         buildList(searchInput ? searchInput.value : '');
                         updateSelectAllButton();
+                        highlightedIndex = listEl.children.length > 0 ? 0 : -1;
+                        updateHighlight();
                         if (searchInput) {
                             searchInput.value = '';
                             searchInput.focus();
+                        } else {
+                            listEl.focus();
                         }
                     };
 
                     const closeDropdown = () => {
+                        if (typeof opts.onOptionPreview === 'function') opts.onOptionPreview(null, null);
+                        highlightedIndex = -1;
                         dropdown.classList.remove('jp-jpselect-open');
                         trigger.setAttribute('aria-expanded', 'false');
                     };
@@ -1508,7 +1544,18 @@ window.jPulse = {
                         searchInput.setAttribute('aria-label', opts.searchPlaceholder);
                         dropdown.appendChild(searchInput);
                         searchInput.addEventListener('input', () => buildList(searchInput.value));
-                        searchInput.addEventListener('keydown', (e) => e.stopPropagation());
+                        searchInput.addEventListener('keydown', (e) => {
+                            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                highlightedIndex = listEl.children.length > 0 ? (e.key === 'ArrowDown' ? 0 : listEl.children.length - 1) : -1;
+                                updateHighlight();
+                                scrollOptionIntoView(highlightedIndex);
+                                listEl.focus();
+                            } else {
+                                e.stopPropagation();
+                            }
+                        });
                     }
 
                     if (multi && opts.selectAll) {
@@ -1537,7 +1584,69 @@ window.jPulse = {
                     listEl = document.createElement('div');
                     listEl.className = 'jp-jpselect-list';
                     listEl.setAttribute('data-jpselect-list', '1');
+                    listEl.setAttribute('tabindex', '0');
                     dropdown.appendChild(listEl);
+
+                    listEl.addEventListener('focus', () => {
+                        if (highlightedIndex === -1 && listEl.children.length > 0) {
+                            highlightedIndex = 0;
+                            updateHighlight();
+                        }
+                    });
+
+                    listEl.addEventListener('keydown', (e) => {
+                        const opts_list = Array.from(listEl.querySelectorAll('.jp-jpselect-option'));
+                        const n = opts_list.length;
+                        if (n === 0) return;
+                        if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            highlightedIndex = (highlightedIndex + 1) % n;
+                            updateHighlight();
+                            scrollOptionIntoView(highlightedIndex);
+                        } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            highlightedIndex = highlightedIndex <= 0 ? n - 1 : highlightedIndex - 1;
+                            updateHighlight();
+                            scrollOptionIntoView(highlightedIndex);
+                        } else if (e.key === 'Home') {
+                            e.preventDefault();
+                            highlightedIndex = 0;
+                            updateHighlight();
+                            scrollOptionIntoView(0);
+                        } else if (e.key === 'End') {
+                            e.preventDefault();
+                            highlightedIndex = n - 1;
+                            updateHighlight();
+                            scrollOptionIntoView(highlightedIndex);
+                        } else if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            selectHighlightedOption();
+                        } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            closeDropdown();
+                            trigger.focus();
+                        } else if (e.key === 'Tab') {
+                            closeDropdown();
+                        }
+                    });
+
+                    listEl.addEventListener('mouseover', (e) => {
+                        const opt = e.target.closest('.jp-jpselect-option');
+                        if (opt) {
+                            const opts_list = Array.from(listEl.querySelectorAll('.jp-jpselect-option'));
+                            highlightedIndex = opts_list.indexOf(opt);
+                            updateHighlight();
+                            if (typeof opts.onOptionPreview === 'function') {
+                                const value = opt.getAttribute('data-value');
+                                const labelEl = opt.querySelector('.jp-jpselect-option-label');
+                                const label = labelEl ? labelEl.textContent.trim() : '';
+                                opts.onOptionPreview(value, label);
+                            }
+                        }
+                    });
+                    listEl.addEventListener('mouseleave', () => {
+                        if (typeof opts.onOptionPreview === 'function') opts.onOptionPreview(null, null);
+                    });
 
                     trigger.addEventListener('click', (e) => {
                         e.preventDefault();

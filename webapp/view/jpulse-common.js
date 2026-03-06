@@ -3,7 +3,7 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.24
+ * @version         1.6.25
  * @release         2026-03-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -972,6 +972,13 @@ window.jPulse = {
                         // Skip element if init fails
                     }
                 });
+                root.querySelectorAll('input[data-slider]').forEach((el) => {
+                    try {
+                        jPulse.UI.input.slider.init(el);
+                    } catch (_) {
+                        // Skip element if init fails
+                    }
+                });
             },
 
             /**
@@ -1043,6 +1050,9 @@ window.jPulse = {
                         ? jPulse.UI.input.tagInput.formatValue(value)
                         : (value !== undefined && value !== null ? String(value) : '');
                     el.value = displayValue;
+                    if (el.hasAttribute('data-slider') && typeof el._jpSliderSetValue === 'function') {
+                        el._jpSliderSetValue(displayValue);
+                    }
                 });
             },
 
@@ -1668,6 +1678,184 @@ window.jPulse = {
                     });
 
                     updateCaption();
+                }
+            },
+
+            /**
+             * Horizontal slider for a single integer value (W-168). Value in thumb; optional default tick on track.
+             * @param {string|Element} selectorOrElement - Input element or selector (type="number", data-slider)
+             * @param {Object} [options] - min, max, step (default 1), default (optional; for reset + tick), showValue (default true)
+             */
+            slider: {
+                init: (selectorOrElement, options = {}) => {
+                    const el = typeof selectorOrElement === 'string'
+                        ? document.querySelector(selectorOrElement)
+                        : selectorOrElement;
+                    if (!el || el.tagName !== 'INPUT') return;
+                    if (el.dataset.sliderInited) return;
+                    el.dataset.sliderInited = '1';
+
+                    const min = Number(el.getAttribute('data-slider-min')) ?? options.min ?? 0;
+                    const max = Number(el.getAttribute('data-slider-max')) ?? options.max ?? 100;
+                    let step = Number(el.getAttribute('data-slider-step')) ?? options.step ?? 1;
+                    if (!step || isNaN(step)) step = 1;
+                    const defaultVal = el.hasAttribute('data-slider-default')
+                        ? Number(el.getAttribute('data-slider-default'))
+                        : (options.default !== undefined ? Number(options.default) : undefined);
+                    const showValue = options.showValue !== false;
+
+                    const clamp = (v) => Math.min(max, Math.max(min, v));
+                    const toInt = (v) => {
+                        const n = typeof v === 'number' ? v : parseInt(v, 10);
+                        return isNaN(n) ? min : clamp(Math.round((n - min) / step) * step + min);
+                    };
+
+                    let current = toInt(el.value || el.getAttribute('value') || min);
+                    el.value = String(current);
+
+                    const wrap = document.createElement('div');
+                    wrap.className = 'jp-slider-wrap';
+                    wrap.setAttribute('data-slider-wrapper', '1');
+                    el.parentNode.insertBefore(wrap, el);
+                    wrap.appendChild(el);
+                    el.classList.add('jp-slider-value-input');
+                    el.setAttribute('aria-hidden', 'true');
+                    el.tabIndex = -1;
+
+                    const track = document.createElement('div');
+                    track.className = 'jp-slider-track';
+                    track.setAttribute('role', 'slider');
+                    track.setAttribute('aria-valuemin', min);
+                    track.setAttribute('aria-valuemax', max);
+                    track.setAttribute('aria-valuenow', current);
+                    track.setAttribute('tabindex', '0');
+                    if (el.id) track.setAttribute('aria-labelledby', el.id);
+
+                    const fill = document.createElement('div');
+                    fill.className = 'jp-slider-fill';
+
+                    let defaultTick = null;
+                    if (defaultVal !== undefined && !isNaN(defaultVal)) {
+                        defaultTick = document.createElement('div');
+                        defaultTick.className = 'jp-slider-default-tick';
+                        defaultTick.setAttribute('aria-hidden', 'true');
+                        track.appendChild(defaultTick);
+                    }
+
+                    track.appendChild(fill);
+
+                    const thumb = document.createElement('div');
+                    thumb.className = 'jp-slider-thumb';
+                    thumb.setAttribute('aria-hidden', 'true');
+                    const valueLabel = document.createElement('span');
+                    valueLabel.className = 'jp-slider-value';
+                    if (showValue) valueLabel.textContent = String(current);
+                    thumb.appendChild(valueLabel);
+                    track.appendChild(thumb);
+
+                    wrap.appendChild(track);
+
+                    const updateUI = (val) => {
+                        current = clamp(toInt(val));
+                        el.value = String(current);
+                        track.setAttribute('aria-valuenow', current);
+                        if (showValue) valueLabel.textContent = String(current);
+                        const trackW = track.getBoundingClientRect().width;
+                        const thumbW = thumb.getBoundingClientRect().width;
+                        const usableTrack = Math.max(0, trackW - thumbW);
+                        const cutoff = usableTrack > 0 ? (thumbW * (max - min)) / usableTrack : 0;
+                        let thumbLeftEdge;
+                        if (current <= min + cutoff) {
+                            thumbLeftEdge = 0;
+                        } else if (current >= max - cutoff) {
+                            thumbLeftEdge = trackW - thumbW;
+                        } else {
+                            const midRange = max - min - 2 * cutoff;
+                            const t = midRange > 0 ? (current - min - cutoff) / midRange : 0;
+                            thumbLeftEdge = usableTrack * t;
+                        }
+                        const thumbCenter = thumbLeftEdge + thumbW / 2;
+                        fill.style.width = thumbCenter + 'px';
+                        thumb.style.left = thumbCenter + 'px';
+                        if (defaultTick != null && defaultVal !== undefined) {
+                            const defVal = clamp(defaultVal);
+                            if (defVal <= min + cutoff) {
+                                defaultTick.style.left = (thumbW / 2) + 'px';
+                            } else if (defVal >= max - cutoff) {
+                                defaultTick.style.left = (trackW - thumbW / 2) + 'px';
+                            } else {
+                                const midRange = max - min - 2 * cutoff;
+                                const defT = midRange > 0 ? (defVal - min - cutoff) / midRange : 0;
+                                defaultTick.style.left = (thumbW / 2 + usableTrack * defT) + 'px';
+                            }
+                        }
+                    };
+
+                    const commit = () => {
+                        el.dispatchEvent(new Event('change', { bubbles: true }));
+                    };
+
+                    const setValue = (val) => {
+                        const v = toInt(val);
+                        if (v === current) return;
+                        updateUI(v);
+                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                    };
+
+                    el._jpSliderSetValue = (val) => {
+                        updateUI(val);
+                    };
+
+                    const getPositionPercent = (e) => {
+                        const rect = track.getBoundingClientRect();
+                        const thumbW = thumb.getBoundingClientRect().width;
+                        const trackW = rect.width;
+                        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                        const x = clientX - rect.left;
+                        const usableTrack = Math.max(0, trackW - thumbW);
+                        const cutoff = usableTrack > 0 ? (thumbW * (max - min)) / usableTrack : 0;
+                        const thumbLeftEdge = x - thumbW / 2;
+                        if (thumbLeftEdge <= 0) return min;
+                        if (thumbLeftEdge >= usableTrack) return max;
+                        const midRange = max - min - 2 * cutoff;
+                        const t = thumbLeftEdge / usableTrack;
+                        return min + cutoff + t * midRange;
+                    };
+
+                    const onPointerDown = (e) => {
+                        e.preventDefault();
+                        track.focus();
+                        setValue(getPositionPercent(e));
+                        const onMove = (e2) => setValue(getPositionPercent(e2));
+                        const onUp = () => {
+                            document.removeEventListener('mousemove', onMove);
+                            document.removeEventListener('mouseup', onUp);
+                            document.removeEventListener('touchmove', onMove, { passive: false });
+                            document.removeEventListener('touchend', onUp);
+                            commit();
+                        };
+                        document.addEventListener('mousemove', onMove);
+                        document.addEventListener('mouseup', onUp);
+                        document.addEventListener('touchmove', onMove, { passive: false });
+                        document.addEventListener('touchend', onUp);
+                    };
+
+                    track.addEventListener('mousedown', onPointerDown);
+                    track.addEventListener('touchstart', onPointerDown, { passive: false });
+
+                    track.addEventListener('keydown', (e) => {
+                        if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            setValue(current - step);
+                            commit();
+                        } else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            setValue(current + step);
+                            commit();
+                        }
+                    });
+
+                    updateUI(current);
                 }
             }
         },
@@ -3007,6 +3195,15 @@ window.jPulse = {
                         const escapedValue = value !== undefined && value !== null ? jPulse.string.escapeHtml(String(value)) : '';
                         parts.push('<div class="' + wrapClass + '"><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
                             '<input type="number" id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + ' value="' + escapedValue + '">' + helpHtml + '</div></div>');
+                    } else if (inputType === 'slider') {
+                        const numVal = value !== undefined && value !== null ? Number(value) : (fieldDef.default !== undefined ? Number(fieldDef.default) : (fieldDef.min !== undefined ? Number(fieldDef.min) : 0));
+                        const escapedValue = jPulse.string.escapeHtml(String(numVal));
+                        const sliderMin = fieldDef.min !== undefined ? ' data-slider-min="' + jPulse.string.escapeHtml(String(fieldDef.min)) + '"' : '';
+                        const sliderMax = fieldDef.max !== undefined ? ' data-slider-max="' + jPulse.string.escapeHtml(String(fieldDef.max)) + '"' : '';
+                        const sliderStep = fieldDef.step !== undefined ? ' data-slider-step="' + jPulse.string.escapeHtml(String(fieldDef.step)) + '"' : '';
+                        const sliderDefault = fieldDef.default !== undefined ? ' data-slider-default="' + jPulse.string.escapeHtml(String(fieldDef.default)) + '"' : '';
+                        parts.push('<div class="' + wrapClass + '"><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
+                            '<input type="number" id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" data-slider ' + dataPathAttr + sliderMin + sliderMax + sliderStep + sliderDefault + ' value="' + escapedValue + '">' + helpHtml + '</div></div>');
                     } else if (inputType === 'select') {
                         const optionsArr = (fieldDef.options && fieldDef.options.length) ? fieldDef.options : (fieldDef.enum || []).map((v) => ({ value: v, label: String(v) }));
                         const optionHtml = optionsArr.map((opt) => {

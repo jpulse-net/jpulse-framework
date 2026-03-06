@@ -3,13 +3,13 @@
  * @tagline         Unit Tests for jPulse.UI.input.jpSelect (W-151)
  * @description     Tests for jpSelect init, setAllValues/getAllValues multi-select
  * @file            webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js
- * @version         1.6.24
+ * @version         1.6.25
  * @release         2026-03-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           80%, Cursor 2.5, Claude Sonnet 4.6
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';

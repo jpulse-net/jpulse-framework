@@ -4,7 +4,7 @@
  * @tagline         Interactive UI widget examples and demonstrations
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
- * @version         1.6.24
+ * @version         1.6.25
  * @release         2026-03-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -742,6 +742,10 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
                     </select>
                 </div>
                 <div class="jp-form-group">
+                    <label for="input-widgets-demo-slider">Volume (slider, 0–100, initial value 25, default 50)</label>
+                    <input type="number" id="input-widgets-demo-slider" name="sliderValue" class="jp-form-input" data-slider data-path="demo.sliderValue" data-slider-min="0" data-slider-max="100" data-slider-step="5" data-slider-default="50" value="25">
+                </div>
+                <div class="jp-form-group">
                     <button type="button" id="input-widgets-set-sample-btn" class="jp-btn jp-btn-secondary">Set sample values</button>
                     <button type="button" id="input-widgets-get-values-btn" class="jp-btn jp-btn-secondary">Get form values</button>
                 </div>
@@ -769,6 +773,10 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
     &lt;!-- ... 10 options --&gt;
 &lt;/select&gt;
 
+&lt;!-- slider: integer value, value in thumb, optional default tick --&gt;
+&lt;input type="number" id="demo-slider" data-slider data-path="demo.sliderValue"
+    data-slider-min="0" data-slider-max="100" data-slider-step="5" data-slider-default="50" value="50"&gt;
+
 &lt;script&gt;
 // After DOM ready: init tagInput, then jpSelect with search / selectAll / onOptionPreview
 jPulse.UI.input.tagInput.init(document.querySelector('#demo-roles'));
@@ -780,10 +788,12 @@ jPulse.UI.input.jpSelect.init(document.querySelector('#demo-country'), {
     }
 });
 jPulse.UI.input.jpSelect.init(document.querySelector('#demo-tags'), { search: true, selectAll: true });
+jPulse.UI.input.slider.init(document.querySelector('#demo-slider'));
+// Or: jPulse.UI.input.initAll(form);
 
 // Set values (e.g. after loading from API)
 jPulse.UI.input.setAllValues(form, {
-    demo: { roles: ['admin', 'user'], country: 'de', tags: ['a', 'c'] }
+    demo: { roles: ['admin', 'user'], country: 'de', tags: ['a', 'c'], sliderValue: 75 }
 });
 
 // Read values and show in dialog (or use for API payload)
@@ -1247,6 +1257,10 @@ jPulse.UI.sourceCode.initAll();
                 if (tagsSelect && typeof jPulse.UI.input.jpSelect !== 'undefined') {
                     jPulse.UI.input.jpSelect.init(tagsSelect, { search: true, selectAll: true });
                 }
+                const sliderInput = document.getElementById('input-widgets-demo-slider');
+                if (sliderInput && typeof jPulse.UI.input.slider !== 'undefined') {
+                    jPulse.UI.input.slider.init(sliderInput);
+                }
             }
 
             // Set sample values / Get form values for input widgets demo
@@ -1256,7 +1270,7 @@ jPulse.UI.sourceCode.initAll();
             if (inputWidgetsForm && setSampleBtn && getValuesBtn && typeof jPulse.UI.input.setAllValues === 'function') {
                 setSampleBtn.addEventListener('click', () => {
                     jPulse.UI.input.setAllValues(inputWidgetsForm, {
-                        demo: { roles: ['admin', 'editor'], country: 'ch', tags: ['a', 'c', 'e'] }
+                        demo: { roles: ['admin', 'editor'], country: 'ch', tags: ['a', 'c', 'e'], sliderValue: 75 }
                     });
                     jPulse.UI.toast.success('Sample values set.');
                 });

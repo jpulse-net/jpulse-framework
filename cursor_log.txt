@@ -18415,4 +18415,12 @@ Reviewed tt-git-diff.txt: diff accurate and complete for W-167 (jpSelect onOptio
 
 
 ============================================================
+2026-03-05 23:35
+
+release prep: @work-items.md (5299-5304)
+
+Completed release prep for W-168, v1.6.25, 2026-03-06. Updated README.md and docs/README.md — Latest Release Highlights: added v1.6.25 W-168 (jPulse.UI.input.slider) bullet. Updated docs/CHANGELOG.md: added full v1.6.25 W-168 entry (FEATURE RELEASE, objectives, key changes). Updated commit-message.txt for W-168 in same format as prior releases. Appended this entry to cursor_log.txt. No version bump in docs (per instructions); W-168 features/deliverables were already updated in prior session.
+
+
+============================================================
 

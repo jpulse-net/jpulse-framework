@@ -1,6 +1,29 @@
-# jPulse Docs / Version History v1.6.24
+# jPulse Docs / Version History v1.6.25
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.25, W-168, 2026-03-06
+
+**Commit:** `W-168, v1.6.25: jPulse UI: new jPulse.UI.input.slider widget`
+
+**FEATURE RELEASE**: New horizontal slider widget for a single integer value. **(1) Widget:** `jPulse.UI.input.slider.init(selectorOrElement, options?)` with options min, max, step (default 1), default (optional; for reset + tick), showValue (default true). Element: `<input type="number">` with `data-slider`; optional `data-slider-min`, `data-slider-max`, `data-slider-step`, `data-slider-default`. Value always shown in thumb (pill/rounded rect); optional small vertical tick on track at default position (only when default is set). **(2) Behavior:** Pixel-based positioning so thumb stays flush at track left/right; edge dead zones (cutoff from thumb width) so first/last value-steps keep thumb at edges. Click on track focuses track so Arrow Left/Right work without tabbing. Step default 1 when attribute missing or 0/NaN. **(3) Integration:** initAll inits all `input[data-slider]`; setAllValues calls `_jpSliderSetValue` so thumb/fill/tick update. **(4) Schema:** `inputType: 'slider'` in _renderSchemaBlockFields renders slider input with min, max, step, default from field def; doc lists slider in Schema inputTypes and Schema-driven forms. **(5) Styling:** Wrap margin 6px + padding 3px; thumb box-shadow for prominence. Demo in UI Widgets (Volume slider); unit tests in jpulse-ui-input-slider.test.js.
+
+**Objectives**:
+- Horizontal slider for single integer with min/max/step/default; value in thumb; no separate value box
+- Default value distinct from initial; optional tick on track; keyboard (Left/Right by step)
+- Integrate with setAllValues/getAllValues and other jPulse.UI.input.* widgets; schema inputType discoverable
+
+**Key Changes**:
+- **webapp/view/jpulse-common.js**: slider.init (track, fill, thumb, optional default tick); pixel positioning (flush min/max, cutoff); track.focus() on pointer down; step default 1 when 0/NaN; _jpSliderSetValue; initAll and setAllValues slider handling; _renderSchemaBlockFields inputType === 'slider' branch
+- **webapp/view/jpulse-common.css**: .jp-slider-wrap (margin, padding), .jp-slider-track, .jp-slider-fill, .jp-slider-default-tick, .jp-slider-thumb (box-shadow), .jp-slider-value
+- **docs/jpulse-ui-reference.md**: slider widget API, options, data attributes, default tick, keyboard, form integration; Schema-driven forms and inputType 'slider'; setAllValues/getAllValues/Convention; Schema inputTypes paragraph
+- **webapp/view/jpulse-examples/ui-widgets.shtml**: Volume slider demo; init and setAllValues with sliderValue: 75; source snippet
+- **webapp/tests/unit/utils/jpulse-ui-input-slider.test.js**: unit tests (init, _jpSliderSetValue, getAllValues, initAll)
+
+**Work Item**: W-168
+**Version**: v1.6.25
+**Release Date**: 2026-03-06
 
 ________________________________________________
 ## v1.6.24, W-167, 2026-03-06

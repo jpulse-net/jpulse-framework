@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.24
+# jPulse Docs / jPulse.UI Widget Reference v1.6.25
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -604,13 +604,46 @@ jPulse.UI.input.initAll(configForm);
 
 ---
 
+### slider widget
+
+Horizontal slider for a single integer value. The value is always shown inside the thumb (pill/rounded rect that grows for larger numbers like 100). Optional **default** value shows a small vertical tick on the track (only when default is set); use for “reset to default” and to indicate where that would land.
+
+**Element:** Use a regular `<input type="number">` with `data-slider`. Optional data attributes: `data-slider-min`, `data-slider-max`, `data-slider-step`, `data-slider-default`. The input remains the value store; `setAllValues` / `getAllValues` read and write it like any other input (no `data-slider-value`).
+
+#### `jPulse.UI.input.slider.init(selectorOrElement, options?)`
+
+**Parameters:**
+- `selectorOrElement` (string|Element) — Input element or CSS selector
+- `options` (Object, optional): `min`, `max`, `step` (default 1), `default` (optional; for reset + tick), `showValue` (default true)
+
+**Keyboard:** When the slider track has focus, Arrow Left / Arrow Down decrease by one step; Arrow Right / Arrow Up increase by one step.
+
+**Events:** `input` fires on every value change; `change` fires on commit (mouseup/touchend, keyup after arrow).
+
+**Example:**
+```html
+<input type="number" id="volume" data-slider data-path="config.volume"
+    data-slider-min="0" data-slider-max="100" data-slider-step="5" data-slider-default="50" value="50">
+```
+```javascript
+jPulse.UI.input.slider.init(document.querySelector('#volume'));
+// Or after populateForm:
+jPulse.UI.input.initAll(configForm);
+```
+
+If `data-slider-default` (or `options.default`) is set, a small vertical line is drawn on the track at that value. If default is not set, no tick is shown.
+
+**Schema-driven forms:** When rendering forms from a schema (e.g. `jPulse.UI.tabs.renderTabsAndPanelsFromSchema` with config or plugin schema), you can use **`inputType: 'slider'`** on a field to render a slider instead of a plain number input. The field should have `type: 'number'` and may include `min`, `max`, `step`, `default` (for the default tick). The rendered input will have `data-slider` and the appropriate `data-slider-*` attributes; call `jPulse.UI.input.initAll(form)` after populating so the slider is initialized. Supported schema inputTypes for form rendering include: `checkbox`, `tagInput`, `textarea`, `number`, **`slider`**, `select`, `button`, `password`, `text`.
+
+---
+
 ### setAllValues / getAllValues
 
 Set or read form field values by `data-path`. No schema; use when you have a flat or known data shape.
 
 #### `jPulse.UI.input.setAllValues(form, data)`
 
-Set all form field values from a data object. For each field with `data-path`, assigns value from `data` by path. **Checkboxes:** sets `el.checked` from value (true/false). **SELECT multiple:** sets `selected` on options whose value is in the array. **tagInput:** uses `tagInput.formatValue(value)` then sets `el.value`. **Others:** sets `el.value` from `String(value)`. **jpSelect:** native select is updated; caption refreshes automatically.
+Set all form field values from a data object. For each field with `data-path`, assigns value from `data` by path. **Checkboxes:** sets `el.checked` from value (true/false). **SELECT multiple:** sets `selected` on options whose value is in the array. **tagInput:** uses `tagInput.formatValue(value)` then sets `el.value`. **slider:** sets `el.value` then calls `el._jpSliderSetValue(value)` so the thumb/fill/tick update. **Others:** sets `el.value` from `String(value)`. **jpSelect:** native select is updated; caption refreshes automatically.
 
 **Parameters:**
 - `form` (HTMLFormElement|Element) - Form or container
@@ -628,7 +661,7 @@ Build a data object from form fields. For each field with `data-path`: **checkbo
 
 **Example:** `const data = jPulse.UI.input.getAllValues(configForm);`
 
-**Convention:** Fields need `data-path` (e.g. `data-path="general.roles"`). tagInput fields also need `data-taginput`. jpSelect fields need `data-jpselect` on the select element.
+**Convention:** Fields need `data-path` (e.g. `data-path="general.roles"`). tagInput fields also need `data-taginput`. jpSelect fields need `data-jpselect` on the select. Slider fields need `data-slider` on the input.
 
 ---
 
@@ -660,6 +693,8 @@ Calls `getAllValues(form)`, then coerces by `schema.type` (number, boolean) and 
 **Example:** `const payload = jPulse.UI.input.getFormData(configForm, configSchema); await jPulse.api.put('/api/1/config', payload);`
 
 **When to use:** Use **setFormData/getFormData** when you have a complete schema and want one-line set/get with defaults and coercion. Use **setAllValues/getAllValues** when you have no schema or apply defaults yourself.
+
+**Schema inputTypes:** Fields in the schema can set `inputType` to control how they are rendered: `checkbox`, `tagInput`, `textarea`, `number`, `slider`, `select`, `button`, `password`, or `text`. For `inputType: 'slider'`, the field may also specify `min`, `max`, `step`, and `default` (for the default tick); the rendered input is then initialized via `jPulse.UI.input.initAll(form)`.
 
 ---
 

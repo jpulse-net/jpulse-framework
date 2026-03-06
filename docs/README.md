@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.24
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.25
 
 **For Site Administrators & Site Developers**
 
@@ -226,6 +226,8 @@ jPulse is designed for:
 - [Terms of Service](https://jpulse.net/legal/terms-of-service)
 
 ## Latest Release Highlights
+
+- ✅ **Version 1.6.25 - jPulse.UI.input.slider widget (W-168)**: Horizontal slider for integer min/max/step/default; value in thumb; optional default tick; flush thumb at edges; keyboard (track focus, Arrow keys); setAllValues/getAllValues/initAll; schema inputType 'slider'. Demo in UI Widgets. W-168, 2026-03-06
 
 - ✅ **Version 1.6.24 - jpSelect: onOptionPreview hook + keyboard navigation (W-167)**: Optional `onOptionPreview(value, label)` when hovering or keyboard-navigating options; `(null, null)` on leave/close. ArrowUp/Down/Home/End/Enter/Space/Escape/Tab. Demo in UI Widgets. Docs: jpulse-ui-reference.md. W-167, 2026-03-06
 - ✅ **Version 1.6.23 - Site: configurable logo; admin user profile UX; plugin card editable fields (W-166)**: **(1)** Configurable logo via app.site.logoUrl/logoAlt (override in site/webapp/app.conf; 22×22 px). **(2)** Admin user profile: always-edit mode; Back, Discard, Save; dirty-state handling with beforeunload/pageshow. **(3)** Plugin cards: editable inputs when readOnly not true (text, textarea, number, checkbox, select). Docs: handlebars.md, site-customization.md, plugin-api-reference.md. Also: bump-version bin patterns (bin/*.py etc.); dialog ESC fix; toast z-index above dialogs. W-166, 2026-02-27

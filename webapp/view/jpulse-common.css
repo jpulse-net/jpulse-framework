@@ -3,7 +3,7 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.6.24
+ * @version         1.6.25
  * @release         2026-03-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1766,6 +1766,82 @@ body {
 .jp-jpselect-option-label {
     flex: 1;
     min-width: 0;
+}
+
+/* Slider widget (W-168): horizontal integer slider, value in thumb, optional default tick */
+.jp-slider-wrap {
+    display: block;
+    position: relative;
+    margin: 6px 0;
+    padding: 3px 0;
+}
+.jp-slider-wrap .jp-slider-value-input {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+.jp-slider-track {
+    position: relative;
+    width: 100%;
+    height: 10px;
+    min-height: 10px;
+    border-radius: 5px;
+    background: var(--jp-theme-bg-tertiary, #e9ecef);
+    cursor: pointer;
+    touch-action: none;
+}
+.jp-slider-track:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--jp-theme-focus-ring, rgba(0, 122, 204, 0.2));
+}
+.jp-slider-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-radius: 5px 0 0 5px;
+    background: var(--jp-theme-color-primary, #007acc);
+    pointer-events: none;
+}
+.jp-slider-default-tick {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    margin-left: -1px;
+    margin-top: -5px;
+    margin-bottom: -5px;
+    background: var(--jp-theme-text-muted, #999);
+    pointer-events: none;
+    z-index: 0;
+}
+.jp-slider-thumb {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 22px;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 11px;
+    background: var(--jp-theme-color-primary, #007acc);
+    color: var(--jp-theme-text-inverse, #fff);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+    z-index: 1;
+}
+.jp-slider-value {
+    white-space: nowrap;
 }
 
 .jp-form-grid {

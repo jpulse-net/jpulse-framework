@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Hooks v1.6.24
+# jPulse Docs / Plugins / Plugin Hooks v1.6.25
 
 Extend jPulse Framework behavior by hooking into authentication, user management, and other framework events.
 

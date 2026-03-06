@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.24
+# jPulse Docs / Dev / Work Items v1.6.25
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5201,16 +5201,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/plugins/plugin-api-reference.md`:
     - documented editable fields (readOnly not true = editable), supported inputType (text, textarea, number, checkbox, select)
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-167, v1.6.24, 2026-03-06: jPulse.UI jpSelect: optional onOptionPreview hook & keyboard navigation
 - status: ✅ DONE
 - type: Feature
@@ -5238,10 +5228,50 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-168, v1.6.25, 2026-03-06: jPulse UI: new jPulse.UI.input.slider widget
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - horizontal slider for a single integer value with min/max/step/default
+  - value always shown in thumb (pill/rounded rect that grows for e.g. "100"); no separate value box
+  - default value distinct from initial value; optional small vertical tick on track at default position (only when default is set)
+  - keyboard: focus on slider, Left/Right move by step; integrate with setAllValues/getAllValues and other jPulse.UI.input.* widgets
+- features:
+  - widget: `jPulse.UI.input.slider.init(selectorOrElement, options?)`. Options: min, max, step (default 1), default (optional; for reset + tick), showValue (default true).
+  - element: regular `<input type="number">` with `data-slider`; optional `data-slider-min`, `data-slider-max`, `data-slider-step`, `data-slider-default`. Value = input.value; no data-slider-value.
+  - visual: wrap + hide input (like tagInput/jpSelect); track, filled segment (primary), thumb (pill/rounded rect with value inside, box-shadow). If default is set: small vertical line on track at default position; if default not set: no tick. Thumb positioned in pixels so it stays flush at min/max; edge dead zones (cutoff from thumb width) so first/last value-steps don’t move thumb. Wrap has margin 6px + padding 3px vertical.
+  - events: fire `input` on every change; fire `change` on commit (mouseup/touchend, keyup after arrow).
+  - initAll: init all `input[data-slider]` in container; setAllValues updates input and calls `_jpSliderSetValue` so thumb/tick/fill update. Click on track focuses track so arrow keys work without tabbing.
+  - schema: `inputType: 'slider'` in _renderSchemaBlockFields renders slider input with data-slider and data-slider-min/max/step/default from field def; doc lists slider in Schema inputTypes and Schema-driven forms.
+  - step default 1 when attribute missing or parsed as 0/NaN (avoids NaN in value).
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - jPulse.UI.input.slider.init(selectorOrElement, options); track, fill, thumb (value in thumb), optional default tick; pixel-based positioning (flush min/max, cutoff); track.focus() on pointer down; step default 1 when 0/NaN; _jpSliderSetValue; initAll and setAllValues slider handling
+    - _renderSchemaBlockFields: inputType === 'slider' branch (min, max, step, default from fieldDef)
+  - `webapp/view/jpulse-common.css`:
+    - .jp-slider-wrap (margin 6px 0, padding 3px 0), .jp-slider-track, .jp-slider-fill, .jp-slider-default-tick, .jp-slider-thumb (box-shadow), .jp-slider-value (theme variables)
+  - `docs/jpulse-ui-reference.md`:
+    - jPulse.UI.input.slider API, options, data attributes, default tick, keyboard, form integration; Schema-driven forms and inputType 'slider'; setAllValues/getAllValues/Convention slider; Schema inputTypes paragraph
+  - `webapp/view/jpulse-examples/ui-widgets.shtml`:
+    - Volume slider demo (0–100, step 5, default 50, value in thumb); init and setAllValues with sliderValue: 75; source snippet
+  - `webapp/tests/unit/utils/jpulse-ui-input-slider.test.js`:
+    - unit tests: init (no-op bad selector/non-input, wrap/track/fill/thumb/default tick, no double-init), _jpSliderSetValue, getAllValues, initAll
+
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
-- ui widget: add horizontal slider for integer value with min/max
 - toast: small x on upper right to dismiss toast early
 
 old pending:
@@ -5265,9 +5295,9 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- review git diff tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-167, v1.6.24, 2026-03-06
-- update features & deliverables in W-167 work-items to document work done (don't change status, don't make any other changes to this file)
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume release: W-168, v1.6.25, 2026-03-06
+- update features & deliverables in W-168 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5278,12 +5308,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.24 2026-03-06
+node bin/bump-version.js 1.6.25 2026-03-06
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.24
+git tag v1.6.25
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

@@ -3,7 +3,7 @@
  * @tagline         Plugin Model for jPulse Framework WebApp
  * @description     Plugin configuration model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/plugin.js
- * @version         1.6.24
+ * @version         1.6.25
  * @release         2026-03-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

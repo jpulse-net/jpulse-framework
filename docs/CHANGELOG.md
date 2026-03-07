@@ -1,6 +1,32 @@
-# jPulse Docs / Version History v1.6.26
+# jPulse Docs / Version History v1.6.27
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.27, W-170, 2026-03-07
+
+**Commit:** `W-170, v1.6.27: user settings: support jPulse.UI.input.* widgets; site config sliders`
+
+**FEATURE RELEASE**: Multiple improvements to user settings and site config UI. **(1) User settings: schema-extension blocks:** Regular users can now save schema-extension blocks they own (`userCard.visible: true`) via PUT /api/1/user; previously, extension blocks were silently dropped on regular-user self-update. **(2) User settings: widget support:** Plugin/schema-extension cards on the settings page now support `inputType: 'slider'` (data-slider number input with min/max/step/default/suffix) and `inputType: 'tagInput'` (data-taginput text input, value stored as `string[]`); `renderPluginCards()` calls `jPulse.UI.input.initAll(container)` after insertion. **(3) Site config sliders:** broadcast.nagTime (0–8 h, step 1) and broadcast.disableTime (0–48 h, step 3) converted from select dropdowns to sliders. **(4) Slider improvements:** Default tick position stabilized using cached initial thumb width (prevents drift on re-layouts); deferred layout calls (100/250/450 ms) ensure correct thumb position in dialogs and late-layout containers; default tick CSS height increased for better visibility. `activateTab()` re-layouts all sliders in newly activated panel after adding `jp-panel-active` class (fixes position = 0 when slider initialized in hidden panel). **(5) Docs:** plugin-api-reference.md expanded with full inputType table including slider and tagInput with schema attributes. **(6) Unit tests:** 10 tests for schema-extension block filtering; 22 tests for settings plugin field rendering, syncing, and initAll.
+
+**Objectives**:
+- Allow regular users to save schema-extension blocks they own (userCard.visible: true) via PUT /api/1/user
+- Support jPulse.UI.input.* widgets (slider, tagInput) in user settings plugin/schema-extension cards
+- Convert site config broadcast.nagTime and broadcast.disableTime from select dropdowns to sliders
+
+**Key Changes**:
+- **webapp/controller/user.js**: update(): regular-user self-update path also passes through schema-extension blocks where `_meta.userCard.visible` is true, mirroring admin logic
+- **webapp/view/user/settings.tmpl**: renderSettingsPluginFieldInput() slider and tagInput branches; syncSettingsPluginFieldFromElement() data-taginput branch (tagInput.parseValue → string[]); renderPluginCards() calls initAll(container) after forEach
+- **webapp/model/config.js**: broadcast.nagTime → slider (min: 0, max: 8, step: 1, default: 4, suffix: 'h'); broadcast.disableTime → slider (min: 0, max: 48, step: 3, default: 0, suffix: 'h')
+- **webapp/view/jpulse-common.js**: activateTab() re-layouts input[data-slider] in newly activated panel via _jpSliderSetValue(el.value) — both animated and instant paths; slider.init() caches defaultTickRefThumbW for stable default tick position on re-layouts; deferred updateUI calls (100/250/450 ms via runWhenConnected) for dialogs
+- **webapp/view/jpulse-common.css**: .jp-slider-default-tick margin-top/margin-bottom extended from -5px to -7px for improved tick visibility
+- **docs/plugins/plugin-api-reference.md**: full inputType table (text, textarea, number, checkbox, select, slider, tagInput); slider schema attributes (min, max, step, default, suffix) with example
+- **webapp/tests/unit/user/user-update-schema-extension.test.js**: 10 tests for schema-extension block filtering logic
+- **webapp/tests/unit/user/settings-plugin-fields.test.js**: 22 tests for slider/tagInput rendering, sync, and initAll
+
+**Work Item**: W-170
+**Version**: v1.6.27
+**Release Date**: 2026-03-07
 
 ________________________________________________
 ## v1.6.26, W-169, 2026-03-07

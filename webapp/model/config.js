@@ -3,7 +3,7 @@
  * @tagline         Config Model for jPulse Framework WebApp
  * @description     This is the config model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/config.js
- * @version         1.6.26
+ * @version         1.6.27
  * @release         2026-03-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -82,8 +82,8 @@ class ConfigModel {
                 },
                 enable: { type: 'boolean', default: false, label: '{{i18n.view.admin.config.broadcast.enable}}', startNewRow: true, fullWidth: true },
                 message: { type: 'string', default: '', inputType: 'textarea', label: '{{i18n.view.admin.config.broadcast.message}}', placeholder: '{{i18n.view.admin.config.broadcast.messagePlaceholder}}', startNewRow: true, rows: 6 },
-                nagTime: { type: 'number', default: 4, inputType: 'select', label: '{{i18n.view.admin.config.broadcast.nagTime}}', help: '{{i18n.view.admin.config.broadcast.nagTimeDesc}}', options: [{ value: 0 }, { value: 1 }, { value: 2 }, { value: 4 }, { value: 8 }] },
-                disableTime: { type: 'number', default: 0, inputType: 'select', label: '{{i18n.view.admin.config.broadcast.disableTime}}', help: '{{i18n.view.admin.config.broadcast.disableTimeDesc}}', options: [{ value: 0 }, { value: 1 }, { value: 2 }, { value: 4 }, { value: 8 }, { value: 12 }, { value: 24 }, { value: 48 }] },
+                nagTime: { type: 'number', default: 4, inputType: 'slider', min: 0, max: 8, step: 1, suffix: 'h', label: '{{i18n.view.admin.config.broadcast.nagTime}}', help: '{{i18n.view.admin.config.broadcast.nagTimeDesc}}' },
+                disableTime: { type: 'number', default: 0, inputType: 'slider', min: 0, max: 48, step: 3, suffix: 'h', label: '{{i18n.view.admin.config.broadcast.disableTime}}', help: '{{i18n.view.admin.config.broadcast.disableTimeDesc}}' },
                 enabledAt: { type: 'date', default: null, scope: ['model'] }
             },
             manifest: {

@@ -3,7 +3,7 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.6.26
+ * @version         1.6.27
  * @release         2026-03-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1814,8 +1814,8 @@ body {
     bottom: 0;
     width: 2px;
     margin-left: -1px;
-    margin-top: -5px;
-    margin-bottom: -5px;
+    margin-top: -7px;
+    margin-bottom: -7px;
     background: var(--jp-theme-text-muted, #999);
     pointer-events: none;
     z-index: 0;

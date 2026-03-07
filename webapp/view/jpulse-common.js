@@ -3,7 +3,7 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.26
+ * @version         1.6.27
  * @release         2026-03-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1767,6 +1767,8 @@ window.jPulse = {
 
                     wrap.appendChild(track);
 
+                    let defaultTickRefThumbW = null;
+
                     const updateUI = (val) => {
                         current = clamp(toInt(val));
                         el.value = String(current);
@@ -1774,6 +1776,9 @@ window.jPulse = {
                         setLabel(current);
                         const trackW = track.getBoundingClientRect().width;
                         const thumbW = thumb.getBoundingClientRect().width;
+                        if (trackW > 0 && defaultTickRefThumbW === null) {
+                            defaultTickRefThumbW = thumbW;
+                        }
                         const usableTrack = Math.max(0, trackW - thumbW);
                         const cutoff = usableTrack > 0 ? (thumbW * (max - min)) / usableTrack : 0;
                         let thumbLeftEdge;
@@ -1790,15 +1795,18 @@ window.jPulse = {
                         fill.style.width = thumbCenter + 'px';
                         thumb.style.left = thumbCenter + 'px';
                         if (defaultTick != null && defaultVal !== undefined) {
+                            const refW = defaultTickRefThumbW ?? thumbW;
+                            const usableTrackRef = Math.max(0, trackW - refW);
+                            const cutoffRef = usableTrackRef > 0 ? (refW * (max - min)) / usableTrackRef : 0;
                             const defVal = clamp(defaultVal);
-                            if (defVal <= min + cutoff) {
-                                defaultTick.style.left = (thumbW / 2) + 'px';
-                            } else if (defVal >= max - cutoff) {
-                                defaultTick.style.left = (trackW - thumbW / 2) + 'px';
+                            if (defVal <= min + cutoffRef) {
+                                defaultTick.style.left = (refW / 2) + 'px';
+                            } else if (defVal >= max - cutoffRef) {
+                                defaultTick.style.left = (trackW - refW / 2) + 'px';
                             } else {
-                                const midRange = max - min - 2 * cutoff;
-                                const defT = midRange > 0 ? (defVal - min - cutoff) / midRange : 0;
-                                defaultTick.style.left = (thumbW / 2 + usableTrack * defT) + 'px';
+                                const midRangeRef = max - min - 2 * cutoffRef;
+                                const defT = midRangeRef > 0 ? (defVal - min - cutoffRef) / midRangeRef : 0;
+                                defaultTick.style.left = (refW / 2 + usableTrackRef * defT) + 'px';
                             }
                         }
                     };
@@ -1868,6 +1876,14 @@ window.jPulse = {
                     });
 
                     updateUI(current);
+                    // Defer layout so thumb position is correct when track width is not yet final (e.g. slider inside dialog)
+                    const runWhenConnected = (fn) => {
+                        if (!track.isConnected) return;
+                        fn();
+                    };
+                    setTimeout(() => runWhenConnected(() => updateUI(current)), 100);
+                    setTimeout(() => runWhenConnected(() => updateUI(current)), 250);
+                    setTimeout(() => runWhenConnected(() => updateUI(current)), 450);
                 }
             }
         },
@@ -3559,10 +3575,18 @@ window.jPulse = {
                     setTimeout(() => {
                         targetPanel.classList.add('jp-panel-active');
                         targetPanel.classList.remove('jp-panel-sliding');
+                        // Re-layout sliders that were initialized while the panel was hidden (display:none → getBoundingClientRect() = 0)
+                        targetPanel.querySelectorAll('input[data-slider]').forEach(el => {
+                            if (typeof el._jpSliderSetValue === 'function') el._jpSliderSetValue(el.value);
+                        });
                     }, 150);
                 } else {
                     // Instant switch
                     targetPanel.classList.add('jp-panel-active');
+                    // Re-layout sliders that were initialized while the panel was hidden (display:none → getBoundingClientRect() = 0)
+                    targetPanel.querySelectorAll('input[data-slider]').forEach(el => {
+                        if (typeof el._jpSliderSetValue === 'function') el._jpSliderSetValue(el.value);
+                    });
                 }
             },
 

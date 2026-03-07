@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.26
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.27
 
 **For Site Administrators & Site Developers**
 
@@ -227,6 +227,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.27 - User settings widget support; site config sliders (W-170)**: Regular users can now save their own schema-extension blocks (userCard.visible: true) via PUT /api/1/user. User settings plugin cards support `slider` and `tagInput` widgets; `renderPluginCards()` calls `initAll(container)`. Site config: broadcast.nagTime (0–8 h, step 1) and broadcast.disableTime (0–48 h, step 3) converted from select to slider. Slider: default tick stabilized; deferred layout for dialogs; `activateTab()` re-layouts sliders in newly activated panel. Docs: plugin-api-reference.md inputType table. 32 new unit tests. W-170, 2026-03-07
 - ✅ **Version 1.6.26 - Toast dismiss; slider suffix (W-169)**: Toast [×] button (upper-right) dismisses immediately; slider data-slider-suffix / schema suffix for thumb label (e.g. %, " ms"). W-169, 2026-03-07
 - ✅ **Version 1.6.25 - jPulse.UI.input.slider widget (W-168)**: Horizontal slider for integer min/max/step/default; value in thumb; optional default tick; flush thumb at edges; keyboard (track focus, Arrow keys); setAllValues/getAllValues/initAll; schema inputType 'slider'. Demo in UI Widgets. W-168, 2026-03-06
 - ✅ **Version 1.6.24 - jpSelect: onOptionPreview hook + keyboard navigation (W-167)**: Optional `onOptionPreview(value, label)` when hovering or keyboard-navigating options; `(null, null)` on leave/close. ArrowUp/Down/Home/End/Enter/Space/Escape/Tab. Demo in UI Widgets. Docs: jpulse-ui-reference.md. W-167, 2026-03-06

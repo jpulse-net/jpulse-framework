@@ -4,7 +4,7 @@
  # @tagline         Test Redis namespace isolation for multi-site deployments (W-146)
  # @description     Verifies that multiple jPulse installations properly isolate Redis data using siteId:mode namespaces
  # @file            webapp/tests/manual/redis/namespace-isolation.sh
- # @version         1.6.26
+ # @version         1.6.27
  # @release         2026-03-07
  # @repository      https://github.com/jpulse-net/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

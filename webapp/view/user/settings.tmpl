@@ -4,7 +4,7 @@
  * @tagline         User SPA - Settings template
  * @description     W-134: Settings template of user profile SPA. W-161: Single mode (always edit).
  * @file            webapp/view/user/settings.tmpl
- * @version         1.6.26
+ * @version         1.6.27
  * @release         2026-03-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -194,6 +194,9 @@
         } else if (el.type === 'number') {
             const v = parseFloat(el.value);
             value = isNaN(v) ? el.value : v;
+        } else if (el.getAttribute('data-taginput') !== null) {
+            // W-170: tagInput stores comma-separated string; parseValue returns string[]
+            value = jPulse.UI.input.tagInput.parseValue(el.value);
         } else {
             value = el.value;
         }
@@ -506,6 +509,8 @@
             const cardHtml = renderPluginCard(blockKey, blockDef, cardConfig);
             container.insertAdjacentHTML('beforeend', cardHtml);
         });
+        // W-170: initialize all jPulse.UI.input.* widgets (slider, tagInput, jpSelect) in newly inserted cards
+        jPulse.UI.input.initAll(container);
     }
 
     // W-107: Render a single plugin card
@@ -736,6 +741,22 @@
                 return `<option value="${esc(ov)}"${sel}>${esc(ol)}</option>`;
             }).join('');
             return `<select id="${fieldId}" name="${fieldKey}" class="jp-form-select" ${dataAttrs}>${opts}</select>`;
+        }
+        // W-170: slider widget — type=number keeps value store numeric; data-slider* attrs drive the widget UI
+        if (inputType === 'slider') {
+            const min  = fieldDef.min     != null ? ` data-slider-min="${fieldDef.min}"`                   : '';
+            const max  = fieldDef.max     != null ? ` data-slider-max="${fieldDef.max}"`                   : '';
+            const step = fieldDef.step    != null ? ` data-slider-step="${fieldDef.step}"`                 : '';
+            const def  = fieldDef.default != null ? ` data-slider-default="${fieldDef.default}"`           : '';
+            const suf  = fieldDef.suffix  != null ? ` data-slider-suffix="${esc(fieldDef.suffix)}"`        : '';
+            const numVal = (value === null || value === undefined) ? '' : esc(value);
+            return `<input type="number" id="${fieldId}" name="${fieldKey}" value="${numVal}" class="jp-form-input" data-slider${min}${max}${step}${def}${suf} ${dataAttrs}>`;
+        }
+        // W-170: tagInput widget — value stored as comma-separated string; parseValue returns string[]
+        if (inputType === 'tagInput') {
+            const arr = Array.isArray(value) ? value : (value ? String(value).split(',').map(s => s.trim()) : []);
+            const formatted = jPulse.UI.input.tagInput.formatValue(arr);
+            return `<input type="text" id="${fieldId}" name="${fieldKey}" value="${esc(formatted)}" class="jp-form-input" data-taginput ${dataAttrs}>`;
         }
         const type = (inputType === 'number' || fieldDef.type === 'number') ? 'number' : 'text';
         const numVal = (type === 'number' && (value === null || value === undefined)) ? '' : esc(value);

@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Publishing Plugins v1.6.26
+# jPulse Docs / Plugins / Publishing Plugins v1.6.27
 
 Guide to packaging and publishing jPulse plugins for distribution.
 

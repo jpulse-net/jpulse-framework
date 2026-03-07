@@ -3,7 +3,7 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.6.26
+ * @version         1.6.27
  * @release         2026-03-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -671,9 +671,16 @@ class UserController {
                     }
                 }
             } else {
-                // Regular users can only update profile and preferences
+                // W-170: Regular users can update profile, preferences, and their own userCard-visible extension blocks
                 if (updateData.profile) filteredData.profile = updateData.profile;
                 if (updateData.preferences) filteredData.preferences = updateData.preferences;
+                const schemaExtensions = UserModel.getSchemaExtensionsMetadata();
+                for (const blockKey of Object.keys(schemaExtensions)) {
+                    const meta = schemaExtensions[blockKey]?._meta;
+                    if (meta?.userCard?.visible && updateData[blockKey] !== undefined) {
+                        filteredData[blockKey] = updateData[blockKey];
+                    }
+                }
             }
 
             if (updateData.updatedBy) {

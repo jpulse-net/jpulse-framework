@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.6.26
+# jPulse Docs / Plugins / Plugins API Reference v1.6.27
 
 Complete API reference for jPulse plugin developers.
 
@@ -325,7 +325,33 @@ UserModel.extendSchema({
 
 **Editable Fields** (adminCard/userCard `readOnly` not true):
 
-When `readOnly` is missing or `false`, the profile page renders an input. Use `readOnly: true` for display-only. Supported `inputType`: `text`, `textarea`, `number`, `checkbox` (or `type: 'boolean'`), `select` (with `options` array of `{ value, label }` or strings).
+When `readOnly` is missing or `false`, the profile page renders an input. Use `readOnly: true` for display-only. Supported `inputType` values:
+
+| `inputType` | Description | Additional field-def attributes |
+|---|---|---|
+| `text` | Single-line text input | — |
+| `textarea` | Multi-line textarea | `rows` (default 3) |
+| `number` | Numeric input | — |
+| `checkbox` | Checkbox toggle (also: omit `inputType` when `type: 'boolean'`) | — |
+| `select` | Dropdown (requires `options`) | `options: [{ value, label }]` or `['str', ...]` |
+| `slider` | Range slider widget; value stored as number | `min`, `max`, `step`, `default` (reference tick position), `suffix` (label suffix, e.g. `'px'`) |
+| `tagInput` | Tag input widget; value stored as `string[]` | — |
+
+Slider example:
+
+```javascript
+colStep: {
+    type:      'number',
+    default:   160,       // schema fallback value AND slider reference tick
+    label:     'Column Spacing',
+    inputType: 'slider',
+    min:       120,
+    max:       240,
+    step:      20,
+    suffix:    'px',
+    userCard:  { visible: true, readOnly: false }
+}
+```
 
 **ShowIf Conditions:**
 

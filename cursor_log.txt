@@ -18431,4 +18431,36 @@ Reviewed tt-git-diff.txt: diff accurate and complete for W-169 (toast dismiss bu
 
 
 ============================================================
+2026-03-07 01:40
+
+next: user settings enhancement - create work item W-170, implement two enhancements: (1) PUT /api/1/user allow regular users to update their own schema-extension blocks; (2) settings page support jPulse.UI.input.* widgets (slider, tagInput) in plugin/schema-extension cards
+
+Discussed spec, confirmed decisions: use min/max/step/default/suffix (not sliderMin/Max/...) for slider schema attrs (consistent with admin); tagInput sync uses tagInput.parseValue(el.value) not non-existent getValue(el); name attribute added to slider/tagInput inputs for consistency; default serves both schema fallback and slider reference tick. Implemented: filled in work item W-170 (v1.6.27, 2026-03-08) in docs/dev/work-items.md; updated webapp/controller/user.js — regular-user self-update path now also passes through schema-extension blocks where _meta.userCard.visible is true; updated webapp/view/user/settings.tmpl — added slider and tagInput branches to renderSettingsPluginFieldInput(), added data-taginput branch to syncSettingsPluginFieldFromElement(), added jPulse.UI.input.initAll(container) call in renderPluginCards() after DOM insertion; updated docs/plugins/plugin-api-reference.md with full inputType table including slider and tagInput; bumped version to 1.6.27 in user.js and settings.tmpl. Added unit tests: webapp/tests/unit/user/user-update-schema-extension.test.js (10 tests for filteredData logic) and webapp/tests/unit/user/settings-plugin-fields.test.js (22 tests for slider/tagInput rendering, sync, and initAll); all 32 tests pass.
+
+
+============================================================
+2026-03-07 02:20
+
+add unit tests for new functionality; then assess + plan follow-on work items for site config sliders and user settings tabs; proceed with item 1 (site config sliders) as part of W-170; create W-171 placeholder for user settings tabs
+
+Updated W-170: added site config slider feature (broadcast.nagTime and broadcast.disableTime select → slider) to objectives, features, and deliverables; status updated to DONE. Implemented webapp/model/config.js: nagTime changed to inputType: 'slider' (min: 0, max: 8, step: 1, suffix: 'h'); disableTime changed to inputType: 'slider' (min: 0, max: 48, step: 1, suffix: 'h'); version bumped to 1.6.27. Added W-171 placeholder in work-items.md (tab interface for user settings: all sections as tabs, slider re-layout in activateTab(), security as plain tab, single tabs.register() call on schema load, pluginTabsRegistered flag); removed "user settings: tab interface" from Pending list. Bug found during testing: slider thumb/fill position was 0 when slider initialized in hidden tab panel (getBoundingClientRect() = 0 on display:none); fixed in webapp/view/jpulse-common.js activateTab() — after adding jp-panel-active, iterate input[data-slider] and call _jpSliderSetValue(el.value) for both animated and instant paths; all slider and tabs tests pass (16/16).
+
+
+============================================================
+2026-03-07 02:47
+
+oops, my bad, indeed, handlebars are intended in the broadcast.message, so all good!
+set Auto-Disable Time (hours) step to 3
+anything left before release prep?
+
+Changed broadcast.disableTime step from 1 to 3 in webapp/model/config.js. Updated W-170 work item features and deliverables to reflect step: 3. Ran unit tests (user-update-schema-extension, settings-plugin-fields) — all passed. W-170 is complete and ready for release prep.
+
+============================================================
+2026-03-07 02:55
+
+release prep: review tt-git-diff.txt for accuracy and completeness of work item; W-170, v1.6.27, 2026-03-07
+
+Reviewed tt-git-diff.txt: diff is accurate for W-170. Found two items missing from the work item: (1) webapp/view/jpulse-common.css — .jp-slider-default-tick margin-top/margin-bottom extended from -5px to -7px for improved tick visibility; (2) webapp/view/jpulse-common.js — slider.init() caches defaultTickRefThumbW for stable default tick position on re-layouts, plus deferred updateUI calls (100/250/450 ms via runWhenConnected) for correct layout in dialogs. Updated W-170 features and deliverables in work-items.md to document these. Updated README.md and docs/README.md — Latest Release Highlights: added v1.6.27 W-170 at top. Updated docs/CHANGELOG.md: added full v1.6.27 W-170 entry, bumped title version. Updated commit-message.txt for W-170. Appended to cursor_log.txt.
+
+============================================================
 

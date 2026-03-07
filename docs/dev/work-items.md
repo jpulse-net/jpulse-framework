@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.26
+# jPulse Docs / Dev / Work Items v1.6.27
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5252,18 +5252,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/tests/unit/utils/jpulse-ui-input-slider.test.js`:
     - unit tests: init (no-op bad selector/non-input, wrap/track/fill/thumb/default tick, no double-init), _jpSliderSetValue, getAllValues, initAll
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-169, v1.6.26, 2026-03-07: toast: dismiss early; jPulse.UI.input.slider: add data-slider-suffix="..."
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - let users dismiss any toast immediately so error toasts do not obstruct the UI
@@ -5294,11 +5284,81 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-170, v1.6.27, 2026-03-07: user settings: support jPulse.UI.input.* widgets
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - allow regular users to save schema-extension blocks they own (userCard.visible: true) via PUT /api/1/user
+  - support jPulse.UI.input.* widgets (slider, tagInput) in user settings plugin/schema-extension cards
+  - convert site config broadcast.nagTime and broadcast.disableTime from select dropdowns to sliders
+- features:
+  - PUT /api/1/user: regular user self-update now also passes through schema-extension blocks where userCard.visible: true (previously silently dropped; only admins could persist extension blocks)
+  - settings page: inputType: 'slider' renders a data-slider number input (min, max, step, default reference tick, suffix from fieldDef); jPulse.UI.input.slider.init() initializes it after card DOM insertion
+  - settings page: inputType: 'tagInput' renders a data-taginput text input pre-formatted via tagInput.formatValue(); jPulse.UI.input.tagInput.init() initializes it after card DOM insertion
+  - settings page: syncSettingsPluginFieldFromElement() correctly reads tagInput value via tagInput.parseValue(el.value) returning string[]
+  - settings page: renderPluginCards() calls jPulse.UI.input.initAll(container) after all card HTML is inserted, covering all current and future jPulse.UI.input.* widget types (slider, tagInput, jpSelect)
+  - site config: broadcast.nagTime converted from select (fixed options) to slider (0–8 h, step 1); broadcast.disableTime converted from select to slider (0–48 h, step 3); no rendering code change needed — _renderSchemaBlockFields and initAll already support inputType: 'slider'
+  - tabs: slider thumb/fill positioning was wrong when a tab panel was hidden (display:none) during initAll() because getBoundingClientRect() returns zero on hidden elements; fixed in activateTab() by calling _jpSliderSetValue(el.value) on all input[data-slider] in the newly activated panel after adding jp-panel-active class (both animated and instant paths)
+  - slider: default tick position stabilized using cached initial thumb width (defaultTickRefThumbW) on first updateUI() call with trackW > 0; prevents tick drift on repeated re-layouts (e.g. tab switch); deferred layout calls (setTimeout 100/250/450 ms via runWhenConnected) ensure correct thumb position in dialogs and late-layout containers
+  - slider: default tick CSS height increased (margin-top/margin-bottom -5px → -7px) for improved visibility
+- deliverables:
+  - `webapp/controller/user.js`:
+    - update(): in regular-user (non-admin) self-update path, also pass through schema-extension blocks where _meta.userCard.visible is true, mirroring admin logic
+  - `webapp/view/user/settings.tmpl`:
+    - renderSettingsPluginFieldInput(): add inputType: 'slider' branch (type=number, data-slider + data-slider-min/max/step/default/suffix from fieldDef, name attribute); add inputType: 'tagInput' branch (type=text, data-taginput, initial value via tagInput.formatValue, name attribute)
+    - syncSettingsPluginFieldFromElement(): add data-taginput branch using tagInput.parseValue(el.value) to return string[]
+    - renderPluginCards(): call jPulse.UI.input.initAll(container) after forEach to initialize all inserted widgets
+  - `docs/plugins/plugin-api-reference.md`:
+    - document slider and tagInput inputType values; slider schema field attributes (min, max, step, default, suffix)
+  - `webapp/model/config.js`:
+    - broadcast.nagTime: inputType select → slider (min: 0, max: 8, step: 1, default: 4, suffix: 'h')
+    - broadcast.disableTime: inputType select → slider (min: 0, max: 48, step: 3, default: 0, suffix: 'h')
+  - `webapp/view/jpulse-common.js`:
+    - activateTab(): re-layout all input[data-slider] in newly activated panel via _jpSliderSetValue(el.value) — both animated (inside setTimeout) and instant paths; fixes thumb/fill position = 0 when slider was initialized in a hidden tab panel
+    - slider.init(): cache initial thumb width (defaultTickRefThumbW) on first updateUI() call with trackW > 0; use cached width for all default tick position calculations to prevent drift on re-layouts; add three deferred updateUI calls (100/250/450 ms via runWhenConnected) for correct layout in dialogs and late-layout containers
+  - `webapp/view/jpulse-common.css`:
+    - .jp-slider-default-tick: margin-top/margin-bottom extended from -5px to -7px for improved tick visibility
+  - `webapp/tests/unit/user/user-update-schema-extension.test.js`:
+    - 10 tests: passes visible extension block, blocks non-visible, blocks absent _meta.userCard, skips absent blocks, always passes profile/preferences, handles multiple blocks, passes falsy values, skips undefined, handles empty schema
+  - `webapp/tests/unit/user/settings-plugin-fields.test.js`:
+    - 22 tests: renderSettingsPluginFieldInput slider (type=number, data-slider attrs, name/id/data-plugin, value, null/undefined, omit absent attr, HTML-escape suffix, initAll initializes); tagInput (type=text, data-taginput, formatValue array/string/undefined/empty, name/id/data-plugin, initAll initializes); syncSettingsPluginFieldFromElement tagInput branch (parseValue → string[], blank → [], number path unaffected, skip missing attrs); renderPluginCards initAll (slider in card initialized, safe on empty)
+
+
+
+
+
+
+
+
+### W-171, v1.6.28, 2026-03-xx: user settings: tabs interface instead of top-down cards
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - replace the vertical card stack on the user settings page with a slick tab interface matching site config style
+- features:
+  - all settings sections become tabs: Personal Info | Preferences | Security | [one tab per schema-extension plugin block]
+  - tabs registered once after schema load (all plugin blocks known at that point); no dynamic add/remove needed
+  - slider re-layout on tab activation: activateTab() in jpulse-common.js automatically triggers _jpSliderSetValue on all data-slider inputs in the newly visible panel (fixes getBoundingClientRect() = 0 on hidden panels)
+  - Security tab: password fields always visible in panel (no collapsible); characters are obfuscated by input type=password so UX is acceptable
+  - Save/Discard buttons remain below the tab panels, operating across all tabs
+  - dirty tracking unchanged: getCurrentFormValues() reads by element ID which works on hidden panels
+- deliverables:
+  - FIXME `webapp/view/jpulse-common.js`:
+    - activateTab(): after making panel visible, scan for input[data-slider] and call _jpSliderSetValue(el.value) on each to fix layout after display:none
+  - FIXME `webapp/view/user/settings.tmpl`:
+    - HTML: replace jp-card / jp-collapsible structure with jp-tabs markup (tab list + panel container); one jp-panel per section
+    - JS: single jPulse.UI.tabs.register() call after schema load; pluginTabsRegistered flag prevents double-registration on re-load; renderPluginCards() targets individual tab panels; remove securityCollapsible logic
+  - FIXME `webapp/tests/unit/...`:
+    - tests for slider re-layout on tab activation
+    - updated settings page tests
+
 ### Pending
 
+- split app.conf into app.conf and app-secret.conf
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
-- toast: small x on upper right to dismiss toast early
-- user settings: tab interface instead of top down cards
 
 old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
@@ -5322,8 +5382,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-169, v1.6.26, 2026-03-07
-- update features & deliverables in W-169 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-170, v1.6.27, 2026-03-07
+- update features & deliverables in W-170 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5334,12 +5394,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.26 2026-03-07
+node bin/bump-version.js 1.6.27 2026-03-07
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.26
+git tag v1.6.27
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.6.25
- * @release         2026-03-06
+ * @version         1.6.26
+ * @release         2026-03-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -3535,6 +3535,7 @@ body.jp-mobile-menu-open {
 /* Toast Message System Components (transient, non-blocking, dismissable) */
 .jp-toast {
     padding: 12px 16px;
+    padding-right: 36px;
     border-radius: 8px;
     font-size: 14px;
     border: 1px solid;
@@ -3549,6 +3550,36 @@ body.jp-mobile-menu-open {
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     transition: transform 0.6s ease-out;
     text-align: left;
+}
+
+.jp-toast-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.75;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.jp-toast-close:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.jp-toast-close:focus {
+    outline: 2px solid var(--jp-theme-color-primary, #007acc);
+    outline-offset: 2px;
 }
 
 body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {

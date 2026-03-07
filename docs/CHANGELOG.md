@@ -1,6 +1,26 @@
-# jPulse Docs / Version History v1.6.25
+# jPulse Docs / Version History v1.6.26
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.26, W-169, 2026-03-07
+
+**Commit:** `W-169, v1.6.26: toast: dismiss early; jPulse.UI.input.slider: add data-slider-suffix`
+
+**FEATURE RELEASE**: Two small enhancements. **(1) Toast dismiss button:** Every toast has a small [×] button in the upper-right; click dismisses that toast immediately (same slide-up animation as auto-hide). Button has aria-label "Dismiss" and is keyboard-focusable. Error toasts no longer obstruct the UI for their full duration. **(2) Slider suffix:** Optional `data-slider-suffix` (and `options.suffix`) appends a string to the value shown in the thumb only (e.g. `"%"` → "120%", `" ms"` → "500 ms"); stored value stays numeric. Schema: field def `suffix` renders as `data-slider-suffix` for schema-driven slider fields.
+
+**Objectives**:
+- Let users dismiss any toast immediately so error toasts do not obstruct the UI
+- Allow slider thumb label to show a suffix (e.g. %, " ms") for readability; stored value stays numeric
+
+**Key Changes**:
+- **webapp/view/jpulse-common.js**: Toast: content wrapped in .jp-toast-content; add .jp-toast-close button (×, aria-label Dismiss), click → _hideToast. Slider: suffix from data-slider-suffix or options.suffix; setLabel uses value + suffix; schema slider branch adds data-slider-suffix from fieldDef.suffix
+- **webapp/view/jpulse-common.css**: .jp-toast padding-right 36px for button; .jp-toast-close (absolute top-right, 24×24, transparent bg, opacity on hover, focus ring)
+- **docs/jpulse-ui-reference.md**: Toast: Features bullet for dismiss button. Slider: element and options document data-slider-suffix and suffix; schema slider field may include suffix
+
+**Work Item**: W-169
+**Version**: v1.6.26
+**Release Date**: 2026-03-07
 
 ________________________________________________
 ## v1.6.25, W-168, 2026-03-06

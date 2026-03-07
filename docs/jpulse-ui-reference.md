@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.25
+# jPulse Docs / jPulse.UI Widget Reference v1.6.26
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -116,6 +116,7 @@ view: {
 
 ### Features
 - **Non-blocking**: Messages overlay content without shifting page layout
+- **Dismiss button**: Each toast has a small [×] button in the upper-right; click dismisses it immediately (useful when error toasts would otherwise block the UI for their full duration). Button has aria-label "Dismiss" and is keyboard-focusable.
 - **Smooth animations**: 0.6s slide transitions from behind header
 - **Dynamic stacking**: Multiple messages stack intelligently with 5px gaps
 - **Responsive design**: Adapts to screen size using `appConfig.view.jPulse.UI.toast` settings
@@ -608,13 +609,13 @@ jPulse.UI.input.initAll(configForm);
 
 Horizontal slider for a single integer value. The value is always shown inside the thumb (pill/rounded rect that grows for larger numbers like 100). Optional **default** value shows a small vertical tick on the track (only when default is set); use for “reset to default” and to indicate where that would land.
 
-**Element:** Use a regular `<input type="number">` with `data-slider`. Optional data attributes: `data-slider-min`, `data-slider-max`, `data-slider-step`, `data-slider-default`. The input remains the value store; `setAllValues` / `getAllValues` read and write it like any other input (no `data-slider-value`).
+**Element:** Use a regular `<input type="number">` with `data-slider`. Optional data attributes: `data-slider-min`, `data-slider-max`, `data-slider-step`, `data-slider-default`, `data-slider-suffix`. The input remains the value store; `setAllValues` / `getAllValues` read and write it like any other input (no `data-slider-value`). The **suffix** is appended to the value shown in the thumb only (e.g. `data-slider-suffix="%"` → "120%"; `data-slider-suffix=" ms"` → "500 ms"); the stored value stays numeric.
 
 #### `jPulse.UI.input.slider.init(selectorOrElement, options?)`
 
 **Parameters:**
 - `selectorOrElement` (string|Element) — Input element or CSS selector
-- `options` (Object, optional): `min`, `max`, `step` (default 1), `default` (optional; for reset + tick), `showValue` (default true)
+- `options` (Object, optional): `min`, `max`, `step` (default 1), `default` (optional; for reset + tick), `showValue` (default true), `suffix` (string; appended to thumb label, e.g. `"%"` or `" ms"`)
 
 **Keyboard:** When the slider track has focus, Arrow Left / Arrow Down decrease by one step; Arrow Right / Arrow Up increase by one step.
 
@@ -633,7 +634,7 @@ jPulse.UI.input.initAll(configForm);
 
 If `data-slider-default` (or `options.default`) is set, a small vertical line is drawn on the track at that value. If default is not set, no tick is shown.
 
-**Schema-driven forms:** When rendering forms from a schema (e.g. `jPulse.UI.tabs.renderTabsAndPanelsFromSchema` with config or plugin schema), you can use **`inputType: 'slider'`** on a field to render a slider instead of a plain number input. The field should have `type: 'number'` and may include `min`, `max`, `step`, `default` (for the default tick). The rendered input will have `data-slider` and the appropriate `data-slider-*` attributes; call `jPulse.UI.input.initAll(form)` after populating so the slider is initialized. Supported schema inputTypes for form rendering include: `checkbox`, `tagInput`, `textarea`, `number`, **`slider`**, `select`, `button`, `password`, `text`.
+**Schema-driven forms:** When rendering forms from a schema (e.g. `jPulse.UI.tabs.renderTabsAndPanelsFromSchema` with config or plugin schema), you can use **`inputType: 'slider'`** on a field to render a slider instead of a plain number input. The field should have `type: 'number'` and may include `min`, `max`, `step`, `default` (for the default tick), and `suffix` (for the thumb label, e.g. `"%"` or `" ms"`). The rendered input will have `data-slider` and the appropriate `data-slider-*` attributes; call `jPulse.UI.input.initAll(form)` after populating so the slider is initialized. Supported schema inputTypes for form rendering include: `checkbox`, `tagInput`, `textarea`, `number`, **`slider`**, `select`, `button`, `password`, `text`.
 
 ---
 

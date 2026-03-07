@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.25
- * @release         2026-03-06
+ * @version         1.6.26
+ * @release         2026-03-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -808,7 +808,8 @@ window.jPulse = {
                 messageDiv.dataset.type = type;
                 messageDiv.dataset.duration = duration;
 
-                // Build content with optional link
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'jp-toast-content';
                 if (link) {
                     const textSpan = document.createElement('span');
                     textSpan.textContent = message + ' ';
@@ -818,11 +819,20 @@ window.jPulse = {
                     linkEl.style.color = 'inherit';
                     linkEl.style.textDecoration = 'underline';
                     linkEl.style.fontWeight = 'bold';
-                    messageDiv.appendChild(textSpan);
-                    messageDiv.appendChild(linkEl);
+                    contentDiv.appendChild(textSpan);
+                    contentDiv.appendChild(linkEl);
                 } else {
-                    messageDiv.textContent = message;
+                    contentDiv.textContent = message;
                 }
+                messageDiv.appendChild(contentDiv);
+
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'jp-toast-close';
+                closeBtn.setAttribute('type', 'button');
+                closeBtn.setAttribute('aria-label', 'Dismiss');
+                closeBtn.textContent = '\u00D7';
+                closeBtn.addEventListener('click', () => { jPulse.UI.toast._hideToast(messageDiv); });
+                messageDiv.appendChild(closeBtn);
 
                 // Add to queue
                 jPulse.UI._toastQueue.push(messageDiv);
@@ -1703,6 +1713,7 @@ window.jPulse = {
                         ? Number(el.getAttribute('data-slider-default'))
                         : (options.default !== undefined ? Number(options.default) : undefined);
                     const showValue = options.showValue !== false;
+                    const suffix = (el.getAttribute('data-slider-suffix') ?? options.suffix ?? '');
 
                     const clamp = (v) => Math.min(max, Math.max(min, v));
                     const toInt = (v) => {
@@ -1749,7 +1760,8 @@ window.jPulse = {
                     thumb.setAttribute('aria-hidden', 'true');
                     const valueLabel = document.createElement('span');
                     valueLabel.className = 'jp-slider-value';
-                    if (showValue) valueLabel.textContent = String(current);
+                    const setLabel = (v) => { valueLabel.textContent = showValue ? String(v) + suffix : ''; };
+                    setLabel(current);
                     thumb.appendChild(valueLabel);
                     track.appendChild(thumb);
 
@@ -1759,7 +1771,7 @@ window.jPulse = {
                         current = clamp(toInt(val));
                         el.value = String(current);
                         track.setAttribute('aria-valuenow', current);
-                        if (showValue) valueLabel.textContent = String(current);
+                        setLabel(current);
                         const trackW = track.getBoundingClientRect().width;
                         const thumbW = thumb.getBoundingClientRect().width;
                         const usableTrack = Math.max(0, trackW - thumbW);
@@ -3202,8 +3214,9 @@ window.jPulse = {
                         const sliderMax = fieldDef.max !== undefined ? ' data-slider-max="' + jPulse.string.escapeHtml(String(fieldDef.max)) + '"' : '';
                         const sliderStep = fieldDef.step !== undefined ? ' data-slider-step="' + jPulse.string.escapeHtml(String(fieldDef.step)) + '"' : '';
                         const sliderDefault = fieldDef.default !== undefined ? ' data-slider-default="' + jPulse.string.escapeHtml(String(fieldDef.default)) + '"' : '';
+                        const sliderSuffix = fieldDef.suffix !== undefined && fieldDef.suffix !== null ? ' data-slider-suffix="' + jPulse.string.escapeHtml(String(fieldDef.suffix)) + '"' : '';
                         parts.push('<div class="' + wrapClass + '"><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
-                            '<input type="number" id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" data-slider ' + dataPathAttr + sliderMin + sliderMax + sliderStep + sliderDefault + ' value="' + escapedValue + '">' + helpHtml + '</div></div>');
+                            '<input type="number" id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" data-slider ' + dataPathAttr + sliderMin + sliderMax + sliderStep + sliderDefault + sliderSuffix + ' value="' + escapedValue + '">' + helpHtml + '</div></div>');
                     } else if (inputType === 'select') {
                         const optionsArr = (fieldDef.options && fieldDef.options.length) ? fieldDef.options : (fieldDef.enum || []).map((v) => ({ value: v, label: String(v) }));
                         const optionHtml = optionsArr.map((opt) => {

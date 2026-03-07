@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.25
+# jPulse Docs / Dev / Work Items v1.6.26
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5223,18 +5223,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js`:
     - tests for hover/leave and empty value
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-168, v1.6.25, 2026-03-06: jPulse UI: new jPulse.UI.input.slider widget
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - horizontal slider for a single integer value with min/max/step/default
@@ -5269,10 +5259,46 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-169, v1.6.26, 2026-03-07: toast: dismiss early; jPulse.UI.input.slider: add data-slider-suffix="..."
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - let users dismiss any toast immediately so error toasts do not obstruct the UI
+  - allow slider thumb label to show a suffix (e.g. %, " ms") for readability; stored value stays numeric
+- features:
+  - toast dismiss button:
+    - every toast has a small [×] button in the upper-right
+    - click dismisses that toast immediately (same animation as auto-hide)
+    - aria-label "Dismiss"; keyboard-focusable
+    - error toasts no longer block access to elements for their full duration
+  - Slider suffix:
+    - optional `data-slider-suffix` (and `options.suffix`) appends a string to the value shown in the thumb only (e.g. `"%"` → "120%", `" ms"` → "500 ms")
+    - schema: field def `suffix` renders as `data-slider-suffix` for schema-driven slider fields
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - toast: content wrapped in .jp-toast-content; add .jp-toast-close button (×, aria-label Dismiss), click → _hideToast
+    - slider: suffix from data-slider-suffix or options.suffix; setLabel uses value + suffix; schema slider branch adds data-slider-suffix from fieldDef.suffix
+  - `webapp/view/jpulse-common.css`:
+    - .jp-toast padding-right 36px for button; .jp-toast-close (absolute top-right, 24×24, transparent bg, opacity on hover, focus ring)
+  - `docs/jpulse-ui-reference.md`:
+    - slider element and options document data-slider-suffix and suffix; schema slider field may include suffix
+    - toast: features bullet for dismiss button
+
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
 - toast: small x on upper right to dismiss toast early
+- user settings: tab interface instead of top down cards
 
 old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
@@ -5296,8 +5322,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-168, v1.6.25, 2026-03-06
-- update features & deliverables in W-168 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume release: W-169, v1.6.26, 2026-03-07
+- update features & deliverables in W-169 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5308,12 +5334,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.25 2026-03-06
+node bin/bump-version.js 1.6.26 2026-03-07
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.25
+git tag v1.6.26
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

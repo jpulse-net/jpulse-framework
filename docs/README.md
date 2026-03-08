@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.28
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.29
 
 **For Site Administrators & Site Developers**
 
@@ -227,6 +227,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.29 - Configuration: separate app.conf and app-secret.conf (W-172)**: `site/webapp/app.conf` is now committed (no secrets); `site/webapp/app-secret.conf` is gitignored (per-environment secrets + `deployment.mode`). Three-layer merge chain: `webapp/app.conf` → `site/webapp/app.conf` → `site/webapp/app-secret.conf`. Zero-setup dev: `npm start` works immediately after cloning (no `app-secret.conf` needed). `configure.js` generates both files; `DB_NAME_DEV` added for prompted dev DB name. Bundled: `date.add` DST bug fixed (UTC arithmetic); slider focus fix. W-172, 2026-03-09
 - ✅ **Version 1.6.28 - User settings: tabbed interface; My Dashboard header (W-171)**: Settings page replaced vertical card stack with a slick tab interface (Personal Info | Preferences | Security | one tab per schema-extension plugin block). Page header redesigned: compact `jp-page-header` with icon+title on left, user avatar circle+name+ACTIVE badge on right. Personal Info: Username and Email (both read-only) side by side; First/Last Name grid below; Nickname standalone. Security tab: password fields always visible (no collapsible); `jp-info-box` note; password changes tracked in dirty-state detection. Plugin tab checkboxes use inline `[✓] Label` layout. My Dashboard (`/user/me`) also shows user info (avatar+name+status) in the page header right side. i18n: de.conf `settings.title` → 'Einstellungen'; `settings.preferences` → 'Darstellung' (resolves conflict); new `settings.username` key. W-171, 2026-03-08
 - ✅ **Version 1.6.27 - User settings widget support; site config sliders (W-170)**: Regular users can now save their own schema-extension blocks (userCard.visible: true) via PUT /api/1/user. User settings plugin cards support `slider` and `tagInput` widgets; `renderPluginCards()` calls `initAll(container)`. Site config: broadcast.nagTime (0–8 h, step 1) and broadcast.disableTime (0–48 h, step 3) converted from select to slider. Slider: default tick stabilized; deferred layout for dialogs; `activateTab()` re-layouts sliders in newly activated panel. Docs: plugin-api-reference.md inputType table. 32 new unit tests. W-170, 2026-03-07
 - ✅ **Version 1.6.26 - Toast dismiss; slider suffix (W-169)**: Toast [×] button (upper-right) dismisses immediately; slider data-slider-suffix / schema suffix for thumb label (e.g. %, " ms"). W-169, 2026-03-07

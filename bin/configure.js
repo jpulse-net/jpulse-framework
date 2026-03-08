@@ -4,8 +4,8 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         1.6.28
- * @release         2026-03-08
+ * @version         1.6.29
+ * @release         2026-03-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -662,25 +662,36 @@ function copyDirectory(src, dest, baseDir = null, shouldSkip = null) {
 }
 
 /**
- * Create site configuration from template
+ * Create site configuration from templates (W-172: generates app.conf + app-secret.conf)
  */
 function createSiteConfiguration(deploymentType, config, frameworkVersion) {
-    const templateName = deploymentType === 'dev' ? 'app.conf.dev.tmpl' : 'app.conf.prod.tmpl';
-    const templatePath = path.join(packageRoot, 'templates/webapp', templateName);
-
-    if (!fs.existsSync(templatePath)) {
-        throw new Error(`Template not found: ${templatePath}`);
-    }
-
-    const templateContent = fs.readFileSync(templatePath, 'utf8');
-    const configContent = expandAllVariables(templateContent, config, deploymentType);
-
     // Ensure site/webapp directory exists
     if (!fs.existsSync('site/webapp')) {
         fs.mkdirSync('site/webapp', { recursive: true });
     }
 
-    fs.writeFileSync('site/webapp/app.conf', configContent);
+    // Generate site/webapp/app.conf from unified template (safe to commit)
+    const appConfTemplatePath = path.join(packageRoot, 'templates/webapp/app.conf.tmpl');
+    if (!fs.existsSync(appConfTemplatePath)) {
+        throw new Error(`Template not found: ${appConfTemplatePath}`);
+    }
+    const appConfContent = expandAllVariables(
+        fs.readFileSync(appConfTemplatePath, 'utf8'), config, deploymentType
+    );
+    fs.writeFileSync('site/webapp/app.conf', appConfContent);
+
+    // Generate site/webapp/app-secret.conf from per-environment template (gitignored)
+    const secretTemplateName = deploymentType === 'dev'
+        ? 'app-secret.conf.dev.tmpl'
+        : 'app-secret.conf.prod.tmpl';
+    const secretTemplatePath = path.join(packageRoot, 'templates/webapp', secretTemplateName);
+    if (!fs.existsSync(secretTemplatePath)) {
+        throw new Error(`Template not found: ${secretTemplatePath}`);
+    }
+    const secretContent = expandAllVariables(
+        fs.readFileSync(secretTemplatePath, 'utf8'), config, deploymentType
+    );
+    fs.writeFileSync('site/webapp/app-secret.conf', secretContent);
 }
 
 /**
@@ -1002,7 +1013,7 @@ function checkPermissions() {
  * Check if files are owned by root
  */
 function checkRootOwnership() {
-    const filesToCheck = ['site/webapp/app.conf', 'webapp/app.conf', 'package.json'];
+    const filesToCheck = ['site/webapp/app.conf', 'site/webapp/app-secret.conf', 'webapp/app.conf', 'package.json'];
 
     for (const file of filesToCheck) {
         if (fs.existsSync(file)) {

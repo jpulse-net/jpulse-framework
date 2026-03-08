@@ -12,8 +12,10 @@ The site override system allows you to customize the jPulse Framework without mo
 site/
 ├── README.md                       # This file
 └── webapp/                         # Site-specific overrides
-    ├── app.conf                    # Site configuration (gitignored)
+    ├── app.conf                    # Site configuration (committed — no secrets)
     ├── app.conf.tmpl               # Configuration template
+    ├── app-secret.conf             # Per-environment secrets (gitignored — never commit)
+    ├── app-secret.conf.tmpl        # Secrets template
     ├── controller/                 # Site controller overrides
     │   └── hello.js                # Demo controller override
     ├── model/                      # Site model overrides
@@ -34,20 +36,28 @@ site/
 2. `webapp/[type]/[file]` (Framework default - fallback)
 3. Error if neither found
 
-**Configuration Merging:**
+**Configuration Merging (W-172):**
+Three layers are deep-merged in order:
 - Framework defaults: `webapp/app.conf`
-- Site overrides: `site/webapp/app.conf`
-- Result: Deep merged configuration with site values taking precedence
+- Site overrides: `site/webapp/app.conf` (committed; no secrets; `deployment.mode: 'dev'` as safe default)
+- Site secrets: `site/webapp/app-secret.conf` (gitignored; per-environment; sets real `deployment.mode`, session secret, DB/Redis credentials)
+
+**Dev default behavior (no `app-secret.conf` needed):**
+- `deployment.mode` defaults to `'dev'` from `site/webapp/app.conf`
+- Session secret uses a dev-safe placeholder
+- `npm start` works with zero extra setup after cloning the repo
 
 ### Getting Started
 
-1. **Copy the configuration template:**
-   ```bash
-   cp site/webapp/app.conf.tmpl site/webapp/app.conf
-   ```
+1. **`app.conf` arrives from git** — it is committed and contains non-secret site settings.
+   To create it initially, run `npx jpulse configure` which generates both files.
 
-2. **Customize your configuration:**
-   Edit `site/webapp/app.conf` with your site-specific settings.
+2. **For production**, create `app-secret.conf` from the template:
+   ```bash
+   cp site/webapp/app-secret.conf.tmpl site/webapp/app-secret.conf
+   # edit app-secret.conf: set deployment.mode='prod', real secrets
+   ```
+   Or use `npx jpulse configure` which generates it automatically.
 
 3. **Create overrides as needed:**
    - Controllers: `site/webapp/controller/[name].js`

@@ -4,8 +4,8 @@
  * @tagline         Unified configuration registry for all jPulse tools
  * @description     Single source of truth for variable definitions, defaults, and template expansion
  * @file            bin/config-registry.js
- * @version         1.6.28
- * @release         2026-03-08
+ * @version         1.6.29
+ * @release         2026-03-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -229,13 +229,27 @@ export const CONFIG_REGISTRY = {
         // Template expansion
         default: (deploymentType) => deploymentType === 'dev' ? 'jp-dev' : 'jp-prod',
         type: 'computed',
-        description: 'MongoDB database name',
+        description: 'MongoDB production database name',
 
         // User prompting
         section: 'Database Configuration',
         prompt: async (config, deploymentType, question) => {
-            const defaultName = deploymentType === 'dev' ? 'jp-dev' : 'jp-prod';
-            config.DB_NAME = await question(`? Database name: (${defaultName}) `) || defaultName;
+            const defaultName = `${config.JPULSE_SITE_ID || 'jp'}-prod`;
+            config.DB_NAME = await question(`? Production database name: (${defaultName}) `) || defaultName;
+        }
+    },
+
+    DB_NAME_DEV: {
+        // Template expansion (W-172: used in unified app.conf.tmpl for deployment.dev.db)
+        default: (deploymentType, config) => `${config.JPULSE_SITE_ID || 'jp'}-dev`,
+        type: 'computed',
+        description: 'MongoDB development database name',
+
+        // User prompting
+        section: 'Database Configuration',
+        prompt: async (config, deploymentType, question) => {
+            const defaultName = `${config.JPULSE_SITE_ID || 'jp'}-dev`;
+            config.DB_NAME_DEV = await question(`? Development database name: (${defaultName}) `) || defaultName;
         }
     },
 

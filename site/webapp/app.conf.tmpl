@@ -1,18 +1,29 @@
 /**
  * @name            jPulse Framework / Site / WebApp / Site Configuration Template
  * @tagline         Template for site-specific configuration overrides
- * @description     Template for site customizations - copy to app.conf and customize
+ * @description     Template for site customizations - copy to app.conf and customize.
+ *                  This file is safe to commit to your repository.
+ *                  For secrets (session secret, DB passwords, Redis passwords) and
+ *                  deployment mode, see site/webapp/app-secret.conf.tmpl
  * @file            site/webapp/app.conf.tmpl
- * @version         1.6.28
- * @release         2026-03-08
+ * @version         1.6.29
+ * @release         2026-03-09
  * @author          Site Administrator
  * @copyright       2025 Site Administrator
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.5, Claude Sonnet 4.6
  */
 
 // Site-specific configuration overrides
-// Copy this file to app.conf and customize for your deployment
+// This file is committed to the repository and shared across all environments.
+// It MUST NOT contain secrets or environment-specific settings.
+//
+// Per-environment secrets and deployment mode go in site/webapp/app-secret.conf
+// (gitignored). See site/webapp/app-secret.conf.tmpl for the template.
+//
+// Default behavior without app-secret.conf:
+//   - deployment.mode defaults to 'dev' (safe fallback)
+//   - npm start works with zero extra setup for local development
 {
     app: {
         site: {
@@ -28,44 +39,39 @@
         customFlag:     true
     },
 
-    // Override some middleware settings
+    // deployment.mode is in site/webapp/app-secret.conf (per-environment)
+    // Both dev and prod sections are here so the same app.conf works for all environments
+    deployment: {
+        mode:   'dev',          // safe default; prod overrides to 'prod' in app-secret.conf
+        dev: {
+            name:       'development',
+            db:         'jp-dev',
+            port:       8080
+        },
+        prod: {
+            name:       'production',
+            db:         'jp-prod',
+            port:       8081
+        }
+    },
+
+    // Dev-safe session secret — overridden in app-secret.conf for production
+    // This placeholder allows npm start to work in dev without any extra setup
     middleware: {
         session: {
-            secret:     'CHANGE-THIS-SECRET-IN-PRODUCTION',
-            touchAfter: 3600    // Session touch interval in seconds
+            secret:     'dev-only-insecure-do-not-use-in-production',
+            touchAfter: 3600    // session touch interval in seconds
         }
     },
 
-    // Site-specific deployment settings
-    deployment: {
-        mode:               'prod',     // Override deployment mode
-        development: {
-            name:           'Site Development Mode',
-            customSetting:  'enabled'
-        }
-    },
-
-    // Redis configuration overrides for production deployment
+    // Redis configuration (passwords are in site/webapp/app-secret.conf)
     redis: {
-        enabled:            true,       // Enable Redis for production clustering
-        mode:               'cluster',  // Use 'single' for simple deployments, 'cluster' for HA
+        enabled:    true,
+        mode:       'single',   // use 'cluster' for HA production deployments
 
-        // Production Redis Cluster nodes (customize for your infrastructure)
-        cluster: {
-            nodes: [
-                { host: 'redis-01.example.com', port: 7000 },
-                { host: 'redis-02.example.com', port: 7001 },
-                { host: 'redis-03.example.com', port: 7002 }
-            ],
-            password:       'FXIME-IN-PRODUCTION'
-        },
-
-        // Single Redis instance (alternative to cluster)
         single: {
-            host:           'redis.example.com',
-            port:           6379,
-            password:       'FIXME-IN-PRODUCTION',
-            db: 0
+            host:   'localhost',
+            port:   6379
         }
     },
 

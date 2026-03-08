@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.28
+# jPulse Docs / Dev / Work Items v1.6.29
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5316,16 +5316,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/tests/unit/user/settings-plugin-fields.test.js`:
     - 22 tests: renderSettingsPluginFieldInput slider (type=number, data-slider attrs, name/id/data-plugin, value, null/undefined, omit absent attr, HTML-escape suffix, initAll initializes); tagInput (type=text, data-taginput, formatValue array/string/undefined/empty, name/id/data-plugin, initAll initializes); syncSettingsPluginFieldFromElement tagInput branch (parseValue → string[], blank → [], number path unaffected, skip missing attrs); renderPluginCards initAll (slider in card initialized, safe on empty)
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-171, v1.6.28, 2026-03-08: user settings: tabs interface instead of stacked cards
 - status: ✅ DONE
 - type: Feature
@@ -5375,6 +5365,76 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-172, v1.6.29, 2026-03-09: configuration: separate app.conf and app-secret.conf
+- status: 🕑 PENDING
+- type: Feature
+- objectives: split site configuration into a committed `app.conf` (non-secret, shared via git) and a gitignored `app-secret.conf` (secrets + deployment mode per environment), so devs can `npm start` with zero manual setup and prod secrets are never committed
+- features:
+  - three-layer config merge chain: `webapp/app.conf` → `site/webapp/app.conf` → `site/webapp/app-secret.conf`
+  - `site/webapp/app.conf`: committed; contains site name, domain, both dev/prod deployment sections, Redis topology, and a dev-safe session secret placeholder; `deployment.mode: 'dev'` as safe default so `npm start` works without any `app-secret.conf`
+  - `site/webapp/app-secret.conf`: gitignored; per-environment file containing `deployment.mode`, real session secret, DB auth credentials, Redis passwords, and cookie security flag
+  - `configure.js` generates both files: unified `app.conf.tmpl` (prod values prompted, dev defaults hardcoded) and `app-secret.conf.prod.tmpl` (secrets + `mode: 'prod'`)
+  - dev flow: clone repo → `npm start` (zero extra steps; framework default `mode: 'dev'` + dev-safe session secret in committed `app.conf`)
+  - prod flow: `npx jpulse configure` generates committed `app.conf` + gitignored `app-secret.conf` + `.env`
+  - `shouldRegenerateConfig()` and `generateConsolidatedConfig()` updated to include `app-secret.conf` in the merge chain and cache-invalidation
+  - bug fix: `date.add` Handlebars helper — all date arithmetic in `_handleDateAdd` replaced local-time `get*`/`set*` calls with UTC equivalents (`getUTC*`/`setUTC*`) to prevent 1-hour DST offset errors when server timezone differs from UTC
+  - bundled slider fix: `jpulse-common.js` — move `track.focus()` before `e.preventDefault()` in `onPointerDown` (modal dialogs block same-cycle focus after preventDefault); add early-return in modal keydown handler when target is inside `.jp-slider-wrap` or is INPUT/TEXTAREA
+- deliverables:
+  - `.gitignore`:
+    - remove `site/webapp/app.conf` (now committed)
+    - add `site/webapp/app-secret.conf` (gitignored)
+  - `site/webapp/app.conf.tmpl`:
+    - replace `secret: 'CHANGE-THIS-SECRET-IN-PRODUCTION'` with `secret: 'dev-only-insecure-do-not-use-in-production'`
+    - remove Redis passwords, deployment mode override
+    - add comment pointing to `app-secret.conf.tmpl` for per-environment secrets
+  - `site/webapp/app-secret.conf.tmpl` (new):
+    - reference template for hand-editing; contains `deployment.mode`, `middleware.session.secret`, DB auth, Redis passwords, cookie security
+    - header comment explains this file is gitignored and must never be committed
+  - `bin/config-registry.js`:
+    - `DB_NAME` prompt: default changed to `${JPULSE_SITE_ID}-prod` (was `jp-prod`)
+    - `DB_NAME_DEV` (new): prompted after `DB_NAME`; default `${JPULSE_SITE_ID}-dev`; used in unified `app.conf.tmpl` for `deployment.dev.db`
+  - `templates/webapp/app.conf.tmpl` (new, replaces `app.conf.dev.tmpl` + `app.conf.prod.tmpl`):
+    - unified template for `configure.js`; both `deployment.dev` and `deployment.prod` sections; dev DB from `%DB_NAME_DEV%`; dev port hardcoded 8080; prod values from `%PORT%`, `%DB_NAME%`; `mode: 'dev'` as safe default; dev-safe session secret placeholder; no passwords
+  - `templates/webapp/app.conf.dev.tmpl`:
+    - deleted (replaced by unified template; configure.js not used for dev)
+  - `templates/webapp/app.conf.prod.tmpl`:
+    - deleted (replaced by unified template)
+  - `templates/webapp/app-secret.conf.dev.tmpl` (new):
+    - `deployment.mode: 'dev'`, dev session secret, Redis password; reference template for developers who need explicit dev secrets
+  - `templates/webapp/app-secret.conf.prod.tmpl` (new):
+    - `deployment.mode: 'prod'`, `%SESSION_SECRET%`, DB auth (`%DB_USER%`, `%DB_PASS%`, `%DB_NAME%`), Redis passwords (`%REDIS_PASSWORD%`), `cookie.secure: true`
+  - `bin/configure.js`:
+    - `createSiteConfiguration()`: use unified `app.conf.tmpl`; also generate `site/webapp/app-secret.conf` from `app-secret.conf.prod.tmpl`
+    - `checkRootOwnership()`: add `site/webapp/app-secret.conf` to files-to-check list
+  - `webapp/app.js`:
+    - `shouldRegenerateConfig()`: add timestamp check for `site/webapp/app-secret.conf`
+    - `generateConsolidatedConfig()`: add Step 4 — load and deep-merge `site/webapp/app-secret.conf` after site config; append to `_sources` for cache invalidation
+  - `site/README.md`:
+    - update directory structure tree: `app.conf` (committed), `app-secret.conf` (gitignored, new)
+    - update Configuration Merging section: document three-layer chain
+    - update Getting Started: remove `cp app.conf.tmpl app.conf` step (app.conf arrives from git); add note about `app-secret.conf` for prod
+  - `templates/deploy/README.md`:
+    - update Configuration Files table: add `site/webapp/app-secret.conf` row
+  - `site/webapp/app.conf` (new committed example file for framework repo):
+    - non-secret, dev-ready config enabling `npm start` immediately after cloning
+  - `webapp/controller/handlebar.js`:
+    - `_handleDateAdd()`: replace all local-time `get*`/`set*` calls with UTC equivalents (`getUTCFullYear`/`setUTCFullYear`, `getUTCMonth`/`setUTCMonth`, `getUTCDate`/`setUTCDate`, `getUTCHours`/`setUTCHours`, etc.)
+  - `webapp/tests/unit/controller/handlebar-date-helpers.test.js`:
+    - "should add months to a date" test: replace local-time `setMonth()` expected calculation with UTC literal `new Date('2025-03-18T14:53:20Z').getTime()`
+  - `webapp/view/jpulse-common.js` (bundled slider fix):
+    - `onPointerDown`: move `track.focus()` before `e.preventDefault()` so modal dialogs don't block focus in the same event cycle
+    - modal keydown handler: add early-return when `e.target.closest('.jp-slider-wrap')` (slider key events pass through) and when `e.target.tagName` is INPUT or TEXTAREA
+
+
+
+
+
+
+
 ### Pending
 
 - split app.conf into app.conf and app-secret.conf
@@ -5402,8 +5462,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-171, v1.6.28, 2026-03-08
-- update features & deliverables in W-171 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-172, v1.6.29, 2026-03-09
+- update features & deliverables in W-172 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5414,12 +5474,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.28 2026-03-08
+node bin/bump-version.js 1.6.29 2026-03-09
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.28
+git tag v1.6.29
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

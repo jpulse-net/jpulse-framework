@@ -6,10 +6,10 @@ tt-*
 *.save[0-9][0-9]
 *.bak
 
-# Site-specific configuration (each deployment customizes)
-site/webapp/app.conf
+# Site-specific secrets (per-environment, never commit)
+site/webapp/app-secret.conf
 # But keep template files for reference
-!site/webapp/app.conf.tmpl
+!site/webapp/app-secret.conf.tmpl
 
 # Plugins (W-045)
 # Default: Ignore all plugins (developers' local plugins)

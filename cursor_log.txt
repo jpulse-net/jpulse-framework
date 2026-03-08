@@ -18599,4 +18599,55 @@ Updated release docs:
 
 
 ============================================================
+2026-03-07 22:30
+
+W-172 implementation: separate app.conf and app-secret.conf
+
+Implemented W-172 across 13 files (8 modified, 3 new, 2 deleted):
+
+- docs/dev/work-items.md: filled in W-172 work item with full objectives, features, and deliverables
+- .gitignore: removed site/webapp/app.conf (now committed); added site/webapp/app-secret.conf (gitignored)
+- webapp/app.js: added app-secret.conf timestamp check to shouldRegenerateConfig(); added Step 4 deep-merge of app-secret.conf in generateConsolidatedConfig()
+- site/webapp/app.conf.tmpl: replaced prod secret with dev-safe placeholder; removed prod-only fields; added pointer to app-secret.conf.tmpl
+- site/webapp/app-secret.conf.tmpl: new reference template with FIXME placeholders for deployment.mode, session secret, DB auth, Redis passwords
+- templates/webapp/app.conf.tmpl: new unified template (replaces dev+prod split); both deployment.dev and deployment.prod sections; uses %DB_NAME_DEV% and %DB_NAME%; mode: 'dev' as safe default; no secrets
+- templates/webapp/app-secret.conf.dev.tmpl: new template for dev secrets (deployment.mode: 'dev', session secret, Redis password)
+- templates/webapp/app-secret.conf.prod.tmpl: new template for prod secrets (deployment.mode: 'prod', session secret, DB auth, Redis passwords, cookie.secure: true)
+- templates/webapp/app.conf.dev.tmpl: deleted (replaced by unified template)
+- templates/webapp/app.conf.prod.tmpl: deleted (replaced by unified template)
+- bin/config-registry.js: added DB_NAME_DEV variable (default: ${JPULSE_SITE_ID}-dev); updated DB_NAME default to ${JPULSE_SITE_ID}-prod
+- bin/configure.js: createSiteConfiguration() now generates both app.conf and app-secret.conf; checkRootOwnership() includes app-secret.conf
+- site/README.md: updated directory structure, config merging section (3-layer chain), getting started steps
+- templates/deploy/README.md: updated configuration files table with committed/gitignored column
+
+
+============================================================
+2026-03-07 23:08
+
+ok, back to testing
+- app runs fine
+- unit test failure in handlebar-date-helpers.test.js: {{date.add}} "should use current time if no date provided" failing with timestamp 1 hour less than expected
+
+Fixed a DST/timezone bug in the `date.add` Handlebars helper (`webapp/controller/handlebar.js`):
+- Root cause: all date arithmetic in `_handleDateAdd` used local-time methods (`getDate`/`setDate`, `getFullYear`/`setFullYear`, etc.). On servers where the local timezone differs from UTC (e.g., UTC-8 PST), operations crossing DST boundaries produced timestamps off by 1 hour.
+- Fix: replaced all local-time `get*`/`set*` calls with their UTC equivalents (`getUTC*`/`setUTC*`) so arithmetic is always timezone-agnostic and consistent.
+- Also updated the "should add months to a date" test in `handlebar-date-helpers.test.js`: its expected value used local `setMonth()` (self-referential, matched the now-wrong implementation); replaced with the correct UTC-literal `new Date('2025-03-18T14:53:20Z').getTime()`.
+- All 90 tests in the suite now pass.
+
+
+============================================================
+
+2026-03-07 23:35
+
+release prep: review tt-git-diff.txt for accuracy and completeness of W-172 work item; prepare release docs for v1.6.29, 2026-03-09
+
+Reviewed diff against W-172 work item — all deliverables confirmed accurate and complete. Added to work item features and deliverables: date.add DST bug fix (UTC arithmetic), slider focus/keydown fix, site/webapp/app.conf committed example file, test fix for handlebar-date-helpers. Updated release docs:
+- docs/dev/work-items.md: added DST fix and slider fix to W-172 features; added site/webapp/app.conf, handlebar.js, test file, and jpulse-common.js to deliverables
+- README.md: added v1.6.29 entry to Latest Release Highlights
+- docs/README.md: added v1.6.29 entry to Latest Release Highlights
+- docs/CHANGELOG.md: added full v1.6.29 W-172 entry at top
+- commit-message.txt: updated for W-172
+
+
+============================================================
 

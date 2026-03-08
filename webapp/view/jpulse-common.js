@@ -3,13 +3,13 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.28
- * @release         2026-03-08
+ * @version         1.6.29
+ * @release         2026-03-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 2.5, Claude Sonnet 4.6
  */
 
 window.jPulse = {
@@ -1847,8 +1847,8 @@ window.jPulse = {
                     };
 
                     const onPointerDown = (e) => {
+                        track.focus();        // focus before preventDefault — modal dialogs block same-cycle focus() after preventDefault
                         e.preventDefault();
-                        track.focus();
                         setValue(getPositionPercent(e));
                         const onMove = (e2) => setValue(getPositionPercent(e2));
                         const onUp = () => {
@@ -5800,6 +5800,8 @@ window.jPulse = {
                     // Let Escape be handled by bubble-phase handleEscape
                     if (e.key === 'Escape') return;
 
+                    if (e.target.closest?.('.jp-slider-wrap')) return;
+
                     // Stop propagation so no page-level bubble-phase handlers (e.g. canvas key
                     // handlers, shortcut listeners) can intercept keys while a modal is open
                     e.stopPropagation();
@@ -5810,6 +5812,8 @@ window.jPulse = {
                     // Use document.activeElement + btns array to identify current focused button
                     const focusedBtnIdx = btns.indexOf(document.activeElement);
                     const isOnButton = focusedBtnIdx !== -1;
+
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
                     // Prevent page scrolling with arrow keys while dialog is open
                     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {

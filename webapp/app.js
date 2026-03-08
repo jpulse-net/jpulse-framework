@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         1.6.28
- * @release         2026-03-08
+ * @version         1.6.29
+ * @release         2026-03-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -168,6 +168,14 @@ function shouldRegenerateConfig(fs, confPath, jsonPath) {
             return true;
         }
     }
+    // W-172: Check site secrets config timestamp if it exists
+    const secretConfigPath = path.join(projectRoot, 'site/webapp/app-secret.conf');
+    if (fs.existsSync(secretConfigPath)) {
+        const secretConfStat = fs.statSync(secretConfigPath);
+        if (secretConfStat.mtime > jsonStat.mtime) {
+            return true;
+        }
+    }
     return false;
 }
 
@@ -218,7 +226,16 @@ async function generateConsolidatedConfig(fs, confPath) {
         appLog('Merged site configuration from site/webapp/app.conf');
     }
 
-    // Step 4: Merge plugin config (W-045)
+    // Step 4: Merge site secrets config (W-172)
+    const secretConfigPath = path.join(projectRoot, 'site/webapp/app-secret.conf');
+    if (fs.existsSync(secretConfigPath)) {
+        const secretConfig = loadConfigFile(fs, secretConfigPath);
+        config = deepMerge(config, secretConfig);
+        sources.push({ path: secretConfigPath, type: 'site-secret', timestamp: fs.statSync(secretConfigPath).mtime });
+        appLog('Merged site secrets configuration from site/webapp/app-secret.conf');
+    }
+
+    // Step 5: Merge plugin config (W-045)
     //FIXME: Implementation of W-045 plugin system
 
     // Step 5: Store source information for cache invalidation

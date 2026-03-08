@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.6.28
- * @release         2026-03-08
+ * @version         1.6.29
+ * @release         2026-03-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -3466,39 +3466,40 @@ class HandlebarController {
             const result = new Date(date);
 
             // Add time unit based on unit parameter
+            // Use UTC methods to avoid DST/timezone-offset contamination
             switch (unit) {
                 case 'years':
                 case 'year':
-                    result.setFullYear(result.getFullYear() + numValue);
+                    result.setUTCFullYear(result.getUTCFullYear() + numValue);
                     break;
                 case 'months':
                 case 'month':
-                    result.setMonth(result.getMonth() + numValue);
+                    result.setUTCMonth(result.getUTCMonth() + numValue);
                     break;
                 case 'weeks':
                 case 'week':
-                    result.setDate(result.getDate() + (numValue * 7));
+                    result.setUTCDate(result.getUTCDate() + (numValue * 7));
                     break;
                 case 'days':
                 case 'day':
-                    result.setDate(result.getDate() + numValue);
+                    result.setUTCDate(result.getUTCDate() + numValue);
                     break;
                 case 'hours':
                 case 'hour':
-                    result.setHours(result.getHours() + numValue);
+                    result.setUTCHours(result.getUTCHours() + numValue);
                     break;
                 case 'minutes':
                 case 'minute':
-                    result.setMinutes(result.getMinutes() + numValue);
+                    result.setUTCMinutes(result.getUTCMinutes() + numValue);
                     break;
                 case 'seconds':
                 case 'second':
-                    result.setSeconds(result.getSeconds() + numValue);
+                    result.setUTCSeconds(result.getUTCSeconds() + numValue);
                     break;
                 case 'milliseconds':
                 case 'millisecond':
                 case 'ms':
-                    result.setMilliseconds(result.getMilliseconds() + numValue);
+                    result.setUTCMilliseconds(result.getUTCMilliseconds() + numValue);
                     break;
                 default:
                     return '';

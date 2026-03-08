@@ -1,6 +1,41 @@
-# jPulse Docs / Version History v1.6.28
+# jPulse Docs / Version History v1.6.29
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.29, W-172, 2026-03-09
+
+**Commit:** `W-172, v1.6.29: configuration: separate app.conf and app-secret.conf`
+
+**FEATURE RELEASE**: Split site configuration into committed `app.conf` and gitignored `app-secret.conf` for a better developer experience. **(1) Config split:** `site/webapp/app.conf` is now committed to the repo (no secrets); `site/webapp/app-secret.conf` is gitignored and holds per-environment secrets plus `deployment.mode`. **(2) Three-layer merge chain:** `webapp/app.conf` (framework defaults) → `site/webapp/app.conf` (shared site config) → `site/webapp/app-secret.conf` (per-environment secrets); `webapp/app.js` `shouldRegenerateConfig()` and `generateConsolidatedConfig()` updated accordingly. **(3) Zero-setup dev:** `deployment.mode: 'dev'` and a dev-safe session secret placeholder in the committed `app.conf` mean `npm start` works immediately after cloning, with no `app-secret.conf` required. **(4) Templates:** Unified `templates/webapp/app.conf.tmpl` replaces the separate `app.conf.dev.tmpl` and `app.conf.prod.tmpl`; new `app-secret.conf.dev.tmpl` and `app-secret.conf.prod.tmpl` for `configure.js`. **(5) configure.js:** `createSiteConfiguration()` now generates both `app.conf` and `app-secret.conf` from separate templates. **(6) DB names:** `config-registry.js` adds `DB_NAME_DEV` variable (default `${siteId}-dev`, prompted); `DB_NAME` prompt default updated to `${siteId}-prod`. **(7) Bug fix — `date.add` DST:** `_handleDateAdd()` in Handlebars helper now uses UTC methods (`getUTC*`/`setUTC*`) throughout, preventing a 1-hour offset error when server timezone differs from UTC and date arithmetic crosses a DST boundary. **(8) Bundled slider fix:** `jpulse-common.js` moves `track.focus()` before `e.preventDefault()` in `onPointerDown` (modal dialogs block same-cycle focus after preventDefault); modal keydown handler skips `stopPropagation` when target is inside `.jp-slider-wrap` or is INPUT/TEXTAREA.
+
+**Objectives**:
+- Allow `site/webapp/app.conf` to be committed to the repository (no secrets)
+- Isolate per-environment secrets (deployment mode, session secret, DB auth, Redis passwords) in gitignored `app-secret.conf`
+- Zero-setup `npm start` for local development after cloning
+
+**Key Changes**:
+- **.gitignore**: remove `site/webapp/app.conf` (now committed); add `site/webapp/app-secret.conf` (gitignored)
+- **webapp/app.js**: `shouldRegenerateConfig()` checks `app-secret.conf` mtime; `generateConsolidatedConfig()` adds Step 4 deep-merge of `app-secret.conf`; appends to `_sources`
+- **site/webapp/app.conf** (new committed example): dev-ready framework example config; enables `npm start` immediately after cloning
+- **site/webapp/app.conf.tmpl**: dev-safe session secret placeholder; both `deployment.dev` + `deployment.prod` sections; comment pointing to `app-secret.conf.tmpl`
+- **site/webapp/app-secret.conf.tmpl** (new): reference template with `deployment.mode`, session secret, DB auth, Redis passwords
+- **templates/webapp/app.conf.tmpl** (unified, replaces dev+prod): both deployment sections; `%DB_NAME_DEV%` for dev DB; `mode: 'dev'` as safe default; no secrets
+- **templates/webapp/app.conf.dev.tmpl**: deleted (replaced by unified template)
+- **templates/webapp/app.conf.prod.tmpl**: deleted (replaced by unified template)
+- **templates/webapp/app-secret.conf.dev.tmpl** (new): `mode: 'dev'`, session secret, Redis password
+- **templates/webapp/app-secret.conf.prod.tmpl** (new): `mode: 'prod'`, session secret, DB auth, Redis passwords, `cookie.secure: true`
+- **bin/config-registry.js**: `DB_NAME_DEV` added (default `${siteId}-dev`); `DB_NAME` prompt default → `${siteId}-prod`
+- **bin/configure.js**: `createSiteConfiguration()` generates both `app.conf` and `app-secret.conf`; `checkRootOwnership()` includes `app-secret.conf`
+- **site/README.md**: directory structure, Configuration Merging section (three-layer chain), Getting Started updated
+- **templates/deploy/README.md**: Configuration Files table updated with committed/gitignored column
+- **webapp/controller/handlebar.js**: `_handleDateAdd()` — all `get*`/`set*` → `getUTC*`/`setUTC*` (DST fix)
+- **webapp/tests/unit/controller/handlebar-date-helpers.test.js**: "should add months to a date" expected value uses UTC literal
+- **webapp/view/jpulse-common.js**: slider `onPointerDown` focus before preventDefault; modal keydown early-return for `.jp-slider-wrap` and INPUT/TEXTAREA
+
+**Work Item**: W-172
+**Version**: v1.6.29
+**Release Date**: 2026-03-09
 
 ________________________________________________
 ## v1.6.28, W-171, 2026-03-08

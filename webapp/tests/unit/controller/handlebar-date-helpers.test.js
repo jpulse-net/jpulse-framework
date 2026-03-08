@@ -3,13 +3,13 @@
  * @tagline         Unit tests for W-131: Date helpers (date.now, date.parse, date.format) and W-132: Timezone support
  * @description     Tests for date helpers for Unix timestamp operations and timezone formatting
  * @file            webapp/tests/unit/controller/handlebar-date-helpers.test.js
- * @version         1.6.28
- * @release         2026-03-08
+ * @version         1.6.29
+ * @release         2026-03-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.3, Claude Sonnet 4.5
+ * @genai           80%, Cursor 2.5, Claude Sonnet 4.6
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
@@ -687,10 +687,8 @@ describe('W-131: Handlebars Date Helpers', () => {
                 testDate: testDate
             });
             const timestamp = parseInt(result.trim(), 10);
-            // JavaScript setMonth() may be affected by DST, so calculate expected value
-            const expectedDate = new Date(testDate);
-            expectedDate.setMonth(expectedDate.getMonth() + 2);
-            const expected = expectedDate.getTime();
+            // UTC arithmetic: add 2 months preserving the UTC time-of-day
+            const expected = new Date('2025-03-18T14:53:20Z').getTime();
 
             expect(timestamp).toBe(expected);
         });

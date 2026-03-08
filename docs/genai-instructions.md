@@ -1,4 +1,4 @@
-# jPulse Docs / Generative-AI Instructions for AI Assistants v1.6.29
+# jPulse Docs / Generative-AI Instructions for AI Assistants v1.6.30
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
@@ -607,7 +607,7 @@ const occupants = await RedisManager.cacheGetObjectsByPattern('controller:presen
 ```javascript
 jPulse.UI.toast.success('Message')
 jPulse.UI.toast.error('Error message')
-jPulse.UI.confirmDialog({ title, message, onConfirm, onCancel })
+jPulse.UI.confirmDialog({ title, message, buttons, onOpen, onClose })
 ```
 
 **Form Handling**:

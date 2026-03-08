@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.29
- * @release         2026-03-09
+ * @version         1.6.30
+ * @release         2026-03-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1379,11 +1379,12 @@ window.jPulse = {
                     wrap.appendChild(trigger);
 
                     const dropdown = document.createElement('div');
-                    dropdown.className = 'jp-jpselect-dropdown';
+                    dropdown.className = 'jp-jpselect-dropdown jp-jpselect-dropdown-portal';
                     dropdown.setAttribute('data-jpselect-dropdown', '1');
                     dropdown.setAttribute('role', 'listbox');
                     dropdown.setAttribute('aria-multiselectable', multi ? 'true' : 'false');
-                    wrap.appendChild(dropdown);
+                    document.body.appendChild(dropdown);
+                    wrap._jpSelectDropdown = dropdown;
 
                     let searchInput = null;
                     let listEl = null;
@@ -1534,6 +1535,25 @@ window.jPulse = {
                                 if (otherTrigger) otherTrigger.setAttribute('aria-expanded', 'false');
                             }
                         });
+                        // Position dropdown in viewport (W-173: always in body, above dialogs)
+                        const triggerRect = trigger.getBoundingClientRect();
+                        const dropdownZIndex = (jPulse.UI._alertZIndex || 2000) + 1000;
+                        dropdown.style.position = 'fixed';
+                        dropdown.style.left = triggerRect.left + 'px';
+                        dropdown.style.width = triggerRect.width + 'px';
+                        dropdown.style.zIndex = String(dropdownZIndex);
+                        const spaceBelow = window.innerHeight - triggerRect.bottom;
+                        const spaceAbove = triggerRect.top;
+                        const minSpace = 200;
+                        const openUp = spaceBelow < minSpace && spaceAbove > spaceBelow;
+                        dropdown.classList.toggle('jp-jpselect-dropdown-open-up', openUp);
+                        if (openUp) {
+                            dropdown.style.top = 'auto';
+                            dropdown.style.bottom = (window.innerHeight - triggerRect.top + 2) + 'px';
+                        } else {
+                            dropdown.style.bottom = 'auto';
+                            dropdown.style.top = (triggerRect.bottom + 2) + 'px';
+                        }
                         dropdown.classList.add('jp-jpselect-open');
                         trigger.setAttribute('aria-expanded', 'true');
                         buildList(searchInput ? searchInput.value : '');
@@ -1551,7 +1571,7 @@ window.jPulse = {
                     const closeDropdown = () => {
                         if (typeof opts.onOptionPreview === 'function') opts.onOptionPreview(null, null);
                         highlightedIndex = -1;
-                        dropdown.classList.remove('jp-jpselect-open');
+                        dropdown.classList.remove('jp-jpselect-open', 'jp-jpselect-dropdown-open-up');
                         trigger.setAttribute('aria-expanded', 'false');
                     };
 
@@ -1676,8 +1696,24 @@ window.jPulse = {
                     });
 
                     document.addEventListener('click', (e) => {
-                        if (!wrap.contains(e.target)) closeDropdown();
+                        if (!wrap.contains(e.target) && !dropdown.contains(e.target)) closeDropdown();
                     });
+
+                    document.addEventListener('mousedown', (e) => {
+                        if (dropdown.classList.contains('jp-jpselect-open') && !wrap.contains(e.target) && !dropdown.contains(e.target)) {
+                            closeDropdown();
+                        }
+                    });
+
+                    const closeOnFocusLoss = (e) => {
+                        const next = e.relatedTarget;
+                        if (!dropdown.classList.contains('jp-jpselect-open')) return;
+                        if (next && wrap.contains(next)) return;
+                        if (next && dropdown.contains(next)) return;
+                        closeDropdown();
+                    };
+                    wrap.addEventListener('focusout', closeOnFocusLoss);
+                    dropdown.addEventListener('focusout', closeOnFocusLoss);
 
                     trigger.addEventListener('keydown', (e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -2049,6 +2085,11 @@ window.jPulse = {
                 overlay.appendChild(dialog);
                 document.body.appendChild(overlay);
 
+                // Call onOpen callback synchronously after append, before animation (W-173)
+                if (config.onOpen && typeof config.onOpen === 'function') {
+                    config.onOpen(dialog);
+                }
+
                 // Set z-index (alert/info/success dialogs always on top, confirm uses base z-index)
                 const isSimpleDialog = ['alert', 'info', 'success'].includes(config.type);
                 const zIndex = config.zIndex || (isSimpleDialog
@@ -2076,11 +2117,6 @@ window.jPulse = {
                     }
                 };
                 document.addEventListener('keydown', handleEscape);
-
-                // Call onOpen callback
-                if (config.onOpen && typeof config.onOpen === 'function') {
-                    config.onOpen(dialog);
-                }
 
                 // Focus management
                 jPulse.UI._trapFocus(dialog, overlay, defaultButtonEl, buttonEls, shortcuts);
@@ -5813,7 +5849,7 @@ window.jPulse = {
                     const focusedBtnIdx = btns.indexOf(document.activeElement);
                     const isOnButton = focusedBtnIdx !== -1;
 
-                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                    if ((e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') && e.key !== 'Tab') return;
 
                     // Prevent page scrolling with arrow keys while dialog is open
                     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -5859,22 +5895,40 @@ window.jPulse = {
                         }
                     }
 
-                    // Trap Tab key within dialog
+                    // Trap Tab key within dialog (include open jpSelect dropdowns in body that belong to this dialog)
                     if (e.key === 'Tab') {
-                        const firstElement = focusableElements[0];
-                        const lastElement = focusableElements[focusableElements.length - 1];
+                        const extended = focusableElements.slice();
+                        dialog.querySelectorAll('.jp-jpselect-wrap').forEach((wrap) => {
+                            const dd = wrap._jpSelectDropdown;
+                            if (dd && dd.classList.contains('jp-jpselect-open')) {
+                                const sel = dd.querySelector('.jp-jpselect-search');
+                                const selectAllBtn = dd.querySelector('.jp-jpselect-select-all');
+                                const list = dd.querySelector('.jp-jpselect-list');
+                                if (sel) extended.push(sel);
+                                if (selectAllBtn) extended.push(selectAllBtn);
+                                if (list) extended.push(list);
+                            }
+                        });
+                        const firstElement = extended[0];
+                        const lastElement = extended[extended.length - 1];
+                        const active = document.activeElement;
+                        const idx = extended.indexOf(active);
 
                         if (e.shiftKey) {
-                            // Shift+Tab - if on first element, go to last
-                            if (document.activeElement === firstElement) {
+                            if (idx <= 0 || idx === -1) {
                                 e.preventDefault();
-                                lastElement.focus();
+                                (idx === -1 ? lastElement : extended[extended.length - 1]).focus();
+                            } else {
+                                e.preventDefault();
+                                extended[idx - 1].focus();
                             }
                         } else {
-                            // Tab - if on last element, go to first
-                            if (document.activeElement === lastElement) {
+                            if (idx === -1 || idx >= extended.length - 1) {
                                 e.preventDefault();
-                                firstElement.focus();
+                                (idx === -1 ? firstElement : extended[0]).focus();
+                            } else {
+                                e.preventDefault();
+                                extended[idx + 1].focus();
                             }
                         }
                     }

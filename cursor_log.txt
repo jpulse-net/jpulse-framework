@@ -18650,4 +18650,26 @@ Reviewed diff against W-172 work item — all deliverables confirmed accurate an
 
 
 ============================================================
+2026-03-08 14:30
+
+SVG app icon redesign: circle in primary fill, wave line in shape of -JP- (J and P verticals joint), wave making circle transparent through it. Is it possible with SVG?
+
+Yes. Redesigned favicon.svg using an SVG mask: circle filled with primary (#005999), mask = white circle + black stroke path for -JP- wave; where the stroke is, the circle is transparent (wave “cuts through”). Path: left dash, J stem + hook, shared stem up, P loop, right dash. File: webapp/static/images/jpulse-logo/favicon.svg. User can regenerate PNG/ICO via https://realfavicongenerator.net/ if needed.
+
+
+============================================================
+2026-03-08 16:10
+
+next bug: tab, tab, tab sets focus on underlying window (screenshot), which should never be possible in a modal dialog
+
+Fixed modal focus trap so focus cannot escape to the page. In jpulse-common.js: (1) jpSelect: set wrap._jpSelectDropdown = dropdown so dialog trap can find open dropdowns. (2) _trapFocus: on Tab, build extended focusable list = dialog focusables + focusables from any open jpSelect dropdown whose wrap is in the dialog (search input, select-all button, list); always preventDefault and move focus next/prev in extended list, wrapping at ends; if focus is outside list (idx === -1) snap to first or last. (3) Allow Tab to be handled when focus is in INPUT/TEXTAREA: changed early return to skip only when key !== 'Tab' so search box and other inputs inside dialog are included in trap. Unit tests (test:unit) pass.
+
+
+============================================================
+2026-03-08 16:45
+
+Release prep for W-173, v1.6.30, 2026-03-10. Reviewed tt-git-diff.txt: diff matches work item (confirmDialog onOpen, jpSelect in modals/body, viewport flip, close on focus/mousedown, modal focus trap, logo/favicon/docs, tests, docs). Updated docs/dev/work-items.md W-173: added features D (jpSelect close on focus/mousedown) and E (modal focus trap); replaced FIXME deliverables with full deliverables list (A logo, B onOpen, C jpSelect in modals, D close, E focus trap, Docs and examples). Created commit-message.txt: "W-173, v1.6.30: jPulse.UI confirmDialog onOpen; jpSelect dropdown in modals". No status or other changes to work-items.
+
+
+============================================================
 

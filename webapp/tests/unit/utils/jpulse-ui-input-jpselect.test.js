@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.input.jpSelect (W-151)
  * @description     Tests for jpSelect init, setAllValues/getAllValues multi-select
  * @file            webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js
- * @version         1.6.29
- * @release         2026-03-09
+ * @version         1.6.30
+ * @release         2026-03-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -56,7 +56,7 @@ describe('jPulse.UI.input.jpSelect (W-151)', () => {
             expect(document.querySelector('.jp-jpselect-wrap')).toBeFalsy();
         });
 
-        test('enhances select and creates wrapper, trigger, dropdown', () => {
+        test('enhances select and creates wrapper, trigger, dropdown in body (W-173)', () => {
             const sel = document.createElement('select');
             sel.id = 'testSelect';
             sel.innerHTML = '<option value="a">A</option><option value="b">B</option>';
@@ -68,8 +68,12 @@ describe('jPulse.UI.input.jpSelect (W-151)', () => {
             const wrap = sel.closest('.jp-jpselect-wrap');
             expect(wrap).toBeTruthy();
             expect(wrap.querySelector('.jp-jpselect-trigger')).toBeTruthy();
-            expect(wrap.querySelector('.jp-jpselect-dropdown')).toBeTruthy();
-            expect(wrap.querySelector('.jp-jpselect-list')).toBeTruthy();
+            expect(wrap.querySelector('.jp-jpselect-dropdown')).toBeFalsy();
+            const dropdown = document.querySelector('.jp-jpselect-dropdown');
+            expect(dropdown).toBeTruthy();
+            expect(document.body.contains(dropdown)).toBe(true);
+            expect(dropdown.classList.contains('jp-jpselect-dropdown-portal')).toBe(true);
+            expect(dropdown.querySelector('.jp-jpselect-list')).toBeTruthy();
             expect(sel.classList.contains('jp-jpselect-native')).toBe(true);
             expect(sel.dataset.jpselectInited).toBe('1');
         });
@@ -95,8 +99,8 @@ describe('jPulse.UI.input.jpSelect (W-151)', () => {
 
             window.jPulse.UI.input.jpSelect.init(sel, { search: true });
 
-            const wrap = sel.closest('.jp-jpselect-wrap');
-            expect(wrap.querySelector('.jp-jpselect-search')).toBeTruthy();
+            const dropdown = document.querySelector('.jp-jpselect-dropdown');
+            expect(dropdown.querySelector('.jp-jpselect-search')).toBeTruthy();
         });
 
         test('init multi with selectAll: true adds select-all button', () => {
@@ -108,8 +112,8 @@ describe('jPulse.UI.input.jpSelect (W-151)', () => {
 
             window.jPulse.UI.input.jpSelect.init(sel, { selectAll: true });
 
-            const wrap = sel.closest('.jp-jpselect-wrap');
-            expect(wrap.querySelector('.jp-jpselect-select-all')).toBeTruthy();
+            const dropdown = document.querySelector('.jp-jpselect-dropdown');
+            expect(dropdown.querySelector('.jp-jpselect-select-all')).toBeTruthy();
         });
 
         test('init with onOptionPreview calls callback on option hover and (null, null) on leave', () => {
@@ -123,8 +127,8 @@ describe('jPulse.UI.input.jpSelect (W-151)', () => {
 
             const wrap = sel.closest('.jp-jpselect-wrap');
             const trigger = wrap.querySelector('.jp-jpselect-trigger');
-            const dropdown = wrap.querySelector('.jp-jpselect-dropdown');
-            const listEl = wrap.querySelector('.jp-jpselect-list');
+            const dropdown = document.querySelector('.jp-jpselect-dropdown');
+            const listEl = dropdown.querySelector('.jp-jpselect-list');
 
             trigger.click();
             const options = listEl.querySelectorAll('.jp-jpselect-option');
@@ -151,10 +155,11 @@ describe('jPulse.UI.input.jpSelect (W-151)', () => {
 
             const wrap = sel.closest('.jp-jpselect-wrap');
             wrap.querySelector('.jp-jpselect-trigger').click();
-            const options = wrap.querySelector('.jp-jpselect-list').querySelectorAll('.jp-jpselect-option');
+            const dropdown = document.querySelector('.jp-jpselect-dropdown');
+            const options = dropdown.querySelector('.jp-jpselect-list').querySelectorAll('.jp-jpselect-option');
             options[0].dispatchEvent(new window.MouseEvent('mouseover', { bubbles: true }));
             expect(onOptionPreview).toHaveBeenLastCalledWith('', '— Select —');
-            wrap.querySelector('.jp-jpselect-list').dispatchEvent(new window.MouseEvent('mouseleave', { bubbles: true }));
+            dropdown.querySelector('.jp-jpselect-list').dispatchEvent(new window.MouseEvent('mouseleave', { bubbles: true }));
             expect(onOptionPreview).toHaveBeenLastCalledWith(null, null);
         });
 
@@ -226,6 +231,44 @@ describe('jPulse.UI.input.jpSelect (W-151)', () => {
             expect(sel.options[0].selected).toBe(true);
             expect(sel.options[2].selected).toBe(true);
             expect(trigger.textContent).toMatch(/Alpha|Gamma|selected/);
+        });
+    });
+
+    describe('W-173: dropdown in body, viewport flip', () => {
+        test('dropdown is in document.body when open', () => {
+            const sel = document.createElement('select');
+            sel.innerHTML = '<option value="a">A</option><option value="b">B</option>';
+            sel.setAttribute('data-jpselect', '1');
+            document.body.appendChild(sel);
+            window.jPulse.UI.input.jpSelect.init(sel);
+
+            const dropdown = document.querySelector('.jp-jpselect-dropdown');
+            expect(dropdown.parentNode).toBe(document.body);
+
+            const trigger = document.querySelector('.jp-jpselect-trigger');
+            trigger.click();
+            expect(dropdown.classList.contains('jp-jpselect-open')).toBe(true);
+            expect(dropdown.parentNode).toBe(document.body);
+        });
+
+        test('dropdown gets open-up class when insufficient space below trigger', () => {
+            const sel = document.createElement('select');
+            sel.innerHTML = '<option value="a">A</option><option value="b">B</option>';
+            sel.setAttribute('data-jpselect', '1');
+            document.body.appendChild(sel);
+            window.jPulse.UI.input.jpSelect.init(sel);
+
+            const trigger = document.querySelector('.jp-jpselect-trigger');
+            const dropdown = document.querySelector('.jp-jpselect-dropdown');
+
+            Object.defineProperty(trigger, 'getBoundingClientRect', {
+                value: () => ({ left: 10, top: 800, width: 200, height: 40, bottom: 840, right: 210 }),
+                configurable: true
+            });
+            trigger.click();
+
+            expect(dropdown.classList.contains('jp-jpselect-open')).toBe(true);
+            expect(dropdown.classList.contains('jp-jpselect-dropdown-open-up')).toBe(true);
         });
     });
 });

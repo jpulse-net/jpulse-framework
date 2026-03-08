@@ -3,13 +3,13 @@
  * @tagline         Unit Tests for jPulse.UI Dialog, Accordion, Tab, and Tooltip Widgets
  * @description     Tests for client-side UI widgets: alertDialog, infoDialog, accordion, tabs, tooltip
  * @file            webapp/tests/unit/utils/jpulse-ui-widgets.test.js
- * @version         1.6.29
- * @release         2026-03-09
+ * @version         1.6.30
+ * @release         2026-03-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 2.5, Claude Sonnet 4.6
  */
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
@@ -274,6 +274,29 @@ describe('jPulse.UI Dialog Widgets (W-048)', () => {
             await dialogPromise;
 
             // No error thrown — test passes if we get here
+        });
+
+        test('should call onOpen synchronously after append, before animation (W-173)', async () => {
+            const onOpen = jest.fn((dialog) => {
+                const overlay = dialog.closest('.jp-dialog-overlay');
+                expect(overlay).toBeTruthy();
+                expect(overlay.classList.contains('jp-dialog-show')).toBe(false);
+            });
+            window.jPulse.UI.confirmDialog({
+                message: 'Test',
+                buttons: ['OK'],
+                onOpen
+            });
+
+            expect(onOpen).toHaveBeenCalledTimes(1);
+            const dialogEl = onOpen.mock.calls[0][0];
+            expect(dialogEl).toBeTruthy();
+            expect(dialogEl.nodeType).toBe(1);
+            expect(dialogEl.classList.contains('jp-dialog')).toBe(true);
+
+            const buttons = document.querySelectorAll('.jp-dialog-btn');
+            buttons[0].click();
+            await new Promise(r => setTimeout(r, 50));
         });
     });
 });

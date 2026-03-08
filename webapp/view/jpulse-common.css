@@ -3,13 +3,13 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.6.29
- * @release         2026-03-09
+ * @version         1.6.30
+ * @release         2026-03-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 2.5, Claude Sonnet 4.6
  */
 
 /* ========================================
@@ -1687,6 +1687,14 @@ body {
     background: var(--jp-theme-bg-primary, #fff);
     box-shadow: var(--jp-theme-shadow-md, 0 2px 10px rgba(0,0,0,0.1));
     z-index: 1200; /* Above tab panels, section headers, and other content */
+}
+/* W-173: dropdown appended to body so it works inside modal dialogs */
+.jp-jpselect-dropdown-portal {
+    position: fixed;
+    right: auto;
+    top: 0;
+    bottom: auto;
+    /* left, width, top/bottom set by JS from getBoundingClientRect() */
 }
 .jp-jpselect-dropdown.jp-jpselect-open {
     display: block;

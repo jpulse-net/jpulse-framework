@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.29
+# jPulse Docs / Dev / Work Items v1.6.30
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5429,6 +5429,88 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-173, v1.6.30, 2026-03-10: jPulse.UI.confirmDialog with onOpen; jPulse.UI.input.jpSelect in modals
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - make jPulse SVG logo work with dark and light theme
+  - add an `onOpen` callback to confirmDialog
+  - make jpSelect dropdown work inside modal dialogs
+- features:
+  - A: jPulse SVG Logo:
+    - single theme-aware `jpulse-logo.svg`:
+      - mask for transparent outside circle; light mode = primary circle + white wave; dark mode = reverse (light circle + darker blue wave via `--jp-theme-color-primary-dark`)
+      - uses theme CSS variables when inlined; `prefers-color-scheme` when used as img/favicon
+    - `favicon.svg` reverted to simple static format (circle + path, no mask/theme) for favicon generators and browser tab
+    - `docs/images/jpulse-logo-20.svg`: copy with intrinsic size `width="20" height="20"` for docs; `docs/README.md` uses `![Logo](./images/jpulse-logo-20.svg)` so it works on GitHub and in app (markdown transform rewrites to `/assets/jpulse-docs/images/...`)
+  - B: confirmDialog — add `onOpen` callback:
+    - new option `onOpen(dialogElement)`, symmetric with existing `onClose`
+    - when it fires: synchronously after the dialog element is appended to the DOM, before any open animation starts (i.e. call `onOpen(dialog)` immediately after `document.body.appendChild(overlay)`, before the `setTimeout` that adds `jp-dialog-show`)
+    - why: required to call `jPulse.UI.input.initAll(dialog)` (or individual widget inits) on content that was dynamically injected as the `message` HTML
+      - without it, widgets like `jpSelect` cannot be initialized inside a confirm dialog
+    - Example:
+      ```javascript
+      jPulse.UI.confirmDialog({
+          title: 'Edit Map',
+          message: formHtml,
+          onOpen: function(dialog) {
+              jPulse.UI.input.initAll(dialog);
+          },
+          buttons: { ... }
+      });
+      ```
+    - note: `onOpen` already exists in defaultOptions and is invoked in jpulse-common.js but currently after animation and focus setup; move the call to immediately after append, before animation
+  - C: jpSelect — ensure dropdown works inside modal dialogs:
+    - the jpSelect dropdown panel must appear above the dialog overlay and must not be clipped by any `overflow: hidden` on the dialog container
+    - options:
+      - append the dropdown panel to `document.body` (positioned absolutely via `getBoundingClientRect()` and updated on open/resize/scroll as needed) rather than as a child of the `<select>`'s wrapper — avoids clipping and z-index issues
+      - or expose an `appendTo` option: `jpSelect.init(el, { appendTo: document.body })` so callers (e.g. dialogs) can pass body when needed
+    - also: dropdown should flip to open upward when there is insufficient space below the trigger (viewport-aware positioning — check available space before rendering and set class or style so the list opens upward)
+  - D: jpSelect close on focus/mousedown: dropdown closes on focus loss (focusout on wrap and dropdown; if focus leaves both, close) and on mousedown outside wrap/dropdown so that dragging the dialog title (or clicking outside) closes the dropdown.
+  - E: Modal focus trap: Tab can no longer move focus to the underlying page; focus is trapped inside the dialog and any open jpSelect dropdown. Extended focusable list includes dialog focusables plus focusables from open jpSelect dropdowns; Tab/Shift+Tab always preventDefault and move within that list; INPUT/TEXTAREA no longer skip Tab so the jpSelect search box is included; jpSelect wrap stores `_jpSelectDropdown` so the trap can find open dropdowns.
+- deliverables:
+  - A: logo:
+    - `webapp/static/images/jpulse-logo/jpulse-logo.svg`:
+      - theme-aware (mask, light/dark via CSS variables and prefers-color-scheme)
+    - `webapp/static/images/jpulse-logo/favicon.svg`:
+      - simple static (circle + path) for favicon generators
+    - `webapp/static/images/jpulse-logo/readme.txt`:
+      - doc favicon vs logo
+    - `docs/images/jpulse-logo-20.svg`:
+      - intrinsic size 20x20 for docs; `docs/README.md` uses `![Logo](./images/jpulse-logo-20.svg)` and "What is … jPulse?" heading
+  - B: confirmDialog onOpen:
+    - `webapp/view/jpulse-common.js`:
+      - call `config.onOpen(dialog)` immediately after `document.body.appendChild(overlay)`, before the setTimeout that adds `jp-dialog-show`
+    - `webapp/tests/unit/utils/jpulse-ui-widgets.test.js`:
+      - confirmDialog test that onOpen is called once, synchronously, before overlay has `jp-dialog-show`
+  - C: jpSelect in modals:
+    - `webapp/view/jpulse-common.js`:
+      - jpSelect — append dropdown to `document.body` with class `jp-jpselect-dropdown-portal`
+      - set `wrap._jpSelectDropdown = dropdown`
+      - openDropdown: position fixed, left/width/top or bottom from getBoundingClientRect(), z-index above dialogs
+      - viewport flip (open upward when space below insufficient); closeDropdown removes `jp-jpselect-dropdown-open-up`
+      - document click closes only when outside both wrap and dropdown
+    - `webapp/view/jpulse-common.css`:
+      - `.jp-jpselect-dropdown-portal` for fixed positioning (left/width/top/bottom set by JS)
+    - `webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js`:
+      - init test updated for dropdown in body with `jp-jpselect-dropdown-portal`; tests use `document.querySelector('.jp-jpselect-dropdown')`; new tests: dropdown in document.body when open, dropdown gets `jp-jpselect-dropdown-open-up` when trigger near bottom of viewport
+  - D: jpSelect close:
+    - `webapp/view/jpulse-common.js`:
+      - focusout on wrap and dropdown with shared closeOnFocusLoss
+      - document mousedown closes dropdown when target outside wrap and dropdown
+  - E: modal focus trap:
+    - `webapp/view/jpulse-common.js`:
+      - _trapFocus — Tab branch builds extended focusable list (dialog + open jpSelect dropdown focusables via `wrap._jpSelectDropdown`)
+      - always preventDefault on Tab; move focus next/prev in extended list, wrap at ends
+      - if activeElement not in list, focus first or last
+      - early return for INPUT/TEXTAREA changed to skip only when `e.key !== 'Tab'`
+  - docs and examples:
+    - `docs/jpulse-ui-reference.md`:
+      - confirmDialog onOpen (synchronous, before animation; use for initAll); jpSelect dropdown placement (body, fixed, modals, viewport flip)
+    - `docs/genai-instructions.md`:
+      - confirmDialog example with `onOpen`, `onClose`
+    - `webapp/view/jpulse-examples/ui-widgets.shtml`:
+      - dialog with onOpen (jpSelect) button and demo
 
 
 
@@ -5461,8 +5543,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-172, v1.6.29, 2026-03-09
-- update features & deliverables in W-172 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-173, v1.6.30, 2026-03-10
+- update features & deliverables in W-173 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5473,12 +5555,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.29 2026-03-09
+node bin/bump-version.js 1.6.30 2026-03-10
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.29
+git tag v1.6.30
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

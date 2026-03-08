@@ -1,4 +1,4 @@
-# jPulse Docs / Framework Comparison: jPulse vs. Alternatives v1.6.29
+# jPulse Docs / Framework Comparison: jPulse vs. Alternatives v1.6.30
 
 **For Site Administrators & Site Developers**
 

@@ -1,12 +1,12 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.29
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.30
 
 **For Site Administrators & Site Developers**
 
 Welcome to the jPulse Framework documentation - your complete guide to building enterprise-grade web applications.
 
-## What is jPulse?
+## What is ![Logo](./images/jpulse-logo-20.svg) jPulse?
 
-![Logo](./images/jpulse-logo-16.png) jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application framework built on **MVC architecture**. It uniquely supports **both Multi-Page Applications (MPA) and Single Page Applications (SPA)**, letting you mix and match the right pattern for each part of your application - from traditional server-rendered pages to modern Vue.js SPAs.
+jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application framework built on **MVC architecture**. It uniquely supports **both Multi-Page Applications (MPA) and Single Page Applications (SPA)**, letting you mix and match the right pattern for each part of your application - from traditional server-rendered pages to modern Vue.js SPAs.
 
 ## Key Features
 
@@ -228,6 +228,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.30 - confirmDialog onOpen; jpSelect in modals; modal focus trap (W-173)**: confirmDialog `onOpen(dialog)` runs synchronously after append, before animation — use for `jPulse.UI.input.initAll(dialog)` when dialog content has jpSelect/slider etc. jpSelect dropdown in body (above modals, viewport flip); closes on focus loss and mousedown outside. Modal focus trap: Tab cannot escape to page; extended focusables include open jpSelect. W-173, 2026-03-10
 - ✅ **Version 1.6.29 - Configuration: separate app.conf and app-secret.conf (W-172)**: `site/webapp/app.conf` is now committed (no secrets); `site/webapp/app-secret.conf` is gitignored (per-environment secrets + `deployment.mode`). Three-layer merge chain: `webapp/app.conf` → `site/webapp/app.conf` → `site/webapp/app-secret.conf`. Zero-setup dev: `npm start` works immediately after cloning (no `app-secret.conf` needed). `configure.js` generates both files; `DB_NAME_DEV` added for prompted dev DB name. Bundled: `date.add` DST bug fixed (UTC arithmetic); slider focus fix. W-172, 2026-03-09
 - ✅ **Version 1.6.28 - User settings: tabbed interface; My Dashboard header (W-171)**: Settings page replaced vertical card stack with a slick tab interface (Personal Info | Preferences | Security | one tab per schema-extension plugin block). Page header redesigned: compact `jp-page-header` with icon+title on left, user avatar circle+name+ACTIVE badge on right. Personal Info: Username and Email (both read-only) side by side; First/Last Name grid below; Nickname standalone. Security tab: password fields always visible (no collapsible); `jp-info-box` note; password changes tracked in dirty-state detection. Plugin tab checkboxes use inline `[✓] Label` layout. My Dashboard (`/user/me`) also shows user info (avatar+name+status) in the page header right side. i18n: de.conf `settings.title` → 'Einstellungen'; `settings.preferences` → 'Darstellung' (resolves conflict); new `settings.username` key. W-171, 2026-03-08
 - ✅ **Version 1.6.27 - User settings widget support; site config sliders (W-170)**: Regular users can now save their own schema-extension blocks (userCard.visible: true) via PUT /api/1/user. User settings plugin cards support `slider` and `tagInput` widgets; `renderPluginCards()` calls `initAll(container)`. Site config: broadcast.nagTime (0–8 h, step 1) and broadcast.disableTime (0–48 h, step 3) converted from select to slider. Slider: default tick stabilized; deferred layout for dialogs; `activateTab()` re-layouts sliders in newly activated panel. Docs: plugin-api-reference.md inputType table. 32 new unit tests. W-170, 2026-03-07

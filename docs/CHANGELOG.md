@@ -1,6 +1,24 @@
-# jPulse Docs / Version History v1.6.29
+# jPulse Docs / Version History v1.6.30
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.30, W-173, 2026-03-10
+
+**Commit:** `W-173, v1.6.30: jPulse.UI confirmDialog onOpen; jpSelect dropdown in modals`
+
+**FEATURE RELEASE**: Framework enhancements for site projects. **(1) confirmDialog onOpen:** The `onOpen(dialog)` callback is now invoked **synchronously** after the dialog element is appended to the DOM and **before** any open animation. Use it to call `jPulse.UI.input.initAll(dialog)` when the dialog `message` contains dynamically injected HTML with jpSelect, slider, or other input widgets — without onOpen, those widgets could not be initialized inside the dialog. **(2) jpSelect in modals:** The jpSelect dropdown panel is always appended to `document.body` and positioned with `position: fixed` via the trigger's `getBoundingClientRect()`, so it appears above modal overlays and is not clipped by `overflow: hidden` on the dialog or other containers. Z-index is set above dialogs. When there is insufficient space below the trigger, the dropdown opens upward (viewport-aware flip). Click-outside close correctly ignores clicks on the dropdown (which is no longer inside the trigger's wrapper). **(3) jpSelect close on focus/mousedown:** Dropdown closes on focus loss (focusout on wrap and dropdown; if focus leaves both, close) and on mousedown outside wrap/dropdown so that dragging the dialog title (or clicking outside) closes the dropdown. **(4) Modal focus trap:** Tab can no longer move focus to the underlying page; focus is trapped inside the dialog and any open jpSelect dropdown. Extended focusable list includes dialog focusables plus focusables from open jpSelect dropdowns (search input, select-all button, list); Tab/Shift+Tab always preventDefault and move within that list (wrap at ends); if focus has escaped, next Tab snaps it back. INPUT/TEXTAREA no longer skip Tab handling so the jpSelect search box is included in the trap. jpSelect wrap stores `_jpSelectDropdown` so the trap can find open dropdowns.
+
+**Key Changes**:
+- **webapp/view/jpulse-common.js**: confirmDialog — call `config.onOpen(dialog)` immediately after `document.body.appendChild(overlay)`, before the setTimeout that adds `jp-dialog-show`. jpSelect — append dropdown to `document.body` with class `jp-jpselect-dropdown-portal`; set `wrap._jpSelectDropdown = dropdown`; in openDropdown set position fixed, left/width/top or bottom from getBoundingClientRect(), z-index above dialogs; add viewport flip (open upward when space below < 200px and space above > space below); closeDropdown removes `jp-jpselect-dropdown-open-up`; document click handler closes only when click is outside both wrap and dropdown; focusout on wrap and dropdown with shared closeOnFocusLoss; document mousedown closes dropdown when target outside wrap and dropdown. _trapFocus — Tab branch: build extended focusable list (dialog + open jpSelect dropdown focusables via dialog.querySelectorAll('.jp-jpselect-wrap') and wrap._jpSelectDropdown); always preventDefault on Tab; move focus next/prev in extended list, wrap at ends; if activeElement not in list, focus first or last to snap back; early return for INPUT/TEXTAREA changed to skip only when `e.key !== 'Tab'` so Tab is trapped from search box.
+- **webapp/view/jpulse-common.css**: `.jp-jpselect-dropdown-portal` for fixed positioning (left/width/top/bottom set by JS).
+- **webapp/tests/unit/utils/jpulse-ui-widgets.test.js**: confirmDialog test that onOpen is called once, synchronously, before overlay has `jp-dialog-show`.
+- **webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js**: init test updated for dropdown in body with `jp-jpselect-dropdown-portal`; tests that reference dropdown/list/search/select-all use `document.querySelector('.jp-jpselect-dropdown')`; new tests: dropdown in document.body when open, dropdown gets `jp-jpselect-dropdown-open-up` when trigger near bottom of viewport.
+- **docs/jpulse-ui-reference.md**: confirmDialog `onOpen` description clarified (synchronous, before animation; use for initAll). jpSelect section: note on dropdown placement (body, fixed positioning, works in modals, viewport flip).
+
+**Work Item**: W-173
+**Version**: v1.6.30
+**Release Date**: 2026-03-10
 
 ________________________________________________
 ## v1.6.29, W-172, 2026-03-09

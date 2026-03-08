@@ -4,8 +4,8 @@
  * @tagline         Interactive UI widget examples and demonstrations
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
- * @version         1.6.29
- * @release         2026-03-09
+ * @version         1.6.30
+ * @release         2026-03-10
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -438,8 +438,8 @@ jPulse.dom.ready(() =&gt; {
         <!-- Dialog Widget -->
         <h3 class="local-heading-3">2.2 Dialog Widget</h3>
         <div class="jp-info-box">
-            <p><strong>What you learn:</strong> How to create modal dialogs for user interactions including alerts, confirmations, and custom content dialogs with async/await patterns.</p>
-            <p><strong>Behind the scenes:</strong> Uses jPulse's dialog system with promise-based responses, customizable buttons, HTML content support, and automatic focus management.</p>
+            <p><strong>What you learn:</strong> How to create modal dialogs for user interactions including alerts, confirmations, and custom content dialogs with async/await patterns. Use the <strong>onOpen</strong> callback when your dialog <code>message</code> contains dynamic HTML with input widgets (jpSelect, slider, tagInput) — call <code>jPulse.UI.input.initAll(dialog)</code> inside onOpen so those widgets work.</p>
+            <p><strong>Behind the scenes:</strong> Uses jPulse's dialog system with promise-based responses, customizable buttons, HTML content support, <code>onOpen</code> (fired before animation), <code>onClose</code>, and automatic focus management.</p>
         </div>
         <div id="dialog-demo-tabs" class="jp-tabs"></div>
         <div id="dialog-example-panel" class="jp-panel">
@@ -452,6 +452,7 @@ jPulse.dom.ready(() =&gt; {
                 <button id="confirmBtn" class="jp-btn jp-btn-warning">Confirm Dialog</button>
                 <button id="customBtn" class="jp-btn jp-btn-secondary">Custom Dialog</button>
                 <button id="complexBtn" class="jp-btn jp-btn-secondary">Complex Dialog</button>
+                <button id="dialogOnOpenBtn" class="jp-btn jp-btn-secondary">Dialog with onOpen (jpSelect)</button>
             </div>
         </div>
         <div id="dialog-source-panel" class="jp-panel">
@@ -462,6 +463,7 @@ jPulse.dom.ready(() =&gt; {
 &lt;button id="successDialogBtn" class="jp-btn jp-btn-success"&gt;Success Dialog&lt;/button&gt;
 &lt;button id="confirmBtn" class="jp-btn jp-btn-warning"&gt;Confirm Dialog&lt;/button&gt;
 &lt;button id="complexBtn" class="jp-btn jp-btn-secondary"&gt;Complex Dialog&lt;/button&gt;
+&lt;button id="dialogOnOpenBtn" class="jp-btn jp-btn-secondary"&gt;Dialog with onOpen (jpSelect)&lt;/button&gt;
 
 &lt;!-- JavaScript --&gt;
 &lt;script&gt;
@@ -511,6 +513,32 @@ document.getElementById('customBtn').addEventListener('click', async () =&gt; {
             minHeight: 200
         }
     );
+});
+
+// Dialog with onOpen: use when message contains widgets (jpSelect, slider, etc.)
+document.getElementById('dialogOnOpenBtn').addEventListener('click', async () =&gt; {
+    const formHtml = `
+        &lt;p&gt;Choose a country (jpSelect inside dialog):&lt;/p&gt;
+        &lt;select data-jpselect data-path="country"&gt;
+            &lt;option value=""&gt;— Select —&lt;/option&gt;
+            &lt;option value="us"&gt;United States&lt;/option&gt;
+            &lt;option value="uk"&gt;United Kingdom&lt;/option&gt;
+            &lt;option value="de"&gt;Germany&lt;/option&gt;
+        &lt;/select&gt;
+    `;
+    const result = await jPulse.UI.confirmDialog({
+        title: 'Edit (onOpen demo)',
+        message: formHtml,
+        onOpen: (dialog) =&gt; {
+            jPulse.UI.input.initAll(dialog);  // required so jpSelect works inside dialog
+        },
+        buttons: { 'Cancel': () =&gt; false, 'OK': (dialog) =&gt; {
+            const sel = dialog.querySelector('select[data-jpselect]');
+            const val = sel ? sel.value : '';
+            if (val) jPulse.UI.toast.success('Selected: ' + (sel.options[sel.selectedIndex]?.text || val));
+            return false;
+        } }
+    });
 });
 
 // Complex dialog with nested dialogs and form elements
@@ -1368,6 +1396,38 @@ jPulse.UI.sourceCode.initAll();
                         minHeight: 250
                     }
                 );
+            });
+
+            // Dialog with onOpen: required when message contains widgets (jpSelect, slider, tagInput)
+            document.getElementById('dialogOnOpenBtn').addEventListener('click', async () => {
+                const formHtml = `
+                    <p>Choose a country (jpSelect inside dialog):</p>
+                    <select data-jpselect data-path="country">
+                        <option value="">— Select —</option>
+                        <option value="us">United States</option>
+                        <option value="uk">United Kingdom</option>
+                        <option value="de">Germany</option>
+                    </select>
+                `;
+                const result = await jPulse.UI.confirmDialog({
+                    title: 'Edit (onOpen demo)',
+                    message: formHtml,
+                    onOpen: (dialog) => {
+                        jPulse.UI.input.initAll(dialog);
+                    },
+                    buttons: {
+                        'Cancel': () => false,
+                        'OK': (dialog) => {
+                            const sel = dialog.querySelector('select[data-jpselect]');
+                            const val = sel ? sel.value : '';
+                            if (val) {
+                                const label = sel.options[sel.selectedIndex]?.textContent?.trim() || val;
+                                jPulse.UI.toast.success('Selected: ' + label);
+                            }
+                            return false;
+                        }
+                    }
+                });
             });
 
             // Complex dialog implementation (copied from home page)

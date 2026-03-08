@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.29
+# jPulse Docs / jPulse.UI Widget Reference v1.6.30
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -237,7 +237,8 @@ const result = await jPulse.UI.confirmDialog({
         }
     },
     onOpen: (dialog) => {
-        // Called when dialog opens
+        // Called synchronously after dialog is in the DOM, before animation. Use to init widgets in dynamic message HTML.
+        jPulse.UI.input.initAll(dialog);
     },
     onClose: () => {
         // Called when dialog closes
@@ -262,7 +263,7 @@ const result = await jPulse.UI.confirmDialog({
   - `height` (number|string): Dialog height
   - `minHeight` (number): Minimum dialog height (default: 200)
   - `zIndex` (number): Custom z-index (default: auto-calculated)
-  - `onOpen` (Function): Callback when dialog opens; receives `dialog` element as argument
+  - `onOpen` (Function): Callback when dialog opens; receives `dialog` element. Fired **synchronously** after the dialog is appended to the DOM and **before** any open animation — use it to initialize widgets (e.g. `jPulse.UI.input.initAll(dialog)`) when `message` contains dynamic HTML with jpSelect, slider, or other input widgets.
   - `onClose` (Function): Callback when dialog closes; fired on **all** close paths — button click, ESC key, and programmatic close
 
 **Returns:** `Promise<Object>` - Resolves with user choice:
@@ -574,6 +575,8 @@ Namespace-level: inits all input widget types in container (e.g. `[data-taginput
 ### jpSelect widget
 
 Enhance a native `<select>` or `<select multiple>` with a custom dropdown: optional search filter, optional "Select all" / "Clear all" for multi-select, and checkboxes per option in multi mode. Multi-select trigger caption: when selected labels fit (measured off-screen), shows them joined by the locale separator; otherwise shows "N selected" or "All selected". The native select stays in the DOM and remains the value source for setAllValues/getAllValues and setFormData/getFormData.
+
+**Dropdown placement:** The dropdown panel is appended to `document.body` and positioned with `position: fixed` from the trigger's `getBoundingClientRect()`, so it appears above modal dialogs and is not clipped by `overflow: hidden` on the dialog or other containers. When there is insufficient space below the trigger, the dropdown opens upward (viewport-aware flip). Use `onOpen(dialog)` in `confirmDialog` and call `jPulse.UI.input.initAll(dialog)` so jpSelect and other widgets in the dialog message are initialized after the HTML is injected.
 
 #### `jPulse.UI.input.jpSelect.init(selectorOrElement, options?)`
 

@@ -268,75 +268,33 @@ For production deployments, jPulse uses nginx as a reverse proxy. The `jpulse-co
 ## Site Configuration
 
 ### Configuration Structure
-jPulse uses a layered configuration system:
+jPulse uses a three-layer configuration system:
 
 1. **Framework defaults**: `webapp/app.conf` (managed by framework)
-2. **Site overrides**: `site/webapp/app.conf` (your customizations)
+2. **Site overrides**: `site/webapp/app.conf` (your customizations, **committed** — no secrets)
+3. **Site secrets**: `site/webapp/app-secret.conf` (optional, **gitignored** — per-environment secrets and `deployment.mode`)
 
-The `jpulse-configure` command automatically generates `site/webapp/app.conf` based on your deployment type.
+The `npx jpulse configure` command generates both `site/webapp/app.conf` and `site/webapp/app-secret.conf` based on your deployment type. For development, `app.conf` alone is enough: it has `deployment.mode: 'dev'` and a dev-safe session secret, so `npm start` works with zero extra setup.
 
 ### Development Configuration
-For development deployment, `site/webapp/app.conf` contains minimal overrides:
+For development, `site/webapp/app.conf` is committed and contains no secrets. You do **not** need `app-secret.conf` for local dev:
 
-```javascript
-{
-    app: {
-        name: 'My Site Name',
-        shortName: 'My Site'
-    },
+- `deployment.mode: 'dev'` (safe default)
+- Session secret: dev-only placeholder
+- Database: no auth block (local MongoDB typically has no auth)
+- Port 8080, database `jp-dev` (or your site’s dev DB name)
 
-    deployment: {
-        mode: 'dev'  // Uses framework defaults for dev
-    },
-
-    middleware: {
-        session: {
-            secret: 'your-session-secret'
-        }
-    }
-    // Framework provides: port 8080, database jp-dev, etc.
-}
-```
+Clone the repo and run `npm start` — no manual config copy is required.
 
 ### Production Configuration
-For production deployment, `site/webapp/app.conf` includes environment variable references:
+For production, create `site/webapp/app-secret.conf` (gitignored) with:
 
-```javascript
-{
-    app: {
-        name: 'My Site Name',
-        shortName: 'My Site',
-        siteId: 'my-site-id'
-    },
+- `deployment.mode: 'prod'`
+- Real session secret and `cookie.secure: true`
+- Database auth (`authSource`, `username`, `password`)
+- Redis passwords if used
 
-    deployment: {
-        mode: 'prod'  // Uses framework defaults for prod
-    },
-
-    middleware: {
-        session: {
-            secret: '%SESSION_SECRET%',
-            cookie: {
-                secure: true,
-                maxAge: 3600000
-            }
-        }
-    },
-
-    database: {
-        mode: 'standalone',
-        standalone: {
-            options: {
-                authSource: '%DB_NAME%',
-                auth: {
-                    username: '%DB_USER%',
-                    password: '%DB_PASS%'
-                }
-            }
-        }
-    }
-}
-```
+Keep `site/webapp/app.conf` committed with site name, domain, and both `deployment.dev` and `deployment.prod` sections; secrets and `deployment.mode` override come only from `app-secret.conf`.
 
 ### Environment Variables (Production)
 

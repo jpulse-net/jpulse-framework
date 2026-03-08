@@ -5359,18 +5359,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - settings.preferences: 'Darstellung' (was 'Einstellungen' — conflict with page title resolved)
     - settings.securityNote: 'Um Ihr Passwort zu ändern, verwenden Sie die Felder unten.'
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-172, v1.6.29, 2026-03-09: configuration: separate app.conf and app-secret.conf
-- status: 🕑 PENDING
+- status: ✅ DONE
 - type: Feature
 - objectives: split site configuration into a committed `app.conf` (non-secret, shared via git) and a gitignored `app-secret.conf` (secrets + deployment mode per environment), so devs can `npm start` with zero manual setup and prod secrets are never committed
 - features:
@@ -5435,9 +5425,18 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
+
+
+
+
+
 ### Pending
 
-- split app.conf into app.conf and app-secret.conf
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
 
 old pending:

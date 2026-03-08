@@ -141,7 +141,8 @@ npm start
 my-jpulse-site/
 ├── site/                 # Your custom code (highest priority, update-safe)
 │   └── webapp/           # Site MVC components (overrides)
-│       ├── app.conf      # Site configuration
+│       ├── app.conf      # Site configuration (committed; no secrets)
+│       ├── app-secret.conf  # Per-environment secrets (gitignored; optional for dev)
 │       ├── controller/   # Custom controllers
 │       ├── model/        # Custom models
 │       ├── view/         # Custom views (pages and templates)

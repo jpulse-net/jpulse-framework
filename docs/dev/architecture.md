@@ -82,10 +82,11 @@ Final Config = Framework Defaults + Plugin Configs + Site Overrides + Environmen
 **Configuration Sources (in order):**
 1. `webapp/app.conf` - Framework defaults
 2. `plugins/[plugin-name]/webapp/app.conf` - Plugin configurations (in load order)
-3. `site/webapp/app.conf` - Site-specific overrides
-4. Environment variables - Runtime overrides
+3. `site/webapp/app.conf` - Site overrides (committed; no secrets)
+4. `site/webapp/app-secret.conf` - Site secrets (gitignored; optional; `deployment.mode`, session secret, DB/Redis credentials)
+5. Environment variables - Runtime overrides
 
-**Note**: Plugins can define default configurations, but site settings always take precedence.
+**Note**: Without `app-secret.conf`, `deployment.mode` defaults to `'dev'`. Plugins and site layers override earlier layers.
 
 ## Component Architecture
 

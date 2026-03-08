@@ -387,9 +387,10 @@ Application configuration is stored in JavaScript files, not MongoDB. This is fo
 jPulse automatically merges configurations in priority order:
 1. Framework defaults (`webapp/app.conf`)
 2. Plugin configurations (`plugins/[plugin-name]/webapp/app.conf`)
-3. Site overrides (`site/webapp/app.conf`) - **highest priority**
+3. Site overrides (`site/webapp/app.conf` — committed; no secrets)
+4. Site secrets (`site/webapp/app-secret.conf` — gitignored; optional; overrides deployment.mode, session secret, DB/Redis credentials)
 
-See [Site Customization Guide](site-customization.md) for complete documentation on application configuration.
+See [Site Customization Guide](site-customization.md) and [Installation — Site Configuration](installation.md#site-configuration) for complete documentation.
 
 ---
 

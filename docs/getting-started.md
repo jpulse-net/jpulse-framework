@@ -54,7 +54,8 @@ jPulse uses a clean separation between framework code and site customizations:
 ```
 my-first-site/
 ├── site/webapp/          # Your custom code (update-safe)
-│   ├── app.conf          # Site configuration
+│   ├── app.conf          # Site configuration (committed; no secrets)
+│   ├── app-secret.conf   # Per-environment secrets (gitignored; optional for dev)
 │   ├── controller/       # Custom controllers
 │   ├── model/            # Custom models
 │   ├── view/             # Custom templates
@@ -86,7 +87,7 @@ ls -la
 **Logs Access**: The `logs/` directory is a symbolic link to your system log directory (e.g., `/var/log/jpulse.net/`). This provides convenient access to application logs while maintaining proper system logging practices.
 
 ### Site Configuration
-Create `site/webapp/app.conf` with your site settings:
+Create or edit `site/webapp/app.conf` with your site settings (no secrets; use `site/webapp/app-secret.conf` for prod-only secrets):
 
 ```javascript
 {

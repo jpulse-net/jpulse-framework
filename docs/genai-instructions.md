@@ -638,7 +638,8 @@ jPulse.date.formatLocalDateAndTime(dateObj) // YYYY-MM-DD HH:MM:SS
 
 **App configuration**:
 - Framework defaults: `webapp/app.conf`
-- Site overrides: `site/webapp/app.conf`
+- Site overrides: `site/webapp/app.conf` (committed; no secrets)
+- Site secrets: `site/webapp/app-secret.conf` (gitignored; optional; deployment.mode, session secret, DB/Redis credentials)
 - Configuration merging explained in [Site Customization Guide](site-customization.md)
 
 ### When to Look Where

@@ -30,8 +30,9 @@ This means you only override what you need to customize. Plugins provide a middl
 my-jpulse-site/
 ├── site/                     # Site custom code (highest priority, update-safe)
 │   └── webapp/               # Site-specific MVC components (overrides)
-│       ├── app.conf          # Site configuration
-│       ├── controller/       # Custom controllers
+│       ├── app.conf          # Site configuration (committed — no secrets)
+│       ├── app-secret.conf   # Per-environment secrets (gitignored — never commit)
+│       ├── controller/      # Custom controllers
 │       ├── model/            # Custom models
 │       ├── view/             # Custom templates
 │       └── static/           # Site assets
@@ -55,10 +56,10 @@ my-jpulse-site/
 ________________________________________________
 ## Configuration System
 
-> **Admin Configuration**: For MongoDB-based configuration (email, broadcast messages, etc.), see the [Site Administration Guide](site-administration.md). The `app.conf` file is for framework defaults and site overrides.
+> **Admin Configuration**: For MongoDB-based configuration (email, broadcast messages, etc.), see the [Site Administration Guide](site-administration.md). The `app.conf` file is for framework defaults and site overrides (committed, no secrets). Per-environment secrets and `deployment.mode` go in `site/webapp/app-secret.conf` (gitignored). See [Installation](installation.md#site-configuration) for the three-layer config.
 
 ### Site Configuration
-Create `site/webapp/app.conf` to override framework defaults:
+Create or edit `site/webapp/app.conf` to override framework defaults. This file is **committed** to the repo and must **not** contain secrets (session secret, DB passwords, Redis passwords). Put those in `site/webapp/app-secret.conf` (gitignored):
 
 ```javascript
 {
@@ -105,10 +106,11 @@ Create `site/webapp/app.conf` to override framework defaults:
 jPulse automatically merges configurations in priority order:
 1. Framework defaults (`webapp/app.conf`)
 2. Plugin configurations (`plugins/[plugin-name]/webapp/app.conf`, in dependency order)
-3. Site overrides (`site/webapp/app.conf`)
-4. Environment variables
+3. Site overrides (`site/webapp/app.conf` — committed, no secrets)
+4. Site secrets (`site/webapp/app-secret.conf` — gitignored, optional; sets `deployment.mode`, session secret, DB/Redis credentials)
+5. Environment variables
 
-**Note**: Site settings always have highest priority, allowing you to override both framework and plugin defaults.
+**Note**: Without `app-secret.conf`, `deployment.mode` defaults to `'dev'` from `app.conf`, so `npm start` works after clone with no extra setup.
 
 ### Site Identity and Branding
 

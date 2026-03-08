@@ -4,8 +4,8 @@
  * @tagline         User SPA - Dashboard, Profiles, and Settings
  * @description     Single Page Application for user profiles, dashboard, and settings with config-driven behavior
  * @file            webapp/view/user/index.shtml
- * @version         1.6.27
- * @release         2026-03-07
+ * @version         1.6.28
+ * @release         2026-03-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -133,6 +133,12 @@
             color: var(--local-plugin-card-text, var(--jp-theme-text-primary, #333));
         }
 
+        .local-plugin-field-checkbox {
+            grid-column: 1 / -1;
+            color: var(--local-plugin-card-text-muted, var(--jp-theme-text-muted, #999));
+            font-weight: 500;
+        }
+
         .local-plugin-badge {
             display: inline-flex;
             align-items: center;
@@ -164,6 +170,19 @@
 
         .local-error-box {
             padding: 15px 20px;
+        }
+
+        /* W-171: Settings page header info (right side of jp-page-header) */
+        .local-settings-header-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .local-header-name {
+            font-size: 0.9em;
+            font-weight: 500;
+            color: var(--jp-theme-text-secondary, #666);
         }
     </style>
 </head>

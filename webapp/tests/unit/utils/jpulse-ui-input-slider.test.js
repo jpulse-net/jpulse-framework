@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.input.slider (W-168)
  * @description     Tests for slider init, initAll, setAllValues/getAllValues, _jpSliderSetValue
  * @file            webapp/tests/unit/utils/jpulse-ui-input-slider.test.js
- * @version         1.6.27
- * @release         2026-03-07
+ * @version         1.6.28
+ * @release         2026-03-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

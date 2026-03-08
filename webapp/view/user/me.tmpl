@@ -4,8 +4,8 @@
  * @tagline         User SPA - Dashboard template
  * @description     W-134: My Dashboard template of user profile SPA, authenticated only
  * @file            webapp/view/user/dashboard.tmpl
- * @version         1.6.27
- * @release         2026-03-07
+ * @version         1.6.28
+ * @release         2026-03-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,6 +16,11 @@
 {{#if user.isAuthenticated}}
     <div class="jp-page-header">
         <h1>{{i18n.view.user.me.title}}</h1>
+        <div class="local-settings-header-info">
+            <div class="jp-user-avatar local-header-avatar" id="meAvatarHeader">{{user.initials}}</div>
+            <span class="local-header-name" id="meNameHeader">{{user.firstName}} {{user.lastName}}</span>
+            <span class="jp-status-badge jp-status-{{user.status}} local-header-status" id="meStatusHeader">{{user.status}}</span>
+        </div>
     </div>
 
     <!-- User Stats -->
@@ -72,6 +77,11 @@
             const result = await jPulse.api.get('/api/1/user');
             if (result.success && result.data) {
                 const user = result.data;
+                const firstName = user.profile?.firstName || '';
+                const lastName = user.profile?.lastName || '';
+                const initials = ((firstName[0] || '') + (lastName[0] || '')).toUpperCase();
+                const fullName = [firstName, lastName].filter(Boolean).join(' ');
+                const status = user.status || '';
 
                 // Update last login
                 const lastLoginEl = document.getElementById('lastLogin');
@@ -84,10 +94,10 @@
                     }
                 }
 
-                // Update account status
+                // Update account status stat card
                 const statusEl = document.getElementById('accountStatus');
                 if (statusEl) {
-                    statusEl.textContent = user.status || '{{i18n.view.user.me.unknown}}';
+                    statusEl.textContent = status || '{{i18n.view.user.me.unknown}}';
                 }
 
                 // Update member since
@@ -99,6 +109,17 @@
                     } else {
                         memberSinceEl.textContent = '{{i18n.view.user.me.unknown}}';
                     }
+                }
+
+                // Update page-header user info
+                const avatarHeader = document.getElementById('meAvatarHeader');
+                if (avatarHeader) avatarHeader.textContent = initials || avatarHeader.textContent;
+                const nameHeader = document.getElementById('meNameHeader');
+                if (nameHeader) nameHeader.textContent = fullName;
+                const statusHeader = document.getElementById('meStatusHeader');
+                if (statusHeader) {
+                    statusHeader.textContent = status;
+                    statusHeader.className = `jp-status-badge${status ? ` jp-status-${status}` : ''} local-header-status`;
                 }
             }
         } catch (error) {

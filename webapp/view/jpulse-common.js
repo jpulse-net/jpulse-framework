@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.27
- * @release         2026-03-07
+ * @version         1.6.28
+ * @release         2026-03-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1774,8 +1774,12 @@ window.jPulse = {
                         el.value = String(current);
                         track.setAttribute('aria-valuenow', current);
                         setLabel(current);
-                        const trackW = track.getBoundingClientRect().width;
-                        const thumbW = thumb.getBoundingClientRect().width;
+                        // Use offsetWidth (CSS layout px, transform-invariant) so thumb.style.left
+                        // and fill.style.width are set in the same coordinate space as the CSS.
+                        // getBoundingClientRect() returns screen-space px affected by scale() on an
+                        // ancestor (e.g. the dialog open animation), causing wrong positioning.
+                        const trackW = track.offsetWidth;
+                        const thumbW = thumb.offsetWidth;
                         if (trackW > 0 && defaultTickRefThumbW === null) {
                             defaultTickRefThumbW = thumbW;
                         }
@@ -1876,7 +1880,8 @@ window.jPulse = {
                     });
 
                     updateUI(current);
-                    // Defer layout so thumb position is correct when track width is not yet final (e.g. slider inside dialog)
+                    // Deferred retries handle sliders initialised inside display:none panels
+                    // (offsetWidth === 0 until the panel is shown).
                     const runWhenConnected = (fn) => {
                         if (!track.isConnected) return;
                         fn();

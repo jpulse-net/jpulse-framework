@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.27
+# jPulse Docs / Dev / Work Items v1.6.28
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5277,17 +5277,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - slider element and options document data-slider-suffix and suffix; schema slider field may include suffix
     - toast: features bullet for dismiss button
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
-### W-170, v1.6.27, 2026-03-07: user settings: support jPulse.UI.input.* widgets
+### W-170, v1.6.27, 2026-03-07: user settings: support jPulse.UI.input.* widgets; site config sliders
 - status: ✅ DONE
 - type: Feature
 - objectives:
@@ -5333,27 +5323,57 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-### W-171, v1.6.28, 2026-03-xx: user settings: tabs interface instead of top-down cards
-- status: 🕑 PENDING
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-171, v1.6.28, 2026-03-08: user settings: tabs interface instead of stacked cards
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - replace the vertical card stack on the user settings page with a slick tab interface matching site config style
+  - redesign page header to match site config style (compact jp-page-header with user info on the right)
+  - fix i18n conflict: German 'Einstellungen' used for both page title and the Preferences tab
 - features:
-  - all settings sections become tabs: Personal Info | Preferences | Security | [one tab per schema-extension plugin block]
-  - tabs registered once after schema load (all plugin blocks known at that point); no dynamic add/remove needed
-  - slider re-layout on tab activation: activateTab() in jpulse-common.js automatically triggers _jpSliderSetValue on all data-slider inputs in the newly visible panel (fixes getBoundingClientRect() = 0 on hidden panels)
-  - Security tab: password fields always visible in panel (no collapsible); characters are obfuscated by input type=password so UX is acceptable
+  - page header redesigned: jp-page-header with icon + title on left; user initials badge + full name + status badge on right (replaces large avatar card); avatar section removed
+  - username added as read-only input to Personal Info section; email (read-only) moved next to username in same grid row; firstName/lastName in their own grid row; nickName standalone below
+  - all settings sections become tabs: Personal Info | Preferences | Security | [one tab per schema-extension plugin block with emoji icon + label]
+  - tabs built from static HTML (built-in sections) + dynamic JS (plugin blocks after schema load); tabs.register() called once after all panels are in DOM; settingsTabsHandle module variable stores handle; re-navigation reuses existing tabs (isFirstInit guard skips rebuild)
+  - slider re-layout on tab activation: activateTab() in jpulse-common.js (done in W-170) automatically triggers _jpSliderSetValue(el.value) on all input[data-slider] in newly activated panel — fixes offsetWidth === 0 on hidden panels
+  - initAll() called once on the whole tabs container after all panels are built, matching config.shtml pattern
+  - Security tab: password fields always visible in panel (no collapsible, no jp-collapsible.register()); securityCollapsible variable removed; revertChanges() clears the password fields directly; Security panel uses jp-info-box (not jp-alert which is the toast component)
+  - password dirty tracking: currentPassword/newPassword/confirmPassword added to getCurrentFormValues() so typing in any password field enables Save Changes; setTimeout(150) autofill-protection re-baselines originalValues after clearing so browser autofill does not leave spuriously dirty state
+  - password change detection: isChangingPassword = !!(newPassword || confirmPassword) — ignores browser-pre-filled currentPassword to avoid false positives
+  - password fields NOT cleared on tab switch — controller validates and reports mismatch on save
   - Save/Discard buttons remain below the tab panels, operating across all tabs
-  - dirty tracking unchanged: getCurrentFormValues() reads by element ID which works on hidden panels
+  - dirty tracking: getCurrentFormValues() reads built-in fields (including passwords) by getElementById and plugin fields from in-memory currentUserData
+  - plugin card checkbox layout: boolean/checkbox fields rendered as span-both-columns jp-checkbox-group div ([✓] Label inline) instead of 2-column label/value split; uses local-plugin-field-checkbox CSS class
+  - SPA querySelector bug fix: settings header elements use unique IDs (settingsAvatarHeader, settingsNameHeader, settingsStatusHeader) and getElementById to prevent querySelector('.local-header-status') finding sibling SPA template elements
+  - My Dashboard (/user/me): user initials badge + full name + status badge added to jp-page-header right side; loadMeUserData() refreshes header elements from API
+  - i18n: settings.title in de.conf changed from 'Benutzereinstellungen' to 'Einstellungen'; settings.preferences in de.conf changed from 'Einstellungen' to 'Darstellung' (Appearance — covers language + theme); settings.securityNote updated in both locales to remove "expand this section" wording; new settings.username key added (en: 'Username', de: 'Benutzername')
 - deliverables:
-  - FIXME `webapp/view/jpulse-common.js`:
-    - activateTab(): after making panel visible, scan for input[data-slider] and call _jpSliderSetValue(el.value) on each to fix layout after display:none
-  - FIXME `webapp/view/user/settings.tmpl`:
-    - HTML: replace jp-card / jp-collapsible structure with jp-tabs markup (tab list + panel container); one jp-panel per section
-    - JS: single jPulse.UI.tabs.register() call after schema load; pluginTabsRegistered flag prevents double-registration on re-load; renderPluginCards() targets individual tab panels; remove securityCollapsible logic
-  - FIXME `webapp/tests/unit/...`:
-    - tests for slider re-layout on tab activation
-    - updated settings page tests
+  - `webapp/view/user/settings.tmpl` (v1.6.28):
+    - HTML: replace jp-user-avatar-large header block with jp-page-header (icon+title left, user initials+name+status right, unique element IDs); replace jp-card / jp-collapsible structure with jp-tabs markup; static panels for Personal Info (username+email grid, firstName+lastName grid, nickName standalone), Preferences, Security (jp-info-box note, password fields always visible); dynamic plugin panels in staging div; settingsTabs container; Save/Discard/Back buttons below tabs
+    - JS: settingsTabsHandle module variable; initSettings() uses isFirstInit to build tabs once and reuse on re-navigation; buildSettingsTabs() constructs tabs array (built-in + plugin blocks) and calls jPulse.UI.tabs.register(); renderPluginCards(buildPanels) — build mode for first init, repopulate mode for re-nav/revert; initAll(tabsContainer) after all panels inserted; securityCollapsible removed; revertChanges() clears password fields directly; getCurrentFormValues() includes password fields; setTimeout(150) re-baselines originalValues after autofill-clear; isChangingPassword uses newPassword||confirmPassword; checkbox fields rendered as jp-checkbox-group spanning both grid columns; header elements use getElementById (unique IDs)
+  - `webapp/view/user/index.shtml` (v1.6.28):
+    - CSS: local-settings-header-info (flex, align-items center, gap 10px) and local-header-name for settings/me page headers
+    - CSS: local-plugin-field-checkbox (grid-column: 1 / -1; muted color; font-weight 500) for inline checkbox layout
+  - `webapp/view/user/me.tmpl` (v1.6.28):
+    - HTML: local-settings-header-info block (meAvatarHeader, meNameHeader, meStatusHeader) added to jp-page-header
+    - JS: loadMeUserData() updated to refresh header elements (initials, fullName, status) from API response
+  - `webapp/translations/en.conf`:
+    - settings.username: 'Username'
+    - settings.securityNote: 'To change your password, use the fields below.'
+  - `webapp/translations/de.conf`:
+    - settings.title: 'Einstellungen' (was 'Benutzereinstellungen')
+    - settings.username: 'Benutzername'
+    - settings.preferences: 'Darstellung' (was 'Einstellungen' — conflict with page title resolved)
+    - settings.securityNote: 'Um Ihr Passwort zu ändern, verwenden Sie die Felder unten.'
+
+
+
+
+
+
 
 ### Pending
 
@@ -5382,8 +5402,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-170, v1.6.27, 2026-03-07
-- update features & deliverables in W-170 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-171, v1.6.28, 2026-03-08
+- update features & deliverables in W-171 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5394,12 +5414,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.27 2026-03-07
+node bin/bump-version.js 1.6.28 2026-03-08
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.27
+git tag v1.6.28
 git push origin main --tags
 
 === PLUGIN release & package build on github ===

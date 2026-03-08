@@ -18455,12 +18455,148 @@ anything left before release prep?
 
 Changed broadcast.disableTime step from 1 to 3 in webapp/model/config.js. Updated W-170 work item features and deliverables to reflect step: 3. Ran unit tests (user-update-schema-extension, settings-plugin-fields) — all passed. W-170 is complete and ready for release prep.
 
+
 ============================================================
 2026-03-07 02:55
 
 release prep: review tt-git-diff.txt for accuracy and completeness of work item; W-170, v1.6.27, 2026-03-07
 
 Reviewed tt-git-diff.txt: diff is accurate for W-170. Found two items missing from the work item: (1) webapp/view/jpulse-common.css — .jp-slider-default-tick margin-top/margin-bottom extended from -5px to -7px for improved tick visibility; (2) webapp/view/jpulse-common.js — slider.init() caches defaultTickRefThumbW for stable default tick position on re-layouts, plus deferred updateUI calls (100/250/450 ms via runWhenConnected) for correct layout in dialogs. Updated W-170 features and deliverables in work-items.md to document these. Updated README.md and docs/README.md — Latest Release Highlights: added v1.6.27 W-170 at top. Updated docs/CHANGELOG.md: added full v1.6.27 W-170 entry, bumped title version. Updated commit-message.txt for W-170. Appended to cursor_log.txt.
+
+
+============================================================
+2026-03-07 03:10
+
+W-171 spec review: answered open questions; updated W-171 work item with finalized spec
+
+Answered W-171 open questions: (1) W-170 FIXME for jpulse-common.js removed (activateTab already done); (2) header redesigned as jp-page-header with icon+title left and user initials+name+status right; username added as read-only field in Personal Info; (3) Security tab: password fields always visible, not cleared on tab switch, revertChanges() clears them directly; (4) renderPluginCards() with approach A — tabs built once, content re-populated on revert; settingsTabsHandle variable; destroy+rebuild on re-navigation; (5) initAll() follows config.shtml pattern — called once on whole container after all panels built; (6) i18n: new settings.username key; de.conf settings.title → 'Einstellungen'; de.conf settings.preferences → 'Darstellung' (resolves Einstellungen conflict); securityNote updated in both locales. Updated W-171 work item in work-items.md with full features and deliverables; removed FIXME markers.
+
+
+============================================================
+2026-03-07 15:30
+
+Implement W-171: user settings tabs interface instead of top-down cards
+
+Implemented W-171 across four files:
+- webapp/translations/en.conf: added settings.username ('Username'); updated settings.securityNote to remove "expand this section" wording
+- webapp/translations/de.conf: changed settings.title to 'Einstellungen'; added settings.username ('Benutzername'); changed settings.preferences to 'Darstellung' (resolving conflict with page title); updated settings.securityNote to remove "erweitern Sie diesen Bereich" wording
+- webapp/view/user/settings.tmpl (v1.6.28): complete rewrite of HTML and JS components:
+  - HTML: replaced large avatar header with jp-page-header (icon+title left, jp-user-avatar+name+status right); replaced stacked jp-card sections with static jp-panel divs for Personal Info (with new username read-only field), Preferences, Security (password fields always visible, no collapsible); added settingsPluginPanels staging div and settingsTabs container; Save/Discard/Back buttons below tabs
+  - JS: added settingsTabsHandle module variable; removed securityCollapsible; initSettings() uses isFirstInit check to build tabs once and reuse on re-navigation; buildSettingsTabs() constructs tabs array (built-in + plugin blocks) and calls jPulse.UI.tabs.register(); renderPluginCards(buildPanels) splits into build mode (first init, creates panel elements in staging area) and repopulate mode (re-nav/revert, updates existing panel content + calls initAll); revertChanges() removes collapsible logic, directly clears password fields; saveProfile() detects password change by non-empty fields (no collapsible.isExpanded check); loadSettingsProfile() updates header name/avatar/status dynamically; event delegation bound once via data-eventsBound guard
+- webapp/view/user/index.shtml (v1.6.28): added CSS for .local-settings-header-info, .local-header-name
+- docs/dev/work-items.md: W-171 marked DONE
+
+
+============================================================
+2026-03-07 15:55
+
+W-171 follow-up: fix password pre-fill bug; add user info to dashboard header
+
+Answered questions: (1) Enable 2FA button: working correctly — only shown when 2FA is disabled (showIf controls it); in screenshots 2FA was enabled so only "New Backup Codes" is visible; (2) On save: stay on page is correct UX, no change needed. Fixed: (1) Password pre-fill bug in settings.tmpl — browser pre-fills currentPassword via saved credentials, triggering isChangingPassword=true even when user only wants to save non-password fields; fixed by changing isChangingPassword to require newPassword||confirmPassword (only user's intent to set a new password triggers the check); also added autocomplete="current-password" to currentPassword and autocomplete="new-password" to newPassword/confirmPassword. (2) Dashboard header: added same user info (avatar circle + name + status badge) to right side of jp-page-header in dashboard.tmpl (v1.6.28); updated loadDashboardUserCardPreview() to also refresh the new header elements after API load.
+
+
+============================================================
+
+2026-03-07 16:05
+
+W-171 follow-up 2: password pre-fill still persists; status badge gone; my dashboard wrong file
+
+Fixed three issues: (1) Password pre-fill still persisting — changed currentPassword autocomplete from "current-password" to "off"; added setTimeout(150ms) in initSettings() to clear all three password fields after browser autofill completes; 150ms runs before user interaction. (2) Status badge (ACTIVE) not showing — made update unconditional in loadSettingsProfile() (removed "if user.status" truthy guard) so it always renders the badge with whatever the API returns; also fixed avatar initials update to not require user.profile truthy check. (3) My Dashboard user info — was incorrectly added to dashboard.tmpl (/user/ route); actual My Dashboard is me.tmpl at /user/me; updated me.tmpl (v1.6.28): added local-settings-header-info with avatar+name+status to jp-page-header; updated loadMeUserData() to refresh header elements from API response.
+
+
+============================================================
+2026-03-07 16:30
+
+Fix three W-171 follow-up issues in settings page and dashboard
+
+1. Fix toast misuse in Security panel: replaced `jp-alert jp-alert-info` (which is the framework's toast
+   component — position:fixed, off-screen) with `jp-info-box` (a proper static inline info box) in the
+   Security panel of `webapp/view/user/settings.tmpl`.
+
+2. Fix ACTIVE status badge missing on settings page: root cause was `document.querySelector('.local-header-status')`
+   finding elements from other SPA templates (me.tmpl, dashboard.tmpl) that share the same CSS class name.
+   Fixed by adding unique IDs (`id="settingsAvatarHeader"`, `id="settingsNameHeader"`,
+   `id="settingsStatusHeader"`) to the settings page header elements, and switching from
+   `document.querySelector()` to `document.getElementById()` in `loadSettingsProfile()`.
+   Also reverted the status badge JS update to the safer `if (statusBadge && user.status)` guard.
+
+3. Remove user info header from dashboard.tmpl (`/user/` route): removed the `local-settings-header-info`
+   block (avatar + name + status) from the HTML, and removed the corresponding JS update code in
+   `loadDashboardUserData()`. User info header is kept only in `me.tmpl` (`/user/me` route).
+   `dashboard.tmpl` version remains at 1.6.27.
+
+Files changed:
+- webapp/view/user/settings.tmpl (bug fixes, version stays 1.6.28)
+- webapp/view/user/dashboard.tmpl (revert user info header, version stays 1.6.27)
+
+
+============================================================
+2026-03-07 16:50
+
+Two more fixes for settings.tmpl: field layout and password dirty tracking
+
+1. Rearranged Personal Information panel layout: moved email (read-only) next to username
+   (read-only) in a jp-form-grid row at the top. First Name | Last Name remain together in
+   their grid. Nickname now stands alone on its own row below.
+
+2. Fixed password fields not making the form dirty (Save Changes button stays disabled when
+   typing in Security tab). Root cause: getCurrentFormValues() did not include password fields,
+   so hasFormChanges() never detected password changes. Fix: added currentPassword, newPassword,
+   confirmPassword to getCurrentFormValues(). Also updated the setTimeout(150) autofill-protection
+   in initSettings() to re-capture originalValues and call updateSettingsActionButtons() after
+   clearing password fields, ensuring autofill cannot leave a spuriously dirty baseline.
+
+Files changed:
+- webapp/view/user/settings.tmpl (layout + dirty tracking fix, version stays 1.6.28)
+
+
+============================================================
+2026-03-07 17:00
+
+Fix checkbox layout in plugin tab cards (user settings)
+
+Previously, checkboxes were rendered in the right column of a 2-column grid (180px label |
+1fr input), creating a large visual gap between label and checkbox. Fixed by:
+1. Added .local-plugin-field-checkbox CSS rule to index.shtml: grid-column: 1 / -1 (span
+   both columns), matching muted color and font-weight of other field labels.
+2. In settings.tmpl render loop, detect boolean/checkbox fields and emit a span-both-columns
+   jp-checkbox-group div with [checkbox] [label] inline, instead of the 2-column label/value
+   split. Non-checkbox and read-only fields continue using the 2-column layout.
+
+Files changed:
+- webapp/view/user/index.shtml (add local-plugin-field-checkbox CSS)
+- webapp/view/user/settings.tmpl (checkbox inline layout in plugin field render loop)
+
+
+============================================================
+2026-03-07 17:40
+
+Pre-release: bump versions of me.tmpl and index.shtml to 1.6.28; fix me.tmpl @file
+
+Both files had W-171 changes but were still at @version 1.6.27.
+- webapp/view/user/me.tmpl: bumped to 1.6.28, release 2026-03-08; also fixed wrong @file
+  annotation (was "dashboard.tmpl", now correctly "me.tmpl")
+- webapp/view/user/index.shtml: bumped to 1.6.28, release 2026-03-08
+
+All W-171 files (settings.tmpl, index.shtml, me.tmpl) are now consistently at 1.6.28.
+
+
+============================================================
+2026-03-07 17:55
+
+Release prep: W-171, v1.6.28, 2026-03-08
+
+Reviewed tt-git-diff.txt against W-171 work item. Found two issues:
+1. work-items.md header version accidentally downgraded from v1.6.27 to v1.6.26 — fixed back to v1.6.27 (bump script will update to v1.6.28).
+2. W-171 work item features/deliverables were incomplete — missing index.shtml, me.tmpl deliverables, and bug fixes found during testing (jp-info-box in Security panel, unique IDs for querySelector SPA bug, email+username side-by-side layout, password dirty tracking, checkbox inline layout, re-navigation guard). Updated features and deliverables to document all work done. Also corrected inaccurate description "tabs.destroy() then rebuilds" to the actual isFirstInit guard pattern.
+
+Updated release docs:
+- docs/dev/work-items.md: fixed header v1.6.26 → v1.6.27; expanded W-171 features & deliverables
+- README.md: added v1.6.28 W-171 entry at top of Latest Release Highlights
+- docs/README.md: added v1.6.28 W-171 entry at top of Latest Release Highlights
+- docs/CHANGELOG.md: added full v1.6.28 W-171 entry at top (after header)
+- commit-message.txt: updated for W-171
+
 
 ============================================================
 

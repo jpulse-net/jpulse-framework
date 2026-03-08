@@ -1,6 +1,29 @@
-# jPulse Docs / Version History v1.6.27
+# jPulse Docs / Version History v1.6.28
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.28, W-171, 2026-03-08
+
+**Commit:** `W-171, v1.6.28: user settings: tabs interface instead of stacked cards`
+
+**FEATURE RELEASE**: Complete UX redesign of the user settings page and My Dashboard header. **(1) Settings tabs:** Replaced the vertical card stack with a slick tab interface: Personal Info | Preferences | Security | one tab per schema-extension plugin block (emoji icon + label). Tabs are built once from static HTML panels (built-in sections) plus dynamic JS panels (plugin blocks); re-navigation reuses the existing tab structure without rebuild. **(2) Page header:** `jp-page-header` layout with icon + title on left; user avatar circle + full name + ACTIVE status badge on right; unique element IDs prevent `querySelector` finding sibling SPA template elements. **(3) Personal Info panel:** Username and Email (both read-only) share the top grid row; First/Last Name in their own grid row; Nickname standalone below. **(4) Security tab:** Password fields always visible (collapsible removed); `jp-info-box` note replaces `jp-alert` (which is the toast component); all three password fields included in `getCurrentFormValues()` for dirty-state tracking; `setTimeout(150)` re-baselines `originalValues` after autofill-clear to prevent spurious dirty state; `isChangingPassword` uses `!!(newPassword || confirmPassword)` to ignore browser-pre-filled `currentPassword`. **(5) Plugin checkboxes:** Boolean fields rendered as span-both-columns `jp-checkbox-group` div (`[✓] Label` inline) using `local-plugin-field-checkbox` CSS class. **(6) My Dashboard:** User avatar + name + status badge added to `jp-page-header` right side on `/user/me`; `loadMeUserData()` refreshes header elements from API. **(7) i18n:** de.conf `settings.title` → 'Einstellungen'; `settings.preferences` → 'Darstellung' (resolves title/preferences conflict); new `settings.username` key in both locales; `settings.securityNote` updated to remove "expand this section" wording.
+
+**Objectives**:
+- Replace vertical card stack on user settings page with tabbed interface matching site config style
+- Redesign page header: compact jp-page-header with user info (avatar + name + status) on the right
+- Fix i18n conflict: German 'Einstellungen' used for both page title and Preferences tab
+
+**Key Changes**:
+- **webapp/view/user/settings.tmpl**: Complete HTML/JS overhaul — jp-page-header with unique IDs; static jp-panel divs for Personal Info (username+email grid), Preferences, Security (jp-info-box, always-visible password fields); settingsPluginPanels staging div; settingsTabs container; settingsTabsHandle + buildSettingsTabs(); renderPluginCards(buildPanels) build/repopulate modes; initAll(tabsContainer); getCurrentFormValues() includes passwords; setTimeout(150) autofill re-baseline; isCheckbox inline jp-checkbox-group rendering
+- **webapp/view/user/index.shtml**: local-settings-header-info + local-header-name CSS (header info layout); local-plugin-field-checkbox CSS (grid-column: 1 / -1, muted color)
+- **webapp/view/user/me.tmpl**: local-settings-header-info block (meAvatarHeader, meNameHeader, meStatusHeader) in jp-page-header; loadMeUserData() updates header elements
+- **webapp/translations/en.conf**: settings.username: 'Username'; settings.securityNote updated
+- **webapp/translations/de.conf**: settings.title → 'Einstellungen'; settings.preferences → 'Darstellung'; settings.username: 'Benutzername'; settings.securityNote updated
+
+**Work Item**: W-171
+**Version**: v1.6.28
+**Release Date**: 2026-03-08
 
 ________________________________________________
 ## v1.6.27, W-170, 2026-03-07

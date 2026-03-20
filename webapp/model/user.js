@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.6.30
- * @release         2026-03-10
+ * @version         1.6.31
+ * @release         2026-03-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -466,24 +466,56 @@ class UserModel {
      * @param {object} options - Query options
      * @returns {Promise<object>} Search results with metadata
      */
-    static async search(queryParams, options = {}) {
+    static async search(queryParams, modelOptions = {}) {
         try {
-            // Build MongoDB query from URI parameters
+            const qp = { ...(queryParams || {}) };
+            const substringEmail = !!modelOptions.substringEmail;
+
+            // Admin: substring match on email (escaped regex). Non-admin: exact match via schemaBasedQuery.
+            let emailFragment = null;
+            if (substringEmail && qp.email && typeof qp.email === 'string' && qp.email.trim()) {
+                const raw = qp.email.trim();
+                const escaped = raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                emailFragment = { email: { $regex: escaped, $options: 'i' } };
+                delete qp.email;
+            }
+
             // W-141: Use multiFieldSearch option for name parameter
-            const options = {
+            const queryBuildOptions = {
                 ignoreFields: ['limit', 'offset', 'sort', 'cursor', 'password', 'passwordHash', 'name'],
                 multiFieldSearch: {
                     name: ['profile.firstName', 'profile.lastName', 'username']
                 }
             };
-            const queryResult = CommonUtils.schemaBasedQuery(UserModel.getSchema(), queryParams, options);
+            let queryResult = CommonUtils.schemaBasedQuery(UserModel.getSchema(), qp, queryBuildOptions);
 
-            // Delegate to CommonUtils.paginatedSearch() for pagination handling
+            if (emailFragment) {
+                queryResult = UserModel._mergeUserSearchQueryFragment(queryResult, emailFragment);
+            }
+
             const collection = UserModel.getCollection();
-            return CommonUtils.paginatedSearch(collection, queryResult, queryParams, options);
+            return CommonUtils.paginatedSearch(collection, queryResult, queryParams, {});
         } catch (error) {
             throw new Error(`Failed to search users: ${error.message}`);
         }
+    }
+
+    /**
+     * Merge an extra filter into schemaBasedQuery enhanced result ({ query, useCollation, collation }).
+     * @param {{ query?: object, useCollation?: boolean, collation?: object }} queryResult
+     * @param {object} fragment - e.g. { email: { $regex, $options } }
+     * @returns {{ query: object, useCollation: boolean, collation?: object }}
+     * @private
+     */
+    static _mergeUserSearchQueryFragment(queryResult, fragment) {
+        const base = queryResult?.query;
+        if (!base || Object.keys(base).length === 0) {
+            return { query: { ...fragment }, useCollation: false };
+        }
+        return {
+            query: { $and: [base, fragment] },
+            useCollation: false
+        };
     }
 
     /**

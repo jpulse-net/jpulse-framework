@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.6.30
- * @release         2026-03-10
+ * @version         1.6.31
+ * @release         2026-03-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -237,7 +237,9 @@ class UserController {
                 return global.CommonUtils.sendError(req, res, 403, message, 'PUBLIC_PROFILE_ACCESS_DENIED');
             }
 
-            const results = await UserModel.search(req.query);
+            const adminRoles = ConfigModel.getEffectiveAdminRoles();
+            const isAdmin = AuthController.isAuthenticated(req) && AuthController.isAuthorized(req, adminRoles);
+            const results = await UserModel.search(req.query, { substringEmail: isAdmin });
 
             // W-134: Filter fields for each user in results
             if (results.data && Array.isArray(results.data)) {
@@ -662,6 +664,8 @@ class UserController {
                 if (updateData.email !== undefined) filteredData.email = updateData.email;
                 if (updateData.roles !== undefined) filteredData.roles = updateData.roles;
                 if (updateData.status !== undefined) filteredData.status = updateData.status;
+                // W-174: Admin can override another user's password (no current password required)
+                if (updateData.password) filteredData.password = updateData.password;
 
                 // W-107: Include plugin schema extension blocks (e.g., 'mfa')
                 const schemaExtensions = UserModel.getSchemaExtensionsMetadata();
@@ -814,6 +818,12 @@ class UserController {
                         enums[field] = allEnums[field];
                     }
                 }
+            }
+
+            // W-174: roles enum always from site config so newly defined roles appear in admin
+            const requestedFields = req.query.fields ? req.query.fields.split(',').map(f => f.trim()) : [];
+            if (requestedFields.includes('roles')) {
+                enums.roles = ConfigModel.getEffectiveRoles();
             }
 
             const elapsed = Date.now() - startTime;

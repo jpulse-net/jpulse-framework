@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.30
- * @release         2026-03-10
+ * @version         1.6.31
+ * @release         2026-03-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1704,6 +1704,10 @@ window.jPulse = {
                             closeDropdown();
                         }
                     });
+
+                    window.addEventListener('scroll', () => {
+                        if (dropdown.classList.contains('jp-jpselect-open')) closeDropdown();
+                    }, { passive: true });
 
                     const closeOnFocusLoss = (e) => {
                         const next = e.relatedTarget;

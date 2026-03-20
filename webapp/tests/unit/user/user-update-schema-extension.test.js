@@ -4,8 +4,8 @@
  * @description     Tests for the update() filteredData logic: regular users may now persist
  *                  schema-extension blocks where _meta.userCard.visible is true on self-update.
  * @file            webapp/tests/unit/user/user-update-schema-extension.test.js
- * @version         1.6.30
- * @release         2026-03-10
+ * @version         1.6.31
+ * @release         2026-03-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

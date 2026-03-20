@@ -1,6 +1,34 @@
-# jPulse Docs / Version History v1.6.30
+# jPulse Docs / Version History v1.6.31
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.31, W-174, 2026-03-20
+
+**Commit:** `W-174, v1.6.31: user admin: tab interface; roles from config; security tab; admin search fix`
+
+**FEATURE RELEASE**: User admin (Manage User) page overhaul and related fixes. **(1) Tab interface:** Replaced stacked sections with tabs: Administrative | Personal Information | Preferences | Security | one tab per adminCard.visible plugin block. buildAdminTabs(), renderPluginCards(buildPanels) for plugin panels; adminTabsHandle; jp-page-header with avatar + name + status on right. **(2) Roles from config:** GET /api/1/user/enums?fields=roles returns ConfigModel.getEffectiveRoles() so newly defined roles in Site Config appear in admin; roles picker is single <select multiple> with jpSelect.init(..., { search: true, selectAll: true }); loadRoles() populates options; getRolesFromSelect() for form/save. **(3) Security tab:** Admin can set another user's password (newPassword + confirmPassword, "Set Password" button inside panel); jp-info-box note (override + session caveat); min length from {{appConfig.model.user.passwordPolicy.minLength}} (app.conf alwaysAllow); setAdminPassword() validates and PUT /api/1/user with { password }; controller allows filteredData.password when isAdmin. **(4) Admin user search:** Name and email search work: name wrapped as *term* on client for substring (multiFieldSearch); controller passes { substringEmail: isAdmin } to UserModel.search; model builds email $regex (escaped) when substringEmail, merges via _mergeUserSearchQueryFragment; paginatedSearch gets {} not queryBuildOptions (fix options pollution). users.shtml: serialize from getElementById('searchForm'). **(5) Other:** app.conf alwaysAllow model.user.passwordPolicy.minLength; user-profile jp-container-1000; jpulse-common.js jpSelect scroll listener closes dropdown; user/index.shtml .local-spa-main padding; settings.tmpl class quote fix. en.conf/de.conf: securitySection, securityNote, securityMinHint, newPassword, confirmPassword, setPassword, passwordRequired, passwordMismatch, passwordTooShort, passwordSetSuccess, passwordSetFailed.
+
+**Objectives**:
+- Align user admin with user settings UX (tab interface, compact header)
+- Roles list always from site config; jp-select multi for roles
+- Security tab: admin password override
+- Fix admin user search for name and email
+
+**Key Changes**:
+- **webapp/app.conf**: alwaysAllow add 'model.user.passwordPolicy.minLength'
+- **webapp/controller/user.js**: getEnums roles from ConfigModel.getEffectiveRoles(); update admin filteredData.password; search(req.query, { substringEmail: isAdmin })
+- **webapp/model/user.js**: search(queryParams, modelOptions); substringEmail → emailFragment $regex; queryBuildOptions; _mergeUserSearchQueryFragment; paginatedSearch(..., {})
+- **webapp/view/admin/user-profile.shtml**: tabs (panel-admin, panel-personal-info, panel-preferences, panel-security, adminPluginPanels, adminTabs); roles select multi + jpSelect; buildAdminTabs() with Security; renderPluginCards(buildPanels); setAdminPassword(); Security panel HTML + i18n
+- **webapp/view/admin/users.shtml**: searchUsers formEl getElementById('searchForm'); name *wrap* for substring
+- **webapp/translations/en.conf, de.conf**: userProfile Security keys (securitySection, securityNote, securityMinHint, newPassword, confirmPassword, setPassword, passwordRequired, passwordMismatch, passwordTooShort, passwordSetSuccess, passwordSetFailed)
+- **webapp/view/jpulse-common.js**: jpSelect scroll listener closes dropdown (passive)
+- **webapp/view/user/index.shtml**: .local-spa-main padding-left/right 60px (20px on mobile)
+- **webapp/view/user/settings.tmpl**: class="local-user-profile" (quote fix)
+
+**Work Item**: W-174
+**Version**: v1.6.31
+**Release Date**: 2026-03-20
 
 ________________________________________________
 ## v1.6.30, W-173, 2026-03-10

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.30
+# jPulse Docs / Dev / Work Items v1.6.31
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5419,16 +5419,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - `onPointerDown`: move `track.focus()` before `e.preventDefault()` so modal dialogs don't block focus in the same event cycle
     - modal keydown handler: add early-return when `e.target.closest('.jp-slider-wrap')` (slider key events pass through) and when `e.target.tagName` is INPUT or TEXTAREA
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-173, v1.6.30, 2026-03-10: jPulse.UI.confirmDialog with onOpen; jPulse.UI.input.jpSelect in modals
 - status: ✅ DONE
 - type: Feature
@@ -5517,6 +5507,53 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-174, v1.6.31, 2026-03-20: user admin: tab interface; roles from config; security tab; admin search fix
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - align user admin (Manage User) page with user settings UX: tab interface, compact header, same visual patterns
+  - roles list for admin always from site config (data.general.roles) so newly defined roles appear
+  - replace roles checkboxes with jp-select multi (search, select all) for better usability
+  - show all plugin settings in admin via tabs (adminCard.visible blocks)
+- features:
+  - tab order: Administrative (first) | Personal Information | Preferences | one tab per schema-extension block with adminCard.visible (same order as user settings for built-in, then plugin tabs)
+  - roles source: always site config based; GET /api/1/user/enums?fields=roles returns ConfigModel.getEffectiveRoles() (or equivalent) so admin roles picker and validation use the same list as site config
+  - roles picker: single <select multiple data-jpselect> with options from config-based roles list; initAll after populate; setAllValues/getAllValues for form sync; remove roles checkbox grid and updateRolesCheckboxes/getSelectedRoles
+  - plugin tabs on Admin: only blocks with adminCard.visible (admin-specific); each block becomes a tab panel; reuse existing schemaMetadata and render logic, reflow into tabs instead of stacked cards
+  - page header: jp-page-header with icon + title left, user avatar + name + status badge right (match user settings style)
+  - one content card per tab panel; Back / Discard / Save below tabs (unchanged behavior, same as user settings)
+  - Security tab: admin password override (newPassword + confirmPassword, "Set Password" button inside panel); note explains override and session caveat; min length from appConfig.model.user.passwordPolicy.minLength (alwaysAllow in app.conf); PUT /api/1/user accepts password when admin; setAdminPassword() validates and calls API; no current password required
+  - admin user search fix: name and email search work (name → client wraps with *term* for substring; admin search uses UserModel.search with substringEmail so email uses escaped $regex substring); roles/status unchanged; users.shtml serialize from getElementById('searchForm')
+- deliverables:
+  - `webapp/app.conf`:
+    - alwaysAllow: add 'model.user.passwordPolicy.minLength' so Security tab can show min length in template
+  - `webapp/controller/user.js`:
+    - getEnums: when requested field is 'roles', return roles from site config (ConfigModel.getEffectiveRoles()) instead of user schema enum so newly defined roles appear in admin and elsewhere
+    - update (admin): when isAdmin and updateData.password present, filteredData.password = updateData.password (model hashes it)
+    - search: pass { substringEmail: isAdmin } to UserModel.search so admin gets substring email match
+  - `webapp/model/user.js`:
+    - search(queryParams, modelOptions): clone qp; when modelOptions.substringEmail and qp.email, build emailFragment { email: { $regex: escaped, $options: 'i' } }, delete qp.email; use queryBuildOptions (fix shadowing); schemaBasedQuery then _mergeUserSearchQueryFragment if emailFragment; paginatedSearch(..., {}); add _mergeUserSearchQueryFragment()
+  - `webapp/view/admin/users.shtml`:
+    - searchUsers: serialize from document.getElementById('searchForm'); for name key when value has no *;, wrap as *val* for substring match
+  - `webapp/view/admin/user-profile.shtml`:
+    - HTML: replace stacked sections with jp-tabs markup; first tab = Administrative (userId, uuid, email, roles, status), then Personal Information (profile), Preferences (language, theme), Security (admin password override panel), then staging div for plugin panels; roles container becomes single <select id="roles" name="roles" multiple data-path="roles"> with options populated from enums API; header changed to jp-page-header (icon+title left, avatar+name+status right); Security panel: jp-info-box note, newPassword/confirmPassword inputs, passwordError box, "Set Password" button
+    - JS: buildAdminTabs() with tab-security; register tabs once; renderPluginCards(buildPanels); populate roles select in loadRoles(); jpSelect.init(rolesSelect, { search: true, selectAll: true }) after initAll; getRolesFromSelect(); setAdminPassword() validates min length (from appConfig), match, required; PUT /api/1/user with { password }; remove updateRolesCheckboxes, getSelectedRoles
+    - CSS: local-admin-header-info; remove local-roles-grid / local-role-checkbox
+  - `webapp/translations/en.conf`, `webapp/translations/de.conf`:
+    - view.admin.userProfile: securitySection, securityNote, securityMinHint, newPassword, confirmPassword, setPassword, passwordRequired, passwordMismatch, passwordTooShort, passwordSetSuccess, passwordSetFailed
+
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -5543,8 +5580,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-173, v1.6.30, 2026-03-10
-- update features & deliverables in W-173 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-174, v1.6.31, 2026-03-20
+- update features & deliverables in W-174 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5555,13 +5592,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.30 2026-03-10
+node bin/bump-version.js 1.6.31 2026-03-20
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.30
-git push origin main --tags
+git tag v1.6.31; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff
@@ -5611,11 +5647,6 @@ npm run test:integration
 npm test -- --testPathPattern=jpulse-ui-navigation
 npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 npx jest webapp/tests/unit/controller/handlebar-logical-helpers.test.js
-
-=== Count lines ===
-cloc --timeout 0 --force-lang="Text",conf --force-lang="Text",tmpl --force-lang="Text",shtml --force-lang="JavaScript",cjs --force-lang="Text",webmanifest --force-lang="Text",txt --force-lang="Markdown",markdown --list-file=<(find . -type f -not -path '*.png' -not -path '*.jpg' -not -path '*.svg' -not -path '*.save*' -not -path '*/common/*' -not -path './tt-*' -not -path '*/node_modules/*' -not -path './coverage/*' -not -path '*/tmp*' -not -path './.*' -not -path '*/.git*' -not -path './cursor*' -not -path '*/fixtures/*' -not -path './package-lock.json' -print)
-
-find . -type f -not -path '*.png' -not -path '*.jpg' -not -path '*.svg' -not -path '*.save*' -not -path '*/common/*' -not -path './tt-*' -not -path '*/node_modules/*' -not -path './coverage/*' -not -path '*/tmp*' -not -path './.*' -not -path '*/.git*' -not -path './cursor*' -not -path '*/fixtures/*' -not -path './package-lock.json' | xargs wc -l
 
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items

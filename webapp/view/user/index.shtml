@@ -4,8 +4,8 @@
  * @tagline         User SPA - Dashboard, Profiles, and Settings
  * @description     Single Page Application for user profiles, dashboard, and settings with config-driven behavior
  * @file            webapp/view/user/index.shtml
- * @version         1.6.30
- * @release         2026-03-10
+ * @version         1.6.31
+ * @release         2026-03-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -27,6 +27,14 @@
         /* SPA-specific styles - override global .jp-main min-height */
         .local-spa-main {
             min-height: 400px !important;  /* Override jpulse-common.css calc(100vh - 30px) */
+            padding-left: 60px;
+            padding-right: 60px;
+        }
+        @media (max-width: 768px) {
+            .local-spa-main {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
         }
 
         .local-spa-route {

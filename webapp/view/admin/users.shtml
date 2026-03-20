@@ -4,8 +4,8 @@
  * @tagline         Admin user management interface
  * @description     User management dashboard for site administrators
  * @file            webapp/view/admin/users.shtml
- * @version         1.6.30
- * @release         2026-03-10
+ * @version         1.6.31
+ * @release         2026-03-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -452,13 +452,18 @@
         function searchUsers(event) {
             event.preventDefault();
 
-            const formData = jPulse.form.serialize(event.target);
+            const formEl = document.getElementById('searchForm');
+            const formData = jPulse.form.serialize(formEl);
             const searchParams = {};
 
-            // Filter out empty values
+            // Filter out empty values; name → *term* for substring match (multiFieldSearch + StringQueryParser)
             Object.keys(formData).forEach(key => {
                 if (formData[key] && formData[key].toString().trim()) {
-                    searchParams[key] = formData[key].toString().trim();
+                    let val = formData[key].toString().trim();
+                    if (key === 'name' && val && !/[*;,]/.test(val)) {
+                        val = `*${val}*`;
+                    }
+                    searchParams[key] = val;
                 }
             });
 

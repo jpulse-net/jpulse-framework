@@ -18672,4 +18672,12 @@ Release prep for W-173, v1.6.30, 2026-03-10. Reviewed tt-git-diff.txt: diff matc
 
 
 ============================================================
+2026-03-20 01:30
+
+release prep: review tt-git-diff.txt for accuracy and completeness of work item; assume release W-174, v1.6.31, 2026-03-20. Update W-174 features/deliverables in work-items (no status change); update README.md, docs/README.md, docs/CHANGELOG.md (no version bump); update commit-message.txt; append to cursor_log.
+
+Reviewed tt-git-diff.txt against W-174: diff matches work item (user admin tabs, roles from config/jp-select, Security tab and setAdminPassword, admin search name/email fix, app.conf, controller/model, user-profile.shtml, users.shtml, translations, jpulse-common.js scroll, user index padding, settings.tmpl quote fix). Updated docs/dev/work-items.md W-174: refined features and deliverables (Security tab, setAdminPassword, min length from appConfig, admin search fix; user-profile HTML/JS/CSS and translations bullets). Fixed settings.tmpl typo: class=local-user-profile" → class="local-user-profile". Updated README.md and docs/README.md Latest Release Highlights with v1.6.31 W-174 bullet. Added docs/CHANGELOG.md v1.6.31 section (objectives, key changes, work item, version, date). Wrote commit-message.txt for W-174, v1.6.31, 2026-03-20. No git commands run; version not bumped (user bump script).
+
+
+============================================================
 

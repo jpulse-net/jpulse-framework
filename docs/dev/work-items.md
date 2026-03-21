@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.32
+# jPulse Docs / Dev / Work Items v1.6.31
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5503,7 +5503,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
       - dialog with onOpen (jpSelect) button and demo
 
 ### W-174, v1.6.31, 2026-03-20: user admin: tab interface; roles from config; security tab; admin search fix
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - align user admin (Manage User) page with user settings UX: tab interface, compact header, same visual patterns
@@ -5537,18 +5537,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/translations/en.conf`, `webapp/translations/de.conf`:
     - view.admin.userProfile: securitySection, securityNote, securityMinHint, newPassword, confirmPassword, setPassword, passwordRequired, passwordMismatch, passwordTooShort, passwordSetSuccess, passwordSetFailed
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-175, v1.6.32, 2026-03-21: user admin: UX improvement; data-driven core settings; enforce lowercase usernames
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - enforce lowercase usernames at signup and on create; preserve consistent lookups (login/case-insensitive)
@@ -5612,6 +5602,17 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - mirror isPluginCardCheckboxField in test helper
   - `webapp/view/auth/signup.shtml`:
     - username input: style="text-transform: lowercase;" and oninput="this.value = this.value.toLowerCase();"
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
 
 
 

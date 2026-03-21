@@ -367,6 +367,9 @@
             } else if (el.type === 'number') {
                 const v = parseFloat(el.value);
                 value = isNaN(v) ? el.value : v;
+            } else if (el.getAttribute('data-taginput') !== null) {
+                // W-170: tagInput stores comma-separated string; parseValue returns string[]
+                value = jPulse.UI.input.tagInput.parseValue(el.value);
             } else {
                 value = el.value;
             }
@@ -823,6 +826,22 @@
                     return `<option value="${esc(ov)}"${sel}>${esc(ol)}</option>`;
                 }).join('');
                 return `<select id="${fieldId}" name="${fieldKey}" class="jp-form-select" ${dataAttrs}>${opts}</select>`;
+            }
+            // W-170/W-175: slider widget — match user settings (renderSettingsPluginFieldInput); data-slider* + initAll
+            if (inputType === 'slider') {
+                const min  = fieldDef.min     != null ? ` data-slider-min="${fieldDef.min}"`                   : '';
+                const max  = fieldDef.max     != null ? ` data-slider-max="${fieldDef.max}"`                   : '';
+                const step = fieldDef.step    != null ? ` data-slider-step="${fieldDef.step}"`                 : '';
+                const def  = fieldDef.default != null ? ` data-slider-default="${fieldDef.default}"`           : '';
+                const suf  = fieldDef.suffix  != null ? ` data-slider-suffix="${esc(fieldDef.suffix)}"`        : '';
+                const numVal = (value === null || value === undefined) ? '' : esc(value);
+                return `<input type="number" id="${fieldId}" name="${fieldKey}" value="${numVal}" class="jp-form-input" data-slider${min}${max}${step}${def}${suf} ${dataAttrs}>`;
+            }
+            // W-170: tagInput — match user settings
+            if (inputType === 'tagInput') {
+                const arr = Array.isArray(value) ? value : (value ? String(value).split(',').map(s => s.trim()) : []);
+                const formatted = jPulse.UI.input.tagInput.formatValue(arr);
+                return `<input type="text" id="${fieldId}" name="${fieldKey}" value="${esc(formatted)}" class="jp-form-input" data-taginput ${dataAttrs}>`;
             }
             const type = (inputType === 'number' || fieldDef.type === 'number') ? 'number' : 'text';
             const numVal = (type === 'number' && (value === null || value === undefined)) ? '' : esc(value);

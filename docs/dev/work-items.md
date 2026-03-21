@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.31
+# jPulse Docs / Dev / Work Items v1.6.32
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5502,16 +5502,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - `webapp/view/jpulse-examples/ui-widgets.shtml`:
       - dialog with onOpen (jpSelect) button and demo
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-174, v1.6.31, 2026-03-20: user admin: tab interface; roles from config; security tab; admin search fix
 - status: 🚧 IN_PROGRESS
 - type: Feature
@@ -5554,6 +5544,82 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-175, v1.6.32, 2026-03-21: user admin: UX improvement; data-driven core settings; enforce lowercase usernames
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - enforce lowercase usernames at signup and on create; preserve consistent lookups (login/case-insensitive)
+  - align Manage User plugin tab panels with User Settings (white card background; no duplicate label in panel)
+  - make core user profile fields (profile, preferences) data-driven via schema (same architecture as admin config); consistent checkbox UX across all tabs
+- features:
+  - lowercase usernames:
+    - signup and user create normalize username to lowercase and trim
+    - validation allows only `[a-z0-9_.-]`
+    - findByUsername normalizes input so login is case-insensitive
+    - signup form shows and submits lowercase (text-transform + oninput)
+  - user admin UX:
+    - plugin cards in tab panels use jp-card primary background (no gray)
+    - card header (icon + label + actions) removed in admin profile so the tab label is the only title (no duplication)
+  - plugin checkbox UX (user settings + admin Manage User):
+    - boolean/checkbox fields use one row: checkbox first, label next (jp-checkbox-group), full grid width — not label column | checkbox column
+    - `isPluginCardCheckboxField`: treat `type: 'boolean'` as checkbox even when schema sets redundant `inputType: 'boolean'` (previously fell through to two-column layout)
+  - data-driven core settings (user settings + admin Manage User):
+    - `UserModel.coreDisplaySchema` defines profile and preferences blocks with per-context `adminCard`/`userCard` metadata (label, order, maxColumns, visible, readOnly)
+    - field labels use `{{i18n.*}}` format, resolved server-side via `expandI18nDeep`; consistent with config schema architecture
+    - `profile` block: username (user-only readonly, dataPath), email (user-only readonly, dataPath), firstName, lastName, nickName (fullWidth)
+    - `preferences` block: language (select), theme (select)
+    - user controller `includeSchema=1` now returns both `schema` (plugin extensions) and `coreSchema` (core blocks) after i18n expansion
+    - `renderCoreSchemaBlock(blockKey, blockDef, blockData, context, rootData)` renders schema block into panel element; handles grid layout, fullWidth fields, readOnly, select placeholders
+    - tab labels for profile/preferences blocks driven by `_meta.userCard.label` / `_meta.adminCard.label` from coreSchema
+    - form data collected/restored via `jPulse.UI.input.getAllValues()` / `setAllValues()` using `data-path` attributes
+    - language/theme selects found by `querySelector('[data-path="preferences.*"]')` instead of `getElementById`
+    - user settings theme preview: after schema-driven preferences, instant light/dark preview uses delegated `change` on `.local-user-profile` when `data-path === 'preferences.theme'` (avoids stale one-off listener on replaced select); discard/revert reads theme via `[data-path="preferences.theme"]` (not removed `id="theme"`)
+- deliverables:
+  - `webapp/controller/user.js`:
+    - signup: destructure username as usernameRaw; set username = (usernameRaw || '').toLowerCase().trim() before validation and userData
+    - GET user: `includeSchema=1` now also returns `coreSchema` (expandI18nDeep of UserModel.coreDisplaySchema)
+  - `webapp/model/user.js`:
+    - validate: usernameNorm = data.username.trim().toLowerCase(); regex ^[a-z0-9_.-]+$ and reserved check use usernameNorm
+    - create: normalize data.username to trim().toLowerCase() before validate and findByUsername check
+    - findByUsername: normalize argument to toLowerCase().trim() before findOne (case-insensitive lookup)
+    - added `UserModel.coreDisplaySchema` static property: profile and preferences blocks with adminCard/userCard metadata and i18n labels
+  - `webapp/view/admin/user-profile.shtml`:
+    - .local-plugin-card: remove background (use jp-card primary; match user settings)
+    - renderPluginCard: omit header (icon, label, actions); card body = description + field grid only
+    - isPluginCardCheckboxField(); renderCardFields checkbox branch (jp-checkbox-group, label after input); CSS grid-column 1 / -1 for checkbox row
+    - panel-personal-info renamed to panel-profile; panel-preferences both emptied (content rendered by JS)
+    - added `renderCoreSchemaBlock()` function; `buildAdminTabs()` reads core tab labels from coreSchema
+    - `displayUser()`: calls `renderCoreSchemaBlock` on first init; uses `setAllValues` on reload
+    - `getCurrentFormValues()`: uses `getAllValues` for profile/preferences; manual for email/status/roles
+    - `revertChanges()`: uses `setAllValues` for profile/preferences; manual for admin fields
+    - `saveUser()`: uses `getAllValues` for profile/preferences
+    - `loadLanguages()` / `loadThemes()`: use `querySelector('[data-path="..."]')` selectors
+    - dom.ready: `loadUser()` moved before `loadLanguages()` / `loadThemes()` (panels must exist first)
+  - `webapp/view/user/settings.tmpl`:
+    - isPluginCardCheckboxField(); renderCardFields + renderSettingsPluginFieldInput use it (fix boolean + inputType boolean)
+    - panel-personal-info renamed to panel-profile; panel-preferences both emptied (content rendered by JS)
+    - added `renderCoreSchemaBlock()` function; `buildSettingsTabs()` reads core tab labels from coreSchema
+    - `loadSettingsProfile()`: stores coreSchema; calls `renderCoreSchemaBlock` on first init; uses `setAllValues` on reload
+    - `getCurrentFormValues()`: uses `getAllValues` for profile/preferences
+    - `revertChanges()`: uses `setAllValues` for profile/preferences
+    - `saveProfile()`: uses `getAllValues` for profile/preferences
+    - `loadSettingsLanguages()` / `loadSettingsThemes()`: use `querySelector('[data-path="..."]')` selectors
+    - `initSettings()`: theme preview via delegated change (`preferences.theme`); `revertChanges()`: theme revert via `querySelector('[data-path="preferences.theme"]')`
+  - `webapp/tests/unit/user/settings-plugin-fields.test.js`:
+    - mirror isPluginCardCheckboxField in test helper
+  - `webapp/view/auth/signup.shtml`:
+    - username input: style="text-transform: lowercase;" and oninput="this.value = this.value.toLowerCase();"
+
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -5580,8 +5646,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-174, v1.6.31, 2026-03-20
-- update features & deliverables in W-174 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-175, v1.6.32, 2026-03-21
+- update features & deliverables in W-175 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5592,12 +5658,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.31 2026-03-20
+node bin/bump-version.js 1.6.32 2026-03-21
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.31; git push origin main --tags
+git tag v1.6.32; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.6.31
- * @release         2026-03-20
+ * @version         1.6.32
+ * @release         2026-03-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -47,7 +47,8 @@ class UserController {
             let signupContext = { req, userData: { ...req.body }, isCreate: true, isSignup: true };
             signupContext = await global.HookManager.execute('onUserBeforeSave', signupContext);
 
-            const { firstName, lastName, username, email, password, confirmPassword, acceptTerms } = signupContext.userData;
+            const { firstName, lastName, username: usernameRaw, email, password, confirmPassword, acceptTerms } = signupContext.userData;
+            const username = (typeof usernameRaw === 'string' ? usernameRaw : '').toLowerCase().trim();
 
             // Validate required fields
             if (!firstName || !lastName || !username || !email || !password) {
@@ -487,11 +488,13 @@ class UserController {
                 // Note: email, roles, status are kept for regular users to see their own data
             }
 
-            // W-107: Include schema extensions metadata if requested
+            // W-107/W-175: Include schema extensions metadata + core display schema if requested
             const includeSchema = req.query.includeSchema === '1' || req.query.includeSchema === 'true';
             let schema = null;
+            let coreSchema = null;
             if (includeSchema) {
-                schema = UserModel.getSchemaExtensionsMetadata();
+                schema = global.i18n.expandI18nDeep(req, UserModel.getSchemaExtensionsMetadata());
+                coreSchema = global.i18n.expandI18nDeep(req, UserModel.coreDisplaySchema);
             }
 
             const elapsed = Date.now() - startTime;
@@ -505,9 +508,10 @@ class UserController {
                 elapsed
             };
 
-            // W-107: Add schema to response if requested
-            if (schema) {
+            // W-107/W-175: Add schema and coreSchema to response if requested
+            if (includeSchema) {
                 response.schema = schema;
+                response.coreSchema = coreSchema;
             }
 
             res.json(response);

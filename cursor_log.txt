@@ -18680,4 +18680,52 @@ Reviewed tt-git-diff.txt against W-174: diff matches work item (user admin tabs,
 
 
 ============================================================
+2026-03-20 15:50
 
+release prep: assume release W-175, v1.6.32, 2026-03-21. Update README.md, docs/README.md, docs/CHANGELOG.md (no version bump); update commit-message.txt; append to cursor_log.
+
+Updated README.md and docs/README.md Latest Release Highlights with v1.6.32 W-175 bullet (lowercase usernames at signup/create, findByUsername case-insensitive, signup input lowercase; admin plugin card primary bg, no header in tab panels). Added docs/CHANGELOG.md v1.6.32 section (objectives, key changes, work item, version, date). Wrote commit-message.txt for W-175, v1.6.32, 2026-03-21. No git commands run; version not bumped (user bump script).
+
+
+============================================================
+2026-03-20 22:30
+
+go for it — implement data-driven core settings (profile, preferences) for user settings and admin Manage User pages; all in W-175.
+
+Implemented W-175 data-driven core settings refactor across 4 files. Added UserModel.coreDisplaySchema static property with profile block (username/email user-only readonly, firstName/lastName/nickName editable, i18n labels, fullWidth for nickName, maxColumns:2) and preferences block (language/theme selects, maxColumns:2), both with adminCard/userCard context metadata. Updated user controller GET to also return coreSchema (expandI18nDeep applied) alongside existing plugin schema in includeSchema=1 response. Added renderCoreSchemaBlock(blockKey, blockDef, blockData, context, rootData) function in both settings.tmpl and user-profile.shtml: generates jp-form-grid HTML with data-path attributes, handles readOnly fields, fullWidth fields, and select placeholders. Refactored buildSettingsTabs/buildAdminTabs to read core tab labels from coreSchema._meta.userCard/adminCard.label. Updated loadSettingsProfile/displayUser to call renderCoreSchemaBlock on first init and setAllValues on reload. Updated getCurrentFormValues/saveProfile/saveUser to use getAllValues for profile/preferences data. Updated revertChanges to use setAllValues for core fields. Updated loadSettingsLanguages/loadLanguages/loadThemes to use querySelector('[data-path="..."]') selectors. Renamed panel-personal-info to panel-profile in both view files. Moved loadUser before loadLanguages/loadThemes in admin dom.ready sequence. Updated work-items.md W-175 with full feature and deliverable descriptions.
+
+
+============================================================
+2026-03-21 00:13
+
+you are going in circles again
+
+back to gtp
+
+in case it helps, there is the git diff: @tt-git-diff.txt
+
+strange, now I see the current password field! not sure how that could happen!
+
+could there be anyway that the field is sometimes shown, sometimes not?
+
+fix the theme regression bug
+
+Read tt-git-diff.txt and narrowed scope to a targeted fix for the theme regression in user settings. Updated webapp/view/user/settings.tmpl to remove fragile one-time binding of theme preview on a specific select element and instead trigger applyThemePreview() from the delegated change handler when data-path is preferences.theme. This makes dark/light preview switch immediate and robust across SPA re-navigation and panel/tab re-parenting. Ran lints for settings.tmpl; no linter errors found. No git commands run.
+
+
+============================================================
+2026-03-21 00:30
+
+release prepa, again:
+- review
+@tt-git-diff.txt  for accuracy and completness of work item
+- assume release: W-175, v1.6.32, 2026-03-21
+- if needed, update features & deliverables in W-175 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- as needed, update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- update cursor_log.txt (append, don't replace)
+
+Reviewed tt-git-diff.txt: prior README/docs/CHANGELOG v1.6.32 text under-documented W-175 (omitted data-driven core settings, expandI18nDeep on includeSchema, admin per-panel/dirty fixes, checkbox UX, tests). Expanded README.md and docs/README.md Latest Release Highlights for v1.6.32. Rewrote docs/CHANGELOG.md v1.6.32 section (feature narrative, objectives, key changes file list). Updated commit-message.txt for full W-175 scope. W-175 work-items: added features/deliverables lines for delegated theme preview and revert theme via data-path only (status unchanged; no other work-items edits). Fixed settings.tmpl revertChanges() to use querySelector('[data-path="preferences.theme"]') instead of removed id="theme". No git commands; CHANGELOG top title line left as user bump script handles version.
+
+
+============================================================

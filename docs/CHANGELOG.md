@@ -1,6 +1,30 @@
-# jPulse Docs / Version History v1.6.31
+# jPulse Docs / Version History v1.6.32
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.32, W-175, 2026-03-21
+
+**Commit:** `W-175, v1.6.32: user admin: UX improvement; data-driven core settings; enforce lowercase usernames`
+
+**FEATURE RELEASE**: **(1) Lowercase usernames:** Signup and user create normalize username (trim + toLowerCase). Validation uses `usernameNorm` with regex `^[a-z0-9_.-]+$`; reserved check uses normalized value. `UserModel.create` normalizes before validate/uniqueness; `findByUsername` normalizes query. Signup form: `text-transform: lowercase` + `oninput` toLowerCase. **(2) Data-driven core settings:** `UserModel.coreDisplaySchema` defines `profile` and `preferences` blocks with per-context `adminCard`/`userCard` metadata and `{{i18n.*}}` labels. GET `/api/1/user?includeSchema=1` returns `schema` (plugin extensions) and `coreSchema`, both passed through `global.i18n.expandI18nDeep`. User settings (`settings.tmpl`) and admin Manage User (`user-profile.shtml`): empty `panel-profile` / `panel-preferences`; `renderCoreSchemaBlock()` builds markup with `data-path`; tab labels from `_meta`; `getAllValues`/`setAllValues` scoped per panel for load/save/revert/dirty baseline (admin: order `loadUser` before language/theme; baseline after `buildAdminTabs`). **(3) Admin/user UX:** Plugin cards use jp-card primary (no gray `.local-plugin-card` background); `renderPluginCard` omits header so tab label is sole title. Checkbox/boolean plugin fields: `isPluginCardCheckboxField` + `jp-checkbox-group` (checkbox first, label next); grid full width for checkbox row. **(4) User settings theme:** Instant theme preview via delegated `change` on `.local-user-profile` when `data-path === 'preferences.theme'`; `revertChanges` restores preview using `querySelector('[data-path="preferences.theme"]')`.
+
+**Objectives**:
+- Enforce lowercase usernames at signup and on create; case-insensitive username lookup
+- Align Manage User plugin tab panels with User Settings (card styling; no duplicate tab title in panel)
+- Drive core profile/preferences UI from schema; consistent checkbox layout; reliable theme preview after schema-driven preferences
+
+**Key Changes**:
+- **webapp/controller/user.js**: signup username from `usernameRaw` normalized; `includeSchema` response includes `expandI18nDeep` plugin `schema` + `coreSchema`
+- **webapp/model/user.js**: `coreDisplaySchema` static; validate/create/findByUsername lowercase username rules
+- **webapp/view/admin/user-profile.shtml**: core panels + `renderCoreSchemaBlock`; `buildAdminTabs` merges coreSchema + Security + plugins; per-panel get/set values; checkbox row CSS; plugin card header removed; load order fix
+- **webapp/view/user/settings.tmpl**: same core schema pattern; delegated theme preview; `revertChanges` theme via `data-path`
+- **webapp/view/auth/signup.shtml**: username lowercase UI
+- **webapp/tests/unit/user/settings-plugin-fields.test.js**: `isPluginCardCheckboxField` helper aligned with views
+
+**Work Item**: W-175
+**Version**: v1.6.32
+**Release Date**: 2026-03-21
 
 ________________________________________________
 ## v1.6.31, W-174, 2026-03-20

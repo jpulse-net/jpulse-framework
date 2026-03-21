@@ -5,8 +5,8 @@
  *                  syncSettingsPluginFieldFromElement() tagInput branch, and
  *                  renderPluginCards() initAll() call after DOM insertion.
  * @file            webapp/tests/unit/user/settings-plugin-fields.test.js
- * @version         1.6.31
- * @release         2026-03-20
+ * @version         1.6.32
+ * @release         2026-03-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -43,13 +43,18 @@ vm.runInContext(jpulseCommonContent, context);
 // Using window.jPulse.* so they exercise the real framework utilities.
 // ---------------------------------------------------------------------------
 
+function isPluginCardCheckboxField(fieldDef) {
+    if (fieldDef.inputType === 'switch') return false;
+    return fieldDef.inputType === 'checkbox' || fieldDef.type === 'boolean';
+}
+
 function makeRenderSettingsPluginFieldInput() {
     return function renderSettingsPluginFieldInput(blockKey, fieldKey, fieldDef, value, fieldId) {
         const inputType = fieldDef.inputType || fieldDef.type || 'string';
         const esc = (v) => (v === null || v === undefined ? '' : window.jPulse.string.escapeHtml(String(v)));
         const dataAttrs = `data-plugin-block="${esc(blockKey)}" data-plugin-field="${esc(fieldKey)}"`;
 
-        if (inputType === 'checkbox' || (fieldDef.type === 'boolean' && !fieldDef.inputType)) {
+        if (isPluginCardCheckboxField(fieldDef)) {
             const checked = value ? 'checked' : '';
             return `<input type="checkbox" id="${fieldId}" class="jp-form-input" ${dataAttrs} ${checked}>`;
         }

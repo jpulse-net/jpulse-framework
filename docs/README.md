@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.31
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.32
 
 **For Site Administrators & Site Developers**
 
@@ -228,6 +228,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- ✅ **Version 1.6.32 - Lowercase usernames; data-driven core settings; admin/settings UX (W-175)**: Lowercase usernames (signup/create normalize; validate; case-insensitive lookup; signup UI). Core profile/preferences driven by `coreDisplaySchema` + API `coreSchema`; i18n-expanded schema; admin + user settings use `renderCoreSchemaBlock` and per-panel form helpers. Admin plugin panels: primary card bg; no in-panel title duplicate; checkbox-first layout. User settings: immediate theme preview on preferences.theme change. W-175, 2026-03-21
 - ✅ **Version 1.6.31 - User admin: tab interface; roles from config; Security tab; admin search fix (W-174)**: Manage User page: tab interface (Administrative | Personal Information | Preferences | Security | plugin tabs). Roles from site config; jp-select multi for roles. Security tab: admin password override (Set Password button, min length from appConfig). getEnums roles from config; PUT /api/1/user password when admin. Admin user search: name/email substring (name *wrap*; UserModel.search substringEmail). jpSelect scroll-to-close; user SPA padding; settings template fix. W-174, 2026-03-20
 - ✅ **Version 1.6.30 - confirmDialog onOpen; jpSelect in modals; modal focus trap (W-173)**: confirmDialog `onOpen(dialog)` runs synchronously after append, before animation — use for `jPulse.UI.input.initAll(dialog)` when dialog content has jpSelect/slider etc. jpSelect dropdown in body (above modals, viewport flip); closes on focus loss and mousedown outside. Modal focus trap: Tab cannot escape to page; extended focusables include open jpSelect. W-173, 2026-03-10
 - ✅ **Version 1.6.29 - Configuration: separate app.conf and app-secret.conf (W-172)**: `site/webapp/app.conf` is now committed (no secrets); `site/webapp/app-secret.conf` is gitignored (per-environment secrets + `deployment.mode`). Three-layer merge chain: `webapp/app.conf` → `site/webapp/app.conf` → `site/webapp/app-secret.conf`. Zero-setup dev: `npm start` works immediately after cloning (no `app-secret.conf` needed). `configure.js` generates both files; `DB_NAME_DEV` added for prompted dev DB name. Bundled: `date.add` DST bug fixed (UTC arithmetic); slider focus fix. W-172, 2026-03-09

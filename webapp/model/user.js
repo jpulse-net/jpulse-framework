@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.6.31
- * @release         2026-03-20
+ * @version         1.6.32
+ * @release         2026-03-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -77,6 +77,96 @@ class UserModel {
      * Keyed by block name (e.g., 'mfa'), contains _meta, fields with adminCard/userCard
      */
     static schemaExtensionsMetadata = {};
+
+    /**
+     * W-175: Core display schema for user settings and admin user profile.
+     * Defines UI rendering blocks (profile, preferences) with per-context metadata.
+     * Labels use {{i18n.*}} format; resolved server-side via expandI18nDeep.
+     * - profile: firstName, lastName, nickName; plus username/email (user-only, readOnly)
+     * - preferences: language, theme (select; options populated post-render by view)
+     * dataPath overrides the default blockKey.fieldKey path for top-level fields.
+     */
+    static coreDisplaySchema = {
+        profile: {
+            _meta: {
+                adminCard: {
+                    visible: true,
+                    label: '{{i18n.view.admin.userProfile.profileSection}}',
+                    order: 10,
+                    maxColumns: 2
+                },
+                userCard: {
+                    visible: true,
+                    label: '{{i18n.view.user.settings.personalInfo}}',
+                    order: 10,
+                    maxColumns: 2
+                }
+            },
+            username: {
+                type: 'string',
+                label: '{{i18n.view.user.settings.username}}',
+                dataPath: 'username',
+                userCard: { visible: true, readOnly: true },
+                adminCard: { visible: false }
+            },
+            email: {
+                type: 'string',
+                label: '{{i18n.view.user.settings.email}}',
+                dataPath: 'email',
+                userCard: { visible: true, readOnly: true },
+                adminCard: { visible: false }
+            },
+            firstName: {
+                type: 'string',
+                label: '{{i18n.view.user.settings.firstName}}',
+                userCard: { visible: true },
+                adminCard: { visible: true }
+            },
+            lastName: {
+                type: 'string',
+                label: '{{i18n.view.user.settings.lastName}}',
+                userCard: { visible: true },
+                adminCard: { visible: true }
+            },
+            nickName: {
+                type: 'string',
+                label: '{{i18n.view.user.settings.nickName}}',
+                fullWidth: true,
+                userCard: { visible: true },
+                adminCard: { visible: true }
+            }
+        },
+        preferences: {
+            _meta: {
+                adminCard: {
+                    visible: true,
+                    label: '{{i18n.view.admin.userProfile.preferencesSection}}',
+                    order: 20,
+                    maxColumns: 2
+                },
+                userCard: {
+                    visible: true,
+                    label: '{{i18n.view.user.settings.preferences}}',
+                    order: 20,
+                    maxColumns: 2
+                }
+            },
+            language: {
+                type: 'string',
+                inputType: 'select',
+                label: '{{i18n.view.user.settings.language}}',
+                userCard: { visible: true },
+                adminCard: { visible: true }
+            },
+            theme: {
+                type: 'string',
+                inputType: 'select',
+                label: '{{i18n.view.user.settings.theme}}',
+                userCard: { visible: true },
+                adminCard: { visible: true }
+            }
+        }
+    };
 
     /**
      * Initialize schema with plugin extensions
@@ -277,14 +367,14 @@ class UserModel {
             if (typeof data.username !== 'string' || data.username.trim() === '') {
                 errors.push('username must be a non-empty string');
             }
-            if (!/^[a-zA-Z0-9_.-]+$/.test(data.username)) {
-                errors.push('username can only contain letters, numbers, dots, dashes, and underscores');
+            const usernameNorm = data.username.trim().toLowerCase();
+            if (!/^[a-z0-9_.-]+$/.test(usernameNorm)) {
+                errors.push('username can only contain lowercase letters, numbers, dots, dashes, and underscores');
             }
             // W-134: Check reserved usernames (only for create)
             if (!isUpdate) {
                 const reserved = global.appConfig?.model?.user?.reservedUsernames || ['settings', 'me'];
-                const usernameLower = data.username.toLowerCase();
-                if (reserved.some(r => r.toLowerCase() === usernameLower)) {
+                if (reserved.some(r => r.toLowerCase() === usernameNorm)) {
                     errors.push(`username "${data.username}" is reserved and cannot be used`);
                 }
             }
@@ -418,7 +508,8 @@ class UserModel {
     static async findByUsername(username) {
         try {
             const collection = this.getCollection();
-            const result = await collection.findOne({ username: username });
+            const normalized = (typeof username === 'string' ? username : '').toLowerCase().trim();
+            const result = await collection.findOne({ username: normalized });
             return result;
         } catch (error) {
             throw new Error(`Failed to find user by username: ${error.message}`);
@@ -682,6 +773,11 @@ class UserModel {
             if (global.HookManager) {
                 saveContext = await global.HookManager.execute('onUserBeforeSave', saveContext);
                 data = saveContext.userData;
+            }
+
+            // Normalize username to lowercase (enforced at signup and create)
+            if (data.username !== undefined && typeof data.username === 'string') {
+                data.username = data.username.trim().toLowerCase();
             }
 
             // Validate data

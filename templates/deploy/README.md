@@ -1,4 +1,4 @@
-# jPulse Framework v1.6.31 Deployment Guide for %SITE_NAME%
+# jPulse Framework v1.6.32 Deployment Guide for %SITE_NAME%
 
 **Site Generated**: %GENERATION_DATE%
 **Deployment Type**: %DEPLOYMENT_TYPE%
@@ -284,7 +284,7 @@ See the [Configuration Files](#configuration-files) table below and [Installatio
  * @site            %SITE_NAME%
  * @generated       %GENERATION_DATE%
  * @file            templates/deploy/README.md
- * @release         2026-03-20
+ * @release         2026-03-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.6.33
- * @release         2026-03-22
+ * @version         1.6.34
+ * @release         2026-03-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -2724,6 +2724,19 @@ body {
 .jp-tab-icon {
     margin-right: 8px;
     font-size: 16px;
+}
+
+/* Inline SVG / HTML icons from schema (adminCard/userCard.icon); aligns with nav menu icon treatment */
+.jp-tab-icon.jp-tab-icon-html {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+
+.jp-tab-icon.jp-tab-icon-html svg {
+    display: block;
+    flex-shrink: 0;
 }
 
 .jp-tab-label {

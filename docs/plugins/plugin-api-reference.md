@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.6.33
+# jPulse Docs / Plugins / Plugins API Reference v1.6.34
 
 Complete API reference for jPulse plugin developers.
 
@@ -242,6 +242,8 @@ UserModel.extendSchema({
 ### Data-Driven User Profile Cards
 
 Plugins can define how their data appears in admin and user profile pages using `_meta` with `adminCard`/`userCard` configuration:
+
+**Tab bar icons:** On the My Settings and Admin → Manage User tab strips, `adminCard.icon` / `userCard.icon` values are passed to `jPulse.UI.tabs.register()` as `tab.icon` and rendered as **trusted HTML** (emoji, plain text, or inline `<svg>`). Tab **labels** remain HTML-escaped. Treat icon strings as server-side schema content only. See `docs/jpulse-ui-reference.md` (Tab Interface).
 
 ```javascript
 UserModel.extendSchema({

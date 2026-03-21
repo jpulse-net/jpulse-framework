@@ -1,4 +1,4 @@
-# jPulse Docs / Sidebars Guide v1.6.33
+# jPulse Docs / Sidebars Guide v1.6.34
 
 Complete guide to using and configuring sidebars in the jPulse Framework for desktop and mobile.
 

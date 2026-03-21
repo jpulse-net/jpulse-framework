@@ -5,8 +5,8 @@
  * @description     W-134: Settings template of user profile SPA. W-161: Single mode (always edit).
  *                  W-171: Tabs interface replacing vertical card stack.
  * @file            webapp/view/user/settings.tmpl
- * @version         1.6.33
- * @release         2026-03-22
+ * @version         1.6.34
+ * @release         2026-03-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -577,7 +577,12 @@
             .sort((a, b) => (a[1]._meta?.userCard?.order || 999) - (b[1]._meta?.userCard?.order || 999))
             .forEach(([blockKey, blockDef]) => {
                 const meta = blockDef._meta.userCard;
-                tabs.push({ id: `tab-${blockKey}`, label: meta.label || blockKey, panelId: `panel-${blockKey}` });
+                const tab = { id: `tab-${blockKey}`, label: meta.label || blockKey, panelId: `panel-${blockKey}` };
+                const rawIcon = meta.icon;
+                if (rawIcon !== undefined && rawIcon !== null && String(rawIcon).trim() !== '') {
+                    tab.icon = String(rawIcon).trim();
+                }
+                tabs.push(tab);
             });
 
         // Security: hardcoded after core blocks, before plugins
@@ -589,9 +594,12 @@
             .sort((a, b) => (a[1]._meta?.userCard?.order || 999) - (b[1]._meta?.userCard?.order || 999))
             .forEach(([blockKey, blockDef]) => {
                 const meta = blockDef._meta.userCard;
-                const icon = meta.icon || '';
-                const label = (icon ? icon + ' ' : '') + (meta.label || blockKey);
-                tabs.push({ id: `tab-plugin-${blockKey}`, label, panelId: `panel-plugin-${blockKey}` });
+                const tab = { id: `tab-plugin-${blockKey}`, label: meta.label || blockKey, panelId: `panel-plugin-${blockKey}` };
+                const rawIcon = meta.icon;
+                if (rawIcon !== undefined && rawIcon !== null && String(rawIcon).trim() !== '') {
+                    tab.icon = String(rawIcon).trim();
+                }
+                tabs.push(tab);
             });
 
         return jPulse.UI.tabs.register('settingsTabs', {

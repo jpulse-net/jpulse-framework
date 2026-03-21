@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.33
+# jPulse Docs / Dev / Work Items v1.6.34
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5603,16 +5603,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/view/auth/signup.shtml`:
     - username input: style="text-transform: lowercase;" and oninput="this.value = this.value.toLowerCase();"
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-176, v1.6.33, 2026-03-22: WebSocket: public session re-validation helper for write handlers
 - status: ✅ DONE
 - type: Feature
@@ -5658,6 +5648,41 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-177, v1.6.34, 2026-03-23: jPulse.UI.tabs: support SVG in tab icons, for My Settings & admin user profile
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - allow tab icons from server-side schema (`userCard.icon` / `adminCard.icon`) to render inline SVG and other trusted markup — previously `jPulse.UI.tabs` HTML-escaped `tab.icon`, which broke SVG
+  - keep a single tab field `tab.icon` (trusted HTML), with `tab.label` always escaped — same mental model as nav icons
+  - wire My Settings and Admin → User profile tab registration so core and plugin blocks pass `tab.icon` from `_meta` instead of concatenating icon text into the label
+- background:
+  - `buildSettingsTabs()` / `buildAdminTabs()` already had access to `meta.icon`; plugin tabs incorrectly prepended raw icon strings to `label` for display
+  - framework tab rendering used `escapeHtml(tab.icon)`, so `<svg>…</svg>` appeared as text
+- features:
+  - `jPulse.UI.tabs` (`_createTabStructure`): if `tab.icon` is set, output `<span class="jp-tab-icon jp-tab-icon-html">` with unescaped `tab.icon`; `jp-tab-label` still uses `escapeHtml(tab.label)`
+  - CSS: `.jp-tab-icon.jp-tab-icon-html` uses inline-flex alignment; nested `svg` `display: block` / `flex-shrink: 0` for consistent alignment with labels
+  - My Settings (`buildSettingsTabs`): for each visible `userCard` block (core `coreSchema` + plugin `schemaMetadata`), set `tab.icon` to trimmed `meta.icon` when non-empty
+  - Admin user profile (`buildAdminTabs`): same for `adminCard` core + plugin tabs; plugin tab `label` is only `meta.label` (icon no longer mixed into label string)
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - tab row HTML: trusted `tab.icon` inside `.jp-tab-icon.jp-tab-icon-html`; comment documents trust boundary
+  - `webapp/view/jpulse-common.css`:
+    - rules for `.jp-tab-icon.jp-tab-icon-html` and `.jp-tab-icon.jp-tab-icon-html svg` (inline SVG alignment)
+  - `webapp/view/user/settings.tmpl`:
+    - `buildSettingsTabs()`: core + plugin tab objects include optional `tab.icon` from `userCard` metadata
+  - `webapp/view/admin/user-profile.shtml`:
+    - `buildAdminTabs()`: core + plugin tab objects include optional `tab.icon` from `adminCard` metadata; plugin labels no longer prefix icon text
+  - `docs/jpulse-ui-reference.md`:
+    - Tab API: optional `icon` documented as trusted HTML; Features bullet expanded (label escaped, icon markup)
+
+
+
+
+
+
 
 ### Pending
 
@@ -5685,8 +5710,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-176, v1.6.33, 2026-03-22
-- update features & deliverables in W-176 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-177, v1.6.34, 2026-03-23
+- update features & deliverables in W-177 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5697,12 +5722,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.33 2026-03-22
+node bin/bump-version.js 1.6.34 2026-03-23
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.33; git push origin main --tags
+git tag v1.6.34; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff
@@ -5857,6 +5882,7 @@ template:
 - prerequisite
   - W-076, v1.0.0: framework: redis infrastrucure for a scaleable jPulse Framework
 - /hello-websocket/, /hello-app-cluster/ should work properly on its own page, that is no messaging to other tabs with same page open
+- or, better: always require redis, i.e. fix docs and code accordingly
 
 ### W-0: handlebars: block components with content slots
 - status: 🕑 PENDING

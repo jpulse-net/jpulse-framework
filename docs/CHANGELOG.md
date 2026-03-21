@@ -1,6 +1,29 @@
-# jPulse Docs / Version History v1.6.33
+# jPulse Docs / Version History v1.6.34
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.34, W-177, 2026-03-23
+
+**Commit:** `W-177, v1.6.34: jPulse.UI.tabs: support SVG in tab icons, for My Settings & admin user profile`
+
+**FEATURE RELEASE**: **(1) Tab icons as markup:** `jPulse.UI.tabs` (`_createTabStructure`) inserts optional `tab.icon` without HTML-escaping into `<span class="jp-tab-icon jp-tab-icon-html">`, so inline SVG and emoji from server-side schema render correctly; `jp-tab-label` still uses `escapeHtml(tab.label)`. **(2) CSS:** `.jp-tab-icon.jp-tab-icon-html` uses inline-flex; nested `svg` gets `display: block` and `flex-shrink: 0` for alignment with labels. **(3) User settings:** `buildSettingsTabs()` sets `tab.icon` from trimmed `userCard.icon` for each visible core (`coreSchema`) and plugin (`schemaMetadata`) block. **(4) Admin Manage User:** `buildAdminTabs()` sets `tab.icon` from trimmed `adminCard.icon` for core and plugin tabs; plugin tab `label` is only `meta.label` (icon no longer concatenated into the label string). **(5) Documentation:** `docs/jpulse-ui-reference.md` — tab object `icon` described as trusted HTML; Features bullet updated. `docs/plugins/plugin-api-reference.md` — note on tab-bar icon trust boundary.
+
+**Objectives**:
+- Fix SVG/tab icons broken by previous `escapeHtml(tab.icon)` behavior
+- Single field `tab.icon` (trusted HTML); align My Settings and admin user profile with schema `meta.icon`
+
+**Key Changes**:
+- **webapp/view/jpulse-common.js**: trusted `tab.icon` in tab row HTML
+- **webapp/view/jpulse-common.css**: `.jp-tab-icon.jp-tab-icon-html` + nested `svg` rules
+- **webapp/view/user/settings.tmpl**: `buildSettingsTabs()` — optional `tab.icon` from `userCard`
+- **webapp/view/admin/user-profile.shtml**: `buildAdminTabs()` — optional `tab.icon` from `adminCard`
+- **docs/jpulse-ui-reference.md**: Tab API + Features (trusted `icon`)
+- **docs/plugins/plugin-api-reference.md**: Tab icons / trusted HTML note (W-177)
+
+**Work Item**: W-177
+**Version**: v1.6.34
+**Release Date**: 2026-03-23
 
 ________________________________________________
 ## v1.6.33, W-176, 2026-03-22

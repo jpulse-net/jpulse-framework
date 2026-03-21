@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.33
+# jPulse Docs / jPulse.UI Widget Reference v1.6.34
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -494,8 +494,8 @@ const panelTabs = jPulse.UI.tabs.register('content-tabs', {
 - `elementId` (string): The ID of the `.jp-tabs` element
 - `options` (Object): Configuration options
   - `tabs` (Array): Array of tab objects:
-    - Navigation tabs: `{ id, label, url, icon? }`
-    - Panel tabs: `{ id, label, panelId, icon? }`
+    - Navigation tabs: `{ id, label, url, icon? }` — optional `icon` is trusted HTML (see Features)
+    - Panel tabs: `{ id, label, panelId, icon? }` — optional `icon` is trusted HTML (see Features)
   - `activeTab` (string|null): Active tab ID (default: `null`, auto-detected from URL for nav tabs)
   - `linkActiveTab` (boolean): Make active tab clickable for nav tabs (default: `false`)
   - `responsive` (string): Responsive behavior: `'scroll'` or `'wrap'` (default: `'scroll'`)
@@ -518,7 +518,7 @@ const panelTabs = jPulse.UI.tabs.register('content-tabs', {
 - **URL-based activation**: Navigation tabs auto-activate based on current URL
 - **Responsive design**: Scroll on mobile, wrap on desktop
 - **Slide animations**: Smooth transitions for panel tabs
-- **Icon support**: Optional icons for tab labels
+- **Icon support**: Optional `icon` on each tab object — **trusted HTML** from server-side schema (same mental model as nav icons: plain text/emoji or inline SVG markup). The label string is always escaped; only `icon` is inserted as markup.
 
 ---
 

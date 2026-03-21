@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.33
- * @release         2026-03-22
+ * @version         1.6.34
+ * @release         2026-03-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -3441,10 +3441,11 @@ window.jPulse = {
                     }
 
                     // Create tab content
+                    // tab.icon: trusted HTML from server-side schema (emoji as text, or inline SVG). tab.label is escaped.
                     let tabContent = '';
 
                     if (tab.icon) {
-                        tabContent += `<span class="jp-tab-icon">${jPulse.string.escapeHtml(tab.icon)}</span>`;
+                        tabContent += `<span class="jp-tab-icon jp-tab-icon-html">${tab.icon}</span>`;
                     }
 
                     tabContent += `<span class="jp-tab-label">${jPulse.string.escapeHtml(tab.label)}</span>`;

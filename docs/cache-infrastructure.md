@@ -1,4 +1,4 @@
-# jPulse Docs / Cache Infrastructure v1.6.33
+# jPulse Docs / Cache Infrastructure v1.6.34
 
 ## Overview
 

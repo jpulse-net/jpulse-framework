@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.33
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.34
 
 **For Site Administrators & Site Developers**
 
@@ -228,6 +228,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v1.6.34, W-177, 2026-03-23: jPulse.UI.tabs: support SVG in tab icons, for My Settings & admin user profile**: `tab.icon` is trusted HTML (SVG/emoji/text); `tab.label` escaped. CSS for inline SVG; settings + Manage User pass `userCard`/`adminCard` `icon` into tabs; plugin labels icon-free. Docs: jpulse-ui-reference.md; plugin-api-reference.md (tab icons).
 - **v1.6.33, W-176, 2026-03-22: WebSocket: session re-validation for write handlers**: `WebSocketController.revalidateClientSession(namespacePath, clientId)` — opt-in re-check of `express-session` from the WebSocket upgrade cookie before WS-driven writes; closes the stale-`ctx` window until the next health-check ping. Info log only on failure. Docs: websockets.md (Session security), api-reference.md. Tests.
 - **v1.6.32, W-175, 2026-03-21: Lowercase usernames; data-driven core settings; admin/settings UX**: Lowercase usernames (signup/create normalize; validate; case-insensitive lookup; signup UI). Core profile/preferences driven by `coreDisplaySchema` + API `coreSchema`; i18n-expanded schema; admin + user settings use `renderCoreSchemaBlock` and per-panel form helpers. Admin plugin panels: primary card bg; no in-panel title duplicate; checkbox-first layout.
 - **v1.6.31, W-174, 2026-03-20: User admin: tab interface; roles from config; Security tab; admin search fix**: Manage User page: tab interface (Administrative | Personal Information | Preferences | Security | plugin tabs). Roles from site config; jp-select multi for roles. Security tab: admin password override (Set Password button, min length from appConfig). getEnums roles from config; PUT /api/1/user password when admin. Admin user search: name/email substring (name *wrap*; UserModel.search substringEmail). jpSelect scroll-to-close; user SPA padding; settings template fix.

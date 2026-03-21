@@ -18760,3 +18760,23 @@ Normalized ## Latest Release Highlights in README.md and docs/README.md to **vX.
 
 
 ============================================================
+2026-03-21 14:00
+
+only tab.icon, option A
+
+Option A complete: `jPulse.UI.tabs` uses only `tab.icon` (trusted HTML from server schema) inserted into `<span class="jp-tab-icon jp-tab-icon-html">`; `tab.label` remains escaped. Removed `iconHtml` branching from `webapp/view/jpulse-common.js` and `settings.tmpl`. `user-profile.shtml` `buildAdminTabs`: core and plugin tabs now set `tab.icon` from `meta.icon` and use label-only text (no icon concatenated into label). Updated `docs/jpulse-ui-reference.md` Features and tab object bullets to document trusted HTML for `icon`.
+
+
+============================================================
+2026-03-21 14:30
+
+release prep:
+- assume release: W-177, v1.6.34, 2026-03-23
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- update cursor_log.txt (append, don't replace)
+
+Release prep for W-177 / v1.6.34 / 2026-03-23: README.md and docs/README.md already had first-bullet v1.6.34 highlights (verified). docs/CHANGELOG.md: new top section v1.6.34 (title line bumped to v1.6.34), objectives/key changes/commit line. commit-message.txt rewritten for W-177. docs/plugins/plugin-api-reference.md: short “Tab bar icons (v1.6.34, W-177)” paragraph under Data-Driven User Profile Cards. No edits to docs/dev/work-items.md (no section moves). Framework file @version headers unchanged per bump-script note.
+
+
+============================================================

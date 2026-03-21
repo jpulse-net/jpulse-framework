@@ -1,4 +1,4 @@
-# jPulse Docs / WebSocket Real-Time Communication v1.6.32
+# jPulse Docs / WebSocket Real-Time Communication v1.6.33
 
 > **Need multi-server broadcasting instead?** If you're running multiple server instances and need to synchronize state changes across all servers (like collaborative editing), see [Application Cluster Communication](application-cluster.md) which uses REST API + Redis broadcasts for simpler state synchronization.
 
@@ -907,6 +907,50 @@ setInterval(async () => {
     }
 }, 15000); // Every 15 seconds
 ```
+
+---
+
+## Session security (server-side)
+
+### Stale `ctx` vs. current session
+
+For namespaces with `requireAuth: true`, **`ctx` is fixed at WebSocket upgrade** from the session at that moment. Incoming messages do **not** re-run `express-session` unless your code does so.
+
+If the user **logs out in another tab** or the **session is destroyed server-side**, the TCP/WebSocket connection can stay open until the next **health-check** cycle (default: same interval as `pingInterval`, often ~30s). During that window, **`conn.ctx.username` / `conn.ctx.roles` can be stale**: handlers that perform **create/update/delete** based only on `ctx` could accept work from a session that no longer exists.
+
+The framework already **re-validates** the session on each health-check pass for `requireAuth` namespaces and, when the session is invalid, sends **`SESSION_EXPIRED`** and closes the socket with **4401**. That is **not** tied to individual messages.
+
+### `WebSocketController.revalidateClientSession(namespacePath, clientId)`
+
+**W-176:** For **write** paths that must reject work **immediately** after logout (before the next ping), call this **opt-in** helper from your **`onMessage`** handler (or a wrapper).
+
+```javascript
+// Example: `namespacePath` must match the literal key in WebSocketController.namespaces
+// (for dynamic namespaces, use the resolved path, e.g. `/api/1/ws/rooms/room-42`).
+ns.onMessage(async (conn) => {
+    const { clientId, ctx, message } = conn;
+
+    if (message?.data?.type === 'save-document') {
+        const ok = await WebSocketController.revalidateClientSession(ns.path, clientId);
+        if (!ok) {
+            // Optional: notify client; health check will still close with 4401 on next cycle
+            ns.sendToClient(clientId, { type: 'error', code: 'SESSION_EXPIRED', message: 'Session no longer valid' }, ctx);
+            return;
+        }
+    }
+    // ... proceed with mutation using ctx
+});
+```
+
+**Behavior:**
+
+- Resolves **`false`** (fail closed) if the namespace or client is missing, if **`client.req`** is missing, or if **`sessionMiddleware`** is not configured.
+- Otherwise re-runs the same **`sessionMiddleware(fakeReq, fakeRes, …)`** pattern as the internal health check, using **`client.req.headers.cookie`**, and resolves **`true`** only if **`fakeReq.session?.user?.isAuthenticated`** is truthy.
+- **Logging:** on **failure** (session no longer authenticated), logs **`websocket.revalidateClientSession`** at info (same spirit as the health-check expiry log). **Success** does not log (avoids noise on high-frequency writes).
+
+**Non-goals:** The framework does **not** call this automatically for every message; only your app knows which message types are **writes** vs. reads or notifications.
+
+---
 
 ### 5. Clean Up Connections
 

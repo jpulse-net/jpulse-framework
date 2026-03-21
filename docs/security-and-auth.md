@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.6.32
+# jPulse Docs / Security & Authentication v1.6.33
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -437,6 +437,8 @@ WebSocketController.registerNamespace('/api/1/ws/admin-panel', {
     }
 });
 ```
+
+For authenticated namespaces, **connection context (`ctx`) is established at upgrade**; it does not refresh automatically on each message. If the user **logs out in another tab** (or the session is destroyed server-side), the WebSocket may stay open until the next **health-check** cycle, which re-validates the session and can close with **4401**. For **write** operations that must fail **immediately** when the session is no longer valid, applications may call **`WebSocketController.revalidateClientSession(namespacePath, clientId)`** from `onMessage` (opt-in). See [WebSocket Real-Time Communication — Session security (server-side)](websockets.md#session-security-server-side).
 
 ---
 

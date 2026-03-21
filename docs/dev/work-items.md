@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.31
+# jPulse Docs / Dev / Work Items v1.6.33
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5613,6 +5613,44 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-176, v1.6.33, 2026-03-22: WebSocket: public session re-validation helper for write handlers
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - close the "stale ctx after logout" window for WebSocket-driven mutations (write messages)
+  - provide a canonical, DRY re-validation helper in the framework instead of each app duplicating `fakeReq`/`sessionMiddleware` wiring
+- background:
+  - for `requireAuth: true` namespaces, `ctx` is built once at WebSocket upgrade; express-session is not re-read per message
+  - if the user logs out in another tab (or session is destroyed server-side), the connection stays open until the next health-check cycle (default ~30s `pingInterval`)
+  - during that window, `onMessage` handlers that trust `ctx.username` / roles can still accept write messages even though the session is no longer valid
+  - the framework already re-validates sessions in `_startHealthChecks` and sends `SESSION_EXPIRED` / closes with 4401 on expiry; that logic is private and not reusable by application code
+- features:
+  - new public static helper `WebSocketController.revalidateClientSession(namespacePath, clientId)`:
+    - resolves `namespace` from `this.namespaces.get(namespacePath)` and `client` from `namespace.clients.get(clientId)`
+    - fails closed: resolves `false` if `!client?.req` or `!this.sessionMiddleware`
+    - otherwise runs the same pattern as the existing health check: builds `fakeReq` / `fakeRes` from `client.req.headers.cookie`, calls `sessionMiddleware`, resolves `true` iff `fakeReq.session?.user?.isAuthenticated`
+    - returns `Promise<boolean>`
+  - opt-in by application code — the framework cannot distinguish "write" from "read" message types; it is the app's responsibility to call this helper before mutating state in `onMessage` handlers
+  - logging:
+    - on failure (session expired): `LogController.logInfo` matching the health-check log style; caller should also return an error response to the client
+    - on success: no log (avoid noise for active collaborative apps with many write messages per minute)
+  - non-goals:
+    - does not change default `onMessage` behavior for any namespace (pure opt-in)
+    - does not add automatic per-message session checks (read-only / notification traffic continues to use existing `ctx`)
+    - no breaking changes — purely additive API
+- deliverables:
+  - `webapp/controller/websocket.js`:
+    - add `static revalidateClientSession(namespacePath, clientId): Promise<boolean>` public method after `_onDisconnect`, before `_startHealthChecks`
+    - log info only on session-expired path
+  - `docs/websockets.md`:
+    - add "Session security (server-side)" section documenting `revalidateClientSession`, when to use it (write paths that need immediate session consistency), and a usage example
+  - `docs/api-reference.md`:
+    - WebSocket Controller API: link to session security; bullet for `revalidateClientSession` (W-176)
+  - `docs/security-and-auth.md`:
+    - WebSocket Security: paragraph on stale `ctx`, health-check 4401, opt-in `revalidateClientSession`, link to `websockets.md#session-security-server-side`
+  - `webapp/tests/unit/controller/websocket.test.js`:
+    - unit tests for revalidateClientSession (missing ns/client, no middleware, ok/fail + log)
+
 
 
 
@@ -5647,8 +5685,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-175, v1.6.32, 2026-03-21
-- update features & deliverables in W-175 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-176, v1.6.33, 2026-03-22
+- update features & deliverables in W-176 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5659,12 +5697,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.32 2026-03-21
+node bin/bump-version.js 1.6.33 2026-03-22
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.32; git push origin main --tags
+git tag v1.6.33; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

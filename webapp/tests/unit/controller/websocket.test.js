@@ -3,8 +3,8 @@
  * @tagline         Unit tests for WebSocket Controller
  * @description     Tests for WebSocket infrastructure, authentication, broadcasting, and lifecycle
  * @file            webapp/tests/unit/controller/websocket.test.js
- * @version         1.6.32
- * @release         2026-03-21
+ * @version         1.6.33
+ * @release         2026-03-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -35,14 +35,15 @@ jest.mock('ws', () => ({
 describe('WebSocketController - High Priority Tests', () => {
 
     beforeAll(async () => {
-        // Import modules after mocks are set up
-        WebSocketController = (await import('../../../controller/websocket.js')).default;
-        AuthController = (await import('../../../controller/auth.js')).default;
+        // LogController must be on global BEFORE websocket.js is first imported: websocket captures
+        // `const LogController = global.LogController` at module load (W-176 revalidateClientSession tests).
         LogController = (await import('../../../controller/log.js')).default;
-
-        // Mock LogController methods
         LogController.logInfo = jest.fn();
         LogController.logError = jest.fn();
+        global.LogController = LogController;
+
+        WebSocketController = (await import('../../../controller/websocket.js')).default;
+        AuthController = (await import('../../../controller/auth.js')).default;
     });
 
     beforeEach(() => {
@@ -1220,6 +1221,70 @@ describe('WebSocketController - High Priority Tests', () => {
             await WebSocketController._onMessage(clientId, namespace, Buffer.from(JSON.stringify({ type: '3' })));
 
             expect(onMessage).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    // -------------------------------------------------------------------------
+    // W-176: revalidateClientSession
+    // -------------------------------------------------------------------------
+    describe('revalidateClientSession (W-176)', () => {
+        let savedSessionMiddleware;
+
+        beforeEach(() => {
+            savedSessionMiddleware = WebSocketController.sessionMiddleware;
+        });
+
+        afterEach(() => {
+            WebSocketController.sessionMiddleware = savedSessionMiddleware;
+        });
+
+        test('returns false when namespace is missing', async () => {
+            const r = await WebSocketController.revalidateClientSession('/api/1/ws/none', 'c1');
+            expect(r).toBe(false);
+        });
+
+        test('returns false when client is missing', async () => {
+            WebSocketController.namespaces.set('/api/1/ws/test', {
+                path: '/api/1/ws/test',
+                clients: new Map()
+            });
+            const r = await WebSocketController.revalidateClientSession('/api/1/ws/test', 'missing');
+            expect(r).toBe(false);
+        });
+
+        test('returns false when sessionMiddleware is not set', async () => {
+            WebSocketController.sessionMiddleware = null;
+            const clients = new Map();
+            clients.set('c1', { req: { headers: { cookie: 'a=b' } }, ctx: { username: 'u' } });
+            WebSocketController.namespaces.set('/api/1/ws/test', { path: '/api/1/ws/test', clients });
+            const r = await WebSocketController.revalidateClientSession('/api/1/ws/test', 'c1');
+            expect(r).toBe(false);
+        });
+
+        test('returns true when middleware sets authenticated session (no success log)', async () => {
+            WebSocketController.sessionMiddleware = (req, res, next) => {
+                req.session = { user: { isAuthenticated: true, username: 'alice' } };
+                next();
+            };
+            const clients = new Map();
+            clients.set('c1', { req: { headers: { cookie: 'sid=abc' } }, ctx: { username: 'alice' } });
+            WebSocketController.namespaces.set('/api/1/ws/test', { path: '/api/1/ws/test', clients });
+            const r = await WebSocketController.revalidateClientSession('/api/1/ws/test', 'c1');
+            expect(r).toBe(true);
+            expect(LogController.logInfo).not.toHaveBeenCalled();
+        });
+
+        test('returns false and logs info when session not authenticated', async () => {
+            WebSocketController.sessionMiddleware = (req, res, next) => {
+                req.session = { user: { isAuthenticated: false } };
+                next();
+            };
+            const clients = new Map();
+            clients.set('c1', { req: { headers: { cookie: 'sid=abc' } }, ctx: { username: 'bob' } });
+            WebSocketController.namespaces.set('/api/1/ws/test', { path: '/api/1/ws/test', clients });
+            const r = await WebSocketController.revalidateClientSession('/api/1/ws/test', 'c1');
+            expect(r).toBe(false);
+            expect(LogController.logInfo).toHaveBeenCalled();
         });
     });
 });

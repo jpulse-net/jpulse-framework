@@ -1,6 +1,27 @@
-# jPulse Docs / Version History v1.6.32
+# jPulse Docs / Version History v1.6.33
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.33, W-176, 2026-03-22
+
+**Commit:** `W-176, v1.6.33: WebSocket: public session re-validation helper for write handlers`
+
+**FEATURE RELEASE**: **(1) Public API:** `WebSocketController.revalidateClientSession(namespacePath, clientId)` returns `Promise<boolean>`. Resolves namespace and client from `namespaces` / `clients`; fail-closed (`false`) if missing namespace, client, `client.req`, or `sessionMiddleware`. Otherwise runs the same `sessionMiddleware(fakeReq, fakeRes, next)` pattern as `_startHealthChecks` using `client.req.headers.cookie`; resolves `true` only when `fakeReq.session?.user?.isAuthenticated` is truthy. **(2) Use case:** For `requireAuth` namespaces, `ctx` is fixed at WebSocket upgrade; if the user logs out elsewhere, the TCP connection can remain until the next health-check cycle. Apps that perform **writes** in `onMessage` can opt in by awaiting this helper before mutating state to reject work immediately; read-only / notification traffic need not call it. **(3) Logging:** `LogController.logInfo` on session no longer valid (aligned with health-check expiry style); **no log on success** (avoids noise). Errors in middleware callback wrapped with `logError`. **(4) Documentation:** `docs/websockets.md` — new "Session security (server-side)" (stale `ctx`, existing health-check 4401 behavior, example `onMessage` usage, non-goals). `docs/api-reference.md` — WebSocket Controller API guide blurb and bullet linking to that section. **(5) Tests:** `webapp/tests/unit/controller/websocket.test.js` — `describe('revalidateClientSession (W-176)')` for missing namespace/client, no middleware, authenticated path (assert no success log), unauthenticated path (assert `logInfo`). **Test harness:** `global.LogController` assigned **before** dynamic import of `websocket.js` because the controller captures `global.LogController` at module load.
+
+**Objectives**:
+- Close the "stale ctx after logout" window for WebSocket-driven mutations when apps need immediate consistency
+- Provide a canonical, DRY helper instead of each site duplicating `fakeReq` / `sessionMiddleware` wiring
+
+**Key Changes**:
+- **webapp/controller/websocket.js**: `static revalidateClientSession` after `_onDisconnect`, before `_startHealthChecks`
+- **docs/websockets.md**: Session security (server-side) section
+- **docs/api-reference.md**: WebSocket section — session re-validation link and W-176 bullet
+- **webapp/tests/unit/controller/websocket.test.js**: W-176 tests; `beforeAll` import order for `LogController` mock
+
+**Work Item**: W-176
+**Version**: v1.6.33
+**Release Date**: 2026-03-22
 
 ________________________________________________
 ## v1.6.32, W-175, 2026-03-21

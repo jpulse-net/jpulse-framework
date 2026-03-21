@@ -3,8 +3,8 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         1.6.32
- * @release         2026-03-21
+ * @version         1.6.33
+ * @release         2026-03-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -898,6 +898,50 @@ class WebSocketController {
                 LogController.logError(ctx, 'websocket._onDisconnect', `onDisconnect error: ${error.message}`);
             }
         }
+    }
+
+    /**
+     * W-176: Re-read the session store for a connected client (cookie from stored upgrade `req`).
+     * Use in application `onMessage` handlers before mutating state when you need immediate
+     * consistency (e.g. user logged out in another tab). Health checks still close stale
+     * connections on the next ping cycle; this closes the window for write paths only when
+     * the app opts in by awaiting this helper.
+     *
+     * @param {string} namespacePath - Literal namespace path (same key as `this.namespaces`, e.g. `/api/1/ws/app` or a dynamic path after first client connected)
+     * @param {string} clientId - Client id from `conn.clientId`
+     * @returns {Promise<boolean>} `true` if `session.user.isAuthenticated` after middleware; else `false` (fail closed)
+     */
+    static revalidateClientSession(namespacePath, clientId) {
+        const namespace = this.namespaces.get(namespacePath);
+        const client = namespace?.clients?.get(clientId);
+        if (!client?.req || !this.sessionMiddleware) {
+            return Promise.resolve(false);
+        }
+        return new Promise((resolve) => {
+            const cookieHeader = client.req.headers?.cookie || '';
+            const fakeReq = { headers: { cookie: cookieHeader }, url: '/', originalUrl: '/' };
+            const fakeRes = { setHeader: () => {}, getHeader: () => null, end: () => {} };
+            try {
+                this.sessionMiddleware(fakeReq, fakeRes, () => {
+                    try {
+                        const ok = !!fakeReq.session?.user?.isAuthenticated;
+                        if (!ok) {
+                            LogController.logInfo(client.ctx || null, 'websocket.revalidateClientSession',
+                                `Session no longer valid for client ${clientId} (${client.ctx?.username || '?'})`);
+                        }
+                        resolve(ok);
+                    } catch (inner) {
+                        LogController.logError(client.ctx || null, 'websocket.revalidateClientSession',
+                            `error in callback: ${inner.message}`);
+                        resolve(false);
+                    }
+                });
+            } catch (outer) {
+                LogController.logError(client.ctx || null, 'websocket.revalidateClientSession',
+                    `error: ${outer.message}`);
+                resolve(false);
+            }
+        });
     }
 
     /**

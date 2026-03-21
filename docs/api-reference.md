@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.32
+# jPulse Docs / REST API Reference v1.6.33
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -374,7 +374,7 @@ export default class ProductController {
 
 ## ⚡ WebSocket Controller API
 
-> **📖 Full guide:** [WebSocket Real-Time Communication](websockets.md) — setup, patterns, client API, dynamic namespaces (path patterns, onCreate, removeNamespace), conn = { clientId, ctx }, public access (whitelist), message limits, and reconnect/missed-updates handling.
+> **📖 Full guide:** [WebSocket Real-Time Communication](websockets.md) — setup, patterns, client API, dynamic namespaces (path patterns, onCreate, removeNamespace), conn = { clientId, ctx }, public access (whitelist), message limits, reconnect/missed-updates handling, and [session re-validation for write handlers](websockets.md#session-security-server-side) (W-176: `WebSocketController.revalidateClientSession`).
 
 Server-side WebSocket namespaces are created with `WebSocketController.createNamespace(path, options?)`. Handlers receive **conn** = `{ clientId, ctx }` (onMessage adds `message`); pass **ctx** to `broadcast()` and `sendToClient()` for logging and Redis relay.
 
@@ -390,6 +390,7 @@ ns.onConnect((conn) => {}).onMessage((conn) => {}).onDisconnect((conn) => {});
 - **ns.getStats()**: Namespace statistics (e.g. `clientCount`).
 - **Payload**: App payload is `{ type, data, ctx }`; framework adds ctx to wire and Redis.
 - **Config** (`app.conf` → `controller.websocket`): **publicAccess** (`enabled`, `whitelisted`) for non-admin access to whitelisted namespaces with filtered stats; **messageLimits** (`maxSize`, `interval`, `maxMessages`) for DoS protection. See [websockets.md](websockets.md#public-access-demo--non-admin).
+- **Session re-validation (W-176):** `WebSocketController.revalidateClientSession(namespacePath, clientId)` returns `Promise<boolean>` — re-reads the session store from the client’s cookie (same pattern as the internal health check). Optional **before write operations** in `onMessage` when you need immediate consistency after logout in another tab; see [websockets.md — Session security](websockets.md#session-security-server-side).
 
 **Log context:** `CommonUtils.getLogContext(reqOrContext)` returns `{ username?, ip? }` for Express `req` or plain context; use for LogController when request is not available. Redis broadcast context: `RedisManager.getBroadcastContext(req)` for server-side broadcasts from REST handlers.
 

@@ -18729,3 +18729,26 @@ Reviewed tt-git-diff.txt: prior README/docs/CHANGELOG v1.6.32 text under-documen
 
 
 ============================================================
+2026-03-21 01:30
+
+ok, looks good
+- proceed with implementation
+- update ws docs
+
+Confirmed W-176 implementation in webapp/controller/websocket.js (revalidateClientSession). Updated docs/websockets.md title to v1.6.33; docs/api-reference.md WebSocket section with W-176 links and revalidateClientSession bullet (headers v1.6.33). Bumped @version/@release on websocket.js and websocket.test.js to 1.6.33 / 2026-03-22. Added W-176 deliverable line for api-reference.md in docs/dev/work-items.md. Ran jest webapp/tests/unit/controller/websocket.test.js — all tests passed.
+
+
+============================================================
+2026-03-21 01:40
+
+release prep:
+- review @tt-git-diff.txt  for accuracy and completness of work item
+- assume release: W-176, v1.6.33, 2026-03-22
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- update cursor_log.txt (append, don't replace)
+
+Reviewed tt-git-diff.txt against W-176: matches implementation (revalidateClientSession, tests + global.LogController order), docs/websockets.md Session security section, docs/api-reference.md bullets; README/docs README in diff only had trivial 1.6.32 line churn — release prep adds real v1.6.33 highlights. Inserted docs/CHANGELOG.md v1.6.33 section (objectives, key changes, commit line). README.md and docs/README.md: new first bullet for W-176. docs/security-and-auth.md: WebSocket Security paragraph + link to websockets.md#session-security-server-side. commit-message.txt rewritten for W-176. docs/dev/work-items.md W-176 deliverables: security-and-auth + release files. Left root/docs title version lines unchanged (bump script). No git commands.
+
+
+============================================================

@@ -18752,3 +18752,11 @@ Reviewed tt-git-diff.txt against W-176: matches implementation (revalidateClient
 
 
 ============================================================
+2026-03-21 13:30
+
+change the format of all items in latest release highlights like the first one: @README.md (208-209)
+
+Normalized ## Latest Release Highlights in README.md and docs/README.md to **vX.Y.Z, W-nnn, YYYY-MM-DD: Title**: body; removed redundant trailing W/date from bodies where present. Added bin/format-latest-release-highlights.mjs (CHANGELOG-backed vMap/wMap; handles Version…(W-nnn), Version…without W in title, and **Title (v1.0.0-rc.N)** lines). Verified zero nonconforming bullets in both files.
+
+
+============================================================

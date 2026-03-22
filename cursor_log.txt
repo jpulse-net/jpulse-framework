@@ -18780,3 +18780,35 @@ Release prep for W-177 / v1.6.34 / 2026-03-23: README.md and docs/README.md alre
 
 
 ============================================================
+2026-03-21 17:30
+
+looks good! implement unless open questions — tagInput setSuggestions (W-178)
+
+Implemented W-178: `jPulse.UI.input.tagInput.setSuggestions(selectorOrElement, suggestions)` with body-portal dropdown (fixed position, z-index like jpSelect), `addTag` extracted and `el._tagInputAddTag`, optional `data-suggest-min`, `data-suggest-open` on wrap while open, keyboard (capture-phase: ArrowDown/Up, Enter on highlight, Escape), mousedown on rows, blur delay, scroll/resize reposition. CSS in `jpulse-common.css` (theme variables). Unit tests in `jpulse-ui-input-taginput.test.js`. Docs: `jpulse-ui-reference.md`, `CHANGELOG.md` v1.6.35, work-items W-178 DONE. Bumped `@version` on jpulse-common.js/css and test file.
+
+
+============================================================
+2026-03-21 18:00
+
+implement — dialog _trapFocus: allow keys in INPUT/TEXTAREA, swallow to background
+
+Implemented `_trapFocus` `handleKeydown`: early return for INPUT/TEXTAREA (except Tab) before `stopPropagation`, with `preventDefault` on ArrowUp/Down/PageUp/PageDown only to prevent page-behind-modal scroll; other keys still `stopPropagation` after. Updated `docs/jpulse-ui-reference.md` Dialog Features keyboard bullet; `docs/CHANGELOG.md` v1.6.36; `commit-message.txt`; `jpulse-common.js` @version 1.6.36.
+
+
+============================================================
+2026-03-21 18:10
+
+jpSelect in dialog: keyboard up/down/enter — implement
+
+Root cause: `_trapFocus` consumed ArrowUp/Arrow for non-input focus (jpSelect trigger is BUTTON) and Enter activated default dialog button. Fix: early return for `.jp-jpselect-wrap` and for portaled open `.jp-jpselect-dropdown` linked via `wrap._jpSelectDropdown` (Tab excluded). jpSelect trigger: ArrowDown/ArrowUp open dropdown; if open and focus still on trigger, focus search or list. CHANGELOG/docs/commit-message/cursor log updated; `jpulse-common.js` @version 1.6.36.
+
+
+============================================================
+2026-03-21 18:40
+
+release prep: review tt-git-diff vs W-178 v1.6.35; README/CHANGELOG/commit-message/cursor_log
+
+Review: `tt-git-diff.txt` matches W-178 tagInput (`setSuggestions`, CSS, tests) plus follow-up `_trapFocus` (INPUT/TEXTAREA + jpSelect wrap/portal + trigger ArrowDown/Up) not in original W-178 spec — documented under W-178 deliverables and single v1.6.35 CHANGELOG entry. Replaced obsolete site “dialog keydown patch” bullet with framework deferral note. Updated `docs/dev/work-items.md` W-178 deliverables only (status unchanged); `docs/CHANGELOG.md` title v1.6.35 + expanded feature text; `README.md` / `docs/README.md` latest highlights + title v1.6.35; `commit-message.txt` W-178 full scope. `genai-instructions.md` has no tagInput mention — no edit. Ran `jest jpulse-ui-input-taginput.test.js` — pass. @version bump left to user bump script per instructions.
+
+
+============================================================

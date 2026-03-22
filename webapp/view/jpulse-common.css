@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.6.34
- * @release         2026-03-23
+ * @version         1.6.35
+ * @release         2026-03-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1624,6 +1624,42 @@ body {
 .jp-taginput-tag-remove:hover {
     color: var(--jp-theme-color-danger, #dc3545);
     opacity: 1;
+}
+
+/* Tag input suggestions (W-178): body-portal listbox, same layering idea as jpSelect */
+.jp-taginput-suggest-dropdown {
+    display: none;
+    max-height: 220px;
+    overflow-y: auto;
+    padding: 4px 0;
+    border: 1px solid var(--jp-theme-border-dark, #ddd);
+    border-radius: 4px;
+    background: var(--jp-theme-bg-primary, #fff);
+    box-shadow: var(--jp-theme-shadow-md, 0 2px 10px rgba(0, 0, 0, 0.1));
+}
+.jp-taginput-suggest-dropdown.jp-taginput-suggest-dropdown-portal {
+    position: fixed;
+    right: auto;
+    bottom: auto;
+    /* left, width, top/bottom set by JS from getBoundingClientRect() */
+}
+.jp-taginput-suggest-dropdown.jp-taginput-suggest-open {
+    display: block;
+}
+.jp-taginput-suggest-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--jp-theme-text-primary, #333);
+}
+.jp-taginput-suggest-item:hover,
+.jp-taginput-suggest-item.jp-taginput-suggest-item-highlighted {
+    background: var(--jp-theme-bg-hover-muted, rgba(0, 0, 0, 0.06));
+    color: var(--jp-theme-text-primary);
+}
+[data-theme="dark"] .jp-taginput-suggest-item:hover,
+[data-theme="dark"] .jp-taginput-suggest-item.jp-taginput-suggest-item-highlighted {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 /* jpSelect widget (W-151): enhanced select with dropdown, optional search, select all/clear all */

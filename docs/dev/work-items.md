@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.34
+# jPulse Docs / Dev / Work Items v1.6.35
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5641,16 +5641,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/tests/unit/controller/websocket.test.js`:
     - unit tests for revalidateClientSession (missing ns/client, no middleware, ok/fail + log)
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-177, v1.6.34, 2026-03-23: jPulse.UI.tabs: support SVG in tab icons, for My Settings & admin user profile
 - status: ✅ DONE
 - type: Feature
@@ -5684,6 +5674,65 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-178, v1.6.35, 2026-03-24: jPulse.UI.input.tagInput: add tag suggestions dropdown; keyboard support in modal dialogs
+- status: ✅ DONE
+- type: Feature
+- objective: allow site code to provide a string array of suggestions that appear in a filtered dropdown as the user types, selectable by mouse or keyboard; no site-level synthetic-Enter hacks needed
+- features:
+  - new method: jPulse.UI.input.tagInput.setSuggestions(selectorOrElement, suggestions)
+    - accepts same selector/element as init(); suggestions is string[] or null to clear
+    - must be called AFTER init() (el.dataset.taginputInited must be set)
+    - idempotent: re-calling replaces the suggestion pool without duplicating DOM
+    - exposes addTag internally via el._tagInputAddTag (extracted from init keydown handler)
+  - dropdown DOM (body portal, same z-index strategy as jpSelect):
+    - .jp-taginput-suggest-dropdown (position:fixed, body child)
+    - .jp-taginput-suggest-open toggle class
+    - .jp-taginput-suggest-item per item
+    - .jp-taginput-suggest-item-highlighted for keyboard-focused item
+    - data-suggest-open="1" on wrap when dropdown is open (for site-level dialog patches)
+  - show trigger:
+    - input event: show when typingInput.value.length >= data-suggest-min (default 2),
+      after filtering out already-added tags and case-insensitive substring matching
+    - ArrowDown on typingInput: show full list (minus already-added) regardless of min-chars
+  - keyboard on typingInput while open:
+    - ArrowDown/Up: move highlight, stopImmediatePropagation, preventDefault
+    - Enter: if highlighted item → addTag + clear input + close, stopImmediatePropagation
+    - Escape: close dropdown, stopImmediatePropagation
+  - mousedown on item: addTag(text) + clear typingInput + close (fires before blur)
+  - blur on typingInput: setTimeout 150ms → close if still blurred
+  - clear on tag-add: typing input clears and dropdown closes
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - extract addTag() from init() keydown handler; expose as el._tagInputAddTag
+    - add tagInput.setSuggestions(selectorOrElement, suggestions)
+    - modal keyboard (same release, v1.6.35): `_trapFocus` — early return before `document` capture `stopPropagation` when focus is in `<input>` / `<textarea>` (except Tab) so tagInput suggestions and native typing receive keys; `preventDefault` on Arrow/Page keys only to stop scroll of page behind overlay
+    - modal + jpSelect (same release): `_trapFocus` — early return when focus is in `.jp-jpselect-wrap` or in an open portaled `.jp-jpselect-dropdown` tied to a wrap in the dialog (`wrap._jpSelectDropdown`), so Enter/Space/arrows reach jpSelect (fixes Enter activating dialog default button from trigger); jpSelect trigger ArrowDown / ArrowUp open dropdown or focus search/list
+  - `webapp/view/jpulse-common.css`:
+    - .jp-taginput-suggest-dropdown, .jp-taginput-suggest-item, -highlighted variants
+    - all colors via --jp-theme-* variables
+  - `webapp/tests/unit/utils/jpulse-ui-input-taginput.test.js`:
+    - setSuggestions: dropdown created; filters by typed text; excludes added tags
+    - keyboard: ArrowDown highlights first item; Enter selects; Escape closes
+    - mousedown: calls addTag and closes
+    - re-call replaces suggestion pool without duplicating DOM
+  - `docs/jpulse-ui-reference.md`:
+    - tagInput.setSuggestions API; optional attributes; modal note for `_trapFocus`
+    - Dialog Features keyboard bullets (text fields + jpSelect); jpSelect trigger keyboard + modal note
+- site-level integration (stays outside framework):
+  - compute suggestion array from site data (e.g. self.bubbles tag union)
+  - call jPulse.UI.input.tagInput.setSuggestions(tagsEl, allMapTags) in onOpen after initAll()
+  - custom per-site dialog `keydown` patches should not be required for tagInput or jpSelect inside `confirmDialog` in v1.6.35+ (framework `_trapFocus` defers those keys)
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -5710,8 +5759,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-177, v1.6.34, 2026-03-23
-- update features & deliverables in W-177 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-178, v1.6.35, 2026-03-24
+- update features & deliverables in W-178 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5722,12 +5771,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.34 2026-03-23
+node bin/bump-version.js 1.6.35 2026-03-24
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.34; git push origin main --tags
+git tag v1.6.35; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

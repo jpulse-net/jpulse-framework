@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.34
+# jPulse Docs / jPulse.UI Widget Reference v1.6.35
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -281,7 +281,7 @@ const result = await jPulse.UI.confirmDialog({
   - **ESC**: closes dialog with `cancelled: true`
   - **Letter keys**: first letter of each button label activates it (e.g. `o` → OK, `c` → Cancel); inactive while focus is in an input/select/textarea
   - **Left / Right arrows**: move focus between buttons in the button row
-  - **Up / Down arrows**: blocked (prevents page scrolling while dialog is open)
+  - **Up / Down / Page Up / Page Down**: With focus in `<input>` or `<textarea>`, keys propagate to the field (e.g. tagInput suggestions, native editing); `preventDefault` is used only so the **page behind the modal does not scroll**. With focus on a **jpSelect** trigger (or its portaled dropdown), the same applies so **Enter / Space / arrows** reach the widget. With focus on other controls (e.g. dialog buttons), Up/Down are consumed so the background does not scroll.
   - **Tab / Shift+Tab**: cycle through all focusable elements (inputs + buttons); wraps at boundaries
 - **Focus management**: Initial focus goes to first `<input>`/`<select>` in the dialog, or the default button if no inputs are present; focus is restored to the triggering element when the dialog closes
 - **Default button styling**: default button has a visible at-rest ring indicator; all buttons have an enhanced focus ring
@@ -564,6 +564,22 @@ Static: array → comma-space string. Sorts then joins with `', '`. Use when set
 
 **Example:** `jPulse.UI.input.tagInput.formatValue(['admin', 'user'])` → `'admin, user'`
 
+#### `jPulse.UI.input.tagInput.setSuggestions(selectorOrElement, suggestions)`
+
+Attach a **string-array suggestion pool** to an **already initialized** tagInput (call after `init()` or `initAll()`). The framework renders a filtered dropdown (body portal, same stacking as jpSelect), updates as the user types, and supports keyboard (ArrowDown opens the full list minus already-added tags; ArrowUp/Down navigate; Enter picks highlighted; Escape closes) and mouse (`mousedown` on a row). Pass `null` or `[]` to remove suggestions and tear down listeners/DOM.
+
+**Parameters:** `selectorOrElement` (string|Element) — the same value-store `<input>` passed to `init`. `suggestions` (`string[]` | `null`) — pool of tag strings, or clear.
+
+**Optional attributes on the value input:** `data-suggest-min` — minimum **trimmed** length of the typing buffer before the input-filtered list opens (default `2`). ArrowDown still opens the full list (minus tags already on the chip list) regardless of length. While the dropdown is open, the wrapper has `data-suggest-open="1"` (optional hook for site code). **`confirmDialog` / modals:** `_trapFocus` allows keys to reach `<input>` / `<textarea>` so tag suggestions and native editing work (v1.6.36+); scroll keys use `preventDefault` only so the page behind the overlay does not scroll.
+
+**Example:**
+```javascript
+jPulse.UI.input.initAll(dialog);
+const tagsInput = dialog.querySelector('#my-tags');
+const allTags = ['foo', 'bar', 'baz']; // from your app data
+jPulse.UI.input.tagInput.setSuggestions(tagsInput, allTags);
+```
+
 #### `jPulse.UI.input.initAll(container?)`
 
 Namespace-level: inits all input widget types in container (e.g. `[data-taginput]` → tagInput.init, `select[data-jpselect]` → jpSelect.init). One call after populateForm; no listing ids.
@@ -576,7 +592,7 @@ Namespace-level: inits all input widget types in container (e.g. `[data-taginput
 
 Enhance a native `<select>` or `<select multiple>` with a custom dropdown: optional search filter, optional "Select all" / "Clear all" for multi-select, and checkboxes per option in multi mode. Multi-select trigger caption: when selected labels fit (measured off-screen), shows them joined by the locale separator; otherwise shows "N selected" or "All selected". The native select stays in the DOM and remains the value source for setAllValues/getAllValues and setFormData/getFormData.
 
-**Dropdown placement:** The dropdown panel is appended to `document.body` and positioned with `position: fixed` from the trigger's `getBoundingClientRect()`, so it appears above modal dialogs and is not clipped by `overflow: hidden` on the dialog or other containers. When there is insufficient space below the trigger, the dropdown opens upward (viewport-aware flip). Use `onOpen(dialog)` in `confirmDialog` and call `jPulse.UI.input.initAll(dialog)` so jpSelect and other widgets in the dialog message are initialized after the HTML is injected.
+**Dropdown placement:** The dropdown panel is appended to `document.body` and positioned with `position: fixed` from the trigger's `getBoundingClientRect()`, so it appears above modal dialogs and is not clipped by `overflow: hidden` on the dialog or other containers. When there is insufficient space below the trigger, the dropdown opens upward (viewport-aware flip). Use `onOpen(dialog)` in `confirmDialog` and call `jPulse.UI.input.initAll(dialog)` so jpSelect and other widgets in the dialog message are initialized after the HTML is injected. **Keyboard (trigger):** **Enter** and **Space** toggle the panel; **ArrowDown** and **ArrowUp** open when closed, or focus the search field (if enabled) or the option list when the panel is already open. **Modal dialogs:** `_trapFocus` defers keys to jpSelect so the default dialog button is not activated by **Enter** while the trigger is focused (v1.6.36+).
 
 #### `jPulse.UI.input.jpSelect.init(selectorOrElement, options?)`
 

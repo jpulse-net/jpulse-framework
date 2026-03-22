@@ -1,29 +1,59 @@
-# jPulse Docs / Version History v1.6.34
+# jPulse Docs / Version History v1.6.35
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.35, W-178, 2026-03-24
+
+**Commit:** `W-178, v1.6.35: jPulse.UI.input.tagInput: add tag suggestions dropdown; keyboard support in modal dialogs`
+
+**Objective**: Let site code pass a list of suggestions to a tag input field — the user sees a filtered dropdown as they type, can pick with keyboard or mouse, and no fragile synthetic-event workarounds are needed. As part of the same release, keyboard handling inside modal dialogs was improved so tag suggestions, normal text inputs, and jpSelect dropdowns all behave correctly without site-level patches.
+
+**Summary**: Added `tagInput.setSuggestions()` for live tag auto-complete, and fixed the dialog focus-trap so that input widgets receive keyboard events properly.
+
+**Key Features**:
+- **Tag suggestions** — Call `jPulse.UI.input.tagInput.setSuggestions(el, suggestions)` after `initAll()` to attach a suggestion pool. A dropdown appears while the user types (minimum 2 characters, configurable via `data-suggest-min`), filtered to exclude tags already added. ArrowDown always opens the full list; ArrowUp/Down navigate; Enter picks the highlighted item; Escape closes. Clicking a row also adds the tag. Pass `null` or `[]` to remove suggestions and clean up.
+- **Modal dialog keyboard fix** — Previously, the dialog's capture-phase keyboard handler accidentally blocked key events before input fields or widgets could see them. Now text inputs and textareas receive all keys unmodified (arrow keys still prevent page scrolling behind the overlay). This makes tag suggestions work inside `confirmDialog` without any site-specific workaround.
+- **jpSelect keyboard in dialogs** — The same fix extends to jpSelect: the trigger button and open dropdown now receive Enter, Space, and arrow keys correctly. ArrowDown/Up on the trigger opens the list (or moves focus to it). Previously, pressing Enter on a jpSelect trigger would incorrectly click the dialog's default button.
+- **CSS** — New `.jp-taginput-suggest-*` classes, all styled with `--jp-theme-*` variables for light/dark theme support.
+- **Tests** — Seven new scenarios in `jpulse-ui-input-taginput.test.js` covering filtering, exclusion of existing tags, keyboard navigation, mouse pick, idempotent re-call, and teardown.
+- **Docs** — `docs/jpulse-ui-reference.md` updated with `setSuggestions` API, dialog keyboard notes, and jpSelect keyboard guidance.
+
+**Files changed**:
+- `webapp/view/jpulse-common.js`: `tagInput.setSuggestions`; `addTag` extracted and exposed; `_trapFocus` keyboard fix; jpSelect trigger arrow keys
+- `webapp/view/jpulse-common.css`: tag suggestion dropdown styles
+- `webapp/tests/unit/utils/jpulse-ui-input-taginput.test.js`: setSuggestions test suite
+- `docs/jpulse-ui-reference.md`: new API docs
+
+**Release**:
+- Work Item: W-178
+- Version: v1.6.35
+- Release Date: 2026-03-24
 
 ________________________________________________
 ## v1.6.34, W-177, 2026-03-23
 
 **Commit:** `W-177, v1.6.34: jPulse.UI.tabs: support SVG in tab icons, for My Settings & admin user profile`
 
-**FEATURE RELEASE**: **(1) Tab icons as markup:** `jPulse.UI.tabs` (`_createTabStructure`) inserts optional `tab.icon` without HTML-escaping into `<span class="jp-tab-icon jp-tab-icon-html">`, so inline SVG and emoji from server-side schema render correctly; `jp-tab-label` still uses `escapeHtml(tab.label)`. **(2) CSS:** `.jp-tab-icon.jp-tab-icon-html` uses inline-flex; nested `svg` gets `display: block` and `flex-shrink: 0` for alignment with labels. **(3) User settings:** `buildSettingsTabs()` sets `tab.icon` from trimmed `userCard.icon` for each visible core (`coreSchema`) and plugin (`schemaMetadata`) block. **(4) Admin Manage User:** `buildAdminTabs()` sets `tab.icon` from trimmed `adminCard.icon` for core and plugin tabs; plugin tab `label` is only `meta.label` (icon no longer concatenated into the label string). **(5) Documentation:** `docs/jpulse-ui-reference.md` — tab object `icon` described as trusted HTML; Features bullet updated. `docs/plugins/plugin-api-reference.md` — note on tab-bar icon trust boundary.
-
 **Objectives**:
 - Fix SVG/tab icons broken by previous `escapeHtml(tab.icon)` behavior
 - Single field `tab.icon` (trusted HTML); align My Settings and admin user profile with schema `meta.icon`
 
-**Key Changes**:
-- **webapp/view/jpulse-common.js**: trusted `tab.icon` in tab row HTML
-- **webapp/view/jpulse-common.css**: `.jp-tab-icon.jp-tab-icon-html` + nested `svg` rules
-- **webapp/view/user/settings.tmpl**: `buildSettingsTabs()` — optional `tab.icon` from `userCard`
-- **webapp/view/admin/user-profile.shtml**: `buildAdminTabs()` — optional `tab.icon` from `adminCard`
-- **docs/jpulse-ui-reference.md**: Tab API + Features (trusted `icon`)
-- **docs/plugins/plugin-api-reference.md**: Tab icons / trusted HTML note (W-177)
+**FEATURE RELEASE**: **(1) Tab icons as markup:** `jPulse.UI.tabs` (`_createTabStructure`) inserts optional `tab.icon` without HTML-escaping into `<span class="jp-tab-icon jp-tab-icon-html">`, so inline SVG and emoji from server-side schema render correctly; `jp-tab-label` still uses `escapeHtml(tab.label)`. **(2) CSS:** `.jp-tab-icon.jp-tab-icon-html` uses inline-flex; nested `svg` gets `display: block` and `flex-shrink: 0` for alignment with labels. **(3) User settings:** `buildSettingsTabs()` sets `tab.icon` from trimmed `userCard.icon` for each visible core (`coreSchema`) and plugin (`schemaMetadata`) block. **(4) Admin Manage User:** `buildAdminTabs()` sets `tab.icon` from trimmed `adminCard.icon` for core and plugin tabs; plugin tab `label` is only `meta.label` (icon no longer concatenated into the label string). **(5) Documentation:** `docs/jpulse-ui-reference.md` — tab object `icon` described as trusted HTML; Features bullet updated. `docs/plugins/plugin-api-reference.md` — note on tab-bar icon trust boundary.
 
-**Work Item**: W-177
-**Version**: v1.6.34
-**Release Date**: 2026-03-23
+**Key Changes**:
+- `webapp/view/jpulse-common.js`: trusted `tab.icon` in tab row HTML
+- `webapp/view/jpulse-common.css`: `.jp-tab-icon.jp-tab-icon-html` + nested `svg` rules
+- `webapp/view/user/settings.tmpl`: `buildSettingsTabs()` — optional `tab.icon` from `userCard`
+- `webapp/view/admin/user-profile.shtml`: `buildAdminTabs()` — optional `tab.icon` from `adminCard`
+- `docs/jpulse-ui-reference.md`: Tab API + Features (trusted `icon`)
+- `docs/plugins/plugin-api-reference.md`: Tab icons / trusted HTML note (W-177)
+
+
+**Release**:
+- Work Item: W-177
+- Version: v1.6.34
+- Release Date: 2026-03-23
 
 ________________________________________________
 ## v1.6.33, W-176, 2026-03-22

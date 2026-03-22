@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.34
- * @release         2026-03-23
+ * @version         1.6.35
+ * @release         2026-03-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1308,17 +1308,30 @@ window.jPulse = {
                         el.dispatchEvent(new Event('input', { bubbles: true }));
                     };
 
+                    /**
+                     * Add one tag from raw typing (trim, pattern filter, maxChars, dedupe). Clears typing input.
+                     * Exposed for tagInput.setSuggestions() and tests.
+                     * @param {string} raw - Raw string (e.g. typing buffer or suggestion label)
+                     */
+                    const addTag = (raw) => {
+                        let t = (raw || '').trim();
+                        if (allowedRe) t = filterChars(t);
+                        if (!t) return;
+                        const tag = t.length > maxChars ? t.slice(0, maxChars) : t;
+                        if (tags.indexOf(tag) === -1) tags.push(tag);
+                        typingInput.value = '';
+                        renderTags();
+                        syncValue();
+                    };
+                    el._tagInputAddTag = addTag;
+
                     typingInput.addEventListener('keydown', (e) => {
                         if (e.key !== 'Enter') return;
                         let raw = (typingInput.value || '').trim();
                         if (allowedRe) raw = filterChars(raw);
                         if (!raw) return;
                         e.preventDefault();
-                        const tag = raw.length > maxChars ? raw.slice(0, maxChars) : raw;
-                        if (tags.indexOf(tag) === -1) tags.push(tag);
-                        typingInput.value = '';
-                        renderTags();
-                        syncValue();
+                        addTag(typingInput.value);
                     });
 
                     wrap.appendChild(typingInput);
@@ -1330,6 +1343,254 @@ window.jPulse = {
                     });
                     renderTags();
                     el.value = tags.join(', ');
+                },
+
+                /**
+                 * Attach or replace a suggestion pool on an initialized tagInput; dropdown is body-portal (W-178).
+                 * Call after init() / initAll(). Pass null or [] to remove suggestions and teardown listeners.
+                 * Optional: data-suggest-min on the value input (default 2) — min trimmed chars before input-filtered list opens.
+                 * While open: wrap has data-suggest-open="1" for dialog key handlers.
+                 * @param {string|Element} selectorOrElement - Value store input (same as init)
+                 * @param {string[]|null} [suggestions] - Pool of tag strings, or null/[] to clear
+                 */
+                setSuggestions: (selectorOrElement, suggestions) => {
+                    const el = typeof selectorOrElement === 'string'
+                        ? document.querySelector(selectorOrElement)
+                        : selectorOrElement;
+                    if (!el || el.tagName !== 'INPUT' || !el.dataset.taginputInited) return;
+
+                    const wrap = el.closest('.jp-taginput-wrap');
+                    const typingInput = wrap && wrap.querySelector('[data-taginput-typing]');
+                    const addTag = el._tagInputAddTag;
+                    if (!wrap || !typingInput || typeof addTag !== 'function') return;
+
+                    const clearPool = !suggestions || !Array.isArray(suggestions) || suggestions.length === 0;
+                    if (clearPool) {
+                        if (typeof wrap._tagInputSuggestTeardown === 'function') {
+                            wrap._tagInputSuggestTeardown();
+                        }
+                        return;
+                    }
+
+                    const poolNormalized = [...new Set(suggestions.map((s) => String(s).trim()).filter(Boolean))];
+                    wrap._tagInputSuggestPool = poolNormalized;
+
+                    if (wrap._tagInputSuggestInited) {
+                        const dd = wrap._tagInputSuggestDropdown;
+                        if (dd && dd.classList.contains('jp-taginput-suggest-open')) {
+                            typingInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                        return;
+                    }
+
+                    wrap._tagInputSuggestInited = true;
+
+                    const dropdown = document.createElement('div');
+                    dropdown.className = 'jp-taginput-suggest-dropdown jp-taginput-suggest-dropdown-portal';
+                    dropdown.setAttribute('data-taginput-suggest', '1');
+                    dropdown.setAttribute('role', 'listbox');
+                    document.body.appendChild(dropdown);
+                    wrap._tagInputSuggestDropdown = dropdown;
+
+                    let highlightIdx = -1;
+
+                    const getAdded = () => new Set(jPulse.UI.input.tagInput.parseValue(el.value || ''));
+
+                    const getPoolFilteredByInput = () => {
+                        const added = getAdded();
+                        const base = wrap._tagInputSuggestPool.filter((s) => !added.has(s));
+                        const typed = (typingInput.value || '').trim().toLowerCase();
+                        const min = Number(el.dataset.suggestMin) || 2;
+                        if (typed.length < min) return [];
+                        return base.filter((s) => s.toLowerCase().includes(typed));
+                    };
+
+                    const getPoolFullMinusAdded = () => {
+                        const added = getAdded();
+                        return wrap._tagInputSuggestPool.filter((s) => !added.has(s));
+                    };
+
+                    const positionDropdown = () => {
+                        const rect = wrap.getBoundingClientRect();
+                        const zIndex = (jPulse.UI._alertZIndex || 2000) + 1000;
+                        dropdown.style.position = 'fixed';
+                        dropdown.style.left = rect.left + 'px';
+                        dropdown.style.width = Math.max(rect.width, 120) + 'px';
+                        dropdown.style.zIndex = String(zIndex);
+                        const spaceBelow = window.innerHeight - rect.bottom;
+                        const spaceAbove = rect.top;
+                        const minSpace = 200;
+                        const openUp = spaceBelow < minSpace && spaceAbove > spaceBelow;
+                        dropdown.classList.toggle('jp-taginput-suggest-open-up', openUp);
+                        if (openUp) {
+                            dropdown.style.top = 'auto';
+                            dropdown.style.bottom = (window.innerHeight - rect.top + 2) + 'px';
+                        } else {
+                            dropdown.style.bottom = 'auto';
+                            dropdown.style.top = (rect.bottom + 2) + 'px';
+                        }
+                    };
+
+                    const buildList = (items) => {
+                        dropdown.innerHTML = '';
+                        items.forEach((text) => {
+                            const item = document.createElement('div');
+                            item.className = 'jp-taginput-suggest-item';
+                            item.setAttribute('role', 'option');
+                            item.textContent = text;
+                            item.addEventListener('mousedown', (e) => {
+                                e.preventDefault();
+                                addTag(text);
+                                closeDropdown();
+                            });
+                            dropdown.appendChild(item);
+                        });
+                    };
+
+                    const updateHighlight = () => {
+                        const children = Array.from(dropdown.children);
+                        children.forEach((child, i) => {
+                            child.classList.toggle('jp-taginput-suggest-item-highlighted', i === highlightIdx);
+                        });
+                        const hi = children[highlightIdx];
+                        if (hi && typeof hi.scrollIntoView === 'function') {
+                            hi.scrollIntoView({ block: 'nearest' });
+                        }
+                    };
+
+                    const closeDropdown = () => {
+                        dropdown.classList.remove('jp-taginput-suggest-open', 'jp-taginput-suggest-open-up');
+                        dropdown.innerHTML = '';
+                        highlightIdx = -1;
+                        wrap.removeAttribute('data-suggest-open');
+                    };
+
+                    const isOpen = () => dropdown.classList.contains('jp-taginput-suggest-open');
+
+                    const openDropdown = (items) => {
+                        if (!items.length) {
+                            closeDropdown();
+                            return;
+                        }
+                        buildList(items);
+                        highlightIdx = -1;
+                        positionDropdown();
+                        dropdown.classList.add('jp-taginput-suggest-open');
+                        wrap.setAttribute('data-suggest-open', '1');
+                        updateHighlight();
+                    };
+
+                    const openDropdownHighlightFirst = (items) => {
+                        if (!items.length) {
+                            closeDropdown();
+                            return;
+                        }
+                        buildList(items);
+                        highlightIdx = 0;
+                        positionDropdown();
+                        dropdown.classList.add('jp-taginput-suggest-open');
+                        wrap.setAttribute('data-suggest-open', '1');
+                        updateHighlight();
+                    };
+
+                    const onInput = () => {
+                        const items = getPoolFilteredByInput();
+                        if (items.length) {
+                            openDropdown(items);
+                        } else {
+                            closeDropdown();
+                        }
+                    };
+
+                    const onKeydown = (e) => {
+                        const open = isOpen();
+                        const n = dropdown.children.length;
+
+                        if (e.key === 'ArrowDown') {
+                            const full = getPoolFullMinusAdded();
+                            if (!open && full.length) {
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                openDropdownHighlightFirst(full);
+                                return;
+                            }
+                            if (open && n) {
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                highlightIdx = highlightIdx < 0 ? 0 : (highlightIdx + 1) % n;
+                                updateHighlight();
+                            }
+                            return;
+                        }
+
+                        if (e.key === 'ArrowUp' && open && n) {
+                            e.preventDefault();
+                            e.stopImmediatePropagation();
+                            highlightIdx = highlightIdx <= 0 ? n - 1 : highlightIdx - 1;
+                            updateHighlight();
+                            return;
+                        }
+
+                        if (e.key === 'Enter' && open && highlightIdx >= 0) {
+                            const hi = dropdown.children[highlightIdx];
+                            if (hi) {
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                addTag(hi.textContent || '');
+                                closeDropdown();
+                            }
+                            return;
+                        }
+
+                        if (e.key === 'Escape' && open) {
+                            e.preventDefault();
+                            e.stopImmediatePropagation();
+                            closeDropdown();
+                            return;
+                        }
+                    };
+
+                    let blurTimer = null;
+                    const onBlur = () => {
+                        blurTimer = setTimeout(() => {
+                            blurTimer = null;
+                            if (document.activeElement === typingInput) return;
+                            closeDropdown();
+                        }, 150);
+                    };
+
+                    const onFocusTyping = () => {
+                        if (blurTimer) {
+                            clearTimeout(blurTimer);
+                            blurTimer = null;
+                        }
+                    };
+
+                    const onScrollOrResize = () => {
+                        if (isOpen()) positionDropdown();
+                    };
+
+                    typingInput.addEventListener('input', onInput);
+                    typingInput.addEventListener('keydown', onKeydown, true);
+                    typingInput.addEventListener('blur', onBlur);
+                    typingInput.addEventListener('focus', onFocusTyping);
+                    window.addEventListener('scroll', onScrollOrResize, true);
+                    window.addEventListener('resize', onScrollOrResize);
+
+                    wrap._tagInputSuggestTeardown = () => {
+                        typingInput.removeEventListener('input', onInput);
+                        typingInput.removeEventListener('keydown', onKeydown, true);
+                        typingInput.removeEventListener('blur', onBlur);
+                        typingInput.removeEventListener('focus', onFocusTyping);
+                        window.removeEventListener('scroll', onScrollOrResize, true);
+                        window.removeEventListener('resize', onScrollOrResize);
+                        closeDropdown();
+                        if (dropdown.parentNode) dropdown.parentNode.removeChild(dropdown);
+                        delete wrap._tagInputSuggestDropdown;
+                        delete wrap._tagInputSuggestPool;
+                        delete wrap._tagInputSuggestInited;
+                        delete wrap._tagInputSuggestTeardown;
+                    };
                 }
             },
 
@@ -1724,6 +1985,14 @@ window.jPulse = {
                             e.preventDefault();
                             if (dropdown.classList.contains('jp-jpselect-open')) closeDropdown();
                             else openDropdown();
+                        } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            if (!dropdown.classList.contains('jp-jpselect-open')) {
+                                openDropdown();
+                            } else if (document.activeElement === trigger) {
+                                if (searchInput) searchInput.focus();
+                                else listEl.focus();
+                            }
                         }
                     });
 
@@ -5843,6 +6112,33 @@ window.jPulse = {
 
                     if (e.target.closest?.('.jp-slider-wrap')) return;
 
+                    // jpSelect: trigger is a BUTTON; dropdown is portaled to document.body. Let keys
+                    // reach trigger/list/search (Enter/Space/Arrows). Tab excluded so trap below runs.
+                    const jpDd = e.target.closest?.('.jp-jpselect-dropdown');
+                    const jpWrap = e.target.closest?.('.jp-jpselect-wrap');
+                    const jpInDialogWrap = jpWrap && dialog.contains(jpWrap);
+                    const jpInDialogPortal = jpDd && jpDd.classList.contains('jp-jpselect-open') &&
+                        Array.from(dialog.querySelectorAll('.jp-jpselect-wrap')).some((w) => w._jpSelectDropdown === jpDd);
+                    if ((jpInDialogWrap || jpInDialogPortal) && e.key !== 'Tab') {
+                        if (e.key === 'ArrowUp' || e.key === 'ArrowDown' ||
+                                e.key === 'PageUp' || e.key === 'PageDown') {
+                            e.preventDefault();
+                        }
+                        return;
+                    }
+
+                    // While focus is in INPUT or TEXTAREA, do not stopPropagation at document —
+                    // capture on document ran first and would prevent the field's own listeners
+                    // (e.g. tagInput.setSuggestions, native typing). Tab is excluded so trap below runs.
+                    // preventDefault on scroll keys stops the page behind the modal from scrolling.
+                    if ((e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') && e.key !== 'Tab') {
+                        if (e.key === 'ArrowUp' || e.key === 'ArrowDown' ||
+                                e.key === 'PageUp' || e.key === 'PageDown') {
+                            e.preventDefault();
+                        }
+                        return;
+                    }
+
                     // Stop propagation so no page-level bubble-phase handlers (e.g. canvas key
                     // handlers, shortcut listeners) can intercept keys while a modal is open
                     e.stopPropagation();
@@ -5854,9 +6150,7 @@ window.jPulse = {
                     const focusedBtnIdx = btns.indexOf(document.activeElement);
                     const isOnButton = focusedBtnIdx !== -1;
 
-                    if ((e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') && e.key !== 'Tab') return;
-
-                    // Prevent page scrolling with arrow keys while dialog is open
+                    // Prevent page scrolling with arrow keys while dialog is open (focus not in text field)
                     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                         e.preventDefault();
                         return;

@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.input.tagInput (W-148)
  * @description     Tests for tagInput: parseValue, formatValue, init/sync
  * @file            webapp/tests/unit/utils/jpulse-ui-input-taginput.test.js
- * @version         1.6.34
- * @release         2026-03-23
+ * @version         1.6.35
+ * @release         2026-03-24
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -205,6 +205,168 @@ describe('jPulse.UI.input.tagInput (W-148)', () => {
 
             expect(i1.closest('.jp-taginput-wrap')).toBeTruthy();
             expect(i2.closest('.jp-taginput-wrap')).toBeTruthy();
+        });
+    });
+
+    describe('setSuggestions (W-178)', () => {
+        const stubRect = (el) => {
+            el.getBoundingClientRect = () => ({
+                left: 10,
+                top: 50,
+                right: 210,
+                bottom: 90,
+                width: 200,
+                height: 40
+            });
+        };
+
+        test('creates one body-portal dropdown and filters by typed text', () => {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = '';
+            input.setAttribute('data-taginput', '1');
+            document.body.appendChild(input);
+            window.jPulse.UI.input.tagInput.init(input);
+            const wrap = input.closest('.jp-taginput-wrap');
+            stubRect(wrap);
+
+            window.jPulse.UI.input.tagInput.setSuggestions(input, ['alpha', 'beta', 'alphabet']);
+
+            const typing = wrap.querySelector('[data-taginput-typing]');
+            typing.value = 'al';
+            typing.dispatchEvent(new Event('input', { bubbles: true }));
+
+            const dd = document.querySelector('[data-taginput-suggest]');
+            expect(dd).toBeTruthy();
+            expect(dd.classList.contains('jp-taginput-suggest-open')).toBe(true);
+            const items = dd.querySelectorAll('.jp-taginput-suggest-item');
+            expect(items.length).toBe(2);
+            expect(items[0].textContent).toBe('alpha');
+            expect(items[1].textContent).toBe('alphabet');
+        });
+
+        test('excludes already-added tags from suggestions', () => {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = 'alpha, beta';
+            input.setAttribute('data-taginput', '1');
+            document.body.appendChild(input);
+            window.jPulse.UI.input.tagInput.init(input);
+            const wrap = input.closest('.jp-taginput-wrap');
+            stubRect(wrap);
+
+            window.jPulse.UI.input.tagInput.setSuggestions(input, ['alpha', 'beta', 'gamma']);
+
+            const typing = wrap.querySelector('[data-taginput-typing]');
+            typing.value = 'ga';
+            typing.dispatchEvent(new Event('input', { bubbles: true }));
+
+            const dd = document.querySelector('[data-taginput-suggest]');
+            const items = dd.querySelectorAll('.jp-taginput-suggest-item');
+            expect(items.length).toBe(1);
+            expect(items[0].textContent).toBe('gamma');
+        });
+
+        test('ArrowDown opens full list and highlights first item', () => {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = '';
+            input.setAttribute('data-taginput', '1');
+            document.body.appendChild(input);
+            window.jPulse.UI.input.tagInput.init(input);
+            const wrap = input.closest('.jp-taginput-wrap');
+            stubRect(wrap);
+
+            window.jPulse.UI.input.tagInput.setSuggestions(input, ['a', 'b', 'c']);
+
+            const typing = wrap.querySelector('[data-taginput-typing]');
+            typing.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+
+            const dd = document.querySelector('[data-taginput-suggest]');
+            expect(dd.classList.contains('jp-taginput-suggest-open')).toBe(true);
+            const hi = dd.querySelector('.jp-taginput-suggest-item-highlighted');
+            expect(hi).toBeTruthy();
+            expect(hi.textContent).toBe('a');
+        });
+
+        test('Enter selects highlighted item; Escape closes', () => {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = '';
+            input.setAttribute('data-taginput', '1');
+            document.body.appendChild(input);
+            window.jPulse.UI.input.tagInput.init(input);
+            const wrap = input.closest('.jp-taginput-wrap');
+            stubRect(wrap);
+
+            window.jPulse.UI.input.tagInput.setSuggestions(input, ['pickme', 'other']);
+
+            const typing = wrap.querySelector('[data-taginput-typing]');
+            typing.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+            typing.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+            expect(input.value).toContain('pickme');
+
+            typing.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+            expect(document.querySelector('[data-taginput-suggest]').classList.contains('jp-taginput-suggest-open')).toBe(true);
+
+            typing.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            expect(document.querySelector('[data-taginput-suggest]').classList.contains('jp-taginput-suggest-open')).toBe(false);
+        });
+
+        test('mousedown on item adds tag and closes dropdown', () => {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = '';
+            input.setAttribute('data-taginput', '1');
+            document.body.appendChild(input);
+            window.jPulse.UI.input.tagInput.init(input);
+            const wrap = input.closest('.jp-taginput-wrap');
+            stubRect(wrap);
+
+            window.jPulse.UI.input.tagInput.setSuggestions(input, ['frommouse']);
+
+            const typing = wrap.querySelector('[data-taginput-typing]');
+            typing.value = 'fr';
+            typing.dispatchEvent(new Event('input', { bubbles: true }));
+
+            const dd = document.querySelector('[data-taginput-suggest]');
+            const item = dd.querySelector('.jp-taginput-suggest-item');
+            item.dispatchEvent(new Event('mousedown', { bubbles: true }));
+
+            expect(input.value).toContain('frommouse');
+            expect(dd.classList.contains('jp-taginput-suggest-open')).toBe(false);
+        });
+
+        test('re-calling setSuggestions updates pool without duplicating dropdown DOM', () => {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = '';
+            input.setAttribute('data-taginput', '1');
+            document.body.appendChild(input);
+            window.jPulse.UI.input.tagInput.init(input);
+            stubRect(input.closest('.jp-taginput-wrap'));
+
+            window.jPulse.UI.input.tagInput.setSuggestions(input, ['one']);
+            window.jPulse.UI.input.tagInput.setSuggestions(input, ['two', 'three']);
+
+            expect(document.querySelectorAll('[data-taginput-suggest]').length).toBe(1);
+        });
+
+        test('setSuggestions with null clears dropdown and teardown', () => {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = '';
+            input.setAttribute('data-taginput', '1');
+            document.body.appendChild(input);
+            window.jPulse.UI.input.tagInput.init(input);
+            stubRect(input.closest('.jp-taginput-wrap'));
+
+            window.jPulse.UI.input.tagInput.setSuggestions(input, ['x']);
+            expect(document.querySelector('[data-taginput-suggest]')).toBeTruthy();
+
+            window.jPulse.UI.input.tagInput.setSuggestions(input, null);
+            expect(document.querySelector('[data-taginput-suggest]')).toBeFalsy();
         });
     });
 

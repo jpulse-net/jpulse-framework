@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.35
+# jPulse Docs / jPulse.UI Widget Reference v1.6.36
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -274,6 +274,7 @@ const result = await jPulse.UI.confirmDialog({
 
 ### Dialog Features
 - **Draggable headers**: All dialogs can be dragged by their header
+- **Background scroll lock**: While at least one modal is open, the framework locks page scrolling (`overflow: hidden` on `html` and `body`, `overscroll-behavior: none`, and optional `padding-right` to offset the missing scrollbar) so trackpad/touch/wheel does not scroll the content behind the overlay. Restored when the last dialog in the stack closes.
 - **Dialog stacking**: Multiple dialogs stack with automatic z-index management; only the topmost dialog responds to keyboard events
 - **HTML support**: Message content supports simple HTML (site owner controlled)
 - **Keyboard navigation** (all dialog types):
@@ -281,7 +282,7 @@ const result = await jPulse.UI.confirmDialog({
   - **ESC**: closes dialog with `cancelled: true`
   - **Letter keys**: first letter of each button label activates it (e.g. `o` → OK, `c` → Cancel); inactive while focus is in an input/select/textarea
   - **Left / Right arrows**: move focus between buttons in the button row
-  - **Up / Down / Page Up / Page Down**: With focus in `<input>` or `<textarea>`, keys propagate to the field (e.g. tagInput suggestions, native editing); `preventDefault` is used only so the **page behind the modal does not scroll**. With focus on a **jpSelect** trigger (or its portaled dropdown), the same applies so **Enter / Space / arrows** reach the widget. With focus on other controls (e.g. dialog buttons), Up/Down are consumed so the background does not scroll.
+  - **Up / Down / Page Up / Page Down**: With focus in a **`<textarea>`**, keys are left entirely to the browser (line/caret movement and in-field scrolling). With focus in an **`<input>`** (except `type="number"` / `type="range"`), scroll-type keys use `preventDefault` only so the **page behind the modal does not scroll** while other keys still reach the field (e.g. tagInput suggestions). With focus on a **jpSelect** trigger (or its portaled dropdown), **Enter / Space / arrows** reach the widget. With focus on other controls (e.g. dialog buttons), Up/Down are consumed so the background does not scroll.
   - **Tab / Shift+Tab**: cycle through all focusable elements (inputs + buttons); wraps at boundaries
 - **Focus management**: Initial focus goes to first `<input>`/`<select>` in the dialog, or the default button if no inputs are present; focus is restored to the triggering element when the dialog closes
 - **Default button styling**: default button has a visible at-rest ring indicator; all buttons have an enhanced focus ring
@@ -570,7 +571,7 @@ Attach a **string-array suggestion pool** to an **already initialized** tagInput
 
 **Parameters:** `selectorOrElement` (string|Element) — the same value-store `<input>` passed to `init`. `suggestions` (`string[]` | `null`) — pool of tag strings, or clear.
 
-**Optional attributes on the value input:** `data-suggest-min` — minimum **trimmed** length of the typing buffer before the input-filtered list opens (default `2`). ArrowDown still opens the full list (minus tags already on the chip list) regardless of length. While the dropdown is open, the wrapper has `data-suggest-open="1"` (optional hook for site code). **`confirmDialog` / modals:** `_trapFocus` allows keys to reach `<input>` / `<textarea>` so tag suggestions and native editing work (v1.6.36+); scroll keys use `preventDefault` only so the page behind the overlay does not scroll.
+**Optional attributes on the value input:** `data-suggest-min` — minimum **trimmed** length of the typing buffer before the input-filtered list opens (default `2`). ArrowDown still opens the full list (minus tags already on the chip list) regardless of length. While the dropdown is open, the wrapper has `data-suggest-open="1"` (optional hook for site code). **`confirmDialog` / modals:** `_trapFocus` allows keys to reach `<input>` / `<textarea>` so tag suggestions work; **`<textarea>`** does not use `preventDefault` on arrow/page keys (native line/caret behavior). For **`<input>`** (not `number`/`range`), scroll keys use `preventDefault` only so the page behind the overlay does not scroll.
 
 **Example:**
 ```javascript

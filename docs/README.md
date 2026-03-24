@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.35
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.36
 
 **For Site Administrators & Site Developers**
 
@@ -228,6 +228,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v1.6.36, W-179, 2026-03-25: User GET extension defaults; modal scroll lock & textarea fix; UI widgets Custom Dialog form**: `applyExtensionSchemaDefaults()` on `GET /api/1/user`; `jpulse-common.js` body scroll lock + textarea vs input `_trapFocus`; `ui-widgets` richer Custom Dialog (textarea, jpSelect search). Docs: api-reference.md, plugin-api-reference.md, jpulse-ui-reference.md.
 - **v1.6.35, W-178, 2026-03-24: Tag input suggestions; dialog keyboard fixes**: New `tagInput.setSuggestions(el, options[])` — attach a suggestion pool to any tag input field; a filtered dropdown appears as the user types, navigable by keyboard or mouse, with no per-site workarounds needed. As part of the same release, the modal dialog keyboard handler was fixed so tag suggestions, plain inputs, and jpSelect dropdowns all work correctly inside `confirmDialog` — previously, the dialog's focus trap intercepted arrow/enter keys before widgets could see them.
 - **v1.6.34, W-177, 2026-03-23: jPulse.UI.tabs: support SVG in tab icons, for My Settings & admin user profile**: `tab.icon` is trusted HTML (SVG/emoji/text); `tab.label` escaped. CSS for inline SVG; settings + Manage User pass `userCard`/`adminCard` `icon` into tabs; plugin labels icon-free. Docs: jpulse-ui-reference.md; plugin-api-reference.md (tab icons).
 - **v1.6.33, W-176, 2026-03-22: WebSocket: session re-validation for write handlers**: `WebSocketController.revalidateClientSession(namespacePath, clientId)` — opt-in re-check of `express-session` from the WebSocket upgrade cookie before WS-driven writes; closes the stale-`ctx` window until the next health-check ping. Info log only on failure. Docs: websockets.md (Session security), api-reference.md. Tests.

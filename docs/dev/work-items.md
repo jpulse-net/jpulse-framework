@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.35
+# jPulse Docs / Dev / Work Items v1.6.36
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5668,16 +5668,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/jpulse-ui-reference.md`:
     - Tab API: optional `icon` documented as trusted HTML; Features bullet expanded (label escaped, icon markup)
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-178, v1.6.35, 2026-03-24: jPulse.UI.input.tagInput: add tag suggestions dropdown; keyboard support in modal dialogs
 - status: ✅ DONE
 - type: Feature
@@ -5733,6 +5723,47 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-179, v1.6.36, 2026-03-25: user API: return data with extend schema defaults; jPulse.UI: modal scroll lock, fix textarea keys, UI widgets dialog demo
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - when a site or plugin extends the user document with `UserModel.extendSchema({ myBlock: { ... field: { type, default } } })`, `GET /api/1/user` should return `data.myBlock` with missing keys filled from schema defaults (Mongo may omit the whole block or individual fields until first save)
+  - complete modal UX from W-178 follow-up: textarea caret/line keys must not be swallowed; page behind modal must not scroll with wheel/trackpad; examples page should demonstrate a real form inside `confirmDialog`
+- features:
+  - `UserModel._defaultsTreeFromSchema(schemaNode)` — walks an extension block (skips `_meta`); leaf fields with `type` + `default` (function defaults supported)
+  - `UserModel.applyExtensionSchemaDefaults(data)` — for each top-level key in merged `UserModel.schema` that is not in `baseSchema`, `CommonUtils.deepMerge({}, defaultsTree, existing)` so stored values win
+  - `UserController.get` — after stripping `passwordHash`, sets `userProfile` from `applyExtensionSchemaDefaults(restProfile)`; applies with or without `?includeSchema=1`.
+  - `jPulse.UI` modals: `_applyDialogBodyScrollLock` / `_releaseDialogBodyScrollLock` on first open / last close; `_trapFocus` separate branch for `<textarea>` (no `preventDefault` on Arrow/Page) vs `<input>` (scroll keys except number/range)
+  - limitation: top-level extension keys only (not nested merges under `profile` / other base keys)
+- deliverables:
+  - `webapp/model/user.js`:
+    - `_defaultsTreeFromSchema`, `applyExtensionSchemaDefaults`; `@version` 1.6.36
+  - `webapp/controller/user.js`:
+    - `get`: `let userProfile = UserModel.applyExtensionSchemaDefaults(restProfile)`; `@version` 1.6.36
+  - `webapp/tests/unit/user/user-extension-schema-defaults.test.js`:
+    - missing block filled from defaults; stored values override; partial object merged with nested defaults
+  - `webapp/view/jpulse-common.js`:
+    - `_dialogBodyScrollLockSnapshot`; lock on first modal, unlock when stack empty; `_trapFocus` textarea early-return vs input scroll-key `preventDefault`
+  - `webapp/view/jpulse-examples/ui-widgets.shtml`:
+    - Custom Dialog: `confirmDialog` with text, textarea (3 rows), checkbox, jpSelect+search; `onOpen` jpSelect.init then `initAll`; toast on OK; `.local-custom-dialog-form` CSS; intro + source panel
+  - `docs/jpulse-ui-reference.md`:
+    - Dialog Features: background scroll lock; keyboard bullets (textarea vs input; jpSelect)
+  - `docs/api-reference.md`:
+    - Get User Profile: note that `data` includes extension blocks merged with schema defaults
+  - `docs/plugins/plugin-api-reference.md`:
+    - short note: GET user returns extension defaults in `data` (v1.6.36+)
+
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -5759,8 +5790,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-178, v1.6.35, 2026-03-24
-- update features & deliverables in W-178 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-179, v1.6.36, 2026-03-25
+- update features & deliverables in W-179 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5771,12 +5802,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.35 2026-03-24
+node bin/bump-version.js 1.6.36 2026-03-25
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.35; git push origin main --tags
+git tag v1.6.36; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.6.35
+# jPulse Docs / Plugins / Plugins API Reference v1.6.36
 
 Complete API reference for jPulse plugin developers.
 
@@ -238,6 +238,8 @@ UserModel.extendSchema({
 ```
 
 **Note**: Schema extensions are applied during bootstrap before the database is accessed.
+
+**GET `/api/1/user` responses (v1.6.36+):** For each **top-level** extension block in the merged schema, `GET /api/1/user` merges field **defaults** into `data` when the stored user document omits the block or individual fields (Mongo values still win). Clients can rely on a stable shape for extension blocks without client-only defaulting. Does not walk extra fields merged under `profile` / other `baseSchema` keys.
 
 ### Data-Driven User Profile Cards
 

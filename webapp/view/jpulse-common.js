@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.35
- * @release         2026-03-24
+ * @version         1.6.36
+ * @release         2026-03-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -760,6 +760,8 @@ window.jPulse = {
         _baseZIndex: 1000,
         _alertZIndex: 2000,
         _previousFocus: null, // Store previous focus to restore on dialog close
+        /** When non-null, body/html scroll is locked while a modal is open (wheel / touch pad). */
+        _dialogBodyScrollLockSnapshot: null,
 
         // Toast notification queue management
         _toastQueue: [],
@@ -2370,6 +2372,9 @@ window.jPulse = {
                     : (jPulse.UI._baseZIndex + jPulse.UI._dialogStack.length * 10));
                 overlay.style.zIndex = zIndex;
                 jPulse.UI._dialogStack.push({ overlay, dialog, type: config.type });
+                if (jPulse.UI._dialogStack.length === 1) {
+                    jPulse.UI._applyDialogBodyScrollLock();
+                }
 
                 // Show with animation
                 setTimeout(() => {
@@ -6019,6 +6024,48 @@ window.jPulse = {
         },
 
         /**
+         * Lock document scrolling while a modal is open (trackpad/wheel/touch scroll on the page
+         * behind the overlay). Nested dialogs: lock on first open, release when the stack is empty.
+         * Restores inline styles saved in _dialogBodyScrollLockSnapshot.
+         */
+        _applyDialogBodyScrollLock: () => {
+            if (jPulse.UI._dialogBodyScrollLockSnapshot) return;
+            const html = document.documentElement;
+            const body = document.body;
+            const scrollBarGap = window.innerWidth - html.clientWidth;
+            jPulse.UI._dialogBodyScrollLockSnapshot = {
+                htmlOverflow: html.style.overflow,
+                bodyOverflow: body.style.overflow,
+                bodyPaddingRight: body.style.paddingRight,
+                htmlOverscroll: html.style.overscrollBehavior,
+                bodyOverscroll: body.style.overscrollBehavior
+            };
+            if (scrollBarGap > 0) {
+                body.style.paddingRight = scrollBarGap + 'px';
+            }
+            html.style.overflow = 'hidden';
+            body.style.overflow = 'hidden';
+            html.style.overscrollBehavior = 'none';
+            body.style.overscrollBehavior = 'none';
+        },
+
+        /**
+         * Undo _applyDialogBodyScrollLock when the last dialog closes.
+         */
+        _releaseDialogBodyScrollLock: () => {
+            const snap = jPulse.UI._dialogBodyScrollLockSnapshot;
+            if (!snap) return;
+            const html = document.documentElement;
+            const body = document.body;
+            html.style.overflow = snap.htmlOverflow;
+            body.style.overflow = snap.bodyOverflow;
+            body.style.paddingRight = snap.bodyPaddingRight;
+            html.style.overscrollBehavior = snap.htmlOverscroll;
+            body.style.overscrollBehavior = snap.bodyOverscroll;
+            jPulse.UI._dialogBodyScrollLockSnapshot = null;
+        },
+
+        /**
          * Close dialog with animation
          * @param {Element} overlay - Dialog overlay
          * @param {Element} dialog - Dialog element
@@ -6034,6 +6081,9 @@ window.jPulse = {
             const index = jPulse.UI._dialogStack.findIndex(item => item.overlay === overlay);
             if (index > -1) {
                 jPulse.UI._dialogStack.splice(index, 1);
+            }
+            if (jPulse.UI._dialogStack.length === 0) {
+                jPulse.UI._releaseDialogBodyScrollLock();
             }
 
             // Restore focus to previously focused element if no more dialogs
@@ -6127,14 +6177,24 @@ window.jPulse = {
                         return;
                     }
 
-                    // While focus is in INPUT or TEXTAREA, do not stopPropagation at document —
-                    // capture on document ran first and would prevent the field's own listeners
-                    // (e.g. tagInput.setSuggestions, native typing). Tab is excluded so trap below runs.
-                    // preventDefault on scroll keys stops the page behind the modal from scrolling.
-                    if ((e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') && e.key !== 'Tab') {
-                        if (e.key === 'ArrowUp' || e.key === 'ArrowDown' ||
-                                e.key === 'PageUp' || e.key === 'PageDown') {
-                            e.preventDefault();
+                    // TEXTAREA: never preventDefault on Arrow/Page — the browser needs those for
+                    // caret line movement and in-field scrolling. (preventDefault here was a W-178
+                    // regression: up/down appeared to "do nothing" in dialog textareas.)
+                    if (e.target.tagName === 'TEXTAREA' && e.key !== 'Tab') {
+                        return;
+                    }
+
+                    // INPUT: do not stopPropagation at document — field listeners (e.g. tagInput
+                    // setSuggestions) must run. preventDefault on scroll keys stops the page behind
+                    // the modal from scrolling. Tab excluded so trap below runs.
+                    // Omit number/range: Arrow Up/Down are native value nudges on those types.
+                    if (e.target.tagName === 'INPUT' && e.key !== 'Tab') {
+                        const inputType = (e.target.type || '').toLowerCase();
+                        if (inputType !== 'number' && inputType !== 'range') {
+                            if (e.key === 'ArrowUp' || e.key === 'ArrowDown' ||
+                                    e.key === 'PageUp' || e.key === 'PageDown') {
+                                e.preventDefault();
+                            }
                         }
                         return;
                     }

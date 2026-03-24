@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.35
+# jPulse Docs / REST API Reference v1.6.36
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -494,6 +494,8 @@ Retrieve user profile information. Supports flexible user identification: Object
 
 **Query Parameters:**
 - `includeSchema` (optional): Set to `1` or `true` to include plugin schema extensions metadata for data-driven profile rendering
+
+**Extension data shape (v1.6.36+):** The `data` object includes **top-level** keys added via `UserModel.extendSchema()` (keys not in the framework `baseSchema`). For each such block, the server merges **schema defaults** (`type` + `default` on field definitions; `_meta` ignored) into the stored document so clients receive missing keys without a separate merge — values already in MongoDB take precedence. This applies with or without `includeSchema`. Nested extension only under core keys like `profile` is not expanded by this pass.
 
 **Middleware:** `AuthController.requireAuthentication`
 **Authentication:** Required

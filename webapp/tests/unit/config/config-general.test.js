@@ -4,8 +4,8 @@
  * @description     Tests for getEffectiveAdminRoles, getEffectiveRoles, setEffectiveGeneralCache,
  *                  ensureGeneralDefaults, findById sort-on-read, updateById sort-on-write
  * @file            webapp/tests/unit/config/config-general.test.js
- * @version         1.6.35
- * @release         2026-03-24
+ * @version         1.6.36
+ * @release         2026-03-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

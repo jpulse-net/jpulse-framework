@@ -18812,3 +18812,51 @@ Review: `tt-git-diff.txt` matches W-178 tagInput (`setSuggestions`, CSS, tests) 
 
 
 ============================================================
+2026-03-23 01:10
+
+regression: textarea Arrow Up/Down in jp-dialog — _trapFocus must not preventDefault
+
+Root cause: W-178 `_trapFocus` used preventDefault on Arrow/Page for both INPUT and TEXTAREA to stop background scroll; that cancels native caret line movement in TEXTAREA. Fix: early return for TEXTAREA (non-Tab) with no preventDefault. INPUT branch keeps preventDefault for scroll keys except type number/range. Updated `docs/jpulse-ui-reference.md` (Dialog Features + tagInput modal note) and v1.6.35 CHANGELOG bullet for modal keyboard. `webapp/view/jpulse-common.js` only code change.
+
+
+============================================================
+2026-03-23 01:15
+
+enhance ui-widgets Custom Dialog: form fields for modal keyboard testing
+
+`jpulse-examples/ui-widgets.shtml`: Replaced info-only Custom Dialog with `confirmDialog` containing text input, `textarea` rows=3, checkbox, and `jpSelect` with many options. `onOpen`: `jpSelect.init(sel, { search: true })` before `initAll(dialog)`. OK shows toast with field summary. Added `.local-custom-dialog-form` CSS, intro paragraph class, source panel `customBtn` + abbreviated escaped example.
+
+
+============================================================
+2026-03-23 01:20
+
+regression: modal open — trackpad/wheel still scrolled main page
+
+Root cause: no document scroll lock when dialogs open (only arrow-key preventDefault in `_trapFocus`). Fix: `_applyDialogBodyScrollLock` / `_releaseDialogBodyScrollLock` — on first `confirmDialog` push set `html`/`body` overflow hidden + overscroll-behavior none + padding-right for scrollbar gap; restore when `_dialogStack` empty after `_closeDialog`. Docs: `docs/jpulse-ui-reference.md` Dialog Features; `docs/CHANGELOG.md` v1.6.35 bullet.
+
+
+============================================================
+2026-03-23 22:58
+
+next: user schema extension usability issue — GET /api/1/user should return defaults for extendSchema sections missing in Mongo (e.g. bubblemap)
+
+Implemented `UserModel._defaultsTreeFromSchema` + `UserModel.applyExtensionSchemaDefaults(data)`: for each top-level key in merged `UserModel.schema` that is not in `baseSchema`, builds defaults from field defs (`type` + `default`, skips `_meta`), then `CommonUtils.deepMerge({}, defaultsTree, existing)`. `UserController.get` assigns `userProfile` from `applyExtensionSchemaDefaults(restProfile)` after stripping `passwordHash`. Works with or without `includeSchema`. Added `webapp/tests/unit/user/user-extension-schema-defaults.test.js`. Bumped `user.js` / `user.js` controller headers to @version 1.6.36. Limitation: only top-level extension blocks (not nested merges under `profile`).
+
+
+============================================================
+2026-03-24 14:00
+
+release prep: W-179 v1.6.36 — tt-git-diff review, work item, CHANGELOG, README, api docs, commit-message, cursor log
+
+Review: `tt-git-diff.txt` is **complete for W-179** (user model `applyExtensionSchemaDefaults`, controller `get`, new unit test). It also lists **W-178 follow-ups** (textarea `_trapFocus`, modal body scroll lock, `ui-widgets` custom dialog, `jpulse-ui-reference`) already folded into **v1.6.35** CHANGELOG bullets — those are not part of W-179 scope. Filled `docs/dev/work-items.md` W-179 only (lines 5730–5745) as DONE. Inserted `docs/CHANGELOG.md` section **v1.6.36, W-179, 2026-03-25**. Updated **Latest Release Highlights** in `README.md` and `docs/README.md`. Extended `docs/api-reference.md` (Get User Profile) and `docs/plugins/plugin-api-reference.md` with GET `data` default-merge behavior. Replaced `commit-message.txt` with W-179 message. Did not bump doc header versions (per user bump script).
+
+
+============================================================
+2026-03-24 14:10
+
+docs: W-179 v1.6.36 — add jpulse-common.js (scroll lock, textarea _trapFocus) and ui-widgets Custom Dialog to CHANGELOG, work-items, README highlights, commit-message
+
+User noted release prep had omitted `webapp/view/jpulse-common.js` and `webapp/view/jpulse-examples/ui-widgets.shtml`. Updated `docs/CHANGELOG.md` v1.6.36 (Key Features, Files changed, commit title line), expanded `docs/dev/work-items.md` W-179 title/objectives/features/deliverables, README + docs/README Latest Release Highlights first bullet, and `commit-message.txt`. Appended cursor log.
+
+
+============================================================

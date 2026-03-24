@@ -1,6 +1,38 @@
-# jPulse Docs / Version History v1.6.35
+# jPulse Docs / Version History v1.6.36
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.36, W-179, 2026-03-25
+
+**Commit:** `W-179, v1.6.36: user API: return data with extend schema defaults; jPulse.UI: modal scroll lock, fix textarea keys, UI widgets dialog demo`
+
+**Objective**: (1) Plugins and sites that call `UserModel.extendSchema()` to add top-level blocks expect `GET /api/1/user` `data` to include schema defaults when Mongo never stored them. (2) Finish modal UX from the W-178 train: native **textarea** line/caret movement inside dialogs, **page scroll lock** while a modal is open, and a **richer Custom Dialog** example for manual testing.
+
+**Summary**: `UserModel.applyExtensionSchemaDefaults()` merges extension defaults on read; `UserController.get` applies after stripping `passwordHash`. Client-side: `_trapFocus` no longer calls `preventDefault` on Arrow/Page keys for `<textarea>` (separate branch from `<input>`); `number`/`range` inputs keep native arrow behavior. First modal on stack applies `_applyDialogBodyScrollLock()` (`html`/`body` overflow hidden, `overscroll-behavior: none`, scrollbar-gap padding); `_closeDialog` releases when the stack is empty. UI Widgets **Custom Dialog** demo uses `confirmDialog` with text field, 3-line textarea, checkbox, and jpSelect with search.
+
+**Key Features**:
+- **Extension defaults on GET** — For each top-level key in merged `UserModel.schema` not in `baseSchema`, missing nested values are filled from schema `default` (function defaults supported). Applies with or without `includeSchema`. Stored Mongo values win.
+- **Modal textarea keys** — `_trapFocus`: early return for `<textarea>` (non-Tab) so Arrow/Page keys perform native caret and in-field scrolling; `<input>` still uses `preventDefault` on scroll keys except `type="number"` / `type="range"`.
+- **Modal background scroll lock** — `_applyDialogBodyScrollLock` / `_releaseDialogBodyScrollLock` on first/last modal in stack so trackpad/wheel/touch does not scroll the page behind the overlay.
+- **UI Widgets example** — `jpulse-examples/ui-widgets.shtml`: Custom Dialog button opens a form (intro copy, text, textarea, checkbox, country jpSelect with search), `onOpen` initializes jpSelect then `initAll`; OK summarizes fields in a toast.
+- **Tests** — `webapp/tests/unit/user/user-extension-schema-defaults.test.js`: missing block, override, partial merge with nested default.
+- **Docs** — `docs/api-reference.md`, `docs/plugins/plugin-api-reference.md`, `docs/jpulse-ui-reference.md` (Dialog Features: background scroll lock; keyboard bullets for textarea vs input).
+
+**Files changed**:
+- `webapp/model/user.js`: `_defaultsTreeFromSchema`, `applyExtensionSchemaDefaults`
+- `webapp/controller/user.js`: `get` applies extension defaults after removing `passwordHash`
+- `webapp/view/jpulse-common.js`: `_dialogBodyScrollLockSnapshot`; `_applyDialogBodyScrollLock` / `_releaseDialogBodyScrollLock`; `_trapFocus` textarea vs input branches
+- `webapp/view/jpulse-examples/ui-widgets.shtml`: Custom Dialog form demo, `.local-custom-dialog-form` CSS, source panel snippet
+- `webapp/tests/unit/user/user-extension-schema-defaults.test.js`
+- `docs/api-reference.md`, `docs/plugins/plugin-api-reference.md`, `docs/jpulse-ui-reference.md`
+
+**Limitation (user API)**: Only **top-level** extension blocks (keys not in `baseSchema`). Fields merged deeper under core objects like `profile` via `deepMerge` are not hydrated by this pass.
+
+**Release**:
+- Work Item: W-179
+- Version: v1.6.36
+- Release Date: 2026-03-25
 
 ________________________________________________
 ## v1.6.35, W-178, 2026-03-24
@@ -13,14 +45,15 @@ ________________________________________________
 
 **Key Features**:
 - **Tag suggestions** — Call `jPulse.UI.input.tagInput.setSuggestions(el, suggestions)` after `initAll()` to attach a suggestion pool. A dropdown appears while the user types (minimum 2 characters, configurable via `data-suggest-min`), filtered to exclude tags already added. ArrowDown always opens the full list; ArrowUp/Down navigate; Enter picks the highlighted item; Escape closes. Clicking a row also adds the tag. Pass `null` or `[]` to remove suggestions and clean up.
-- **Modal dialog keyboard fix** — Previously, the dialog's capture-phase keyboard handler accidentally blocked key events before input fields or widgets could see them. Now text inputs and textareas receive all keys unmodified (arrow keys still prevent page scrolling behind the overlay). This makes tag suggestions work inside `confirmDialog` without any site-specific workaround.
+- **Modal dialog keyboard fix** — Previously, the dialog's capture-phase handler returned early for `<input>` / `<textarea>` but called `preventDefault` on Arrow/Page keys to stop the page behind the modal from scrolling. That broke native behavior: **`<textarea>`** needs those keys for moving the caret between lines. **Fix:** for `<textarea>`, return without `preventDefault` on those keys. For `<input>`, keep `preventDefault` on scroll keys except `type="number"` / `type="range"` (native spinner). Tag suggestions and jpSelect still receive keys as before.
 - **jpSelect keyboard in dialogs** — The same fix extends to jpSelect: the trigger button and open dropdown now receive Enter, Space, and arrow keys correctly. ArrowDown/Up on the trigger opens the list (or moves focus to it). Previously, pressing Enter on a jpSelect trigger would incorrectly click the dialog's default button.
 - **CSS** — New `.jp-taginput-suggest-*` classes, all styled with `--jp-theme-*` variables for light/dark theme support.
 - **Tests** — Seven new scenarios in `jpulse-ui-input-taginput.test.js` covering filtering, exclusion of existing tags, keyboard navigation, mouse pick, idempotent re-call, and teardown.
 - **Docs** — `docs/jpulse-ui-reference.md` updated with `setSuggestions` API, dialog keyboard notes, and jpSelect keyboard guidance.
+- **Modal background scroll lock** — While a dialog is open, `jPulse.UI._applyDialogBodyScrollLock()` sets `overflow: hidden` on `html`/`body` and `overscroll-behavior: none` (with scrollbar-width padding on `body` when needed) so the page behind the overlay does not scroll with trackpad/wheel/touch. Released when the dialog stack becomes empty (`_releaseDialogBodyScrollLock` from `_closeDialog`).
 
 **Files changed**:
-- `webapp/view/jpulse-common.js`: `tagInput.setSuggestions`; `addTag` extracted and exposed; `_trapFocus` keyboard fix; jpSelect trigger arrow keys
+- `webapp/view/jpulse-common.js`: `tagInput.setSuggestions`; `addTag` extracted and exposed; `_trapFocus` keyboard fix; jpSelect trigger arrow keys; `_applyDialogBodyScrollLock` / `_releaseDialogBodyScrollLock`
 - `webapp/view/jpulse-common.css`: tag suggestion dropdown styles
 - `webapp/tests/unit/utils/jpulse-ui-input-taginput.test.js`: setSuggestions test suite
 - `docs/jpulse-ui-reference.md`: new API docs

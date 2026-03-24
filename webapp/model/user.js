@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.6.35
- * @release         2026-03-24
+ * @version         1.6.36
+ * @release         2026-03-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -440,6 +440,60 @@ class UserModel {
         if (result.updatedBy === undefined) result.updatedBy = '';
         if (result.docVersion === undefined) result.docVersion = 1;
 
+        return result;
+    }
+
+    /**
+     * Build a plain object of default values from a schema subtree (plugin/site extension block).
+     * Skips `_meta`; recurses into nested objects; leaf fields must have `type` and `default`.
+     *
+     * @param {object} schemaNode - Block or nested definition from merged UserModel.schema
+     * @returns {object|undefined} Defaults object, or undefined if nothing to apply
+     */
+    static _defaultsTreeFromSchema(schemaNode) {
+        if (!schemaNode || typeof schemaNode !== 'object') return undefined;
+        if (schemaNode.type !== undefined) {
+            if (schemaNode.default === undefined) return undefined;
+            const d = schemaNode.default;
+            return typeof d === 'function' ? d() : d;
+        }
+        const out = {};
+        let has = false;
+        for (const [k, v] of Object.entries(schemaNode)) {
+            if (k === '_meta') continue;
+            if (!v || typeof v !== 'object') continue;
+            const sub = this._defaultsTreeFromSchema(v);
+            if (sub !== undefined) {
+                out[k] = sub;
+                has = true;
+            }
+        }
+        return has ? out : undefined;
+    }
+
+    /**
+     * Merge defaults from extended user schema into API-facing user data for keys not in baseSchema.
+     * Ensures GET responses include plugin/site extension sections (e.g. bubblemap) with schema defaults
+     * when those sections are absent in the stored document.
+     *
+     * @param {object} data - User document (no passwordHash)
+     * @returns {object} Data with extension defaults merged (stored values win)
+     */
+    static applyExtensionSchemaDefaults(data) {
+        if (!data || typeof data !== 'object') return data;
+        if (!this.schema) this.initializeSchema();
+        const baseKeys = new Set(Object.keys(this.baseSchema));
+        const result = { ...data };
+        for (const key of Object.keys(this.schema)) {
+            if (baseKeys.has(key)) continue;
+            const blockSchema = this.schema[key];
+            if (!blockSchema || typeof blockSchema !== 'object') continue;
+            const defaultsTree = this._defaultsTreeFromSchema(blockSchema);
+            if (defaultsTree === undefined) continue;
+            const existing = result[key];
+            const baseObj = existing && typeof existing === 'object' && !Array.isArray(existing) ? existing : {};
+            result[key] = CommonUtils.deepMerge({}, defaultsTree, baseObj);
+        }
         return result;
     }
 

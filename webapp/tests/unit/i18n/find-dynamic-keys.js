@@ -3,8 +3,8 @@
  * @tagline         Helper script to find dynamic i18n key usage
  * @description     Standalone script to search for dynamic i18n key patterns
  * @file            webapp/tests/unit/i18n/find-dynamic-keys.js
- * @version         1.6.35
- * @release         2026-03-24
+ * @version         1.6.36
+ * @release         2026-03-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -18860,3 +18860,46 @@ User noted release prep had omitted `webapp/view/jpulse-common.js` and `webapp/v
 
 
 ============================================================
+2026-04-11 14:45
+
+mobile fixes needed — fix dialog overflow on narrow/short screens.
+Reported root cause: jPulse.UI.confirmDialog() sets minWidth as inline style, defeating CSS max-width/media-query rules on mobile. Asked for plan of action, then approved with 8px side margins instead of 12px.
+
+Implemented two changes:
+1. webapp/view/jpulse-common.js _createDialogElement: replaced raw size-application block with viewport-aware capping. When vw < 600, caps effectiveMinWidth to max(280, vw - 16) and sets inline maxWidth/width. When vh < 800, caps effectiveMinHeight to max(200, vh - 80) and sets inline maxHeight. Explicit config.width/config.height overrides still apply after capping.
+2. webapp/view/jpulse-common.css mobile responsive block: changed breakpoint from 768px to 600px, set width/max-width to calc(100vw - 16px), added min-width: 0 as safety net, margin 8px, padding-left/right 16px.
+Site-level cleanup (map-canvas-actions.tmpl onOpen workarounds and dlgW pre-computation) deferred to site repo after framework is deployed.
+
+
+============================================================
+2026-04-11 14:57
+
+mobile fixes: label+control stacking on narrow screens in user settings plugin cards.
+On narrow screens (< 500px), the fixed 180px label column in .local-plugin-field-grid left sliders with only ~130px — unusable. Agreed on Option A (stack: label above, control below full-width).
+
+Added @media (max-width: 500px) block to both files:
+- webapp/view/user/index.shtml: grid-template-columns: 1fr, gap: 4px 0, .local-plugin-field-value padding-bottom: 10px
+- webapp/view/admin/user-profile.shtml: same change
+
+
+============================================================
+2026-04-11 15:11
+
+Review tt-git-diff.txt for accuracy and completeness; create W-180 work item in docs/dev/work-items.md (5760-5768).
+
+Review: diff matches W-180 mobile work (jpulse-common.js dialog capping, jpulse-common.css .jp-dialog @600px, user/index.shtml + admin/user-profile.shtml .local-plugin-field-grid @500px, cursor_log entries). README.md change (✅ on Development/testing line) is unrelated to W-180 — exclude from release notes for this item. work-items.md: completed W-180 v1.6.37 with objectives/features/deliverables; moved from IN_PROGRESS stub to DONE section after W-179; cleared placeholder under IN_PROGRESS.
+
+
+============================================================
+2026-04-11 15:15
+
+Release prep W-180 v1.6.37 2026-04-12: User clarified W-180 should remain documented under ## IN_PROGRESS (not relocated after W-179). Updated README.md and docs/README.md (Latest Release Highlights first bullet), docs/CHANGELOG.md (new v1.6.37 section at top), docs/jpulse-ui-reference.md (Dialog Features — mobile viewport). Expanded W-180 deliverables in work-items.md for those docs. Wrote commit-message.txt. Did not change repo-wide version headers (user runs bump-version script). Appended cursor log.
+
+
+============================================================
+2026-04-11 15:22
+
+Rewrote Latest Release Highlights in README.md and docs/README.md for v1.6.34–v1.6.37 to be big-picture / end-user oriented (less API and CSS detail). Shortened jpulse-ui-reference.md Dialog Features mobile bullet to gist (“mobile-friendly sizing”, avoid onOpen hacks). Expanded commit-message.txt using tt-unused/commit-message.txt style (FEATURE RELEASE, Objective, Key Features, Code Changes, Documentation Updates, Work Item footer). Appended cursor log.
+
+
+============================================================

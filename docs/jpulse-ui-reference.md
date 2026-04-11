@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.36
+# jPulse Docs / jPulse.UI Widget Reference v1.6.37
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -274,6 +274,7 @@ const result = await jPulse.UI.confirmDialog({
 
 ### Dialog Features
 - **Draggable headers**: All dialogs can be dragged by their header
+- **Mobile-friendly sizing**: On small or short screens, dialogs stay within the visible area so users are not stuck with clipped or sideways-scrolling modals. You usually do not need extra `onOpen` sizing for typical phone layouts—the framework adjusts for you.
 - **Background scroll lock**: While at least one modal is open, the framework locks page scrolling (`overflow: hidden` on `html` and `body`, `overscroll-behavior: none`, and optional `padding-right` to offset the missing scrollbar) so trackpad/touch/wheel does not scroll the content behind the overlay. Restored when the last dialog in the stack closes.
 - **Dialog stacking**: Multiple dialogs stack with automatic z-index management; only the topmost dialog responds to keyboard events
 - **HTML support**: Message content supports simple HTML (site owner controlled)

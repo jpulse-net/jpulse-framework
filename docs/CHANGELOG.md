@@ -1,6 +1,34 @@
-# jPulse Docs / Version History v1.6.36
+# jPulse Docs / Version History v1.6.37
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.37, W-180, 2026-04-12
+
+**Commit:** `W-180, v1.6.37: mobile: dialog viewport sizing; plugin settings field grid on narrow screens`
+
+**Objective**: (1) Modal dialogs must not overflow narrow or short viewports: inline `minWidth` / `minHeight` from `confirmDialog` / `_createDialogElement` must not defeat stylesheet `max-width` / media queries. (2) Extension-schema plugin cards in the user settings SPA and admin Manage User must keep sliders and text inputs usable on phones; the fixed two-column label grid (`180px` + `1fr`) left too little width for controls.
+
+**Summary**: `_createDialogElement` applies viewport-aware caps: when `window.innerWidth < 600`, effective `minWidth` is capped to `max(280, vw - 16)` with matching inline `maxWidth` / `width`; when `window.innerHeight < 800`, effective `minHeight` is capped to `max(200, vh - 80)` with inline `maxHeight`. `.jp-dialog` mobile rules use `@media (max-width: 600px)` with `width` / `max-width` `calc(100vw - 16px)`, `min-width: 0`, `margin: 8px`, and 16px horizontal padding in header / content / buttons. User SPA (`user/index.shtml`) and admin user profile (`admin/user-profile.shtml`) add `@media (max-width: 500px)` so `.local-plugin-field-grid` becomes a single column (label row, then full-width control).
+
+**Key Features**:
+- **Dialog viewport capping** — Inline dialog dimensions align with small viewports so `min-width` cannot force horizontal overflow.
+- **Dialog CSS** — Narrow-screen `.jp-dialog` block aligned to 600px breakpoint and 16px total horizontal inset (8px margin each side).
+- **Plugin settings grid** — On viewports ≤500px, label stacks above control; sliders and inputs use full content width.
+
+**Files changed**:
+- `webapp/view/jpulse-common.js`: `_createDialogElement` viewport-aware min width/height and inline max dimensions
+- `webapp/view/jpulse-common.css`: `.jp-dialog` mobile responsive block
+- `webapp/view/user/index.shtml`: `.local-plugin-field-grid` narrow-screen stacking (inline styles)
+- `webapp/view/admin/user-profile.shtml`: same `.local-plugin-field-grid` media query
+- `docs/jpulse-ui-reference.md`: Dialog Features — mobile viewport bullet
+
+**Site-level (optional)**: After deploy, sites may remove redundant dialog `onOpen` width workarounds where the framework now handles sizing.
+
+**Release**:
+- Work Item: W-180
+- Version: v1.6.37
+- Release Date: 2026-04-12
 
 ________________________________________________
 ## v1.6.36, W-179, 2026-03-25

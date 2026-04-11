@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-014 SiteControllerRegistry auto-discovery utility
  * @description     Tests site controller auto-discovery and API registration functionality
  * @file            webapp/tests/unit/utils/site-controller-registry.test.js
- * @version         1.6.36
- * @release         2026-03-25
+ * @version         1.6.37
+ * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

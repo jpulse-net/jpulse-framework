@@ -1,4 +1,4 @@
-# jPulse Docs / Application Cluster Communication v1.6.36
+# jPulse Docs / Application Cluster Communication v1.6.37
 
 ## Overview
 

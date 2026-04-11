@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.6.36
- * @release         2026-03-25
+ * @version         1.6.37
+ * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -4152,18 +4152,19 @@ body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {
 }
 
 /* Mobile Responsive */
-@media (max-width: 768px) {
+@media (max-width: 600px) {
     .jp-dialog {
-        width: 95vw;
-        max-width: none;
-        margin: 10px;
+        width: calc(100vw - 16px);
+        max-width: calc(100vw - 16px);
+        min-width: 0;
+        margin: 8px;
     }
 
     .jp-dialog-header,
     .jp-dialog-content,
     .jp-dialog-buttons {
-        padding-left: 20px;
-        padding-right: 20px;
+        padding-left: 16px;
+        padding-right: 16px;
     }
 }
 

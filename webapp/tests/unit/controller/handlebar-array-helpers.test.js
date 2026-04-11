@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-136: Array helpers (array.at, array.first, array.includes, array.isEmpty, array.join, array.last, array.length)
  * @description     Tests for array helpers with support for arrays, JSON arrays, and objects (selective)
  * @file            webapp/tests/unit/controller/handlebar-array-helpers.test.js
- * @version         1.6.36
- * @release         2026-03-25
+ * @version         1.6.37
+ * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

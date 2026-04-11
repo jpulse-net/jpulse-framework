@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.36
- * @release         2026-03-25
+ * @version         1.6.37
+ * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -5987,11 +5987,29 @@ window.jPulse = {
             const dialog = document.createElement('div');
             dialog.className = `jp-dialog jp-dialog-${type}`;
 
-            // Apply size configuration
+            // Apply size configuration — cap to viewport on narrow/short screens so that
+            // inline min-width/min-height cannot overflow the viewport (inline styles beat CSS max-width).
+            const vw = window.innerWidth || 400;
+            const vh = window.innerHeight || 600;
+
+            let effectiveMinWidth = config.minWidth;
+            let effectiveMinHeight = config.minHeight;
+
+            if (vw < 600 && effectiveMinWidth) {
+                const cappedW = Math.max(280, vw - 16);
+                effectiveMinWidth = Math.min(effectiveMinWidth, cappedW);
+                dialog.style.maxWidth = cappedW + 'px';
+                dialog.style.width    = cappedW + 'px';
+            }
+            if (vh < 800 && effectiveMinHeight) {
+                const cappedH = Math.max(200, vh - 80);
+                effectiveMinHeight = Math.min(effectiveMinHeight, cappedH);
+                dialog.style.maxHeight = cappedH + 'px';
+            }
             if (config.width) dialog.style.width = typeof config.width === 'number' ? `${config.width}px` : config.width;
-            if (config.minWidth) dialog.style.minWidth = typeof config.minWidth === 'number' ? `${config.minWidth}px` : config.minWidth;
+            if (effectiveMinWidth) dialog.style.minWidth = typeof effectiveMinWidth === 'number' ? `${effectiveMinWidth}px` : effectiveMinWidth;
             if (config.height) dialog.style.height = typeof config.height === 'number' ? `${config.height}px` : config.height;
-            if (config.minHeight) dialog.style.minHeight = typeof config.minHeight === 'number' ? `${config.minHeight}px` : config.minHeight;
+            if (effectiveMinHeight) dialog.style.minHeight = typeof effectiveMinHeight === 'number' ? `${effectiveMinHeight}px` : effectiveMinHeight;
 
             dialog.innerHTML = `
                 <div class="jp-dialog-header jp-dialog-header-${type}">

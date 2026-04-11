@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.36
+# jPulse Docs / Dev / Work Items v1.6.37
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5717,16 +5717,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - call jPulse.UI.input.tagInput.setSuggestions(tagsEl, allMapTags) in onOpen after initAll()
   - custom per-site dialog `keydown` patches should not be required for tagInput or jpSelect inside `confirmDialog` in v1.6.35+ (framework `_trapFocus` defers those keys)
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-179, v1.6.36, 2026-03-25: user API: return data with extend schema defaults; jPulse.UI: modal scroll lock, fix textarea keys, UI widgets dialog demo
 - status: ✅ DONE
 - type: Feature
@@ -5764,6 +5754,46 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-180, v1.6.37, 2026-04-12: mobile: dialog viewport sizing; plugin settings field grid on narrow screens
+
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - dialogs must not overflow narrow or short viewports: inline `minWidth` / `minHeight` from `jPulse.UI.confirmDialog` / `_createDialogElement` must not defeat stylesheet `max-width` / media queries (CSS: when `min-width` > `max-width`, min wins)
+  - extension-schema plugin cards (user settings SPA and admin user profile) must keep sliders and text inputs usable on phones; fixed two-column label grid (`180px` + `1fr`) leaves too little width for controls on small screens
+- features:
+  - `_createDialogElement`: when `window.innerWidth < 600`, cap effective `minWidth` to `max(280, vw - 16)` and set matching inline `maxWidth` / `width`; when `window.innerHeight < 800`, cap effective `minHeight` to `max(200, vh - 80)` and set inline `maxHeight`; explicit `config.width` / `config.height` still applied after capping
+  - `.jp-dialog` mobile rules: `@media (max-width: 600px)` — `width` / `max-width` `calc(100vw - 16px)` (8px margin each side), `min-width: 0`, `margin: 8px`, header / content / buttons horizontal padding 16px (replaces prior 768px / 95vw / 10px margin block)
+  - `.local-plugin-field-grid`: `@media (max-width: 500px)` single-column stack (label row, then control row full width); `gap: 4px 0`; `.local-plugin-field-value` `padding-bottom: 10px` between field pairs
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - `_createDialogElement`: viewport-aware min width/height capping and inline max dimensions as above
+  - `webapp/view/jpulse-common.css`:
+    - `.jp-dialog` mobile responsive block (600px breakpoint, 16px total horizontal inset)
+  - `webapp/view/user/index.shtml`:
+    - inline `<style>`: `.local-plugin-field-grid` narrow-screen stacking for user SPA plugin cards
+  - `webapp/view/admin/user-profile.shtml`:
+    - same `.local-plugin-field-grid` media query for admin user profile plugin cards
+  - `README.md`, `docs/README.md`:
+    - Latest Release Highlights — v1.6.37 / W-180 bullet
+  - `docs/CHANGELOG.md`:
+    - v1.6.37 / W-180 section
+  - `docs/jpulse-ui-reference.md`:
+    - Dialog Features — **Mobile viewport (v1.6.37+)** bullet (`_createDialogElement` caps, `.jp-dialog` media query)
+- site-level (optional, after framework deploy):
+  - remove redundant dialog `onOpen` width workarounds; simplify fixed `minWidth` where a precomputed width existed only for viewport safety
+
+
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -5790,8 +5820,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-179, v1.6.36, 2026-03-25
-- update features & deliverables in W-179 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-180, v1.6.37, 2026-04-12
+- update features & deliverables in W-180 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5802,12 +5832,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.36 2026-03-25
+node bin/bump-version.js 1.6.37 2026-04-12
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.36; git push origin main --tags
+git tag v1.6.37; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

@@ -3,7 +3,7 @@
  * @tagline         Redis connection management with cluster support and graceful fallback
  * @description     Manages Redis connections for sessions, WebSocket, broadcasting, and metrics
  * @file            webapp/utils/redis-manager.js
- * @version         1.6.37
+ * @version         1.6.38
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -71,7 +71,16 @@ class RedisManager {
         misses: 0,
         sets: 0,
         gets: 0,
-        deletes: 0
+        deletes: 0,
+        // W-181: distributed lock counters (Redis cache client paths only)
+        lockAcquireOk: 0,
+        lockAcquireDenied: 0,
+        lockAcquireFallback: 0,
+        lockAcquireErrors: 0,
+        lockReleaseOk: 0,
+        lockReleaseNoop: 0,
+        lockReleaseFallback: 0,
+        lockReleaseErrors: 0
     };
 
     /**
@@ -915,6 +924,16 @@ class RedisManager {
                         sets: this._cacheStats.sets,
                         gets: this._cacheStats.gets,
                         deletes: this._cacheStats.deletes
+                    },
+                    locks: {
+                        acquireOk: this._cacheStats.lockAcquireOk,
+                        acquireDenied: this._cacheStats.lockAcquireDenied,
+                        acquireFallback: this._cacheStats.lockAcquireFallback,
+                        acquireErrors: this._cacheStats.lockAcquireErrors,
+                        releaseOk: this._cacheStats.lockReleaseOk,
+                        releaseNoop: this._cacheStats.lockReleaseNoop,
+                        releaseFallback: this._cacheStats.lockReleaseFallback,
+                        releaseErrors: this._cacheStats.lockReleaseErrors
                     }
                 }
             },
@@ -964,6 +983,31 @@ class RedisManager {
                     },
                     'cache.operations.deletes': {
                         aggregate: 'sum'    // Total deletes cluster-wide
+                    },
+                    // W-181: lock metrics (cluster-wide sums)
+                    'cache.locks.acquireOk': {
+                        aggregate: 'sum'
+                    },
+                    'cache.locks.acquireDenied': {
+                        aggregate: 'sum'
+                    },
+                    'cache.locks.acquireFallback': {
+                        aggregate: 'sum'
+                    },
+                    'cache.locks.acquireErrors': {
+                        aggregate: 'sum'
+                    },
+                    'cache.locks.releaseOk': {
+                        aggregate: 'sum'
+                    },
+                    'cache.locks.releaseNoop': {
+                        aggregate: 'sum'
+                    },
+                    'cache.locks.releaseFallback': {
+                        aggregate: 'sum'
+                    },
+                    'cache.locks.releaseErrors': {
+                        aggregate: 'sum'
                     }
                 }
             },
@@ -1677,6 +1721,157 @@ class RedisManager {
             global.LogController?.logError(null, 'redis-manager.cacheCheckRateLimit',
                 `Failed to check rate limit: ${error.message}`);
             return { allowed: true, count: 0, retryAfter: 0 }; // Fail open
+        }
+    }
+
+    /**
+     * Lua script: delete lock key only if value matches holder (owner-safe release).
+     * KEYS[1] = lock key, ARGV[1] = instance id that must own the lock
+     * @private
+     */
+    static _cacheLockReleaseScript = `
+        if redis.call("GET", KEYS[1]) == ARGV[1] then
+            return redis.call("DEL", KEYS[1])
+        end
+        return 0
+    `;
+
+    /**
+     * Validate lock owner token (non-empty string after coercion).
+     * @param {string} instanceId - Holder id (e.g. process pid or startup UUID)
+     * @returns {boolean}
+     * @private
+     */
+    static _validateLockInstanceId(instanceId) {
+        if (instanceId === null || instanceId === undefined) {
+            global.LogController?.logError(null, 'redis-manager._validateLockInstanceId',
+                'Lock instanceId is required');
+            return false;
+        }
+        const s = String(instanceId);
+        if (s.length === 0) {
+            global.LogController?.logError(null, 'redis-manager._validateLockInstanceId',
+                'Lock instanceId must be non-empty');
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Acquire a distributed lock for a cache-scoped resource (atomic SET NX EX).
+     * Uses the same path/key naming as other cache APIs (`component:namespace:category`, key).
+     *
+     * **Graceful degradation**: If Redis is disabled or unavailable, returns `true` so a single
+     * instance can proceed without cluster-wide exclusion (safe for single-node deploys).
+     *
+     * @param {string} path - Colon-separated path: `component:namespace:category[:subcategory]*`
+     * @param {string} key - Resource id (e.g. map id, job id)
+     * @param {string} instanceId - Lock owner token stored in Redis (must match on release)
+     * @param {number} ttlSeconds - Lock TTL; key auto-deletes if holder crashes
+     * @returns {Promise<boolean>} `true` if lock held by this instance (or Redis unavailable), `false` if held by another or on validation/command error
+     */
+    static async cacheLockAcquire(path, key, instanceId, ttlSeconds) {
+        const parsed = RedisManager._parseCachePath(path);
+        if (!parsed || !RedisManager._validateCacheParams(parsed.component, parsed.namespace, parsed.category, key)) {
+            return false;
+        }
+        if (!RedisManager._validateLockInstanceId(instanceId)) {
+            return false;
+        }
+
+        const ttl = Number(ttlSeconds);
+        if (!Number.isFinite(ttl) || ttl < 1 || ttl > 2147483647) {
+            global.LogController?.logError(null, 'redis-manager.cacheLockAcquire',
+                `ttlSeconds must be a finite number between 1 and 2147483647, got: ${ttlSeconds}`);
+            return false;
+        }
+        if (ttl > 31536000) {
+            global.LogController?.logWarning(null, 'redis-manager.cacheLockAcquire',
+                `Very large lock TTL (${ttl}s = ${(ttl / 86400).toFixed(1)} days)`);
+        }
+
+        const redis = RedisManager.getClient('cache');
+        if (!redis) {
+            RedisManager._cacheStats.lockAcquireFallback++;
+            global.LogController?.logInfo(null, 'redis-manager.cacheLockAcquire',
+                'Redis cache unavailable — lock acquire treated as granted (single-instance fallback)');
+            return true;
+        }
+
+        const lockKey = RedisManager._buildCacheKey(parsed.component, parsed.namespace, parsed.category, key);
+        const token = String(instanceId);
+
+        try {
+            const result = await redis.set(lockKey, token, 'EX', Math.floor(ttl), 'NX');
+            const acquired = result === 'OK';
+            if (acquired) {
+                RedisManager._cacheStats.lockAcquireOk++;
+                global.LogController?.logInfo(null, 'redis-manager.cacheLockAcquire',
+                    `Lock acquired: ${lockKey} (ttl: ${Math.floor(ttl)}s)`);
+            } else {
+                RedisManager._cacheStats.lockAcquireDenied++;
+            }
+            return acquired;
+        } catch (error) {
+            RedisManager._cacheStats.lockAcquireErrors++;
+            global.LogController?.logError(null, 'redis-manager.cacheLockAcquire',
+                `Failed to acquire lock: ${error.message}`);
+            return false;
+        }
+    }
+
+    /**
+     * Release a lock only if this instance still owns it (atomic GET + conditional DEL via Lua).
+     *
+     * **Graceful degradation**: If Redis is disabled or unavailable, returns `true` (no-op success)
+     * so callers can always pair release with acquire in fallback mode.
+     *
+     * @param {string} path - Same path used for `cacheLockAcquire`
+     * @param {string} key - Same key used for `cacheLockAcquire`
+     * @param {string} instanceId - Must match the token stored at acquire time
+     * @returns {Promise<boolean>} `true` if this instance released the lock or Redis unavailable; `false` if not owned or error
+     */
+    static async cacheLockRelease(path, key, instanceId) {
+        const parsed = RedisManager._parseCachePath(path);
+        if (!parsed || !RedisManager._validateCacheParams(parsed.component, parsed.namespace, parsed.category, key)) {
+            return false;
+        }
+        if (!RedisManager._validateLockInstanceId(instanceId)) {
+            return false;
+        }
+
+        const redis = RedisManager.getClient('cache');
+        if (!redis) {
+            RedisManager._cacheStats.lockReleaseFallback++;
+            global.LogController?.logInfo(null, 'redis-manager.cacheLockRelease',
+                'Redis cache unavailable — lock release treated as success (single-instance fallback)');
+            return true;
+        }
+
+        const lockKey = RedisManager._buildCacheKey(parsed.component, parsed.namespace, parsed.category, key);
+        const token = String(instanceId);
+
+        try {
+            const deleted = await redis.eval(
+                RedisManager._cacheLockReleaseScript,
+                1,
+                lockKey,
+                token
+            );
+            const released = Number(deleted) === 1;
+            if (released) {
+                RedisManager._cacheStats.lockReleaseOk++;
+                global.LogController?.logInfo(null, 'redis-manager.cacheLockRelease',
+                    `Lock released: ${lockKey}`);
+            } else {
+                RedisManager._cacheStats.lockReleaseNoop++;
+            }
+            return released;
+        } catch (error) {
+            RedisManager._cacheStats.lockReleaseErrors++;
+            global.LogController?.logError(null, 'redis-manager.cacheLockRelease',
+                `Failed to release lock: ${error.message}`);
+            return false;
         }
     }
 

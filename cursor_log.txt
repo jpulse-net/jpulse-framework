@@ -18903,3 +18903,68 @@ Rewrote Latest Release Highlights in README.md and docs/README.md for v1.6.34–
 
 
 ============================================================
+2026-04-11 16:45
+
+Extend/refresh deferred as tech debt; add lock metrics. Update work item, enhance code.
+
+W-181 work-items.md: status DONE; path naming (path not category); metrics deliverable; docs point to docs/cache-infrastructure.md only; tech debt note for cacheLockExtend/TTL refresh; deliverables list updated. redis-manager.js: _cacheStats lock counters (acquire ok/denied/fallback/errors, release ok/noop/fallback/errors); increments in cacheLockAcquire/cacheLockRelease; getMetrics stats.cache.locks + meta.fields aggregate sum for each. docs/cache-infrastructure.md: metrics table under Distributed locks.
+
+
+============================================================
+2026-04-11 17:10
+
+go for it — add W-181 unit tests in redis-cache.test.js
+
+Added mockRedisClient.eval; describe Distributed locks (W-181) with cacheLockAcquire (OK, denied, fallback, invalid path/ttl/instanceId, SET error), cacheLockRelease (Lua 1/0, fallback, eval error), getMetrics stats.cache.locks. Extended Graceful Fallback with lock acquire/release when cache null. Cache Metrics _cacheStats resets include all eight lock counters. File header v1.6.38. jest webapp/tests/unit/utils/redis-cache.test.js passed.
+
+
+============================================================
+2026-04-11 17:20
+
+Add Redis lock metrics to System Status GUI (instance details + Redis Cache card).
+
+webapp/view/admin/system-status.shtml: after cache hit/miss rows, push stats.cache.locks fields (eight counters) in cluster Redis Cache card and in per-instance component metrics when compName === redis; extended formatFieldName and instance-details formatField cacheFieldMap with lock labels (Lock Acquire OK, etc.).
+
+
+============================================================
+2026-04-11 17:25
+
+Split component status Redis Cache vs Redis Lock cards; i18n for metric labels.
+
+system-status.shtml: third card Redis Lock (title i18n redisLock) with lock rows only; cache card cache-only; app.metricLabels from {{i18n.view.admin.systemStatus.componentHealth.*}}; formatFieldName uses metricLabels; instance details use app.formatFieldName (removed duplicate map). en.conf/de.conf: componentHealth redisLock, cacheHitRate…cacheMisses, lockAcquire* / lockRelease* keys.
+
+
+============================================================
+2026-04-11 17:30
+
+Revert metric-label i18n for system status (user: key-value metrics not fully i18nized).
+
+Removed componentHealth metric keys from en.conf/de.conf; removed app.metricLabels; restored hardcoded cacheFieldMap in formatFieldName and formatField in instance details; Redis Lock card title hardcoded "Redis Lock". Kept split Redis Cache / Redis Lock cards.
+
+
+============================================================
+2026-04-11 17:32
+
+Show 6 lock metrics in System Status (drop acquireFallback, releaseFallback from UI).
+
+system-status.shtml: both lockRows arrays; formatFieldName + formatField maps. docs/cache-infrastructure.md: note admin shows six; API still exposes all eight in getMetrics().
+
+
+============================================================
+2026-04-11 17:35
+
+Instance details: show all 8 lock metrics again (add acquireFallback, releaseFallback); summary cards stay at 6.
+
+system-status.shtml: instance lockRows + formatField map. docs/cache-infrastructure.md: clarify summary vs instance details.
+
+
+============================================================
+2026-04-11 17:55
+
+Release prep: W-181 — work-items features/deliverables; README + docs README highlights; CHANGELOG v1.6.38; api-reference distributed-locks link; commit-message.txt; cursor_log append (no version bump).
+
+Expanded W-181 features/deliverables only (System Status split cards, tests, api-reference). Added Latest Release Highlights bullet for v1.6.38 W-181; prepended CHANGELOG section; api-reference server-side block: commented cacheLockAcquire/Release lines + link to cache-infrastructure#distributed-locks-v1638. Wrote commit-message.txt for W-181. Left README/doc titles at v1.6.37 until bump script.
+
+
+============================================================
+

@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.37
+# jPulse Docs / REST API Reference v1.6.38
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -2299,7 +2299,13 @@ const objects = await RedisManager.cacheGetObjectsByPattern(category, pattern); 
 // Rate limiting
 const result = await RedisManager.cacheCheckRateLimit(category, identifier, maxRequests, windowSeconds);
 // Returns: { allowed, current, limit, remaining, retryAfter }
+
+// Distributed locks (multi-instance coordination; no REST proxy — server-side only)
+// await RedisManager.cacheLockAcquire(lockPath, resourceKey, instanceId, ttlSeconds);
+// await RedisManager.cacheLockRelease(lockPath, resourceKey, instanceId);
 ```
+
+**Distributed locks:** See [Cache Infrastructure — Distributed locks](cache-infrastructure.md#distributed-locks-v1638) for full behavior, graceful degradation, metrics (`stats.cache.locks`), and examples.
 
 **Key Naming Convention:**
 - Category: `'controller:name'`, `'model:name'`, or `'feature:name'`

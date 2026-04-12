@@ -3,7 +3,7 @@
  * @tagline         Hello Plugin Data Model
  * @description     Simple data model demonstrating plugin structure
  * @file            plugins/hello-world/webapp/model/helloPlugin.js
- * @version         1.6.37
+ * @version         1.6.38
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

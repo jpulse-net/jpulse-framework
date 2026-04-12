@@ -4,7 +4,7 @@
  * @tagline         Admin system status interface
  * @description     System monitoring and health dashboard for site administrators
  * @file            webapp/view/admin/system-status.shtml
- * @version         1.6.37
+ * @version         1.6.38
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -641,6 +641,46 @@
                             </div>
                         `;
                         this.elements.componentHealthGrid.appendChild(cacheCard);
+
+                        // Card 3: Redis Lock (W-181) — separate card from Redis Cache on component status
+                        if (cache.locks) {
+                            const locks = cache.locks;
+                            const lockStats = [];
+                            const lockRows = [
+                                ['lockAcquireOk', locks.acquireOk],
+                                ['lockAcquireDenied', locks.acquireDenied],
+                                ['lockAcquireErrors', locks.acquireErrors],
+                                ['lockReleaseOk', locks.releaseOk],
+                                ['lockReleaseNoop', locks.releaseNoop],
+                                ['lockReleaseErrors', locks.releaseErrors]
+                            ];
+                            lockRows.forEach(([key, v]) => {
+                                if (v !== undefined && v !== null) {
+                                    lockStats.push({
+                                        key,
+                                        value: Number(v).toLocaleString()
+                                    });
+                                }
+                            });
+
+                            const lockCard = document.createElement('div');
+                            lockCard.className = `jp-card jp-status-card jp-status-${status}`;
+                            lockCard.innerHTML = `
+                                <div class="jp-status-header">
+                                    <h3 class="jp-status-title">Redis Lock</h3>
+                                    <span class="jp-status-indicator ${indicatorClass}"></span>
+                                </div>
+                                <div class="jp-status-metrics">
+                                    ${lockStats.map(stat => `
+                                        <div class="jp-metric-row">
+                                            <span class="jp-metric-label">${this.formatFieldName(stat.key)}</span>
+                                            <span class="jp-metric-value">${stat.value}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `;
+                            this.elements.componentHealthGrid.appendChild(lockCard);
+                        }
                     } else {
                         // Standard card for non-Redis components
                         const card = document.createElement('div');
@@ -688,14 +728,20 @@
             },
 
             formatFieldName(name) {
-                // W-143: Special handling for cache metrics
+                // W-143 / W-181: Redis cache and lock metric row labels (English; values use toLocaleString)
                 const cacheFieldMap = {
                     'cacheHitRate': 'Cache Hit Rate',
                     'cacheGets': 'Cache Gets',
                     'cacheSets': 'Cache Sets',
                     'cacheDeletes': 'Cache Deletes',
                     'cacheHits': 'Cache Hits',
-                    'cacheMisses': 'Cache Misses'
+                    'cacheMisses': 'Cache Misses',
+                    'lockAcquireOk': 'Lock Acquire OK',
+                    'lockAcquireDenied': 'Lock Acquire Denied',
+                    'lockAcquireErrors': 'Lock Acquire Errors',
+                    'lockReleaseOk': 'Lock Release OK',
+                    'lockReleaseNoop': 'Lock Release No-op',
+                    'lockReleaseErrors': 'Lock Release Errors'
                 };
 
                 if (cacheFieldMap[name]) {
@@ -846,25 +892,30 @@
                             }).map(inst => {
                                 const instanceComponents = inst.components || {};
                                 const formatField = (name) => {
-                                    // W-143: Special handling for cache metrics
                                     const cacheFieldMap = {
                                         'cacheHitRate': 'Cache Hit Rate',
                                         'cacheGets': 'Cache Gets',
                                         'cacheSets': 'Cache Sets',
                                         'cacheDeletes': 'Cache Deletes',
                                         'cacheHits': 'Cache Hits',
-                                        'cacheMisses': 'Cache Misses'
+                                        'cacheMisses': 'Cache Misses',
+                                        'lockAcquireOk': 'Lock Acquire OK',
+                                        'lockAcquireDenied': 'Lock Acquire Denied',
+                                        'lockAcquireFallback': 'Lock Acquire Fallback',
+                                        'lockAcquireErrors': 'Lock Acquire Errors',
+                                        'lockReleaseOk': 'Lock Release OK',
+                                        'lockReleaseNoop': 'Lock Release No-op',
+                                        'lockReleaseFallback': 'Lock Release Fallback',
+                                        'lockReleaseErrors': 'Lock Release Errors'
                                     };
 
                                     if (cacheFieldMap[name]) {
                                         return cacheFieldMap[name];
                                     }
 
-                                    // Convert camelCase to Title Case
-                                    // Add space before capital letters and before numbers after letters
                                     return name
                                         .replace(/([A-Z])/g, ' $1')
-                                        .replace(/([a-zA-Z])(\d)/g, '$1 $2')  // Add space before numbers after letters
+                                        .replace(/([a-zA-Z])(\d)/g, '$1 $2')
                                         .replace(/^./, str => str.toUpperCase())
                                         .trim();
                                 };
@@ -944,6 +995,28 @@
                                                 keyStats.push({
                                                     key: 'cacheMisses',
                                                     value: cache.misses.toLocaleString()
+                                                });
+                                            }
+                                            // W-181: distributed lock counters (per-instance)
+                                            if (cache.locks) {
+                                                const locks = cache.locks;
+                                                const lockRows = [
+                                                    ['lockAcquireOk', locks.acquireOk],
+                                                    ['lockAcquireDenied', locks.acquireDenied],
+                                                    ['lockAcquireFallback', locks.acquireFallback],
+                                                    ['lockAcquireErrors', locks.acquireErrors],
+                                                    ['lockReleaseOk', locks.releaseOk],
+                                                    ['lockReleaseNoop', locks.releaseNoop],
+                                                    ['lockReleaseFallback', locks.releaseFallback],
+                                                    ['lockReleaseErrors', locks.releaseErrors]
+                                                ];
+                                                lockRows.forEach(([key, v]) => {
+                                                    if (v !== undefined && v !== null) {
+                                                        keyStats.push({
+                                                            key,
+                                                            value: Number(v).toLocaleString()
+                                                        });
+                                                    }
                                                 });
                                             }
                                         }

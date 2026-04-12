@@ -1,6 +1,37 @@
-# jPulse Docs / Version History v1.6.37
+# jPulse Docs / Version History v1.6.38
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.38, W-181, 2026-04-12
+
+**Commit:** `W-181, v1.6.38: redis: support distributed locks for multi-instance jobs`
+
+**Objective**: Give site and plugin code safe, atomic distributed locks backed by Redis so multi-instance deployments can coordinate background work (for example snapshot or import tasks) without framework-level hacks. Required for BubbleMap T-063 Phase A–style coordination.
+
+**Summary**: `RedisManager.cacheLockAcquire(path, key, instanceId, ttlSeconds)` uses `SET` with `NX` and `EX`; `cacheLockRelease` uses a Lua script so only the owning instance deletes the key. When Redis is unavailable, acquire returns success for single-instance safety and release is a no-op success so try/finally stays balanced. `getMetrics()` adds `stats.cache.locks` (eight counters) with cluster aggregation metadata. Admin System Status splits **Redis Cache** and **Redis Lock** cards; the lock summary shows six counters; instance details show all eight. Documentation in `docs/cache-infrastructure.md` (Distributed locks); `docs/api-reference.md` links server-side callers to that section. Unit tests in `redis-cache.test.js` cover lock paths and Lua `eval`.
+
+**Key Features**:
+- **Distributed locks** — `cacheLockAcquire` / `cacheLockRelease` with path/key convention aligned to other cache APIs; TTL auto-releases crashed holders.
+- **Owner-safe release** — Lua compares stored value to `instanceId` before `DEL`.
+- **Graceful degradation** — Documented behavior when the Redis cache client is down.
+- **Metrics** — `stats.cache.locks` counters and dashboard field metadata; contention guidance (`acquireDenied` vs successes).
+- **System Status** — Separate lock card and full lock rows in instance metrics.
+- **Tests** — Redis cache unit tests extended for locks and `eval`.
+
+**Files changed**:
+- `webapp/utils/redis-manager.js`: `cacheLockAcquire`, `cacheLockRelease`, lock stats and metrics aggregation
+- `webapp/view/admin/system-status.shtml`: Redis Cache vs Redis Lock cards; lock metric labels in component health
+- `webapp/tests/unit/utils/redis-cache.test.js`: distributed lock and metrics tests
+- `docs/cache-infrastructure.md`: Distributed locks section (usage, degradation, metrics, admin summary vs instance)
+- `docs/api-reference.md`: Server-side Redis methods — distributed locks pointer to cache infrastructure
+
+**Tech debt / deferred**: Optional `cacheLockExtend` (TTL refresh) not implemented; short ticks do not require it.
+
+**Release**:
+- Work Item: W-181
+- Version: v1.6.38
+- Release Date: 2026-04-12
 
 ________________________________________________
 ## v1.6.37, W-180, 2026-04-12

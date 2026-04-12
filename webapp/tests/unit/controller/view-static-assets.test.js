@@ -3,7 +3,7 @@
  * @tagline         Unit tests for ViewController raw/static asset serving
  * @description     Ensures binary assets are served raw (no Handlebars), JSON is served raw, and SVG content-type is correct
  * @file            webapp/tests/unit/controller/view-static-assets.test.js
- * @version         1.6.37
+ * @version         1.6.38
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

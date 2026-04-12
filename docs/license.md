@@ -1,4 +1,4 @@
-# jPulse Docs / License, jPulse v1.6.37
+# jPulse Docs / License, jPulse v1.6.38
 
 ## Overview
 

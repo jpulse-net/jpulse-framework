@@ -1,4 +1,4 @@
-# jPulse Docs / Cache Infrastructure v1.6.37
+# jPulse Docs / Cache Infrastructure v1.6.38
 
 ## Overview
 
@@ -15,6 +15,7 @@ Both cache systems work together to provide a high-performance foundation for yo
 - **User-Scoped Caching**: Redis cache automatically isolates data per authenticated user
 - **Rate Limiting**: Built-in rate limiting helper for API protection
 - **Multi-Instance Support**: Redis cache synchronized across cluster instances
+- **Distributed Locks**: Atomic per-resource locks for background tasks and cluster coordination (`cacheLockAcquire` / `cacheLockRelease`)
 - **Graceful Degradation**: Application continues if Redis unavailable (cache operations return null)
 - **Comprehensive Monitoring**: Real-time cache metrics in System Status page
 
@@ -389,6 +390,61 @@ const values = await RedisManager.cacheGetByPattern(
 ```
 
 Path: `component:namespace:category` (e.g. `controller:presence:occupants`). Key pattern supports Redis-style wildcards (e.g. `mapId + ':*'`, `'*'`).
+
+### Distributed locks (v1.6.38)
+
+Use **atomic** locks when only one instance must run a critical section across a cluster (e.g. background snapshot job per map, scheduled imports). Locks use the same path/key convention as other cache APIs; the Redis value is your **instance id** token (e.g. `String(process.pid)` or a UUID created at server startup).
+
+| Method | Behavior |
+|--------|----------|
+| `cacheLockAcquire(path, key, instanceId, ttlSeconds)` | `SET` with `NX` and `EX` — returns `true` if this instance holds the lock, `false` if another holder exists |
+| `cacheLockRelease(path, key, instanceId)` | Lua script: delete only if `GET` matches `instanceId` — avoids releasing another instance’s lock |
+
+**Graceful degradation**
+
+- If Redis is unavailable, `cacheLockAcquire` returns **`true`** (caller proceeds; safe on a **single-instance** deploy where no peer competes for the lock).
+- If Redis is unavailable, `cacheLockRelease` returns **`true`** (no-op success) so try/finally release paths stay balanced.
+
+**Example**
+
+```javascript
+const instanceId = RedisManager.getInstanceId(); // or String(process.pid), etc.
+const lockPath = 'controller:myfeature:lock';
+const resourceId = mapId;
+const ttlSec = 120;
+
+const acquired = await RedisManager.cacheLockAcquire(lockPath, resourceId, instanceId, ttlSec);
+if (!acquired) {
+    return; // another instance holds the lock; retry later
+}
+try {
+    // Critical section: one instance at a time when Redis is up
+    await doWork(resourceId);
+} finally {
+    await RedisManager.cacheLockRelease(lockPath, resourceId, instanceId);
+}
+```
+
+Pick a **dedicated** path segment for locks (e.g. `controller:bubblesnapshot:lock`) so lock keys never collide with data keys under the same feature.
+
+**Metrics** (System Status / `RedisManager.getMetrics()`)
+
+Lock activity is counted under `stats.cache.locks` (per process; cluster aggregation sums where noted):
+
+| Field | Meaning |
+|-------|---------|
+| `acquireOk` | `SET … NX` succeeded (this instance holds the lock) |
+| `acquireDenied` | Key already held by another instance (contention) |
+| `acquireFallback` | Redis cache client unavailable — acquire returned success (single-instance mode) |
+| `acquireErrors` | Redis/command error during acquire |
+| `releaseOk` | Lua deleted the key (this instance owned the lock) |
+| `releaseNoop` | Lua did not delete (wrong owner or key already gone) |
+| `releaseFallback` | Redis unavailable — release treated as success |
+| `releaseErrors` | Redis/command error during release |
+
+**System Status (admin):** the cluster **summary** Redis Lock card lists six counters (`acquireOk`, `acquireDenied`, `acquireErrors`, `releaseOk`, `releaseNoop`, `releaseErrors`). **Instance details** list all eight, including `acquireFallback` and `releaseFallback`. `getMetrics()` always exposes the full set.
+
+Approximate **contention** when Redis is in use: `acquireDenied / (acquireOk + acquireDenied)`.
 
 ### Rate Limiting
 

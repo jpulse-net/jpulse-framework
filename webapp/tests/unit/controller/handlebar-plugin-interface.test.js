@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-116: Handlebars helper plugin interface
  * @description     Tests for custom helper registration, auto-discovery, and JSDoc extraction
  * @file            webapp/tests/unit/controller/handlebar-plugin-interface.test.js
- * @version         1.6.37
+ * @version         1.6.38
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-137 compliance reporting
  * @description     Tests for compliance scheduling, gating, and state handling
  * @file            webapp/tests/unit/controller/health-compliance.test.js
- * @version         1.6.37
+ * @version         1.6.38
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

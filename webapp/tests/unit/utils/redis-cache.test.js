@@ -3,7 +3,7 @@
  * @tagline         Unit tests for Redis cache wrapper operations (W-143)
  * @description     Tests cache operations, pattern methods, JSON handling, and rate limiting
  * @file            webapp/tests/unit/utils/redis-cache.test.js
- * @version         1.6.37
+ * @version         1.6.38
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -66,6 +66,7 @@ describe('Redis Cache Operations (W-143)', () => {
             expire: jest.fn().mockResolvedValue(1),
             scan: jest.fn().mockResolvedValue(['0', []]),
             mget: jest.fn().mockResolvedValue([]),
+            eval: jest.fn().mockResolvedValue(0),
             quit: jest.fn().mockResolvedValue('OK')
         };
 
@@ -1252,6 +1253,212 @@ describe('Redis Cache Operations (W-143)', () => {
     });
 
     // ========================================================================
+    // Distributed locks (W-181)
+    // ========================================================================
+
+    describe('Distributed locks (W-181)', () => {
+        const lockPath = 'controller:test:lock';
+        const resourceKey = 'resource-1';
+        const instanceId = 'test-lock-owner';
+
+        describe('cacheLockAcquire()', () => {
+            it('should acquire lock when SET returns OK', async () => {
+                mockRedisClient.set.mockResolvedValue('OK');
+
+                const result = await RedisManager.cacheLockAcquire(
+                    lockPath,
+                    resourceKey,
+                    instanceId,
+                    120
+                );
+
+                expect(result).toBe(true);
+                expect(mockRedisClient.set).toHaveBeenCalledWith(
+                    expect.stringContaining('lock'),
+                    instanceId,
+                    'EX',
+                    120,
+                    'NX'
+                );
+                expect(RedisManager._cacheStats.lockAcquireOk).toBe(1);
+                expect(RedisManager._cacheStats.lockAcquireDenied).toBe(0);
+            });
+
+            it('should return false when SET returns null (contention)', async () => {
+                mockRedisClient.set.mockResolvedValue(null);
+
+                const result = await RedisManager.cacheLockAcquire(
+                    lockPath,
+                    resourceKey,
+                    instanceId,
+                    60
+                );
+
+                expect(result).toBe(false);
+                expect(RedisManager._cacheStats.lockAcquireDenied).toBe(1);
+                expect(RedisManager._cacheStats.lockAcquireOk).toBe(0);
+            });
+
+            it('should return true and increment fallback when Redis cache client unavailable', async () => {
+                RedisManager.connections.cache = null;
+
+                const result = await RedisManager.cacheLockAcquire(
+                    lockPath,
+                    resourceKey,
+                    instanceId,
+                    30
+                );
+
+                expect(result).toBe(true);
+                expect(RedisManager._cacheStats.lockAcquireFallback).toBe(1);
+            });
+
+            it('should return false for invalid path', async () => {
+                mockRedisClient.set.mockClear();
+
+                const result = await RedisManager.cacheLockAcquire(
+                    'bad:path',
+                    resourceKey,
+                    instanceId,
+                    10
+                );
+
+                expect(result).toBe(false);
+                expect(mockRedisClient.set).not.toHaveBeenCalled();
+            });
+
+            it('should return false for invalid ttl', async () => {
+                mockRedisClient.set.mockClear();
+
+                const result = await RedisManager.cacheLockAcquire(
+                    lockPath,
+                    resourceKey,
+                    instanceId,
+                    0
+                );
+
+                expect(result).toBe(false);
+                expect(mockRedisClient.set).not.toHaveBeenCalled();
+            });
+
+            it('should return false for empty instanceId', async () => {
+                mockRedisClient.set.mockClear();
+
+                const result = await RedisManager.cacheLockAcquire(
+                    lockPath,
+                    resourceKey,
+                    '',
+                    10
+                );
+
+                expect(result).toBe(false);
+                expect(mockRedisClient.set).not.toHaveBeenCalled();
+            });
+
+            it('should increment acquireErrors when SET throws', async () => {
+                mockRedisClient.set.mockRejectedValue(new Error('Redis connection refused'));
+
+                const result = await RedisManager.cacheLockAcquire(
+                    lockPath,
+                    resourceKey,
+                    instanceId,
+                    10
+                );
+
+                expect(result).toBe(false);
+                expect(RedisManager._cacheStats.lockAcquireErrors).toBe(1);
+            });
+        });
+
+        describe('cacheLockRelease()', () => {
+            it('should return true when Lua deletes key (owner match)', async () => {
+                mockRedisClient.eval.mockResolvedValue(1);
+
+                const result = await RedisManager.cacheLockRelease(
+                    lockPath,
+                    resourceKey,
+                    instanceId
+                );
+
+                expect(result).toBe(true);
+                expect(mockRedisClient.eval).toHaveBeenCalled();
+                const evalArgs = mockRedisClient.eval.mock.calls[0];
+                expect(evalArgs[1]).toBe(1);
+                expect(evalArgs[2]).toContain('lock');
+                expect(evalArgs[3]).toBe(instanceId);
+                expect(RedisManager._cacheStats.lockReleaseOk).toBe(1);
+                expect(RedisManager._cacheStats.lockReleaseNoop).toBe(0);
+            });
+
+            it('should return false when Lua returns 0 (not deleted)', async () => {
+                mockRedisClient.eval.mockResolvedValue(0);
+
+                const result = await RedisManager.cacheLockRelease(
+                    lockPath,
+                    resourceKey,
+                    instanceId
+                );
+
+                expect(result).toBe(false);
+                expect(RedisManager._cacheStats.lockReleaseNoop).toBe(1);
+                expect(RedisManager._cacheStats.lockReleaseOk).toBe(0);
+            });
+
+            it('should return true and increment releaseFallback when Redis unavailable', async () => {
+                RedisManager.connections.cache = null;
+
+                const result = await RedisManager.cacheLockRelease(
+                    lockPath,
+                    resourceKey,
+                    instanceId
+                );
+
+                expect(result).toBe(true);
+                expect(RedisManager._cacheStats.lockReleaseFallback).toBe(1);
+            });
+
+            it('should increment releaseErrors when eval throws', async () => {
+                mockRedisClient.eval.mockRejectedValue(new Error('EVAL failed'));
+
+                const result = await RedisManager.cacheLockRelease(
+                    lockPath,
+                    resourceKey,
+                    instanceId
+                );
+
+                expect(result).toBe(false);
+                expect(RedisManager._cacheStats.lockReleaseErrors).toBe(1);
+            });
+        });
+
+        describe('getMetrics() lock stats', () => {
+            it('should expose stats.cache.locks with counters', () => {
+                RedisManager._cacheStats.lockAcquireOk = 2;
+                RedisManager._cacheStats.lockAcquireDenied = 1;
+                RedisManager._cacheStats.lockAcquireFallback = 0;
+                RedisManager._cacheStats.lockAcquireErrors = 0;
+                RedisManager._cacheStats.lockReleaseOk = 1;
+                RedisManager._cacheStats.lockReleaseNoop = 3;
+                RedisManager._cacheStats.lockReleaseFallback = 0;
+                RedisManager._cacheStats.lockReleaseErrors = 0;
+
+                const metrics = RedisManager.getMetrics();
+
+                expect(metrics.stats.cache.locks).toEqual({
+                    acquireOk: 2,
+                    acquireDenied: 1,
+                    acquireFallback: 0,
+                    acquireErrors: 0,
+                    releaseOk: 1,
+                    releaseNoop: 3,
+                    releaseFallback: 0,
+                    releaseErrors: 0
+                });
+            });
+        });
+    });
+
+    // ========================================================================
     // Graceful Fallback
     // ========================================================================
 
@@ -1281,6 +1488,21 @@ describe('Redis Cache Operations (W-143)', () => {
                 { limit: 5 }
             );
             expect(rateLimitResult.allowed).toBe(true);
+
+            expect(await RedisManager.cacheLockAcquire(
+                'controller:test:lock',
+                'r1',
+                'owner-1',
+                10
+            )).toBe(true);
+            expect(RedisManager._cacheStats.lockAcquireFallback).toBe(1);
+
+            expect(await RedisManager.cacheLockRelease(
+                'controller:test:lock',
+                'r1',
+                'owner-1'
+            )).toBe(true);
+            expect(RedisManager._cacheStats.lockReleaseFallback).toBe(1);
         });
     });
 
@@ -1290,13 +1512,21 @@ describe('Redis Cache Operations (W-143)', () => {
 
     describe('Cache Metrics', () => {
         it('should track cache operations in statistics', async () => {
-            // Reset stats
+            // Reset stats (include W-181 lock counters — getMetrics reads all fields)
             RedisManager._cacheStats = {
                 hits: 0,
                 misses: 0,
                 sets: 0,
                 gets: 0,
-                deletes: 0
+                deletes: 0,
+                lockAcquireOk: 0,
+                lockAcquireDenied: 0,
+                lockAcquireFallback: 0,
+                lockAcquireErrors: 0,
+                lockReleaseOk: 0,
+                lockReleaseNoop: 0,
+                lockReleaseFallback: 0,
+                lockReleaseErrors: 0
             };
 
             mockRedisClient.set.mockResolvedValue('OK');
@@ -1323,7 +1553,15 @@ describe('Redis Cache Operations (W-143)', () => {
                 misses: 2,
                 sets: 10,
                 gets: 10,
-                deletes: 0
+                deletes: 0,
+                lockAcquireOk: 0,
+                lockAcquireDenied: 0,
+                lockAcquireFallback: 0,
+                lockAcquireErrors: 0,
+                lockReleaseOk: 0,
+                lockReleaseNoop: 0,
+                lockReleaseFallback: 0,
+                lockReleaseErrors: 0
             };
 
             const metrics = RedisManager.getMetrics();
@@ -1337,7 +1575,15 @@ describe('Redis Cache Operations (W-143)', () => {
                 misses: 0,
                 sets: 5,
                 gets: 0,
-                deletes: 0
+                deletes: 0,
+                lockAcquireOk: 0,
+                lockAcquireDenied: 0,
+                lockAcquireFallback: 0,
+                lockAcquireErrors: 0,
+                lockReleaseOk: 0,
+                lockReleaseNoop: 0,
+                lockReleaseFallback: 0,
+                lockReleaseErrors: 0
             };
 
             const metrics = RedisManager.getMetrics();

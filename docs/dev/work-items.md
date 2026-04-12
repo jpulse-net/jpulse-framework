@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.37
+# jPulse Docs / Dev / Work Items v1.6.38
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5747,16 +5747,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/plugins/plugin-api-reference.md`:
     - short note: GET user returns extension defaults in `data` (v1.6.36+)
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-180, v1.6.37, 2026-04-12: mobile: dialog viewport sizing; plugin settings field grid on narrow screens
 
 - status: ✅ DONE
@@ -5793,6 +5783,46 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-181, v1.6.38, 2026-04-12: redis: support distributed locks for multi-instance jobs
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - give site apps a safe, atomic distributed lock backed by Redis, without requiring framework-level workarounds
+  - required by BubbleMap site work item T-063 Phase A for background snapshot task multi-instance safety (§10 of T-063 design doc)
+- features:
+  - `RedisManager.cacheLockAcquire(path, key, instanceId, ttlSeconds)` — atomic `SET key value NX EX ttl`; returns `true` if lock was acquired, `false` if another instance holds it; lock auto-expires after `ttlSeconds` if holder crashes (same `path` + `key` convention as other cache APIs)
+  - `RedisManager.cacheLockRelease(path, key, instanceId)` — atomic Lua-script check-and-delete: `if GET(key) == instanceId then DEL(key)`; returns `true` if released by this instance, `false` if lock was not owned by this instance (protects against accidental cross-instance release)
+  - `instanceId` can be `String(process.pid)` or a UUID generated at server startup; caller's choice
+  - graceful degradation: if Redis is unavailable, `cacheLockAcquire` returns `true` (single-instance fallback — caller proceeds without a lock, which is safe on a single-instance deploy); `cacheLockRelease` returns `true` (no-op success) when Redis unavailable
+  - metrics: `getMetrics()` exposes `stats.cache.locks` (acquire/release counters: ok, denied, noop, fallback, errors) with cluster aggregation like other cache operation counts; `meta.fields` includes lock field definitions for cluster dashboards
+  - admin **System Status**: component health splits **Redis Cache** vs **Redis Lock** summary cards; lock card shows six lock counters (omits fallback counts from the summary); per-instance Redis component details list all eight lock counters (including `acquireFallback` / `releaseFallback`)
+  - document in `docs/cache-infrastructure.md` (source doc; framework sync supplies `webapp/static/assets/jpulse-docs` — do not manually duplicate)
+  - unit tests: `webapp/tests/unit/utils/redis-cache.test.js` — acquire/release behavior, Lua `eval` path, metrics counters, and `_cacheStats` reset coverage for lock fields
+- tech debt / deferred:
+  - **Lock TTL extend / refresh** — optional `cacheLockExtend` (Lua: if owner matches, `EXPIRE`) for work that may exceed initial TTL; not required for short background ticks
+- deliverables:
+  - `webapp/utils/redis-manager.js` (framework):
+    - `cacheLockAcquire(path, key, instanceId, ttlSeconds)` and `cacheLockRelease(path, key, instanceId)` with Lua release script
+    - lock counters on `RedisManager` metrics provider (`stats.cache.locks` / `cache.locks.*` aggregation)
+  - `webapp/view/admin/system-status.shtml`:
+    - Redis Cache vs Redis Lock cards on component status; lock metrics on summary (six) and instance details (eight); `formatFieldName` / `formatField` labels for lock fields
+  - `webapp/tests/unit/utils/redis-cache.test.js`:
+    - distributed lock tests (including `eval` mock for Lua release)
+  - `docs/cache-infrastructure.md`:
+    - "Distributed locks" subsection with usage, graceful degradation, metrics table (all eight fields), System Status summary vs instance behavior, contention note
+  - `docs/api-reference.md`:
+    - Server-side Redis section: pointer to distributed locks (`cacheLockAcquire` / `cacheLockRelease`) linking to `cache-infrastructure.md`
+
+
+
+
+
+
+
+
 
 ### Pending
 
@@ -5820,8 +5850,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-180, v1.6.37, 2026-04-12
-- update features & deliverables in W-180 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-181, v1.6.38, 2026-04-12
+- update features & deliverables in W-181 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5832,12 +5862,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.37 2026-04-12
+node bin/bump-version.js 1.6.38 2026-04-12
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.37; git push origin main --tags
+git tag v1.6.38; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

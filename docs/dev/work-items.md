@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.38
+# jPulse Docs / Dev / Work Items v1.6.39
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5776,16 +5776,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - site-level (optional, after framework deploy):
   - remove redundant dialog `onOpen` width workarounds; simplify fixed `minWidth` where a precomputed width existed only for viewport safety
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-181, v1.6.38, 2026-04-12: redis: support distributed locks for multi-instance jobs
 - status: ✅ DONE
 - type: Feature
@@ -5823,6 +5813,42 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-182, v1.6.39, 2026-04-12: jPulse.UI: fix nested dialog z-index issue with mixed types
+- status: ✅ DONE
+- type: Bugfix
+- objectives:
+  - nested `jPulse.UI.confirmDialog` modals must stack in open order (each new overlay above the previous), regardless of `type`
+  - mixed `type` sequences (e.g. `info` then `confirm`) must not place the child under the parent — previously z-index was derived from `type` (`_alertZIndex` vs `_baseZIndex`), so a confirm (~1000 band) could sit under an info (~2000 band)
+- features:
+  - first dialog (empty `_dialogStack`): unchanged — `alert` / `info` / `success` use `_alertZIndex` + offset; `confirm` uses `_baseZIndex` + offset
+  - nested dialogs (`_dialogStack.length > 0`): `zIndex = parseInt(top overlay z-index) + 10` (fallback to `_baseZIndex` if not finite)
+  - explicit `options.zIndex`: applied when `!= null` (including `0`); replaces old `config.zIndex ||` which treated `0` as missing
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - `confirmDialog`: z-index assignment block (nested stacking + explicit z-index handling) and comments
+  - `README.md`, `docs/README.md`:
+    - Latest Release Highlights — v1.6.39 / W-182 bullet
+  - `docs/CHANGELOG.md`:
+    - v1.6.39 / W-182 section
+  - `docs/jpulse-ui-reference.md`:
+    - Dialog Features — stacking and `zIndex` (v1.6.39+); parameters `zIndex` bullet
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### Pending
 
@@ -5850,8 +5876,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-181, v1.6.38, 2026-04-12
-- update features & deliverables in W-181 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-182, v1.6.39, 2026-04-12
+- update features & deliverables in W-182 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5862,12 +5888,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.38 2026-04-12
+node bin/bump-version.js 1.6.39 2026-04-12
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.38; git push origin main --tags
+git tag v1.6.39; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

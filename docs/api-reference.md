@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.38
+# jPulse Docs / REST API Reference v1.6.39
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 

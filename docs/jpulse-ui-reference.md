@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.38
+# jPulse Docs / jPulse.UI Widget Reference v1.6.39
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -262,7 +262,7 @@ const result = await jPulse.UI.confirmDialog({
   - `minWidth` (number): Minimum dialog width (default: 400)
   - `height` (number|string): Dialog height
   - `minHeight` (number): Minimum dialog height (default: 200)
-  - `zIndex` (number): Custom z-index (default: auto-calculated)
+  - `zIndex` (number): Custom z-index (default: auto-calculated). Omitted or `null` uses automatic stacking; any other value is applied (including **`0`**, v1.6.39+).
   - `onOpen` (Function): Callback when dialog opens; receives `dialog` element. Fired **synchronously** after the dialog is appended to the DOM and **before** any open animation — use it to initialize widgets (e.g. `jPulse.UI.input.initAll(dialog)`) when `message` contains dynamic HTML with jpSelect, slider, or other input widgets.
   - `onClose` (Function): Callback when dialog closes; fired on **all** close paths — button click, ESC key, and programmatic close
 
@@ -276,7 +276,7 @@ const result = await jPulse.UI.confirmDialog({
 - **Draggable headers**: All dialogs can be dragged by their header
 - **Mobile-friendly sizing**: On small or short screens, dialogs stay within the visible area so users are not stuck with clipped or sideways-scrolling modals. You usually do not need extra `onOpen` sizing for typical phone layouts—the framework adjusts for you.
 - **Background scroll lock**: While at least one modal is open, the framework locks page scrolling (`overflow: hidden` on `html` and `body`, `overscroll-behavior: none`, and optional `padding-right` to offset the missing scrollbar) so trackpad/touch/wheel does not scroll the content behind the overlay. Restored when the last dialog in the stack closes.
-- **Dialog stacking**: Multiple dialogs stack with automatic z-index management; only the topmost dialog responds to keyboard events
+- **Dialog stacking**: Multiple dialogs stack with automatic z-index management; only the topmost dialog responds to keyboard events. When a dialog is already open, the next overlay’s z-index is based on the **current top** overlay (not on `type`), so mixed sequences such as `info` then `confirm` still stack correctly. The first dialog continues to use type-based default bands (`alert` / `info` / `success` vs `confirm`).
 - **HTML support**: Message content supports simple HTML (site owner controlled)
 - **Keyboard navigation** (all dialog types):
   - **Enter**: activates the default button (last button, or `defaultButton` option); excluded inside `<textarea>`

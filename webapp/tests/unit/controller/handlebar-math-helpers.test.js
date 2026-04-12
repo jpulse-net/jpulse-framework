@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-128: Math helpers (math.add, math.subtract, math.multiply, math.divide, math.mod, math.round, math.floor, math.ceil, math.min, math.max)
  * @description     Tests for math helpers with variadic support and error handling
  * @file            webapp/tests/unit/controller/handlebar-math-helpers.test.js
- * @version         1.6.38
+ * @version         1.6.39
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

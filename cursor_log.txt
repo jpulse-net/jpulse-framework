@@ -18967,4 +18967,27 @@ Expanded W-181 features/deliverables only (System Status split cards, tests, api
 
 
 ============================================================
+2026-04-11 22:10
+
+please fix
+
+Fixed jPulse.UI.confirmDialog z-index: nested dialogs now use top overlay z-index + 10 when _dialogStack is non-empty, so mixed types (e.g. info then confirm) stack correctly; first dialog unchanged (type-based tier); explicit options.zIndex still wins (including 0).
+
+
+============================================================
+2026-04-11 22:19
+
+- review tt-git-diff.txt for accuracy and completeness
+- create work item based on code changes: @work-items.md (5819-5827)
+
+Reviewed tt-git-diff: jpulse-common.js + cursor_log hunks match the nested dialog z-index fix; work-items.md diff only showed IN_PROGRESS section relocation (blank-line churn), not W-182 content. Filled W-182 (v1.6.39) with objectives, features, deliverables, status DONE; optional site-level note for BubbleMap.
+
+
+============================================================
+2026-04-11 22:22
+
+release prep: assume W-182, v1.6.39, 2026-04-12 — README + docs/README Latest Release Highlights; CHANGELOG v1.6.39 section; jpulse-ui-reference Dialog stacking + zIndex; work-items W-182 moved to DONE with full deliverables; commit-message.txt; cursor_log append. npm test passed.
+
+
+============================================================
 

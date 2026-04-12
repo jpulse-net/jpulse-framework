@@ -1,6 +1,33 @@
-# jPulse Docs / Version History v1.6.38
+# jPulse Docs / Version History v1.6.39
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.39, W-182, 2026-04-12
+
+**Commit:** `W-182, v1.6.39: jPulse.UI: fix nested dialog z-index issue with mixed types`
+
+**Objective**: Nested `jPulse.UI.confirmDialog` modals must paint in open order. Previously, z-index was chosen from dialog `type` (`alert` / `info` / `success` vs `confirm`), so a child `confirm` could end up **under** a parent `info` (or similar) because confirms used `_baseZIndex` (~1000) and simple dialogs used `_alertZIndex` (~2000).
+
+**Summary**: When `_dialogStack` already has an open dialog, the new overlay’s z-index is **top overlay’s z-index + 10** (with a safe fallback if parsing fails). The **first** dialog in a stack still uses the existing type-based tiers. **`options.zIndex`** is applied when `!= null`, including **`0`** (replacing `config.zIndex || …` which treated `0` as unset).
+
+**Key Features**:
+- **Nested stacking** — Each additional modal sits above the previous, regardless of `type` mix.
+- **Explicit z-index** — Callers can still force a layer; `0` is a valid explicit value.
+
+**Files changed**:
+- `webapp/view/jpulse-common.js`: `confirmDialog` z-index assignment
+
+**Documentation**:
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.6.39 / W-182
+- `docs/jpulse-ui-reference.md`: Dialog Features — stacking and `zIndex` (v1.6.39+)
+
+**Site-level (optional)**: Apps that passed manual `zIndex` only to work around mixed-type nesting may remove those overrides after upgrading.
+
+**Release**:
+- Work Item: W-182
+- Version: v1.6.39
+- Release Date: 2026-04-12
 
 ________________________________________________
 ## v1.6.38, W-181, 2026-04-12

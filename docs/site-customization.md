@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v1.6.38
+# jPulse Docs / Site Customization Guide v1.6.39
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 

@@ -3,7 +3,7 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.38
+ * @version         1.6.39
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -2365,11 +2365,22 @@ window.jPulse = {
                     config.onOpen(dialog);
                 }
 
-                // Set z-index (alert/info/success dialogs always on top, confirm uses base z-index)
-                const isSimpleDialog = ['alert', 'info', 'success'].includes(config.type);
-                const zIndex = config.zIndex || (isSimpleDialog
-                    ? (jPulse.UI._alertZIndex + jPulse.UI._dialogStack.length)
-                    : (jPulse.UI._baseZIndex + jPulse.UI._dialogStack.length * 10));
+                // Set z-index: first dialog uses type-based base tier; nested dialogs always above
+                // the current top overlay (mixed alert/info vs confirm types used to stack wrong).
+                // Explicit options.zIndex wins (including 0).
+                let zIndex;
+                if (config.zIndex != null) {
+                    zIndex = Number(config.zIndex);
+                } else if (jPulse.UI._dialogStack.length > 0) {
+                    const topItem = jPulse.UI._dialogStack[jPulse.UI._dialogStack.length - 1];
+                    const topZ = parseInt(topItem.overlay.style.zIndex, 10);
+                    zIndex = (Number.isFinite(topZ) ? topZ : jPulse.UI._baseZIndex) + 10;
+                } else {
+                    const isSimpleDialog = ['alert', 'info', 'success'].includes(config.type);
+                    zIndex = isSimpleDialog
+                        ? (jPulse.UI._alertZIndex + jPulse.UI._dialogStack.length)
+                        : (jPulse.UI._baseZIndex + jPulse.UI._dialogStack.length * 10);
+                }
                 overlay.style.zIndex = zIndex;
                 jPulse.UI._dialogStack.push({ overlay, dialog, type: config.type });
                 if (jPulse.UI._dialogStack.length === 1) {

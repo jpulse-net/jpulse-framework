@@ -1,6 +1,41 @@
-# jPulse Docs / Version History v1.6.39
+# jPulse Docs / Version History v1.6.40
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.40, W-183, 2026-04-12
+
+**Commit:** `W-183, v1.6.40: utility: add concat to CommonUtils.deepMerge for layered app.conf`
+
+**Objective**: Let site (and future plugin) configuration **append** to framework **arrays** instead of replacing them entirely, so sites do not have to copy long framework lists (for example `controller.handlebar.contextFilter.alwaysAllow`) that drift on upgrades. Use a single `CommonUtils.deepMerge` implementation when building consolidated config.
+
+**Summary**: A merge directive `{ $concat: [...] }` (exactly one key, array value) appends to the existing array from an earlier layer or starts a new array if the key was absent. Invalid combinations throw at merge time. `webapp/app.js` removes its local `deepMerge` and merges site and `app-secret` layers with `CommonUtils.deepMerge`. Client `jPulse.utils.deepMerge` implements the same `$concat` rules (and keeps `null` as a delete marker). Unit tests cover append, missing key, non-array target, and invalid payload. Documentation: `docs/site-customization.md` (Configuration Merging — `$concat`), `docs/api-reference.md` (`CommonUtils.deepMerge`), `docs/front-end-development.md` (`jPulse.utils.deepMerge`); `site/webapp/app.conf.tmpl` shows an optional `alwaysAllow` / `$concat` example.
+
+**Key Features**:
+- **`{ $concat: [...] }`** — Append-only array merge for layered `app.conf`; plain arrays still replace earlier layers.
+- **Single merge implementation** — Framework + site + secrets consolidation uses `CommonUtils.deepMerge`.
+- **Client parity** — `jPulse.utils.deepMerge` supports `$concat` for the same semantics in views.
+
+**Files changed**:
+- `webapp/utils/common.js`: `_isConcatDirective`, `_deepMergeRecursive` `$concat` handling, `deepMerge` JSDoc
+- `webapp/app.js`: remove local `deepMerge`; `CommonUtils.deepMerge` for site and secrets
+- `webapp/view/jpulse-common.js`: `$concat` in `jPulse.utils.deepMerge`
+- `webapp/tests/unit/utils/common-utils.test.js`: `$concat` tests
+- `docs/site-customization.md`, `docs/api-reference.md`, `docs/front-end-development.md`: documentation
+- `site/webapp/app.conf.tmpl`: optional sample for `alwaysAllow` + `$concat`
+
+**Documentation**:
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.6.40 / W-183
+- `docs/CHANGELOG.md`: this section
+
+**Site-level (optional)**: Use `{ $concat: [ 'controller.yourSettings' ] }` under `controller.handlebar.contextFilter.alwaysAllow` to expose site controller config in Handlebars without copying the framework list.
+
+**Note**: `site/webapp/app.conf` must be valid JavaScript (e.g. commas between top-level object properties); a syntax error prevents the site layer from loading and merged arrays will not update.
+
+**Release**:
+- Work Item: W-183
+- Version: v1.6.40
+- Release Date: 2026-04-12
 
 ________________________________________________
 ## v1.6.39, W-182, 2026-04-12

@@ -3,13 +3,13 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.39
+ * @version         1.6.40
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.5, Claude Sonnet 4.6
+ * @genai           60%, Cursor 2.6, Claude Sonnet 4.6
  */
 
 window.jPulse = {
@@ -10083,7 +10083,7 @@ window.jPulse = {
         /**
          * Deep merge objects (client-side implementation)
          * Recursively merges objects, with null acting as deletion marker
-         * Arrays are replaced, not merged
+         * Arrays are replaced, not merged, unless the override uses `{ $concat: [...] }`
          *
          * @param {...object} objects - Objects to merge
          * @returns {object} Merged object
@@ -10105,6 +10105,20 @@ window.jPulse = {
             if (objects.length === 0) return {};
             if (objects.length === 1) return objects[0];
 
+            const _isConcatDirective = (value) => {
+                if (value == null || typeof value !== 'object' || Array.isArray(value) || value instanceof Date) {
+                    return false;
+                }
+                const keys = Object.keys(value);
+                if (keys.length !== 1 || keys[0] !== '$concat') {
+                    return false;
+                }
+                if (!Array.isArray(value.$concat)) {
+                    throw new Error('jPulse.utils.deepMerge: $concat requires an array value');
+                }
+                return true;
+            };
+
             const _deepMergeRecursive = (target, objects, seen) => {
                 for (const obj of objects) {
                     if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
@@ -10115,6 +10129,18 @@ window.jPulse = {
                             // null acts as deletion marker
                             if (value === null) {
                                 delete target[key];
+                                continue;
+                            }
+
+                            if (_isConcatDirective(value)) {
+                                const existing = target[key];
+                                if (existing !== undefined && !Array.isArray(existing)) {
+                                    throw new Error(
+                                        `jPulse.utils.deepMerge: $concat at "${key}" requires existing value to be an array, got ${typeof existing}`
+                                    );
+                                }
+                                const base = Array.isArray(existing) ? [...existing] : [];
+                                target[key] = [...base, ...value.$concat];
                                 continue;
                             }
 

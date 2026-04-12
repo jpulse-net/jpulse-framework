@@ -3,7 +3,7 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         1.6.39
+ * @version         1.6.40
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -179,23 +179,6 @@ function shouldRegenerateConfig(fs, confPath, jsonPath) {
     return false;
 }
 
-// Deep merge utility for configuration objects
-function deepMerge(target, source) {
-    const result = { ...target };
-    for (const key in source) {
-        if (source.hasOwnProperty(key)) {
-            if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-                // Recursively merge objects
-                result[key] = deepMerge(target[key] || {}, source[key]);
-            } else {
-                // Override primitive values and arrays
-                result[key] = source[key];
-            }
-        }
-    }
-    return result;
-}
-
 // Load configuration file with error handling
 function loadConfigFile(fs, configPath) {
     try {
@@ -221,7 +204,7 @@ async function generateConsolidatedConfig(fs, confPath) {
     const sources = [{ path: confPath, type: 'framework', timestamp: fs.statSync(confPath).mtime }];
     if (fs.existsSync(siteConfigPath)) {
         const siteConfig = loadConfigFile(fs, siteConfigPath);
-        config = deepMerge(config, siteConfig);
+        config = CommonUtils.deepMerge(config, siteConfig);
         sources.push({ path: siteConfigPath, type: 'site', timestamp: fs.statSync(siteConfigPath).mtime });
         appLog('Merged site configuration from site/webapp/app.conf');
     }
@@ -230,7 +213,7 @@ async function generateConsolidatedConfig(fs, confPath) {
     const secretConfigPath = path.join(projectRoot, 'site/webapp/app-secret.conf');
     if (fs.existsSync(secretConfigPath)) {
         const secretConfig = loadConfigFile(fs, secretConfigPath);
-        config = deepMerge(config, secretConfig);
+        config = CommonUtils.deepMerge(config, secretConfig);
         sources.push({ path: secretConfigPath, type: 'site-secret', timestamp: fs.statSync(secretConfigPath).mtime });
         appLog('Merged site secrets configuration from site/webapp/app-secret.conf');
     }

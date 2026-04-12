@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.39
+# jPulse Docs / Dev / Work Items v1.6.40
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5806,16 +5806,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/api-reference.md`:
     - Server-side Redis section: pointer to distributed locks (`cacheLockAcquire` / `cacheLockRelease`) linking to `cache-infrastructure.md`
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-182, v1.6.39, 2026-04-12: jPulse.UI: fix nested dialog z-index issue with mixed types
 - status: ✅ DONE
 - type: Bugfix
@@ -5840,9 +5830,35 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
 
-
-
+### W-183, v1.6.40, 2026-04-12: utility: add concat to CommonUtils.deepMerge for layered app.conf
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - let site (and future plugin) config append to framework arrays without replacing the entire array (avoids copy-paste drift when framework defaults change)
+  - use one deep-merge implementation for consolidated config (`webapp/app.js`) instead of a duplicate local helper
+  - document server (`CommonUtils.deepMerge`) and client (`jPulse.utils.deepMerge`) behavior, including `$concat`
+- features:
+  - `{ $concat: [...] }` merge directive: value must be exactly one key `$concat` with an array; appends to existing array or starts from `[]` if absent; throws if existing value is non-array or `$concat` payload is not an array
+  - `webapp/app.js` `generateConsolidatedConfig`: site and site-secret layers use `CommonUtils.deepMerge` (removed inline `deepMerge`)
+  - `jPulse.utils.deepMerge`: same `$concat` semantics as server; existing `null` delete-marker behavior unchanged on client
+  - `site/webapp/app.conf.tmpl`: example `view.teamCalendar` block + optional `controller.handlebar.contextFilter.alwaysAllow` `$concat` sample with pointer to docs
+- deliverables:
+  - `webapp/utils/common.js`:
+    - `_isConcatDirective`; `_deepMergeRecursive` handles `$concat` before nested-object merge; JSDoc examples on `deepMerge`
+  - `webapp/app.js`: removed local `deepMerge`; `CommonUtils.deepMerge` for site and `app-secret` merges
+  - `webapp/view/jpulse-common.js`: `$concat` in `jPulse.utils.deepMerge`; `@genai` Cursor version bump
+  - `webapp/tests/unit/utils/common-utils.test.js`: four tests for `$concat` (append, missing key, non-array target, invalid payload); `@genai` bump
+  - `docs/site-customization.md`: subsection *Appending to Framework Arrays with `{ $concat: [...] }`* under Configuration Merging (incl. `alwaysAllow` example)
+  - `docs/api-reference.md`: *CommonUtils.deepMerge* section (replace vs `$concat`, deep object merge, rules, link to site-customization)
+  - `docs/front-end-development.md`: *Object Utilities* / `jPulse.utils.deepMerge` (`$concat`, `null` delete, practical example)
+  - `site/webapp/app.conf.tmpl`: template aligned with docs (comma-safe structure; `view` + optional Handlebars allowlist append)
+  - `README.md`, `docs/README.md`:
+    - Latest Release Highlights — v1.6.40 / W-183 bullet
+  - `docs/CHANGELOG.md`:
+    - v1.6.40 / W-183 section
 
 
 
@@ -5876,8 +5892,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-182, v1.6.39, 2026-04-12
-- update features & deliverables in W-182 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-183, v1.6.40, 2026-04-12
+- update features & deliverables in W-183 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5888,12 +5904,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.39 2026-04-12
+node bin/bump-version.js 1.6.40 2026-04-12
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.39; git push origin main --tags
+git tag v1.6.40; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

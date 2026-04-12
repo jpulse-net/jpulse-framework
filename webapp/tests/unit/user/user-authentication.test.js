@@ -3,7 +3,7 @@
  * @tagline         Authentication tests for User Model and Controller
  * @description     Unit tests for user authentication, login, logout, and security features
  * @file            webapp/tests/unit/user/user-authentication.test.js
- * @version         1.6.39
+ * @version         1.6.40
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

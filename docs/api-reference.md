@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.39
+# jPulse Docs / REST API Reference v1.6.40
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -2393,6 +2393,54 @@ const safe = CommonUtils.sanitizeObject(doc, ['data.email.smtp*', 'data.email.*p
 // safe.data.email.smtpUser === '********', safe.data.email.smtpPort === 9999, safe.data.email.smtpPass === '********'
 // doc is unchanged
 ```
+
+### CommonUtils.deepMerge
+
+Server-side utility to recursively merge two or more configuration objects. Objects are merged key-by-key; later arguments take precedence. Arrays are **replaced** by default. Use the `{ $concat: [...] }` directive to append to an existing array instead. Available in `webapp/utils/common.js`.
+
+**Signature:**
+```javascript
+CommonUtils.deepMerge(...objects)
+```
+
+**Parameters:**
+- `...objects` – One or more plain objects to merge. Later objects override earlier ones. Non-object arguments are ignored.
+
+**Returns:** A new merged object. No input is mutated.
+
+**Array replace (default):**
+```javascript
+import CommonUtils from '../utils/common.js';
+
+const base     = { roles: ['user'], level: 1 };
+const override = { roles: ['admin'] };
+CommonUtils.deepMerge(base, override);
+// → { roles: ['admin'], level: 1 }
+```
+
+**Array append with `{ $concat: [...] }` directive:**
+```javascript
+const base     = { roles: ['user'], level: 1 };
+const override = { roles: { $concat: ['editor'] } };
+CommonUtils.deepMerge(base, override);
+// → { roles: ['user', 'editor'], level: 1 }
+```
+
+**Deep object merge:**
+```javascript
+const base     = { db: { host: 'localhost', port: 5432, ssl: false } };
+const override = { db: { host: 'prod.db', ssl: true } };
+CommonUtils.deepMerge(base, override);
+// → { db: { host: 'prod.db', port: 5432, ssl: true } }
+```
+
+**Notes:**
+- `{ $concat: [...] }` must have exactly one key (`$concat`) whose value is an array; otherwise an error is thrown.
+- If the target key does not yet exist, `$concat` creates the array from scratch.
+- If the target key exists but is not an array, an error is thrown.
+- Circular references are detected and skipped safely.
+
+See also [site-customization.md — Appending to Framework Arrays](site-customization.md) for the `$concat` pattern in `site/webapp/app.conf`.
 
 ## 🚀 Usage Examples
 

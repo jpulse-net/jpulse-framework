@@ -3,13 +3,13 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.6.39
+ * @version         1.6.40
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 2.6, Claude Sonnet 4.5
  */
 
 import { ObjectId } from 'mongodb';
@@ -742,7 +742,8 @@ class CommonUtils {
      * Deep merge objects
      *
      * Recursively merges multiple objects, with later objects taking precedence.
-     * Arrays are replaced, not merged.
+     * Arrays are replaced, not merged, unless the override uses a `{ $concat: [...] }` directive
+     * (see below).
      *
      * @param {...object} objects - Objects to merge
      * @returns {object} Merged object
@@ -752,12 +753,37 @@ class CommonUtils {
      * const override = { b: { y: 3, z: 4 }, c: 5 };
      * const result = CommonUtils.deepMerge(base, override);
      * // Returns: { a: 1, b: { x: 1, y: 3, z: 4 }, c: 5 }
+     *
+     * @example
+     * // Append to an array from a later layer (e.g. site/webapp/app.conf)
+     * const base = { list: [1, 2] };
+     * const override = { list: { $concat: [3] } };
+     * const result = CommonUtils.deepMerge(base, override);
+     * // Returns: { list: [1, 2, 3] }
      */
     static deepMerge(...objects) {
         if (objects.length === 0) return {};
         if (objects.length === 1) return objects[0];
 
         return CommonUtils._deepMergeRecursive({}, objects, new WeakSet());
+    }
+
+    /**
+     * True if value is exactly `{ $concat: array }` (app.conf merge directive).
+     * @private
+     */
+    static _isConcatDirective(value) {
+        if (value == null || typeof value !== 'object' || Array.isArray(value) || value instanceof Date) {
+            return false;
+        }
+        const keys = Object.keys(value);
+        if (keys.length !== 1 || keys[0] !== '$concat') {
+            return false;
+        }
+        if (!Array.isArray(value.$concat)) {
+            throw new Error('CommonUtils.deepMerge: $concat requires an array value');
+        }
+        return true;
     }
 
     /**
@@ -772,6 +798,17 @@ class CommonUtils {
                 seen.add(obj);
 
                 for (const [key, value] of Object.entries(obj)) {
+                    if (CommonUtils._isConcatDirective(value)) {
+                        const existing = target[key];
+                        if (existing !== undefined && !Array.isArray(existing)) {
+                            throw new Error(
+                                `CommonUtils.deepMerge: $concat at "${key}" requires existing value to be an array, got ${typeof existing}`
+                            );
+                        }
+                        const base = Array.isArray(existing) ? [...existing] : [];
+                        target[key] = [...base, ...value.$concat];
+                        continue;
+                    }
                     if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
                         // Recursively merge nested objects (but not Dates)
                         target[key] = CommonUtils._deepMergeRecursive(target[key] || {}, [value], seen);

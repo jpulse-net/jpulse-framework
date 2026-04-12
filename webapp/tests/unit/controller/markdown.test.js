@@ -3,7 +3,7 @@
  * @tagline         Unit tests for Markdown Controller
  * @description     Tests for markdown controller functions
  * @file            webapp/tests/unit/controller/markdown.test.js
- * @version         1.6.39
+ * @version         1.6.40
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

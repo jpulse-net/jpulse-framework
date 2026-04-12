@@ -6,7 +6,7 @@
  *                  For secrets (session secret, DB passwords, Redis passwords) and
  *                  deployment mode, see site/webapp/app-secret.conf.tmpl
  * @file            site/webapp/app.conf.tmpl
- * @version         1.6.39
+ * @version         1.6.40
  * @release         2026-04-12
  * @author          Site Administrator
  * @copyright       2025 Site Administrator
@@ -75,11 +75,25 @@
         }
     },
 
-    // Site-specific features
-    features: {
-        customDashboard:    true,
-        siteAnalytics:      true,
-        customTheme:        'blue'
+    // Site-specific settings — use the actual config path to your module located
+    // in model, controller, or view:
+    view: {
+        teamCalendar: {
+            customDashboard:    true,
+            analytics:          true,
+            customTheme:        'blue'
+        }
+    },
+
+    // Optional: expose site controller settings in Handlebars templates.
+    // { $concat: [...] } appends to the framework's alwaysAllow array instead of
+    // replacing it. See docs/site-customization.md — Configuration Merging for details.
+    controller: {
+        handlebar: {
+            contextFilter: {
+                alwaysAllow:    { $concat: [ 'controller.myCustomSettings' ] }
+            }
+        }
     }
 }
 

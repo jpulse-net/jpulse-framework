@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v1.6.39
+# jPulse Docs / Site Customization Guide v1.6.40
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -111,6 +111,33 @@ jPulse automatically merges configurations in priority order:
 5. Environment variables
 
 **Note**: Without `app-secret.conf`, `deployment.mode` defaults to `'dev'` from `app.conf`, so `npm start` works after clone with no extra setup.
+
+#### Appending to Framework Arrays with `{ $concat: [...] }`
+
+By default, when a site config sets an array, it **replaces** the framework's array entirely. Use the `{ $concat: [...] }` directive to **append** to the existing framework array instead.
+
+**Example — expose a site controller's settings in Handlebars templates:**
+
+The framework's `controller.handlebar.contextFilter.alwaysAllow` array lists config paths that are always passed through to Handlebars, even for authenticated users. To add your own path without copying the full framework list:
+
+```javascript
+// site/webapp/app.conf
+controller: {
+    handlebar: {
+        contextFilter: {
+            alwaysAllow:    { $concat: [ 'controller.myCustomSettings' ] }
+        }
+    }
+}
+```
+
+This appends `'controller.myCustomSettings'` to the framework's list. The framework list is never affected if it changes in a future update.
+
+**Rules:**
+- The value must be exactly `{ $concat: [...] }` — one key, value is an array.
+- The target key in the framework config must already be an array (or absent, in which case the result is just the `$concat` items).
+- Plain arrays in site config still **replace** the framework value, as before.
+- Available in all merge layers: site overrides, site secrets, and (when implemented) plugin configs.
 
 ### Site Identity and Branding
 

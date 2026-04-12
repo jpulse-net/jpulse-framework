@@ -1,4 +1,4 @@
-# jPulse Docs / Sidebar Components Guide v1.6.39
+# jPulse Docs / Sidebar Components Guide v1.6.40
 
 Guide to creating custom sidebar components for the jPulse Framework.
 

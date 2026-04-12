@@ -18990,4 +18990,34 @@ release prep: assume W-182, v1.6.39, 2026-04-12 — README + docs/README Latest 
 
 
 ============================================================
+2026-04-12 13:56
+
+go for it (unless there are any open questions) ! at this time just { $concat }
+
+Implemented CommonUtils.deepMerge support for `{ $concat: [...] }` (exact single-key directive; validates array; appends to existing array or starts from []). Removed duplicate deepMerge from webapp/app.js; site and secret config now use CommonUtils.deepMerge. Mirrored $concat in webapp/view/jpulse-common.js jPulse.utils.deepMerge. Added unit tests in common-utils.test.js. Ran jest webapp/tests/unit/utils/common-utils.test.js — all passed.
+
+
+============================================================
+2026-04-12 14:27
+
+oops, my bad, yes, it's working now — review app.conf.tmpl addition and add deepMerge docs (server-side api-reference.md, client-side front-end-development.md, site-customization.md $concat section)
+
+Fixed app.conf.tmpl: added missing comma after features block, removed trailing comma inside view block, aligned spacing, improved comment. Verified both tmpl and app.conf parse cleanly. Added docs: site-customization.md — "Appending to Framework Arrays with { $concat }" section under Configuration Merging. api-reference.md — CommonUtils.deepMerge section (replace vs concat vs deep-object, rules, cross-link). front-end-development.md — jPulse.utils.deepMerge section under Object Utilities (replace, $concat, deep merge, null delete, practical example).
+
+
+============================================================
+2026-04-12 14:25
+
+- review tt-git-diff.txt for accuracy and completeness
+- create work item @work-items.md (5839-5847) based on work done
+
+Reviewed tt-git-diff: matches W-183 scope (CommonUtils $concat, app.js deepMerge removal, jpulse-common parity, tests, docs trio, app.conf.tmpl, cursor_log, genai bumps). Not in diff: site/webapp/app.conf (user comma fix). work-items.md already contained W-183 DONE with full deliverables and notes; IN_PROGRESS stub was stale in user selection. No file edits needed beyond cursor_log append.
+
+
+============================================================
+2026-04-12 14:31
+
+release prep: assume W-183, v1.6.40, 2026-04-12 — README + docs/README Latest Release Highlights; CHANGELOG v1.6.40 section; commit-message.txt; work-items W-183 deliverables (release docs + notes + moved to DONE after W-182); cursor_log append. Did not run bump-version.js (user runs bump script).
+
+============================================================
 

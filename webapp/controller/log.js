@@ -3,7 +3,7 @@
  * @tagline         Log Controller for jPulse Framework WebApp
  * @description     This is the log controller for the jPulse Framework WebApp
  * @file            webapp/controller/log.js
- * @version         1.6.39
+ * @version         1.6.40
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

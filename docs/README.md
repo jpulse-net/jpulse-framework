@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.39
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.40
 
 **For Site Administrators & Site Developers**
 
@@ -228,6 +228,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v1.6.40, W-183, 2026-04-12: Configuration merge: concat arrays for layered app.conf**: Site and plugins can append to framework arrays (for example Handlebars `alwaysAllow` paths) using `{ $concat: [...] }` without replacing the whole list. Consolidated config uses `CommonUtils.deepMerge`; `jPulse.utils.deepMerge` supports the same `{ $concat: [...] }` pattern in the browser.
 - **v1.6.39, W-182, 2026-04-12: jPulse.UI: nested modal z-index (mixed dialog types)**: A second modal on top of the first (e.g. `info` then `confirm`) now always stacks above the parent; z-index no longer depends only on `type`. First dialog keeps type-based bands; further dialogs use the top overlay’s z-index plus 10. Explicit `options.zIndex` is honored when set (including `0`).
 - **v1.6.38, W-181, 2026-04-12: Redis: distributed locks for multi-instance jobs**: Server code can acquire and release an atomic Redis lock so only one instance runs a critical section at a time (for example a background task per map or resource). Locks expire automatically if a process disappears; release is owner-safe via a Lua script. If Redis is unavailable, behavior degrades in a way that stays safe on single-instance deployments. Admin System Status shows lock activity next to cache metrics, and the cache infrastructure docs describe the full API and metrics.
 - **v1.6.37, W-180, 2026-04-12: Mobile: dialogs and plugin settings that fit the screen**: On phones and narrow windows, modal dialogs stay within the viewport so content is not cut off or awkward to read. In "My Settings" and "Manage User", plugin tabs with sliders and long forms switch to a clearer stacked layout so controls stay full-width and easy to tap.

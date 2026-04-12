@@ -4,7 +4,7 @@
  # @tagline         Test Redis graceful degradation (dev environment only)
  # @description     Tests that the application continues working WITHOUT Redis (single-instance mode)
  # @file            webapp/tests/manual/redis/graceful-degradation.sh
- # @version         1.6.39
+ # @version         1.6.40
  # @release         2026-04-12
  # @repository      https://github.com/jpulse-net/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -3,13 +3,13 @@
  * @tagline         Unit Tests for CommonUtils
  * @description     Tests for common utility functions
  * @file            webapp/tests/unit/utils/common-utils.test.js
- * @version         1.6.39
+ * @version         1.6.40
  * @release         2026-04-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           80%, Cursor 2.6, Claude Sonnet 4.5
  */
 
 import CommonUtils from '../../../utils/common.js';
@@ -197,6 +197,36 @@ describe('CommonUtils', () => {
             const result = CommonUtils.deepMerge(obj1, obj2);
 
             expect(result).toEqual({ arr: [4, 5] });
+        });
+
+        test('should append arrays when override uses { $concat: [...] }', () => {
+            const obj1 = { a: [1, 2] };
+            const obj2 = { a: { $concat: [3, 4] } };
+            const result = CommonUtils.deepMerge(obj1, obj2);
+
+            expect(result).toEqual({ a: [1, 2, 3, 4] });
+        });
+
+        test('should allow { $concat: [...] } when base key is missing', () => {
+            const obj1 = { other: true };
+            const obj2 = { list: { $concat: ['x'] } };
+            const result = CommonUtils.deepMerge(obj1, obj2);
+
+            expect(result).toEqual({ other: true, list: ['x'] });
+        });
+
+        test('should throw when $concat targets a non-array', () => {
+            const obj1 = { a: 1 };
+            const obj2 = { a: { $concat: [2] } };
+
+            expect(() => CommonUtils.deepMerge(obj1, obj2)).toThrow(/requires existing value to be an array/);
+        });
+
+        test('should throw when $concat value is not an array', () => {
+            const obj1 = { a: 1 };
+            const obj2 = { b: { $concat: 'bad' } };
+
+            expect(() => CommonUtils.deepMerge(obj1, obj2)).toThrow(/requires an array value/);
         });
 
         test('should handle empty objects', () => {

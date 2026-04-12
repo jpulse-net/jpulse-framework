@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.6.39
+# jPulse Docs / Front-End Development Guide v1.6.40
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -872,6 +872,51 @@ const trustedHtml = jPulse.string.sanitizeHtml(schemaDescription);
 
 // Safe HTML: Whitelist with a, strong, em, br tags only
 const minimalHtml = jPulse.string.sanitizeHtml(panelDescription, true);
+```
+
+### Object Utilities
+
+#### `jPulse.utils.deepMerge`
+
+Recursively merges two or more plain objects. Objects are merged key-by-key; later arguments take precedence. Arrays are **replaced** by default. Use the `{ $concat: [...] }` directive to append to an existing array instead. `null` values act as deletion markers (the key is removed from the result).
+
+**Array replace (default):**
+```javascript
+const base     = { tags: ['a', 'b'], level: 1 };
+const override = { tags: ['c'] };
+jPulse.utils.deepMerge(base, override);
+// → { tags: ['c'], level: 1 }
+```
+
+**Array append with `{ $concat: [...] }` directive:**
+```javascript
+const base     = { tags: ['a', 'b'], level: 1 };
+const override = { tags: { $concat: ['c'] } };
+jPulse.utils.deepMerge(base, override);
+// → { tags: ['a', 'b', 'c'], level: 1 }
+```
+
+**Deep object merge:**
+```javascript
+const defaults = { ui: { theme: 'light', fontSize: 14 } };
+const prefs    = { ui: { theme: 'dark' } };
+jPulse.utils.deepMerge(defaults, prefs);
+// → { ui: { theme: 'dark', fontSize: 14 } }
+```
+
+**Delete a key with `null`:**
+```javascript
+const base     = { a: 1, b: 2, c: 3 };
+const override = { b: null };
+jPulse.utils.deepMerge(base, override);
+// → { a: 1, c: 3 }
+```
+
+**Practical use — merging API response data with local defaults:**
+```javascript
+const defaults = { color: 'blue', size: 'M', options: { gift: false } };
+const response = await jPulse.api.get('/api/1/user/preferences');
+const prefs    = jPulse.utils.deepMerge(defaults, response.data ?? {});
 ```
 
 ### URL Parameter Handling

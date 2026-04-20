@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.40
- * @release         2026-04-12
+ * @version         1.6.41
+ * @release         2026-04-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -9455,10 +9455,14 @@ window.jPulse = {
                         connection.pingTimer = null;
                     }
 
-                    // Close code 4401: server signalled session expiry — surface as 'auth-required',
-                    // suppress auto-reconnect so the app can redirect to login immediately.
-                    if (event.code === 4401) {
-                        console.warn(`- jPulse.ws: Session expired (4401) on ${connection.path}, stopping reconnect`);
+                    // Auth-terminal close codes — surface as 'auth-required' and suppress auto-reconnect.
+                    // 4401 = session expired, 4403 = access denied. Retrying on the same socket with
+                    // the same identity cannot succeed, so the app should redirect to login / show
+                    // a re-auth prompt instead of looping through reconnect backoff.
+                    // Transport/transient codes (1000, 1001, 1006, 1011, unknown) fall through to
+                    // the reconnect-with-backoff path below.
+                    if (event.code === 4401 || event.code === 4403) {
+                        console.warn(`- jPulse.ws: Auth-terminal close (${event.code}) on ${connection.path}, stopping reconnect`);
                         connection.shouldReconnect = false;
                         jPulse.ws._connections.delete(connection.path);
                         this._updateStatus(connection, 'auth-required');

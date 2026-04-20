@@ -19020,4 +19020,28 @@ Reviewed tt-git-diff: matches W-183 scope (CommonUtils $concat, app.js deepMerge
 release prep: assume W-183, v1.6.40, 2026-04-12 — README + docs/README Latest Release Highlights; CHANGELOG v1.6.40 section; commit-message.txt; work-items W-183 deliverables (release docs + notes + moved to DONE after W-182); cursor_log append. Did not run bump-version.js (user runs bump script).
 
 ============================================================
+2026-04-19 21:06
 
+chenage request from a site: Framework change proposal: extend auth-terminal close codes in jPulse.ws — webapp/view/jpulse-common.js (around line 9458). Extend 4401 branch in onclose to also cover 4403 (access denied). Rationale: bucket 2 (no retry, auth-required) for terminal auth decisions; bucket 1 (retry+backoff) for transport/transient. Prevents reconnect storm on peer browsers. Includes test plan.
+
+Applied the proposed change to webapp/view/jpulse-common.js onclose handler: the 4401-only guard is now `if (event.code === 4401 || event.code === 4403)`, with an expanded comment documenting auth-terminal vs transport/transient bucketing (4401 session expired, 4403 access denied → auth-required, no reconnect; 1000/1001/1006/1011/unknown → fall through to reconnect-with-backoff). Warn log updated to `Auth-terminal close (${event.code}) on ${path}`. No changes to _scheduleReconnect or other code paths, so 4401 regression path and normal 1006/1001 reconnect behavior remain intact.
+
+
+============================================================
+2026-04-19 21:09
+
+- review tt-git-diff.txt for accuracy
+- create work item @work-items.md (5863-5871)
+
+Reviewed tt-git-diff.txt: three files — cursor_log (append), work-items (W-184 placeholder + section shuffle in diff), jpulse-common.js (onclose 4401|4403). Accurate for intent; diff truncates before `return` and reconnect branch — full file has complete onclose. Noted tt-git-diff work-items chunk used date 2026-04-17 vs current W-184 line 2026-04-20. Filled W-184 with title, objectives, features, deliverables (jpulse-common.js + cursor_log), related bubblemap server note, manual test bullets; removed FIXME placeholders.
+
+
+============================================================
+2026-04-19 21:17
+
+release prep: assume W-184, v1.6.41, 2026-04-20 — update README.md and docs/README.md (## latest release highlights), docs/CHANGELOG.md, commit-message.txt, cursor_log.txt; docs/websockets.md (auth-required 4401+4403, session/access-denied text).
+
+Updated README.md and docs/README.md title to v1.6.41 and added W-184 highlight bullet. Inserted CHANGELOG section v1.6.41 / W-184 after version header. Extended docs/websockets.md onStatusChange and session expiry sections for 4403. Wrote commit-message.txt (W-184 format). Moved W-184 block in work-items.md from IN_PROGRESS to DONE after W-183 with full release deliverables list. Ran npm test — all passed. Did not run bump-version (user runs bump script).
+
+
+============================================================

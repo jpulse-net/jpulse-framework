@@ -1,4 +1,4 @@
-# jPulse Docs / WebSocket Real-Time Communication v1.6.40
+# jPulse Docs / WebSocket Real-Time Communication v1.6.41
 
 > **Need multi-server broadcasting instead?** If you're running multiple server instances and need to synchronize state changes across all servers (like collaborative editing), see [Application Cluster Communication](application-cluster.md) which uses REST API + Redis broadcasts for simpler state synchronization.
 
@@ -348,7 +348,7 @@ Status values:
 - `'connected'` — socket open and healthy
 - `'reconnecting'` — connection lost, auto-reconnect scheduled
 - `'disconnected'` — max reconnect attempts exhausted, connection abandoned
-- `'auth-required'` — server closed socket with code 4401 (session expired); auto-reconnect suppressed
+- `'auth-required'` — server closed socket with a terminal auth close code: **4401** (session expired) or **4403** (access denied); auto-reconnect suppressed
 
 ```javascript
 ws.onStatusChange((status, oldStatus) => {
@@ -877,8 +877,10 @@ ws.onStatusChange((status) => {
 
 When a user's session is destroyed (logout on another tab, session timeout) the server
 detects the expired session on the next ping cycle and closes the socket with close code **4401**.
-The client library maps this to `'auth-required'` status and **suppresses auto-reconnect** —
-attempting to reconnect would fail with `AUTH_REQUIRED` anyway.
+The server may also close with **4403** when the connected principal is not allowed to use the
+namespace or resource (for example after a downgrade to guest). The client library maps **both**
+**4401** and **4403** to `'auth-required'` status and **suppresses auto-reconnect** — retrying with
+the same identity cannot succeed without signing in again or gaining permission.
 
 ```javascript
 // Minimal pattern: redirect on session expiry
@@ -890,11 +892,14 @@ const ws = jPulse.ws.connect('/api/1/ws/my-app')
     });
 ```
 
-**How it works (framework internals):**
+**How it works (framework internals) — session expiry (4401):**
 1. Server sends `{ success: false, code: 'SESSION_EXPIRED' }` message
 2. Server closes socket with WS close code 4401
-3. Client `onclose` handler detects code 4401, sets status `'auth-required'`, removes connection
+3. Client `onclose` handler detects code 4401 (or 4403 — see below), sets status `'auth-required'`, removes connection
 4. No reconnect timer is scheduled — the connection is gone
+
+**Access denied (4403):** The same `'auth-required'` path applies when the server closes with **4403**;
+the client does not schedule reconnect backoff for 4403 either.
 
 **Polling alternative (no WebSocket):**
 If you need to detect session expiry without an active WebSocket, poll the zero-cost endpoint:

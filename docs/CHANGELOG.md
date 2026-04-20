@@ -1,6 +1,32 @@
-# jPulse Docs / Version History v1.6.40
+# jPulse Docs / Version History v1.6.41
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.41, W-184, 2026-04-20
+
+**Commit:** `W-184, v1.6.41: WebSocket client: suppress reconnect loop on a WebSocket close 4403 (access denied)`
+
+**Objective**: Treat WebSocket close code **4403** (access denied) as a **terminal authorization decision**, same as **4401** (session expired): the client must not enter the reconnect-with-backoff loop with the same identity, because retry cannot succeed without re-authentication or a different principal.
+
+**Summary**: In `jPulse.ws` `_createWebSocket`, the `onclose` handler now branches on `event.code === 4401 || event.code === 4403`. Both paths set `shouldReconnect = false`, remove the path from `jPulse.ws._connections`, call `_updateStatus(..., 'auth-required')`, and return (skipping `_scheduleReconnect`). The console warning is generalized to `Auth-terminal close (${event.code})`. Inline comments document auth-terminal codes vs transport/transient codes that still fall through to backoff (e.g. 1000, 1001, 1006, 1011).
+
+**Key Features**:
+- **4403 parity with 4401** — `'auth-required'` status and no auto-reconnect for access-denied closes.
+- **Unchanged transport recovery** — Normal disconnects and unknown codes still use progressive reconnect backoff.
+
+**Files changed**:
+- `webapp/view/jpulse-common.js`: `connection.ws.onclose` auth-terminal branch and comments
+
+**Documentation**:
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.6.41 / W-184
+- `docs/CHANGELOG.md`: this section
+- `docs/websockets.md`: `onStatusChange` — `'auth-required'` describes 4401 and 4403; session expiry section notes 4403 variant
+
+**Release**:
+- Work Item: W-184
+- Version: v1.6.41
+- Release Date: 2026-04-20
 
 ________________________________________________
 ## v1.6.40, W-183, 2026-04-12

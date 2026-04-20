@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.40
+# jPulse Docs / Dev / Work Items v1.6.41
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5826,13 +5826,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/jpulse-ui-reference.md`:
     - Dialog Features — stacking and `zIndex` (v1.6.39+); parameters `zIndex` bullet
 
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-183, v1.6.40, 2026-04-12: utility: add concat to CommonUtils.deepMerge for layered app.conf
 - status: ✅ DONE
 - type: Feature
@@ -5864,6 +5857,37 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-184, v1.6.41, 2026-04-20: WebSocket client: suppress reconnect loop on a WebSocket close 4403 (access denied)
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - stop pointless reconnect/backoff when the server closes the socket with 4403 (access denied): retry with the same identity cannot succeed without re-auth (same rationale as 4401 session expired)
+  - surface terminal auth decisions as connection status `auth-required` so UIs can show login / re-auth instead of an endless `[reconnect]` cycle
+  - keep transport/transient close codes on the existing backoff path (`_scheduleReconnect`: 5s steps capped at 30s, max attempts unchanged)
+- features:
+  - `connection.ws.onclose`: if `event.code === 4401 || event.code === 4403`, set `shouldReconnect = false`, `jPulse.ws._connections.delete(connection.path)`, `_updateStatus(connection, 'auth-required')`, then `return` (no `_scheduleReconnect`)
+  - single warn log: `Auth-terminal close (${event.code}) on ${connection.path}` (covers both 4401 and 4403)
+  - inline comments document “auth-terminal” (4401 session expired, 4403 access denied) vs fall-through reconnect for e.g. 1000, 1001, 1006, 1011, unknown
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - `_createWebSocket` → `onclose` handler: extended guard and comments (~lines 9458–9470)
+  - `README.md`, `docs/README.md`:
+    - Latest Release Highlights — v1.6.41 / W-184 bullet
+  - `docs/CHANGELOG.md`:
+    - v1.6.41 / W-184 section
+  - `docs/websockets.md`:
+    - `onStatusChange` — `'auth-required'` lists 4401 and 4403; session expiry / access-denied narrative; “How it works” note for 4403
+  - related (not this work item): site bubblemap `bubbleWebsocket.js` server-side `announcedClients` / ghost `user-entered`–`user-left` fix addresses peer toast UX; W-184 is the framework client belt-and-suspenders (stops reconnect storm at source)
+- test / verify (manual):
+  - 4401: session expiry mid-connection still yields `auth-required`, no reconnect loop (regression)
+  - 4403: after rejected connection (e.g. expired admin session reconnecting as guest to non-public resource), first close → `auth-required`, not 5s/10s/… backoff
+  - 1006 / 1001 / normal server restart: still reconnects with backoff
+
+
+
 
 
 ### Pending
@@ -5892,7 +5916,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-183, v1.6.40, 2026-04-12
+- assume release: W-184, v1.6.41, 2026-04-20
 - update features & deliverables in W-183 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -5904,12 +5928,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.40 2026-04-12
+node bin/bump-version.js 1.6.41 2026-04-20
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.40; git push origin main --tags
+git tag v1.6.41; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

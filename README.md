@@ -1,4 +1,4 @@
-# jPulse Framework v1.6.40
+# jPulse Framework v1.6.41
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -205,6 +205,7 @@ Business Source License 1.1 with Additional Terms
 
 ## Latest Release Highlights
 
+- **v1.6.41, W-184, 2026-04-20: WebSocket client: auth-terminal close 4403 with 4401 — no reconnect loop**: If the server closes the socket with close code 4403 (access denied), the client now treats it like 4401 (session expired): status `'auth-required'`, connection removed, auto-reconnect suppressed. Retrying with the same identity cannot succeed without re-auth; transport codes (e.g. 1000, 1001, 1006) still use the existing backoff reconnect path.
 - **v1.6.40, W-183, 2026-04-12: Configuration merge: concat arrays for layered app.conf**: Site and plugins can append to framework arrays (for example Handlebars `alwaysAllow` paths) using `{ $concat: [...] }` without replacing the whole list. Consolidated config uses `CommonUtils.deepMerge`; `jPulse.utils.deepMerge` supports the same `{ $concat: [...] }` pattern in the browser.
 - **v1.6.39, W-182, 2026-04-12: jPulse.UI: nested modal z-index (mixed dialog types)**: A second modal on top of the first (e.g. `info` then `confirm`) now always stacks above the parent; z-index no longer depends only on `type`. First dialog keeps type-based bands; further dialogs use the top overlay’s z-index plus 10. Explicit `options.zIndex` is honored when set (including `0`).
 - **v1.6.38, W-181, 2026-04-12: Redis: distributed locks for multi-instance jobs**: Server code can acquire and release an atomic Redis lock so only one instance runs a critical section at a time (for example a background task per map or resource). Locks expire automatically if a process disappears; release is owner-safe via a Lua script. If Redis is unavailable, behavior degrades in a way that stays safe on single-instance deployments. Admin System Status shows lock activity next to cache metrics, and the cache infrastructure docs describe the full API and metrics.

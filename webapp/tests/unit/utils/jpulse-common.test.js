@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse Common Client-Side Utilities
  * @description     Tests for client-side JavaScript utilities in jpulse-common.js
  * @file            webapp/tests/unit/utils/jpulse-common.test.js
- * @version         1.6.40
- * @release         2026-04-12
+ * @version         1.6.41
+ * @release         2026-04-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

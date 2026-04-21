@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.sourceCode and jPulse.clipboard (W-063)
  * @description     Tests for client-side source code widget and clipboard functionality
  * @file            webapp/tests/unit/utils/jpulse-ui-sourcecode.test.js
- * @version         1.6.41
- * @release         2026-04-20
+ * @version         1.6.42
+ * @release         2026-04-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -47,7 +47,9 @@ global.window.Prism = {
 
 // Load jpulse-common.js content and evaluate it in the window context
 const jpulseCommonPath = path.join(process.cwd(), 'webapp/view/jpulse-common.js');
-const jpulseCommonContent = fs.readFileSync(jpulseCommonPath, 'utf8');
+let jpulseCommonContent = fs.readFileSync(jpulseCommonPath, 'utf8');
+// W-185: strip the unquoted subtree-embed token (would otherwise break JS parse when loaded raw)
+jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.controller\.handlebar\.date\.fromNow\}\}/g, '{}');
 
 // Execute the code in the window context
 const vm = require('vm');

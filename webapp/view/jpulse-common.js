@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.41
- * @release         2026-04-20
+ * @version         1.6.42
+ * @release         2026-04-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -527,6 +527,183 @@ window.jPulse = {
             const minutes = String(d.getMinutes()).padStart(2, '0');
             const seconds = includeSeconds ? ':' + String(d.getSeconds()).padStart(2, '0') : '';
             return `${hours}:${minutes}${seconds}`;
+        },
+
+        /**
+         * W-185: i18n translations for relative-time formatting (client mirror of `{{date.fromNow}}`)
+         * The whole `controller.handlebar.date.fromNow` subtree is embedded once at serve time via
+         * the i18n subtree-embed syntax (v1.6.42+), so `formatFromNow` does not do per-call i18n
+         * lookups. Values use `%VALUE%` / `%RANGE%` placeholders which `formatFromNow` substitutes
+         * at runtime. See docs/template-reference.md — *Embedding a Translation Subtree*.
+         * @private
+         */
+        _i18nFromNow: {{i18n.controller.handlebar.date.fromNow}},
+
+        /**
+         * Format a date as relative time from now (client-side mirror of the server
+         * `{{date.fromNow}}` Handlebars helper). Uses the same `controller.handlebar.date.fromNow.*`
+         * subtree as the server: unit strings (`long` / `short`), `separator`, `pastRange` /
+         * `futureRange` (`%RANGE%`). **Long:** |Δ| ≤ 1s → `thisMoment`; (1s, 5s] → `pastMoment` /
+         * `futureMoment`; else unit strings. **Short:** always `short.*` units + range templates
+         * (e.g. `7s` / `in 3s`).
+         *
+         * @param {Date|string|number} date - Date to format (Date object, ISO string, numeric string,
+         *                                    or timestamp)
+         * @param {Date|string|number|object|null} [arg2] - Reference "now", or options object, or
+         *                                                  null/undefined
+         * @param {Date|string|number} [arg2.now] - Reference "now" date (default: `Date.now()`)
+         * @param {string} [arg2.format='long 2'] - `'long N'` or `'short N'` where N is 1..3 (number
+         *                                          of units to show)
+         * @param {string} [arg2.style] - `'long'` or `'short'` (overrides style from `format`)
+         * @param {number} [arg2.units] - 1..3 units to show (overrides units from `format`)
+         * @returns {string} Formatted relative-time string; `''` when `date` is invalid
+         *
+         * @example
+         * jPulse.date.formatFromNow(nowMs - 2 * 60 * 1000, { format: 'short 1' });
+         *     // "2m ago" (en)
+         * jPulse.date.formatFromNow(nowMs - 2 * 3600 * 1000 - 5 * 60 * 1000);
+         *     // "2 hours, 5 minutes ago"
+         * jPulse.date.formatFromNow('2026-04-20T10:00:00Z', new Date('2026-04-20T12:00:00Z'));
+         *     // "2 hours ago"
+         */
+        formatFromNow: (date, arg2) => {
+            const parseDate = (v) => {
+                if (v === null || v === undefined || v === '') return null;
+                if (v instanceof Date) return v;
+                if (typeof v === 'number') return new Date(v);
+                if (typeof v === 'string') {
+                    const s = v.trim();
+                    if (s === '') return null;
+                    // ISO 8601 calendar date / date-time (YYYY-MM-DD…): parse explicitly so date-only
+                    // and offset forms are first-class (also trims accidental whitespace).
+                    if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+                        const d = new Date(s);
+                        return isNaN(d.getTime()) ? null : d;
+                    }
+                    // Epoch milliseconds as decimal string (e.g. "1737212000000")
+                    if (/^\d+$/.test(s)) {
+                        const d = new Date(parseInt(s, 10));
+                        return isNaN(d.getTime()) ? null : d;
+                    }
+                    const d = new Date(s);
+                    return isNaN(d.getTime()) ? null : d;
+                }
+                return null;
+            };
+
+            const d = parseDate(date);
+            if (!d || isNaN(d.getTime())) return '';
+
+            let opts = {};
+            let nowDate;
+            if (arg2 && typeof arg2 === 'object' && !(arg2 instanceof Date)) {
+                opts = arg2;
+                nowDate = parseDate(opts.now);
+            } else {
+                nowDate = parseDate(arg2);
+            }
+            const nowMs = nowDate ? nowDate.getTime() : Date.now();
+
+            const fmt = (opts.format || 'long 2').trim().split(/\s+/);
+            const style = opts.style || fmt[0] || 'long';
+            const units = opts.units || parseInt(fmt[1] || '2', 10) || 2;
+
+            const diff = d.getTime() - nowMs;
+            const isFuture = diff > 0;
+            const absDiff = Math.abs(diff);
+
+            /** Long: |diff| ≤ 1s → thisMoment; (1s, 5s] → pastMoment / futureMoment (before unit decomposition). Short: always units + range. */
+            const THIS_MOMENT_MS = 1000;
+            const MOMENT_BAND_MAX_MS = 5000;
+
+            const i18n = jPulse.date._i18nFromNow || {};
+
+            if (style === 'long') {
+                if (absDiff <= THIS_MOMENT_MS) {
+                    return i18n.thisMoment || 'just now';
+                }
+                if (absDiff <= MOMENT_BAND_MAX_MS) {
+                    return isFuture
+                        ? (i18n.futureMoment || 'in a moment')
+                        : (i18n.pastMoment || 'moments ago');
+                }
+            }
+
+            let remaining = absDiff;
+
+            const MS = {
+                year:   365 * 24 * 60 * 60 * 1000,
+                month:   30 * 24 * 60 * 60 * 1000,
+                week:     7 * 24 * 60 * 60 * 1000,
+                day:          24 * 60 * 60 * 1000,
+                hour:              60 * 60 * 1000,
+                minute:                 60 * 1000,
+                second:                      1000
+            };
+
+            const parts = [];
+            for (const uk of ['year', 'month', 'week', 'day', 'hour', 'minute', 'second']) {
+                if (parts.length >= units) break;
+                if (remaining >= MS[uk]) {
+                    parts.push({ value: Math.floor(remaining / MS[uk]), unitKey: uk });
+                    remaining = remaining % MS[uk];
+                }
+            }
+
+            const sep = style === 'short' ? ' ' : (i18n.separator || ', ');
+
+            const applyPastFutureRange = (range) => {
+                const tpl = isFuture
+                    ? (i18n.futureRange || 'in %RANGE%')
+                    : (i18n.pastRange   || '%RANGE% ago');
+                return tpl.replace('%RANGE%', range);
+            };
+
+            const translateFromNowUnit = (part) => {
+                let unitKey;
+                if (style === 'short') {
+                    unitKey = part.unitKey;
+                } else {
+                    unitKey = part.value === 1 ? part.unitKey : (part.unitKey + 's');
+                }
+                const dict = style === 'short' ? i18n.short : i18n.long;
+                const tpl = dict && dict[unitKey];
+                if (tpl) {
+                    return tpl.replace('%VALUE%', String(part.value));
+                }
+                return null;
+            };
+
+            const fallbackAbbrev = { year:'y', month:'mo', week:'w', day:'d', hour:'h', minute:'m', second:'s' };
+
+            // Short: <1 whole unit → short.second @ 0 + range. Long empty: emergency thisMoment only.
+            if (parts.length === 0) {
+                if (style === 'short') {
+                    let zSeg = translateFromNowUnit({ value: 0, unitKey: 'second' });
+                    if (!zSeg) {
+                        zSeg = `0${fallbackAbbrev.second}`;
+                    }
+                    return applyPastFutureRange(zSeg);
+                }
+                return i18n.thisMoment || 'just now';
+            }
+
+            const segs = [];
+            for (const p of parts) {
+                let translatedUnit = translateFromNowUnit(p);
+                if (!translatedUnit) {
+                    const fb = style === 'short'
+                        ? fallbackAbbrev[p.unitKey] || p.unitKey.charAt(0)
+                        : (p.value === 1 ? p.unitKey : p.unitKey + 's');
+                    translatedUnit = style === 'short'
+                        ? `${p.value}${fb}`
+                        : `${p.value} ${fb}`;
+                }
+                segs.push(translatedUnit);
+            }
+
+            const range = segs.join(sep);
+            return applyPastFutureRange(range);
         }
     },
 

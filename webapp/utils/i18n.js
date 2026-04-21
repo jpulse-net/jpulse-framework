@@ -3,8 +3,8 @@
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/utils/i18n.js
- * @version         1.6.41
- * @release         2026-04-20
+ * @version         1.6.42
+ * @release         2026-04-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -298,7 +298,8 @@ class I18n {
      * @param {string} langCode - Language code
      * @param {string} keyPath - Dot-separated key path (e.g., 'login.notAuthenticated')
      * @param {object} context - Context object (single level key/value pairs)
-     * @returns {string} Translation or key path if not found
+     * @returns {string|object} Translation string, or a nested object/array when keyPath resolves to a subtree (W-185),
+     *                          or the keyPath as a string fallback if not found
      */
     _translate(langCode, keyPath, context = {}) {
         const lang = this.getLang(langCode);
@@ -312,7 +313,10 @@ class I18n {
                 return keyPath; // Return key path as fallback
             }
         }
-        if (context) {
+        // W-185: Only apply {{name}} context substitution to string leaves.
+        // Subtree (object/array) results are returned as-is so callers like _expandI18nExpression
+        // can embed them as JSON for client-side consumers.
+        if (context && typeof result === 'string') {
             result = result.replace(/{{(.*?)}}/g, (match, p1) => context[p1] || match);
         }
         return result;
@@ -324,7 +328,7 @@ class I18n {
      * @param {string} keyPath - Dot-separated key path
      * @param {object} context - Context object (single level key/value pairs)
      * @param {string} fallbackLang - Fallback language code (optional)
-     * @returns {string} Translation
+     * @returns {string|object} Translation string, or a nested object/array when keyPath resolves to a subtree (W-185)
      */
     translate(req, keyPath, context = {}, fallbackLang = this.default) {
         // Extract user's preferred language from request session
@@ -334,6 +338,8 @@ class I18n {
         let result = this._translate(userLang, keyPath, context);
 
         // If not found and fallback is different, try fallback
+        // Note: subtree results are objects; the keyPath-fallback comparison is a string equality,
+        // so object results never trigger the fallback (correct behavior).
         if (result === keyPath && fallbackLang !== userLang) {
             result = this._translate(fallbackLang, keyPath, context);
         }
@@ -342,10 +348,13 @@ class I18n {
     }
 
     /**
-     * Expand a single i18n handlebar expression to translated string (shared by expandI18nHandlebars and expandI18nDeep)
+     * Expand a single i18n handlebar expression to translated string or embedded JSON (shared by
+     * expandI18nHandlebars and expandI18nDeep).
+     * W-185: When the resolved translation is a nested object (subtree), the result is serialized
+     * with JSON.stringify so it embeds as a valid JS literal in `.js` / `.shtml` contexts.
      * @param {object} req - Express request object
      * @param {string} expression - Inner part of handlebar, e.g. 'i18n.view.admin.config.general.roles'
-     * @returns {string} Translated string or original match on failure
+     * @returns {string} Translated string, JSON-serialized subtree, or original match on failure
      */
     _expandI18nExpression(req, expression) {
         try {
@@ -360,7 +369,8 @@ class I18n {
                     params = {};
                 }
             }
-            return this.translate(req, key, params);
+            const result = this.translate(req, key, params);
+            return (typeof result === 'string') ? result : JSON.stringify(result);
         } catch (error) {
             return `{{${expression}}}`;
         }

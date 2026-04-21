@@ -1,6 +1,42 @@
-# jPulse Docs / Version History v1.6.41
+# jPulse Docs / Version History v1.6.42
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.42, W-185, 2026-04-21
+
+**Commit:** `W-185, v1.6.42: view: add jPulse.date.formatFromNow(); handlebars: improve {{date.fromNow}} helper`
+
+**Objective**: Let `.js` views embed a whole i18n namespace as one JSON literal (`{{i18n.path.to.subtree}}`), share the same translation strings between server Handlebars helpers and client utilities, and keep relative-time output consistent everywhere.
+
+**Summary**: `i18n.translate()` can return a nested object when the key path resolves to a subtree; `{{name}}` context substitution applies only to string leaves. `i18n.expandI18nHandlebars` / `_expandI18nExpression` serialize non-string translation results with `JSON.stringify` so they embed as valid JavaScript object literals. The `controller.handlebar.date.fromNow` subtree is migrated from `{{value}}` / `{{range}}` to `%VALUE%` / `%RANGE%` in `en.conf` and `de.conf`; helpers substitute after translate. New `thisMoment` key (en/de). `_handleDateFromNow` and `jPulse.date.formatFromNow` share the same rules: long format — if **|Δ| ≤ 1s** → `thisMoment`; if **1s < |Δ| ≤ 5s** → `pastMoment` / `futureMoment`; otherwise → `long.*` units, `separator`, and `pastRange` / `futureRange`; short format — always `short.*` segments with `pastRange` / `futureRange` (sub-second uses `short.second` at 0). `jPulse.date._i18nFromNow` is filled at serve time via `{{i18n.controller.handlebar.date.fromNow}}`. Unit tests cover subtree embedding, Handlebars date helpers, `formatFromNow`, and `isValidKey` prefix matching for subtree audit paths; tests that load raw `jpulse-common.js` strip the unquoted embed token where needed.
+
+**Key Features**:
+- **Subtree embedding** — `{{i18n.path.to.subtree}}` → JSON literal; leaf `{{i18n.path.leaf}}` unchanged.
+- **Client relative time** — `jPulse.date.formatFromNow(date, nowOrOptions)` with the same output semantics as `{{date.fromNow}}`.
+- **Placeholder migration** — `%VALUE%` / `%RANGE%` for values consumed after the main Handlebars pass.
+- **Relative-time bands** — Long: “just now” / “moments ago” / “in a moment” vs full units; short: always unit abbreviations including `0s` when needed.
+
+**Files changed** (high level):
+- `webapp/utils/i18n.js` — subtree return; stringify on expand; string-only context replace
+- `webapp/controller/handlebar.js` — `_handleDateFromNow` refactor
+- `webapp/view/jpulse-common.js` — `_i18nFromNow` embed; `formatFromNow`
+- `webapp/translations/en.conf`, `webapp/translations/de.conf` — `date.fromNow` keys + `thisMoment`
+- `webapp/tests/unit/translations/i18n-variable-content.test.js`, `webapp/tests/unit/controller/handlebar-date-helpers.test.js`, `webapp/tests/unit/utils/jpulse-common.test.js`, `webapp/tests/unit/i18n/utils/key-validator.js`, multiple tests that `vm`‑load `jpulse-common.js`
+
+**Documentation**:
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.6.42 / W-185
+- `docs/CHANGELOG.md`: this section
+- `docs/handlebars.md` — Subtree Embedding; `{{date.fromNow}}` client mirror and Past vs Future
+- `docs/template-reference.md` — Embedding a Translation Subtree
+- `docs/front-end-development.md` — Date Utilities / `formatFromNow`
+- `docs/api-reference.md` — `/api/1/handlebar/expand` context `i18n` bullet
+- `docs/genai-instructions.md` — `formatFromNow` snippet
+
+**Release**:
+- Work Item: W-185
+- Version: v1.6.42
+- Release Date: 2026-04-21
 
 ________________________________________________
 ## v1.6.41, W-184, 2026-04-20

@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.6.41
+# jPulse Docs / Handlebars Templating v1.6.42
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -148,6 +148,29 @@ Full application configuration (filtered based on auth).
 - `{{i18n.view.auth.*}}` - Authentication messages
 - `{{i18n.controller.*}}` - Controller messages
 - `{{i18n.*}}` - Consult the translation files at webapp/translations/ for available fields
+
+#### Subtree Embedding (v1.6.42+)
+
+When `{{i18n.path}}` resolves to a **non-leaf node** (a nested object / subtree), the expanded output is a JSON literal of that subtree. This lets client-side JavaScript bind a full translation namespace in one statement, instead of listing every leaf key individually.
+
+```javascript
+// In a .js template served by the framework (e.g. webapp/view/jpulse-common.js):
+const i18nFromNow = {{i18n.controller.handlebar.date.fromNow}};
+
+// Expands at serve time to (user language applied; values use %VALUE% / %RANGE% for runtime substitution):
+const i18nFromNow = {"pastRange":"%RANGE% ago","futureRange":"in %RANGE%",
+    "pastMoment":"moments ago","thisMoment":"just now","futureMoment":"in a moment",
+    "long":{"year":"%VALUE% year","years":"%VALUE% years", ...},
+    "short":{"year":"%VALUE%y","second":"%VALUE%s", ...},"separator":", "};
+```
+
+Use this when a client-side utility needs **multiple related translations** from the same namespace (e.g. a date-formatting helper, a widget with several labels). Shares a single source of truth with any server-side helper that reads the same keys.
+
+> **Placeholder convention for client-consumed values.** `.js` files are processed in two passes (i18n pass, then main handlebars pass). If an embedded subtree value contains `{{token}}`, the main pass will try to resolve it — typically blanking the token. For values that must survive the main pass and be substituted at **runtime** on the client, use `%TOKEN%` (e.g. `%VALUE%`, `%RANGE%`, `%NUM%`) instead of `{{token}}`. The client then calls `.replace('%TOKEN%', value)` itself. This matches the existing view-side convention (see `view.ui.input.jpSelect.captionFormatSome` → `%NUM% selected`).
+>
+> Subtrees consumed only by **server-side** code (rendered in `.shtml`) can continue using `{{name}}` placeholders, which are resolved by `i18n.translate(req, key, context)` before output.
+
+Leaf-string `{{i18n.x.y}}` usage is unchanged: a string is returned directly, and `{{name}}` context substitution continues to work when `translate()` is called with a `context` object.
 
 ### `{{siteConfig.*}}` - Site Configuration
 
@@ -793,9 +816,18 @@ The helper automatically selects the most appropriate time units (years, months,
 
 **Past vs Future:**
 
-- **Future dates**: Prefixed with `"in"` (e.g., `"in 6 days, 13 hours"`)
-- **Past dates**: Suffixed with `"ago"` (e.g., `"2 hours ago"`)
-- **Very recent (< 1 second)**: Returns `"just now"` (long) or `"0s ago"` (short) for past, `"in a moment"` (long) or `"in 0s"` (short) for future
+Past dates read as *"… ago"* and future dates read as *"in …"*, fully localized. Examples below are English; other locales use the translations from `controller.handlebar.date.fromNow.*`.
+
+- **Short format** (`format="short"` / `"short N"`) always shows a compact unit count:
+  - Past: `"3s ago"`, `"5m 12s ago"`, `"2h 30m ago"`, `"6d 13h ago"`
+  - Future: `"in 7s"`, `"in 2m 30s"`, `"in 6d 13h"`
+  - Sub-second: `"0s ago"` / `"in 0s"`
+- **Long format** (`format="long"` / `"long N"`) reads more naturally and uses vague wording when the difference is very small:
+  - Within ~1 second of now (past or future): `"just now"`
+  - Within a few seconds (past): `"moments ago"`
+  - Within a few seconds (future): `"in a moment"`
+  - Otherwise, past: `"2 hours, 5 minutes ago"`, `"6 days, 13 hours ago"`
+  - Otherwise, future: `"in 2 hours, 5 minutes"`, `"in 6 days, 13 hours"`
 
 **Supported input types:**
 - Date objects: `siteConfig.broadcast.enabledAt`
@@ -808,6 +840,10 @@ The helper automatically selects the most appropriate time units (years, months,
 - Show "last seen" or "last updated" times: `"Last updated {{date.fromNow vars.updatedAt}}"`
 - Countdown timers: `"Expires {{date.fromNow vars.expiryDate}}"`
 - Activity feeds: `"Posted {{date.fromNow vars.postedAt}}"`
+
+**Client-side mirror (v1.6.42+):**
+
+The i18n keys under `controller.handlebar.date.fromNow.*` are shared with the client-side helper `jPulse.date.formatFromNow()`, which produces the same relative-time output without a round-trip. See [front-end-development.md — Date Utilities](front-end-development.md#date-utilities) for the JS API. To enable subtree embedding into `.js` views, the value placeholders were migrated from `{{value}}` / `{{range}}` (server-only context) to `%VALUE%` / `%RANGE%` (substituted at runtime by both helpers). The rendered output of `{{date.fromNow}}` is unchanged.
 
 **Example:**
 

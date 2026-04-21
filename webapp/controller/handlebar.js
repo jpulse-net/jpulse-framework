@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.6.41
- * @release         2026-04-20
+ * @version         1.6.42
+ * @release         2026-04-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -3274,6 +3274,33 @@ class HandlebarController {
             const isFuture = diff > 0;
             const absDiff = Math.abs(diff);
 
+            const req = currentContext._handlebar?.req;
+            /** Within ±1s (long only): single vague string. Within (1s, 5s] (long only): past/future moment strings. */
+            const THIS_MOMENT_MS = 1000;
+            const MOMENT_BAND_MAX_MS = 5000;
+
+            const translateMomentLeaf = (momentKey, fallback) => {
+                if (global.i18n && req) {
+                    const t = global.i18n.translate(req, momentKey); // i18n-audit-ignore
+                    if (t && t !== momentKey) {
+                        return t;
+                    }
+                }
+                return fallback;
+            };
+
+            if (style === 'long') {
+                if (absDiff <= THIS_MOMENT_MS) {
+                    return translateMomentLeaf('controller.handlebar.date.fromNow.thisMoment', 'just now');
+                }
+                if (absDiff <= MOMENT_BAND_MAX_MS) {
+                    const key = isFuture
+                        ? 'controller.handlebar.date.fromNow.futureMoment'
+                        : 'controller.handlebar.date.fromNow.pastMoment';
+                    return translateMomentLeaf(key, isFuture ? 'in a moment' : 'moments ago');
+                }
+            }
+
             // Calculate time units
             const msPerSecond = 1000;
             const msPerMinute = 60 * msPerSecond;
@@ -3335,22 +3362,50 @@ class HandlebarController {
                 remaining = remaining % msPerSecond;
             }
 
-            // Get request object for i18n
-            const req = currentContext._handlebar?.req;
+            /**
+             * Wrap a computed range (short or long segments joined) with pastRange / futureRange.
+             * @param {string} range - Translated unit text, e.g. "2m" or "2 hours, 5 minutes"
+             */
+            const applyPastFutureRange = (range) => {
+                const rangeKey = isFuture ? 'controller.handlebar.date.fromNow.futureRange' : 'controller.handlebar.date.fromNow.pastRange';
+                if (global.i18n && req) {
+                    const template = global.i18n.translate(req, rangeKey); // i18n-audit-ignore
+                    if (template && template !== rangeKey) {
+                        return template.replace('%RANGE%', range);
+                    }
+                }
+                return isFuture ? `in ${range}` : `${range} ago`;
+            };
 
-            // If still no parts (less than 1 second), show moment translations or 0s for short format
+            /**
+             * Translate one unit segment (long or short) with %VALUE% substitution.
+             */
+            const translateFromNowUnit = (part) => {
+                let unitKey;
+                if (style === 'short') {
+                    unitKey = part.unitKey;
+                } else {
+                    unitKey = part.value === 1 ? part.unitKey : (part.unitKey + 's');
+                }
+                const i18nKey = `controller.handlebar.date.fromNow.${style}.${unitKey}`;
+                if (global.i18n && req) {
+                    const template = global.i18n.translate(req, i18nKey); // i18n-audit-ignore
+                    if (template && template !== i18nKey) {
+                        return template.replace('%VALUE%', String(part.value));
+                    }
+                }
+                return null;
+            };
+
+            // Short only: sub-second (no whole unit yet) → short.second @ 0 + pastRange/futureRange. Long never
+            // reaches here empty after the ±1s / ±5s moment bands above (unless pathological units=0).
             if (parts.length === 0) {
                 if (style === 'short') {
-                    // Short format: show "0s" instead of moment text
-                    return isFuture ? 'in 0s' : '0s ago';
-                } else {
-                    // Long format: use moment translations
-                    const momentKey = isFuture ? 'controller.handlebar.date.fromNow.futureMoment' : 'controller.handlebar.date.fromNow.pastMoment';
-                    if (global.i18n && req) {
-                        return global.i18n.translate(req, momentKey) || (isFuture ? 'in a moment' : 'just now'); // i18n-audit-ignore
-                    }
-                    return isFuture ? 'in a moment' : 'just now';
+                    const zSeg = translateFromNowUnit({ value: 0, unitKey: 'second' });
+                    const range = zSeg || '0s';
+                    return applyPastFutureRange(range);
                 }
+                return translateMomentLeaf('controller.handlebar.date.fromNow.thisMoment', 'just now');
             }
 
             // Get separator from i18n (only for long format; short format uses space)
@@ -3363,27 +3418,7 @@ class HandlebarController {
             // Format parts with i18n translations
             const translatedParts = [];
             for (const part of parts) {
-                // Determine unit key (singular or plural)
-                // Short format always uses singular keys, long format uses singular/plural based on value
-                let unitKey;
-                if (style === 'short') {
-                    // Short format only has singular keys in translation file
-                    unitKey = part.unitKey;
-                } else {
-                    // Long format: singular if value is 1, plural otherwise
-                    unitKey = part.value === 1 ? part.unitKey : (part.unitKey + 's');
-                }
-
-                const i18nKey = `controller.handlebar.date.fromNow.${style}.${unitKey}`;
-
-                let translatedUnit;
-                if (global.i18n && req) {
-                    translatedUnit = global.i18n.translate(req, i18nKey, { value: part.value }); // i18n-audit-ignore
-                    // If translation returns the key (translation missing), use fallback
-                    if (translatedUnit === i18nKey) {
-                        translatedUnit = null; // Will use fallback below
-                    }
-                }
+                let translatedUnit = translateFromNowUnit(part);
 
                 // Fallback to English if i18n not available or translation missing
                 if (!translatedUnit) {
@@ -3412,14 +3447,7 @@ class HandlebarController {
             // Join parts with separator
             const range = translatedParts.join(separator);
 
-            // Wrap in pastRange/futureRange template
-            const rangeKey = isFuture ? 'controller.handlebar.date.fromNow.futureRange' : 'controller.handlebar.date.fromNow.pastRange';
-            if (global.i18n && req) {
-                return global.i18n.translate(req, rangeKey, { range }) || (isFuture ? `in ${range}` : `${range} ago`); // i18n-audit-ignore
-            }
-
-            // Fallback to English if i18n not available
-            return isFuture ? `in ${range}` : `${range} ago`;
+            return applyPastFutureRange(range);
         }
 
         /**

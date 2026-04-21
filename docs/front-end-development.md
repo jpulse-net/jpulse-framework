@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.6.41
+# jPulse Docs / Front-End Development Guide v1.6.42
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -984,6 +984,75 @@ jPulse.url.isInternal('#section');                // true (anchor)
 jPulse.url.isInternal('https://same.com/page');   // true (if on same.com)
 jPulse.url.isInternal('https://other.com/page');  // false (external)
 ```
+
+### Date Utilities
+
+ISO-formatted date and time helpers (framework standard):
+
+```javascript
+jPulse.date.formatLocalDate(new Date());           // "2026-04-20"
+jPulse.date.formatLocalDateAndTime(new Date());    // "2026-04-20 15:30"
+jPulse.date.formatLocalTime(new Date());           // "15:30:45"
+jPulse.date.formatLocalTime(new Date(), false);    // "15:30" (no seconds)
+```
+
+#### Relative time: `jPulse.date.formatFromNow()` (v1.6.42+)
+
+Client-side mirror of the server `{{date.fromNow}}` Handlebars helper — same relative-time output, same i18n keys (under `controller.handlebar.date.fromNow`), no duplicated strings per locale. The full translation subtree is embedded once at serve time via the i18n subtree-embed syntax (W-185), so there is no per-call i18n lookup.
+
+**Signature**: `jPulse.date.formatFromNow(date, nowOrOptions)`
+
+| Argument | Type | Description |
+|----------|------|-------------|
+| `date` | `Date` \| ISO string \| numeric string \| number | The date to format. Invalid dates return `''`. |
+| `nowOrOptions` | `Date` \| number \| string \| `object` \| `null` | Reference "now" (default: `Date.now()`) **or** options object (see below). |
+
+**Options** (when `nowOrOptions` is an object):
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `now` | `Date` \| number \| string | `Date.now()` | Reference "now" date. |
+| `format` | `string` | `'long 2'` | `'<style> <units>'` where style is `long` \| `short` and units is 1–3. |
+| `style` | `string` | — | Overrides style from `format`. |
+| `units` | `number` | — | Overrides units from `format`. |
+
+**Chat age example** (short for compact unit counts, long for natural phrasing near zero):
+
+```javascript
+const now = Date.now();
+jPulse.date.formatFromNow(now - 2 * 60 * 1000, { now, format: 'short 1' });  // "2m ago" (en)
+jPulse.date.formatFromNow(now - 500, { now, format: 'long 1' });   // "just now"
+jPulse.date.formatFromNow(now - 3000, { now, format: 'long 1' });  // "moments ago"
+jPulse.date.formatFromNow(now + 3 * 3600 * 1000, { now, format: 'short 1' }); // "in 3h"
+```
+
+**Long-form examples**:
+
+```javascript
+const now = Date.now();
+jPulse.date.formatFromNow(now - 2 * 3600 * 1000 - 5 * 60 * 1000);
+    // "2 hours, 5 minutes ago"
+jPulse.date.formatFromNow(now + 3 * 24 * 3600 * 1000, { format: 'long 1' });
+    // "in 3 days"
+jPulse.date.formatFromNow('2026-04-20T10:00:00Z', new Date('2026-04-20T12:00:00Z'));
+    // "2 hours ago"  (fixed reference date)
+```
+
+**Behavior notes** (matches `{{date.fromNow}}` on the server):
+
+Past dates read as *"… ago"* and future dates read as *"in …"*, fully localized. Examples below are English; other locales use the translations from `controller.handlebar.date.fromNow.*`.
+
+- **Short format** always shows a compact unit count:
+  - Past: `"3s ago"`, `"5m 12s ago"`, `"2h 30m ago"`, `"6d 13h ago"`
+  - Future: `"in 7s"`, `"in 2m 30s"`, `"in 6d 13h"`
+  - Sub-second: `"0s ago"` / `"in 0s"`
+- **Long format** reads more naturally and uses vague wording when the difference is very small:
+  - Within ~1 second of now (past or future): `"just now"`
+  - Within a few seconds (past): `"moments ago"`
+  - Within a few seconds (future): `"in a moment"`
+  - Otherwise, past: `"2 hours, 5 minutes ago"`, `"6 days, 13 hours ago"`
+  - Otherwise, future: `"in 2 hours, 5 minutes"`, `"in 6 days, 13 hours"`
+- Translations live under `controller.handlebar.date.fromNow.*` in `en.conf` / `de.conf`.
 
 ## 📱 Device & Browser Detection
 

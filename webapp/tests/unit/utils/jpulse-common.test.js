@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse Common Client-Side Utilities
  * @description     Tests for client-side JavaScript utilities in jpulse-common.js
  * @file            webapp/tests/unit/utils/jpulse-common.test.js
- * @version         1.6.41
- * @release         2026-04-20
+ * @version         1.6.42
+ * @release         2026-04-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -31,7 +31,16 @@ global.HTMLElement = dom.window.HTMLElement;
 
 // Load jpulse-common.js content and evaluate it in the window context
 const jpulseCommonPath = path.join(process.cwd(), 'webapp/view/jpulse-common.js');
-const jpulseCommonContent = fs.readFileSync(jpulseCommonPath, 'utf8');
+let jpulseCommonContent = fs.readFileSync(jpulseCommonPath, 'utf8');
+
+// W-185: jpulse-common.js is normally served through view.js which runs expandI18nHandlebars()
+// first, resolving unquoted subtree embeds like `{{i18n.controller.handlebar.date.fromNow}}` to
+// a JSON literal. When loaded raw for testing, replace known unquoted i18n subtree embeds with a
+// valid empty-object literal so the JS parses. Tests exercise the English fallback path.
+jpulseCommonContent = jpulseCommonContent.replace(
+    /\{\{i18n\.controller\.handlebar\.date\.fromNow\}\}/g,
+    '{}'
+);
 
 // Execute the code in the window context
 const vm = require('vm');
@@ -426,6 +435,140 @@ describe('jPulse Client-Side Utilities', () => {
             expect(typeof window.jPulse.api.post).toBe('function');
             expect(typeof window.jPulse.api.put).toBe('function');
             expect(typeof window.jPulse.api.delete).toBe('function');
+        });
+    });
+
+    // W-185: client-side mirror of {{date.fromNow}} Handlebars helper
+    describe('jPulse.date.formatFromNow (W-185)', () => {
+
+        const NOW = new Date('2026-04-20T12:00:00Z').getTime();
+
+        test('exists as a function', () => {
+            expect(typeof window.jPulse.date.formatFromNow).toBe('function');
+        });
+
+        test('invalid date returns empty string', () => {
+            expect(window.jPulse.date.formatFromNow(null)).toBe('');
+            expect(window.jPulse.date.formatFromNow(undefined)).toBe('');
+            expect(window.jPulse.date.formatFromNow('not-a-date')).toBe('');
+            expect(window.jPulse.date.formatFromNow('')).toBe('');
+        });
+
+        test('accepts Date / ISO string / numeric string / number for arg1', () => {
+            const past = new Date(NOW - 2 * 3600 * 1000);
+            const opts = { now: NOW, format: 'long 1' };
+            expect(window.jPulse.date.formatFromNow(past, opts)).toBe('2 hours ago');
+            expect(window.jPulse.date.formatFromNow(past.toISOString(), opts)).toBe('2 hours ago');
+            expect(window.jPulse.date.formatFromNow(String(past.getTime()), opts)).toBe('2 hours ago');
+            expect(window.jPulse.date.formatFromNow(past.getTime(), opts)).toBe('2 hours ago');
+        });
+
+        test('accepts ISO 8601 date-only and trimmed date-time strings', () => {
+            // Date-only YYYY-MM-DD is UTC midnight; NOW is 2026-04-20T12:00:00Z → 12 hours ago
+            expect(window.jPulse.date.formatFromNow('2026-04-20', { now: NOW, format: 'long 1' }))
+                .toBe('12 hours ago');
+            // Trimmed full ISO; 10:00Z vs noon → 2 hours ago
+            expect(window.jPulse.date.formatFromNow(' 2026-04-20T10:00:00Z ', { now: NOW, format: 'long 1' }))
+                .toBe('2 hours ago');
+            // opts.now as ISO string
+            expect(window.jPulse.date.formatFromNow(NOW - 60 * 1000, { now: '2026-04-20T12:00:00.000Z', format: 'long 1' }))
+                .toBe('1 minute ago');
+        });
+
+        test('accepts Date / number for arg2 as reference "now"', () => {
+            const past = NOW - 5 * 60 * 1000;
+            const expected = '5 minutes ago';
+            expect(window.jPulse.date.formatFromNow(past, new Date(NOW))).toBe(expected);
+            expect(window.jPulse.date.formatFromNow(past, NOW)).toBe(expected);
+            expect(window.jPulse.date.formatFromNow(past, new Date(NOW).toISOString())).toBe(expected);
+        });
+
+        test('null / undefined arg2 uses Date.now()', () => {
+            const past = Date.now() - 60 * 1000;
+            const out1 = window.jPulse.date.formatFromNow(past);
+            const out2 = window.jPulse.date.formatFromNow(past, null);
+            const out3 = window.jPulse.date.formatFromNow(past, undefined);
+            expect(out1).toBe('1 minute ago');
+            expect(out2).toBe('1 minute ago');
+            expect(out3).toBe('1 minute ago');
+        });
+
+        test('long format default (2 units, past)', () => {
+            const past = NOW - (2 * 3600 * 1000 + 5 * 60 * 1000);
+            expect(window.jPulse.date.formatFromNow(past, { now: NOW })).toBe('2 hours, 5 minutes ago');
+        });
+
+        test('long format future', () => {
+            const future = NOW + (3 * 24 * 3600 * 1000);
+            expect(window.jPulse.date.formatFromNow(future, { now: NOW, format: 'long 1' })).toBe('in 3 days');
+        });
+
+        test('short format (single unit)', () => {
+            const past = NOW - 2 * 60 * 1000;
+            expect(window.jPulse.date.formatFromNow(past, { now: NOW, format: 'short 1' })).toBe('2m ago');
+        });
+
+        test('short format future', () => {
+            const future = NOW + 3 * 3600 * 1000;
+            expect(window.jPulse.date.formatFromNow(future, { now: NOW, format: 'short 1' })).toBe('in 3h');
+        });
+
+        test('singular vs plural (long): 1 minute vs 2 minutes', () => {
+            expect(window.jPulse.date.formatFromNow(NOW - 60 * 1000, { now: NOW, format: 'long 1' }))
+                .toBe('1 minute ago');
+            expect(window.jPulse.date.formatFromNow(NOW - 2 * 60 * 1000, { now: NOW, format: 'long 1' }))
+                .toBe('2 minutes ago');
+        });
+
+        test('units option overrides format units', () => {
+            const past = NOW - (2 * 3600 * 1000 + 5 * 60 * 1000 + 30 * 1000);
+            expect(window.jPulse.date.formatFromNow(past, { now: NOW, format: 'long 3', units: 1 }))
+                .toBe('2 hours ago');
+            expect(window.jPulse.date.formatFromNow(past, { now: NOW, format: 'long 1', units: 3 }))
+                .toBe('2 hours, 5 minutes, 30 seconds ago');
+        });
+
+        test('style option overrides format style', () => {
+            const past = NOW - 2 * 3600 * 1000;
+            expect(window.jPulse.date.formatFromNow(past, { now: NOW, format: 'long 1', style: 'short' }))
+                .toBe('2h ago');
+            expect(window.jPulse.date.formatFromNow(past, { now: NOW, format: 'short 1', style: 'long' }))
+                .toBe('2 hours ago');
+        });
+
+        test('sub-second delta: short → "0s ago" / "in 0s" (i18n short.second + range templates)', () => {
+            expect(window.jPulse.date.formatFromNow(NOW - 500, { now: NOW, format: 'short 1' }))
+                .toBe('0s ago');
+            expect(window.jPulse.date.formatFromNow(NOW + 500, { now: NOW, format: 'short 1' }))
+                .toBe('in 0s');
+        });
+
+        test('long format moment bands: ±1s → thisMoment; (1s, 5s] → pastMoment / futureMoment', () => {
+            expect(window.jPulse.date.formatFromNow(NOW - 500, { now: NOW }))
+                .toBe('just now');
+            expect(window.jPulse.date.formatFromNow(NOW + 500, { now: NOW }))
+                .toBe('just now');
+            expect(window.jPulse.date.formatFromNow(NOW, { now: NOW }))
+                .toBe('just now');
+            expect(window.jPulse.date.formatFromNow(NOW - 3000, { now: NOW }))
+                .toBe('moments ago');
+            expect(window.jPulse.date.formatFromNow(NOW + 3000, { now: NOW }))
+                .toBe('in a moment');
+        });
+
+        test('long format >5s uses real units', () => {
+            expect(window.jPulse.date.formatFromNow(NOW - 6000, { now: NOW, format: 'long 1' }))
+                .toBe('6 seconds ago');
+        });
+
+        test('chat example: alice · 2m ago / bob · just now (short vs long ±1s)', () => {
+            const now = NOW;
+            const alice = now - 2 * 60 * 1000;
+            const bob   = now - 500;
+            expect(`alice · ${window.jPulse.date.formatFromNow(alice, { now, format: 'short 1' })}`)
+                .toBe('alice · 2m ago');
+            expect(`bob · ${window.jPulse.date.formatFromNow(bob, { now, format: 'long 1' })}`)
+                .toBe('bob · just now');
         });
     });
 });

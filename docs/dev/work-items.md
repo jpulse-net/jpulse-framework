@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.41
+# jPulse Docs / Dev / Work Items v1.6.42
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5853,13 +5853,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/CHANGELOG.md`:
     - v1.6.40 / W-183 section
 
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-184, v1.6.41, 2026-04-20: WebSocket client: suppress reconnect loop on a WebSocket close 4403 (access denied)
 - status: ✅ DONE
 - type: Feature
@@ -5885,6 +5878,91 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - 4401: session expiry mid-connection still yields `auth-required`, no reconnect loop (regression)
   - 4403: after rejected connection (e.g. expired admin session reconnecting as guest to non-public resource), first close → `auth-required`, not 5s/10s/… backoff
   - 1006 / 1001 / normal server restart: still reconnects with backoff
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-185, v1.6.42, 2026-04-21: view: add jPulse.date.formatFromNow(); handlebars: improve {{date.fromNow}} helper
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - add a client-side `jPulse.date.formatFromNow(date, nowDate | options | null)` that produces the same relative-time output as the server `{{date.fromNow}}` Handlebars helper, driven by the same i18n keys — no duplicated per-language strings
+  - primary use case: chat / activity UIs that label items with ages live (e.g. `alice · 2m ago` with short format, `bob · just now` with long format for sub-second deltas) without a round-trip
+  - migrate `controller.handlebar.date.fromNow.*` placeholders from `{{value}}` / `{{range}}` → `%VALUE%` / `%RANGE%` so the subtree can be embedded into a `.js` view via `{{i18n.controller.handlebar.date.fromNow}}` without the second Handlebars pass blanking remaining `{{…}}` tokens
+  - align `i18n._expandI18nExpression()` behavior with other parts of the Handlebars pipeline that already `JSON.stringify` non-string results
+  - keep backward compatibility with existing leaf-string `{{i18n.x.y}}` usage (including `{{name}}` context substitution on string leaves)
+- features:
+  - `jPulse.date.formatFromNow(date, arg2)`:
+    - arg1 `date` — `Date` | ISO string | timestamp (number or numeric string)
+    - arg2 — one of:
+      - `Date` | string | number — reference "now" (default: `Date.now()`)
+      - object — options: `{ now, format, style, units }`
+      - `null` / `undefined` — default behavior
+    - `format`: `'long 2'` | `'short 1'` | etc. (same syntax as server helper); `style` / `units` override `format`
+    - parity with server:
+      - short always: `short.*` units + `pastRange` / `futureRange` (sub-second → `short.second` @ `%VALUE%=0` + range, e.g. `"0s ago"` / `"in 0s"`)
+      - long by band: `|Δ| ≤ 1s` → `thisMoment`; `1s < |Δ| ≤ 5s` → `pastMoment` / `futureMoment`; `|Δ| > 5s` → `long.*` units + `separator` + `pastRange` / `futureRange`
+      - no `wrap` / `momentInShort` flags (dropped earlier in W-185)
+    - reuses the serve-time-bound `jPulse.date._i18nFromNow = {{i18n.controller.handlebar.date.fromNow}}` — one declaration per module load, no per-call i18n lookup
+  - translation file migration (`en.conf`, `de.conf`):
+    - `controller.handlebar.date.fromNow.pastRange`: `'{{range}} ago'` → `'%RANGE% ago'`
+    - `controller.handlebar.date.fromNow.futureRange`: `'in {{range}}'` → `'in %RANGE%'`
+    - `controller.handlebar.date.fromNow.long.*`: `'{{value}} year[s]'` → `'%VALUE% year[s]'` (all 14 keys: year[s], month[s], week[s], day[s], hour[s], minute[s], second[s])
+    - `controller.handlebar.date.fromNow.short.*`: `'{{value}}y'` → `'%VALUE%y'` (all 7 keys)
+    - `pastMoment`, `thisMoment`, `futureMoment`, `separator`: string leaves (no `%` placeholders)
+  - `controller/handlebar.js` `_handleDateFromNow()`:
+    - shared `translateFromNowUnit` / `applyPastFutureRange`; sub-second long uses three moment keys; sub-second short uses `short.second` + `pastRange`/`futureRange` (no hardcoded `in 0s`/`0s ago`)
+    - stop passing `{ value }` / `{ range }` as `translate()` context for unit/range templates; use `%VALUE%`/`%RANGE%` `.replace` after translate
+  - `i18n._expandI18nExpression()` (already in place): when `translate()` returns a non-string, emits `JSON.stringify(result)` — mirrors the JSON-stringify behavior already used by other Handlebars helpers for non-string values; unblocks subtree embedding via `{{i18n.path.to.subtree}}`
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - top-level (jPulse closure scope): `const i18nFromNow = {{i18n.controller.handlebar.date.fromNow}};` bound once at module load
+    - `jPulse.date.formatFromNow`: same algorithm as `_handleDateFromNow` (no `wrap`/`momentInShort`); JSDoc examples updated
+  - `webapp/translations/en.conf`, `webapp/translations/de.conf`:
+    - change `{{value}}` / `{{range}}` → `%VALUE%` / `%RANGE%` in the `date.fromNow` block (long × 14, short × 7, pastRange, futureRange)
+  - `webapp/controller/handlebar.js`:
+    - `_handleDateFromNow()`: remove `{ value }` / `{ range }` from `translate()` calls; substitute `%VALUE%` / `%RANGE%` on the returned string; fallback branches updated
+  - `webapp/utils/i18n.js`:
+    - `_translate()`: `typeof result === 'string'` guard before `{{name}}` context replace (subtree results pass through)
+    - `_expandI18nExpression()`: `JSON.stringify(result)` when non-string — aligns with JSON-stringify treatment elsewhere in the Handlebars pipeline
+  - `webapp/tests/unit/translations/i18n-variable-content.test.js`:
+    - 7 Subtree embedding tests covering subtree return, leaf regression, context regression, missing-key regression, JSON literal round-trip, leaf expansion regression, deep-expand in string values
+  - `webapp/tests/unit/controller/handlebar-date-helpers.test.js`:
+    - `{{date.fromNow <past>}}` renders `'N unit[s] ago'` / `'in N unit[s]'` (regression using migrated keys)
+    - long format moment bands: `±1s` → `'just now'` (past and future); `(1s, 5s]` → `'moments ago'` (past) / `'in a moment'` (future)
+    - short format sub-second: past → `'0s ago'`; future → `'in 0s'`
+    - mixed units (`format="long 2"`) → `'N unit, M unit[s] ago'`
+  - `webapp/tests/unit/utils/jpulse-common.test.js` (extended with `jPulse.date.formatFromNow (W-185)` describe block):
+    - `formatFromNow` with `Date`, ISO string (including ISO 8601 date-only and trimmed date-time), numeric string, number
+    - arg2 = `Date` / number / `null` / options (`{ now, format, style, units }`)
+    - unit decomposition and `units` truncation
+    - long format moment bands: `±1s` → `'just now'`; `(1s, 5s]` → `'moments ago'` / `'in a moment'`; `>5s` → real units
+    - short format sub-second: `'0s ago'` / `'in 0s'`    - invalid date → `''`
+  - `docs/handlebars.md`:
+    - `{{i18n.*}}` Internationalization section: new subsection *Subtree Embedding (v1.6.42+)* with example binding `const i18nFromNow = {{i18n.controller.handlebar.date.fromNow}};` and a note on the `%TOKEN%` convention for client-consumed values
+    - `{{date.fromNow}}` section: note placeholder migration (`{{value}}` / `{{range}}` → `%VALUE%` / `%RANGE%`, v1.6.42+); output unchanged for helper consumers
+  - `docs/template-reference.md`:
+    - Internationalization (i18n) section: *Embedding a Translation Subtree (v1.6.42+)* example + `%VALUE%` / `%RANGE%` placeholder convention rationale (two-pass expansion in `view.js`)
+  - `docs/api-reference.md`:
+    - `/api/1/handlebar/expand` context list — `i18n` bullet notes subtree embedding (string leaf vs. JSON literal) with cross-link to handlebars reference
+  - `docs/front-end-development.md`:
+    - Date utilities / `jPulse.date`: *formatFromNow (v1.6.42+)* — options table, chat examples, parity with `{{date.fromNow}}` (i18n-only outer phrases)
+  - `README.md`, `docs/README.md`:
+    - Latest Release Highlights — v1.6.42 / W-185 bullet (client-side `formatFromNow` + shared i18n)
+  - `docs/CHANGELOG.md`:
+    - v1.6.42 / W-185 section (new client helper, key migration, subtree embedding alignment)
+- test / verify (manual):
+  - chat widget: `jPulse.date.formatFromNow(ts, { format: 'short 1' })` renders `'2m ago'`, `'in 3h'`; sub-second with `format: 'long 1'` renders `'just now'` (±1s) or `'moments ago'` / `'in a moment'` (1–5s); sub-second with `format: 'short 1'` renders `'0s ago'` / `'in 0s'` per locale
+  - `{{date.fromNow}}` regression across a sample template: same output as before the key migration (strings are equivalent; only placeholder syntax changed)
+  - language switch (`preferences.language = 'de'`): both server helper output and client `formatFromNow` output use German translations from the same shared subtree
+  - `.js` view containing `const strings = {{i18n.view.ui.input.jpSelect}};` serves a valid JS object literal; `{{i18n.view.ui.input.jpSelect.placeholder}}` still resolves to its string leaf (regression)
+
+
 
 
 
@@ -5916,8 +5994,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-184, v1.6.41, 2026-04-20
-- update features & deliverables in W-183 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-185, v1.6.42, 2026-04-21
+- update features & deliverables in W-185 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -5928,12 +6006,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.41 2026-04-20
+node bin/bump-version.js 1.6.42 2026-04-21
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.41; git push origin main --tags
+git tag v1.6.42; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

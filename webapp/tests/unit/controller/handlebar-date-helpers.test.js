@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-131: Date helpers (date.now, date.parse, date.format) and W-132: Timezone support
  * @description     Tests for date helpers for Unix timestamp operations and timezone formatting
  * @file            webapp/tests/unit/controller/handlebar-date-helpers.test.js
- * @version         1.6.41
- * @release         2026-04-20
+ * @version         1.6.42
+ * @release         2026-04-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -534,25 +534,32 @@ describe('W-131: Handlebars Date Helpers', () => {
             expect(result.trim()).toMatch(/^in \d+ days?, \d+ hours?$/);
         });
 
-        test('should handle very recent past date (< 1 second)', async () => {
+        test('should handle long format within ±1s as thisMoment (past)', async () => {
             const recentDate = new Date(Date.now() - 500); // 500ms ago
             const template = '{{date.fromNow testDate format="long"}}';
             const result = await HandlebarController.expandHandlebars(mockReq, template, {
                 testDate: recentDate
             });
 
-            // Translation file has "moments ago", but fallback is "just now"
-            expect(result.trim()).toMatch(/^(moments ago|just now)$/);
+            expect(result.trim()).toBe('just now');
         });
 
-        test('should handle very recent future date (< 1 second)', async () => {
+        test('should handle long format within ±1s as thisMoment (future)', async () => {
             const recentDate = new Date(Date.now() + 500); // 500ms from now
             const template = '{{date.fromNow testDate format="long"}}';
             const result = await HandlebarController.expandHandlebars(mockReq, template, {
                 testDate: recentDate
             });
 
-            expect(result.trim()).toBe('in a moment');
+            expect(result.trim()).toBe('just now');
+        });
+
+        test('should handle long format (1s, 5s] as pastMoment / futureMoment', async () => {
+            const past3s = new Date(Date.now() - 3000);
+            const fut3s = new Date(Date.now() + 3000);
+            const tPast = '{{date.fromNow testDate format="long"}}';
+            expect((await HandlebarController.expandHandlebars(mockReq, tPast, { testDate: past3s })).trim()).toBe('moments ago');
+            expect((await HandlebarController.expandHandlebars(mockReq, tPast, { testDate: fut3s })).trim()).toBe('in a moment');
         });
 
         test('should handle very recent past date with short format', async () => {

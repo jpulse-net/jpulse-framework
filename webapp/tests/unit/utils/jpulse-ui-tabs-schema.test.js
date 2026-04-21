@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for renderTabsAndPanelsFromSchema and schema flow (W-148 Phase 4)
  * @description     Low-hanging fruit: _walkSchemaFields, renderTabsAndPanelsFromSchema flow classes and field HTML
  * @file            webapp/tests/unit/utils/jpulse-ui-tabs-schema.test.js
- * @version         1.6.41
- * @release         2026-04-20
+ * @version         1.6.42
+ * @release         2026-04-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -36,7 +36,9 @@ global.CustomEvent = dom.window.CustomEvent;
 global.KeyboardEvent = dom.window.KeyboardEvent;
 
 const jpulseCommonPath = path.join(process.cwd(), 'webapp/view/jpulse-common.js');
-const jpulseCommonContent = fs.readFileSync(jpulseCommonPath, 'utf8');
+let jpulseCommonContent = fs.readFileSync(jpulseCommonPath, 'utf8');
+// W-185: strip the unquoted subtree-embed token (would otherwise break JS parse when loaded raw)
+jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.controller\.handlebar\.date\.fromNow\}\}/g, '{}');
 const context = vm.createContext(win);
 vm.runInContext(jpulseCommonContent, context);
 

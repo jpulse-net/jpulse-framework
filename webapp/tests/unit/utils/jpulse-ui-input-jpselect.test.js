@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.input.jpSelect (W-151)
  * @description     Tests for jpSelect init, setAllValues/getAllValues multi-select
  * @file            webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js
- * @version         1.6.41
- * @release         2026-04-20
+ * @version         1.6.42
+ * @release         2026-04-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -30,7 +30,9 @@ global.HTMLElement = dom.window.HTMLElement;
 global.Event = dom.window.Event;
 
 const jpulseCommonPath = path.join(process.cwd(), 'webapp/view/jpulse-common.js');
-const jpulseCommonContent = fs.readFileSync(jpulseCommonPath, 'utf8');
+let jpulseCommonContent = fs.readFileSync(jpulseCommonPath, 'utf8');
+// W-185: strip the unquoted subtree-embed token (would otherwise break JS parse when loaded raw)
+jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.controller\.handlebar\.date\.fromNow\}\}/g, '{}');
 
 const vm = require('vm');
 const context = vm.createContext(window);

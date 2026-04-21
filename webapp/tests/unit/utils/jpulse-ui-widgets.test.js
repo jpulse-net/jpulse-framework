@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI Dialog, Accordion, Tab, and Tooltip Widgets
  * @description     Tests for client-side UI widgets: alertDialog, infoDialog, accordion, tabs, tooltip
  * @file            webapp/tests/unit/utils/jpulse-ui-widgets.test.js
- * @version         1.6.41
- * @release         2026-04-20
+ * @version         1.6.42
+ * @release         2026-04-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -60,6 +60,8 @@ jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.view\.ui\.infoDialo
 jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.view\.ui\.infoDialog\.oKButton\}\}/g, 'OK');
 jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.view\.ui\.successDialog\.title\}\}/g, 'Success');
 jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.view\.ui\.successDialog\.oKButton\}\}/g, 'OK');
+// W-185: strip the unquoted subtree-embed token (would otherwise break JS parse when loaded raw)
+jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.controller\.handlebar\.date\.fromNow\}\}/g, '{}');
 
 // Execute the code in the window context
 const vm = require('vm');

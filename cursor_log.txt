@@ -19045,3 +19045,155 @@ Updated README.md and docs/README.md title to v1.6.41 and added W-184 highlight 
 
 
 ============================================================
+2026-04-20 15:15
+
+- the #1 feature should be documented in the official docs for handlebars and i18n
+- create work item @work-items.md (5890-5898), follow format of existing work items
+
+Filled W-185 placeholder at work-items.md:5890 with 'i18n: embed subtree objects via {{i18n.path.to.subtree}} (shared server + client i18n)' (v1.6.42, 2026-04-21, PENDING, Feature). Captured the two small i18n.js enhancements as features: (1) _translate() guards context replace with typeof==='string' so nested objects pass through, and (2) _expandI18nExpression() JSON.stringify's non-string results to emit valid JS object literals. Documented the %TOKEN% placeholder convention rationale (two-pass view.js expansion). Deliverables list: webapp/utils/i18n.js, companion unit test (extend i18n-variable-content.test.js), docs/handlebars.md '{{i18n.*}}' subsection 'Subtree Embedding (v1.6.42+)', docs/template-reference.md Internationalization section 'Embedding a translation subtree' example + %VALUE%/%RANGE% convention, docs/api-reference.md i18n API note, README/docs/README release highlights, CHANGELOG v1.6.42 section. Manual test bullets cover .js subtree binding, leaf regression, and language switching. Follow-up bullet flags W-186 (jPulse.date.formatFromNow) as the consumer and the companion key migration from {{value}}/{{range}} to %VALUE%/%RANGE%.
+
+
+============================================================
+2026-04-20 15:25
+
+implement W-185
+
+Implemented W-185 (i18n subtree embedding via {{i18n.path.to.subtree}}). Code: webapp/utils/i18n.js — _translate() context replace guarded by typeof result === 'string' (nested objects returned as-is); _expandI18nExpression() emits JSON.stringify(result) when non-string; updated JSDoc on both methods; version header bumped to 1.6.42 / 2026-04-21. Tests: webapp/tests/unit/translations/i18n-variable-content.test.js — added 'Subtree embedding (W-185)' describe block with 7 tests (subtree object return, leaf regression, {{name}} context regression, keyPath-fallback regression, expandI18nHandlebars JSON literal + JSON.parse round-trip, leaf-expansion regression, expandI18nDeep JSON embedding in string values). Docs: docs/handlebars.md — new 'Subtree Embedding (v1.6.42+)' subsection under {{i18n.*}} with %TOKEN% convention note; docs/template-reference.md — new 'Embedding a Translation Subtree (v1.6.42+)' subsection in i18n section; docs/api-reference.md — /api/1/handlebar/expand context list i18n bullet mentions subtree embedding + cross-link, version bumped to 1.6.42. Verified: 14/14 tests in i18n-variable-content file pass (7 new + 7 existing); 67/67 across translations + i18n audit + view-static-assets; 2179/2179 across full webapp/tests/unit (81 suites).
+
+
+============================================================
+2026-04-20 15:49
+
+fyi, the JSON stringify already existed in handlebars other than i18n, so this enhancement aligns the behavior
+
+hence the stringify feature is not a big enough change for a work item. add the jPulse.date.formatFromNow() to W-185, including {{value}}/{{range}} → %VALUE%/%RANGE% migration
+
+Merged W-186 scope into W-185 (no separate work item for the isolated i18n stringify change, which aligns existing Handlebars-pipeline behavior).
+
+W-185 (now v1.6.42, 2026-04-21) — combined scope delivered:
+1. Rewrote W-185 entry in docs/dev/work-items.md with the full combined scope (objectives, features, deliverables, test/verify).
+2. Migrated controller.handlebar.date.fromNow.* placeholders in en.conf + de.conf from {{value}}/{{range}} → %VALUE%/%RANGE% (pastRange, futureRange, long × 14, short × 7; pastMoment/futureMoment/separator unchanged). No rendered-output change.
+3. Updated webapp/controller/handlebar.js _handleDateFromNow(): stopped passing {value}/{range} context to translate(); now post-translate .replace('%VALUE%', …) / .replace('%RANGE%', …). Version header bumped to 1.6.42.
+4. Added jPulse.date.formatFromNow(date, nowOrOptions) in webapp/view/jpulse-common.js:
+   - top-level _i18nFromNow binds the full subtree via serve-time {{i18n.controller.handlebar.date.fromNow}} embed (one declaration per module load)
+   - arg2 polymorphic: Date/number/ISO → "now"; object → options (now, format, style, units, wrap, momentInShort); null/undefined → defaults
+   - short style drops the "… ago" wrapper by default (chat UX); wrap:true restores server parity
+   - momentInShort: true → "moments ago" / "in a moment" for sub-second deltas in short style
+   - invalid dates return ''
+   - JSDoc with chat-age example ("alice · 2m", "bob · moments ago")
+5. Tests (all passing; full suite 92/92 suites, 2305/2305 tests, 0 warnings):
+   - 18 new jPulse.date.formatFromNow tests in webapp/tests/unit/utils/jpulse-common.test.js
+   - Added W-185 subtree-embed strip (/\{\{i18n\.controller\.handlebar\.date\.fromNow\}\}/ → '{}') in 11 test files that vm.runInContext the raw jpulse-common.js (jpulse-common, jpulse-common-form, jpulse-ui-widgets, jpulse-ui-heading-anchors, jpulse-ui-input-slider, jpulse-ui-tabs-schema, jpulse-ui-sourcecode, jpulse-ui-input-jpselect, jpulse-ui-input-taginput, jpulse-ui-navigation, settings-plugin-fields).
+   - Adjusted i18n-variable-content W-185 regression test (auth.roleRequired leaf used for {{name}} context — no longer date.fromNow since that migrated).
+   - isValidKey (webapp/tests/unit/i18n/utils/key-validator.js) now also accepts subtree-prefix references — unblocks i18n-usage-audit validation of {{i18n.controller.handlebar.date.fromNow}} embeds.
+6. Docs:
+   - docs/front-end-development.md: new "Date Utilities" section with full formatFromNow entry (signature, options table, chat-age example, long-form examples, behavior notes).
+   - docs/handlebars.md: added a "Client-side mirror (v1.6.42+)" note under {{date.fromNow}} describing the %VALUE%/%RANGE% migration (output unchanged) and cross-linking the front-end guide.
+   - docs/genai-instructions.md: Date Formatting snippet updated with formatFromNow examples.
+
+Still open for release prep: README.md / docs/README.md "Latest Release Highlights", docs/CHANGELOG.md v1.6.42 section, package.json version bump, work-item status flip 🕑 PENDING → ✅ DONE.
+
+
+============================================================
+2026-04-20 15:56
+
+@jpulse-common.js (577-588) - it woud be useful to support iso date strings as well
+
+Enhanced formatFromNow inner parseDate in webapp/view/jpulse-common.js: trim strings; treat ISO 8601 calendar date/datetime (^\d{4}-\d{2}-\d{2}) explicitly via new Date(s) before the all-digit epoch-ms branch; keep general Date fallback for other parseable strings (RFC 2822, etc.). Added unit test "accepts ISO 8601 date-only and trimmed date-time strings" in jpulse-common.test.js (date-only 2026-04-20 vs fixed NOW → 12 hours ago; trimmed T10:00:00Z → 2 hours ago; opts.now as ISO string). Ran targeted jest for that test — pass.
+
+
+============================================================
+2026-04-20 16:23
+
+oh, hardcoded in handlebar, this is bad! - I added controller.handlebar.date.thisMoment for sub-second - the date.pastMoment, date.thisMoment, date.futureMoment should be used for long format - the <N>s should be used for short format... (fix handlebar + jpulse-common, remove wrap/momentInShort)
+
+handlebar.js _handleDateFromNow: Introduced applyPastFutureRange(range) and translateFromNowUnit(part); sub-second long uses diff===0 → thisMoment, diff>0 → futureMoment, diff<0 → pastMoment (i18n keys); sub-second short uses translateFromNowUnit({value:0, unitKey:'second'}) + applyPastFutureRange (no hardcoded in 0s/0s ago). Refactored main loop to use translateFromNowUnit; final range wrapping uses applyPastFutureRange only. Emergency fallbacks: short zero '0s'; moments 'just now'/'in a moment'/'moments ago' when i18n missing.
+
+jpulse-common.js formatFromNow: Removed wrap and momentInShort; mirrored same logic (applyPastFutureRange, translateFromNowUnit, three moment keys, short zero + range). English fallbacks only when embedded i18n object empty (tests).
+
+Docs: docs/handlebars.md (subtree example %VALUE%, thisMoment; very-recent bullet), docs/front-end-development.md (options table, chat example, behavior notes), docs/genai-instructions.md (formatFromNow one-liner). docs/dev/work-items.md W-185 bullets updated.
+
+Tests: jpulse-common.test.js — expectations 2m ago, 2h ago, removed wrap/momentInShort tests; added thisMoment (NOW,NOW), sub-second short 0s ago/in 0s; chat example uses short+long. handlebar-date-helpers.test.js — past sub-second expects moments ago only.
+
+Full jest (92 suites, 2303 tests) pass.
+
+
+============================================================
+2026-04-20 16:37
+
+Explicit spec: short always i18n units + range; long |Δ|≤1s thisMoment; (1s,5s] pastMoment/futureMoment; same server + client.
+
+handlebar.js _handleDateFromNow: After diff/absDiff, if long and absDiff≤1000 → thisMoment; if long and absDiff≤5000 → pastMoment/futureMoment (translateMomentLeaf). Then unit decomposition. Short never uses moment keys. parts.length===0: short → short.second@0+range; long → emergency thisMoment.
+
+jpulse-common formatFromNow: Moved long band checks BEFORE parts loop (was incorrectly after). Same thresholds THIS_MOMENT_MS=1000, MOMENT_BAND_MAX_MS=5000.
+
+Tests: handlebar long ±500ms → just now; long ±3s → moments ago / in a moment. jpulse-common: band tests, long >5s → 6 seconds ago; chat bob → just now. Docs: handlebars.md Past vs Future bullets; front-end-development behavior notes.
+
+Full jest 92 suites, 2305 tests pass.
+
+
+============================================================
+2026-04-20 16:45
+
+this still looks convoluted: @handlebars.md (819-823); why "`0` plus the same range templates"; `0` alone doesn't exist, `0s` does; goal is proper i18n for all cases, long, short, 1..many units, no exceptions. Rewrite as site-developer-friendly docs, no jargon, no implementation details.
+
+docs/handlebars.md Past vs Future section: replaced key-name-heavy bullets with example-driven list. Short: `"3s ago"` / `"in 7s"` / `"5m 12s ago"` / sub-second `"0s ago"` / `"in 0s"`. Long: within ~1s `"just now"`, within a few seconds `"moments ago"` / `"in a moment"`, otherwise `"2 hours, 5 minutes ago"` / `"in 6 days, 13 hours"`.
+
+docs/front-end-development.md formatFromNow behavior notes: same example-driven rewrite. Also fixed stale chat-example comment on line ~1024: `now - 500` in long format → `"just now"` (not `"moments ago"`). Added separate `now - 3000` example for the `"moments ago"` band. Tests already asserted the correct behavior (bob @ -500ms → "just now"), only the doc comment was stale.
+
+No code changes; only docs + log.
+
+
+============================================================
+2026-04-20 17:10
+
+1. yes, review the docs for any inconsistencies
+2. review tt-git-diff.txt for accuracy and completeness
+
+Doc sweep for outdated wording ({{value}}/{{range}}, wrap/momentInShort, "<1s long → moments ago", etc.):
+
+- Only real inconsistency found in docs/dev/work-items.md W-185 entry (IN_PROGRESS), which still described the earlier (superseded) spec. Fixed 4 spots:
+  1. objective line ~5895 — bob chat example now says 'bob · just now' (was 'bob · moments ago'; with final spec sub-second long → thisMoment, not pastMoment).
+  2. features/parity block ~5907 — expanded into explicit short-always / long-by-band bullet (±1s thisMoment; 1–5s pastMoment/futureMoment; >5s units+range); kept the 'no wrap / momentInShort' historical note.
+  3. deliverables ~5932 — renamed placeholder 'handlebar-date-from-now.test.js' to the actual file 'handlebar-date-helpers.test.js'; replaced '<1s → moments ago / in a moment' with the three bands; separated short sub-second into its own line.
+  4. deliverables ~5936 — renamed placeholder 'jpulse-common-date.test.js' to 'jpulse-common.test.js'; added the three long-format bands and the short sub-second assertions; added note on ISO 8601 date-only / trimmed string acceptance.
+  5. test/verify ~5955 — chat widget verify now spells out the three long-format bands and the short sub-second case.
+
+- docs/CHANGELOG.md lines 2490, 2491, 2505 describe the *original* introduction of {{date.fromNow}} (pre-W-185). Left unchanged (historical).
+- docs/README.md / genai-instructions.md / front-end-development.md / handlebars.md / template-reference.md: consistent with final spec after previous edits.
+
+tt-git-diff.txt accuracy/completeness review:
+
+- Covers: cursor_log.txt (+100 / 6 entries at EOF, append-only), docs (api-reference, work-items, front-end-development, genai-instructions, handlebars, template-reference), webapp/controller/handlebar.js (_handleDateFromNow rewrite), translations (en.conf + de.conf — placeholder migration + thisMoment key add), webapp/utils/i18n.js (subtree guards + JSON.stringify), webapp/view/jpulse-common.js (+177 formatFromNow with ISO parse), 11 test files.
+- Total: 26 files, +890 / -119. Consistent with W-185 scope as described in work-items.md.
+- Not yet in diff (release bookkeeping, intentional — work item still IN_PROGRESS):
+  - package.json version bump 1.6.41 → 1.6.42 (currently 1.6.41)
+  - docs/CHANGELOG.md v1.6.42 / W-185 section (currently headed v1.6.41)
+  - docs/README.md + README.md 'Latest Release Highlights' v1.6.42 bullet
+  - W-185 status flip 🚧 IN_PROGRESS → ✅ DONE + move to DONE section
+- No other accuracy issues observed. Diff output matches spec described in work-items.md (as corrected in step 1).
+
+
+============================================================
+2026-04-20 18:10
+
+release prep: assume W-185, v1.6.42, 2026-04-21 — update README.md and docs/README.md Latest Release Highlights; docs/CHANGELOG.md new v1.6.42 / W-185 section (header → v1.6.42); commit-message.txt; cursor_log.txt (append). User runs bump-version / package bump separately (do not bump package.json).
+
+README.md + docs/README.md: added top bullet for W-185 (i18n subtree embedding, formatFromNow, %VALUE%/%RANGE% migration, aligned date.fromNow long/short bands, doc pointers).
+
+docs/CHANGELOG.md: inserted full W-185 section (objective, summary, key features, files changed summary, documentation list, release metadata) after intro; title line set to v1.6.42 (still run bin/bump-version.js to sync remaining doc headers + package.json per user workflow).
+
+commit-message.txt (repo root): single-line subject matching CHANGELOG **Commit:** line — W-185, v1.6.42: view: add jPulse.date.formatFromNow(); handlebars: improve {{date.fromNow}} helper
+
+Did not edit work-items.md status or docs/*.md H1 version stamps (except CHANGELOG title as part of this changelog edit); other doc titles left at v1.6.41 for bump script.
+
+
+============================================================
+2026-04-20 18:15
+
+- update commit-message.txt, following the same format (don't commit)
+
+Replaced commit-message.txt: was still the W-184 multi-section template (FEATURE RELEASE, Objective, Key Features, Code Changes file list, Documentation Updates, Work Item/Version/Date). Replaced with W-185 v1.6.42 equivalent — same structure and tone as W-184 entry; subject line unchanged from CHANGELOG **Commit:**; lists i18n subtree + formatFromNow + date.fromNow bands + touched paths and docs.
+
+
+============================================================

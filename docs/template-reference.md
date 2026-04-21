@@ -1,4 +1,4 @@
-# jPulse Docs / Template Reference v1.6.41
+# jPulse Docs / Template Reference v1.6.42
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -375,6 +375,28 @@ const result = await jPulse.UI.confirmDialog({
 jPulse.UI.toast.success(`{{i18n.view.success.itemSaved}}`.replace('%NAME%', name));
 </script>
 ```
+
+### Embedding a Translation Subtree (v1.6.42+)
+
+When a client-side utility needs **many related translations** from the same namespace, bind the whole subtree in one statement instead of listing every leaf key. A `{{i18n.path.to.subtree}}` expression that resolves to a nested object is expanded to a JSON literal:
+
+```javascript
+// In a .js template (e.g. webapp/view/jpulse-common.js):
+const i18nFromNow = {{i18n.controller.handlebar.date.fromNow}};
+
+// Later, at runtime:
+const unit = i18nFromNow.long.year.replace('%VALUE%', 2);   // "2 year"
+const tpl  = i18nFromNow.pastRange.replace('%RANGE%', unit); // "2 year ago"
+```
+
+Why this is useful:
+- **One source of truth** — server-side helpers (e.g. the `{{date.fromNow}}` Handlebars helper) and their client-side mirrors (e.g. `jPulse.date.formatFromNow`) read the same translation keys.
+- **Cheaper updates** — adding a new unit / label adds one key, not one key + one client-side binding.
+- **Language switching works transparently** — the embedded subtree is the user's language at serve time (with fallback to the default language).
+
+**Placeholder convention for client-consumed subtrees:** use `%VALUE%`, `%RANGE%`, `%NUM%`, `%ERROR%` — **not** `{{value}}` / `{{range}}`. `.js` views are processed in two passes (i18n pass, then main handlebars pass); any `{{…}}` remaining inside an embedded JSON literal will be re-interpreted by the main pass and typically blanked. Subtrees consumed only by **server-side** rendering may keep `{{name}}` placeholders, since `i18n.translate(req, key, context)` resolves them before output.
+
+Leaf-string `{{i18n.x.y}}` usage is unchanged — a string is returned directly.
 
 ## 🔗 File Operations
 

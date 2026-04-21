@@ -1,4 +1,4 @@
-# jPulse Docs / Generative-AI Instructions for AI Assistants v1.6.41
+# jPulse Docs / Generative-AI Instructions for AI Assistants v1.6.42
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
@@ -619,6 +619,9 @@ jPulse.form.bindSubmission(form, '/api/1/endpoint', { /* options */ })
 ```javascript
 jPulse.date.formatLocalDate(dateObj)        // YYYY-MM-DD
 jPulse.date.formatLocalDateAndTime(dateObj) // YYYY-MM-DD HH:MM:SS
+jPulse.date.formatFromNow(dateObj)          // "2 hours, 5 minutes ago" (long, default)
+jPulse.date.formatFromNow(dateObj, { format: 'short 1' })
+                                            // "2m ago" | "0s ago" (same i18n as {{date.fromNow}}, v1.6.42+)
 ```
 
 **When user asks about utilities**, point them to the [Front-End Development Guide](front-end-development.md) rather than listing all methods.

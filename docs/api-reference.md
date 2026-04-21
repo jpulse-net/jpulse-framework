@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.6.41
+# jPulse Docs / REST API Reference v1.6.42
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -1677,7 +1677,7 @@ The endpoint automatically provides server-side context including:
 - `config` - Site configuration from MongoDB
 - `appConfig` - Application configuration (filtered based on authentication)
 - `url` - Current request URL information
-- `i18n` - Internationalization translations
+- `i18n` - Internationalization translations — `{{i18n.path.to.leaf}}` resolves to a string; `{{i18n.path.to.subtree}}` resolves to a JSON literal of the whole subtree (v1.6.42+, see [Handlebars Reference — Subtree Embedding](handlebars.md#subtree-embedding-v1642))
 
 **Custom Context:**
 The optional `context` parameter augments the internal context. For example:

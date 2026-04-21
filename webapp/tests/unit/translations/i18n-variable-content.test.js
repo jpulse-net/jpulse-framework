@@ -3,8 +3,8 @@
  * @tagline         Test variable content support in i18n translations
  * @description     Tests the new handlebars-style variable substitution in i18n translations
  * @file            webapp/tests/unit/translations/i18n-variable-content.test.js
- * @version         1.6.41
- * @release         2026-04-20
+ * @version         1.6.42
+ * @release         2026-04-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -172,6 +172,72 @@ describe('I18N Variable Content', () => {
             expect(Array.isArray(result.options)).toBe(true);
             expect(result.options[0].value).toBe('bsl');
             expect(result.options[0].label).not.toContain('{{i18n.');
+        });
+    });
+
+    // W-185: Subtree embedding via {{i18n.path.to.subtree}}
+    describe('Subtree embedding (W-185)', () => {
+        const req = { session: {} };
+
+        test('translate() returns nested object when keyPath resolves to a subtree', () => {
+            const result = global.i18n.translate(req, 'controller.handlebar.date.fromNow');
+            expect(typeof result).toBe('object');
+            expect(result).not.toBeNull();
+            expect(result).toHaveProperty('pastRange');
+            expect(result).toHaveProperty('futureRange');
+            expect(result).toHaveProperty('long');
+            expect(result).toHaveProperty('short');
+            expect(typeof result.pastRange).toBe('string');
+            expect(typeof result.long).toBe('object');
+        });
+
+        test('translate() still returns string leaves (regression)', () => {
+            const leaf = global.i18n.translate(req, 'controller.handlebar.date.fromNow.pastMoment');
+            expect(typeof leaf).toBe('string');
+            expect(leaf).toBe('moments ago');
+        });
+
+        test('translate() applies {{name}} context substitution to string leaves (regression)', () => {
+            // Uses a {{name}}-style leaf unrelated to date.fromNow (which migrated to %TOKEN% in W-185)
+            const leaf = global.i18n.translate(req, 'controller.auth.roleRequired', { roles: 'admin, user' });
+            expect(leaf).toBe('Insufficient privileges. Required roles: admin, user');
+        });
+
+        test('translate() returns keyPath fallback for missing key (regression)', () => {
+            const missing = global.i18n.translate(req, 'controller.handlebar.date.fromNow.nonexistentKey');
+            expect(missing).toBe('controller.handlebar.date.fromNow.nonexistentKey');
+        });
+
+        test('expandI18nHandlebars() embeds subtree as JSON literal', () => {
+            const template = 'const i18nFromNow = {{i18n.controller.handlebar.date.fromNow}};';
+            const expanded = global.i18n.expandI18nHandlebars(req, template);
+            // Must no longer contain the i18n handlebar
+            expect(expanded).not.toContain('{{i18n.controller.handlebar.date.fromNow}}');
+            // Must be syntactically a valid JS const declaration with a JSON object literal
+            expect(expanded).toMatch(/^const i18nFromNow = \{.*\};$/s);
+            // Extract JSON literal and parse
+            const match = expanded.match(/^const i18nFromNow = (\{.*\});$/s);
+            expect(match).not.toBeNull();
+            const parsed = JSON.parse(match[1]);
+            expect(parsed).toHaveProperty('pastRange');
+            expect(parsed).toHaveProperty('long.year');
+            expect(parsed).toHaveProperty('short.year');
+        });
+
+        test('expandI18nHandlebars() still expands leaf strings (regression)', () => {
+            const template = 'moment: {{i18n.controller.handlebar.date.fromNow.pastMoment}}';
+            const expanded = global.i18n.expandI18nHandlebars(req, template);
+            expect(expanded).toBe('moment: moments ago');
+        });
+
+        test('expandI18nDeep() embeds subtree object via JSON.stringify in string values', () => {
+            // A string value referencing a subtree should be replaced with its JSON serialization
+            const obj = {
+                script: 'const x = {{i18n.controller.handlebar.date.fromNow}};'
+            };
+            const result = global.i18n.expandI18nDeep(req, obj);
+            expect(result.script).not.toContain('{{i18n.');
+            expect(result.script).toMatch(/^const x = \{.*\};$/s);
         });
     });
 

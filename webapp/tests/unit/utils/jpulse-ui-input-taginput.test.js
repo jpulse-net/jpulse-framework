@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.input.tagInput (W-148)
  * @description     Tests for tagInput: parseValue, formatValue, init/sync
  * @file            webapp/tests/unit/utils/jpulse-ui-input-taginput.test.js
- * @version         1.6.41
- * @release         2026-04-20
+ * @version         1.6.42
+ * @release         2026-04-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -33,6 +33,8 @@ global.KeyboardEvent = dom.window.KeyboardEvent;
 
 const jpulseCommonPath = path.join(process.cwd(), 'webapp/view/jpulse-common.js');
 let jpulseCommonContent = fs.readFileSync(jpulseCommonPath, 'utf8');
+// W-185: strip the unquoted subtree-embed token (would otherwise break JS parse when loaded raw)
+jpulseCommonContent = jpulseCommonContent.replace(/\{\{i18n\.controller\.handlebar\.date\.fromNow\}\}/g, '{}');
 const vm = require('vm');
 const context = vm.createContext(window);
 vm.runInContext(jpulseCommonContent, context);

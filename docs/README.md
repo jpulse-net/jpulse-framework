@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.6.42
+# jPulse Docs / Site Administrator & Developer Documentation v1.6.43
 
 **For Site Administrators & Site Developers**
 
@@ -228,6 +228,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v1.6.43, W-186, 2026-04-22: WebSocket: fix health-check terminate race (ctx lost in `onDisconnect`)**: The ping health check no longer removes the client from the namespace map before the async `close` handler; `_onDisconnect` always reads `ctx` first (fixes wrong guest/empty context on forced disconnect from missed pongs). See `docs/websockets.md` (Connection health).
 - **v1.6.42, W-185, 2026-04-21: view: add jPulse.date.formatFromNow(); handlebars: improve {{date.fromNow}} helper**: Non-leaf `{{i18n.path.to.subtree}}` expands to a JSON literal for client-side binding; string leaves unchanged. Translations use `%VALUE%` / `%RANGE%` tokens instead of `{{value}}` / `{{range}}` in `controller.handlebar.date.fromNow.*`, so that they can be used in client code. New `jPulse.date.formatFromNow()` client function that mirrors the handlebar helper `{{date.fromNow}}`. Server and client relative-time rules aligned: long format uses `thisMoment` within ±1s, `pastMoment` / `futureMoment` between 1s and 5s, then full units; short format always uses compact units plus range templates (including `0s ago` / `in 0s` for sub-second). Docs: handlebars.md, template-reference.md, front-end-development.md, api-reference.md, genai-instructions.md.
 - **v1.6.41, W-184, 2026-04-20: WebSocket client: auth-terminal close 4403 with 4401 — no reconnect loop**: If the server closes the socket with close code 4403 (access denied), the client now treats it like 4401 (session expired): status `'auth-required'`, connection removed, auto-reconnect suppressed. Retrying with the same identity cannot succeed without re-auth; transport codes (e.g. 1000, 1001, 1006) still use the existing backoff reconnect path.
 - **v1.6.41, W-184, 2026-04-20: WebSocket client: auth-terminal close 4403 with 4401 — no reconnect loop**: Close code **4403** (access denied) is handled like **4401** (session expired): `'auth-required'`, no auto-reconnect; transport disconnects still reconnect with backoff.

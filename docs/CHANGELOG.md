@@ -1,6 +1,32 @@
-# jPulse Docs / Version History v1.6.42
+# jPulse Docs / Version History v1.6.43
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.43, W-186, 2026-04-22
+
+**Commit:** `W-186, v1.6.43: WebSocket: fix health-check terminate race (ctx lost in onDisconnect)`
+
+**Objective**: When the server **terminates a WebSocket** because the client **stopped responding to server pings** (pong timeout), the framework must still run **`_onDisconnect`** with the **real connection context** (`ctx`). A premature `namespace.clients.delete(clientId)` right after `ws.terminate()` in `_startHealthChecks` raced the asynchronous `close` event: `_onDisconnect` sometimes read the client as already gone, so **`ctx` was `null`**. That broke application `onDisconnect` behavior (e.g. presence, `user-left` broadcasts) that depends on `ctx.username`, `ctx.params`, and logging with `LogController` context.
+
+**Summary**: The unresponsive-client branch in `_startHealthChecks` now calls `client.ws.terminate()` **only** and returns. **Client map removal** remains **solely in `_onDisconnect`**, which runs on `close` **after** `const client = namespace.clients.get(clientId)` and `ctx` extraction, then deletes the entry. Inline comments document why the delete must not be duplicated in the health-check path.
+
+**Key features**:
+- **Correct `ctx` on health-driven disconnect** — `namespace._onDisconnect(conn)` receives the same `conn.ctx` as for normal socket closes.
+- **No API change** — public WebSocketController behavior for apps is unchanged except fixing the bad edge case.
+
+**Files changed**:
+- `webapp/controller/websocket.js` — health-check unresponsive path: no `namespace.clients.delete` before `close`
+
+**Documentation**:
+- `README.md`, `docs/README.md` — Latest Release Highlights — v1.6.43 / W-186
+- `docs/CHANGELOG.md` — this section
+- `docs/websockets.md` — Connection health: implementation note (v1.6.43+)
+
+**Release**:
+- Work Item: W-186
+- Version: v1.6.43
+- Release Date: 2026-04-22
 
 ________________________________________________
 ## v1.6.42, W-185, 2026-04-21

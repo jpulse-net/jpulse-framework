@@ -5,8 +5,8 @@
  *                  syncSettingsPluginFieldFromElement() tagInput branch, and
  *                  renderPluginCards() initAll() call after DOM insertion.
  * @file            webapp/tests/unit/user/settings-plugin-fields.test.js
- * @version         1.6.42
- * @release         2026-04-21
+ * @version         1.6.43
+ * @release         2026-04-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

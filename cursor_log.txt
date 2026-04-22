@@ -19197,3 +19197,34 @@ Replaced commit-message.txt: was still the W-184 multi-section template (FEATURE
 
 
 ============================================================
+2026-04-21 20:00
+
+Bugfix needed, from a site app: race condition in `_startHealthChecks` vs `ws.on('close')` in `webapp/controller/websocket.js`. After `client.ws.terminate()`, `namespace.clients.delete(clientId)` was called immediately (L961), before the async `close` event fired. When `_onDisconnect` ran via `ws.on('close')`, it found no client in the map, so `ctx` was `null`, causing spurious `user-left` broadcasts with `username='guest'` and an empty `mapId`.
+
+Fixed `webapp/controller/websocket.js` `_startHealthChecks`: removed the premature `namespace.clients.delete(clientId)` call after `client.ws.terminate()`. Added a comment explaining why the deletion must not happen here — `_onDisconnect` (called by the async `close` event) already deletes the client at line 890, after reading `ctx` from the map, ensuring correct context for all downstream handlers.
+
+
+============================================================
+2026-04-21 20:15
+
+- review @tt-git-diff.txt
+- create work item @work-items.md (5965-5973)
+
+Reviewed tt-git-diff.txt: unstaged changes include the websocket health-check fix in `webapp/controller/websocket.js` (remove premature `namespace.clients.delete` + comment; comment text matches “in a site app” in the working file), a cursor_log append, work-items changes (W-185 → DONE, IN_PROGRESS section + W-186 stub). Filled in W-186 (v1.6.43, 2026-04-22) with title, objectives, features, deliverables, and manual verification bullets aligned to the race and correct `ctx` in `_onDisconnect`.
+
+
+============================================================
+2026-04-21 20:20
+
+Release prep: assume W-186, v1.6.43, 2026-04-22. Ran `npm test` (pass). Updated `README.md` and `docs/README.md` (Latest Release Highlights), `docs/CHANGELOG.md` (new v1.6.43 / W-186 block above v1.6.42), `docs/websockets.md` (Connection health — implementation note for W-186). Marked W-186 DONE in `docs/dev/work-items.md` with deliverables including doc paths; removed duplicate W-186 from IN_PROGRESS. Replaced `commit-message.txt` with W-186 format. Appended this cursor log entry. Did not run bump-version (per user).
+
+
+============================================================
+2026-04-22 10:30
+
+@websockets.md (489-491) — why "Removing the map entry too early...?"; map is site app specific
+
+Clarified the Connection health implementation note: "map" was ambiguous (framework `namespace.clients` vs site map/room). Explained "too early" as the old bug—`delete` right after `terminate()` before `close`—and rewrote the paragraph to name `namespace.clients`, contrast with app `ctx`/`mapId`, and label the fix (v1.6.43, W-186).
+
+
+============================================================

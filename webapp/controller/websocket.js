@@ -3,8 +3,8 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         1.6.42
- * @release         2026-04-21
+ * @version         1.6.43
+ * @release         2026-04-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -958,7 +958,10 @@ class WebSocketController {
                         // Client is not responding, terminate connection
                         LogController.logInfo(client.ctx || null, 'websocket._startHealthChecks', `Terminating unresponsive client ${clientId}`);
                         client.ws.terminate();
-                        namespace.clients.delete(clientId);
+                        // Do NOT delete the client here; ws.on('close') fires asynchronously and
+                        // calls _onDisconnect, which reads ctx from the map before deleting it.
+                        // Premature deletion here causes ctx to be null in _onDisconnect, leading
+                        // to incorrect 'user-left' broadcasts with username='guest' in a site app.
                         return;
                     }
 

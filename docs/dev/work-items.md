@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.42
+# jPulse Docs / Dev / Work Items v1.6.43
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5879,16 +5879,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - 4403: after rejected connection (e.g. expired admin session reconnecting as guest to non-public resource), first close → `auth-required`, not 5s/10s/… backoff
   - 1006 / 1001 / normal server restart: still reconnects with backoff
 
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-185, v1.6.42, 2026-04-21: view: add jPulse.date.formatFromNow(); handlebars: improve {{date.fromNow}} helper
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - add a client-side `jPulse.date.formatFromNow(date, nowDate | options | null)` that produces the same relative-time output as the server `{{date.fromNow}}` Handlebars helper, driven by the same i18n keys — no duplicated per-language strings
@@ -5967,6 +5959,29 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-186, v1.6.43, 2026-04-22: WebSocket: fix health-check terminate vs on('close') race, ctx lost in _onDisconnect
+- status: ✅ DONE
+- type: Bugfix
+- objectives:
+  - in `_startHealthChecks`, when an unresponsive client is terminated (`client.ws.terminate()`), do not remove the client from `namespace.clients` before the socket `close` event runs. `close` is asynchronous; the only removal of the entry from the map should continue to happen in `_onDisconnect` after the client (and `ctx`) is read from the map
+  - prevent application `onDisconnect` handlers (e.g. site bubble / presence) from seeing `ctx === null` for health-check terminations, which could yield `username: 'guest'`, empty `mapId`, `LogController` with null ctx (`ip: 0.0.0.0`), and incorrect `user-left` / announce-key behavior when presence state was keyed on real `ctx.params.mapId` at connect time
+- features:
+  - unresponsive client path: `terminate()` only; single removal point remains `_onDisconnect` (same as normal disconnect) so `const client = namespace.clients.get(clientId)` and `ctx` are available before `namespace._onDisconnect(conn)` runs
+- deliverables:
+  - `webapp/controller/websocket.js`:
+    - in `_startHealthChecks` unresponsive branch: remove `namespace.clients.delete(clientId)` immediately after `client.ws.terminate()`; add a short comment documenting the async-`close` / `_onDisconnect` ordering
+    - no change to `_onDisconnect` contract — it still deletes the client from the map after reading `ctx` and invoking `namespace._onDisconnect` if present
+  - `README.md`, `docs/README.md` — Latest Release Highlights — v1.6.43 / W-186
+  - `docs/CHANGELOG.md` — v1.6.43 / W-186 section
+  - `docs/websockets.md` — *Connection health*: implementation note (v1.6.43+ / W-186) on `terminate()` vs map removal
+- test / verify (manual):
+  - simulate a stuck client (no pong) until the health check terminates the socket; confirm `onDisconnect` receives the real `ctx` (username / params such as `mapId`) and presence / `user-left` matches the user who was connected, not `guest` / empty context
+
+
+
 
 ### Pending
 
@@ -5994,8 +6009,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-185, v1.6.42, 2026-04-21
-- update features & deliverables in W-185 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume release: W-186, v1.6.43, 2026-04-22
+- update features & deliverables in W-186 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -6006,12 +6021,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.42 2026-04-21
+node bin/bump-version.js 1.6.43 2026-04-22
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.42; git push origin main --tags
+git tag v1.6.43; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

@@ -1,4 +1,4 @@
-# jPulse Docs / WebSocket Real-Time Communication v1.6.42
+# jPulse Docs / WebSocket Real-Time Communication v1.6.43
 
 > **Need multi-server broadcasting instead?** If you're running multiple server instances and need to synchronize state changes across all servers (like collaborative editing), see [Application Cluster Communication](application-cluster.md) which uses REST API + Redis broadcasts for simpler state synchronization.
 
@@ -486,6 +486,8 @@ The framework maintains connection health through bidirectional ping/pong:
 - Server sends ping every 30 seconds
 - Client responds with pong
 - If no pong received, server terminates connection
+
+**Implementation note**: The server’s health check calls `ws.terminate()` when a client is unresponsive; the WebSocket `close` event is asynchronous. The client entry in `namespace.clients` must be removed only in `_onDisconnect` (after the `close` event), not synchronously in the same timer tick as `terminate()`. That way `_onDisconnect` can read `ctx` from the stored client before `namespace._onDisconnect(conn)` runs. Removing the map entry too early caused `ctx` to be missing in application disconnect handlers (e.g. wrong username or room parameters on cleanup).
 
 This ensures both sides detect dead connections quickly.
 

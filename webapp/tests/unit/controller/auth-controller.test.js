@@ -3,7 +3,7 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         1.6.44
+ * @version         1.6.45
  * @release         2026-04-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

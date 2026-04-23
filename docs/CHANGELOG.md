@@ -1,6 +1,34 @@
-# jPulse Docs / Version History v1.6.44
+# jPulse Docs / Version History v1.6.45
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.45, W-188, 2026-04-23
+
+**Commit:** `W-188, v1.6.45: jPulse.UI: fix input.jpCombo blur vs save issue`
+
+**Objective**: jpCombo defers `commitInputValue` by 150ms after the text input `blur` so a list-item `click` in the open dropdown is processed first. A dialog **Save** (or any) button that reads the native `<select>`.value in its **`click`** handler could run before that timeout — showing a stale value.
+
+**Summary**: A **`mousedown`** listener on `document` commits immediately when the pointer goes down **outside** the combo wrap and the portaled dropdown while the text input is still focused. **`mousedown` fires before `blur` and before `click`**, so `el.value` / `getAllValues` is correct by the time Save’s handler runs. The 150ms blur path still exists for other cases; after a successful mousedown commit, `commitInputValue` is a no-op. Site code no longer needs to read the visible text input to avoid a race (e.g. T-070 workarounds).
+
+**Key features**:
+- **Synchronous outside commit** — `if (!wrap... && !dropdown... && document.activeElement === textInput) commitInputValue()`.
+- **No duplicate `change`** when value already matches after early commit.
+- **Tests** — structural test in `jpcombo.test.js` for the mousedown + `commitInputValue` path.
+
+**Files changed**:
+- `webapp/view/jpulse-common.js` — jpCombo: `document` `mousedown` listener
+- `webapp/tests/unit/controller/jpcombo.test.js` — mousedown synchronous-commit test
+
+**Documentation**:
+- `docs/jpulse-ui-reference.md` — jpCombo: mousedown vs blur note (v1.6.45+)
+- `README.md`, `docs/README.md` — Latest Release Highlights — v1.6.45 / W-188
+- `docs/CHANGELOG.md` — this section
+
+**Release**:
+- Work Item: W-188
+- Version: v1.6.45
+- Release Date: 2026-04-23
 
 ________________________________________________
 ## v1.6.44, W-187, 2026-04-23

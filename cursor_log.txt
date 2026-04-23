@@ -19252,3 +19252,27 @@ Reviewed `tt-git-diff.txt` against W-187. The diff matches the intended release:
 
 
 ============================================================
+2026-04-23 15:35
+
+Fix jpCombo blur/Save race: synchronous mousedown commit in framework
+
+In `webapp/view/jpulse-common.js`, added a `document.addEventListener('mousedown', ...)` inside jpCombo that calls `commitInputValue()` synchronously when the user presses the mouse button outside the combo wrap/dropdown while the text input is focused. mousedown fires before blur and before click, so any external button's click handler (e.g. Save) reads the already-updated `sel.value` — no site-side workaround needed. The 150ms blur-delay path still runs but becomes a no-op (value already matches). Added test 49 in `jpcombo.test.js` covering the mousedown synchronous-commit behaviour. 49/49 pass.
+
+
+============================================================
+2026-04-23 15:40
+
+Create work item W-188 in docs/dev/work-items.md (6028-6036)
+
+Filled in W-188, v1.6.45, 2026-04-23: *jPulse.UI: fix input.jpCombo blur vs Save (mousedown commit)*. Bugfix for the 150ms blur commit race with external Save/dismiss buttons. Objectives, feature bullets (document mousedown listener, optional doc note, README/CHANGELOG for v1.6.45), and deliverables listing `jpulse-common.js`, `jpcombo.test.js`, optional `jpulse-ui-reference.md` sentence, release highlights, CHANGELOG. Replaced the stub title typo (udpate → proper title). Status IN_PROGRESS; code for the fix was already landed in the prior turn.
+
+
+============================================================
+2026-04-23 15:45
+
+Release prep: assume W-188, v1.6.45, 2026-04-23. Update README / docs README highlights, CHANGELOG, other docs, commit-message.txt, cursor log (append). Do not change work-items.md (per release-prep: no status/section edits). Do not bump version in README H1 (bump script later).
+
+Updated `docs/CHANGELOG.md` — doc title to v1.6.45; new v1.6.45 / W-188 block above v1.6.44. Updated `README.md` and `docs/README.md` — Latest Release Highlights first bullet for W-188 (jpCombo mousedown outside commit vs blur race). Updated `docs/jpulse-ui-reference.md` — jpCombo **Keyboard (text input)** sentence for v1.6.45+ / W-188. Replaced `commit-message.txt` with W-188 / v1.6.45 / 2026-04-23 format. Ran `npx jest webapp/tests/unit/controller/jpcombo.test.js` — 49/49 pass. Did not run full `npm test` or modify `docs/dev/work-items.md` (explicit instruction).
+
+
+============================================================

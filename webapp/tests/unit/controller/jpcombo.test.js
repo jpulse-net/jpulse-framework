@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-187: jPulse.UI.input.jpCombo combo-box widget
  * @description     Source-code structural tests verifying jpCombo widget implementation in jpulse-common.js
  * @file            webapp/tests/unit/controller/jpcombo.test.js
- * @version         1.6.44
+ * @version         1.6.45
  * @release         2026-04-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -209,6 +209,13 @@ describe('W-187: jpCombo widget (jpulse-common.js)', () => {
             expect(content).toContain("textInput.addEventListener('blur'");
             expect(content).toContain('commitInputValue()');
             expect(content).toContain('setTimeout(');
+        });
+
+        test('mousedown outside widget commits synchronously so Save click sees current sel.value', () => {
+            // mousedown fires before blur/click; commitInputValue is called when textInput is active
+            // and the pointer goes down outside wrap/dropdown — no 150ms delay on this path.
+            expect(content).toContain("document.addEventListener('mousedown'");
+            expect(content).toContain('document.activeElement === textInput) commitInputValue()');
         });
     });
 

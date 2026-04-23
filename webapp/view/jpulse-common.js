@@ -3,7 +3,7 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.44
+ * @version         1.6.45
  * @release         2026-04-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -2560,6 +2560,16 @@ window.jPulse = {
                                 if (dropdown.classList.contains('jp-jpselect-open')) closeDropdown();
                             }
                         }, 150);
+                    });
+
+                    // Commit synchronously on mousedown outside the widget so sel.value is up to date
+                    // before any external button's click handler (e.g. Save) runs. mousedown fires
+                    // before blur, so the 150ms blur timer becomes a harmless no-op for this path.
+                    document.addEventListener('mousedown', (e) => {
+                        if (!wrap.contains(e.target) && !dropdown.contains(e.target)) {
+                            if (document.activeElement === textInput) commitInputValue();
+                            if (dropdown.classList.contains('jp-jpselect-open')) closeDropdown();
+                        }
                     });
 
                     document.addEventListener('click', (e) => {

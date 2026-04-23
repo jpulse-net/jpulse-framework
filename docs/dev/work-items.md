@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.44
+# jPulse Docs / Dev / Work Items v1.6.45
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5972,14 +5972,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - test / verify (manual):
   - simulate a stuck client (no pong) until the health check terminates the socket; confirm `onDisconnect` receives the real `ctx` (username / params such as `mapId`) and presence / `user-left` matches the user who was connected, not `guest` / empty context
 
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-187, v1.6.44, 2026-04-23: jPulse.UI: new input.jpCombo combo-box widget to select and/or edit a value
 - status: 🚧 IN_PROGRESS
 - type: Feature
@@ -6030,6 +6022,33 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-188, v1.6.45, 2026-04-23: jPulse.UI: fix input.jpCombo blur vs save issue
+- status: 🚧 IN_PROGRESS
+- type: Bugfix
+- objectives:
+  - eliminate a timing race: jpCombo defers `commitInputValue` by 150ms in the text input `blur` handler so a dropdown list item `click` can register first; a dialog Save (or any external) button that reads the native `<select>`.value in its `click` handler could see the pre-commit value
+  - commit the combo value synchronously on the correct event: `mousedown` on `document` outside the widget fires before `blur` and before the external button’s `click`, so `sel.value` is up to date by the time Save runs — no site-side workarounds (e.g. reading the text input directly) required
+- features:
+  - in `jPulse.UI.input.jpCombo.init`, add `document.addEventListener('mousedown', ...)`: if target is not inside the combo `wrap` or the portaled `dropdown`, and `document.activeElement === textInput`, call `commitInputValue()` immediately; if dropdown was open, `closeDropdown()` (same as existing outside-click `click` path)
+  - the existing 150ms `blur` + `setTimeout` path remains; after mousedown commit it becomes a no-op (value already matches) — no duplicate `change` when `commitInputValue` bails on `if (value === sel.value) return`
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - jpCombo: mousedown outside-widget listener as above
+  - `webapp/tests/unit/controller/jpcombo.test.js`:
+    - test that mousedown synchronous-commit is present in source (document mousedown + `activeElement === textInput` + `commitInputValue`)
+  - `docs/jpulse-ui-reference.md` (optional, small):
+    - jpCombo widget: one sentence under **Keyboard (text input)** or **Value contract** noting that mousedown outside commits before external buttons’ click handlers, so `sel.value` / getAllValues is safe on Save
+  - `README.md`, `docs/README.md` — Latest Release Highlights — v1.6.45 / W-188
+  - `docs/CHANGELOG.md` — v1.6.45 / W-188 section
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -6056,8 +6075,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-187, v1.6.44, 2026-04-23
-- update features & deliverables in W-186 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume W-188, v1.6.45, 2026-04-23
+- update features & deliverables in W-188 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -6068,12 +6087,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.44 2026-04-23
+node bin/bump-version.js 1.6.45 2026-04-23
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.44; git push origin main --tags
+git tag v1.6.45; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

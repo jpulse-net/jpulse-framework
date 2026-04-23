@@ -1,4 +1,4 @@
-# %SITE_NAME% - Site based on jPulse Framework v1.6.44
+# %SITE_NAME% - Site based on jPulse Framework v1.6.45
 
 A production-ready jPulse Framework site created with `npx jpulse configure`.
 

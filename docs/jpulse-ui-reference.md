@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.44
+# jPulse Docs / jPulse.UI Widget Reference v1.6.45
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -628,7 +628,7 @@ jPulse.UI.input.initAll(configForm);
 
 ### jpCombo widget
 
-Enhance a native `<select>` with combo-box behavior (v1.6.44+, W-187): the user can pick from the dropdown suggestion list, pick and then modify the value, or type a value from scratch. The native select stays in the DOM and remains the value source of truth.
+Enhance a native `<select>` with combo-box behavior (v1.6.44+): the user can pick from the dropdown suggestion list, pick and then modify the value, or type a value from scratch. The native select stays in the DOM and remains the value source of truth.
 
 **Visual structure:** An `<input type="text">` (editable, shows the current value) and a dropdown arrow `<button>` are rendered side-by-side as a single composed field. The dropdown opens on arrow click or ArrowDown/Up from the input.
 
@@ -636,7 +636,7 @@ Enhance a native `<select>` with combo-box behavior (v1.6.44+, W-187): the user 
 
 **Dropdown placement:** Same portal strategy as jpSelect — appended to `document.body`, `position: fixed`, viewport-aware flip. Reuses all `jp-jpselect-dropdown` CSS for the list, options, and search input.
 
-**Keyboard (text input):** **ArrowDown / ArrowUp** open the dropdown. **Enter** commits the current input value (or picks the highlighted dropdown option if open). **Escape** closes the dropdown if open, or reverts to the last committed value if closed. On **blur**, the current input value is committed automatically (with a short delay so dropdown item clicks register first).
+**Keyboard (text input):** **ArrowDown / ArrowUp** open the dropdown. **Enter** commits the current input value (or picks the highlighted dropdown option if open). **Escape** closes the dropdown if open, or reverts to the last committed value if closed. On **blur**, the current input value is committed automatically.
 
 **Keyboard (dropdown):** ArrowDown/Up navigate; Home/End jump to first/last; Enter or Space pick the highlighted option; Escape closes and returns focus to the text input; Tab closes the dropdown.
 

@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-115: siteConfig context filtering
  * @description     Tests for siteConfig filtering using schema metadata
  * @file            webapp/tests/unit/controller/handlebar-context-filter.test.js
- * @version         1.6.44
+ * @version         1.6.45
  * @release         2026-04-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

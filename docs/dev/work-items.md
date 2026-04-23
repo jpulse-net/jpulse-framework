@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.43
+# jPulse Docs / Dev / Work Items v1.6.44
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5954,14 +5954,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - language switch (`preferences.language = 'de'`): both server helper output and client `formatFromNow` output use German translations from the same shared subtree
   - `.js` view containing `const strings = {{i18n.view.ui.input.jpSelect}};` serves a valid JS object literal; `{{i18n.view.ui.input.jpSelect.placeholder}}` still resolves to its string leaf (regression)
 
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-186, v1.6.43, 2026-04-22: WebSocket: fix health-check terminate vs on('close') race, ctx lost in _onDisconnect
 - status: ✅ DONE
 - type: Bugfix
@@ -5979,6 +5971,61 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/websockets.md` — *Connection health*: implementation note (v1.6.43+ / W-186) on `terminate()` vs map removal
 - test / verify (manual):
   - simulate a stuck client (no pong) until the health check terminates the socket; confirm `onDisconnect` receives the real `ctx` (username / params such as `mapId`) and presence / `user-left` matches the user who was connected, not `guest` / empty context
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-187, v1.6.44, 2026-04-23: jPulse.UI: new input.jpCombo combo-box widget to select and/or edit a value
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - add a new `jPulse.UI.input.jpCombo` widget to `jpulse-common.js` that enhances a native `<select>` element with combo-box behavior: the user can pick from the dropdown suggestion list, pick and then modify the value, or type a value from scratch
+  - follow the existing jpulse 1:1 enhancement pattern: one widget per native element, native `<select>` stays in the DOM and remains the value source of truth
+  - share internal dropdown helpers (portal, list builder, keyboard nav, search filter) with `jpSelect` to avoid code duplication
+  - extra-option state machine: when the current value is not in the original `<option>` list, a `[data-jpcombo-extra]` option is added and selected; when the user picks an original option, the extra option is removed — two states, two transitions, no ambiguity
+  - `setAllValues` / `getAllValues` work for list values without any changes; `setAllValues` uses a `_jpComboSetValue` hook on the element for custom values not in the original option list, mirroring the existing `_jpSelectUpdateCaption` hook pattern
+  - `initAll` discovers jpCombo widgets via `select[data-jpcombo]`, consistent with `select[data-jpselect]` and `input[data-slider]`
+- features:
+  - trigger: the jpSelect button trigger is replaced by an `<input type="text">` + a dropdown arrow `<button>`, visually composited as a single field; `placeholder` is read from the native `<select placeholder="...">` attribute and forwarded to the text input
+  - dropdown: same portal, viewport-aware flip, keyboard nav (ArrowDown/Up, Enter, Escape, Tab) as jpSelect; fires standard `change` event on the native `<select>` on every value commit
+  - extra-option management: `_jpComboSetValue(value)` checks `Array.from(sel.options).some(o => o.value === value && !o.hasAttribute('data-jpcombo-extra'))`; if in list → remove extra option, set `sel.value`; if not in list → add/update `[data-jpcombo-extra]` option, set it selected
+  - `search` (boolean, default: false) — show search filter input in dropdown
+  - `searchPlaceholder` (string) — placeholder for search input; default from i18n `view.ui.input.jpSelect.searchPlaceholder`
+  - `onOptionPreview` (function) — callback `(value, label)` fired on hover / keyboard-navigate over an option; called with `(null, null)` on leave or close; in jpCombo also fills the text input with the previewed value and reverts on `(null, null)`
+  - `allowCustom` (boolean, default: true) — when `false`, only values matching an original list option are accepted; typing a non-list value is blocked and the input reverts on blur
+  - `onCustomValue` (function) — callback `(value)` fired when user commits a value not present in the original option list; useful for validation or auto-formatting
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - extract shared dropdown helpers from `jpSelect` into closure-scoped internal functions (`_buildJpDropdown`, `_positionJpDropdown`, etc.) reused by both `jpSelect` and `jpCombo`
+    - new `jPulse.UI.input.jpCombo` object with `init(selectorOrElement, options?)` method, placed directly after the `jpSelect` block
+    - `initAll`: add `root.querySelectorAll('select[data-jpcombo]').forEach(...)` discovery block after the `jpSelect` discovery block
+    - `setAllValues`: in the `el.tagName === 'SELECT'` branch, check `typeof el._jpComboSetValue === 'function'` before the plain `el.value = ...` assignment; call `el._jpComboSetValue(String(value))` when present
+  - `webapp/view/jpulse-common.css`:
+    - `.jp-jpcombo-wrap`, `.jp-jpcombo-input`, `.jp-jpcombo-arrow`, `.jp-jpcombo-dropdown` styles; `.jp-jpcombo-dropdown` and its children reuse `.jp-jpselect-dropdown` styles where possible
+  - `webapp/tests/unit/controller/jpcombo.test.js` (new):
+    - `init`: enhances `<select>`, skips non-select elements, skips double-init
+    - trigger renders as text input + arrow button inside `.jp-jpcombo-wrap`
+    - picking a list option sets `el.value`, fires `change`, removes extra option if present
+    - typing a non-list value adds `[data-jpcombo-extra]` option, sets it selected, fires `change`
+    - `setAllValues` with list value: sets `el.value` via `_jpComboSetValue`, no extra option
+    - `setAllValues` with non-list value: adds extra option, sets it selected, `getAllValues` returns the custom value
+    - `allowCustom: false`: non-list input reverts to last list value on blur; `onCustomValue` not called
+    - `onCustomValue` callback fires only for confirmed non-list values
+    - `onOptionPreview`: fills input on hover, reverts on `(null, null)`
+    - `search: true`: search input filters option list
+  - `docs/jpulse-ui-reference.md`:
+    - new `### jpCombo widget` section immediately after the `### jpSelect widget` section, with the same structure: description, dropdown placement note, keyboard note, `init()` parameters table, options, example HTML + JS, value contract, `initAll` note
+    - update `setAllValues` description: add jpCombo bullet noting `_jpComboSetValue` hook adds extra option for non-list values
+    - update `initAll` description: mention `select[data-jpcombo]` → `jpCombo.init`
+  - `README.md`, `docs/README.md` — Latest Release Highlights — v1.6.44 / W-187 bullet
+  - `docs/CHANGELOG.md` — v1.6.44 / W-187 section
+
+
 
 
 
@@ -6009,7 +6056,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume release: W-186, v1.6.43, 2026-04-22
+- assume release: W-187, v1.6.44, 2026-04-23
 - update features & deliverables in W-186 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -6021,12 +6068,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.43 2026-04-22
+node bin/bump-version.js 1.6.44 2026-04-23
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.43; git push origin main --tags
+git tag v1.6.44; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

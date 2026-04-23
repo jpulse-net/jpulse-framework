@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.6.43
- * @release         2026-04-22
+ * @version         1.6.44
+ * @release         2026-04-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1810,6 +1810,69 @@ body {
 .jp-jpselect-option-label {
     flex: 1;
     min-width: 0;
+}
+
+/* jpCombo widget (W-187): combo-box — text input + arrow button; dropdown reuses jp-jpselect-* styles */
+.jp-jpcombo-wrap {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+}
+.jp-jpcombo-input {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--jp-theme-border-dark, #ddd);
+    border-right: none;
+    border-radius: 4px 0 0 4px;
+    background: var(--jp-theme-bg-primary, #fff);
+    color: var(--jp-theme-text-primary, #333);
+    font-size: 14px;
+    min-height: 42px;
+    outline: none;
+    box-sizing: border-box;
+}
+.jp-jpcombo-input:hover,
+.jp-jpcombo-input:focus {
+    border-color: var(--jp-theme-color-primary, #007acc);
+    box-shadow: 0 0 0 2px var(--jp-theme-focus-ring, rgba(0, 122, 204, 0.2));
+    z-index: 1;
+    position: relative;
+}
+.jp-jpcombo-arrow {
+    flex-shrink: 0;
+    width: 32px;
+    padding: 0;
+    border: 1px solid var(--jp-theme-border-dark, #ddd);
+    border-radius: 0 4px 4px 0;
+    background: var(--jp-theme-bg-primary, #fff);
+    cursor: pointer;
+    position: relative;
+}
+.jp-jpcombo-arrow::after {
+    content: '';
+    position: absolute;
+    right: 50%;
+    top: 50%;
+    transform: translate(50%, -50%);
+    border: 5px solid transparent;
+    border-top-color: var(--jp-theme-text-muted, #666);
+    pointer-events: none;
+}
+.jp-jpcombo-arrow:hover,
+.jp-jpcombo-arrow:focus {
+    outline: none;
+    border-color: var(--jp-theme-color-primary, #007acc);
+    background: var(--jp-theme-bg-secondary, #f8f9fa);
+}
+.jp-jpcombo-wrap .jp-jpselect-native {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
 }
 
 /* Slider widget (W-168): horizontal integer slider, value in thumb, optional default tick */

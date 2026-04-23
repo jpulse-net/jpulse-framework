@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.43
+# jPulse Docs / jPulse.UI Widget Reference v1.6.44
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -584,7 +584,7 @@ jPulse.UI.input.tagInput.setSuggestions(tagsInput, allTags);
 
 #### `jPulse.UI.input.initAll(container?)`
 
-Namespace-level: inits all input widget types in container (e.g. `[data-taginput]` → tagInput.init, `select[data-jpselect]` → jpSelect.init). One call after populateForm; no listing ids.
+Namespace-level: inits all input widget types in container (e.g. `[data-taginput]` → tagInput.init, `select[data-jpselect]` → jpSelect.init, `select[data-jpcombo]` → jpCombo.init). One call after populateForm; no listing ids.
 
 **Parameters:** `container` (Element|undefined) - Form or container; defaults to `document` if omitted
 
@@ -623,6 +623,65 @@ jPulse.UI.input.initAll(configForm);
 ```
 
 **Value contract:** Single select → value is a string; multi select → value is an array of option values. setAllValues/getAllValues and setFormData/getFormData handle both; no special handling needed in the view.
+
+---
+
+### jpCombo widget
+
+Enhance a native `<select>` with combo-box behavior (v1.6.44+, W-187): the user can pick from the dropdown suggestion list, pick and then modify the value, or type a value from scratch. The native select stays in the DOM and remains the value source of truth.
+
+**Visual structure:** An `<input type="text">` (editable, shows the current value) and a dropdown arrow `<button>` are rendered side-by-side as a single composed field. The dropdown opens on arrow click or ArrowDown/Up from the input.
+
+**Extra-option state machine:** When the current value is not in the original `<option>` list, a `[data-jpcombo-extra]` option is added to the native select and selected — so `.value` and `getAllValues` always return the correct string. When the user picks an original list option, the extra option is removed. Two states, two transitions, no ambiguity.
+
+**Dropdown placement:** Same portal strategy as jpSelect — appended to `document.body`, `position: fixed`, viewport-aware flip. Reuses all `jp-jpselect-dropdown` CSS for the list, options, and search input.
+
+**Keyboard (text input):** **ArrowDown / ArrowUp** open the dropdown. **Enter** commits the current input value (or picks the highlighted dropdown option if open). **Escape** closes the dropdown if open, or reverts to the last committed value if closed. On **blur**, the current input value is committed automatically (with a short delay so dropdown item clicks register first).
+
+**Keyboard (dropdown):** ArrowDown/Up navigate; Home/End jump to first/last; Enter or Space pick the highlighted option; Escape closes and returns focus to the text input; Tab closes the dropdown.
+
+#### `jPulse.UI.input.jpCombo.init(selectorOrElement, options?)`
+
+Enhance an existing `<select>` as jpCombo. Add `data-jpcombo` to the select.
+
+**Parameters:**
+- `selectorOrElement` (string|Element) - Select element or CSS selector
+- `options` (Object, optional):
+  - `search` (boolean) - Show search filter input in dropdown (default: false)
+  - `searchPlaceholder` (string) - Placeholder for search; default from i18n `view.ui.input.jpSelect.searchPlaceholder`
+  - `allowCustom` (boolean) - Allow values not in the original option list (default: true). When `false`, a non-list value reverts to the last committed value on blur or Enter.
+  - `onOptionPreview` (function) - Optional callback `(value, label)` fired when the user hovers over or keyboard-navigates to an option; also fills the text input with the previewed value for live feedback. Called with `(null, null)` when leaving the list or closing the dropdown; the text input reverts to the actual committed value.
+  - `onCustomValue` (function) - Optional callback `(value)` fired when the user commits a value not present in the original option list. Useful for validation or auto-formatting.
+
+**HTML:** `placeholder` is read directly from the `<select placeholder="...">` attribute and forwarded to the text input — no widget option needed.
+
+**Example:**
+```html
+<select id="linked-map" data-jpcombo data-path="linkedMap" placeholder="Pick or type a map route">
+    <option value="">— none —</option>
+    <option value="/map/quickstart">Quickstart</option>
+    <option value="/map/advanced">Advanced</option>
+</select>
+```
+```javascript
+const sel = document.querySelector('select[data-jpcombo]');
+jPulse.UI.input.jpCombo.init(sel, { search: true });
+// Or after populateForm:
+jPulse.UI.input.initAll(configForm);
+```
+
+**Value contract:** Value is always a string — whatever is in the text input (either a list value or a free-form custom value). `setAllValues`/`getAllValues` and `setFormData`/`getFormData` handle it transparently: `setAllValues` calls the internal `_jpComboSetValue` hook which adds the extra option for non-list values before assigning; `getAllValues` reads `el.value` as for any other input.
+
+```javascript
+// Saving: read both fields separately (no need to parse a compound value)
+const linkedMap = document.querySelector('#linked-map').value;  // e.g. '/map/quickstart#general'
+
+// Or via getAllValues with data-path:
+const data = jPulse.UI.input.getAllValues(form);
+// data.linkedMap === '/map/quickstart#general'
+```
+
+**`initAll` convention:** Add `data-jpcombo` (and `data-path`) to the `<select>`. jpCombo fields do **not** need `data-jpselect` — the two widgets are independent.
 
 ---
 
@@ -665,7 +724,7 @@ Set or read form field values by `data-path`. No schema; use when you have a fla
 
 #### `jPulse.UI.input.setAllValues(form, data)`
 
-Set all form field values from a data object. For each field with `data-path`, assigns value from `data` by path. **Checkboxes:** sets `el.checked` from value (true/false). **SELECT multiple:** sets `selected` on options whose value is in the array. **tagInput:** uses `tagInput.formatValue(value)` then sets `el.value`. **slider:** sets `el.value` then calls `el._jpSliderSetValue(value)` so the thumb/fill/tick update. **Others:** sets `el.value` from `String(value)`. **jpSelect:** native select is updated; caption refreshes automatically.
+Set all form field values from a data object. For each field with `data-path`, assigns value from `data` by path. **Checkboxes:** sets `el.checked` from value (true/false). **SELECT multiple:** sets `selected` on options whose value is in the array. **tagInput:** uses `tagInput.formatValue(value)` then sets `el.value`. **slider:** sets `el.value` then calls `el._jpSliderSetValue(value)` so the thumb/fill/tick update. **jpCombo:** calls the internal `_jpComboSetValue` hook which adds a `[data-jpcombo-extra]` option when the value is not in the original option list, then selects it — so a previously saved custom value survives the load/save roundtrip. **Others:** sets `el.value` from `String(value)`. **jpSelect:** native select is updated; caption refreshes automatically.
 
 **Parameters:**
 - `form` (HTMLFormElement|Element) - Form or container
@@ -683,7 +742,7 @@ Build a data object from form fields. For each field with `data-path`: **checkbo
 
 **Example:** `const data = jPulse.UI.input.getAllValues(configForm);`
 
-**Convention:** Fields need `data-path` (e.g. `data-path="general.roles"`). tagInput fields also need `data-taginput`. jpSelect fields need `data-jpselect` on the select. Slider fields need `data-slider` on the input.
+**Convention:** Fields need `data-path` (e.g. `data-path="general.roles"`). tagInput fields also need `data-taginput`. jpSelect fields need `data-jpselect` on the select. jpCombo fields need `data-jpcombo` on the select. Slider fields need `data-slider` on the input.
 
 ---
 

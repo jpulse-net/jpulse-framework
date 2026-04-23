@@ -1,6 +1,42 @@
-# jPulse Docs / Version History v1.6.43
+# jPulse Docs / Version History v1.6.44
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.44, W-187, 2026-04-23
+
+**Commit:** `W-187, v1.6.44: jPulse.UI: new input.jpCombo combo-box widget to select and/or edit a value`
+
+**Objective**: Add a new `jPulse.UI.input.jpCombo` widget that enhances a native `<select>` element with combo-box behavior — the user can pick from the dropdown list, pick and then modify, or type a value from scratch. The widget follows the existing jpulse 1:1 enhancement pattern (one widget per native element; the native `<select>` stays in the DOM as value source) and integrates with `setAllValues` / `getAllValues` transparently.
+
+**Summary**: The widget renders an `<input type="text">` (always editable) and a dropdown arrow `<button>` composited as a single field. An **extra-option state machine** keeps `.value` truthful: when the committed value is not in the original `<option>` list, a `[data-jpcombo-extra]` option is added and selected; when the user picks an original list option, the extra option is removed. `setAllValues` detects the `_jpComboSetValue` hook and calls it instead of the plain `el.value = ...` assignment, so a previously saved custom value survives the load/save roundtrip without requiring the caller to pre-populate the option list. The dropdown reuses all `jp-jpselect-dropdown` CSS classes for visual consistency. `initAll` discovers via `select[data-jpcombo]`.
+
+**Key features**:
+- **Combo-box editing** — text input always editable; dropdown is a suggestion list, not a gate.
+- **Extra-option state machine** — two states, two transitions; `.value` always reflects the actual committed value.
+- **`setAllValues` hook** — `_jpComboSetValue` adds the extra option for non-list values before selecting; no silent failures.
+- **`allowCustom: false`** — optional strict mode that reverts to the last committed list value on blur/Enter.
+- **`onOptionPreview`** — hover/keyboard-navigate callback fills the text input for live preview; `(null, null)` reverts.
+- **`onCustomValue`** — callback fired when a non-list value is committed.
+- **`search`** — optional search filter in the dropdown, reusing jpSelect search UI.
+- **`initAll` discovery** — `select[data-jpcombo]` → `jpCombo.init`, placed after the `jpSelect` discovery block.
+
+**Files changed**:
+- `webapp/view/jpulse-common.js` — new `jPulse.UI.input.jpCombo` block; `initAll` discovery; `setAllValues` hook
+- `webapp/view/jpulse-common.css` — `.jp-jpcombo-wrap`, `.jp-jpcombo-input`, `.jp-jpcombo-arrow` styles
+
+**Tests**:
+- `webapp/tests/unit/controller/jpcombo.test.js` (new) — structural tests covering widget definition, guard conditions, DOM structure, extra-option state machine, setAllValues hook, initAll discovery, dropdown behavior, commitInputValue, onOptionPreview, search, allowCustom, and CSS class presence
+
+**Documentation**:
+- `docs/jpulse-ui-reference.md` — new `### jpCombo widget` section (after jpSelect); `setAllValues` description updated; `initAll` description updated; convention note updated
+- `README.md`, `docs/README.md` — Latest Release Highlights — v1.6.44 / W-187
+- `docs/CHANGELOG.md` — this section
+
+**Release**:
+- Work Item: W-187
+- Version: v1.6.44
+- Release Date: 2026-04-23
 
 ________________________________________________
 ## v1.6.43, W-186, 2026-04-22

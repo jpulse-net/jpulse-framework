@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.43
- * @release         2026-04-22
+ * @version         1.6.44
+ * @release         2026-04-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1161,6 +1161,13 @@ window.jPulse = {
                         // Skip element if init fails
                     }
                 });
+                root.querySelectorAll('select[data-jpcombo]').forEach((el) => {
+                    try {
+                        jPulse.UI.input.jpCombo.init(el);
+                    } catch (_) {
+                        // Skip element if init fails
+                    }
+                });
                 root.querySelectorAll('input[data-slider]').forEach((el) => {
                     try {
                         jPulse.UI.input.slider.init(el);
@@ -1228,6 +1235,9 @@ window.jPulse = {
                             Array.from(el.options).forEach((opt) => {
                                 opt.selected = set.has(opt.value);
                             });
+                        } else if (typeof el._jpComboSetValue === 'function') {
+                            // jpCombo: adds extra option if value is not in original list
+                            el._jpComboSetValue(value !== undefined && value !== null ? String(value) : '');
                         } else {
                             el.value = value !== undefined && value !== null ? String(value) : '';
                         }
@@ -2176,6 +2186,403 @@ window.jPulse = {
                     });
 
                     updateCaption();
+                }
+            },
+
+            /**
+             * Combo-box widget (W-187): enhance a native <select> so users can pick from the dropdown list,
+             * pick and modify, or type a value from scratch. Native select stays in DOM as value source.
+             * Extra-option state machine: value not in original options → add [data-jpcombo-extra] option
+             * and select it; value in original options → remove extra option.
+             * @param {string|Element} selectorOrElement - Select element or selector
+             * @param {Object} [options] - search, searchPlaceholder, allowCustom, onOptionPreview, onCustomValue
+             */
+            jpCombo: {
+                init: (selectorOrElement, options = {}) => {
+                    const sel = typeof selectorOrElement === 'string'
+                        ? document.querySelector(selectorOrElement)
+                        : selectorOrElement;
+                    if (!sel || sel.tagName !== 'SELECT') return;
+                    if (sel.dataset.jpcomboInited) return;
+                    sel.dataset.jpcomboInited = '1';
+
+                    const defaults = {
+                        search: false,
+                        searchPlaceholder: '{{i18n.view.ui.input.jpSelect.searchPlaceholder}}' || 'Search…',
+                        allowCustom: true,
+                        onOptionPreview: null,
+                        onCustomValue: null
+                    };
+                    const opts = { ...defaults, ...options };
+
+                    // Return only original (non-extra) options
+                    const getOriginalOptions = () =>
+                        Array.from(sel.options).filter((o) => !o.hasAttribute('data-jpcombo-extra'));
+
+                    const isInOriginalList = (value) =>
+                        getOriginalOptions().some((o) => o.value === value);
+
+                    const removeExtraOption = () => {
+                        const extra = sel.querySelector('[data-jpcombo-extra]');
+                        if (extra) sel.removeChild(extra);
+                    };
+
+                    const setExtraOption = (value) => {
+                        let extra = sel.querySelector('[data-jpcombo-extra]');
+                        if (!extra) {
+                            extra = document.createElement('option');
+                            extra.setAttribute('data-jpcombo-extra', '1');
+                            sel.appendChild(extra);
+                        }
+                        extra.value = value;
+                        extra.textContent = value;
+                        sel.value = value;
+                    };
+
+                    // Core value setter — used by setAllValues hook and internal commits
+                    const setComboValue = (value) => {
+                        if (isInOriginalList(value)) {
+                            removeExtraOption();
+                            sel.value = value;
+                        } else {
+                            setExtraOption(value);
+                        }
+                        if (textInput) textInput.value = value;
+                    };
+
+                    sel._jpComboSetValue = setComboValue;
+
+                    // Build DOM: wrap > (native select, text input, arrow button)
+                    const wrap = document.createElement('div');
+                    wrap.className = 'jp-jpcombo-wrap';
+                    wrap.setAttribute('data-jpcombo-wrapper', '1');
+                    sel.parentNode.insertBefore(wrap, sel);
+                    wrap.appendChild(sel);
+                    sel.classList.add('jp-jpselect-native');
+                    sel.setAttribute('aria-hidden', 'true');
+                    sel.tabIndex = -1;
+
+                    const textInput = document.createElement('input');
+                    textInput.type = 'text';
+                    textInput.className = 'jp-jpcombo-input jp-form-input jp-edit-field';
+                    textInput.setAttribute('data-jpcombo-input', '1');
+                    textInput.setAttribute('autocomplete', 'off');
+                    textInput.setAttribute('role', 'combobox');
+                    textInput.setAttribute('aria-haspopup', 'listbox');
+                    textInput.setAttribute('aria-expanded', 'false');
+                    if (sel.id) textInput.setAttribute('aria-labelledby', sel.id);
+                    const placeholder = (sel.getAttribute('placeholder') || '').trim();
+                    if (placeholder) textInput.placeholder = placeholder;
+                    const initialOption = sel.options[sel.selectedIndex];
+                    textInput.value = initialOption ? initialOption.value : '';
+                    wrap.appendChild(textInput);
+
+                    const arrowBtn = document.createElement('button');
+                    arrowBtn.type = 'button';
+                    arrowBtn.className = 'jp-jpcombo-arrow';
+                    arrowBtn.setAttribute('data-jpcombo-arrow', '1');
+                    arrowBtn.setAttribute('aria-hidden', 'true');
+                    arrowBtn.tabIndex = -1;
+                    wrap.appendChild(arrowBtn);
+
+                    // Dropdown portal — reuse jpselect dropdown CSS for list, options, search
+                    const dropdown = document.createElement('div');
+                    dropdown.className = 'jp-jpselect-dropdown jp-jpselect-dropdown-portal';
+                    dropdown.setAttribute('data-jpcombo-dropdown', '1');
+                    dropdown.setAttribute('role', 'listbox');
+                    dropdown.setAttribute('aria-multiselectable', 'false');
+                    document.body.appendChild(dropdown);
+                    wrap._jpComboDropdown = dropdown;
+
+                    let searchInput = null;
+                    let listEl = null;
+                    let highlightedIndex = -1;
+                    let lastCommittedValue = textInput.value;
+
+                    const getOptionItems = () =>
+                        getOriginalOptions().map((o) => ({ value: o.value, label: o.textContent.trim() }));
+
+                    const buildList = (filterText) => {
+                        const items = getOptionItems();
+                        const lower = (filterText || '').trim().toLowerCase();
+                        const filtered = lower
+                            ? items.filter((i) => i.label.toLowerCase().includes(lower))
+                            : items;
+                        listEl.innerHTML = '';
+                        filtered.forEach((item) => {
+                            const isSelected = textInput.value === item.value;
+                            const div = document.createElement('div');
+                            div.className = 'jp-jpselect-option' + (isSelected ? ' jp-jpselect-option-selected' : '');
+                            div.setAttribute('data-value', item.value);
+                            div.setAttribute('role', 'option');
+                            div.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+                            const labelSpan = document.createElement('span');
+                            labelSpan.className = 'jp-jpselect-option-label';
+                            labelSpan.textContent = item.label;
+                            div.appendChild(labelSpan);
+                            div.addEventListener('click', (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (typeof opts.onOptionPreview === 'function') opts.onOptionPreview(null, null);
+                                setComboValue(item.value);
+                                lastCommittedValue = item.value;
+                                closeDropdown();
+                                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                            });
+                            listEl.appendChild(div);
+                        });
+                        highlightedIndex = Math.max(-1, Math.min(highlightedIndex, listEl.children.length - 1));
+                        updateHighlight();
+                    };
+
+                    const getOptionAt = (idx) => listEl && idx >= 0 && idx < listEl.children.length ? listEl.children[idx] : null;
+
+                    const updateHighlight = () => {
+                        const opts_list = listEl ? Array.from(listEl.querySelectorAll('.jp-jpselect-option')) : [];
+                        opts_list.forEach((opt, i) => {
+                            opt.classList.toggle('jp-jpselect-option-highlighted', i === highlightedIndex);
+                        });
+                        if (typeof opts.onOptionPreview === 'function' && opts_list[highlightedIndex]) {
+                            const opt = opts_list[highlightedIndex];
+                            const value = opt.getAttribute('data-value');
+                            const labelEl = opt.querySelector('.jp-jpselect-option-label');
+                            const label = labelEl ? labelEl.textContent.trim() : '';
+                            opts.onOptionPreview(value, label);
+                            textInput.value = value;
+                        }
+                    };
+
+                    const scrollOptionIntoView = (idx) => {
+                        const opt = getOptionAt(idx);
+                        if (opt) opt.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    };
+
+                    const selectHighlightedOption = () => {
+                        const opt = getOptionAt(highlightedIndex);
+                        if (opt) opt.click();
+                    };
+
+                    const openDropdown = () => {
+                        if (dropdown.classList.contains('jp-jpselect-open')) return;
+                        // Close any other open jpSelect/jpCombo dropdowns
+                        document.querySelectorAll('.jp-jpselect-dropdown.jp-jpselect-open').forEach((el) => {
+                            if (el === dropdown) return;
+                            el.classList.remove('jp-jpselect-open');
+                            const otherWrap = el.closest('.jp-jpselect-wrap');
+                            if (otherWrap) {
+                                const otherTrigger = otherWrap.querySelector('[data-jpselect-trigger="1"]');
+                                if (otherTrigger) otherTrigger.setAttribute('aria-expanded', 'false');
+                            }
+                        });
+                        const wrapRect = wrap.getBoundingClientRect();
+                        const dropdownZIndex = (jPulse.UI._alertZIndex || 2000) + 1000;
+                        dropdown.style.position = 'fixed';
+                        dropdown.style.left = wrapRect.left + 'px';
+                        dropdown.style.width = wrapRect.width + 'px';
+                        dropdown.style.zIndex = String(dropdownZIndex);
+                        const spaceBelow = window.innerHeight - wrapRect.bottom;
+                        const spaceAbove = wrapRect.top;
+                        const minSpace = 200;
+                        const openUp = spaceBelow < minSpace && spaceAbove > spaceBelow;
+                        dropdown.classList.toggle('jp-jpselect-dropdown-open-up', openUp);
+                        if (openUp) {
+                            dropdown.style.top = 'auto';
+                            dropdown.style.bottom = (window.innerHeight - wrapRect.top + 2) + 'px';
+                        } else {
+                            dropdown.style.bottom = 'auto';
+                            dropdown.style.top = (wrapRect.bottom + 2) + 'px';
+                        }
+                        dropdown.classList.add('jp-jpselect-open');
+                        textInput.setAttribute('aria-expanded', 'true');
+                        buildList(searchInput ? searchInput.value : '');
+                        highlightedIndex = listEl.children.length > 0 ? 0 : -1;
+                        updateHighlight();
+                        if (searchInput) {
+                            searchInput.value = '';
+                            searchInput.focus();
+                        } else {
+                            listEl.focus();
+                        }
+                    };
+
+                    const closeDropdown = () => {
+                        if (typeof opts.onOptionPreview === 'function') opts.onOptionPreview(null, null);
+                        // Restore actual committed value (preview may have filled a different value)
+                        textInput.value = sel.value;
+                        highlightedIndex = -1;
+                        dropdown.classList.remove('jp-jpselect-open', 'jp-jpselect-dropdown-open-up');
+                        textInput.setAttribute('aria-expanded', 'false');
+                    };
+
+                    // Commit current text input value to the native select
+                    const commitInputValue = () => {
+                        const value = textInput.value.trim();
+                        if (!opts.allowCustom && !isInOriginalList(value)) {
+                            setComboValue(lastCommittedValue);
+                            return;
+                        }
+                        if (value === sel.value) return;
+                        const wasCustom = !isInOriginalList(value);
+                        setComboValue(value);
+                        if (wasCustom && typeof opts.onCustomValue === 'function') {
+                            opts.onCustomValue(value);
+                        }
+                        lastCommittedValue = value;
+                        sel.dispatchEvent(new Event('change', { bubbles: true }));
+                    };
+
+                    if (opts.search) {
+                        searchInput = document.createElement('input');
+                        searchInput.type = 'text';
+                        searchInput.className = 'jp-jpselect-search';
+                        searchInput.placeholder = opts.searchPlaceholder;
+                        searchInput.setAttribute('data-jpcombo-search', '1');
+                        searchInput.setAttribute('aria-label', opts.searchPlaceholder);
+                        dropdown.appendChild(searchInput);
+                        searchInput.addEventListener('input', () => buildList(searchInput.value));
+                        searchInput.addEventListener('keydown', (e) => {
+                            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                highlightedIndex = listEl.children.length > 0 ? (e.key === 'ArrowDown' ? 0 : listEl.children.length - 1) : -1;
+                                updateHighlight();
+                                scrollOptionIntoView(highlightedIndex);
+                                listEl.focus();
+                            } else {
+                                e.stopPropagation();
+                            }
+                        });
+                    }
+
+                    listEl = document.createElement('div');
+                    listEl.className = 'jp-jpselect-list';
+                    listEl.setAttribute('data-jpcombo-list', '1');
+                    listEl.setAttribute('tabindex', '0');
+                    dropdown.appendChild(listEl);
+
+                    listEl.addEventListener('focus', () => {
+                        if (highlightedIndex === -1 && listEl.children.length > 0) {
+                            highlightedIndex = 0;
+                            updateHighlight();
+                        }
+                    });
+
+                    listEl.addEventListener('keydown', (e) => {
+                        const opts_list = Array.from(listEl.querySelectorAll('.jp-jpselect-option'));
+                        const n = opts_list.length;
+                        if (n === 0) return;
+                        if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            highlightedIndex = (highlightedIndex + 1) % n;
+                            updateHighlight();
+                            scrollOptionIntoView(highlightedIndex);
+                        } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            highlightedIndex = highlightedIndex <= 0 ? n - 1 : highlightedIndex - 1;
+                            updateHighlight();
+                            scrollOptionIntoView(highlightedIndex);
+                        } else if (e.key === 'Home') {
+                            e.preventDefault();
+                            highlightedIndex = 0;
+                            updateHighlight();
+                            scrollOptionIntoView(0);
+                        } else if (e.key === 'End') {
+                            e.preventDefault();
+                            highlightedIndex = n - 1;
+                            updateHighlight();
+                            scrollOptionIntoView(highlightedIndex);
+                        } else if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            selectHighlightedOption();
+                        } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            closeDropdown();
+                            textInput.focus();
+                        } else if (e.key === 'Tab') {
+                            closeDropdown();
+                        }
+                    });
+
+                    listEl.addEventListener('mouseover', (e) => {
+                        const opt = e.target.closest('.jp-jpselect-option');
+                        if (opt) {
+                            const opts_list = Array.from(listEl.querySelectorAll('.jp-jpselect-option'));
+                            highlightedIndex = opts_list.indexOf(opt);
+                            updateHighlight();
+                            if (typeof opts.onOptionPreview === 'function') {
+                                const value = opt.getAttribute('data-value');
+                                const labelEl = opt.querySelector('.jp-jpselect-option-label');
+                                const label = labelEl ? labelEl.textContent.trim() : '';
+                                opts.onOptionPreview(value, label);
+                                textInput.value = value;
+                            }
+                        }
+                    });
+                    listEl.addEventListener('mouseleave', () => {
+                        if (typeof opts.onOptionPreview === 'function') opts.onOptionPreview(null, null);
+                        textInput.value = sel.value;
+                    });
+
+                    arrowBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (dropdown.classList.contains('jp-jpselect-open')) closeDropdown();
+                        else openDropdown();
+                        textInput.focus();
+                    });
+
+                    textInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            if (!dropdown.classList.contains('jp-jpselect-open')) openDropdown();
+                        } else if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (dropdown.classList.contains('jp-jpselect-open') && highlightedIndex >= 0) {
+                                selectHighlightedOption();
+                            } else {
+                                commitInputValue();
+                                if (dropdown.classList.contains('jp-jpselect-open')) closeDropdown();
+                            }
+                        } else if (e.key === 'Escape') {
+                            if (dropdown.classList.contains('jp-jpselect-open')) {
+                                closeDropdown();
+                            } else {
+                                setComboValue(lastCommittedValue);
+                            }
+                        }
+                    });
+
+                    textInput.addEventListener('blur', () => {
+                        // Delay so dropdown item clicks register before blur fires
+                        setTimeout(() => {
+                            if (!dropdown.contains(document.activeElement) && !wrap.contains(document.activeElement)) {
+                                commitInputValue();
+                                if (dropdown.classList.contains('jp-jpselect-open')) closeDropdown();
+                            }
+                        }, 150);
+                    });
+
+                    document.addEventListener('click', (e) => {
+                        if (!wrap.contains(e.target) && !dropdown.contains(e.target)) {
+                            if (dropdown.classList.contains('jp-jpselect-open')) closeDropdown();
+                        }
+                    });
+
+                    window.addEventListener('scroll', () => {
+                        if (dropdown.classList.contains('jp-jpselect-open')) closeDropdown();
+                    }, { passive: true });
+
+                    const closeOnFocusLoss = (e) => {
+                        const next = e.relatedTarget;
+                        if (!dropdown.classList.contains('jp-jpselect-open')) return;
+                        if (next && wrap.contains(next)) return;
+                        if (next && dropdown.contains(next)) return;
+                        closeDropdown();
+                    };
+                    wrap.addEventListener('focusout', closeOnFocusLoss);
+                    dropdown.addEventListener('focusout', closeOnFocusLoss);
+
+                    lastCommittedValue = textInput.value;
                 }
             },
 

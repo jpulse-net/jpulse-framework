@@ -19228,3 +19228,27 @@ Clarified the Connection health implementation note: "map" was ambiguous (framew
 
 
 ============================================================
+2026-04-22 23:20
+
+Create work item W-187 in docs/dev/work-items.md for new jpCombo input widget
+
+Created full work item W-187 (v1.6.44, 2026-04-23) for the new `jPulse.UI.input.jpCombo` widget. The work item captures the design decisions from our conversation: new sibling widget to jpSelect (not a combo flag on jpSelect), backed by native `<select>` (1:1 enhancement pattern), extra-option state machine (two states, two transitions: value in list → remove extra option; value not in list → add/update `[data-jpcombo-extra]` option), `_jpComboSetValue` hook for `setAllValues` integration, shared dropdown helpers with jpSelect, and options `search`, `searchPlaceholder`, `onOptionPreview`, `allowCustom`, `onCustomValue`. Deliverables cover `jpulse-common.js` (widget + initAll + setAllValues hook), `jpulse-common.css` (new jpcombo styles), new test file `jpcombo.test.js`, `jpulse-ui-reference.md` (new section + setAllValues/initAll updates), README/CHANGELOG entries.
+
+
+============================================================
+2026-04-22 23:35
+
+Implement W-187: new jPulse.UI.input.jpCombo combo-box widget
+
+Implemented all W-187 deliverables: (1) `webapp/view/jpulse-common.js` — new `jPulse.UI.input.jpCombo` widget with extra-option state machine, `_jpComboSetValue` hook assigned on the native select, `initAll` discovery via `select[data-jpcombo]`, and `setAllValues` hook check; (2) `webapp/view/jpulse-common.css` — `.jp-jpcombo-wrap`, `.jp-jpcombo-input`, `.jp-jpcombo-arrow` styles (dropdown reuses jp-jpselect-* CSS); (3) `webapp/tests/unit/controller/jpcombo.test.js` (new) — 48 structural tests, all passing; (4) `docs/jpulse-ui-reference.md` — new jpCombo widget section, `setAllValues` and `initAll` description updates, convention note update; (5) `README.md`, `docs/README.md` — v1.6.44/W-187 Latest Release Highlights entry; (6) `docs/CHANGELOG.md` — v1.6.44/W-187 section. All 48 tests pass.
+
+
+============================================================
+2026-04-22 23:45
+
+Release prep: review tt-git-diff for W-187 / v1.6.44 / 2026-04-23, update commit-message.txt and cursor_log (append). Don't commit.
+
+Reviewed `tt-git-diff.txt` against W-187. The diff matches the intended release: `jpulse-common.js` (jpCombo + initAll + setAllValues hook), `jpulse-common.css` (jp-combo row styles), `jpulse-ui-reference.md`, `README`/`docs/README` highlights, `CHANGELOG` v1.6.44 block, `work-items` IN_PROGRESS reorg and W-187 spec, and `cursor_log` appends. **Gap:** `webapp/tests/unit/controller/jpcombo.test.js` is **untracked** — it does not appear in unified `git diff` output; for a complete commit, `git add` that file (and any other untracked assets). **Gap vs W-187 deliverable text:** the work item still lists extracting shared `_buildJpDropdown` / `_positionJpDropdown` from jpSelect; the implementation duplicates inline and reuses `jp-jpselect-*` classes — functionally complete, not a shared-helper refactor. CSS deliverable mentioned a `.jp-jpcombo-dropdown` class; the implementation correctly uses `jp-jpselect-dropdown` for the portaled panel. W-187 remains **IN_PROGRESS** in work-items; flip to DONE when you ship. Wrote `commit-message.txt` (W-186-style: title, narrative, objective, key features, code + doc file lists, work item / version / date) with an explicit note on the helper-extraction non-delivery. Appended this entry. Did not run `git` or `npm test` (not requested); README H1 is still v1.6.43 per bump-script workflow.
+
+
+============================================================

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.45
+# jPulse Docs / Dev / Work Items v1.6.46
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -5973,7 +5973,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - simulate a stuck client (no pong) until the health check terminates the socket; confirm `onDisconnect` receives the real `ctx` (username / params such as `mapId`) and presence / `user-left` matches the user who was connected, not `guest` / empty context
 
 ### W-187, v1.6.44, 2026-04-23: jPulse.UI: new input.jpCombo combo-box widget to select and/or edit a value
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - add a new `jPulse.UI.input.jpCombo` widget to `jpulse-common.js` that enhances a native `<select>` element with combo-box behavior: the user can pick from the dropdown suggestion list, pick and then modify the value, or type a value from scratch
@@ -6017,16 +6017,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `README.md`, `docs/README.md` — Latest Release Highlights — v1.6.44 / W-187 bullet
   - `docs/CHANGELOG.md` — v1.6.44 / W-187 section
 
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-188, v1.6.45, 2026-04-23: jPulse.UI: fix input.jpCombo blur vs save issue
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bugfix
 - objectives:
   - eliminate a timing race: jpCombo defers `commitInputValue` by 150ms in the text input `blur` handler so a dropdown list item `click` can register first; a dialog Save (or any external) button that reads the native `<select>`.value in its `click` handler could see the pre-commit value
@@ -6043,6 +6035,194 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - jpCombo widget: one sentence under **Keyboard (text input)** or **Value contract** noting that mousedown outside commits before external buttons’ click handlers, so `sel.value` / getAllValues is safe on Save
   - `README.md`, `docs/README.md` — Latest Release Highlights — v1.6.45 / W-188
   - `docs/CHANGELOG.md` — v1.6.45 / W-188 section
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-189, v1.6.46, 2026-05-04: jPulse.UI: schema-form generator, async loadOptions, onInit lifecycle hook, showWhen conditional visibility, jpSelect/jpCombo input types; plugin-config consolidation
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - expose the existing `jpSelect` and `jpCombo` widgets to the schema-form generator via new `inputType` values, so site / plugin developers can pick the right select widget declaratively: `inputType: 'select'` → plain native `<select>` (small static enums), `inputType: 'jpSelect'` → searchable single / multi-select, `inputType: 'jpCombo'` → pick-or-type combo with free-entry; the *widget choice* is the affordance — no `allowFreeEntry` boolean
+  - add a declarative async option source `loadOptions` for select-type fields (`select` / `jpSelect` / `jpCombo`); the framework owns the per-field loading state, the `<option>` swap on resolve, the current-value re-apply (via `_jpComboSetValue` for `jpCombo` so a previously-saved free-text value survives), and the per-field `initAll` after options land — so the 90% async-options use case is one line in the schema
+  - add a declarative `showWhen` field attribute for conditional visibility — common form-design need (e.g. show `viewportWidth` only when `fit` is `scale-fit` or `scale-fill`); framework owns the listener wiring, evaluation, validation skip, value preservation; supports same-block-relative (`field: 'fit'`) and fully-qualified (`field: 'general.mode'`) paths; `equals` / `notEquals` operators; `all` / `any` compound conditions; representable in JSON (`plugin.json`) with no string indirection; hidden fields skip validation but preserve value (consistent and predictable)
+  - add a generic `onInit(ctx)` field-lifecycle escape hatch for everything declarative attributes don't cover (cross-field reactivity beyond `showWhen`, default-from-server, decoration, advanced widget callbacks); runs once per field after `loadOptions` settles and before the framework initializes the widget — so `onInit` can mutate `ctx.widgetOptions` to inject rare advanced widget options (`onOptionPreview`, `onCustomValue`, etc.); rejections are caught and logged so one bad `onInit` doesn't break the form
+  - same property name, polymorphic by type — both `loadOptions` and `onInit` accept either a function (JS schemas) or a registry-name string (JSON schemas, e.g. `plugin.json`); follows the existing `field.callback` / `field.action` precedent that already does this for `type: 'button'`
+  - introduce a small `jPulse.schemaForm` namespace with `register(name, fn)` / `unregister(name)` / `resolve(name)` so plugins and site code can register named handlers without polluting `window`; resolution order is registry → `window[name]` (back-compat with existing `data-callback`) → null with a `console.warn`
+  - consolidate the duplicate plugin-config schema renderer (`webapp/view/admin/plugin-config.shtml::renderField` switch, lines 407-587) onto the unified `jPulse.UI.tabs._renderSchemaBlockFields`, eliminating the parallel codepath; back-fill the field types currently only available in plugin-config (`radio`, `checkbox-group`, `multiselect`, `help`, `separator`, and the `email` / `url` / `tel` text variants) into the unified renderer so feature parity is maintained for existing plugins
+- features:
+  - new `inputType` values in `_renderSchemaBlockFields`:
+    - `inputType: 'jpSelect'` — emits `<select data-jpselect>` with the same `options` / `enum` rendering as `select`; honors `fieldDef.multiple` to add the `multiple` attribute (multi-select trigger caption is then driven by jpSelect's i18n); existing `initAll` discovery (`select[data-jpselect]`) wires `jPulse.UI.input.jpSelect.init`
+    - `inputType: 'jpCombo'` — emits `<select data-jpcombo>` with same option rendering; existing `initAll` discovery (`select[data-jpcombo]`) wires `jPulse.UI.input.jpCombo.init`; placeholder forwarded via the native `<select placeholder="...">` attribute (jpCombo already reads it); widget hardened for dialogs (text input click opens list; focus stays in text input when open; modal `_trapFocus` bypass + Tab extension for portaled list; option commit on `mousedown`; `focusout` tolerates `relatedTarget === null` for portaled options; arrow `mousedown` avoids ARIA-hidden focus warnings)
+    - `inputType: 'select'` — current plain `<select>` behavior preserved unchanged (no data-* attributes added) — back-compat for any schema that doesn't opt in
+  - widget tuning via flat top-level field keys (matches existing `slider` precedent — no nested `widgetOptions` wrapper, "don't make me think" DX):
+    - `multiple` (boolean, jpSelect) — emits `multiple` on the `<select>`
+    - `search` (boolean, jpSelect / jpCombo) — show search filter input in dropdown
+    - `selectAll` (boolean, jpSelect multi only) — show "Select all" / "Clear all"
+    - `allowCustom` (boolean, jpCombo only, default `true`) — when `false`, free-entry is blocked (jpCombo becomes a searchable-select)
+    - `searchPlaceholder` (string, jpSelect / jpCombo) — override the i18n default
+    - `placeholder` (string, all) — already top-level today; forwarded to `<select placeholder="…">`
+    - rare advanced widget options (`onOptionPreview`, `onCustomValue`, `separator`, `captionFormatSome` / `captionFormatAll`) are intentionally not exposed as flat keys to keep the schema surface small; reach them via `onInit(ctx)` mutating `ctx.widgetOptions` (documented escape hatch — see below)
+  - `options` is the canonical key for static option lists; `enum` continues to work as a back-compat alias (shorthand: `enum: ['a', 'b']` ≡ `options: [{value:'a',label:'a'}, ...]`); docs and examples use `options` only
+  - `loadOptions` (function | string, optional) — the source of options for select-type fields:
+    - function form: `async (ctx) => [{ value, label }, ...]`
+    - string form: `'myplugin.loadRegions'` — resolved via `jPulse.schemaForm.resolve(name)`
+    - `ctx` shape: `{ field, fieldDef, value, formEl, blockKey, path, schema }` — `field` is the wrapped `<select>` DOM element, `value` is the resolved current value (data | default) before options load
+    - resolution order: function → `jPulse.schemaForm.resolve(name)` → `window[name]` → null + `console.warn('jPulse.schemaForm: handler not found: ' + name)`; missing handler does not throw
+    - lifecycle: runs once after the field is rendered into the DOM, before the framework wraps it as `jpSelect` / `jpCombo`; framework adds `jp-form-input-loading` class to the `.jp-schema-field` wrapper, sets `disabled` on the `<select>`; on resolve, replaces `<option>`s with the returned list and removes the loading state — widget init is then handled by the post-`onInit` step (see `onInit` lifecycle below); for `jpCombo`, the post-init pass re-applies the current value via `_jpComboSetValue` so a saved free-text value not in the resolved list adds the `[data-jpcombo-extra]` option
+    - failure mode: on rejection, render the error message inline via `.jp-schema-field-error` on the wrapper; fall back to static `options` / `enum` if defined on the same `fieldDef`, otherwise empty list; for `jpCombo`, the field stays editable (free-entry still works); for `select` / `jpSelect` it stays disabled with a retry note in the help row
+    - cache policy: per form mount, no cache by default — the same `loadOptions` reference re-runs on each `renderTabsAndPanelsFromSchema` call; callers that need cross-form caching wrap their handler themselves
+    - isolation: all field `loadOptions` for a given form mount run in parallel via `Promise.allSettled`; one rejection does not block sibling fields
+  - `showWhen` (object, optional) — declarative conditional visibility for a field:
+    - simple form: `showWhen: { field: 'fit', equals: ['scale-fit', 'scale-fill'] }` — show this field only when the watched field's value matches; `equals` accepts a scalar (strict-equal-after-string-coerce) or an array (membership test)
+    - inverse: `notEquals: <scalar | array>` — show only when watched value does NOT match
+    - compound: `showWhen: { all: [<cond1>, <cond2>, ...] }` — AND; `showWhen: { any: [<cond1>, <cond2>, ...] }` — OR; conditions inside `all` / `any` are the same `{field, equals|notEquals}` shape; can nest one level (no recursive nesting in v1)
+    - field path resolution: bare name (`field: 'fit'`) → same block as the current field; dotted path (`field: 'general.mode'`) → fully-qualified, relative to `schema.data`; missing field → condition evaluates false (hidden) and `console.warn` once per missing path
+    - lifecycle: after all fields render and `loadOptions` settles for the form, framework evaluates each field's `showWhen` once and toggles the `.jp-schema-field-hidden` class on the wrapper; collects all referenced field paths and registers a single delegated `change` + `input` listener at the form level, which re-evaluates affected fields when watched values change (no per-field listener proliferation)
+    - hidden field behavior: `display: none` on the wrapper via `.jp-schema-field-hidden` class; widget instance and value preserved (no teardown); `loadOptions` and `onInit` still run for hidden fields on initial render so the field is ready when it becomes visible
+    - validation: `getFormData` skips validation for fields inside `.jp-schema-field-hidden` (e.g. `required: true` does not fire on a hidden field); but the field's value is still serialized into the form data (predictable, matches HTML form behavior; site code can ignore stale values, or use them when the watched field flips back)
+    - JSON form: `showWhen` is a plain object literal — fully representable in `plugin.json` with no string indirection; same shape works in JS schemas and JSON schemas
+    - operators deferred to follow-up: `truthy` / `falsy`, `contains` (for `tagInput` / array-valued fields), function-form `showWhen: (ctx) => boolean`; for v1 use `onInit` as the escape hatch for these cases
+  - `onInit` (function | string, optional) — generic field-lifecycle hook:
+    - function form: `async (ctx) => void`
+    - string form: same registry / `window[name]` resolution as `loadOptions`
+    - lifecycle: runs after `loadOptions` settles (resolved or rejected) and before the framework wraps the field as `jpSelect` / `jpCombo` — so `onInit` can mutate `ctx.widgetOptions` to inject advanced widget callbacks (`onOptionPreview`, `onCustomValue`, `separator`, etc.) right before init
+    - `ctx` shape: same keys as `loadOptions`'s ctx (`field, fieldDef, value, formEl, blockKey, path, schema`) plus a mutable `widgetOptions` object initially populated from the field's flat-key tuning (`search`, `selectAll`, `allowCustom`, `searchPlaceholder`, etc.); `onInit` may add or overwrite keys; whatever's in `ctx.widgetOptions` after `onInit` returns is passed verbatim as the second argument to `jpSelect.init(el, ...)` / `jpCombo.init(el, ...)`; for plain `select` (no widget), `ctx.widgetOptions` is present but unused
+    - failure mode: thrown / rejected `onInit` is caught at the framework level, surfaced via `console.warn('jPulse.schemaForm.onInit failed: ' + path, error)`, never blocks form rendering or other fields; the field still gets wrapped as `jpSelect` / `jpCombo` using whatever `ctx.widgetOptions` state existed at the moment of throw
+  - `jPulse.schemaForm` namespace — new public surface placed near `jPulse.UI.input`:
+    - `register(name, fn)` — register a named handler; throws if `name` already registered (use `unregister` first to override)
+    - `unregister(name)` — remove a registered handler; idempotent
+    - `resolve(name)` — return the registered fn, or `window[name]` if it's a function, or null
+    - `_handlers` — internal `Map` (test-only access)
+  - `renderTabsAndPanelsFromSchema` return shape extension:
+    - existing tabs instance return value preserved
+    - additional `ready: Promise<void>` property — resolves when all `loadOptions` for the form have settled and all `onInit` callbacks have run; callers that need to focus a field, validate, or trigger logic after the form is fully populated can `await result.ready`
+    - back-compat: the previous return value (tabs instance) still works as today; `ready` is an extra property on the same object
+  - plugin-config consolidation:
+    - `webapp/view/admin/plugin-config.shtml` — replace the inline `renderField` / `renderTextInput` / `renderSelect` / `renderRadio` / `renderCheckboxGroup` / `renderMultiselect` / `renderTextarea` / `renderCheckbox` / `renderNumberInput` / `renderFieldTable` / `renderWithTabs` / `renderSimpleForm` switch with a single call to `jPulse.UI.tabs.renderTabsAndPanelsFromSchema`
+    - schema shape adapter (`_pluginSchemaToBlocks`): plugin.json's flat array `[{id, type, label, tab, ...}]` is converted once on load into the unified nested block shape (`schema.data[tabKey][fieldId] = { type, inputType, label, ... }` with `_meta: { tabLabel: tab, order: index }`); untabbed fields → default `general` block; conversion happens in one place, has its own unit test
+    - `type` / `inputType` normalization (in the adapter): the unified renderer treats `type` and `inputType` as orthogonal (HTML5-style) — `type` is the data type used by `getFormData` for value coercion (`'string'` / `'number'` / `'boolean'` / `'array'`), `inputType` is the widget choice used by `_renderSchemaBlockFields` for DOM emission; plugin.json's legacy single `type` key conflates these, so the adapter expands it: `'text'` / `'password'` / `'email'` / `'url'` / `'tel'` → `{ type: 'string', inputType: <same> }`; `'textarea'` → `{ type: 'string', inputType: 'textarea' }`; `'number'` → `{ type: 'number' }` (renderer infers `inputType: 'number'`); `'boolean'` / `'checkbox'` → `{ type: 'boolean' }` (renderer infers `inputType: 'checkbox'`); `'select'` / `'radio'` / `'jpSelect'` / `'jpCombo'` → `{ type: 'string', inputType: <same> }`; `'multiselect'` / `'checkbox-group'` → `{ type: 'array', inputType: 'multiselect' / 'checkboxGroup' }`; `'tagInput'` → `{ type: 'array', inputType: 'tagInput' }`; `'help'` / `'separator'` → `{ inputType: <same> }` (no data type — non-field); plugin.json schemas that already use the explicit `inputType` form pass through unchanged
+    - read / write: `currentConfig` populates via `jPulse.UI.input.setFormData(form, configValues, schema)`; `collectFormValues` becomes `jPulse.UI.input.getFormData(form, schema).data`
+    - page wrapper preserved: Save / Reset Defaults buttons, plugin description card, status badge subtitle stay in plugin-config.shtml — only the field rendering moves to the unified renderer; final file shrinks ~250 → ~80 lines
+  - back-fill missing types into `_renderSchemaBlockFields`:
+    - `inputType: 'radio'` — vertical radio group from `options` (default) or horizontal via `fieldDef.layout: 'horizontal'`; reuses `.jp-form-radio-group` styles
+    - `inputType: 'checkboxGroup'` — multi-checkbox group from `options`; value is array; data-path stores comma-joined or, with `fieldDef.type: 'array'`, the array form
+    - `inputType: 'multiselect'` — back-compat alias only; rewritten internally to `inputType: 'jpSelect'` with `multiple: true` before render; not documented as a primary type (canonical form is `jpSelect` + `multiple: true`)
+    - `inputType: 'help'` — info block (no input, no label column), rendered as `<div class="jp-schema-help">` (inline info — not toast `.jp-alert`); `fieldDef.content` is the body (HTML allowed, sanitized via `jPulse.string.sanitizeHtml`)
+    - `inputType: 'separator'` — full-width divider with optional label; rendered as `<div class="jp-divider"><span>{{label}}</span></div>`
+    - text branch: honor `inputType: 'email' | 'url' | 'tel'` as plain `<input type=...>` passthrough; existing `inputType: 'password'` already supported
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - new `jPulse.schemaForm` namespace with `register` / `unregister` / `resolve` / `_handlers` Map; placed directly after `jPulse.UI.input`
+    - `jPulse.UI.tabs._renderSchemaBlockFields`:
+      - extend the existing `inputType: 'select'` branch — split into a shared option-rendering helper that takes `widgetAttr: '' | 'data-jpselect' | 'data-jpcombo'` and `multiple: boolean`; `select` / `jpSelect` / `jpCombo` cases all call it
+      - new `inputType` cases: `jpSelect`, `jpCombo`, `radio`, `checkboxGroup`, `help`, `separator`
+      - `inputType: 'multiselect'` accepted as a back-compat alias only (rewritten in the inputType-resolution step to `jpSelect` + `multiple: true`); no separate render branch
+      - text branch: extend `typeAttr` computation to include `email` / `url` / `tel`
+      - flat widget tuning keys (`search`, `selectAll`, `allowCustom`, `searchPlaceholder`, `multiple`) are emitted as data attributes on the `<select>` (`data-jp-search`, `data-jp-selectall`, `data-jp-allowcustom`, `data-jp-search-placeholder`, plus the standard `multiple` attribute) so the post-render pass can read them when constructing `ctx.widgetOptions`
+      - emit `data-jp-defer-init="1"` on the `<select>` when `fieldDef.loadOptions` or `fieldDef.onInit` is defined (so `initAll` skips it — the post-render pass owns its widget init); emit `jp-form-input-loading` initial class on the `.jp-schema-field` wrapper for fields with `loadOptions`
+      - emit `data-jp-show-when="<JSON>"` on the `.jp-schema-field` wrapper when `fieldDef.showWhen` is defined (JSON serialized with HTML-safe escaping for attribute); the `showWhen` pass reads this attribute to evaluate and to collect dependency paths for the delegated listener
+    - `jPulse.UI.tabs.renderTabsAndPanelsFromSchema`:
+      - after `panelEl` is populated and tabs registered, run post-render against the tab root (`rootEl` / `tabEl`) so fields remain discoverable after `register()` moves panels into `.jp-tabs-panels`; walk `schema.data` once to collect `(path, fieldDef, fieldEl)` triples for fields with `loadOptions` and / or `onInit`
+      - kick off `loadOptions` for all such fields in parallel via `Promise.allSettled`; for each settled promise: (1) call `_applyLoadedOptions` (success) or `_setFieldError` (rejection), (2) build `ctx` including a mutable `ctx.widgetOptions` seeded from the flat-key data attributes on the `<select>`, (3) call `onInit(ctx)` wrapped in try / catch (may mutate `ctx.widgetOptions`), (4) call the per-field widget init (`jpSelect.init(el, ctx.widgetOptions)` / `jpCombo.init(el, ctx.widgetOptions)`), (5) remove the `data-jp-defer-init` marker
+      - for fields without `loadOptions` and without `onInit` (no `data-jp-defer-init`), the existing `initAll` discovery handles widget init in the usual way (data attributes already drive `ctx.widgetOptions`-equivalent options via a small adapter)
+      - `_runSchemaPostRender` begins with `await Promise.resolve()` so synchronous `setFormData` / `initAll` finish, then runs an early `setupShowWhen(formEl)` before awaiting `loadOptions` (avoids flash of initially hidden fields); after the `loadOptions` / `onInit` / widget-init sweep completes, `setupShowWhen` runs again to pick up widget-driven value changes — the delegated pass collects `[data-jp-show-when]` wrappers, evaluates each, toggles `.jp-schema-field-hidden`, and attaches a single `change` + `input` listener at `formEl` (idempotent re-call refreshes wiring)
+      - return value: existing tabs instance with an extra `ready: Promise<void>` property
+    - internal helpers added: `_applyLoadedOptions(fieldEl, fieldDef, options, currentValue)`, `_resolveSchemaHandler(refOrName)`, `_setFieldLoading(wrapEl, on)`, `_setFieldError(wrapEl, message)`, `_buildSelectOptionsHtml(optionsArr, currentValue)`, `_widgetOptionsFromDataAttrs(selectEl)` — reads `data-jp-*` attributes into a plain options object
+    - `showWhen` helpers: `_evalShowWhen(condition, formEl, currentBlockKey)` — returns boolean; recursive for `all` / `any`; resolves bare field names against `currentBlockKey`, dotted paths against `schema.data`; `_collectShowWhenDeps(condition, currentBlockKey)` — returns flat array of fully-qualified `data-path` strings referenced; `_setupShowWhen(formEl)` / public `jPulse.schemaForm.setupShowWhen` — installs the delegated listener and runs the initial visibility pass; invoked from `_runSchemaPostRender` (early + after deferred pipeline)
+    - `getFormData` / `setFormData` (in `jPulse.UI.input`): skip validation logic for fields whose closest `.jp-schema-field` wrapper has `.jp-schema-field-hidden`; skip display-only schema rows (`inputType` `help`, `separator`, `button`) in the data walk so they do not appear as `undefined` keys; hidden fields' values are still returned when present
+    - `jPulse.UI.input.initAll`: existing `select[data-jpselect]` / `select[data-jpcombo]` discovery selectors extended with `:not([data-jp-defer-init])` so schema-form fields owning their own init are not double-inited; `initAll` also reads any `data-jp-*` widget tuning attributes and forwards them as the init options (so non-deferred schema-form fields and ad-hoc widget HTML get the same flat-key behavior)
+  - `webapp/view/jpulse-common.css`:
+    - `.jp-form-input-loading` — disabled-look + spinner overlay on the field wrapper; reuses existing `.jp-spinner` if available, else inline keyframes
+    - `.jp-schema-field-error` (new, or extend `.jp-field-error`) — applied to the wrapper to render an inline error message under the field
+    - `.jp-schema-field-hidden` (new) — `display: none;` (greppable / themeable; alternative to inline `style.display`)
+    - `.jp-schema-help` for `inputType: 'help'` (inline info — not toast `.jp-alert`); `separator` reuses `jp-divider`; radio / checkbox-group reuse plugin-config's existing patterns
+  - `webapp/view/admin/plugin-config.shtml`:
+    - replace the inline renderer functions with a `_pluginSchemaToBlocks(configSchema)` adapter + `jPulse.UI.tabs.renderTabsAndPanelsFromSchema` call
+    - `loadCurrentConfig` → unchanged; `populateForm` becomes `jPulse.UI.input.setFormData(form, currentConfig, schema)`
+    - `collectFormValues` → `jPulse.UI.input.getFormData(form, schema).data`
+    - Save path: call `form.reportValidity()` before `getFormData` so HTML5 `required` blocks save
+    - keep Save / Reset / description card / page header logic
+  - `webapp/tests/unit/utils/jpulse-ui-tabs-schema.test.js`:
+    - new tests:
+      - `inputType: 'jpSelect'` → emits `<select data-jpselect>` with options
+      - `inputType: 'jpCombo'` → emits `<select data-jpcombo>` with options and placeholder forwarded
+      - `inputType: 'jpSelect'` + `multiple: true` → emits `multiple` attribute
+      - `loadOptions` (function) — populates `<option>`s after the promise resolves; `ready` resolves
+      - `loadOptions` (string) — registry path: `jPulse.schemaForm.register('foo.bar', fn)` then schema with `loadOptions: 'foo.bar'` resolves through registry
+      - `loadOptions` (string) — fallback path: only `window.fooBar` defined; resolves through `window[name]`
+      - `loadOptions` (string) — missing handler: warns to console, field falls back to static options
+      - `loadOptions` rejection — wrapper gets `.jp-schema-field-error`, `<select>` stays in fallback state; sibling field with successful `loadOptions` is unaffected (Promise.allSettled isolation)
+      - `loadOptions` for `jpCombo` with current value not in resolved list — `[data-jpcombo-extra]` option present, value preserved
+      - `onInit` runs after `loadOptions` and before widget init; receives correct `ctx` (field, value, path, blockKey, formEl, schema, fieldDef, widgetOptions); mutating `ctx.widgetOptions.search = true` causes the subsequent `jpSelect.init` / `jpCombo.init` call to receive `{search: true}`
+      - `onInit` rejection — caught and warned, does not block other fields
+      - flat widget keys forwarded: `search: true` on a `jpSelect` field → dropdown with search input; `allowCustom: false` on a `jpCombo` field → free-entry blocked, reverts to last list value on blur; `selectAll: true` on multi `jpSelect` → "Select all" / "Clear all" rendered
+      - escape hatch: `onInit` mutating `ctx.widgetOptions.onCustomValue = (v) => v.trim().toLowerCase()` on a `jpCombo` field causes the normalizer to fire on commit
+      - `inputType: 'radio'`, `'checkboxGroup'`, `'help'`, `'separator'` — DOM-shape assertions
+      - `inputType: 'multiselect'` (back-compat alias) — rewritten to `jpSelect` + `multiple: true`; emits `<select data-jpselect multiple>` and renders identically to the canonical form
+      - `enum` alias: schema with `enum: ['a', 'b']` and no `options` renders the same `<option>`s as the canonical `options: [{value:'a',label:'a'}, ...]`
+      - `inputType: 'email' / 'url' / 'tel'` — `<input type=...>` emitted
+      - `showWhen` simple: field with `showWhen: { field: 'fit', equals: 'scale-fit' }` is hidden when `fit` is `cover`, visible when `fit` is `scale-fit`; toggling `fit` via `change` event toggles visibility
+      - `showWhen` array equals: `equals: ['scale-fit', 'scale-fill']` matches both values
+      - `showWhen` notEquals: hides when matching, shows when not matching
+      - `showWhen` compound `all`: both conditions must be true to show
+      - `showWhen` compound `any`: any condition true shows
+      - `showWhen` cross-block: `field: 'general.mode'` resolves correctly when watched field is in a different tab / block
+      - `showWhen` missing field: warns once, treats condition as false (hidden)
+      - `showWhen` validation skip: hidden field with `required: true` does not block save; hidden field's value still appears in `getFormData` output
+      - `showWhen` listener efficiency: only one delegated `change` + `input` listener attached at `formEl` regardless of number of `showWhen` fields
+      - `renderTabsAndPanelsFromSchema(...)` returns object with `ready` Promise; awaiting `ready` resolves after all `loadOptions` settle
+  - `webapp/tests/unit/utils/jpulse-schema-form-pipeline.test.js` (new):
+    - JSDOM integration tests for `_runSchemaPostRender`: `loadOptions` function + string/registry forms, rejection isolation, `onInit` order and `widgetOptions`, `ready` Promise, `showWhen` after pipeline, tab-root post-render after panel move (regression), display-only fields excluded from `getFormData`, `enum` / `options` object-item parity
+  - `webapp/tests/unit/utils/plugin-config-renderer.test.js` (new):
+    - `_pluginSchemaToBlocks` converts flat `[{id, type, tab, ...}]` array → `{ data: { [tabKey]: { _meta: {tabLabel, order}, [fieldId]: {...} } } }`
+    - untabbed fields go to `general` block with `_meta.tabLabel: 'General'`
+    - field order preserved within each tab (via `_meta.order`)
+    - `type` / `inputType` normalization table: each row of the legacy → unified mapping is exercised — e.g. `{type: 'select'}` → `{type: 'string', inputType: 'select'}`; `{type: 'number'}` → `{type: 'number'}` (no inputType added; renderer infers); `{type: 'tagInput'}` → `{type: 'array', inputType: 'tagInput'}`; `{type: 'help'}` → `{inputType: 'help'}` (no data type)
+    - explicit `inputType` form passes through unchanged: `{type: 'string', inputType: 'jpCombo'}` stays as-is
+    - end-to-end: render→setFormData→getFormData→flatten round-trip smoke
+  - `webapp/tests/unit/view/plugin-config-view.test.js` (new):
+    - `saveConfiguration` calls `form.reportValidity()` before `getFormData`; early return when validation fails
+  - `webapp/tests/unit/controller/jpcombo.test.js`, `webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js`:
+    - `jpcombo.test.js`: defer-init filter, `mousedown`-based option commit, `focusout` `relatedTarget === null` guard, structural assertions for dialog-related behavior as applicable
+    - if any test relies on schema-form rendering producing a plain `<select>` (no data-jpselect / data-jpcombo), update for the new `inputType` mapping; otherwise no changes
+  - `webapp/view/jpulse-examples/ui-widgets.shtml`:
+    - custom dialog example rewritten as schema-driven W-189 demo (`loadOptions`, `showWhen`, `help`, multi `jpSelect`, `reportValidity`, `flattenBlockValues`)
+  - `docs/jpulse-ui-reference.md`:
+    - new `### Schema-form: async option loading` section under the existing schema-form area, covering: `loadOptions`, `onInit`, the flat widget tuning keys (`search`, `selectAll`, `allowCustom`, `searchPlaceholder`, `multiple`), the `ctx` shape (including the mutable `ctx.widgetOptions` escape hatch for advanced widget callbacks), function vs string form, the `jPulse.schemaForm.register` registry, lifecycle order, loading-state contract, failure-mode contract, cache note
+    - new `### Schema-form: conditional visibility (showWhen)` section under the schema-form area, covering: simple `{field, equals|notEquals}` shape, `all` / `any` compound, same-block-relative vs fully-qualified field paths, hidden-field behavior (value preserved, validation skipped), JSON-form note, deferred operators (`truthy` / `contains` / function-form) with `onInit` as escape hatch
+    - update `### jpSelect widget` and `### jpCombo widget` sections: short note that schema-form exposes them via `inputType: 'jpSelect'` / `'jpCombo'` with flat top-level keys for common tuning (`search`, `selectAll`, `allowCustom`, `searchPlaceholder`); advanced callbacks via `onInit(ctx)` mutating `ctx.widgetOptions`
+    - update the `inputType` values list in the field-types reference (if present): add `jpSelect`, `jpCombo`, `radio`, `checkboxGroup`, `help`, `separator`, `email`, `url`, `tel` (canonical); document `multiselect` only as a back-compat alias for `jpSelect` + `multiple: true`; document `options` as canonical, `enum` as back-compat shorthand
+    - new short subsection or callout: `type` vs `inputType` — `type` is the data type (`'string'` / `'number'` / `'boolean'` / `'array'`) consumed by `getFormData` for value coercion; `inputType` is the widget choice consumed by the renderer; they're orthogonal (HTML5-style); set `inputType` only when you want a non-default widget (the framework infers a default `inputType` from `type` and from `options`/`enum` presence); legacy plugin.json `type: 'select'`-style schemas are normalized by the `_pluginSchemaToBlocks` adapter
+    - new `### jPulse.schemaForm` short reference (one paragraph + register / resolve example)
+  - `docs/front-end-development.md`:
+    - update *Schema-driven config forms* section: new subsection on async option loading; example showing region-loading from API (1) for a `plugin.json` schema (string-name form, registry registration in plugin's `site/webapp/view/<plugin>/<plugin>.js`), and (2) for a site `.js` schema (function form, inline)
+    - new subsection on conditional visibility (`showWhen`): simple example (`viewportWidth` shown when `fit` is `scale-fit` or `scale-fill`); compound example with `all`; cross-block example with dotted path; brief note that hidden fields keep their value but skip validation
+  - `docs/genai-instructions.md` (and mirrored `webapp/static/assets/jpulse-docs/genai-instructions.md` when synced):
+    - add the new `inputType` values and the `loadOptions` / `onInit` / `showWhen` keys plus the flat widget tuning keys (`search`, `selectAll`, `allowCustom`, `searchPlaceholder`, `multiple`) to the schema-form patterns reference; one-paragraph "when to pick which select widget" guidance; one-paragraph `showWhen` example showing declarative conditional visibility (the canonical pattern; `onInit` for cases beyond `equals` / `notEquals`); note that advanced widget callbacks live behind `onInit(ctx)` mutating `ctx.widgetOptions`; note `options` (canonical) vs `enum` (back-compat alias)
+  - `docs/api-reference.md` — if present and documents `jPulse.UI.input` / `jPulse.UI.tabs`, add `jPulse.schemaForm` namespace
+  - `README.md`, `docs/README.md` — Latest Release Highlights — v1.6.46 / W-189 bullet (schema-form async `loadOptions` + declarative `showWhen` conditional visibility + `onInit` lifecycle hook + `jpSelect` / `jpCombo` input types + plugin-config consolidation)
+  - `docs/CHANGELOG.md` — v1.6.46 / W-189 section
+- test / verify (manual):
+  - `admin/config.shtml` still loads, save / cancel / dirty-tracking unchanged (regression check on the unified renderer)
+  - `admin/plugin-config.shtml` renders an existing plugin's config visually identical to before the consolidation; save / reset still work; tab navigation still works
+  - a plugin schema with `loadOptions` (string ref) shows the loading state, populates options after resolve, preserves a previously-saved free-text value in `jpCombo` (extra-option survives)
+  - a plugin schema with `loadOptions` rejection shows `.jp-schema-field-error` and falls back to static options gracefully; sibling fields unaffected
+  - `onInit` is observed (e.g. via console log) to fire after `loadOptions` and before widget init; mutating `ctx.widgetOptions` in `onInit` is reflected in the resulting jpSelect / jpCombo widget; throwing inside `onInit` does not break the form
+  - registry: `jPulse.schemaForm.register('foo', fn)` → schema with `loadOptions: 'foo'` resolves; `unregister('foo')` → falls back to `window.foo` if defined, else warns
+  - flat widget keys: `search: true` on a `jpSelect` schema field renders the search input in the dropdown; `allowCustom: false` on a `jpCombo` field blocks free-entry; `multiple: true` on `jpSelect` renders multi-select with caption
+  - escape hatch: `onInit(ctx)` mutating `ctx.widgetOptions.onCustomValue = (v) => v.trim()` on a `jpCombo` field causes the normalizer to apply on commit (verify by typing a value with leading / trailing spaces and observing trim on `getFormData`)
+  - `enum` alias: a schema field using `enum: ['a','b']` instead of `options` renders identically
+  - `showWhen` simple: a numeric field with `showWhen: { field: 'fit', equals: ['scale-fit', 'scale-fill'] }` is hidden when `fit` is set to `cover` and visible when set to `scale-fit`; toggling `fit` immediately shows / hides the field
+  - `showWhen` compound: a field with `showWhen: { all: [{field: 'mode', equals: 'advanced'}, {field: 'enabled', equals: true}] }` only appears when both conditions hold
+  - `showWhen` cross-block: a field with `showWhen: { field: 'general.mode', equals: 'expert' }` watches a field in a different tab (verify by switching tabs after toggling)
+  - `showWhen` save behavior: a hidden field with `required: true` does NOT block save; the hidden field's value is still serialized in `getFormData` output (matches HTML form convention; site code may ignore stale values)
+
 
 
 
@@ -6075,8 +6255,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-188, v1.6.45, 2026-04-23
-- update features & deliverables in W-188 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume W-189, v1.6.46, 2026-05-04
+- update features & deliverables in W-189 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -6087,12 +6267,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.45 2026-04-23
+node bin/bump-version.js 1.6.46 2026-05-04
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.45; git push origin main --tags
+git tag v1.6.46; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

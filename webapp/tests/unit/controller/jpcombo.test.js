@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-187: jPulse.UI.input.jpCombo combo-box widget
  * @description     Source-code structural tests verifying jpCombo widget implementation in jpulse-common.js
  * @file            webapp/tests/unit/controller/jpcombo.test.js
- * @version         1.6.45
- * @release         2026-04-23
+ * @version         1.6.46
+ * @release         2026-05-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -137,26 +137,26 @@ describe('W-187: jpCombo widget (jpulse-common.js)', () => {
     });
 
     describe('initAll discovery', () => {
-        test('initAll discovers select[data-jpcombo] elements', () => {
-            expect(content).toContain("querySelectorAll('select[data-jpcombo]')");
+        test('initAll discovers select[data-jpcombo] elements (W-189: skips data-jp-defer-init)', () => {
+            expect(content).toContain("querySelectorAll('select[data-jpcombo]:not([data-jp-defer-init])')");
         });
 
-        test('initAll calls jpCombo.init for each discovered element', () => {
-            expect(content).toContain('jPulse.UI.input.jpCombo.init(el)');
+        test('initAll calls jpCombo.init for each discovered element with options bag (W-189)', () => {
+            expect(content).toContain('jPulse.UI.input.jpCombo.init(el, opts)');
         });
 
         test('jpCombo discovery appears after jpSelect discovery in initAll', () => {
             const initAllBlock = content.slice(content.indexOf('initAll: (container = null)'));
-            const jpSelectPos = initAllBlock.indexOf("querySelectorAll('select[data-jpselect]')");
-            const jpComboPos = initAllBlock.indexOf("querySelectorAll('select[data-jpcombo]')");
+            const jpSelectPos = initAllBlock.indexOf("querySelectorAll('select[data-jpselect]:not([data-jp-defer-init])')");
+            const jpComboPos = initAllBlock.indexOf("querySelectorAll('select[data-jpcombo]:not([data-jp-defer-init])')");
             expect(jpSelectPos).toBeGreaterThan(-1);
             expect(jpComboPos).toBeGreaterThan(jpSelectPos);
         });
     });
 
     describe('Dropdown behavior', () => {
-        test('dropdown opens on arrow button click', () => {
-            expect(content).toContain('arrowBtn.addEventListener');
+        test('dropdown toggles on arrow button mousedown', () => {
+            expect(content).toContain("arrowBtn.addEventListener('mousedown'");
             expect(content).toContain('openDropdown()');
         });
 
@@ -167,6 +167,10 @@ describe('W-187: jpCombo widget (jpulse-common.js)', () => {
         test('dropdown uses viewport-aware flip (opens up when insufficient space below)', () => {
             expect(content).toContain('spaceBelow < minSpace && spaceAbove > spaceBelow');
             expect(content).toContain('jp-jpselect-dropdown-open-up');
+        });
+
+        test('picking a list option uses mousedown so selection beats blur/focusout', () => {
+            expect(content).toContain("div.addEventListener('mousedown'");
         });
 
         test('picking a list option calls setComboValue and fires change event', () => {
@@ -209,6 +213,10 @@ describe('W-187: jpCombo widget (jpulse-common.js)', () => {
             expect(content).toContain("textInput.addEventListener('blur'");
             expect(content).toContain('commitInputValue()');
             expect(content).toContain('setTimeout(');
+        });
+
+        test('focusout close path ignores null relatedTarget from mouse portal interactions', () => {
+            expect(content).toContain('if (!next) return;');
         });
 
         test('mousedown outside widget commits synchronously so Save click sees current sel.value', () => {

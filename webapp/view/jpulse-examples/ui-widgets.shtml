@@ -4,8 +4,8 @@
  * @tagline         Interactive UI widget examples and demonstrations
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
- * @version         1.6.45
- * @release         2026-04-23
+ * @version         1.6.46
+ * @release         2026-05-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -78,7 +78,8 @@
         .local-custom-dialog-form {
             text-align: left;
         }
-        .local-custom-dialog-form .jp-jpselect-wrap {
+        .local-custom-dialog-form .jp-jpselect-wrap,
+        .local-custom-dialog-form .jp-jpcombo-wrap {
             width: 100%;
         }
         .local-custom-dialog-form-intro {
@@ -515,30 +516,125 @@ document.getElementById('confirmBtn').addEventListener('click', async () =&gt; {
     }
 });
 
-// Custom dialog: confirmDialog with text input, 3-line textarea, checkbox, jpSelect (search on)
+// Custom dialog: schema-rendered form inside a confirmDialog
 document.getElementById('customBtn').addEventListener('click', async () =&gt; {
+    const schema = {
+        data: {
+            general: {
+                _meta: { order: 0, tabLabel: 'General', maxColumns: 1 },
+                cloud: {
+                    type: 'string',
+                    inputType: 'select',
+                    label: 'Cloud provider',
+                    options: [
+                        { value: 'aws', label: 'AWS' },
+                        { value: 'gcp', label: 'GCP' }
+                    ]
+                },
+                region: {
+                    type: 'string',
+                    inputType: 'jpCombo',
+                    label: 'Region / endpoint',
+                    placeholder: 'Select or type a custom endpoint...',
+                    search: true,
+                    loadOptions: 'demo.loadRegions',
+                    showWhen: { field: 'cloud', equals: 'aws' }
+                },
+                note: {
+                    inputType: 'help',
+                    content: '&lt;strong&gt;Region&lt;/strong&gt; only appears for AWS. Switch cloud provider to see &lt;code&gt;showWhen&lt;/code&gt; in action.'
+                },
+                features: {
+                    type: 'array',
+                    inputType: 'jpSelect',
+                    label: 'Capabilities',
+                    multiple: true,
+                    search: true,
+                    selectAll: true,
+                    options: [
+                        { value: 'metrics', label: 'Metrics' },
+                        { value: 'alerts', label: 'Alerts' },
+                        { value: 'tracing', label: 'Tracing' }
+                    ]
+                },
+                apiKey: {
+                    type: 'string',
+                    inputType: 'text',
+                    label: 'API Key',
+                    required: true,
+                    placeholder: 'sk-...'
+                },
+                timeout: {
+                    type: 'number',
+                    label: 'Timeout (sec)',
+                    default: 30
+                }
+            }
+        }
+    };
+    const data = { general: { cloud: 'gcp', region: 'us-east-1', features: ['metrics'], apiKey: '', timeout: 30 } };
     const formHtml = `
         &lt;div class="local-custom-dialog-form"&gt;
-            &lt;input type="text" id="customDialogText" class="jp-form-input jp-edit-field" data-path="demo.text"&gt;
-            &lt;textarea id="customDialogNotes" class="jp-form-input jp-edit-field" data-path="demo.notes" rows="3"&gt;&lt;/textarea&gt;
-            &lt;input type="checkbox" id="customDialogAgree" data-path="demo.agree"&gt;
-            &lt;select id="customDialogSelect" class="jp-form-input" data-jpselect data-path="demo.country"&gt;
-                &lt;option value=""&gt;— Select —&lt;/option&gt;
-                &lt;option value="us"&gt;United States&lt;/option&gt;
-                &lt;!-- ... more options for search ... --&gt;
-            &lt;/select&gt;
+            &lt;p class="jp-mb-10 local-custom-dialog-form-intro"&gt;
+                Schema-driven dialog demo: &lt;strong&gt;jpCombo&lt;/strong&gt; with async options,
+                &lt;strong&gt;showWhen&lt;/strong&gt;, required validation, and a searchable multi-select.
+            &lt;/p&gt;
+            &lt;form id="customDialogForm"&gt;
+                &lt;div id="customDialogTabs" class="jp-tabs"&gt;&lt;/div&gt;
+                &lt;div id="customDialogPanels"&gt;&lt;/div&gt;
+            &lt;/form&gt;
         &lt;/div&gt;`;
+    try { jPulse.schemaForm.unregister('demo.loadRegions'); } catch (_) {}
+    jPulse.schemaForm.register('demo.loadRegions', async () =&gt; {
+        await new Promise((resolve) =&gt; setTimeout(resolve, 450));
+        return [
+            { value: 'us-east-1', label: 'US East (N. Virginia)' },
+            { value: 'eu-west-1', label: 'Europe (Ireland)' },
+            { value: 'ap-southeast-1', label: 'Asia Pacific (Singapore)' }
+        ];
+    });
     await jPulse.UI.confirmDialog({
-        title: 'Custom dialog (form controls)',
+        title: 'Custom dialog (schema form)',
         message: formHtml,
-        minWidth: 440,
-        minHeight: 360,
+        minWidth: 560,
+        minHeight: 460,
         onOpen: (dialog) =&gt; {
-            const sel = dialog.querySelector('#customDialogSelect');
-            if (sel) jPulse.UI.input.jpSelect.init(sel, { search: true });
-            jPulse.UI.input.initAll(dialog);
+            const form = dialog.querySelector('#customDialogForm');
+            const handle = jPulse.UI.tabs.renderTabsAndPanelsFromSchema(
+                'customDialogTabs',
+                'customDialogPanels',
+                schema,
+                data,
+                { panelHeight: null }
+            );
+            jPulse.UI.input.setFormData(form, data, schema);
+            jPulse.UI.input.initAll(form);
+            if (handle &amp;&amp; handle.ready) {
+                handle.ready.catch((err) =&gt; console.warn('Custom dialog schema ready failed', err));
+            }
         },
-        buttons: { 'Cancel': () =&gt; false, 'OK': (dialog) =&gt; { /* read #ids, toast */ return false; } }
+        onClose: () =&gt; {
+            try { jPulse.schemaForm.unregister('demo.loadRegions'); } catch (_) {}
+        },
+        buttons: {
+            'Cancel': () =&gt; false,
+            'OK': (dialog) =&gt; {
+                const form = dialog.querySelector('#customDialogForm');
+                if (form &amp;&amp; typeof form.reportValidity === 'function' &amp;&amp; !form.reportValidity()) {
+                    return true; // Keep dialog open
+                }
+                const result = jPulse.UI.input.getFormData(form, schema);
+                const flat = jPulse.schemaForm.flattenBlockValues(result.data);
+                jPulse.UI.toast.success(
+                    'Saved — cloud: ' + flat.cloud +
+                    ' | region: ' + (flat.region || '(none)') +
+                    ' | capabilities: ' + ((flat.features || []).join(', ') || '(none)') +
+                    ' | apiKey: ' + (flat.apiKey ? 'set' : '(missing)') +
+                    ' | timeout: ' + flat.timeout
+                );
+                return false;
+            }
+        }
     });
 });
 
@@ -1413,80 +1509,120 @@ jPulse.UI.sourceCode.initAll();
             });
 
             document.getElementById('customBtn').addEventListener('click', async () => {
+                const schema = {
+                    data: {
+                        general: {
+                            _meta: { order: 0, tabLabel: 'General', maxColumns: 1 },
+                            cloud: {
+                                type: 'string',
+                                inputType: 'select',
+                                label: 'Cloud provider',
+                                options: [
+                                    { value: 'aws', label: 'AWS' },
+                                    { value: 'gcp', label: 'GCP' }
+                                ]
+                            },
+                            region: {
+                                type: 'string',
+                                inputType: 'jpCombo',
+                                label: 'Region / endpoint',
+                                placeholder: 'Select or type a custom endpoint...',
+                                search: true,
+                                loadOptions: 'demo.loadRegions',
+                                showWhen: { field: 'cloud', equals: 'aws' }
+                            },
+                            note: {
+                                inputType: 'help',
+                                content: '<strong>Region</strong> only appears for AWS. Switch cloud provider to see <code>showWhen</code> in action.'
+                            },
+                            features: {
+                                type: 'array',
+                                inputType: 'jpSelect',
+                                label: 'Capabilities',
+                                multiple: true,
+                                search: true,
+                                selectAll: true,
+                                options: [
+                                    { value: 'metrics', label: 'Metrics' },
+                                    { value: 'alerts', label: 'Alerts' },
+                                    { value: 'tracing', label: 'Tracing' }
+                                ]
+                            },
+                            apiKey: {
+                                type: 'string',
+                                inputType: 'text',
+                                label: 'API Key',
+                                required: true,
+                                placeholder: 'sk-...'
+                            },
+                            timeout: {
+                                type: 'number',
+                                label: 'Timeout (sec)',
+                                default: 30
+                            }
+                        }
+                    }
+                };
+                const data = { general: { cloud: 'gcp', region: 'us-east-1', features: ['metrics'], apiKey: '', timeout: 30 } };
                 const formHtml = `
                     <div class="local-custom-dialog-form">
                         <p class="jp-mb-10 local-custom-dialog-form-intro">
-                            Use this dialog to exercise modal keyboard behavior: <strong>textarea</strong> line moves (↑/↓),
-                            <strong>jpSelect</strong> with search (arrows, Enter), text field, and checkbox.
+                            Schema-driven dialog demo: <strong>jpCombo</strong> with async options,
+                            <strong>showWhen</strong>, required validation, and a searchable multi-select.
                         </p>
-                        <div class="jp-mb-15">
-                            <label class="jp-form-label" for="customDialogText">Text input</label>
-                            <input type="text" id="customDialogText" class="jp-form-input jp-edit-field" data-path="demo.text" placeholder="Single-line text">
-                        </div>
-                        <div class="jp-mb-15">
-                            <label class="jp-form-label" for="customDialogNotes">Notes (textarea, 3 lines)</label>
-                            <textarea id="customDialogNotes" class="jp-form-input jp-edit-field" data-path="demo.notes" rows="3" placeholder="Line one\nLine two — try Arrow Up / Down between lines"></textarea>
-                        </div>
-                        <div class="jp-checkbox-group jp-mb-15">
-                            <input type="checkbox" id="customDialogAgree" data-path="demo.agree">
-                            <label for="customDialogAgree">I agree (checkbox)</label>
-                        </div>
-                        <div class="jp-mb-15">
-                            <label class="jp-form-label" for="customDialogSelect">Country (jp-select with search)</label>
-                            <select id="customDialogSelect" class="jp-form-input" data-jpselect data-path="demo.country" placeholder="— Select —">
-                                <option value="">— Select —</option>
-                                <option value="us">United States</option>
-                                <option value="uk">United Kingdom</option>
-                                <option value="de">Germany</option>
-                                <option value="fr">France</option>
-                                <option value="es">Spain</option>
-                                <option value="it">Italy</option>
-                                <option value="nl">Netherlands</option>
-                                <option value="be">Belgium</option>
-                                <option value="at">Austria</option>
-                                <option value="ch">Switzerland</option>
-                                <option value="se">Sweden</option>
-                                <option value="no">Norway</option>
-                                <option value="dk">Denmark</option>
-                                <option value="fi">Finland</option>
-                                <option value="pl">Poland</option>
-                                <option value="cz">Czech Republic</option>
-                            </select>
-                        </div>
+                        <form id="customDialogForm">
+                            <div id="customDialogTabs" class="jp-tabs"></div>
+                            <div id="customDialogPanels"></div>
+                        </form>
                     </div>
                 `;
+                try { jPulse.schemaForm.unregister('demo.loadRegions'); } catch (_) {}
+                jPulse.schemaForm.register('demo.loadRegions', async () => {
+                    await new Promise((resolve) => setTimeout(resolve, 450));
+                    return [
+                        { value: 'us-east-1', label: 'US East (N. Virginia)' },
+                        { value: 'eu-west-1', label: 'Europe (Ireland)' },
+                        { value: 'ap-southeast-1', label: 'Asia Pacific (Singapore)' }
+                    ];
+                });
                 await jPulse.UI.confirmDialog({
-                    title: 'Custom dialog (form controls)',
+                    title: 'Custom dialog (schema form)',
                     message: formHtml,
-                    minWidth: 440,
-                    minHeight: 360,
+                    minWidth: 560,
+                    minHeight: 460,
                     onOpen: (dialog) => {
-                        const sel = dialog.querySelector('#customDialogSelect');
-                        if (sel) {
-                            jPulse.UI.input.jpSelect.init(sel, { search: true });
+                        const form = dialog.querySelector('#customDialogForm');
+                        const handle = jPulse.UI.tabs.renderTabsAndPanelsFromSchema(
+                            'customDialogTabs',
+                            'customDialogPanels',
+                            schema,
+                            data,
+                            { panelHeight: null }
+                        );
+                        jPulse.UI.input.setFormData(form, data, schema);
+                        jPulse.UI.input.initAll(form);
+                        if (handle && handle.ready) {
+                            handle.ready.catch((err) => console.warn('Custom dialog schema ready failed', err));
                         }
-                        jPulse.UI.input.initAll(dialog);
+                    },
+                    onClose: () => {
+                        try { jPulse.schemaForm.unregister('demo.loadRegions'); } catch (_) {}
                     },
                     buttons: {
                         'Cancel': () => false,
                         'OK': (dialog) => {
-                            const textEl = dialog.querySelector('#customDialogText');
-                            const notesEl = dialog.querySelector('#customDialogNotes');
-                            const agreeEl = dialog.querySelector('#customDialogAgree');
-                            const sel = dialog.querySelector('#customDialogSelect');
-                            const text = (textEl && textEl.value) ? textEl.value.trim() : '';
-                            const notes = notesEl ? notesEl.value : '';
-                            const agree = agreeEl ? agreeEl.checked : false;
-                            let countryLabel = '';
-                            if (sel && sel.value) {
-                                const opt = sel.options[sel.selectedIndex];
-                                countryLabel = opt ? opt.textContent.trim() : sel.value;
+                            const form = dialog.querySelector('#customDialogForm');
+                            if (form && typeof form.reportValidity === 'function' && !form.reportValidity()) {
+                                return true; // Keep dialog open
                             }
-                            const lineCount = notes ? notes.split(/\n/).length : 0;
+                            const result = jPulse.UI.input.getFormData(form, schema);
+                            const flat = jPulse.schemaForm.flattenBlockValues(result.data);
                             jPulse.UI.toast.success(
-                                'OK — text: ' + (text ? '"' + text.slice(0, 48) + (text.length > 48 ? '…' : '') + '"' : '(empty)') +
-                                ' | notes: ' + lineCount + ' line(s) | agree: ' + agree +
-                                ' | country: ' + (countryLabel || '(none)')
+                                'Saved — cloud: ' + flat.cloud +
+                                ' | region: ' + (flat.region || '(none)') +
+                                ' | capabilities: ' + ((flat.features || []).join(', ') || '(none)') +
+                                ' | apiKey: ' + (flat.apiKey ? 'set' : '(missing)') +
+                                ' | timeout: ' + flat.timeout
                             );
                             return false;
                         }

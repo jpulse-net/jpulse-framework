@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for renderTabsAndPanelsFromSchema and schema flow (W-148 Phase 4)
  * @description     Low-hanging fruit: _walkSchemaFields, renderTabsAndPanelsFromSchema flow classes and field HTML
  * @file            webapp/tests/unit/utils/jpulse-ui-tabs-schema.test.js
- * @version         1.6.45
- * @release         2026-04-23
+ * @version         1.6.46
+ * @release         2026-05-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -151,6 +151,256 @@ describe('jPulse.UI.tabs schema-driven (W-148 Phase 4)', () => {
             expect(blocks[1].blockKey).toBe('second');
             expect(blocks[0].blockKey + '-panel').toBe('first-panel');
             expect(blocks[1].blockKey + '-panel').toBe('second-panel');
+        });
+    });
+
+    describe('_resolveInputType (W-189)', () => {
+        test('multiselect alias rewrites to jpSelect + multiple: true', () => {
+            const r = win.jPulse.UI.tabs._resolveInputType({ type: 'array', inputType: 'multiselect' });
+            expect(r.inputType).toBe('jpSelect');
+            expect(r.multiple).toBe(true);
+        });
+
+        test('preserves explicit jpSelect with multiple', () => {
+            const r = win.jPulse.UI.tabs._resolveInputType({ type: 'string', inputType: 'jpSelect', multiple: true });
+            expect(r.inputType).toBe('jpSelect');
+            expect(r.multiple).toBe(true);
+        });
+
+        test('infers checkbox from boolean type', () => {
+            const r = win.jPulse.UI.tabs._resolveInputType({ type: 'boolean' });
+            expect(r.inputType).toBe('checkbox');
+        });
+
+        test('infers select from enum', () => {
+            const r = win.jPulse.UI.tabs._resolveInputType({ type: 'string', enum: ['a', 'b'] });
+            expect(r.inputType).toBe('select');
+        });
+
+        test('infers select from non-empty options', () => {
+            const r = win.jPulse.UI.tabs._resolveInputType({ type: 'string', options: [{ value: 'a' }] });
+            expect(r.inputType).toBe('select');
+        });
+
+        test('defaults to text when nothing else matches', () => {
+            const r = win.jPulse.UI.tabs._resolveInputType({});
+            expect(r.inputType).toBe('text');
+            expect(r.multiple).toBe(false);
+        });
+    });
+
+    describe('_buildSelectOptionsHtml (W-189)', () => {
+        test('marks scalar value as selected', () => {
+            const html = win.jPulse.UI.tabs._buildSelectOptionsHtml(
+                [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }],
+                'b'
+            );
+            expect(html).toContain('value="b" selected>B');
+            expect(html).not.toContain('value="a" selected');
+        });
+
+        test('marks array values as selected (multi)', () => {
+            const html = win.jPulse.UI.tabs._buildSelectOptionsHtml(
+                [{ value: 'a' }, { value: 'b' }, { value: 'c' }],
+                ['a', 'c']
+            );
+            expect(html).toContain('value="a" selected');
+            expect(html).toContain('value="c" selected');
+            expect(html).not.toContain('value="b" selected');
+        });
+
+        test('returns empty string for empty array', () => {
+            expect(win.jPulse.UI.tabs._buildSelectOptionsHtml([], 'x')).toBe('');
+        });
+    });
+
+    describe('_resolveShowWhenPaths (W-189)', () => {
+        test('resolves bare field name to fully-qualified path', () => {
+            const out = win.jPulse.UI.tabs._resolveShowWhenPaths(
+                { field: 'fit', equals: 'cover' },
+                'general'
+            );
+            expect(out).toEqual({ field: 'general.fit', equals: 'cover' });
+        });
+
+        test('passes through dotted paths unchanged', () => {
+            const out = win.jPulse.UI.tabs._resolveShowWhenPaths(
+                { field: 'meta.role', equals: 'admin' },
+                'general'
+            );
+            expect(out.field).toBe('meta.role');
+        });
+
+        test('recurses into all/any compounds', () => {
+            const out = win.jPulse.UI.tabs._resolveShowWhenPaths(
+                {
+                    all: [
+                        { field: 'a', equals: 1 },
+                        { any: [{ field: 'b.x', equals: 2 }, { field: 'c', equals: 3 }] }
+                    ]
+                },
+                'blk'
+            );
+            expect(out.all[0].field).toBe('blk.a');
+            expect(out.all[1].any[0].field).toBe('b.x');
+            expect(out.all[1].any[1].field).toBe('blk.c');
+        });
+    });
+
+    describe('_renderSchemaBlockFields — new W-189 inputTypes', () => {
+        test('jpSelect emits data-jpselect on <select>', () => {
+            const blockDef = {
+                _meta: {},
+                role: { type: 'string', inputType: 'jpSelect', label: 'Role', options: [{ value: 'a' }] }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, {});
+            expect(html).toMatch(/<select[^>]*data-jpselect/);
+        });
+
+        test('jpCombo emits data-jpcombo on <select>', () => {
+            const blockDef = {
+                _meta: {},
+                region: { type: 'string', inputType: 'jpCombo', label: 'Region', options: [{ value: 'us-east' }] }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, {});
+            expect(html).toMatch(/<select[^>]*data-jpcombo/);
+        });
+
+        test('flat tuning keys emit data-jp-* attributes', () => {
+            const blockDef = {
+                _meta: {},
+                role: {
+                    type: 'string',
+                    inputType: 'jpSelect',
+                    label: 'Role',
+                    options: [{ value: 'a' }],
+                    search: true,
+                    selectAll: true,
+                    searchPlaceholder: 'Find role…'
+                }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, {});
+            expect(html).toContain('data-jp-search="1"');
+            expect(html).toContain('data-jp-select-all="1"');
+            expect(html).toContain('data-jp-search-placeholder="Find role…"');
+        });
+
+        test('jpCombo allowCustom: false emits data-jp-allow-custom="0"', () => {
+            const blockDef = {
+                _meta: {},
+                r: { type: 'string', inputType: 'jpCombo', label: 'R', options: [{ value: 'a' }], allowCustom: false }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, {});
+            expect(html).toContain('data-jp-allow-custom="0"');
+        });
+
+        test('loadOptions defined emits data-jp-defer-init and jp-form-input-loading wrapper', () => {
+            const blockDef = {
+                _meta: {},
+                region: {
+                    type: 'string',
+                    inputType: 'jpCombo',
+                    label: 'Region',
+                    options: [],
+                    loadOptions: 'mySite.loadRegions'
+                }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, {});
+            expect(html).toContain('data-jp-defer-init="1"');
+            expect(html).toContain('jp-form-input-loading');
+        });
+
+        test('multiselect alias renders as jpSelect with multiple attribute', () => {
+            const blockDef = {
+                _meta: {},
+                roles: { type: 'array', inputType: 'multiselect', label: 'Roles', options: [{ value: 'a' }, { value: 'b' }] }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, { roles: ['a'] });
+            expect(html).toMatch(/<select[^>]*data-jpselect[^>]*multiple/);
+        });
+
+        test('radio inputType renders <input type="radio"> for each option', () => {
+            const blockDef = {
+                _meta: {},
+                fit: { type: 'string', inputType: 'radio', label: 'Fit', options: [{ value: 'cover' }, { value: 'contain' }] }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, { fit: 'cover' });
+            expect(html).toContain('type="radio"');
+            expect(html).toContain('value="cover" checked');
+            expect(html).toContain('value="contain"');
+        });
+
+        test('checkboxGroup uses name="…[]" for multi-value submission', () => {
+            const blockDef = {
+                _meta: {},
+                tags: { type: 'array', inputType: 'checkboxGroup', label: 'Tags', options: [{ value: 'a' }, { value: 'b' }] }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, { tags: ['a'] });
+            expect(html).toContain('name="data.blk.tags[]"');
+            expect(html).toContain('value="a" checked');
+        });
+
+        test('help inputType renders into jp-alert info block', () => {
+            const blockDef = {
+                _meta: {},
+                note: { inputType: 'help', content: '<strong>Read me</strong>' }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, {});
+            expect(html).toContain('jp-schema-help');
+            expect(html).toContain('<strong>Read me</strong>');
+        });
+
+        test('separator inputType renders jp-divider', () => {
+            const blockDef = {
+                _meta: {},
+                sep: { inputType: 'separator', label: 'Advanced' }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, {});
+            expect(html).toContain('jp-divider');
+            expect(html).toContain('<span>Advanced</span>');
+        });
+
+        test('email/url/tel inputTypes emit corresponding <input type="…">', () => {
+            const blockDef = {
+                _meta: {},
+                e: { type: 'string', inputType: 'email', label: 'Email' },
+                u: { type: 'string', inputType: 'url', label: 'URL' },
+                t: { type: 'string', inputType: 'tel', label: 'Tel' }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, {});
+            expect(html).toMatch(/type="email"[^>]*data-path="blk\.e"/);
+            expect(html).toMatch(/type="url"[^>]*data-path="blk\.u"/);
+            expect(html).toMatch(/type="tel"[^>]*data-path="blk\.t"/);
+        });
+
+        test('showWhen emits data-jp-show-when JSON with paths fully qualified', () => {
+            const blockDef = {
+                _meta: {},
+                fit: { type: 'string', inputType: 'select', label: 'Fit', options: [{ value: 'a' }, { value: 'b' }] },
+                width: { type: 'number', label: 'Width', showWhen: { field: 'fit', equals: 'a' } }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, {});
+            expect(html).toMatch(/data-jp-show-when="[^"]*blk\.fit[^"]*"/);
+        });
+
+        test('required: true emits required attribute on input', () => {
+            const blockDef = {
+                _meta: {},
+                key: { type: 'string', inputType: 'text', label: 'Key', required: true }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, {});
+            expect(html).toMatch(/<input[^>]*data-path="blk\.key"[^>]*required/);
+        });
+
+        test('required: true emits required on the first radio in a group', () => {
+            const blockDef = {
+                _meta: {},
+                fit: { type: 'string', inputType: 'radio', label: 'Fit', options: [{ value: 'a' }, { value: 'b' }], required: true }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, {});
+            const firstRadio = html.match(/<input[^>]*type="radio"[^>]*value="a"[^>]*>/);
+            expect(firstRadio).not.toBeNull();
+            expect(firstRadio[0]).toContain('required');
         });
     });
 });

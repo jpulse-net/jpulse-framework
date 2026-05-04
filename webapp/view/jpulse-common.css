@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.6.45
- * @release         2026-04-23
+ * @version         1.6.46
+ * @release         2026-05-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1560,6 +1560,94 @@ body {
         flex: 1 1 100%;
         min-width: 0;
     }
+}
+
+/* Schema-form async loadOptions / error / showWhen state (W-189) */
+.jp-schema-field.jp-form-input-loading > .jp-form-group::after {
+    content: '';
+    position: absolute;
+    right: 28px;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    margin-top: -7px;
+    border: 2px solid var(--jp-theme-border-color, #ccc);
+    border-top-color: var(--jp-theme-color-primary, #007acc);
+    border-radius: 50%;
+    animation: jp-schema-field-spin 0.8s linear infinite;
+    pointer-events: none;
+}
+.jp-schema-field.jp-form-input-loading > .jp-form-group {
+    position: relative;
+}
+.jp-schema-field.jp-form-input-loading select,
+.jp-schema-field.jp-form-input-loading input {
+    opacity: 0.6;
+    cursor: progress;
+}
+@keyframes jp-schema-field-spin {
+    to { transform: rotate(360deg); }
+}
+.jp-schema-field.jp-schema-field-error > .jp-form-group select,
+.jp-schema-field.jp-schema-field-error > .jp-form-group input {
+    border-color: var(--jp-theme-color-danger, #d32f2f);
+}
+.jp-schema-field-error-msg {
+    margin-top: 6px;
+    color: var(--jp-theme-color-danger, #d32f2f);
+}
+.jp-schema-field.jp-schema-field-hidden {
+    display: none;
+}
+
+/* Inline help block for inputType:'help' in schema forms (W-189).
+   NOT jp-alert — that class is the toast system (position:fixed). */
+.jp-schema-help {
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 1.5;
+    border: 1px solid var(--jp-theme-color-info, #17a2b8);
+    background: var(--jp-theme-color-info-bg, #d1ecf1);
+    color: var(--jp-theme-color-info-text, #0c5460);
+    margin: 2px 0;
+}
+.jp-form-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.jp-form-radio-group-horizontal {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+.jp-form-radio-group label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-weight: normal;
+    cursor: pointer;
+}
+.jp-form-radio-group input[type="radio"] {
+    margin: 0;
+}
+.jp-form-checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.jp-form-checkbox-group label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-weight: normal;
+    cursor: pointer;
+}
+.jp-form-checkbox-group input[type="checkbox"] {
+    margin: 0;
 }
 
 /* Tag input widget (W-148): wrapper looks like single input; tags as pills */

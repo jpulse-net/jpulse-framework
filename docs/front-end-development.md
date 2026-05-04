@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.6.45
+# jPulse Docs / Front-End Development Guide v1.6.46
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -655,8 +655,9 @@ jPulse.UI.tabs.renderTabsAndPanelsFromSchema(
 
 - Creates one tab button per block in `schema.data` (ordered by `_meta.order`).
 - Creates one panel per block with a flow layout div (`.jp-form-flow`, `.jp-form-flow-cols-N`).
-- Renders fields from schema (text, password, number, checkbox, select, textarea, tagInput, button).
+- Renders fields from schema (`text`, `password`, `email`, `url`, `tel`, `number`, `slider`, `textarea`, `checkbox`, `radio`, `checkboxGroup`, `select`, `jpSelect`, `jpCombo`, `tagInput`, `help`, `separator`, `button`).
 - Virtual buttons: `type: 'button'` with `action: 'actionName'` render as buttons; wire handlers via `button[data-action]` delegation.
+- Returns a handle with a `.ready` Promise that resolves after async `loadOptions` / `onInit` settle (see "Async options & lifecycle" below).
 
 ### One-line populate and get
 
@@ -705,10 +706,106 @@ testEmail: {
 - `scope: ['view']`: rendered in the form but not in getFormData/setFormData.
 - In the view, use delegated click: `form.addEventListener('click', (e) => { if (e.target.matches('button[data-action]')) { const action = e.target.dataset.action; actionHandlers[action](e.target); } });`
 
+### Async options & lifecycle (`loadOptions`, `onInit`) (v1.6.46+)
+
+Populate select-style options asynchronously, or run arbitrary setup just before widget init:
+
+```javascript
+// In schema field definition (JS schemas — function form):
+region: {
+    label: 'Region',
+    type: 'string',
+    inputType: 'jpCombo',          // typeable; user can enter custom URLs not in list
+    placeholder: 'Select or type a custom URL',
+    loadOptions: async (ctx) => {
+        const res = await fetch('/api/1/regions');
+        const data = await res.json();
+        return data.map(r => ({ value: r.url, label: r.name }));
+    }
+}
+```
+
+For `plugin.json` (which can't carry functions), register a named handler in your plugin's view JS and reference it by name:
+
+```javascript
+// In your plugin view JS:
+jPulse.schemaForm.register('myplugin.loadRegions', async (ctx) => { /* ... */ });
+```
+
+```json
+// In plugin.json configSchema:
+{ "id": "region", "type": "jpCombo", "loadOptions": "myplugin.loadRegions" }
+```
+
+While a `loadOptions` Promise is pending, the field wrapper has `.jp-form-input-loading` (spinner). On rejection it gets `.jp-schema-field-error` with an inline error message; the originally-rendered options remain as a fallback.
+
+`onInit(ctx)` runs **after** `loadOptions` settles and **before** widget init (jpSelect/jpCombo). Use it for advanced widget configuration via `ctx.widgetOptions` (a mutable object passed to `jpSelect.init` / `jpCombo.init` after `onInit` returns):
+
+```javascript
+build: {
+    label: 'Build target',
+    type: 'string',
+    inputType: 'jpSelect',
+    options: [{ value: 'esm' }, { value: 'cjs' }, { value: 'iife' }],
+    onInit: (ctx) => {
+        ctx.widgetOptions.onOptionPreview = (v, l) => {
+            ctx.formEl.querySelector('[data-path="meta.previewLabel"]').value = l || '';
+        };
+    }
+}
+```
+
+`ctx`: `{ field, fieldDef, value, formEl, blockKey, path, schema, widgetOptions }`. See the [Schema-Driven Form Generator section in jpulse-ui-reference.md](jpulse-ui-reference.md#schema-driven-form-generator) for full details.
+
+### Conditional visibility (`showWhen`)
+
+Show/hide a field based on the value of one or more other fields — declarative, no listener boilerplate per plugin:
+
+```javascript
+// Simple equals (covers ~90% of cases):
+viewportWidth: { type: 'number',
+    showWhen: { field: 'fit', equals: ['scale-fit', 'scale-fill'] } }
+
+// Compound — all must match:
+region: { type: 'string', inputType: 'select',
+    showWhen: { all: [
+        { field: 'cloud', equals: 'aws' },
+        { field: 'enabled', equals: true }
+    ] } }
+```
+
+- Bare field paths (`'fit'`) are resolved against the **current block**; dotted paths (`'general.fit'`) are taken as-is. Cross-block references work both ways.
+- Hidden fields keep their value (`getFormData` still serializes them — site code may ignore stale values or use them when the watched field flips back).
+- HTML5 `required` is auto-skipped on hidden fields and restored when shown.
+- Widget instance is preserved (no re-init when shown again).
+- Operators in v1: `equals`, `notEquals` (scalar or array). Compounds: `all`, `any`.
+
+### Plugin.json schemas (`/admin/plugin-config.shtml`)
+
+Plugins declare their configuration with a flat array of field defs in `plugin.json`. The framework's `pluginSchemaToBlocks` adapter normalizes legacy `type` keys to the unified `(type, inputType)` shape and groups fields by `tab`:
+
+```json
+{
+    "configSchema": [
+        { "id": "apiKey", "type": "text", "label": "API Key", "tab": "Connection", "required": true },
+        { "id": "endpoint", "type": "url", "label": "Endpoint", "tab": "Connection" },
+        { "id": "timeout", "type": "number", "label": "Timeout (sec)", "tab": "Advanced", "default": 30 },
+        { "id": "logLevel", "type": "select", "tab": "Advanced",
+          "options": [{"value":"info"},{"value":"debug"},{"value":"warn"}] }
+    ]
+}
+```
+
+Single-tab plugins (no `tab` keys, or all using the same one) render flat (no tabs UI). Multi-tab plugins render through the tabs renderer. `loadOptions`, `onInit`, and `showWhen` all work in `plugin.json` — use registry-name strings for handlers.
+
+See the **[Plugin.json normalization table](jpulse-ui-reference.md#pluginjson-legacy-type--unified-type-inputtype-normalization)** for the full legacy-`type` → unified-`(type, inputType)` mapping.
+
 ### Reference
 
 - **jPulse.UI.input API**: [Input utilities: input widgets, set/get form data](jpulse-ui-reference.md#input-utilities-input-widgets-setget-form-data) in the jPulse.UI Widget Reference — full docs for `.tagInput`, `.jpSelect`, `.setAllValues`, `.getAllValues`, `.setFormData`, `.getFormData`.
+- **Schema-form generator**: [Schema-Driven Form Generator](jpulse-ui-reference.md#schema-driven-form-generator) — all `inputType` values, flat widget tuning keys, `loadOptions` / `onInit` / `showWhen`, `jPulse.schemaForm.*` registry.
 - **Config UI**: `webapp/view/admin/config.shtml` (minimal HTML; one panel container; one-line setFormData/getFormData).
+- **Plugin Config UI**: `webapp/view/admin/plugin-config.shtml` (uses `pluginSchemaToBlocks` + the unified renderer for `plugin.json` schemas).
 - **Schema shape**: `webapp/model/config.js` (baseSchema with `_meta` per block, field definitions with type, label, inputType, startNewRow, fullWidth, help, etc.).
 
 ## 💬 UI Widgets Overview
@@ -998,7 +1095,7 @@ jPulse.date.formatLocalTime(new Date(), false);    // "15:30" (no seconds)
 
 #### Relative time: `jPulse.date.formatFromNow()` (v1.6.42+)
 
-Client-side mirror of the server `{{date.fromNow}}` Handlebars helper — same relative-time output, same i18n keys (under `controller.handlebar.date.fromNow`), no duplicated strings per locale. The full translation subtree is embedded once at serve time via the i18n subtree-embed syntax (W-185), so there is no per-call i18n lookup.
+Client-side mirror of the server `{{date.fromNow}}` Handlebars helper — same relative-time output, same i18n keys (under `controller.handlebar.date.fromNow`), no duplicated strings per locale. The full translation subtree is embedded once at serve time via the i18n subtree-embed syntax, so there is no per-call i18n lookup.
 
 **Signature**: `jPulse.date.formatFromNow(date, nowOrOptions)`
 

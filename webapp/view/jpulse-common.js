@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.45
- * @release         2026-04-23
+ * @version         1.6.46
+ * @release         2026-05-04
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1154,16 +1154,18 @@ window.jPulse = {
                         // Skip element if init fails (e.g. invalid data-pattern, DOM issue)
                     }
                 });
-                root.querySelectorAll('select[data-jpselect]').forEach((el) => {
+                root.querySelectorAll('select[data-jpselect]:not([data-jp-defer-init])').forEach((el) => {
                     try {
-                        jPulse.UI.input.jpSelect.init(el);
+                        const opts = jPulse.UI.tabs._widgetOptionsFromDataAttrs(el);
+                        jPulse.UI.input.jpSelect.init(el, opts);
                     } catch (_) {
                         // Skip element if init fails
                     }
                 });
-                root.querySelectorAll('select[data-jpcombo]').forEach((el) => {
+                root.querySelectorAll('select[data-jpcombo]:not([data-jp-defer-init])').forEach((el) => {
                     try {
-                        jPulse.UI.input.jpCombo.init(el);
+                        const opts = jPulse.UI.tabs._widgetOptionsFromDataAttrs(el);
+                        jPulse.UI.input.jpCombo.init(el, opts);
                     } catch (_) {
                         // Skip element if init fails
                     }
@@ -1225,7 +1227,28 @@ window.jPulse = {
                     const path = (el.dataset.path || el.getAttribute('data-path') || '').trim();
                     if (!path) return;
                     const value = jPulse.UI.input.getByPath(data, path);
+                    if (el.type === 'radio') {
+                        const nm = el.getAttribute('name');
+                        if (nm) {
+                            const safeNm = nm.replace(/"/g, '\\"');
+                            const target = value !== undefined && value !== null ? String(value) : '';
+                            root.querySelectorAll('input[type="radio"][name="' + safeNm + '"]').forEach((rb) => {
+                                rb.checked = rb.value === target;
+                            });
+                        }
+                        return;
+                    }
                     if (el.type === 'checkbox') {
+                        const nm = el.getAttribute('name') || '';
+                        if (nm.endsWith('[]')) {
+                            const safeNm = nm.replace(/"/g, '\\"');
+                            const arr = Array.isArray(value) ? value.map(String) : (value != null ? [String(value)] : []);
+                            const set = new Set(arr);
+                            root.querySelectorAll('input[type="checkbox"][name="' + safeNm + '"]').forEach((cb) => {
+                                cb.checked = set.has(cb.value);
+                            });
+                            return;
+                        }
                         el.checked = value === true || value === 'true';
                         return;
                     }
@@ -1269,8 +1292,24 @@ window.jPulse = {
                     const path = (el.dataset.path || el.getAttribute('data-path') || '').trim();
                     if (!path) return;
                     let value;
-                    if (el.type === 'checkbox') {
-                        value = el.checked;
+                    if (el.type === 'radio') {
+                        const nm = el.getAttribute('name');
+                        if (nm) {
+                            const safeNm = nm.replace(/"/g, '\\"');
+                            const checked = root.querySelector('input[type="radio"][name="' + safeNm + '"]:checked');
+                            value = checked ? checked.value : '';
+                        } else {
+                            value = '';
+                        }
+                    } else if (el.type === 'checkbox') {
+                        const nm = el.getAttribute('name') || '';
+                        if (nm.endsWith('[]')) {
+                            const safeNm = nm.replace(/"/g, '\\"');
+                            value = Array.from(root.querySelectorAll('input[type="checkbox"][name="' + safeNm + '"]'))
+                                .filter((cb) => cb.checked).map((cb) => cb.value);
+                        } else {
+                            value = el.checked;
+                        }
                     } else if (el.tagName === 'SELECT' && el.multiple) {
                         value = Array.from(el.selectedOptions).map((o) => o.value);
                     } else if (el.hasAttribute('data-taginput')) {
@@ -1299,6 +1338,8 @@ window.jPulse = {
                     if (v && typeof v === 'object' && (v.type !== undefined || v.inputType !== undefined)) {
                         if (context === 'view' && v.scope && Array.isArray(v.scope) && !v.scope.includes('view')) continue;
                         if (context === 'data' && v.scope && Array.isArray(v.scope) && !v.scope.includes('model')) continue;
+                        // Display-only types have no backing form input; skip in data context.
+                        if (context === 'data' && (v.inputType === 'help' || v.inputType === 'separator' || v.inputType === 'button')) continue;
                         out.push({ path, fieldDef: v });
                     } else if (v && typeof v === 'object' && !Array.isArray(v)) {
                         out.push(...jPulse.UI.input._walkSchemaFields(v, path, context));
@@ -1336,6 +1377,12 @@ window.jPulse = {
             /**
              * Get data from form using schema: getAllValues, then coerce by schema.type and apply normalize.
              * Use when you have a complete schema. Returns { data: result } for API payload.
+             *
+             * W-189: hidden fields (wrappers with `.jp-schema-field-hidden` from `showWhen`) still
+             * have their values serialized into the result. The browser's native required-validation
+             * is automatically skipped because `_setFieldVisibility` removes the `required` attribute
+             * (cached on `data-jp-required-cache`) when the wrapper is hidden. Site code may ignore
+             * stale values, or use them when the watched field flips back.
              * @param {HTMLFormElement|Element} form - Form or container element
              * @param {Object} schema - Schema with schema.data (complete)
              * @returns {Object} { data: Object } suitable for API (e.g. config update)
@@ -2320,7 +2367,9 @@ window.jPulse = {
                             labelSpan.className = 'jp-jpselect-option-label';
                             labelSpan.textContent = item.label;
                             div.appendChild(labelSpan);
-                            div.addEventListener('click', (e) => {
+                            // Use mousedown rather than click so selection wins over the
+                            // text-input blur / focusout close path for this body-portal list.
+                            div.addEventListener('mousedown', (e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
                                 if (typeof opts.onOptionPreview === 'function') opts.onOptionPreview(null, null);
@@ -2401,7 +2450,11 @@ window.jPulse = {
                             searchInput.value = '';
                             searchInput.focus();
                         } else {
-                            listEl.focus();
+                            // Keep focus on textInput so the dialog focus-trap (which knows
+                            // nothing about the portal listEl) does not close/redirect focus.
+                            // Keyboard nav (ArrowDown/Up) on textInput already routes into
+                            // the dropdown list via textInput.keydown handler.
+                            textInput.focus();
                         }
                     };
 
@@ -2523,12 +2576,24 @@ window.jPulse = {
                         textInput.value = sel.value;
                     });
 
-                    arrowBtn.addEventListener('click', (e) => {
+                    // Clicking anywhere in the text area also opens the dropdown.
+                    textInput.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (!dropdown.classList.contains('jp-jpselect-open')) openDropdown();
+                    });
+
+                    // Toggle on mousedown so opening wins over any blur/focusout side effects
+                    // from clicking a body-portal widget inside dialogs.
+                    arrowBtn.addEventListener('mousedown', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         if (dropdown.classList.contains('jp-jpselect-open')) closeDropdown();
                         else openDropdown();
                         textInput.focus();
+                    });
+                    arrowBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                     });
 
                     textInput.addEventListener('keydown', (e) => {
@@ -2585,6 +2650,9 @@ window.jPulse = {
                     const closeOnFocusLoss = (e) => {
                         const next = e.relatedTarget;
                         if (!dropdown.classList.contains('jp-jpselect-open')) return;
+                        // Mouse interaction with non-focusable portal options can produce a
+                        // null relatedTarget; let the explicit mousedown/click handlers decide.
+                        if (!next) return;
                         if (next && wrap.contains(next)) return;
                         if (next && dropdown.contains(next)) return;
                         closeDropdown();
@@ -4093,7 +4161,244 @@ window.jPulse = {
                     responsive: options.responsive ?? 'scroll'
                 };
                 const firstTabId = tabs[0] ? tabs[0].id : null;
-                return jPulse.UI.tabs.register(tabContainerId, registerOptions, firstTabId);
+                const handle = jPulse.UI.tabs.register(tabContainerId, registerOptions, firstTabId);
+                if (handle) {
+                    // After register(), panel cards are MOVED from panelEl into the
+                    // .jp-tabs-panels div inside tabEl.  Query from tabEl so the pipeline
+                    // can find the rendered field elements.
+                    handle.ready = jPulse.UI.tabs._runSchemaPostRender(tabEl, schema, configData);
+                }
+                return handle;
+            },
+
+            /**
+             * Read flat-key tuning data attributes from a <select> element into a
+             * plain options object suitable for jpSelect.init / jpCombo.init.
+             * @param {Element} selectEl - <select> element with data-jp-* attributes
+             * @returns {Object} Widget options bag
+             */
+            _widgetOptionsFromDataAttrs: (selectEl) => {
+                const opts = {};
+                if (!selectEl || !selectEl.dataset) return opts;
+                const ds = selectEl.dataset;
+                if (ds.jpSearch === '1' || ds.jpSearch === 'true') opts.search = true;
+                if (ds.jpSearchPlaceholder) opts.searchPlaceholder = ds.jpSearchPlaceholder;
+                if (ds.jpSelectAll === '1' || ds.jpSelectAll === 'true') opts.selectAll = true;
+                if (ds.jpAllowCustom === '0' || ds.jpAllowCustom === 'false') opts.allowCustom = false;
+                return opts;
+            },
+
+            /**
+             * Replace the <option> children of a <select> with the resolved options list.
+             * Honors the current value: matching options become selected; if the value is not
+             * in the resolved list, no option is auto-selected (jpCombo's _jpComboSetValue
+             * handles this case after init by adding [data-jpcombo-extra]).
+             * @param {Element} fieldEl - <select> element
+             * @param {Object} fieldDef - Schema field definition (unused; kept for API symmetry)
+             * @param {Array} options - Array of {value, label} entries
+             * @param {*} currentValue - Current value (scalar or array)
+             */
+            _applyLoadedOptions: (fieldEl, fieldDef, options, currentValue) => {
+                if (!fieldEl || fieldEl.tagName !== 'SELECT') return;
+                fieldEl.innerHTML = jPulse.UI.tabs._buildSelectOptionsHtml(options, currentValue);
+            },
+
+            /**
+             * Toggle the loading state on a .jp-schema-field wrapper.
+             * @param {Element} wrapEl - Wrapper element
+             * @param {boolean} on - true = show loading, false = hide
+             */
+            _setFieldLoading: (wrapEl, on) => {
+                if (!wrapEl) return;
+                wrapEl.classList.toggle('jp-form-input-loading', !!on);
+                const ctrl = wrapEl.querySelector('select, input');
+                if (ctrl) ctrl.disabled = !!on;
+            },
+
+            /**
+             * Render an inline error on a .jp-schema-field wrapper. Used when loadOptions
+             * rejects; the field falls back to whatever static <option>s were initially
+             * rendered (existing options or empty list).
+             * @param {Element} wrapEl - Wrapper element
+             * @param {string} message - Error message to display
+             */
+            _setFieldError: (wrapEl, message) => {
+                if (!wrapEl) return;
+                wrapEl.classList.add('jp-schema-field-error');
+                let errEl = wrapEl.querySelector('.jp-schema-field-error-msg');
+                if (!errEl) {
+                    errEl = document.createElement('div');
+                    errEl.className = 'jp-schema-field-error-msg jp-text-small';
+                    wrapEl.appendChild(errEl);
+                }
+                errEl.textContent = message || 'Failed to load options';
+            },
+
+            /**
+             * Run the schema-form post-render pipeline (W-189): for every field with
+             * `loadOptions` and / or `onInit`, kick off loadOptions in parallel; on
+             * settlement, populate options (or set error state), build ctx, run onInit,
+             * then init the widget (jpSelect / jpCombo) with ctx.widgetOptions. After all
+             * deferred fields settle, run the showWhen setup pass.
+             * @param {Element} panelEl - Panel container holding the rendered fields
+             * @param {Object} schema - Resolved schema (with schema.data)
+             * @param {Object} configData - Block data keyed by blockKey (for current values)
+             * @returns {Promise<void>} Resolves when all deferred fields are processed
+             */
+            _runSchemaPostRender: async (rootEl, schema, configData) => {
+                if (!rootEl || !schema || !schema.data) return;
+                const formEl = rootEl.closest && rootEl.closest('form') || rootEl;
+
+                // Yield one microtask so the synchronous code that follows
+                // renderTabsAndPanelsFromSchema (setFormData, initAll) completes before
+                // we evaluate showWhen for the first time.  Without this yield, setupShowWhen
+                // would run before setFormData populates field values, making all conditions
+                // incorrect and causing showWhen-hidden fields to briefly flash visible.
+                await Promise.resolve();
+                jPulse.schemaForm.setupShowWhen(formEl);
+
+                const allFields = jPulse.UI.input._walkSchemaFields(schema.data, '', 'view');
+                const deferredFields = allFields.filter(({ fieldDef }) =>
+                    fieldDef && (fieldDef.loadOptions !== undefined || fieldDef.onInit !== undefined));
+
+                const processField = async ({ path, fieldDef }) => {
+                    const fieldEl = rootEl.querySelector('[data-path="' + path.replace(/"/g, '\\"') + '"]');
+                    if (!fieldEl) return;
+                    const wrapEl = fieldEl.closest('.jp-schema-field');
+                    const blockKey = path.split('.')[0];
+                    const subPath = path.substring(blockKey.length + 1);
+                    let currentValue = jPulse.UI.input.getByPath(configData[blockKey] || {}, subPath);
+                    if (currentValue === undefined && fieldDef.default !== undefined) currentValue = fieldDef.default;
+
+                    const ctx = {
+                        field: fieldEl,
+                        fieldDef,
+                        value: currentValue,
+                        formEl,
+                        blockKey,
+                        path,
+                        schema,
+                        widgetOptions: fieldEl.tagName === 'SELECT' ? jPulse.UI.tabs._widgetOptionsFromDataAttrs(fieldEl) : {}
+                    };
+
+                    if (fieldDef.loadOptions !== undefined && fieldEl.tagName === 'SELECT') {
+                        const fn = jPulse.schemaForm._resolveHandler(fieldDef.loadOptions);
+                        let resolved = null;
+                        let err = null;
+                        if (fn) {
+                            try { resolved = await fn(ctx); } catch (e) { err = e; }
+                        }
+                        jPulse.UI.tabs._setFieldLoading(wrapEl, false);
+                        if (err) {
+                            jPulse.UI.tabs._setFieldError(wrapEl, (err && err.message) || 'Failed to load options');
+                        } else if (Array.isArray(resolved)) {
+                            jPulse.UI.tabs._applyLoadedOptions(fieldEl, fieldDef, resolved, currentValue);
+                        }
+                    }
+
+                    if (fieldDef.onInit !== undefined) {
+                        const fn = jPulse.schemaForm._resolveHandler(fieldDef.onInit);
+                        if (fn) {
+                            try { await fn(ctx); } catch (e) {
+                                console.warn('- jPulse.schemaForm.onInit failed: ' + path, e);
+                            }
+                        }
+                    }
+
+                    if (fieldEl.tagName === 'SELECT' && fieldEl.dataset.jpDeferInit === '1') {
+                        try {
+                            if (fieldEl.hasAttribute('data-jpcombo')) {
+                                jPulse.UI.input.jpCombo.init(fieldEl, ctx.widgetOptions || {});
+                            } else if (fieldEl.hasAttribute('data-jpselect')) {
+                                jPulse.UI.input.jpSelect.init(fieldEl, ctx.widgetOptions || {});
+                            }
+                        } catch (e) {
+                            console.warn('- jPulse.schemaForm: widget init failed: ' + path, e);
+                        }
+                        fieldEl.removeAttribute('data-jp-defer-init');
+                        const valueStr = currentValue !== undefined && currentValue !== null ? String(currentValue) : '';
+                        if (typeof fieldEl._jpComboSetValue === 'function') {
+                            fieldEl._jpComboSetValue(valueStr);
+                        } else if (typeof fieldEl._jpSelectUpdateCaption === 'function') {
+                            if (!fieldEl.multiple) fieldEl.value = valueStr;
+                            fieldEl._jpSelectUpdateCaption();
+                        }
+                    }
+                };
+
+                await Promise.allSettled(deferredFields.map(processField));
+                jPulse.schemaForm.setupShowWhen(formEl);
+            },
+
+            /**
+             * Resolve canonical inputType and `multiple` flag from a field def (W-189).
+             * Applies the `multiselect` → `jpSelect` + multiple alias rewrite, and infers
+             * a default inputType from `type` / `enum` / `options` when inputType is absent.
+             * @param {Object} fieldDef - Schema field definition
+             * @returns {{ inputType: string, multiple: boolean }}
+             */
+            _resolveInputType: (fieldDef) => {
+                let inputType = fieldDef.inputType;
+                let multiple = !!fieldDef.multiple;
+                if (inputType === 'multiselect') {
+                    inputType = 'jpSelect';
+                    multiple = true;
+                }
+                if (!inputType) {
+                    if (fieldDef.type === 'boolean') inputType = 'checkbox';
+                    else if (fieldDef.type === 'number') inputType = 'number';
+                    else if (fieldDef.type === 'button') inputType = 'button';
+                    else if (fieldDef.enum || (fieldDef.options && fieldDef.options.length)) inputType = 'select';
+                    else if (fieldDef.type === 'array') inputType = 'textarea';
+                    else inputType = 'text';
+                }
+                return { inputType, multiple };
+            },
+
+            /**
+             * Build <option> HTML for a select-type field. Honors a current value (single
+             * scalar or array for multi-select) and marks matching options as selected.
+             * @param {Array} optionsArr - Array of {value, label} or scalar option entries
+             * @param {*} currentValue - Scalar or array
+             * @returns {string} HTML string of <option> elements
+             */
+            _buildSelectOptionsHtml: (optionsArr, currentValue) => {
+                if (!Array.isArray(optionsArr) || !optionsArr.length) return '';
+                const escape = jPulse.string.escapeHtml;
+                return optionsArr.map((opt) => {
+                    const ov = (opt && typeof opt === 'object' && opt.value !== undefined) ? opt.value : opt;
+                    const lab = (opt && typeof opt === 'object' && opt.label !== undefined) ? escape(String(opt.label)) : escape(String(ov));
+                    let selected;
+                    if (Array.isArray(currentValue)) {
+                        selected = currentValue.some((v) => v === ov || String(v) === String(ov));
+                    } else {
+                        selected = currentValue === ov || (currentValue !== undefined && currentValue !== null && String(currentValue) === String(ov));
+                    }
+                    return '<option value="' + escape(String(ov)) + '"' + (selected ? ' selected' : '') + '>' + lab + '</option>';
+                }).join('');
+            },
+
+            /**
+             * Resolve `showWhen` field paths to fully-qualified form (block.field) for
+             * runtime evaluation. Bare names are resolved against the current block;
+             * dotted paths pass through unchanged. Recurses into all/any compounds.
+             * @param {Object} condition - showWhen condition tree
+             * @param {string} currentBlockKey - Block key the field belongs to
+             * @returns {Object} New condition with `field` paths fully qualified
+             */
+            _resolveShowWhenPaths: (condition, currentBlockKey) => {
+                if (!condition || typeof condition !== 'object') return condition;
+                const resolveOne = (cond) => {
+                    if (!cond || typeof cond !== 'object') return cond;
+                    if (Array.isArray(cond.all)) return Object.assign({}, cond, { all: cond.all.map(resolveOne) });
+                    if (Array.isArray(cond.any)) return Object.assign({}, cond, { any: cond.any.map(resolveOne) });
+                    if (typeof cond.field === 'string' && cond.field) {
+                        const fieldPath = cond.field.indexOf('.') >= 0 ? cond.field : (currentBlockKey + '.' + cond.field);
+                        return Object.assign({}, cond, { field: fieldPath });
+                    }
+                    return cond;
+                };
+                return resolveOne(condition);
             },
 
             /**
@@ -4106,6 +4411,7 @@ window.jPulse = {
             _renderSchemaBlockFields: (blockKey, blockDef, blockData) => {
                 const fields = jPulse.UI.input._walkSchemaFields(blockDef, '', 'view');
                 const parts = [];
+                const escape = jPulse.string.escapeHtml;
                 for (const { path, fieldDef } of fields) {
                     const dataPath = blockKey + '.' + path;
                     const inputId = 'config-' + blockKey + '-' + path.replace(/\./g, '-');
@@ -4113,73 +4419,130 @@ window.jPulse = {
                     const label = fieldDef.label || path;
                     let value = jPulse.UI.input.getByPath(blockData, path);
                     if (value === undefined && fieldDef.default !== undefined) value = fieldDef.default;
-                    const escapedLabel = jPulse.string.escapeHtml(label);
-                    const placeholder = (fieldDef.placeholder && jPulse.string.escapeHtml(fieldDef.placeholder)) || '';
-                    const dataPathAttr = ' data-path="' + jPulse.string.escapeHtml(dataPath) + '"';
-                    const inputType = fieldDef.inputType || (fieldDef.type === 'boolean' ? 'checkbox' : fieldDef.type === 'number' ? 'number' : fieldDef.type === 'button' ? 'button' : (fieldDef.enum || (fieldDef.options && fieldDef.options.length)) ? 'select' : fieldDef.type === 'array' ? 'textarea' : 'text');
+                    const escapedLabel = escape(label);
+                    const placeholder = (fieldDef.placeholder && escape(fieldDef.placeholder)) || '';
+                    const dataPathAttr = ' data-path="' + escape(dataPath) + '"';
+                    const { inputType, multiple } = jPulse.UI.tabs._resolveInputType(fieldDef);
+                    const isSelectType = inputType === 'select' || inputType === 'jpSelect' || inputType === 'jpCombo';
+                    const hasLoadOptions = isSelectType && fieldDef.loadOptions !== undefined;
+                    const hasOnInit = fieldDef.onInit !== undefined;
                     const startNewRow = !!fieldDef.startNewRow;
-                    const fullWidth = !!fieldDef.fullWidth || inputType === 'textarea';
-                    const wrapClass = 'jp-schema-field' + (startNewRow ? ' jp-schema-field-new-row' : '') + (fullWidth ? ' jp-schema-field-full' : '');
-                    const helpHtml = (fieldDef.help && typeof fieldDef.help === 'string') ? '<div class="jp-text-small jp-text-muted jp-mt-10">' + jPulse.string.escapeHtml(fieldDef.help) + '</div>' : '';
+                    const fullWidth = !!fieldDef.fullWidth || inputType === 'textarea' || inputType === 'help' || inputType === 'separator';
+                    let wrapClass = 'jp-schema-field' + (startNewRow ? ' jp-schema-field-new-row' : '') + (fullWidth ? ' jp-schema-field-full' : '');
+                    if (hasLoadOptions) wrapClass += ' jp-form-input-loading';
+                    let wrapAttrs = '';
+                    if (fieldDef.showWhen) {
+                        const resolved = jPulse.UI.tabs._resolveShowWhenPaths(fieldDef.showWhen, blockKey);
+                        const safeJson = JSON.stringify(resolved)
+                            .replace(/&/g, '&amp;')
+                            .replace(/"/g, '&quot;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;');
+                        wrapAttrs += ' data-jp-show-when="' + safeJson + '"';
+                    }
+                    const helpHtml = (fieldDef.help && typeof fieldDef.help === 'string') ? '<div class="jp-text-small jp-text-muted jp-mt-10">' + escape(fieldDef.help) + '</div>' : '';
+                    const requiredAttr = fieldDef.required ? ' required' : '';
+
+                    if (inputType === 'help') {
+                        const content = (fieldDef.content && typeof fieldDef.content === 'string') ? jPulse.string.sanitizeHtml(fieldDef.content) : '';
+                        parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-schema-help">' + content + '</div></div>');
+                        continue;
+                    }
+
+                    if (inputType === 'separator') {
+                        parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-divider">' + (label ? '<span>' + escapedLabel + '</span>' : '') + '</div></div>');
+                        continue;
+                    }
 
                     if (inputType === 'checkbox') {
                         const checked = value === true ? ' checked' : '';
-                        parts.push('<div class="' + wrapClass + '"><div class="jp-checkbox-group">' +
+                        parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-checkbox-group">' +
                             '<input type="checkbox" id="' + inputId + '" name="' + name + '" class="jp-edit-field" ' + dataPathAttr + ' value="true"' + checked + '>' +
                             '<label for="' + inputId + '">' + escapedLabel + '</label></div>' + helpHtml + '</div>');
+                    } else if (inputType === 'radio') {
+                        const optionsArr = (fieldDef.options && fieldDef.options.length) ? fieldDef.options : (fieldDef.enum || []).map((v) => (v && typeof v === 'object' ? v : { value: v, label: String(v) }));
+                        const layoutClass = fieldDef.layout === 'horizontal' ? ' jp-form-radio-group-horizontal' : '';
+                        const radioHtml = optionsArr.map((opt, idx) => {
+                            const ov = (opt && typeof opt === 'object' && opt.value !== undefined) ? opt.value : opt;
+                            const lab = (opt && typeof opt === 'object' && opt.label !== undefined) ? escape(String(opt.label)) : escape(String(ov));
+                            const checked = (value === ov || (value !== undefined && value !== null && String(value) === String(ov))) ? ' checked' : '';
+                            const rid = inputId + '-' + idx;
+                            return '<label for="' + rid + '"><input type="radio" id="' + rid + '" name="' + name + '" class="jp-edit-field"' + (idx === 0 ? (dataPathAttr + requiredAttr) : '') + ' value="' + escape(String(ov)) + '"' + checked + '><span>' + lab + '</span></label>';
+                        }).join('');
+                        parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-form-group"><label class="jp-form-label">' + escapedLabel + '</label>' +
+                            '<div class="jp-form-radio-group' + layoutClass + '">' + radioHtml + '</div>' + helpHtml + '</div></div>');
+                    } else if (inputType === 'checkboxGroup') {
+                        const optionsArr = (fieldDef.options && fieldDef.options.length) ? fieldDef.options : (fieldDef.enum || []).map((v) => (v && typeof v === 'object' ? v : { value: v, label: String(v) }));
+                        const valueArr = Array.isArray(value) ? value.map(String) : (value != null ? [String(value)] : []);
+                        const cbHtml = optionsArr.map((opt, idx) => {
+                            const ov = (opt && typeof opt === 'object' && opt.value !== undefined) ? opt.value : opt;
+                            const lab = (opt && typeof opt === 'object' && opt.label !== undefined) ? escape(String(opt.label)) : escape(String(ov));
+                            const checked = valueArr.includes(String(ov)) ? ' checked' : '';
+                            const cid = inputId + '-' + idx;
+                            return '<label for="' + cid + '"><input type="checkbox" id="' + cid + '" name="' + name + '[]" class="jp-edit-field"' + (idx === 0 ? dataPathAttr : '') + ' value="' + escape(String(ov)) + '"' + checked + '><span>' + lab + '</span></label>';
+                        }).join('');
+                        parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-form-group"><label class="jp-form-label">' + escapedLabel + '</label>' +
+                            '<div class="jp-form-checkbox-group">' + cbHtml + '</div>' + helpHtml + '</div></div>');
                     } else if (inputType === 'tagInput') {
                         const arr = Array.isArray(value) ? value : (value != null ? [value] : (fieldDef.default || []));
                         const displayValue = (jPulse.UI.input.tagInput && typeof jPulse.UI.input.tagInput.formatValue === 'function')
                             ? jPulse.UI.input.tagInput.formatValue(arr) : arr.join(', ');
-                        const escapedDisplay = jPulse.string.escapeHtml(displayValue);
-                        const patternAttr = (fieldDef.pattern && typeof fieldDef.pattern === 'string') ? ' data-pattern="' + jPulse.string.escapeHtml(fieldDef.pattern) + '"' : '';
-                        parts.push('<div class="' + wrapClass + '"><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
-                            '<input type="text" id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" data-taginput ' + dataPathAttr + patternAttr + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' value="' + escapedDisplay + '">' + helpHtml + '</div></div>');
+                        const escapedDisplay = escape(displayValue);
+                        const patternAttr = (fieldDef.pattern && typeof fieldDef.pattern === 'string') ? ' data-pattern="' + escape(fieldDef.pattern) + '"' : '';
+                        parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
+                            '<input type="text" id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" data-taginput ' + dataPathAttr + patternAttr + requiredAttr + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' value="' + escapedDisplay + '">' + helpHtml + '</div></div>');
                     } else if (inputType === 'textarea') {
                         const arr = Array.isArray(value) ? value : (value != null ? [value] : (fieldDef.default || []));
                         const textareaValue = arr.join('\n');
-                        const escapedTextarea = jPulse.string.escapeHtml(textareaValue);
-                        const textareaWrap = 'jp-schema-field jp-schema-field-new-row jp-schema-field-full';
+                        const escapedTextarea = escape(textareaValue);
+                        const textareaWrap = wrapClass.indexOf('jp-schema-field-new-row') >= 0 ? wrapClass : (wrapClass + ' jp-schema-field-new-row');
                         const rows = Math.max(1, parseInt(fieldDef.rows, 10) || 3);
-                        parts.push('<div class="' + textareaWrap + '"><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
-                            '<textarea id="' + inputId + '" name="' + name + '" class="jp-form-textarea jp-edit-field" ' + dataPathAttr + ' rows="' + rows + '">' + escapedTextarea + '</textarea>' + helpHtml + '</div></div>');
+                        parts.push('<div class="' + textareaWrap + '"' + wrapAttrs + '><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
+                            '<textarea id="' + inputId + '" name="' + name + '" class="jp-form-textarea jp-edit-field" ' + dataPathAttr + requiredAttr + ' rows="' + rows + '">' + escapedTextarea + '</textarea>' + helpHtml + '</div></div>');
                     } else if (inputType === 'number') {
-                        const escapedValue = value !== undefined && value !== null ? jPulse.string.escapeHtml(String(value)) : '';
-                        parts.push('<div class="' + wrapClass + '"><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
-                            '<input type="number" id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + ' value="' + escapedValue + '">' + helpHtml + '</div></div>');
+                        const escapedValue = value !== undefined && value !== null ? escape(String(value)) : '';
+                        parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
+                            '<input type="number" id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + requiredAttr + ' value="' + escapedValue + '">' + helpHtml + '</div></div>');
                     } else if (inputType === 'slider') {
                         const numVal = value !== undefined && value !== null ? Number(value) : (fieldDef.default !== undefined ? Number(fieldDef.default) : (fieldDef.min !== undefined ? Number(fieldDef.min) : 0));
-                        const escapedValue = jPulse.string.escapeHtml(String(numVal));
-                        const sliderMin = fieldDef.min !== undefined ? ' data-slider-min="' + jPulse.string.escapeHtml(String(fieldDef.min)) + '"' : '';
-                        const sliderMax = fieldDef.max !== undefined ? ' data-slider-max="' + jPulse.string.escapeHtml(String(fieldDef.max)) + '"' : '';
-                        const sliderStep = fieldDef.step !== undefined ? ' data-slider-step="' + jPulse.string.escapeHtml(String(fieldDef.step)) + '"' : '';
-                        const sliderDefault = fieldDef.default !== undefined ? ' data-slider-default="' + jPulse.string.escapeHtml(String(fieldDef.default)) + '"' : '';
-                        const sliderSuffix = fieldDef.suffix !== undefined && fieldDef.suffix !== null ? ' data-slider-suffix="' + jPulse.string.escapeHtml(String(fieldDef.suffix)) + '"' : '';
-                        parts.push('<div class="' + wrapClass + '"><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
+                        const escapedValue = escape(String(numVal));
+                        const sliderMin = fieldDef.min !== undefined ? ' data-slider-min="' + escape(String(fieldDef.min)) + '"' : '';
+                        const sliderMax = fieldDef.max !== undefined ? ' data-slider-max="' + escape(String(fieldDef.max)) + '"' : '';
+                        const sliderStep = fieldDef.step !== undefined ? ' data-slider-step="' + escape(String(fieldDef.step)) + '"' : '';
+                        const sliderDefault = fieldDef.default !== undefined ? ' data-slider-default="' + escape(String(fieldDef.default)) + '"' : '';
+                        const sliderSuffix = fieldDef.suffix !== undefined && fieldDef.suffix !== null ? ' data-slider-suffix="' + escape(String(fieldDef.suffix)) + '"' : '';
+                        parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
                             '<input type="number" id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" data-slider ' + dataPathAttr + sliderMin + sliderMax + sliderStep + sliderDefault + sliderSuffix + ' value="' + escapedValue + '">' + helpHtml + '</div></div>');
-                    } else if (inputType === 'select') {
-                        const optionsArr = (fieldDef.options && fieldDef.options.length) ? fieldDef.options : (fieldDef.enum || []).map((v) => ({ value: v, label: String(v) }));
-                        const optionHtml = optionsArr.map((opt) => {
-                            const ov = opt.value !== undefined ? opt.value : opt;
-                            const lab = (opt && opt.label !== undefined) ? jPulse.string.escapeHtml(opt.label) : jPulse.string.escapeHtml(String(ov));
-                            const sel = (value === ov || value === String(ov)) ? ' selected' : '';
-                            return '<option value="' + jPulse.string.escapeHtml(String(ov)) + '"' + sel + '>' + lab + '</option>';
-                        }).join('');
-                        parts.push('<div class="' + wrapClass + '"><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
-                            '<select id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + '>' + optionHtml + '</select>' + helpHtml + '</div></div>');
+                    } else if (isSelectType) {
+                        const optionsArr = (fieldDef.options && fieldDef.options.length) ? fieldDef.options : (fieldDef.enum || []).map((v) => (v && typeof v === 'object' ? v : { value: v, label: String(v) }));
+                        const optionHtml = jPulse.UI.tabs._buildSelectOptionsHtml(optionsArr, value);
+                        let widgetAttr = '';
+                        if (inputType === 'jpSelect') widgetAttr = ' data-jpselect';
+                        else if (inputType === 'jpCombo') widgetAttr = ' data-jpcombo';
+                        const multipleAttr = (multiple && (inputType === 'jpSelect' || inputType === 'select')) ? ' multiple' : '';
+                        let tuningAttrs = '';
+                        if (fieldDef.search) tuningAttrs += ' data-jp-search="1"';
+                        if (fieldDef.searchPlaceholder) tuningAttrs += ' data-jp-search-placeholder="' + escape(String(fieldDef.searchPlaceholder)) + '"';
+                        if (fieldDef.selectAll) tuningAttrs += ' data-jp-select-all="1"';
+                        if (inputType === 'jpCombo' && fieldDef.allowCustom === false) tuningAttrs += ' data-jp-allow-custom="0"';
+                        const placeholderAttr = (placeholder && (inputType === 'jpCombo' || inputType === 'jpSelect')) ? ' placeholder="' + placeholder + '"' : '';
+                        const deferAttr = (hasLoadOptions || (hasOnInit && (inputType === 'jpSelect' || inputType === 'jpCombo'))) ? ' data-jp-defer-init="1"' : '';
+                        parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' +
+                            '<select id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field"' + widgetAttr + multipleAttr + tuningAttrs + placeholderAttr + deferAttr + requiredAttr + ' ' + dataPathAttr + '>' + optionHtml + '</select>' + helpHtml + '</div></div>');
                     } else if (inputType === 'button' || fieldDef.type === 'button') {
-                        const titleAttr = (fieldDef.title && typeof fieldDef.title === 'string') ? ' title="' + jPulse.string.escapeHtml(fieldDef.title) + '"' : '';
-                        const actionAttr = (fieldDef.action && typeof fieldDef.action === 'string') ? ' data-action="' + jPulse.string.escapeHtml(fieldDef.action) + '"' : '';
-                        const callbackAttr = (fieldDef.callback && typeof fieldDef.callback === 'string') ? ' data-callback="' + jPulse.string.escapeHtml(fieldDef.callback) + '"' : '';
-                        parts.push('<div class="' + wrapClass + '"><div class="jp-form-group" style="margin:0;"><button type="button" class="jp-btn jp-btn-secondary"' + titleAttr + actionAttr + callbackAttr + '>' + escapedLabel + '</button></div>' + helpHtml + '</div>');
+                        const titleAttr = (fieldDef.title && typeof fieldDef.title === 'string') ? ' title="' + escape(fieldDef.title) + '"' : '';
+                        const actionAttr = (fieldDef.action && typeof fieldDef.action === 'string') ? ' data-action="' + escape(fieldDef.action) + '"' : '';
+                        const callbackAttr = (fieldDef.callback && typeof fieldDef.callback === 'string') ? ' data-callback="' + escape(fieldDef.callback) + '"' : '';
+                        parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-form-group" style="margin:0;"><button type="button" class="jp-btn jp-btn-secondary"' + titleAttr + actionAttr + callbackAttr + '>' + escapedLabel + '</button></div>' + helpHtml + '</div>');
                     } else {
-                        const escapedValue = value !== undefined && value !== null ? jPulse.string.escapeHtml(String(value)) : '';
-                        const typeAttr = fieldDef.inputType === 'password' ? ' type="password"' : ' type="text"';
+                        const escapedValue = value !== undefined && value !== null ? escape(String(value)) : '';
+                        const htmlInputType = (inputType === 'password' || inputType === 'email' || inputType === 'url' || inputType === 'tel') ? inputType : 'text';
+                        const typeAttr = ' type="' + htmlInputType + '"';
                         const readonlyAttr = fieldDef.readonly ? ' readonly' : '';
-                        const pwdWrapper = fieldDef.inputType === 'password'
-                            ? '<div class="jp-password-field"><input' + typeAttr + ' id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' value="' + escapedValue + '" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true"' + readonlyAttr + '><button type="button" class="jp-password-toggle" data-password-for="' + inputId + '" title="Show/hide password">👁️</button></div>'
-                            : '<input' + typeAttr + ' id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' value="' + escapedValue + '"' + readonlyAttr + '>';
-                        parts.push('<div class="' + wrapClass + '"><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' + pwdWrapper + helpHtml + '</div></div>');
+                        const pwdWrapper = inputType === 'password'
+                            ? '<div class="jp-password-field"><input' + typeAttr + ' id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + requiredAttr + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' value="' + escapedValue + '" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true"' + readonlyAttr + '><button type="button" class="jp-password-toggle" data-password-for="' + inputId + '" title="Show/hide password">👁️</button></div>'
+                            : '<input' + typeAttr + ' id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + requiredAttr + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' value="' + escapedValue + '"' + readonlyAttr + '>';
+                        parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' + pwdWrapper + helpHtml + '</div></div>');
                     }
                 }
                 return parts.join('');
@@ -6785,13 +7148,16 @@ window.jPulse = {
 
                     if (e.target.closest?.('.jp-slider-wrap')) return;
 
-                    // jpSelect: trigger is a BUTTON; dropdown is portaled to document.body. Let keys
-                    // reach trigger/list/search (Enter/Space/Arrows). Tab excluded so trap below runs.
+                    // jpSelect / jpCombo: trigger/input is inside dialog; dropdown is portaled to
+                    // document.body. Let keys reach widget/list/search (Enter/Space/Arrows).
+                    // Tab excluded so the focus-trap below still runs.
                     const jpDd = e.target.closest?.('.jp-jpselect-dropdown');
-                    const jpWrap = e.target.closest?.('.jp-jpselect-wrap');
+                    const jpWrap = e.target.closest?.('.jp-jpselect-wrap, .jp-jpcombo-wrap');
                     const jpInDialogWrap = jpWrap && dialog.contains(jpWrap);
-                    const jpInDialogPortal = jpDd && jpDd.classList.contains('jp-jpselect-open') &&
-                        Array.from(dialog.querySelectorAll('.jp-jpselect-wrap')).some((w) => w._jpSelectDropdown === jpDd);
+                    const jpInDialogPortal = jpDd && jpDd.classList.contains('jp-jpselect-open') && (
+                        Array.from(dialog.querySelectorAll('.jp-jpselect-wrap')).some((w) => w._jpSelectDropdown === jpDd) ||
+                        Array.from(dialog.querySelectorAll('.jp-jpcombo-wrap')).some((w) => w._jpComboDropdown === jpDd)
+                    );
                     if ((jpInDialogWrap || jpInDialogPortal) && e.key !== 'Tab') {
                         if (e.key === 'ArrowUp' || e.key === 'ArrowDown' ||
                                 e.key === 'PageUp' || e.key === 'PageDown') {
@@ -6877,7 +7243,8 @@ window.jPulse = {
                         }
                     }
 
-                    // Trap Tab key within dialog (include open jpSelect dropdowns in body that belong to this dialog)
+                    // Trap Tab key within dialog (include open jpSelect/jpCombo dropdowns in body
+                    // that belong to this dialog)
                     if (e.key === 'Tab') {
                         const extended = focusableElements.slice();
                         dialog.querySelectorAll('.jp-jpselect-wrap').forEach((wrap) => {
@@ -6888,6 +7255,13 @@ window.jPulse = {
                                 const list = dd.querySelector('.jp-jpselect-list');
                                 if (sel) extended.push(sel);
                                 if (selectAllBtn) extended.push(selectAllBtn);
+                                if (list) extended.push(list);
+                            }
+                        });
+                        dialog.querySelectorAll('.jp-jpcombo-wrap').forEach((wrap) => {
+                            const dd = wrap._jpComboDropdown;
+                            if (dd && dd.classList.contains('jp-jpselect-open')) {
+                                const list = dd.querySelector('[data-jpcombo-list]');
                                 if (list) extended.push(list);
                             }
                         });
@@ -9686,6 +10060,433 @@ window.jPulse = {
                     });
                 });
             }
+        }
+    },
+
+    // ========================================
+    // jPulse.schemaForm - Schema-driven form helpers (W-189)
+    // ========================================
+
+    schemaForm: {
+        _handlers: new Map(),
+        _showWhenHandlers: new WeakMap(),
+
+        /**
+         * Register a named handler for use in schema field props that accept
+         * a registry-name string (e.g. fieldDef.loadOptions, fieldDef.onInit
+         * in plugin.json). Throws if the name is already registered;
+         * call unregister() first to override.
+         * @param {string} name - Registry name (e.g. 'myplugin.loadRegions')
+         * @param {Function} fn - Handler function
+         */
+        register: (name, fn) => {
+            if (typeof name !== 'string' || !name) {
+                throw new Error('jPulse.schemaForm.register: name must be a non-empty string');
+            }
+            if (typeof fn !== 'function') {
+                throw new Error('jPulse.schemaForm.register: fn must be a function');
+            }
+            if (jPulse.schemaForm._handlers.has(name)) {
+                throw new Error('jPulse.schemaForm.register: handler already registered: ' + name);
+            }
+            jPulse.schemaForm._handlers.set(name, fn);
+        },
+
+        /**
+         * Remove a registered handler. Idempotent.
+         * @param {string} name - Registry name
+         */
+        unregister: (name) => {
+            jPulse.schemaForm._handlers.delete(name);
+        },
+
+        /**
+         * Resolve a name to a function: registry first, then window[name]
+         * (back-compat with existing data-callback / data-action pattern),
+         * else null. Supports dotted paths on window (e.g. 'mySite.foo').
+         * @param {string} name - Registry name
+         * @returns {Function|null}
+         */
+        resolve: (name) => {
+            if (typeof name !== 'string' || !name) return null;
+            const registered = jPulse.schemaForm._handlers.get(name);
+            if (typeof registered === 'function') return registered;
+            const parts = name.split('.');
+            let cur = window;
+            for (const p of parts) {
+                if (cur == null) return null;
+                cur = cur[p];
+            }
+            return typeof cur === 'function' ? cur : null;
+        },
+
+        /**
+         * Resolve a function-or-name reference to a function. Used by
+         * loadOptions / onInit which accept either form.
+         * @param {Function|string} refOrName - Function or registry name
+         * @returns {Function|null}
+         */
+        _resolveHandler: (refOrName) => {
+            if (typeof refOrName === 'function') return refOrName;
+            if (typeof refOrName === 'string' && refOrName) {
+                const fn = jPulse.schemaForm.resolve(refOrName);
+                if (!fn) {
+                    console.warn('- jPulse.schemaForm: handler not found: ' + refOrName);
+                }
+                return fn;
+            }
+            return null;
+        },
+
+        /**
+         * Replace <option>s of a <select> with a resolved options array. Thin
+         * public wrapper around the renderer's internal helper.
+         * @param {Element} fieldEl - <select> element
+         * @param {Array} options - Array of {value, label} entries
+         * @param {*} currentValue - Current scalar or array value
+         */
+        applyOptions: (fieldEl, options, currentValue) => {
+            jPulse.UI.tabs._applyLoadedOptions(fieldEl, null, options, currentValue);
+        },
+
+        /**
+         * Toggle the loading visual on a .jp-schema-field wrapper.
+         * @param {Element} wrapEl - Wrapper element
+         * @param {boolean} on - true = show loading
+         */
+        setLoading: (wrapEl, on) => {
+            jPulse.UI.tabs._setFieldLoading(wrapEl, on);
+        },
+
+        /**
+         * Set an inline error message on a .jp-schema-field wrapper.
+         * @param {Element} wrapEl - Wrapper element
+         * @param {string} message - Error message
+         */
+        setError: (wrapEl, message) => {
+            jPulse.UI.tabs._setFieldError(wrapEl, message);
+        },
+
+        /**
+         * Read the visible value of a form field by its data-path. Handles SELECT
+         * (single + multiple), checkbox (single + group), radio, and other inputs.
+         * @param {Element} formEl - Form root containing fields
+         * @param {string} fieldPath - Fully-qualified path (e.g. 'general.fit')
+         * @returns {string|Array|boolean} Field value
+         */
+        _getFormFieldValue: (formEl, fieldPath) => {
+            if (!formEl) return '';
+            const safe = fieldPath.replace(/"/g, '\\"');
+            const el = formEl.querySelector('[data-path="' + safe + '"]');
+            if (!el) return '';
+            if (el.tagName === 'SELECT') {
+                if (el.multiple) {
+                    return Array.from(el.selectedOptions).map((o) => o.value);
+                }
+                return el.value;
+            }
+            if (el.type === 'checkbox') {
+                const nm = el.getAttribute('name');
+                if (nm && nm.endsWith('[]')) {
+                    const safeNm = nm.replace(/"/g, '\\"');
+                    return Array.from(formEl.querySelectorAll('input[type="checkbox"][name="' + safeNm + '"]'))
+                        .filter((cb) => cb.checked).map((cb) => cb.value);
+                }
+                return el.checked;
+            }
+            if (el.type === 'radio') {
+                const nm = el.getAttribute('name');
+                if (!nm) return '';
+                const safeNm = nm.replace(/"/g, '\\"');
+                const checked = formEl.querySelector('input[type="radio"][name="' + safeNm + '"]:checked');
+                return checked ? checked.value : '';
+            }
+            return el.value;
+        },
+
+        /**
+         * Recursively collect all field paths referenced in a showWhen condition tree.
+         * @param {Object} condition - showWhen condition tree
+         * @returns {Set<string>} Set of field paths
+         */
+        _collectShowWhenDeps: (condition) => {
+            const deps = new Set();
+            const walk = (cond) => {
+                if (!cond || typeof cond !== 'object') return;
+                if (Array.isArray(cond.all)) cond.all.forEach(walk);
+                else if (Array.isArray(cond.any)) cond.any.forEach(walk);
+                else if (typeof cond.field === 'string' && cond.field) deps.add(cond.field);
+            };
+            walk(condition);
+            return deps;
+        },
+
+        /**
+         * Evaluate a showWhen condition against the current form values.
+         * Supports `equals` / `notEquals` (scalar or array) leaves, and `all` / `any`
+         * compound conditions.
+         * @param {Object} condition - Condition tree (paths fully qualified)
+         * @param {Element} formEl - Form root
+         * @returns {boolean} true if the condition is satisfied (field is visible)
+         */
+        evalShowWhen: (condition, formEl) => {
+            if (!condition || typeof condition !== 'object') return true;
+            if (Array.isArray(condition.all)) {
+                return condition.all.every((c) => jPulse.schemaForm.evalShowWhen(c, formEl));
+            }
+            if (Array.isArray(condition.any)) {
+                return condition.any.some((c) => jPulse.schemaForm.evalShowWhen(c, formEl));
+            }
+            if (typeof condition.field !== 'string' || !condition.field) return true;
+            const value = jPulse.schemaForm._getFormFieldValue(formEl, condition.field);
+            const matches = (target) => {
+                if (Array.isArray(value)) return value.some((v) => v === target || String(v) === String(target));
+                return value === target || (value !== undefined && value !== null && String(value) === String(target));
+            };
+            if (Array.isArray(condition.equals)) return condition.equals.some(matches);
+            if (condition.equals !== undefined) return matches(condition.equals);
+            if (Array.isArray(condition.notEquals)) return condition.notEquals.every((t) => !matches(t));
+            if (condition.notEquals !== undefined) return !matches(condition.notEquals);
+            return true;
+        },
+
+        /**
+         * Toggle the visibility of a .jp-schema-field wrapper. When hidden, contained
+         * inputs/selects/textareas have their `required` attribute temporarily removed
+         * (cached on data-jp-required-cache) so native form validation skips them.
+         * @param {Element} wrapEl - Wrapper element
+         * @param {boolean} visible - true = show, false = hide
+         */
+        _setFieldVisibility: (wrapEl, visible) => {
+            if (!wrapEl) return;
+            wrapEl.classList.toggle('jp-schema-field-hidden', !visible);
+            const ctrls = wrapEl.querySelectorAll('input, select, textarea');
+            ctrls.forEach((c) => {
+                if (visible) {
+                    if (c.dataset.jpRequiredCache === '1') {
+                        c.required = true;
+                        delete c.dataset.jpRequiredCache;
+                    }
+                } else {
+                    if (c.required) {
+                        c.required = false;
+                        c.dataset.jpRequiredCache = '1';
+                    }
+                }
+            });
+        },
+
+        /**
+         * Public alias for the schema-form post-render pipeline. Walks `schema.data`
+         * to find every field with `loadOptions` and / or `onInit`, runs them in parallel
+         * via `Promise.allSettled`, then initializes deferred jpSelect / jpCombo widgets.
+         * After all fields settle, runs the showWhen setup pass.
+         *
+         * Use this when rendering schema-form fields outside of `renderTabsAndPanelsFromSchema`
+         * (e.g. plugin-config single-block case): call this AFTER `setFormData` and `initAll`.
+         * Returns a Promise that resolves when post-render is complete.
+         * @param {Element} formEl - Form root element containing the rendered fields
+         * @param {Object} schema - Resolved schema (with schema.data)
+         * @param {Object} data - Block data (e.g. { general: { foo: 'bar' } })
+         * @returns {Promise<void>}
+         */
+        runPostRender: (formEl, schema, data) => {
+            return jPulse.UI.tabs._runSchemaPostRender(formEl, schema, data || {});
+        },
+
+        /**
+         * Convert a flat plugin.json `configSchema` array into the unified block-structure
+         * schema + matching block-keyed data object that `renderTabsAndPanelsFromSchema`
+         * (and `_renderSchemaBlockFields`) consume. Groups fields by `field.tab` (defaults
+         * to 'General' when absent), normalizes legacy field types via the W-189
+         * normalization table (e.g. `{ type: 'select' }` → `{ type: 'string', inputType: 'select' }`),
+         * and threads current values into the matching block-keyed data shape.
+         *
+         * Normalization table (legacy plugin.json `type` → unified `(type, inputType)`):
+         *   text/password/email/url/tel/textarea/select/radio/jpSelect/jpCombo → string + inputType
+         *   number → number (no inputType)
+         *   boolean / checkbox → boolean (no inputType)
+         *   multiselect → array + inputType:multiselect (alias rewritten to jpSelect+multiple by renderer)
+         *   checkbox-group / checkboxGroup → array + inputType:checkboxGroup
+         *   tagInput → array + inputType:tagInput
+         *   help / separator → inputType only (no data type, non-field)
+         *   slider → number + inputType:slider
+         *   hidden → SKIPPED (not rendered)
+         *
+         * @param {Array<Object>} configSchema - Flat array of plugin.json field defs
+         * @param {Object} currentValues - Flat key/value map (e.g. { apiKey: '…', timeout: 30 })
+         * @returns {{ schema: Object, data: Object }} Schema with `.data` blocks, and matching block-keyed data
+         */
+        pluginSchemaToBlocks: (configSchema, currentValues) => {
+            const blocks = {};
+            const data = {};
+            const tabFirstSeenOrder = new Map();
+            let nextOrder = 0;
+            const values = currentValues || {};
+            (configSchema || []).forEach((field) => {
+                if (!field || typeof field !== 'object') return;
+                if (field.type === 'hidden') return;
+                const tabLabel = field.tab || 'General';
+                if (!tabFirstSeenOrder.has(tabLabel)) tabFirstSeenOrder.set(tabLabel, nextOrder++);
+                const blockKey = (tabLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '')) || 'general';
+                if (!blocks[blockKey]) {
+                    blocks[blockKey] = { _meta: { tabLabel, order: tabFirstSeenOrder.get(tabLabel) } };
+                    data[blockKey] = {};
+                }
+                const fieldKey = field.id;
+                if (!fieldKey) return;
+                const normalized = jPulse.schemaForm._normalizePluginFieldDef(field);
+                blocks[blockKey][fieldKey] = normalized;
+                if (Object.prototype.hasOwnProperty.call(values, fieldKey)) {
+                    data[blockKey][fieldKey] = values[fieldKey];
+                } else if (normalized.default !== undefined) {
+                    data[blockKey][fieldKey] = normalized.default;
+                }
+            });
+            return { schema: { data: blocks }, data };
+        },
+
+        /**
+         * Normalize a legacy plugin.json field definition to the unified
+         * `(type, inputType, …)` shape consumed by `_renderSchemaBlockFields`. See
+         * `pluginSchemaToBlocks` for the normalization table.
+         * @param {Object} field - Plugin.json field def (with `type`, `id`, `tab`, etc.)
+         * @returns {Object} Normalized fieldDef (no `id`, no `tab`)
+         */
+        _normalizePluginFieldDef: (field) => {
+            const out = Object.assign({}, field);
+            delete out.id;
+            delete out.tab;
+            const t = field.type || 'text';
+            switch (t) {
+                case 'text':
+                case 'password':
+                case 'email':
+                case 'url':
+                case 'tel':
+                case 'textarea':
+                case 'select':
+                case 'radio':
+                case 'jpSelect':
+                case 'jpCombo':
+                    out.type = 'string';
+                    out.inputType = t;
+                    break;
+                case 'number':
+                    out.type = 'number';
+                    delete out.inputType;
+                    break;
+                case 'boolean':
+                case 'checkbox':
+                    out.type = 'boolean';
+                    delete out.inputType;
+                    break;
+                case 'multiselect':
+                    out.type = 'array';
+                    out.inputType = 'multiselect';
+                    break;
+                case 'checkbox-group':
+                case 'checkboxGroup':
+                    out.type = 'array';
+                    out.inputType = 'checkboxGroup';
+                    break;
+                case 'tagInput':
+                    out.type = 'array';
+                    out.inputType = 'tagInput';
+                    break;
+                case 'slider':
+                    out.type = 'number';
+                    out.inputType = 'slider';
+                    break;
+                case 'help':
+                case 'separator':
+                    delete out.type;
+                    out.inputType = t;
+                    break;
+                default:
+                    out.type = out.type || 'string';
+                    if (!out.inputType) out.inputType = 'text';
+                    break;
+            }
+            return out;
+        },
+
+        /**
+         * Flatten a block-keyed values object back to a plugin's flat key/value shape.
+         * Inverse of the data shape produced by `pluginSchemaToBlocks`.
+         *   { connection: { apiKey: 'x' }, advanced: { timeout: 30 } }
+         *     → { apiKey: 'x', timeout: 30 }
+         * @param {Object} blockData - Block-keyed data
+         * @returns {Object} Flat key/value map
+         */
+        flattenBlockValues: (blockData) => {
+            const flat = {};
+            if (!blockData || typeof blockData !== 'object') return flat;
+            Object.values(blockData).forEach((blockValues) => {
+                if (blockValues && typeof blockValues === 'object') {
+                    Object.assign(flat, blockValues);
+                }
+            });
+            return flat;
+        },
+
+        /**
+         * Wire up showWhen evaluation for a form. Walks `[data-jp-show-when]`
+         * wrappers, performs initial visibility evaluation, and installs delegated
+         * `change` / `input` listeners that re-evaluate when watched fields change.
+         * Idempotent: re-calling on the same root element replaces previous wiring.
+         * @param {Element} formEl - Form root element
+         */
+        setupShowWhen: (formEl) => {
+            if (!formEl) return;
+            const old = jPulse.schemaForm._showWhenHandlers.get(formEl);
+            if (old) {
+                formEl.removeEventListener('change', old);
+                formEl.removeEventListener('input', old);
+                jPulse.schemaForm._showWhenHandlers.delete(formEl);
+            }
+            const wrappers = formEl.querySelectorAll('[data-jp-show-when]');
+            if (!wrappers.length) return;
+            const evaluators = [];
+            const depMap = new Map();
+            wrappers.forEach((wrapEl) => {
+                let condition;
+                try {
+                    condition = JSON.parse(wrapEl.dataset.jpShowWhen);
+                } catch (e) {
+                    console.warn('- jPulse.schemaForm: invalid showWhen JSON on', wrapEl);
+                    return;
+                }
+                const deps = jPulse.schemaForm._collectShowWhenDeps(condition);
+                const evaluate = () => {
+                    const visible = jPulse.schemaForm.evalShowWhen(condition, formEl);
+                    jPulse.schemaForm._setFieldVisibility(wrapEl, visible);
+                };
+                evaluate();
+                evaluators.push({ wrapEl, condition, deps, evaluate });
+                deps.forEach((dep) => {
+                    if (!depMap.has(dep)) depMap.set(dep, []);
+                    depMap.get(dep).push(evaluate);
+                });
+            });
+            const onChange = (e) => {
+                const target = e.target;
+                if (!target) return;
+                let path = target.dataset && target.dataset.path;
+                if (!path) {
+                    const wrap = target.closest && target.closest('.jp-schema-field');
+                    if (wrap) {
+                        const dp = wrap.querySelector('[data-path]');
+                        if (dp) path = dp.dataset.path;
+                    }
+                }
+                if (!path) return;
+                const evals = depMap.get(path);
+                if (evals) evals.forEach((fn) => fn());
+            };
+            formEl.addEventListener('change', onChange);
+            formEl.addEventListener('input', onChange);
+            jPulse.schemaForm._showWhenHandlers.set(formEl, onChange);
         }
     },
 

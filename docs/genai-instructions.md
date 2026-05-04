@@ -1,4 +1,4 @@
-# jPulse Docs / Generative-AI Instructions for AI Assistants v1.6.45
+# jPulse Docs / Generative-AI Instructions for AI Assistants v1.6.46
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
@@ -52,6 +52,15 @@ Instructions for AI assistants working with jPulse Framework site development. T
    - Never modify `webapp/view/jpulse-common.js` (framework-managed)
    - See [jPulse.UI Widget Reference](jpulse-ui-reference.md)
    - **Config-style forms**: Use schema-driven tabs/panels and setFormData/getFormData; see [Schema-driven config forms](front-end-development.md#-schema-driven-config-forms) in the Front-End Development Guide
+   - **Schema-form generator**: For dynamic forms (config UI, plugin config, widget settings), prefer the schema-driven flow over hand-rolling field renderers:
+     - Set `inputType` per field (`text`, `email`, `number`, `select`, `jpSelect`, `jpCombo`, `radio`, `checkboxGroup`, `tagInput`, `slider`, `help`, `separator`, etc.)
+     - For widgets, use **flat tuning keys** on the field def: `search`, `searchPlaceholder`, `selectAll`, `allowCustom`, `multiple` (matches the existing `slider` precedent — no nested `widgetOptions` wrapper)
+     - For async option lists, set `loadOptions: async (ctx) => […]` (function in JS schemas; named string in `plugin.json` resolved via `jPulse.schemaForm.register(name, fn)`)
+     - For conditional visibility, use **`showWhen: { field, equals/notEquals, all/any }`** instead of writing change-listener boilerplate in `onInit`
+     - For advanced widget callbacks not covered by flat keys, use `onInit(ctx)` and mutate `ctx.widgetOptions` (runs after `loadOptions`, before widget init)
+     - In `plugin.json`, the framework's `pluginSchemaToBlocks` adapter normalizes legacy single-`type` field defs (`type: 'select'` etc.) — see the [normalization table](jpulse-ui-reference.md#pluginjson-legacy-type--unified-type-inputtype-normalization)
+     - Full reference: [Schema-Driven Form Generator](jpulse-ui-reference.md#schema-driven-form-generator) in `jpulse-ui-reference.md`
+     - **`type` vs `inputType`**: `type` is the data type (`'string'` / `'number'` / `'boolean'` / `'array'`) used by `getFormData` for value coercion; `inputType` is the rendering widget. They are orthogonal — use both keys explicitly in JS schemas (e.g. `{ type: 'string', inputType: 'jpCombo' }`).
 
 7. **ISO Dates**: Always use YYYY-MM-DD format via `jPulse.date.formatLocalDate()`
    - Never use browser's toLocaleDateString() or localized formats
@@ -171,14 +180,14 @@ site/webapp/view/jpulse-common.css              ← Site styles (site-* prefix, 
 - **USE these classes**, never create new `jp-*` classes
 
 **Plugin CSS** (`plugins/[name]/webapp/view/jpulse-common.css`):
-- Automatically appended to framework CSS (W-098 append mode)
+- Automatically appended to framework CSS
 - Loaded in plugin dependency order
 - Use plugin-specific prefixes to avoid conflicts
 - Read-only unless you're developing the plugin
 
 **Site CSS** (`site/webapp/view/jpulse-common.css`):
 - Create from `site/webapp/view/jpulse-common.css.tmpl` if missing
-- Automatically appended after framework and plugin CSS (W-098 append mode)
+- Automatically appended after framework and plugin CSS
 - Use for site-wide custom styles shared across multiple pages
 - Use `site-*` prefix (e.g., .site-header, .site-feature-card)
 - Loaded last, can override framework and plugin styles
@@ -203,14 +212,14 @@ site/webapp/view/jpulse-common.js               ← Site utilities (appended) - 
 - **USE these utilities**, never modify this file
 
 **Plugin JavaScript** (`plugins/[name]/webapp/view/jpulse-common.js`):
-- Automatically appended to framework JavaScript (W-098 append mode)
+- Automatically appended to framework JavaScript
 - Loaded in plugin dependency order
 - Use plugin-specific namespaces to avoid conflicts
 - Read-only unless you're developing the plugin
 
 **Site JavaScript** (`site/webapp/view/jpulse-common.js`):
 - Create from `site/webapp/view/jpulse-common.js.tmpl` if missing
-- Automatically appended after framework and plugin JavaScript (W-098 append mode)
+- Automatically appended after framework and plugin JavaScript
 - Optional - only create if you have site-wide custom utilities
 - Use different namespace (e.g., site.utils.*) to avoid conflicts
 - Loaded last, can extend framework and plugin utilities

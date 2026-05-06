@@ -19420,3 +19420,28 @@ Reviewed `tt-git-diff.txt` against W-189: initial CHANGELOG/README bullets match
 
 
 ============================================================
+2026-05-05 19:47
+
+make the changes
+
+Updated templates/deploy/nginx.prod.conf, docs/security-and-auth.md, and docs/deployment.md to add a dedicated rate-limit zone (150r/s) and location block for /assets/, resolving 429s from parallel client requests, with appropriate documentation around trailing slashes and multi-vhost zone definitions.
+
+
+============================================================
+2026-05-05 19:54
+
+- review @tt-git-diff.txt for accuracy and completness of work item
+
+- create  W-190 work-items to document work done (don't change status, don't make any other changes to this file)
+
+Reviewed tt-git-diff vs intended nginx/assets work: matches templates/deploy/nginx.prod.conf, docs/security-and-auth.md, docs/deployment.md; noted cursor_log churn and work-items section reorder in diff as unrelated to feature scope. Filled W-190 in docs/dev/work-items.md (status left PENDING, type Documentation) with objectives, features, deliverables; no other edits in that file.
+
+============================================================
+2026-05-06 19:59
+
+release prep: - assume W-190, v1.6.47, 2026-05-06 ... @work-items.md (6283-6285)
+
+Added v1.6.47 / W-190 Latest Release Highlights bullets to README.md and docs/README.md; inserted full CHANGELOG section after intro; replaced commit-message.txt with W-190 release message. Left repo version headers at v1.6.46 per request (bump script later). Appended cursor_log.
+
+
+============================================================

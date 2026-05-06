@@ -1,4 +1,4 @@
-# jPulse Docs / Production Deployment Guide v1.6.46
+# jPulse Docs / Production Deployment Guide v1.6.47
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -263,6 +263,7 @@ ls -la site/webapp/static/
 # - Check nginx.prod.conf static file paths
 # - Verify file ownership (should be readable by nginx)
 # - Clear browser cache
+# - If getting 429 Too Many Requests on /assets/, ensure the assets rate limit zone is configured
 ```
 
 ### Validation and Recovery

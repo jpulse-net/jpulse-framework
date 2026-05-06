@@ -3,8 +3,8 @@
  * @tagline         Unit tests for PluginController._validatePluginName() security function
  * @description     Tests plugin name validation to prevent path traversal attacks
  * @file            webapp/tests/unit/controller/plugin-controller-validation.test.js
- * @version         1.6.46
- * @release         2026-05-04
+ * @version         1.6.47
+ * @release         2026-05-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

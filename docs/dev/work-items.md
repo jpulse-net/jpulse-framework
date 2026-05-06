@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.46
+# jPulse Docs / Dev / Work Items v1.6.47
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -6036,14 +6036,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `README.md`, `docs/README.md` — Latest Release Highlights — v1.6.45 / W-188
   - `docs/CHANGELOG.md` — v1.6.45 / W-188 section
 
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-189, v1.6.46, 2026-05-04: jPulse.UI: schema-form generator, async loadOptions, onInit lifecycle hook, showWhen conditional visibility, jpSelect/jpCombo input types; plugin-config consolidation
 - status: ✅ DONE
 - type: Feature
@@ -6228,6 +6220,36 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-190, v1.6.47, 2026-05-06: deployment: nginx sample — dedicated /assets/ rate-limit zone & docs (avoid 429 / MIME pitfalls)
+- status: ✅ DONE
+- type: Deployment
+- objectives:
+  - stop legitimate bursty parallel `GET /assets/...` (e.g. many SVG icons) from tripping the same nginx limit as `location /` (`general` was 30 r/s), which surfaces as HTTP 429 and broken loads (“script MIME type text/html” when HTML error pages replace asset responses)
+  - document nginx pitfalls for this prefix: `proxy_pass` must not use a trailing URI on the upstream side for `/assets/`, or the `/assets/` prefix is stripped and the app sees wrong paths (404 + MIME confusion)
+  - document split / multi-vhost setups: `limit_req_zone` must be defined once (e.g. shared `http`-level include); site snippets only reference zones via `limit_req` in `location` blocks — no duplicate zone definitions
+- features:
+  - new `limit_req_zone ... zone=assets:10m rate=150r/s` (materially higher than `general` 30 r/s)
+  - new `location ^~ /assets/` before `location /`, with `limit_req zone=assets burst=200 nodelay`, `limit_req_status 429`, and `proxy_pass http://%UPSTREAM_NAME%;` (no path after upstream name — preserves full `/assets/...` URI), matching proxy headers and timeouts used by `location /` (Upgrade, Connection, Host, X-Real-IP, X-Forwarded-For, X-Forwarded-Proto, cache bypass; connect 30s, send/read 60s)
+  - comments in the template for shared-include / duplicate-zone guidance and for the trailing-slash `proxy_pass` mistake
+  - security / deployment docs cross-links: rate-limit snippet extended with `assets` zone + location; pointer that canonical numbers live in `templates/deploy/nginx.prod.conf`; production checklist notes `/assets/` may need a separate limit class; deployment troubleshooting adds 429-on-`/assets/` hint
+- deliverables:
+  - `templates/deploy/nginx.prod.conf`:
+    - `limit_req_zone` for `assets`; multi-vhost comment above zone definitions
+    - `location ^~ /assets/` block as above (including trailing-slash warning comment)
+  - `docs/security-and-auth.md`:
+    - Rate Limiting example: `assets` zone, abbreviated `location ^~ /assets/` snippet, sentence pointing to canonical `templates/deploy/nginx.prod.conf`
+    - Production best practices: `/assets/` proxied to Node may need higher limit than general traffic
+  - `docs/deployment.md`:
+    - Static File Issues troubleshooting: bullet on 429 + configuring assets rate limit zone
+
+
+
+
+
+
 
 ### Pending
 
@@ -6255,8 +6277,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-189, v1.6.46, 2026-05-04
-- update features & deliverables in W-189 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume W-190, v1.6.47, 2026-05-06
+- update features & deliverables in W-190 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -6267,12 +6289,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.46 2026-05-04
+node bin/bump-version.js 1.6.47 2026-05-06
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.46; git push origin main --tags
+git tag v1.6.47; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

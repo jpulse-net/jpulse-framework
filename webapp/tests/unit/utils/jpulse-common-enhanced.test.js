@@ -3,8 +3,8 @@
  * @tagline         Unit tests for jPulse date and API error handling utilities
  * @description     Unit tests for jPulse enhanced utilities (W-072)
  * @file            webapp/tests/unit/utils/jpulse-common-enhanced.test.js
- * @version         1.6.46
- * @release         2026-05-04
+ * @version         1.6.47
+ * @release         2026-05-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

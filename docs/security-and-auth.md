@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.6.46
+# jPulse Docs / Security & Authentication v1.6.47
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -294,6 +294,7 @@ nginx provides rate limiting for different endpoint types:
 limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
 limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
 limit_req_zone $binary_remote_addr zone=general:10m rate=30r/s;
+limit_req_zone $binary_remote_addr zone=assets:10m rate=150r/s;
 
 # API endpoints: 10 requests/second (burst: 20)
 location /api/ {
@@ -305,11 +306,19 @@ location ~ ^/(login|signup|auth)/ {
     limit_req zone=login burst=5 nodelay;
 }
 
+# Assets endpoints: 150 requests/second (burst: 200)
+# (Separated to avoid 429s on legitimate heavy static loads)
+location ^~ /assets/ {
+    limit_req zone=assets burst=200 nodelay;
+}
+
 # General requests: 30 requests/second (burst: 50)
 location / {
     limit_req zone=general burst=50 nodelay;
 }
 ```
+
+Canonical numbers and the exact `location` mapping can be found in `templates/deploy/nginx.prod.conf`.
 
 ### SSL/TLS Configuration
 
@@ -456,7 +465,7 @@ For authenticated namespaces, **connection context (`ctx`) is established at upg
 1. **Change session secret**: Use strong, unique secret per deployment
 2. **Enable HTTPS**: Always use HTTPS in production
 3. **Secure cookies**: Enable `secure` flag for cookies
-4. **Rate limiting**: Configure appropriate rate limits for your traffic
+4. **Rate limiting**: Configure appropriate rate limits for your traffic. Note that `/assets/` is proxied to Node and may need a separate, higher limit in nginx compared to general traffic to avoid 429s on bursty legitimate loads.
 5. **Monitor logs**: Set up monitoring for authentication failures and security events
 6. **Regular updates**: Keep dependencies updated for security patches
 7. **Access control**: Use principle of least privilege for user roles

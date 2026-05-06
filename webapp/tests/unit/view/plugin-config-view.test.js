@@ -3,8 +3,8 @@
  * @tagline         Structural tests for plugin-config save validation
  * @description     Verifies the plugin-config view validates the form before serializing schema data.
  * @file            webapp/tests/unit/view/plugin-config-view.test.js
- * @version         1.6.46
- * @release         2026-05-04
+ * @version         1.6.47
+ * @release         2026-05-06
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

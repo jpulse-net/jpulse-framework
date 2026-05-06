@@ -1,6 +1,35 @@
-# jPulse Docs / Version History v1.6.46
+# jPulse Docs / Version History v1.6.47
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.47, W-190, 2026-05-06
+
+**Commit:** `W-190, v1.6.47: deployment: nginx sample — dedicated /assets/ rate-limit zone & docs (avoid 429 / MIME pitfalls)`
+
+**Objective**: Give `/assets/` (proxied to Node, unlike `/static/` served by nginx disk `alias`) its own nginx rate-limit class so parallel legitimate asset requests do not exhaust the `general` zone (**30 r/s**, burst 50) and return HTTP **429**. Document correct `proxy_pass` shape and multi-vhost `limit_req_zone` hygiene.
+
+**Summary**: Add `limit_req_zone $binary_remote_addr zone=assets:10m rate=150r/s` and insert `location ^~ /assets/` **before** `location /` with `limit_req zone=assets burst=200 nodelay`, `limit_req_status 429`, and the same Upgrade/Connection/forwarded headers and timeouts as `location /`. Use `proxy_pass http://%UPSTREAM_NAME%;` with **no** URI suffix after the upstream name so the full `/assets/...` path reaches the app (a trailing slash on `proxy_pass` would strip the prefix and cause 404 / wrong `Content-Type`). Comments note shared-include deployments: each zone is defined once at `http` level; site-specific files only reference zones via `limit_req` inside `location` blocks.
+
+**Key features**:
+- Dedicated **`assets`** rate-limit zone at **150 r/s** with **burst 200** for `/assets/`.
+- **`location ^~ /assets/`** precedence before catch-all `/`.
+- Template comments: **`proxy_pass`** trailing-slash pitfall; **duplicate `limit_req_zone`** pitfall for multi-vhost.
+
+**Files changed**:
+- `templates/deploy/nginx.prod.conf` — zones comment; `assets` zone; `location ^~ /assets/` block
+- `docs/security-and-auth.md` — Rate Limiting snippet (`assets` zone + location); canonical pointer; production checklist bullet on `/assets/` vs general limits
+- `docs/deployment.md` — Static file troubleshooting: 429 on `/assets/` / assets zone note
+
+**Documentation**:
+- `README.md`, `docs/README.md` — Latest Release Highlights — v1.6.47 / W-190
+- `docs/CHANGELOG.md` — this section
+- `docs/dev/work-items.md` — W-190 objectives/features/deliverables
+
+**Release**:
+- Work Item: W-190
+- Version: v1.6.47
+- Release Date: 2026-05-06
 
 ________________________________________________
 ## v1.6.46, W-189, 2026-05-04

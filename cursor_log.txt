@@ -19445,3 +19445,58 @@ Added v1.6.47 / W-190 Latest Release Highlights bullets to README.md and docs/RE
 
 
 ============================================================
+2026-05-23 17:29
+
+new feature needed: schema defined input fields in table structure — implement W-191
+
+Implemented W-191 rowTable input type across two framework files:
+- webapp/view/jpulse-common.css: added jp-row-table-wrap, jp-row-table, th, td, and cell-input rules for layout and sizing
+- webapp/view/jpulse-common.js (4 changes):
+  1. _renderSchemaBlockFields: new rowTable case after separator block; renders full-width table with data-columns JSON, data-empty-rows, data-max-rows; emptyRows initial empty <tr> rows; per-column td with native input/select/checkbox; one hidden jp-edit-field proxy input
+  2. initAll: new input[data-row-table]:not([data-row-table-inited]) handler; inner closures isRowEmpty (text/number only), buildRow (DOM-based), reindexRows, adjustRows (grows/shrinks trailing empty rows to emptyRows buffer capped at maxRows), serializeRows (skips empty rows, JSON-stringifies, dispatches bubbling change); init phase populates from hidden-field JSON; re-entry guard on change
+  3. setFormData: rowTable array→JSON-string pre-conversion (maxRows slice) before setAllValues
+  4. getFormData: rowTable JSON-string→array post-conversion ([] fallback) before setByPath
+- docs/dev/work-items.md: W-191 deliverables section filled in
+
+
+============================================================
+2026-05-23 17:37
+
+yes, rename to fieldGrid
+
+Renamed inputType from rowTable to fieldGrid across all implementation files:
+- webapp/view/jpulse-common.js: replaced inputType 'rowTable'→'fieldGrid' (3 occurrences), data-row-table→data-field-grid, data-row-table-inited→data-field-grid-inited, rowTableInited→fieldGridInited, jp-row-table-wrap→jp-field-grid-wrap, jp-row-table→jp-field-grid CSS class strings, table.jp-row-table selector
+- webapp/view/jpulse-common.css: renamed all .jp-row-table* rules to .jp-field-grid* (comment + 8 selectors)
+- docs/dev/work-items.md: updated W-191 title, features, and deliverables to use fieldGrid / jp-field-grid / data-field-grid throughout
+- cursor_log.txt: appended entry
+
+
+============================================================
+2026-05-23 18:55
+
+create the tests (go on — all pass)
+
+Created webapp/tests/unit/utils/jpulse-ui-input-fieldgrid.test.js: 41 tests across 5 groups covering _renderSchemaBlockFields HTML output (15 tests), initAll init phase (7), initAll adjustRows (5), initAll serializeRows (6), setFormData/getFormData (8). During test run discovered and fixed a renderer bug: the data-columns JSON was embedded in the HTML attribute using escapeHtml (which does not escape double quotes via div.innerHTML), causing JSDOM to truncate the attribute at the first " and leaving buildRow with columns=[]; fixed by replacing escapeHtml with JSON.stringify(...).replace(/"/g, '&quot;'). Also fixed 3 test assertions whose expectations did not match the actual correct behavior (empty-columns th check, adjustRows semantics when typing into last vs first row, select-value serialization when cells are blank). All 41 new tests pass; full suite passes. Updated W-191 deliverables with test file and renderer bug-fix note. Updated cursor_log.txt.
+
+
+============================================================
+2026-05-23 19:00
+
+update docs as needed: front-end-development.md, jpulse-ui-reference.md etc
+
+Updated documentation for W-191 fieldGrid input type:
+- docs/jpulse-ui-reference.md: new fieldGrid section under Schema-Driven Form Generator (schema example, field keys, column inputTypes, behavior); fieldGrid row in Supported inputType values table; updated Schema inputTypes lists, setFormData/getFormData notes, initAll description
+- docs/front-end-development.md: fieldGrid in schema field list; new fieldGrid subsection with example and cross-link
+- docs/genai-instructions.md: fieldGrid in inputType list with one-line usage note
+- docs/dev/work-items.md: W-191 deliverables updated with doc file entries
+
+
+============================================================
+2026-05-23 19:15
+
+release prep: W-191, v1.6.48, 2026-05-23 — review tt-git-diff, update README/CHANGELOG/commit-message
+
+Reviewed tt-git-diff.txt against W-191: diff matches work item deliverables (jpulse-common.js/css, fieldgrid test file, docs). No missing code files. Added release docs not yet in diff: README.md and docs/README.md Latest Release Highlights (v1.6.48 / W-191); docs/CHANGELOG.md v1.6.48 section; commit-message.txt; W-191 status DONE, manual verify checklist, release doc deliverables. Left version headers at v1.6.47 per bump-script workflow. Did not commit.
+
+
+============================================================

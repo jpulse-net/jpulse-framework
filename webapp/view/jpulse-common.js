@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.47
- * @release         2026-05-06
+ * @version         1.6.48
+ * @release         2026-05-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1177,6 +1177,137 @@ window.jPulse = {
                         // Skip element if init fails
                     }
                 });
+                root.querySelectorAll('input[data-field-grid]:not([data-field-grid-inited])').forEach((hiddenEl) => {
+                    try {
+                        hiddenEl.dataset.fieldGridInited = '1';
+                        const wrapEl = document.getElementById(hiddenEl.dataset.fieldGrid);
+                        if (!wrapEl) return;
+                        const tableEl = wrapEl.querySelector('table.jp-field-grid');
+                        if (!tableEl) return;
+                        const tbodyEl = tableEl.querySelector('tbody');
+                        if (!tbodyEl) return;
+
+                        const emptyRows = Math.max(1, parseInt(wrapEl.dataset.emptyRows, 10) || 2);
+                        const maxRows = Math.max(emptyRows, parseInt(wrapEl.dataset.maxRows, 10) || 16);
+                        let columns = [];
+                        try { columns = JSON.parse(tableEl.dataset.columns || '[]'); } catch (_) { columns = []; }
+
+                        const isRowEmpty = function(tr) {
+                            let empty = true;
+                            tr.querySelectorAll('[data-col-id]').forEach(function(cell) {
+                                if (cell.type !== 'checkbox' && cell.tagName !== 'SELECT') {
+                                    if (cell.value !== '') empty = false;
+                                }
+                            });
+                            return empty;
+                        };
+
+                        const buildRow = function(rowIdx) {
+                            const tr = document.createElement('tr');
+                            tr.dataset.rowIdx = String(rowIdx);
+                            columns.forEach(function(col) {
+                                const td = document.createElement('td');
+                                let cell;
+                                const colInputType = col.inputType || 'text';
+                                if (colInputType === 'select') {
+                                    cell = document.createElement('select');
+                                    (col.options || []).forEach(function(opt) {
+                                        const ov = (opt && typeof opt === 'object' && opt.value !== undefined) ? opt.value : String(opt);
+                                        const ol = (opt && typeof opt === 'object' && opt.label !== undefined) ? opt.label : ov;
+                                        const o = document.createElement('option');
+                                        o.value = ov;
+                                        o.textContent = ol;
+                                        if (col.default !== undefined && String(ov) === String(col.default)) o.selected = true;
+                                        cell.appendChild(o);
+                                    });
+                                } else if (colInputType === 'checkbox') {
+                                    cell = document.createElement('input');
+                                    cell.type = 'checkbox';
+                                } else {
+                                    cell = document.createElement('input');
+                                    cell.type = colInputType === 'number' ? 'number' : 'text';
+                                    if (col.placeholder) cell.placeholder = String(col.placeholder);
+                                }
+                                cell.dataset.colId = String(col.id || '');
+                                td.appendChild(cell);
+                                tr.appendChild(td);
+                            });
+                            return tr;
+                        };
+
+                        const reindexRows = function() {
+                            tbodyEl.querySelectorAll('tr[data-row-idx]').forEach(function(tr, i) {
+                                tr.dataset.rowIdx = String(i);
+                            });
+                        };
+
+                        const adjustRows = function() {
+                            const allRows = Array.from(tbodyEl.querySelectorAll('tr[data-row-idx]'));
+                            let tail = allRows.length - 1;
+                            while (tail >= 0 && isRowEmpty(allRows[tail])) tail--;
+                            const dataCount = tail + 1;
+                            const currentTotal = allRows.length;
+                            let targetTotal = dataCount + emptyRows;
+                            if (targetTotal > maxRows) targetTotal = maxRows;
+                            if (targetTotal < emptyRows) targetTotal = emptyRows;
+                            if (currentTotal > targetTotal) {
+                                for (let i = currentTotal - 1; i >= targetTotal; i--) {
+                                    allRows[i].remove();
+                                }
+                            } else if (currentTotal < targetTotal) {
+                                for (let i = currentTotal; i < targetTotal; i++) {
+                                    tbodyEl.appendChild(buildRow(i));
+                                }
+                            }
+                            reindexRows();
+                        };
+
+                        const serializeRows = function() {
+                            const result = [];
+                            tbodyEl.querySelectorAll('tr[data-row-idx]').forEach(function(tr) {
+                                if (isRowEmpty(tr)) return;
+                                const rowData = {};
+                                tr.querySelectorAll('[data-col-id]').forEach(function(cell) {
+                                    rowData[cell.dataset.colId] = (cell.type === 'checkbox') ? cell.checked : cell.value;
+                                });
+                                result.push(rowData);
+                            });
+                            hiddenEl.value = JSON.stringify(result);
+                            hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                        };
+
+                        // Init phase: parse JSON, grow rows, populate cells
+                        let rows = [];
+                        try { rows = JSON.parse(hiddenEl.value || '[]'); } catch (_) { rows = []; }
+                        if (!Array.isArray(rows)) rows = [];
+
+                        const neededRows = Math.min(rows.length + emptyRows, maxRows);
+                        const existingRows = tbodyEl.querySelectorAll('tr[data-row-idx]').length;
+                        for (let i = existingRows; i < neededRows; i++) {
+                            tbodyEl.appendChild(buildRow(i));
+                        }
+                        reindexRows();
+
+                        tbodyEl.querySelectorAll('tr[data-row-idx]').forEach(function(tr) {
+                            const idx = parseInt(tr.dataset.rowIdx, 10);
+                            const rowData = (rows[idx] && typeof rows[idx] === 'object') ? rows[idx] : {};
+                            tr.querySelectorAll('[data-col-id]').forEach(function(cell) {
+                                const colId = cell.dataset.colId;
+                                const v = rowData[colId] !== undefined ? rowData[colId] : '';
+                                if (cell.type === 'checkbox') cell.checked = v === true || v === 'true';
+                                else cell.value = String(v);
+                            });
+                        });
+
+                        // Ongoing phase: wire events
+                        wrapEl.addEventListener('input', function() { adjustRows(); serializeRows(); });
+                        wrapEl.addEventListener('change', function(e) {
+                            if (e.target === hiddenEl) return;
+                            adjustRows();
+                            serializeRows();
+                        });
+                    } catch (_) {}
+                });
             },
 
             /**
@@ -1369,6 +1500,13 @@ window.jPulse = {
                         if (Array.isArray(value)) value = (value || []).map((v) => String(v).trim().toLowerCase()).filter(Boolean);
                         else if (typeof value === 'string') value = value.trim().toLowerCase();
                     }
+                    if (fieldDef.inputType === 'fieldGrid') {
+                        if (typeof value !== 'string') {
+                            const arr = Array.isArray(value) ? value : [];
+                            const maxRowsCount = Math.max(1, parseInt(fieldDef.maxRows, 10) || 16);
+                            value = JSON.stringify(arr.slice(0, maxRowsCount));
+                        }
+                    }
                     jPulse.UI.input.setByPath(result, path, value);
                 }
                 jPulse.UI.input.setAllValues(form, result);
@@ -1403,6 +1541,12 @@ window.jPulse = {
                     if (fieldDef.normalize === 'lowercase') {
                         if (Array.isArray(value)) value = (value || []).map((v) => String(v).trim().toLowerCase()).filter(Boolean);
                         else if (typeof value === 'string') value = value.trim().toLowerCase();
+                    }
+                    if (fieldDef.inputType === 'fieldGrid') {
+                        if (typeof value === 'string') {
+                            try { value = JSON.parse(value); } catch (_) { value = []; }
+                        }
+                        if (!Array.isArray(value)) value = [];
                     }
                     jPulse.UI.input.setByPath(result, path, value);
                 }
@@ -4451,6 +4595,58 @@ window.jPulse = {
 
                     if (inputType === 'separator') {
                         parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-divider">' + (label ? '<span>' + escapedLabel + '</span>' : '') + '</div></div>');
+                        continue;
+                    }
+
+                    if (inputType === 'fieldGrid') {
+                        const rtEmptyRows = Math.max(1, parseInt(fieldDef.emptyRows, 10) || 2);
+                        const rtMaxRows = Math.max(rtEmptyRows, parseInt(fieldDef.maxRows, 10) || 16);
+                        const rtColumns = Array.isArray(fieldDef.columns) ? fieldDef.columns : [];
+                        const rtColumnsJson = JSON.stringify(rtColumns).replace(/"/g, '&quot;');
+                        let rtWrapClass = wrapClass;
+                        if (rtWrapClass.indexOf('jp-schema-field-new-row') < 0) rtWrapClass += ' jp-schema-field-new-row';
+                        if (rtWrapClass.indexOf('jp-schema-field-full') < 0) rtWrapClass += ' jp-schema-field-full';
+                        const rtThHtml = rtColumns.map(function(col) {
+                            const w = (col.width && typeof col.width === 'string') ? col.width : 'auto';
+                            const colLabel = (col.label && typeof col.label === 'string') ? escape(col.label) : '';
+                            return '<th style="width:' + w + '">' + colLabel + '</th>';
+                        }).join('');
+                        const rtBuildCellHtml = function(col) {
+                            const colId = escape(String(col.id || ''));
+                            const colInputType = col.inputType || 'text';
+                            if (colInputType === 'select') {
+                                const optionsHtml = (col.options || []).map(function(opt) {
+                                    const ov = (opt && typeof opt === 'object' && opt.value !== undefined) ? opt.value : opt;
+                                    const ol = (opt && typeof opt === 'object' && opt.label !== undefined) ? opt.label : ov;
+                                    const sel = (col.default !== undefined && String(ov) === String(col.default)) ? ' selected' : '';
+                                    return '<option value="' + escape(String(ov)) + '"' + sel + '>' + escape(String(ol)) + '</option>';
+                                }).join('');
+                                return '<td><select data-col-id="' + colId + '">' + optionsHtml + '</select></td>';
+                            } else if (colInputType === 'checkbox') {
+                                return '<td><input type="checkbox" data-col-id="' + colId + '"></td>';
+                            } else {
+                                const t = colInputType === 'number' ? 'number' : 'text';
+                                const ph = (col.placeholder && typeof col.placeholder === 'string') ? ' placeholder="' + escape(col.placeholder) + '"' : '';
+                                return '<td><input type="' + t + '" data-col-id="' + colId + '"' + ph + '></td>';
+                            }
+                        };
+                        const rtTrHtml = Array.from({ length: rtEmptyRows }, function(_, i) {
+                            return '<tr data-row-idx="' + i + '">' + rtColumns.map(rtBuildCellHtml).join('') + '</tr>';
+                        }).join('');
+                        parts.push(
+                            '<div class="' + rtWrapClass + '"' + wrapAttrs + '>' +
+                            '<div class="jp-form-group">' +
+                            '<label class="jp-form-label">' + escapedLabel + '</label>' +
+                            '<div id="' + inputId + '-wrap" class="jp-field-grid-wrap" data-empty-rows="' + rtEmptyRows + '" data-max-rows="' + rtMaxRows + '">' +
+                            '<table class="jp-field-grid" data-columns="' + rtColumnsJson + '">' +
+                            '<thead><tr>' + rtThHtml + '</tr></thead>' +
+                            '<tbody>' + rtTrHtml + '</tbody>' +
+                            '</table>' +
+                            '</div>' +
+                            '<input type="hidden" id="' + inputId + '" name="' + name + '" class="jp-edit-field" ' + dataPathAttr + ' data-field-grid="' + inputId + '-wrap">' +
+                            helpHtml +
+                            '</div></div>'
+                        );
                         continue;
                     }
 

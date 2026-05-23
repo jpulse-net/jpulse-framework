@@ -1,6 +1,39 @@
-# jPulse Docs / Version History v1.6.47
+# jPulse Docs / Version History v1.6.48
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.48, W-191, 2026-05-23
+
+**Commit:** `W-191, v1.6.48: schema form: fieldGrid input type — dynamic typed-column grid`
+
+**Objective**: Add a schema-form `inputType` for structured multi-row grids — filter rules, column mappings, pipeline options — without hand-rolling table HTML or custom save/load glue. Value is a JSON array of row objects; the UI grows and shrinks organically as the admin types.
+
+**Summary**: New **`inputType: 'fieldGrid'`** renders a full-width `.jp-field-grid` table with configurable typed columns (`text`, `number`, `select`, `checkbox`). One hidden `<input class="jp-edit-field" data-field-grid>` holds the serialized JSON; cell inputs are pure UI. `initAll` parses saved data, maintains `emptyRows` (default 2) trailing empty rows, caps at `maxRows` (default 16), filters empty rows on serialize, and dispatches bubbling `change`. `setFormData` JSON-stringifies array values (with `maxRows` slice); `getFormData` parses back to `[]` on error. Column definitions stored on `<table data-columns="…">` with `"` escaped as `&quot;` so dynamic row creation works in JSDOM and browsers. Native controls only inside cells (no nested jpSelect/jpCombo).
+
+**Key features**:
+- **`fieldGrid` schema field** — `columns[]`, `emptyRows`, `maxRows`, optional `help`.
+- **Organic row growth/shrinkage** — no Add/Delete buttons; empty rows never persisted.
+- **Hidden proxy pattern** — compatible with existing `setFormData`, `getFormData`, `getAllValues`, `initAll`.
+- **41 unit tests** — render, init, adjustRows, serializeRows, setFormData/getFormData round-trip.
+
+**Files changed**:
+- `webapp/view/jpulse-common.js` — `_renderSchemaBlockFields` fieldGrid case; `initAll` `input[data-field-grid]` handler; `setFormData`/`getFormData` array↔JSON conversion
+- `webapp/view/jpulse-common.css` — `.jp-field-grid-wrap`, `.jp-field-grid` layout rules
+- `webapp/tests/unit/utils/jpulse-ui-input-fieldgrid.test.js` — new (41 tests)
+
+**Documentation**:
+- `docs/jpulse-ui-reference.md` — fieldGrid section, inputType table row, setFormData/getFormData notes, initAll
+- `docs/front-end-development.md` — fieldGrid subsection under schema-driven config forms
+- `docs/genai-instructions.md` — fieldGrid in schema-form inputType list
+- `README.md`, `docs/README.md` — Latest Release Highlights — v1.6.48 / W-191
+- `docs/CHANGELOG.md` — this section
+- `docs/dev/work-items.md` — W-191 objectives/features/deliverables
+
+**Release**:
+- Work Item: W-191
+- Version: v1.6.48
+- Release Date: 2026-05-23
 
 ________________________________________________
 ## v1.6.47, W-190, 2026-05-06

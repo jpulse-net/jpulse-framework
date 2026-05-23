@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.6.47
- * @release         2026-05-06
+ * @version         1.6.48
+ * @release         2026-05-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1648,6 +1648,39 @@ body {
 }
 .jp-form-checkbox-group input[type="checkbox"] {
     margin: 0;
+}
+
+/* Field grid widget (W-191): structured typed-column grid stored as JSON array */
+.jp-field-grid-wrap {
+    overflow-x: auto;
+}
+.jp-field-grid {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+.jp-field-grid th {
+    text-align: left;
+    padding: 4px 8px 6px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--jp-theme-text-secondary, #666);
+    border-bottom: 1px solid var(--jp-theme-border-dark, #ddd);
+    white-space: nowrap;
+}
+.jp-field-grid td {
+    padding: 2px 4px;
+    vertical-align: middle;
+}
+.jp-field-grid td input[type="text"],
+.jp-field-grid td input[type="number"],
+.jp-field-grid td select {
+    width: 100%;
+    box-sizing: border-box;
+}
+.jp-field-grid td input[type="checkbox"] {
+    display: block;
+    margin: 0 auto;
 }
 
 /* Tag input widget (W-148): wrapper looks like single input; tags as pills */

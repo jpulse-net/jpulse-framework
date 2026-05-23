@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.6.47
+# jPulse Docs / Front-End Development Guide v1.6.48
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -655,7 +655,7 @@ jPulse.UI.tabs.renderTabsAndPanelsFromSchema(
 
 - Creates one tab button per block in `schema.data` (ordered by `_meta.order`).
 - Creates one panel per block with a flow layout div (`.jp-form-flow`, `.jp-form-flow-cols-N`).
-- Renders fields from schema (`text`, `password`, `email`, `url`, `tel`, `number`, `slider`, `textarea`, `checkbox`, `radio`, `checkboxGroup`, `select`, `jpSelect`, `jpCombo`, `tagInput`, `help`, `separator`, `button`).
+- Renders fields from schema (`text`, `password`, `email`, `url`, `tel`, `number`, `slider`, `textarea`, `checkbox`, `radio`, `checkboxGroup`, `select`, `jpSelect`, `jpCombo`, `tagInput`, `fieldGrid`, `help`, `separator`, `button`).
 - Virtual buttons: `type: 'button'` with `action: 'actionName'` render as buttons; wire handlers via `button[data-action]` delegation.
 - Returns a handle with a `.ready` Promise that resolves after async `loadOptions` / `onInit` settle (see "Async options & lifecycle" below).
 
@@ -779,6 +779,34 @@ region: { type: 'string', inputType: 'select',
 - HTML5 `required` is auto-skipped on hidden fields and restored when shown.
 - Widget instance is preserved (no re-init when shown again).
 - Operators in v1: `equals`, `notEquals` (scalar or array). Compounds: `all`, `any`.
+
+### fieldGrid — structured column grid
+
+Use **`inputType: 'fieldGrid'`** for a table of typed columns stored as an array of row objects — filter rules, mappings, pipeline options, etc. The grid grows/shrinks as the user types; no Add/Delete buttons.
+
+```javascript
+// In schema field definition:
+filters: {
+    label: 'Filter Grid',
+    type: 'array',
+    inputType: 'fieldGrid',
+    emptyRows: 2,    // trailing empty rows (default 2)
+    maxRows: 16,     // cap on total rows (default 16)
+    columns: [
+        { id: 'col', label: 'Column', inputType: 'text',   width: '35%', placeholder: 'Column name' },
+        { id: 'op',  label: 'Op',     inputType: 'select', width: '15%',
+          options: [{ value: '==', label: '==' }, { value: '!=', label: '!=' }], default: '==' },
+        { id: 'val', label: 'Value',  inputType: 'text',   width: '50%' }
+    ]
+}
+```
+
+- **Value:** `[{ col: 'status', op: '==', val: 'open' }, …]` — keys match `columns[].id`.
+- **Empty rows** (all text/number cells blank) are dropped on save.
+- **Cell types:** `text`, `number`, `select`, `checkbox` (native controls only).
+- **`setFormData` / `getFormData`** handle JSON stringify/parse automatically; call `initAll` after populate.
+
+See [fieldGrid in jpulse-ui-reference.md](jpulse-ui-reference.md#fieldgrid--structured-typed-column-grid) for full details.
 
 ### Plugin.json schemas (`/admin/plugin-config.shtml`)
 

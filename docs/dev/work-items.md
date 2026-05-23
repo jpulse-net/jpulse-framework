@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.47
+# jPulse Docs / Dev / Work Items v1.6.48
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -6215,14 +6215,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `showWhen` cross-block: a field with `showWhen: { field: 'general.mode', equals: 'expert' }` watches a field in a different tab (verify by switching tabs after toggling)
   - `showWhen` save behavior: a hidden field with `required: true` does NOT block save; the hidden field's value is still serialized in `getFormData` output (matches HTML form convention; site code may ignore stale values)
 
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-190, v1.6.47, 2026-05-06: deployment: nginx sample — dedicated /assets/ rate-limit zone & docs (avoid 429 / MIME pitfalls)
 - status: ✅ DONE
 - type: Deployment
@@ -6245,6 +6237,68 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/deployment.md`:
     - Static File Issues troubleshooting: bullet on 429 + configuring assets rate limit zone
 
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-191, v1.6.48, 2026-05-23: schema form: `fieldGrid` input type — dynamic typed-column grid
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - allow schema authors to define a structured grid of typed input columns (text, number, select, checkbox) as a single schema field, stored as a JSON array of row objects
+  - the grid grows and shrinks organically as the admin types — no add/delete buttons needed; trailing empty rows are maintained automatically (good DX: "don't make me think")
+  - empty/ghost rows are never persisted; only rows with at least one non-empty text/number cell are serialized into the saved config
+  - the hidden proxy-input pattern keeps the grid compatible with all existing schema-form machinery (`setFormData`, `getFormData`, `getAllValues`, `initAll`) with zero changes to those internals (except Changes 3 and 4 below)
+- features:
+  - new `inputType: 'fieldGrid'` schema field type rendered by `_renderSchemaBlockFields`
+  - schema field contract:
+    - `columns[]` — array of column defs: `{ id, label, inputType ('text'|'number'|'select'|'checkbox'), width (default 'auto'), placeholder, options[], default }`
+    - `emptyRows` — number of empty trailing rows to maintain (default 2)
+    - `maxRows` — maximum total rows allowed (default 16); growth stops when reached
+    - `help` — optional help text, same as other field types
+  - HTML output: full-width block with a `<table class="jp-field-grid">` inside `.jp-field-grid-wrap`; one `<input type="hidden" class="jp-edit-field">` proxy per field (no other `jp-edit-field` in table cells)
+  - column definitions stored as `data-columns` JSON on the `<table>` so `initAll` can create new rows in JS without access to the original schema object
+  - `emptyRows` stored as `data-empty-rows` on `.jp-field-grid-wrap`; `maxRows` stored as `data-max-rows`
+  - `initAll` handler (`input[data-field-grid]:not([data-field-grid-inited])`):
+    - init phase: parse hidden-field JSON → grow tbody to `data.length + emptyRows` (capped at `maxRows`) → populate cell inputs from data
+    - ongoing phase: after any `input`/`change` in the wrapper, call `adjustRows()` then `serializeRows()`
+    - `adjustRows()`: counts trailing empty rows; adds or removes rows from the bottom to maintain exactly `emptyRows` empty trailing rows, never exceeding `maxRows` total
+    - `serializeRows()`: collects non-empty rows (skips rows where all text/number cells are `''`), JSON.stringifies, writes to hidden field, dispatches bubbling `change` event
+    - "empty row" definition: all `input[type=text]` and `input[type=number]` cells in the row have `value === ''` (select and checkbox columns are excluded from this check — they always carry a value)
+    - re-entry guard: `change` listener skips if `e.target === hiddenEl`
+  - `setFormData`: pre-converts array value to JSON string for `fieldGrid` fields before `setAllValues` runs (prevents `[object Object]` stringification)
+  - `getFormData`: JSON-parses the hidden field's string value back to an array for `fieldGrid` fields; falls back to `[]` on parse
+- deliverables:
+  - `webapp/view/jpulse-common.css`:
+    - new `.jp-field-grid-wrap`, `.jp-field-grid`, `.jp-field-grid th`, `.jp-field-grid td`, `.jp-field-grid td input[type="text"]`, `.jp-field-grid td input[type="number"]`, `.jp-field-grid td select`, `.jp-field-grid td input[type="checkbox"]` rules for layout and sizing
+  - `webapp/view/jpulse-common.js`:
+    - `_renderSchemaBlockFields`: `fieldGrid` case inserted after `separator` block; generates `.jp-field-grid-wrap` with `data-empty-rows` / `data-max-rows`; `<table class="jp-field-grid">` with `data-columns` (JSON, `"` escaped as `&quot;` to keep HTML attribute valid); `<thead>` from `columns[].label` + `columns[].width` (default `'auto'`); `<tbody>` with `emptyRows` initial empty `<tr data-row-idx>` rows; per-column `<td>` with native `<input type="text|number|checkbox">` or `<select>` (with `col.default` pre-selected); one hidden `<input class="jp-edit-field" data-field-grid>` proxy; always adds `jp-schema-field-new-row` and `jp-schema-field-full` to wrapper class
+    - `initAll`: `input[data-field-grid]:not([data-field-grid-inited])` handler added after `input[data-slider]` block; inner helpers `isRowEmpty` (text/number only), `buildRow` (DOM-based, uses `data-columns`), `reindexRows`, `adjustRows` (trims/grows trailing empty rows to `emptyRows`, capped at `maxRows`), `serializeRows` (filters empty rows, JSON-stringifies, dispatches bubbling `change`); init phase populates cells from hidden-field JSON; ongoing phase wires `input`+`change` on wrapper with `e.target === hiddenEl` re-entry guard
+    - `setFormData`: `fieldGrid` array→JSON-string pre-conversion (with `maxRows` slice) before `setAllValues`
+    - `getFormData`: `fieldGrid` JSON-string→array post-conversion (with `[]` fallback) before `setByPath`
+  - `webapp/tests/unit/utils/jpulse-ui-input-fieldgrid.test.js` (new):
+    - 41 tests across 5 groups: `_renderSchemaBlockFields HTML` (15 tests — table structure, column types, defaults, proxy input, wrapper classes, help text); `initAll init phase` (7 tests — cell population from JSON, row growth, maxRows cap, checkbox, invalid JSON, idempotent re-init); `initAll adjustRows` (5 tests — trailing row added when first row filled, trimmed when cleared, maxRows prevents growth, contiguous indices, select-only change leaves count stable); `initAll serializeRows` (6 tests — empty rows excluded, all column types serialized, checkbox as boolean, valid JSON, no re-entry loop, multi-row ordering); `setFormData / getFormData` (8 tests — array→JSON-string, no object-stringification, empty array, maxRows slice, JSON-string→array, malformed-JSON fallback, non-array fallback, full round-trip)
+  - `docs/jpulse-ui-reference.md`:
+    - new `### fieldGrid — structured typed-column grid (v1.6.48+)` section under Schema-Driven Form Generator (schema example, field keys, column inputTypes, behavior); `fieldGrid` row in Supported `inputType` values table; updated Schema inputTypes lists and setFormData/getFormData notes
+  - `docs/front-end-development.md`:
+    - `fieldGrid` added to schema field list in "Build tabs and panels from schema"; new `### fieldGrid — structured column grid` subsection with example and cross-link
+  - `docs/genai-instructions.md`:
+    - `fieldGrid` added to schema-form `inputType` list; one-line usage note for `columns[]`, `emptyRows`, `maxRows`
+  - `README.md`, `docs/README.md`:
+    - Latest Release Highlights — v1.6.48 / W-191
+  - `docs/CHANGELOG.md`:
+    - v1.6.48 / W-191 section
+- test / verify (manual):
+  - schema with `inputType: 'fieldGrid'` renders a full-width table with column headers and `emptyRows` trailing blank rows
+  - typing in a row adds another empty row at the bottom; clearing all text/number cells in a row removes excess trailing rows
+  - `maxRows` prevents adding rows beyond the cap
+  - save/load round-trip: `setFormData` → edit → `getFormData` returns array of row objects (not a JSON string)
+  - empty rows are not present in saved config JSON
+  - `npm test` — `jpulse-ui-input-fieldgrid.test.js` (41 tests) and full suite pass
 
 
 
@@ -6277,8 +6331,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-190, v1.6.47, 2026-05-06
-- update features & deliverables in W-190 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume W-191, v1.6.48, 2026-05-23
+- update features & deliverables in W-191 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -6289,12 +6343,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.47 2026-05-06
+node bin/bump-version.js 1.6.48 2026-05-23
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.47; git push origin main --tags
+git tag v1.6.48; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

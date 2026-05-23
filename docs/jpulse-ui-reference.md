@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.47
+# jPulse Docs / jPulse.UI Widget Reference v1.6.48
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -584,7 +584,7 @@ jPulse.UI.input.tagInput.setSuggestions(tagsInput, allTags);
 
 #### `jPulse.UI.input.initAll(container?)`
 
-Namespace-level: inits all input widget types in container (e.g. `[data-taginput]` → tagInput.init, `select[data-jpselect]` → jpSelect.init, `select[data-jpcombo]` → jpCombo.init). One call after populateForm; no listing ids.
+Namespace-level: inits all input widget types in container (e.g. `[data-taginput]` → tagInput.init, `select[data-jpselect]` → jpSelect.init, `select[data-jpcombo]` → jpCombo.init, `input[data-slider]` → slider.init, `input[data-field-grid]` → fieldGrid row sync). One call after populateForm; no listing ids.
 
 **Parameters:** `container` (Element|undefined) - Form or container; defaults to `document` if omitted
 
@@ -714,7 +714,7 @@ jPulse.UI.input.initAll(configForm);
 
 If `data-slider-default` (or `options.default`) is set, a small vertical line is drawn on the track at that value. If default is not set, no tick is shown.
 
-**Schema-driven forms:** When rendering forms from a schema (e.g. `jPulse.UI.tabs.renderTabsAndPanelsFromSchema` with config or plugin schema), you can use **`inputType: 'slider'`** on a field to render a slider instead of a plain number input. The field should have `type: 'number'` and may include `min`, `max`, `step`, `default` (for the default tick), and `suffix` (for the thumb label, e.g. `"%"` or `" ms"`). The rendered input will have `data-slider` and the appropriate `data-slider-*` attributes; call `jPulse.UI.input.initAll(form)` after populating so the slider is initialized. Supported schema inputTypes for form rendering include: `checkbox`, `tagInput`, `textarea`, `number`, **`slider`**, `select`, `button`, `password`, `text`.
+**Schema-driven forms:** When rendering forms from a schema (e.g. `jPulse.UI.tabs.renderTabsAndPanelsFromSchema` with config or plugin schema), you can use **`inputType: 'slider'`** on a field to render a slider instead of a plain number input. The field should have `type: 'number'` and may include `min`, `max`, `step`, `default` (for the default tick), and `suffix` (for the thumb label, e.g. `"%"` or `" ms"`). The rendered input will have `data-slider` and the appropriate `data-slider-*` attributes; call `jPulse.UI.input.initAll(form)` after populating so the slider is initialized. Supported schema inputTypes for form rendering include: `checkbox`, `tagInput`, `textarea`, `number`, **`slider`**, `select`, `jpSelect`, `jpCombo`, `radio`, `checkboxGroup`, **`fieldGrid`**, `help`, `separator`, `button`, `password`, `text`, `email`, `url`, `tel`.
 
 ---
 
@@ -752,7 +752,7 @@ One-line populate and get with schema: applies defaults, coercion (number, boole
 
 #### `jPulse.UI.input.setFormData(form, data, schema)`
 
-Applies schema defaults and `normalize` to `data`, then calls `setAllValues(form, result)`. Use for populateForm when you have config + schema.
+Applies schema defaults and `normalize` to `data`, then calls `setAllValues(form, result)`. Use for populateForm when you have config + schema. For `inputType: 'fieldGrid'`, array values are JSON-stringified before setting the hidden proxy field.
 
 **Parameters:**
 - `form` (HTMLFormElement|Element) - Form or container
@@ -763,7 +763,7 @@ Applies schema defaults and `normalize` to `data`, then calls `setAllValues(form
 
 #### `jPulse.UI.input.getFormData(form, schema)`
 
-Calls `getAllValues(form)`, then coerces by `schema.type` (number, boolean) and applies `schema.normalize`. Returns `{ data: result }` for API payload.
+Calls `getAllValues(form)`, then coerces by `schema.type` (number, boolean) and applies `schema.normalize`. Returns `{ data: result }` for API payload. For `inputType: 'fieldGrid'`, the hidden field's JSON string is parsed back to a JS array.
 
 **Parameters:**
 - `form` (HTMLFormElement|Element) - Form or container
@@ -775,7 +775,7 @@ Calls `getAllValues(form)`, then coerces by `schema.type` (number, boolean) and 
 
 **When to use:** Use **setFormData/getFormData** when you have a complete schema and want one-line set/get with defaults and coercion. Use **setAllValues/getAllValues** when you have no schema or apply defaults yourself.
 
-**Schema inputTypes:** Fields in the schema can set `inputType` to control how they are rendered: `checkbox`, `tagInput`, `textarea`, `number`, `slider`, `select`, `jpSelect`, `jpCombo`, `radio`, `checkboxGroup`, `help`, `separator`, `email`, `url`, `tel`, `password`, `button`, or `text`. For `inputType: 'slider'`, the field may also specify `min`, `max`, `step`, and `default` (for the default tick); the rendered input is then initialized via `jPulse.UI.input.initAll(form)`.
+**Schema inputTypes:** Fields in the schema can set `inputType` to control how they are rendered: `checkbox`, `tagInput`, `textarea`, `number`, `slider`, `select`, `jpSelect`, `jpCombo`, `radio`, `checkboxGroup`, `fieldGrid`, `help`, `separator`, `email`, `url`, `tel`, `password`, `button`, or `text`. For `inputType: 'slider'`, the field may also specify `min`, `max`, `step`, and `default` (for the default tick); the rendered input is then initialized via `jPulse.UI.input.initAll(form)`. For `inputType: 'fieldGrid'`, see [fieldGrid — structured typed-column grid](#fieldgrid--structured-typed-column-grid).
 
 ---
 
@@ -808,6 +808,7 @@ These are independent. `{ type: 'string', inputType: 'jpCombo' }` says "the valu
 | `jpCombo` | Typeable combo widget (free entry by default) | Honors flat `search`, `searchPlaceholder`, `allowCustom` |
 | `multiselect` | **Alias** — rewritten internally to `jpSelect` + `multiple: true` | Back-compat for plugin.json |
 | `tagInput` | `<input>` with comma-separated tag chips | Stores array |
+| `fieldGrid` | Typed-column table (`.jp-field-grid`) | Stores array of row objects; see [fieldGrid section](#fieldgrid--structured-typed-column-grid) |
 | `help` | `<div class="jp-schema-help">` | Inline info (not toast `.jp-alert`); honors `content` (sanitized HTML); not a field |
 | `separator` | `<div class="jp-divider">` | Honors `label`; not a field |
 | `button` | `<button class="jp-btn jp-btn-secondary">` | Honors `action`, `callback`, `title` |
@@ -828,6 +829,46 @@ Common widget options live as **flat keys on the field def** (matches the existi
 | `readonly` | text-like | `readonly` attribute |
 
 For uncommon, advanced widget callbacks (`onOptionPreview`, `onCustomValue`, `separator`, `captionFormatSome` / `captionFormatAll`), reach via `onInit(ctx)` and mutate `ctx.widgetOptions` before widget init runs.
+
+### fieldGrid — structured typed-column grid
+
+Use **`inputType: 'fieldGrid'`** when admins need a table of typed columns whose value is a **JSON array of row objects** — filter rules, column mappings, pipeline stage options, etc. The grid grows and shrinks organically as the user types (no Add/Delete buttons).
+
+```javascript
+filters: {
+    label: 'Filter Grid',
+    type: 'array',              // optional; value is an array of row objects
+    inputType: 'fieldGrid',
+    emptyRows: 2,               // trailing empty rows to maintain (default 2)
+    maxRows: 16,                // maximum total rows in the table (default 16)
+    columns: [
+        { id: 'col', label: 'Column', inputType: 'text',   width: '35%', placeholder: 'Column name' },
+        { id: 'op',  label: 'Op',     inputType: 'select', width: '15%',
+          options: [{ value: '==', label: '==' }, { value: '!=', label: '!=' }], default: '==' },
+        { id: 'val', label: 'Value',  inputType: 'text',   width: '50%' }
+    ],
+    help: 'Add one filter per row.'
+}
+```
+
+**Stored value shape:** `[{ col: 'status', op: '==', val: 'open' }, …]` — each object has keys matching `columns[].id`. Empty rows (all text/number cells blank) are **never persisted**.
+
+**Field-level keys:**
+
+| Key | Default | Purpose |
+|-----|---------|---------|
+| `columns[]` | `[]` | Column defs: `{ id, label, inputType, width?, placeholder?, options?, default? }` |
+| `emptyRows` | `2` | Number of empty trailing rows to keep at the bottom |
+| `maxRows` | `16` | Cap on total rows (data + empty buffer) |
+
+**Column `inputType` values:** `text`, `number`, `select`, `checkbox` only. Cell controls are **native** (`<input>`, `<select>`) — no `jpSelect` / `jpCombo` inside table cells. Select columns honor `default` for the pre-selected option; `width` defaults to `'auto'`.
+
+**How it works:**
+
+- Renderer emits a full-width `<table class="jp-field-grid">` plus one hidden `<input class="jp-edit-field" data-field-grid>` that holds the JSON string.
+- `initAll` wires cell `input`/`change` events → serializes non-empty rows → updates the hidden field → dispatches a bubbling `change`.
+- `setFormData` JSON-stringifies array values before `setAllValues`; `getFormData` parses back to a JS array (falls back to `[]` on parse error).
+- Always full-width (`jp-schema-field-full`); call `jPulse.UI.input.initAll(form)` after populate (or use `renderTabsAndPanelsFromSchema`, which calls it).
 
 ### Lifecycle hooks: `loadOptions` and `onInit`
 

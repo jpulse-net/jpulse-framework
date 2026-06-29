@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.48
+# jPulse Docs / jPulse.UI Widget Reference v1.6.49
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -861,7 +861,7 @@ filters: {
 | `emptyRows` | `2` | Number of empty trailing rows to keep at the bottom |
 | `maxRows` | `16` | Cap on total rows (data + empty buffer) |
 
-**Column `inputType` values:** `text`, `number`, `select`, `checkbox` only. Cell controls are **native** (`<input>`, `<select>`) — no `jpSelect` / `jpCombo` inside table cells. Select columns honor `default` for the pre-selected option; `width` defaults to `'auto'`.
+**Column `inputType` values:** `text`, `number`, `select`, `checkbox` only. Cell controls are **native** (`<input>`, `<select>`) — no `jpSelect` / `jpCombo` inside table cells. Empty/trailing rows always render with a **blank** `select` (`selectedIndex = -1`), so a column `default` does **not** pre-fill otherwise-empty rows or leak in as data; the `default` applies only to populated/initial data. `width` defaults to `'auto'`.
 
 **How it works:**
 

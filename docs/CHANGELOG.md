@@ -1,6 +1,37 @@
-# jPulse Docs / Version History v1.6.48
+# jPulse Docs / Version History v1.6.49
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.49, W-192, 2026-06-28
+
+**Commit:** `W-192, v1.6.49: schema form fieldGrid: auto-appended rows start with blank select (no column default leak)`
+
+**Objective**: Make auto-appended `fieldGrid` rows visually consistent with the server-rendered empty rows — an otherwise-empty trailing row's `select` cell must start **blank**, not pre-filled with the column `default` — so a default never leaks in as apparent data on rows the user never touched.
+
+**Summary**: Empty `fieldGrid` rows are created by two code paths that disagreed on how `select` cells start out. Initial / server-rendered empty rows are blanked by the `initAll` init pass (`cell.value = ''`, forcing `<select>` to `selectedIndex = -1`). Auto-appended rows (created when the user types and the grid grows by `emptyRows`) are built by the client-side `buildRow()` helper, which pre-selected the column's `default` option and was never run through that blanking pass. Visible symptom: with `emptyRows: 2`, after entering data in the first row, the first trailing empty row (server-rendered) showed a blank dropdown while the second (auto-appended) showed the column default — inconsistent. **Fix:** `buildRow()`'s `select` branch now drops the per-option `default` `selected` flag and explicitly blanks the control (`cell.value = ''`) after appending options, matching the server-rendered empty rows. Low-risk: empty rows are skipped by `serializeRows()`, so a blank trailing `select` is never serialized; columns whose options include a `{ value: '' }` entry are unaffected. Server-rendered HTML output is unchanged (`_renderSchemaBlockFields` still pre-selects `col.default` on initial rows before `initAll` blanks the empty ones); only client-side auto-appended rows change.
+
+**Key features**:
+- **Consistent empty rows** — auto-appended `select` cells start blank like the server-rendered ones.
+- **No default leakage** — a column `default` no longer appears as data on untouched rows.
+- **Single fix covers all consumers** — gridPivot, gridSmooth, gridModify, gridToTable, etc.
+- **+1 unit test** — asserts an auto-appended row's `select` has `selectedIndex === -1` / `value === ''` (42 tests total).
+
+**Files changed**:
+- `webapp/view/jpulse-common.js` — `initAll` → `buildRow()` `select` branch: removed `o.selected = true` default pre-selection from the options loop; added `cell.value = ''` after the loop with an explanatory comment
+- `webapp/tests/unit/utils/jpulse-ui-input-fieldgrid.test.js` — new test in the `initAll — adjustRows` group: "auto-appended row select starts blank (no column default leaks in)"
+
+**Documentation**:
+- `docs/jpulse-ui-reference.md` — fieldGrid: clarify that empty/trailing rows render a blank `select` (default does not pre-fill otherwise-empty rows)
+- `docs/front-end-development.md` — fieldGrid: note empty rows start with a blank `select`
+- `README.md`, `docs/README.md` — Latest Release Highlights — v1.6.49 / W-192
+- `docs/CHANGELOG.md` — this section
+- `docs/dev/work-items.md` — W-192 objectives/root cause/features/deliverables
+
+**Release**:
+- Work Item: W-192
+- Version: v1.6.49
+- Release Date: 2026-06-28
 
 ________________________________________________
 ## v1.6.48, W-191, 2026-05-23

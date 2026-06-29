@@ -19500,3 +19500,43 @@ Reviewed tt-git-diff.txt against W-191: diff matches work item deliverables (jpu
 
 
 ============================================================
+2026-06-11 10:37
+
+please give me the cursor rules I defined in settings in a .md format
+
+Compiled and returned all Cursor rules in markdown format, covering: (1) User Rules from Cursor Settings (git actions, cursor log append protocol, chain-of-thought, source code formatting, no-guessing policy) and (2) Workspace Rules from `.cursor/rules/` — `jpulse-core-standards.mdc` (alwaysApply, all 15 framework critical patterns + assistant/debugging rules) and `cursor-log-append-only.mdc` (globs cursor_log.txt, append-only protocol).
+
+
+============================================================
+2026-06-28 18:53
+
+Fix needed: fieldGrid auto-appended rows show the column default in `select` cells instead of blank. In `webapp/view/jpulse-common.js`, the client-side `buildRow()` helper pre-selected the column's `default` option for auto-appended rows, while server-rendered empty rows are blanked by the init pass (cell.value = ''), causing inconsistent trailing dropdowns. Asked to make buildRow's select branch start blank and add a unit test, plus confirm existing tests pass.
+
+Fixed `buildRow()` in `webapp/view/jpulse-common.js`: removed the `o.selected = true` default pre-selection from the options loop and explicitly blank the control after appending options (`cell.value = ''`) with an explanatory comment. This makes auto-appended rows match the server-rendered empty rows; empty rows are skipped by serializeRows() so no data leaks. Added a unit test in `webapp/tests/unit/utils/jpulse-ui-input-fieldgrid.test.js` ('auto-appended row select starts blank') asserting the appended row's select has selectedIndex === -1 and value === ''. Ran the suite: all 42 tests pass (41 existing + 1 new). No linter errors.
+
+
+============================================================
+2026-06-28 18:55
+
+is there a way to test this in the browser?
+
+Explained that no shipped framework page uses the fieldGrid inputType as a live widget (the local-plugin-field-grid hits are just CSS); it only appears via schema-driven config/plugin forms. Built a temporary standalone harness (tmp-fieldgrid-harness.html) that loads the real webapp/view/jpulse-common.js (stripping the i18n handlebar token like the unit test does), rendered a fieldGrid with a select column defaulting to '==', and served it via `python3 -m http.server 8099`. Drove it in the Cursor IDE browser: confirmed both server-rendered empty rows show blank Op dropdowns, then typed into row 0 to trigger an auto-appended row 2, which also showed a blank dropdown (selectedIndex=-1, value="") — verdict PASS. Cleaned up: stopped the server and deleted the temp harness file.
+
+
+============================================================
+2026-06-28 19:01
+
+create work item @work-items.md (6303-6311)
+
+Filled in the W-192 work item template in docs/dev/work-items.md (v1.6.49, 2026-06-28) for the fieldGrid auto-appended blank-select fix, matching the existing W-191 entry format. Set type to "Bug fix" and documented: objectives (visual consistency between server-rendered and auto-appended empty rows; prevent column default leaking as data), root cause (two divergent empty-row code paths — init pass blanks server rows via cell.value='', while buildRow() pre-selected col.default), features (buildRow select branch now starts blank; covers all consumers; low-risk since serializeRows skips empty rows; server HTML unchanged), deliverables (jpulse-common.js buildRow edit + new unit test), and test/verify (42 tests pass, browser-verified via harness).
+
+
+============================================================
+2026-06-28 19:09
+
+release prep: review tt-git-diff.txt for accuracy/completeness; assume W-192, v1.6.49, 2026-06-28; update README.md / docs/README.md (Latest Release Highlights), docs/CHANGELOG.md, and other docs as needed (no version bump); update commit-message.txt (no commit); update cursor_log.txt (append).
+
+Reviewed tt-git-diff.txt against W-192: the diff is accurate and complete — jpulse-common.js buildRow() select fix, the new fieldgrid unit test, the W-192 work-item entry, and cursor_log entries all match; no code files missing. Added release docs not yet in the diff: README.md and docs/README.md Latest Release Highlights (v1.6.49 / W-192 bug-fix bullet); docs/CHANGELOG.md new v1.6.49 / W-192 section (objective, summary, key features, files changed, documentation, release); clarified the fieldGrid empty-row blank-select behavior in docs/jpulse-ui-reference.md and docs/front-end-development.md; rewrote commit-message.txt to the W-192 FIX format. Left version headers unchanged per the bump-script workflow (node bin/bump-version.js 1.6.49 2026-06-28). Did not commit.
+
+
+============================================================

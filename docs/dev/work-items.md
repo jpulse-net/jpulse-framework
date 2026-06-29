@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.48
+# jPulse Docs / Dev / Work Items v1.6.49
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -6237,14 +6237,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/deployment.md`:
     - Static File Issues troubleshooting: bullet on 429 + configuring assets rate limit zone
 
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-191, v1.6.48, 2026-05-23: schema form: `fieldGrid` input type — dynamic typed-column grid
 - status: ✅ DONE
 - type: Feature
@@ -6305,6 +6297,39 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-192, v1.6.49, 2026-06-28: fieldGrid: auto-appended rows show column default in select cells instead of blank
+- status: 🚧 IN_PROGRESS
+- type: Bug fix
+- objectives:
+  - make auto-appended `fieldGrid` rows visually consistent with the server-rendered empty rows: an otherwise-empty trailing row's `select` cell must start blank, not pre-filled with the column `default`
+  - prevent a column `default` from leaking into the grid as apparent data on rows the user never touched
+- root cause:
+  - empty `fieldGrid` rows are created by two code paths that disagreed on how `select` cells start out:
+    - initial / server-rendered empty rows are blanked by the `initAll` init pass (`cell.value = ''` per empty cell), which forces a `<select>` to `selectedIndex = -1` (blank) — the intended behavior
+    - auto-appended rows (created when the user types and the grid grows by `emptyRows`) are built by the client-side `buildRow()` helper, which pre-selected the column's `default` option and was never run through that blanking pass
+  - visible symptom: in a `fieldGrid` with `emptyRows: 2`, after entering data in the first row, the first trailing empty row (server-rendered) showed a blank dropdown while the second trailing empty row (auto-appended) showed the column default (e.g. "Point to point", "BSMA", "replace") — inconsistent
+- features:
+  - `buildRow()`'s `select` branch now starts blank, matching the init/server-rendered empty rows: dropped the per-option `default` `selected` flag and explicitly blank the control (`cell.value = ''`) after appending options
+  - single change covering all `fieldGrid` consumers (gridPivot, gridSmooth, gridModify, gridToTable, etc.)
+  - low-risk: empty rows are skipped by `serializeRows()`, so a blank trailing `select` is never serialized into the data — identical to how the initial empty rows already behave; columns whose options include a `{ value: '' }` entry are unaffected (they already resolve to that blank option)
+  - server-rendered HTML output is unchanged — `_renderSchemaBlockFields` still pre-selects `col.default` on the initial rows; only client-side auto-appended rows now start blank
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - `initAll` → `buildRow()` `select` branch: removed `if (col.default !== undefined && String(ov) === String(col.default)) o.selected = true;` from the options loop; added `cell.value = '';` after the loop with an explanatory comment
+  - `webapp/tests/unit/utils/jpulse-ui-input-fieldgrid.test.js`:
+    - new test in the `initAll — adjustRows` group: "auto-appended row select starts blank (no column default leaks in)" — types into row 0 of an `emptyRows: 2` grid (grows to 3 rows) and asserts the appended row's `select` has `selectedIndex === -1` and `value === ''`
+- test / verify:
+  - `npm test` — `jpulse-ui-input-fieldgrid.test.js` (42 tests: 41 existing + 1 new) and full suite pass; no linter errors
+  - browser-verified via a standalone harness loading the real `jpulse-common.js`: both server-rendered empty rows and the auto-appended row show blank `select` cells (`selectedIndex === -1`) after typing into the first row
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -6331,7 +6356,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-191, v1.6.48, 2026-05-23
+- assume W-192, v1.6.49, 2026-06-28
 - update features & deliverables in W-191 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -6343,12 +6368,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.48 2026-05-23
+node bin/bump-version.js 1.6.49 2026-06-28
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.48; git push origin main --tags
+git tag v1.6.49; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

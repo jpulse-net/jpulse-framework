@@ -3,8 +3,8 @@
  * @tagline         Load, parse, and flatten translation .conf files to sorted key arrays
  * @description     Utility to load translation files and flatten them to dot-notation key arrays
  * @file            webapp/tests/unit/i18n/utils/translation-loader.js
- * @version         1.6.48
- * @release         2026-05-23
+ * @version         1.6.49
+ * @release         2026-06-28
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -4,8 +4,8 @@
  * @description     Tests for _renderSchemaBlockFields fieldGrid rendering, initAll handler,
  *                  adjustRows, serializeRows, and setFormData/getFormData integration
  * @file            webapp/tests/unit/utils/jpulse-ui-input-fieldgrid.test.js
- * @version         1.6.48
- * @release         2026-05-23
+ * @version         1.6.49
+ * @release         2026-06-28
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -318,6 +318,22 @@ describe('fieldGrid inputType (W-191)', () => {
             Array.from(tbody.querySelectorAll('tr[data-row-idx]')).forEach((tr, i) => {
                 expect(tr.dataset.rowIdx).toBe(String(i));
             });
+        });
+
+        test('auto-appended row select starts blank (no column default leaks in)', () => {
+            // emptyRows=2: row 0 + row 1 are server-rendered (blanked by init pass).
+            // Typing in row 0 grows the grid to 3 rows; row 2 is built by buildRow().
+            setupDom({ emptyRows: 2 });
+            const tbody = document.querySelector('tbody');
+            const row0 = tbody.querySelector('tr[data-row-idx="0"]');
+            row0.querySelector('[data-col-id="col"]').value = 'issue';
+            row0.querySelector('[data-col-id="col"]').dispatchEvent(new window.Event('input', { bubbles: true }));
+            expect(tbody.querySelectorAll('tr[data-row-idx]').length).toBe(3);
+            // The auto-appended row's select must not pre-select col.default ('==').
+            const appendedSelect = tbody.querySelector('tr[data-row-idx="2"] [data-col-id="op"]');
+            expect(appendedSelect).not.toBeNull();
+            expect(appendedSelect.selectedIndex).toBe(-1);
+            expect(appendedSelect.value).toBe('');
         });
 
         test('select-column-only change event triggers adjustRows', () => {

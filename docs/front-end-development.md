@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.6.48
+# jPulse Docs / Front-End Development Guide v1.6.49
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -802,7 +802,7 @@ filters: {
 ```
 
 - **Value:** `[{ col: 'status', op: '==', val: 'open' }, …]` — keys match `columns[].id`.
-- **Empty rows** (all text/number cells blank) are dropped on save.
+- **Empty rows** (all text/number cells blank) are dropped on save; their `select` cells start **blank** (a column `default` does not pre-fill otherwise-empty rows).
 - **Cell types:** `text`, `number`, `select`, `checkbox` (native controls only).
 - **`setFormData` / `getFormData`** handle JSON stringify/parse automatically; call `initAll` after populate.
 

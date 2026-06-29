@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.48
- * @release         2026-05-23
+ * @version         1.6.49
+ * @release         2026-06-28
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1217,9 +1217,12 @@ window.jPulse = {
                                         const o = document.createElement('option');
                                         o.value = ov;
                                         o.textContent = ol;
-                                        if (col.default !== undefined && String(ov) === String(col.default)) o.selected = true;
                                         cell.appendChild(o);
                                     });
+                                    // New (auto-appended) rows start blank, matching the server-rendered
+                                    // empty rows that the init pass blanks via cell.value = ''. Keeps a
+                                    // column default from leaking in as data on otherwise-empty rows.
+                                    cell.value = '';
                                 } else if (colInputType === 'checkbox') {
                                     cell = document.createElement('input');
                                     cell.type = 'checkbox';

@@ -1,4 +1,4 @@
-# jPulse Docs / Production Deployment Guide v1.6.49
+# jPulse Docs / Production Deployment Guide v1.6.50
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -316,6 +316,7 @@ Available on all jPulse sites at `/jpulse-docs/`:
 - PM2 configuration for production
 - Cluster mode, auto-restart, logging
 - Generated based on server specifications
+- Fast rolling reload: `wait_ready: true` pairs with `webapp/app.js` calling `process.send('ready')` once the HTTP server is bound and the WebSocket server is initialized, so `pm2 reload` cuts over each worker within milliseconds of true readiness instead of waiting out `listen_timeout`
 
 ## 🔒 Security Considerations
 

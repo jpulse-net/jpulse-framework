@@ -1,6 +1,34 @@
-# jPulse Docs / Version History v1.6.49
+# jPulse Docs / Version History v1.6.50
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.6.50, W-193, 2026-07-07
+
+**Commit:** `W-193, v1.6.50: deployment: pm2 reload unnecessarily slow due to missing process.send('ready')`
+
+**Objective**: Make `pm2 reload` cut over to a new cluster worker within milliseconds of it actually being ready, instead of stalling for the full `listen_timeout` fallback, and make the generated `ecosystem.prod.config.cjs`'s `wait_ready: true` setting behave as documented.
+
+**Summary**: The generated production PM2 config (`templates/deploy/ecosystem.prod.config.cjs`) sets `wait_ready: true`, which tells PM2 to disable its automatic "port is listening" readiness detection (available in `cluster` exec mode) and instead wait for the app to explicitly call `process.send('ready')` over the PM2 IPC channel. `webapp/app.js` never sent that signal — it only called `app.listen()` and initialized the WebSocket server — so PM2 had no way to know a worker was actually ready and fell back to a blind wait bounded by `listen_timeout` before killing the old worker during a rolling reload. Observed impact in production (bubblemap.net, 2026-07-07): each replaced instance was demonstrably ready (HTTP server bound, `🎉 App initialization complete!` logged) in about 1 second, but PM2 didn't kill the corresponding old worker until roughly 58 seconds later — the same gap repeated once per cluster instance, so a 3-instance `pm2 reload` wasted well over a minute of pure, avoidable waiting. **Fix:** `webapp/app.js` now sends `process.send('ready')` once startup is fully complete (HTTP server bound *and* WebSocket server initialized), guarded with `typeof process.send === 'function'` so it's a no-op when not running under PM2 / no IPC channel is present (local `npm start`, `npm run dev`, tests). No template change needed — `wait_ready: true` is kept since the framework now actually sends the signal it depends on.
+
+**Key features**:
+- **Instant rolling-reload cutover** — PM2 kills the old worker within a second or two of the new one being ready, instead of after the `listen_timeout`-bounded stall.
+- **Guarded, no-op outside PM2** — `typeof process.send === 'function'` check keeps local dev and tests unaffected.
+- **`wait_ready: true` now behaves as documented** — no template changes required.
+
+**Files changed**:
+- `webapp/app.js` — after `await WebSocketController.initialize(server, sessionMiddleware);` in `startApp()`, added a guarded `process.send('ready')` call
+
+**Documentation**:
+- `docs/deployment.md` — note on fast rolling-reload cutover via `process.send('ready')` under Process Management
+- `README.md`, `docs/README.md` — Latest Release Highlights — v1.6.50 / W-193
+- `docs/CHANGELOG.md` — this section
+- `docs/dev/work-items.md` — W-193 objectives/root cause/features/deliverables
+
+**Release**:
+- Work Item: W-193
+- Version: v1.6.50
+- Release Date: 2026-07-07
 
 ________________________________________________
 ## v1.6.49, W-192, 2026-06-28

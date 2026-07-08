@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.49
+# jPulse Docs / Dev / Work Items v1.6.50
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -6292,16 +6292,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - empty rows are not present in saved config JSON
   - `npm test` — `jpulse-ui-input-fieldgrid.test.js` (41 tests) and full suite pass
 
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-192, v1.6.49, 2026-06-28: fieldGrid: auto-appended rows show column default in select cells instead of blank
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bug fix
 - objectives:
   - make auto-appended `fieldGrid` rows visually consistent with the server-rendered empty rows: an otherwise-empty trailing row's `select` cell must start blank, not pre-filled with the column `default`
@@ -6324,6 +6316,42 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - test / verify:
   - `npm test` — `jpulse-ui-input-fieldgrid.test.js` (42 tests: 41 existing + 1 new) and full suite pass; no linter errors
   - browser-verified via a standalone harness loading the real `jpulse-common.js`: both server-rendered empty rows and the auto-appended row show blank `select` cells (`selectedIndex === -1`) after typing into the first row
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-193, v1.6.50, 2026-07-07: deployment: pm2 reload unnecessarily slow due to missing process.send('ready')
+- status: 🚧 IN_PROGRESS
+- type: Bug fix
+- objectives:
+  - make `pm2 reload` cut over to a new cluster worker within milliseconds of it actually being ready, instead of stalling for the full `listen_timeout` fallback
+  - make the generated `ecosystem.prod.config.cjs`'s `wait_ready: true` setting behave as documented
+- root cause:
+  - the generated production PM2 config (`templates/deploy/ecosystem.prod.config.cjs`) sets `wait_ready: true`, which tells PM2 to disable its automatic "port is listening" readiness detection (available in `cluster` exec mode) and instead wait for the app to explicitly call `process.send('ready')` over the PM2 IPC channel
+  - `webapp/app.js` never sent that signal — it only called `app.listen()` and initialized the WebSocket server
+  - with no `ready` message ever arriving, PM2 had no way to know a worker was actually ready, so it fell back to a blind wait bounded by `listen_timeout` before killing the old worker during a rolling reload
+  - observed impact (production access.log, bubblemap.net, 2026-07-07): each replaced instance was demonstrably ready (HTTP server bound, `🎉 App initialization complete!` logged) in about 1 second, but PM2 didn't kill the corresponding old worker until roughly 58 seconds later — the same gap repeated once per cluster instance, so a 3-instance `pm2 reload` wasted well over a minute of pure, avoidable waiting (and the stall compounds if a second `reload` is issued before the first finishes)
+- features:
+  - `webapp/app.js` now sends `process.send('ready')` once startup is fully complete (HTTP server bound *and* WebSocket server initialized), guarded with `typeof process.send === 'function'` so it's a no-op when not running under PM2 / no IPC channel is present (local `npm start`, `npm run dev`, tests)
+  - this makes `wait_ready: true` in `templates/deploy/ecosystem.prod.config.cjs` work as intended: PM2 cuts over to the new worker almost immediately instead of waiting out `listen_timeout`
+  - no template change needed — `wait_ready: true` is kept since the framework now actually sends the signal it depends on
+- deliverables:
+  - `webapp/app.js`:
+    - after `await WebSocketController.initialize(server, sessionMiddleware);` in `startApp()`, added a guarded `process.send('ready')` call
+  - `docs/deployment.md`:
+    - Process Management: note on fast rolling-reload cutover via `process.send('ready')`
+  - `README.md`, `docs/README.md`:
+    - Latest Release Highlights — v1.6.50 / W-193
+  - `docs/CHANGELOG.md`:
+    - v1.6.50 / W-193 section
+- test / verify (manual):
+  - `npm start` / `npm run dev` locally: app boots normally, no error from the guarded `process.send` check (no IPC channel present outside PM2)
+  - `pm2 start deploy/ecosystem.prod.config.cjs` then `pm2 reload <name>` on a multi-instance cluster: old workers are killed within a second or two of the new workers logging readiness, instead of after the ~58s `listen_timeout`-bounded stall
 
 
 
@@ -6356,8 +6384,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-192, v1.6.49, 2026-06-28
-- update features & deliverables in W-191 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume W-193, v1.6.50, 2026-07-07
+- update features & deliverables in W-193 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - update cursor_log.txt (append, don't replace)
@@ -6368,12 +6396,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.49 2026-06-28
+node bin/bump-version.js 1.6.50 2026-07-07
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.49; git push origin main --tags
+git tag v1.6.50; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

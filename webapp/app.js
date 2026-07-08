@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         1.6.49
- * @release         2026-06-28
+ * @version         1.6.50
+ * @release         2026-07-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -304,6 +304,11 @@ async function startApp() {
 
     // Initialize WebSocket server with session middleware
     await WebSocketController.initialize(server, sessionMiddleware);
+
+    // Signal readiness to PM2 when wait_ready is configured (no-op outside PM2/no IPC channel)
+    if (typeof process.send === 'function') {
+        process.send('ready');
+    }
 }
 
 // Start the application

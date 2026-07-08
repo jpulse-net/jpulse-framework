@@ -19540,3 +19540,19 @@ Reviewed tt-git-diff.txt against W-192: the diff is accurate and complete — jp
 
 
 ============================================================
+2026-07-07 01:43
+
+from a site deployment: pm2 reload unnecessarily slow due to missing process.send('ready'). Root cause: templates/deploy/ecosystem.prod.config.cjs sets wait_ready: true, but webapp/app.js never called process.send('ready'), so PM2 fell back to a blind wait bounded by listen_timeout (~58s observed in production) before killing the old worker during pm2 reload, even though the new worker was ready in ~1s. Asked to apply the recommended fix.
+
+Added a guarded process.send('ready') call in webapp/app.js's startApp(), right after WebSocketController.initialize() completes (HTTP server bound + WebSocket ready). Guarded with typeof process.send === 'function' so it's a no-op outside PM2 (local npm start/dev, tests). Left templates/deploy/ecosystem.prod.config.cjs unchanged — wait_ready: true is kept since the framework now actually sends the signal it depends on. Ran npm test: full suite passes, no linter errors. Filled in the W-193 work item stub in docs/dev/work-items.md (objectives, root cause, features, deliverables, test/verify), status DONE.
+
+
+============================================================
+2026-07-07 21:37
+
+release prep: assume W-193, v1.6.50, 2026-07-07; update features & deliverables in W-193 work-items if needed (no status change, no other changes to that file); update README.md / docs/README.md (Latest Release Highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (no version bump); update commit-message.txt (no commit); update cursor_log.txt (append).
+
+Added new docs/CHANGELOG.md v1.6.50 / W-193 section (objective, summary, key features, files changed, documentation, release); added matching Latest Release Highlights bullets to README.md and docs/README.md; added a short note to docs/deployment.md's Process Management section documenting the fast rolling-reload cutover via process.send('ready'); updated the W-193 deliverables list in docs/dev/work-items.md with the new doc files (status left unchanged, no other edits to that file); rewrote commit-message.txt to the W-193 FIX format. Left version headers unchanged per the bump-script workflow (node bin/bump-version.js 1.6.50 2026-07-07). Did not commit. Note: W-193's status field in work-items.md was found as 🚧 IN_PROGRESS (not the ✅ DONE set in the prior session) — left as-is per "don't change status" instruction; flagged to the user in case this needs manual reconciliation.
+
+
+============================================================

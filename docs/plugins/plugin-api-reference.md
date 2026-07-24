@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.6.50
+# jPulse Docs / Plugins / Plugins API Reference v1.7.0
 
 Complete API reference for jPulse plugin developers.
 
@@ -82,7 +82,7 @@ Response: { success: true, data: {...} }
 {
     "id": "fieldName",
     "label": "Field Label",
-    "type": "text|textarea|number|boolean|select|help",
+    "type": "text|textarea|number|boolean|select|help|custom",
     "default": "default value",
     "required": true,
     "placeholder": "placeholder text",
@@ -101,11 +101,33 @@ Response: { success: true, data: {...} }
     "options": [
         { "value": "opt1", "label": "Option 1" },
         { "value": "opt2", "label": "Option 2" }
-    ]
+    ],
+
+    // For custom fields (W-194) — required, dotted name resolved against
+    // window.jPulse.plugins.* or the jPulse.schemaForm registry:
+    "renderer": "myPlugin.renderMyWidget"
 }
 ```
 
 Plugin config blocks can use the same schema shape and flow as framework config (tabs/panels from schema, layout with `maxColumns` / `startNewRow` / `fullWidth`, virtual buttons). See [Schema-driven config forms](../front-end-development.md#-schema-driven-config-forms) in the Front-End Development Guide.
+
+### `type: "custom"` — plugin-supplied renderer (W-194)
+
+An escape hatch for config values that don't fit a flat field — lists of objects, nested structures, bespoke widgets. The framework renders a mount point and a hidden proxy field, then calls the plugin's `renderer` once the form is in the DOM:
+
+```javascript
+window.jPulse.plugins.myPlugin.renderMyWidget = function(ctx) {
+    // ctx.container   - empty <div> to render into
+    // ctx.value       - current value (last-reported JSON, or field default)
+    // ctx.onChange(v) - report a new value; framework persists it as JSON
+    // ctx.schema      - this field's own plugin.json definition
+    // ctx.config      - the rest of the current tab's config values
+    // ctx.disabled    - true when the field should render read-only
+    ctx.container.textContent = JSON.stringify(ctx.value);
+};
+```
+
+The framework treats the value as opaque JSON: it is JSON-stringified into a hidden field for `getFormData` / save, and JSON-parsed back into `ctx.value` on the next render. Validation, layout, and interaction inside `ctx.container` are entirely the renderer's responsibility. See `plugins/hello-world/plugin.json` (`quickLinks`) for a full working example.
 
 ## Controller Auto-Discovery
 

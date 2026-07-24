@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.6.50
- * @release         2026-07-07
+ * @version         1.7.0
+ * @release         2026-07-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1510,6 +1510,11 @@ window.jPulse = {
                             value = JSON.stringify(arr.slice(0, maxRowsCount));
                         }
                     }
+                    if (fieldDef.inputType === 'custom' && typeof value !== 'string') {
+                        // W-194: serialize the opaque value into the hidden proxy field;
+                        // the post-render pipeline hands the *parsed* value to the renderer.
+                        value = JSON.stringify(value !== undefined ? value : null);
+                    }
                     jPulse.UI.input.setByPath(result, path, value);
                 }
                 jPulse.UI.input.setAllValues(form, result);
@@ -1550,6 +1555,10 @@ window.jPulse = {
                             try { value = JSON.parse(value); } catch (_) { value = []; }
                         }
                         if (!Array.isArray(value)) value = [];
+                    }
+                    if (fieldDef.inputType === 'custom' && typeof value === 'string') {
+                        // W-194: parse the hidden proxy field's JSON back to the plugin's opaque value.
+                        try { value = JSON.parse(value); } catch (_) { value = fieldDef.default !== undefined ? fieldDef.default : null; }
                     }
                     jPulse.UI.input.setByPath(result, path, value);
                 }
@@ -4406,7 +4415,7 @@ window.jPulse = {
 
                 const allFields = jPulse.UI.input._walkSchemaFields(schema.data, '', 'view');
                 const deferredFields = allFields.filter(({ fieldDef }) =>
-                    fieldDef && (fieldDef.loadOptions !== undefined || fieldDef.onInit !== undefined));
+                    fieldDef && (fieldDef.loadOptions !== undefined || fieldDef.onInit !== undefined || fieldDef.inputType === 'custom'));
 
                 const processField = async ({ path, fieldDef }) => {
                     const fieldEl = rootEl.querySelector('[data-path="' + path.replace(/"/g, '\\"') + '"]');
@@ -4427,6 +4436,37 @@ window.jPulse = {
                         schema,
                         widgetOptions: fieldEl.tagName === 'SELECT' ? jPulse.UI.tabs._widgetOptionsFromDataAttrs(fieldEl) : {}
                     };
+
+                    if (fieldDef.inputType === 'custom') {
+                        // W-194: resolve the plugin-supplied renderer and hand it the mount point.
+                        // The renderer owns all UI/validation for this field; the framework only
+                        // knows how to persist whatever value it reports via onChange.
+                        const containerId = fieldEl.dataset.customContainer;
+                        const container = containerId ? rootEl.querySelector('#' + containerId) : null;
+                        const fn = jPulse.schemaForm._resolveCustomRenderer(fieldDef.renderer);
+                        if (!fn) {
+                            console.warn('- jPulse.schemaForm: custom renderer not found: ' + fieldDef.renderer);
+                        } else if (!container) {
+                            console.warn('- jPulse.schemaForm: custom renderer container missing: ' + path);
+                        } else {
+                            const onChange = (newValue) => {
+                                fieldEl.value = JSON.stringify(newValue !== undefined ? newValue : null);
+                                fieldEl.dispatchEvent(new Event('change', { bubbles: true }));
+                            };
+                            try {
+                                fn({
+                                    container,
+                                    value: currentValue,
+                                    onChange,
+                                    schema: fieldDef,
+                                    config: configData[blockKey] || {},
+                                    disabled: !!fieldDef.disabled
+                                });
+                            } catch (e) {
+                                console.warn('- jPulse.schemaForm: custom renderer failed: ' + path, e);
+                            }
+                        }
+                    }
 
                     if (fieldDef.loadOptions !== undefined && fieldEl.tagName === 'SELECT') {
                         const fn = jPulse.schemaForm._resolveHandler(fieldDef.loadOptions);
@@ -4647,6 +4687,28 @@ window.jPulse = {
                             '</table>' +
                             '</div>' +
                             '<input type="hidden" id="' + inputId + '" name="' + name + '" class="jp-edit-field" ' + dataPathAttr + ' data-field-grid="' + inputId + '-wrap">' +
+                            helpHtml +
+                            '</div></div>'
+                        );
+                        continue;
+                    }
+
+                    if (inputType === 'custom') {
+                        // W-194: escape hatch for plugin-supplied renderers. The framework only
+                        // emits a mount point (container div) plus a hidden proxy field that
+                        // carries the JSON-serialized value for setFormData/getFormData/save.
+                        // The actual widget is rendered later, in the post-render pipeline
+                        // (_runSchemaPostRender), once the container exists in the DOM.
+                        const containerId = inputId + '-container';
+                        let crWrapClass = wrapClass;
+                        if (crWrapClass.indexOf('jp-schema-field-new-row') < 0) crWrapClass += ' jp-schema-field-new-row';
+                        if (crWrapClass.indexOf('jp-schema-field-full') < 0) crWrapClass += ' jp-schema-field-full';
+                        parts.push(
+                            '<div class="' + crWrapClass + '"' + wrapAttrs + '>' +
+                            '<div class="jp-form-group">' +
+                            '<label class="jp-form-label">' + escapedLabel + '</label>' +
+                            '<div id="' + containerId + '" class="jp-custom-field"></div>' +
+                            '<input type="hidden" id="' + inputId + '" name="' + name + '" class="jp-edit-field" ' + dataPathAttr + ' data-custom-container="' + containerId + '">' +
                             helpHtml +
                             '</div></div>'
                         );
@@ -10338,6 +10400,24 @@ window.jPulse = {
         },
 
         /**
+         * Resolve a `type: "custom"` field's `renderer` reference to a function (W-194).
+         * Per the documented contract (docs/plugins/creating-plugins.md), dotted string names
+         * resolve against `window.jPulse.plugins.*` first (e.g. `"myPlugin.renderFoo"` →
+         * `window.jPulse.plugins.myPlugin.renderFoo`), falling back to a registry name
+         * (`jPulse.schemaForm.register(name, fn)`) or a bare `window.*` dotted path for
+         * back-compat. Does not warn on failure; caller logs with field-specific context.
+         * @param {Function|string} refOrName - Function, or dotted name / registry key
+         * @returns {Function|null}
+         */
+        _resolveCustomRenderer: (refOrName) => {
+            if (typeof refOrName === 'function') return refOrName;
+            if (typeof refOrName !== 'string' || !refOrName) return null;
+            const viaPlugins = jPulse.schemaForm.resolve('jPulse.plugins.' + refOrName);
+            if (viaPlugins) return viaPlugins;
+            return jPulse.schemaForm.resolve(refOrName);
+        },
+
+        /**
          * Replace <option>s of a <select> with a resolved options array. Thin
          * public wrapper around the renderer's internal helper.
          * @param {Element} fieldEl - <select> element
@@ -10521,6 +10601,7 @@ window.jPulse = {
             const data = {};
             const tabFirstSeenOrder = new Map();
             let nextOrder = 0;
+            let nonFieldIndex = 0;
             const values = currentValues || {};
             (configSchema || []).forEach((field) => {
                 if (!field || typeof field !== 'object') return;
@@ -10532,14 +10613,20 @@ window.jPulse = {
                     blocks[blockKey] = { _meta: { tabLabel, order: tabFirstSeenOrder.get(tabLabel) } };
                     data[blockKey] = {};
                 }
-                const fieldKey = field.id;
-                if (!fieldKey) return;
+                // Bug fix: display-only fields (help/separator) carry no `id` since they have no
+                // value — assign a synthetic, non-colliding key so they still reach the block
+                // (and render) instead of being silently dropped. _walkSchemaFields already
+                // excludes inputType 'help'/'separator'/'button' from the 'data' context, so this
+                // never affects getFormData/setFormData/save.
+                const fieldKey = field.id || ('__field' + (nonFieldIndex++));
                 const normalized = jPulse.schemaForm._normalizePluginFieldDef(field);
                 blocks[blockKey][fieldKey] = normalized;
-                if (Object.prototype.hasOwnProperty.call(values, fieldKey)) {
-                    data[blockKey][fieldKey] = values[fieldKey];
-                } else if (normalized.default !== undefined) {
-                    data[blockKey][fieldKey] = normalized.default;
+                if (field.id) {
+                    if (Object.prototype.hasOwnProperty.call(values, fieldKey)) {
+                        data[blockKey][fieldKey] = values[fieldKey];
+                    } else if (normalized.default !== undefined) {
+                        data[blockKey][fieldKey] = normalized.default;
+                    }
                 }
             });
             return { schema: { data: blocks }, data };
@@ -10596,6 +10683,13 @@ window.jPulse = {
                 case 'slider':
                     out.type = 'number';
                     out.inputType = 'slider';
+                    break;
+                case 'custom':
+                    // W-194: escape hatch — value is opaque JSON, rendering is delegated
+                    // entirely to the plugin-supplied `renderer` (resolved via
+                    // jPulse.schemaForm.resolve). Framework treats the value as a black box.
+                    out.type = 'custom';
+                    out.inputType = 'custom';
                     break;
                 case 'help':
                 case 'separator':

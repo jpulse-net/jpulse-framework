@@ -3,8 +3,8 @@
  * @tagline         Plugin Model for jPulse Framework WebApp
  * @description     Plugin configuration model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/plugin.js
- * @version         1.6.50
- * @release         2026-07-07
+ * @version         1.7.0
+ * @release         2026-07-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -106,10 +106,17 @@ class PluginModel {
                         }
                     }
                     break;
+
+                case 'custom':
+                    // W-194: escape hatch — value is opaque JSON owned by the plugin's renderer.
+                    // The framework does not know its shape, so no type check applies here;
+                    // the renderer is responsible for its own client-side validation.
+                    break;
             }
 
-            // Pattern validation
-            if (field.validation && typeof value === 'string') {
+            // Pattern validation (skipped for 'custom' — its value isn't necessarily a string,
+            // and any validation regex would be meaningless against opaque plugin-owned JSON)
+            if (field.type !== 'custom' && field.validation && typeof value === 'string') {
                 try {
                     const regex = new RegExp(field.validation);
                     if (!regex.test(value)) {

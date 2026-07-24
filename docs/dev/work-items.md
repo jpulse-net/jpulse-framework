@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.6.50
+# jPulse Docs / Dev / Work Items v1.7.0
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -6317,16 +6317,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `npm test` — `jpulse-ui-input-fieldgrid.test.js` (42 tests: 41 existing + 1 new) and full suite pass; no linter errors
   - browser-verified via a standalone harness loading the real `jpulse-common.js`: both server-rendered empty rows and the auto-appended row show blank `select` cells (`selectedIndex === -1`) after typing into the first row
 
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-193, v1.6.50, 2026-07-07: deployment: pm2 reload unnecessarily slow due to missing process.send('ready')
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bug fix
 - objectives:
   - make `pm2 reload` cut over to a new cluster worker within milliseconds of it actually being ready, instead of stalling for the full `listen_timeout` fallback
@@ -6352,6 +6344,203 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - test / verify (manual):
   - `npm start` / `npm run dev` locally: app boots normally, no error from the guarded `process.send` check (no IPC channel present outside PM2)
   - `pm2 start deploy/ecosystem.prod.config.cjs` then `pm2 reload <name>` on a multi-instance cluster: old workers are killed within a second or two of the new workers logging readiness, instead of after the ~58s `listen_timeout`-bounded stall
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-194, v1.7.0, 2026-07-08: plugins: add custom renderer field type in plugin.json config schema
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: universal escape hatch for plugins whose config doesn't fit the flat schema (lists, nested objects, custom widgets)
+- rationale: multiple future plugins hit the same wall (auth-oauth provider list, auth-ldap attribute mappings, theme color pickers, notification recipient rules); solve it once at the framework level rather than each plugin building its own admin page
+- depends on: — (self-contained)
+- features:
+  - new field type `type: "custom"` in plugin config schema
+  - plugin declares `renderer: "namespace.functionName"` pointing to a function in `window.jPulse.plugins.*`
+  - schema-driven config form resolves and invokes renderer with `{ container, value, onChange, schema, config, disabled }` context
+  - renderer owns validation and UI; framework treats value as opaque JSON
+  - values persist through the standard `PUT /api/1/plugin/:name/config` endpoint, stored in `pluginConfigs.config.{fieldId}` — no per-plugin schema, no separate collection
+  - hello-world plugin gets a small demo custom renderer (mini list editor of label/URL pairs) as reference implementation
+- bug fixes found during manual testing:
+  - renderer resolution: the custom-field renderer resolution path (`_resolveHandler`, shared with `onInit`/`loadOptions`) only resolved dotted `renderer` names against bare `window.*`, but the documented contract (and the hello-world demo's `renderer: "helloWorld.renderLinkList"`) requires resolution against `window.jPulse.plugins.*`. Field label/container/help text still rendered in this state, but the widget itself stayed empty with a console warning. Fixed by adding a dedicated `jPulse.schemaForm._resolveCustomRenderer()` that tries `jPulse.plugins.<name>` first, then falls back to the existing registry/bare-window `resolve()`.
+  - dropped help/separator fields (pre-existing, unrelated to W-194 but found while testing it): `jPulse.schemaForm.pluginSchemaToBlocks()` skipped any field with no `id` (`return` before adding it to the block), so every `type: "help"`/`type: "separator"` field declared in a multi-tab plugin.json — including both of hello-world's — was silently dropped and never rendered, even though the schema API correctly returned them. Fixed by assigning a synthetic key (`__field<N>`) to id-less fields so they still reach the block; `_walkSchemaFields` already excludes `help`/`separator`/`button` inputTypes from its `'data'`-context walk, so this only affects rendering, never `getFormData`/`setFormData`/save.
+- deliverables:
+  - webapp/view/jpulse-common.js:
+    - `jPulse.schemaForm._normalizePluginFieldDef`: normalize `type: "custom"` → `{ type: 'custom', inputType: 'custom' }`
+    - `jPulse.UI.tabs._renderSchemaBlockFields`: render a mount-point container + hidden JSON proxy input for `inputType === 'custom'`
+    - `jPulse.UI.input.setFormData` / `getFormData`: JSON stringify/parse the opaque value through the hidden proxy field
+    - `jPulse.UI.tabs._runSchemaPostRender`: resolve and invoke the renderer with `{ container, value, onChange, schema, config, disabled }`, once the field's container exists in the DOM
+    - `jPulse.schemaForm._resolveCustomRenderer`: resolve `renderer` strings against `jPulse.plugins.*` first, falling back to the registry/bare-window `resolve()`
+    - `jPulse.schemaForm.pluginSchemaToBlocks`: assign synthetic keys to id-less (help/separator) fields so they aren't dropped
+  - webapp/utils/plugin-manager.js:
+    - `validatePluginJson`: require a `renderer` string for `type: "custom"` fields
+  - webapp/model/plugin.js:
+    - `validateConfig`: skip type/pattern validation for `type: "custom"` fields (framework treats value as opaque JSON)
+  - plugins/hello-world/plugin.json:
+    - `quickLinks` demo field (`type: "custom"`, `renderer: "helloWorld.renderLinkList"`)
+  - plugins/hello-world/webapp/view/jpulse-common.js:
+    - `helloWorld.renderLinkList` demo renderer: mini list editor (label + URL pairs, add/remove)
+  - plugins/hello-world/webapp/view/jpulse-common.css:
+    - styles for the demo list editor (`.plg-link-*`)
+  - docs/plugins/creating-plugins.md:
+    - new "Custom Field Renderers" section documenting the `renderer` contract and context object
+  - docs/plugins/plugin-api-reference.md:
+    - document `type: "custom"` and the renderer context contract
+  - webapp/tests/unit/utils/plugin-config-renderer.test.js, webapp/tests/unit/utils/jpulse-schema-form-pipeline.test.js, webapp/tests/unit/model/plugin.test.js:
+    - normalization, render/save round-trip, post-render renderer invocation (context contract, registry + `jPulse.plugins.*` resolution, missing/throwing renderer isolation), help/separator field survival in multi-tab blocks, backend validation coverage
+- test / verify (manual):
+  - `npm start`; Admin → Plugins → hello-world → Configure → Advanced tab: "Quick Links" list editor renders with demo entries (TWiki, jPulse.net), add/remove works, changes persist through "Save Changes" and survive a full page reload; both `help` blocks (Advanced Settings intro, Custom Field Renderer intro) render in place
+  - `GET /api/1/plugin/hello-world/config`: `schema` includes both `help` entries and the `quickLinks` custom field exactly as declared in `plugin.json`; `values.quickLinks` reflects the saved TWiki/jPulse.net entries
+  - full unit suite: 87 suites / 2414 tests pass
+
+
+
+
+
+### W-195, v1.7.1, 2026-07-09: auth: framework enhancements for external auth plugins (OAuth, LDAP, SAML)
+- status: 🕑 PENDING
+- type: Feature
+- objective: provide the framework-level hooks and helpers external auth plugins need — browser-redirect login completion, login page button injection, local-auth policy, and a break-glass path for SSO outages
+- rationale: OAuth/LDAP/SAML plugins all need the same three things (finish login after browser redirect, inject provider buttons onto the login page, honor a site-wide local-auth restriction); solving these once in the framework keeps each auth plugin small and prevents divergence
+- depends on: W-105 (plugin hooks), W-109 (multi-step auth)
+- features:
+  - `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)` helper: browser-redirect-friendly login completion; sets `pendingAuth`, runs `_getRequiredSteps`, either 302s to the next-step page (e.g., MFA verify) or calls `_completeLogin` and 302s to `redirectUrl`
+  - `onAuthGetLoginProviders` hook: plugins return `[{ id, label, icon, buttonColor, initUrl, order }]`; framework login page renders configured buttons
+  - `controller.auth.localAuthRestriction` config: `'none' | 'admins-only' | 'disabled'`
+    - `'none'` (default): username/password works for everyone (current behavior)
+    - `'admins-only'`: username/password only works for users with admin role; regular users must use an external provider
+    - `'disabled'`: no local auth at all
+    - enforced in `AuthController.login()` credentials step, after `UserModel.authenticate()`, before pending init
+  - bootstrap safety check in `webapp/app.js`: if `localAuthRestriction === 'disabled'` AND no external auth plugin is enabled, forcibly downgrade to `'admins-only'` and log a warning (prevents self-lockout)
+  - `?localFallback=1` URL param on `/auth/login.shtml`: reveals local login form with a "Recovery mode" banner even in restricted modes (server still enforces the role check — this is a UI convenience for ops teams when SSO is broken)
+  - new i18n strings for restriction messages and recovery mode banner
+  - `hasLocalPassword` user-schema primitive (identified during W-196 design review): `{ type: 'boolean', default: true }` — general marker for "does this user know a real, usable local password", useful to any external-auth plugin (OAuth, LDAP, SAML), not just auth-oauth
+    - external-auth plugins set it to `false` when they write a synthetic/unknown `passwordHash` at JIT-creation time
+    - `UserController.changePassword()` skips the `currentPassword` check when `hasLocalPassword === false` (impossible to satisfy by construction — the user's session already proves identity); sets it back to `true` on success
+    - `webapp/view/user/settings.tmpl` Security panel conditionally hides `currentPassword` and relabels the section "Set Password" vs "Change Password" based on this flag
+    - no migration/backfill needed — absent field reads as `true` (default), matching existing local-signup users
+- deliverables:
+  - webapp/controller/auth.js:
+    - `completeExternalAuth()` static helper for browser-based auth flows
+    - `localAuthRestriction` enforcement in `login()` credentials step
+  - webapp/app.js:
+    - bootstrap safety check for `localAuthRestriction: 'disabled'`
+  - webapp/view/auth/login.shtml:
+    - fetch enabled providers via `onAuthGetLoginProviders` (server-side render into `<div class="jp-auth-providers">`)
+    - hide local form when `localAuthRestriction !== 'none'` unless `?localFallback=1`
+    - "Recovery mode" banner in fallback mode
+  - webapp/utils/hook-manager.js:
+    - register `onAuthGetLoginProviders` hook definition
+  - webapp/model/user.js:
+    - add `hasLocalPassword: { type: 'boolean', default: true }` to `baseSchema`
+  - webapp/controller/user.js:
+    - `changePassword()`: skip `currentPassword` verification when `hasLocalPassword === false`; set `hasLocalPassword: true` on successful save
+  - webapp/view/user/settings.tmpl:
+    - conditionally hide `currentPassword` field and relabel "Set Password" vs "Change Password" based on `hasLocalPassword`
+  - webapp/i18n/en.js, webapp/i18n/de.js:
+    - new strings: `controller.auth.localAuthRestricted`, `view.auth.login.recoveryModeBanner`, `view.auth.login.orSignInWithLocal`, `view.user.settings.setPassword`, etc.
+  - docs/plugins/plugin-hooks.md:
+    - document `onAuthGetLoginProviders` context, return shape, examples
+  - docs/deployment.md:
+    - new "Break-Glass Account Runbook" section (reserve local admin account, MFA-protect it, document recovery URL)
+  - docs/CHANGELOG.md: release notes
+
+### W-196, v1.0.0, 2026-07-11: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
+- status: 🕑 PENDING
+- type: Feature
+- objective: SSO plugin supporting two deployment scenarios — (1) public sites with consumer providers (Google, and later Apple/GitHub), (2) org-internal sites with enterprise providers (Okta, Auth0, Azure Entra, Keycloak, ADFS via generic OIDC)
+- repository: github.com/jpulse-net/plugin-auth-oauth (separate repo, independent versioning)
+- npm package: @jpulse-net/plugin-auth-oauth@1.0.0 (planned, GitHub Package Registry)
+- depends on: W-105 (plugin hooks), W-107 (data-driven user cards), W-109 (multi-step login), W-194 (custom renderer), W-195 (external auth helpers)
+- working doc: docs/dev/design/W-196-auth-oauth-plugin.md
+- scope v1.0.0:
+  - Google preset (public sites)
+  - generic OIDC preset (Okta, Auth0, Entra, Keycloak, ADFS via discovery URL)
+  - custom OAuth2 preset (manual URLs, non-OIDC providers)
+  - multiple providers active simultaneously; provider list stored via W-194 custom renderer
+  - out of scope for v1.0.0: Apple SSO (form_post + first-consent-only email), GitHub preset, token persistence, backchannel logout, SAML — deferred to v1.1+
+- features:
+  - Authorization Code flow with mandatory PKCE (S256), state (CSRF), nonce (OIDC)
+  - ID token signature verification via provider JWKS (cached by openid-client)
+  - three user linking strategies, per-provider configurable:
+    - `sub-only`: strict — admin must pre-provision users
+    - `link-by-email` (default): match existing local user by verified email, then use sub for subsequent logins
+    - `jit-create`: create new users on first login with default role and status; writes only fields already present in `UserModel.baseSchema` — no framework schema changes needed (synthetic random `passwordHash`, `hasLocalPassword: false`, guaranteed non-empty `profile.firstName`/`lastName` via fallback chain; see design doc §7, §10)
+  - `email_verified: true` (an IdP-provided claim, not a persisted user field) required for `link-by-email` and JIT (prevents account takeover via unverified email at IdP); stored for audit only inside `oauth.{provider}.emailVerified`, never on the base user document
+  - migration paths for existing internal-auth sites (see design doc §9):
+    - Path A: automatic email-link on first SSO login (zero admin work when local email = IdP email)
+    - Path B: self-service link from linked-accounts page (user logs in locally first, then connects SSO provider)
+    - Path C: admin bulk CSV import — deferred to v2.0
+  - profile field extraction & JIT completion (see design doc §10):
+    - Stage A: best-effort claim extraction with fallbacks (given_name / family_name / name-split heuristics / preferred_username / email local-part), always resolving to a non-empty value since `profile.firstName`/`lastName` are schema-required; tracks which fields only got a placeholder via `oauth._jit.placeholderFields`
+    - Stage B: interactive `oauth-profile-complete` step injected into the W-109 multi-step flow when Stage A only produced placeholders for a field in `profileRequiredFields` — JIT-created users only (gated by presence of `oauth._jit`), existing users never re-prompted
+    - `profileRequiredFields` config option (default `['firstName', 'lastName']`) controls which fields trigger Stage B
+    - `oauth._jit` sentinel (`{ createdAt, viaProvider, placeholderFields, profileCompletedAt }`) lives as a sibling of provider blocks under `user.oauth`, not nested inside any one provider's block — it's a property of the user, not of a specific provider link
+  - `status: 'pending'` (existing `UserModel` enum value, not a new one) supported for JIT: the plugin's callback handler checks it explicitly before calling `AuthController.completeExternalAuth()` — there is no implicit framework-side gate for this
+  - account lifecycle / local-password interplay (see design doc §11): unlink-last-method guard blocks removing a user's only sign-in method when `hasLocalPassword === false` (W-195 primitive), pointing them to the existing "Set Password" flow instead of building new password UI
+  - `allowedDomains` per-provider option for domain-restricted signup
+  - `jitDefaultRoles`/`jitRoles` never offer or accept `admin`/`root` — stripped in code as defense in depth, not just excluded from the config UI
+  - user schema extension: `user.oauth.{provider}` block with W-107 adminCard/userCard for link/unlink management
+  - no IdP session or token persistence — only `sub`, `email`, `emailVerified`, `name`, `picture`, `preferredUsername`, `iss`, `linkedAt`, `lastLoginAt`
+  - client_secret encrypted at rest in `authOauth_providers` collection using framework encryption utility (same pattern as auth-mfa TOTP secret)
+  - login page buttons injected via `onAuthGetLoginProviders` (from W-195), per-provider `icon` / `buttonColor` / `label` for branding
+  - computed, copyable redirect URI shown per provider in the config renderer (derived from `req.protocol`/`req.get('host')`, same pattern as `handlebar.js`'s `url.domain`) — admin never has to guess the callback URL to paste into the IdP console
+  - composes with auth-mfa: MFA step runs after successful OAuth identity resolution via existing W-109 flow
+  - user linked-accounts management page (`/jpulse-plugins/auth-oauth.shtml`) for connecting/disconnecting providers
+  - error page (`/auth/oauth-error.shtml`) with i18n error mapping (never leaks raw provider errors)
+  - rate limiting on init/callback endpoints
+  - documents existing `controller.user.disableSignup`/`view.auth.hideSignup` + `localAuthRestriction` (W-195) combinations per site mode in README (see design doc §12) — no new signup/login-visibility flags needed, framework already has what's required
+- npm dependency: openid-client (~500KB with jose + oauth4webapi)
+- security posture:
+  - mandatory PKCE for all providers, even confidential clients
+  - state one-time-use, 5-minute expiry
+  - ID token: signature via JWKS, iss matches discovery, aud matches client_id, exp check, nonce match
+  - only authorization code flow — no implicit, no resource owner password credentials
+  - timing-safe compare for state/nonce
+  - never log tokens, codes, or secrets
+- deliverables:
+  - plugins/auth-oauth/plugin.json:
+    - plugin manifest with globals (defaultLinkingStrategy, jitDefaultRoles, jitDefaultStatus)
+    - `type: "custom"` field for `providers` with renderer `authOauth.renderProviders` (uses W-194)
+  - plugins/auth-oauth/package.json:
+    - openid-client dependency
+  - plugins/auth-oauth/README.md, plugins/auth-oauth/docs/README.md:
+    - dev + user docs, includes provider setup guides for Google, Okta, Keycloak, Azure Entra
+  - plugins/auth-oauth/webapp/controller/oauthAuth.js:
+    - hooks: onAuthGetLoginProviders, onUserSyncProfile, onAuthAfterLogin
+    - api endpoints: providers, init, callback, user/providers, link, unlink, admin CRUD, test-connection
+  - plugins/auth-oauth/webapp/model/oauthAuth.js:
+    - `user.oauth` schema extension with W-107 adminCard/userCard metadata
+  - plugins/auth-oauth/webapp/model/oauthProvider.js:
+    - `authOauth_providers` collection CRUD
+    - client_secret encryption at rest
+  - plugins/auth-oauth/webapp/utils/providerRegistry.js:
+    - preset definitions (google, oidc, oauth2) with discovery URLs, default scopes
+  - plugins/auth-oauth/webapp/utils/oauthClient.js:
+    - openid-client wrapper: discovery caching, PKCE, JWKS
+  - plugins/auth-oauth/webapp/utils/profileExtractor.js:
+    - Stage A best-effort claim → user field mapping with fallbacks (given_name → name-split → preferred_username → email local-part)
+  - plugins/auth-oauth/webapp/view/auth/oauth-profile-complete.shtml:
+    - Stage B form for filling in missing firstName / lastName / nickName after JIT signup
+  - plugins/auth-oauth/webapp/view/auth/oauth-error.shtml:
+    - error landing page with i18n reason mapping
+  - plugins/auth-oauth/webapp/view/jpulse-plugins/auth-oauth.shtml:
+    - user linked-accounts management (connect, disconnect, view)
+  - plugins/auth-oauth/webapp/view/jpulse-common.js:
+    - `authOauth.renderProviders` custom renderer (provider CRUD table for W-194)
+  - plugins/auth-oauth/webapp/view/jpulse-common.css:
+    - provider button styles, branding classes
+  - plugins/auth-oauth/webapp/view/jpulse-navigation.js:
+    - link to /jpulse-plugins/auth-oauth.shtml from user menu
+  - plugins/auth-oauth/webapp/bump-version.conf:
+    - version management config
+  - i18n files (en, de) for plugin.authOauth.* namespace
+  - published to github.com/jpulse-net/plugin-auth-oauth as v1.0.0
 
 
 
@@ -6384,11 +6573,11 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-193, v1.6.50, 2026-07-07
-- update features & deliverables in W-193 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume W-194, v1.7.0, 2026-07-23
+- update features & deliverables in W-194 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
-- update cursor_log.txt (append, don't replace)
+- append to cursor_log.txt
 
 ### Misc
 
@@ -6396,12 +6585,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.6.50 2026-07-07
+node bin/bump-version.js 1.7.0 2026-07-23
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.6.50; git push origin main --tags
+git tag v1.7.0; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

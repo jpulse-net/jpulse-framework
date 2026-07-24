@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-045 PluginModel
  * @description     Tests plugin configuration validation
  * @file            webapp/tests/unit/model/plugin.test.js
- * @version         1.6.50
- * @release         2026-07-07
+ * @version         1.7.0
+ * @release         2026-07-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -169,6 +169,30 @@ describe('PluginModel (W-045)', () => {
             ];
 
             const result = PluginModel.validateConfig('test-plugin', { name: 'test' }, schema);
+            expect(result.valid).toBe(true);
+        });
+
+        test('should accept any JSON shape for custom field type (W-194)', () => {
+            const schema = [
+                { id: 'links', label: 'Links', type: 'custom', renderer: 'myPlugin.renderLinks' }
+            ];
+
+            const arrayResult = PluginModel.validateConfig('test-plugin', { links: [{ label: 'a', url: 'https://a' }] }, schema);
+            expect(arrayResult.valid).toBe(true);
+
+            const objectResult = PluginModel.validateConfig('test-plugin', { links: { nested: true } }, schema);
+            expect(objectResult.valid).toBe(true);
+
+            const stringResult = PluginModel.validateConfig('test-plugin', { links: 'not-json' }, schema);
+            expect(stringResult.valid).toBe(true);
+        });
+
+        test('should skip validation regex for custom field type even when value is a string', () => {
+            const schema = [
+                { id: 'links', label: 'Links', type: 'custom', renderer: 'myPlugin.renderLinks', validation: '^\\d+$' }
+            ];
+
+            const result = PluginModel.validateConfig('test-plugin', { links: 'not-a-number' }, schema);
             expect(result.valid).toBe(true);
         });
     });

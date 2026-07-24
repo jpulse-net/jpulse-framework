@@ -1,6 +1,55 @@
-# jPulse Docs / Version History v1.6.50
+# jPulse Docs / Version History v1.7.0
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.0, W-194, 2026-07-23
+
+**Commit:** `W-194, v1.7.0: plugins: add custom renderer field type in plugin.json config schema`
+
+**Objective**: Provide a universal escape hatch for plugin config fields that don't fit the flat `plugin.json` schema — lists of objects, nested structures, bespoke widgets (e.g. an OAuth provider list, LDAP attribute mappings, theme color pickers, notification recipient rules) — so each plugin doesn't have to build its own admin page just to manage one non-flat field.
+
+**Summary**: New field type `type: "custom"` in the plugin config schema. The plugin declares `renderer: "namespace.functionName"`, a dotted name resolved against `window.jPulse.plugins.*` (or a name registered via `jPulse.schemaForm.register()`). The schema-driven config form renders a mount-point `<div>` plus a hidden JSON proxy input for the field, then — once the form is in the DOM — resolves and invokes the renderer exactly once with a context object: `{ container, value, onChange, schema, config, disabled }`. The renderer owns all UI, interaction, and validation inside `container`, and reports changes via `onChange(newValue)`; the framework treats the value as opaque JSON, JSON-stringifying it into the hidden field for `getFormData`/save and JSON-parsing it back into `value` on the next render. Values persist through the existing `PUT /api/1/plugin/:name/config` endpoint into `pluginConfigs.config.{fieldId}` — no per-plugin schema or separate collection required. The `hello-world` plugin ships a small demo renderer (`renderLinkList`, a mini list editor of label/URL pairs) as a working reference implementation.
+
+Two bugs were found and fixed during manual end-to-end testing (both covered by new regression tests): **(1)** the renderer-resolution path only resolved dotted `renderer` names against bare `window.*`, but the documented contract (and the `hello-world` demo itself) requires resolution against `window.jPulse.plugins.*` — the field's label/container/help text still rendered, but the widget stayed empty with a console warning; fixed with a dedicated `jPulse.schemaForm._resolveCustomRenderer()` that tries `jPulse.plugins.<name>` first, then falls back to the existing registry/bare-`window` `resolve()`. **(2)** `jPulse.schemaForm.pluginSchemaToBlocks()` skipped any field with no `id` before adding it to the tab's block, silently dropping every `type: "help"`/`type: "separator"` field in a multi-tab `plugin.json` (pre-existing, unrelated to this work item but found while testing it) — fixed by assigning a synthetic key (`__field<N>`) to id-less fields so they still reach the block and render; `_walkSchemaFields` already excludes `help`/`separator`/`button` inputTypes from its `'data'`-context walk, so this only affects rendering, never `getFormData`/`setFormData`/save.
+
+**Key features**:
+- New field type `type: "custom"` in plugin config schema, with a required `renderer` string
+- Renderer resolved against `window.jPulse.plugins.*` (documented convention) or the `jPulse.schemaForm` registry
+- Framework renders a mount point + hidden JSON proxy field; invokes the renderer once with the full context object after the form is in the DOM
+- Renderer owns all UI/interaction/validation; framework treats the value as opaque JSON
+- Values persist through the standard plugin config save path — no new endpoint or collection
+- `hello-world` plugin demo: `renderLinkList` mini list editor (label + URL pairs, add/remove)
+- Bug fix: `renderer` names now resolve against `window.jPulse.plugins.*` as documented
+- Bug fix: `help`/`separator` fields with no `id` no longer silently dropped from multi-tab plugin config schemas
+
+**Files changed**:
+- `webapp/view/jpulse-common.js`:
+  - `jPulse.schemaForm._normalizePluginFieldDef` — normalize `type: "custom"` → `{ type: 'custom', inputType: 'custom' }`
+  - `jPulse.UI.tabs._renderSchemaBlockFields` — render mount-point container + hidden JSON proxy input for `inputType === 'custom'`
+  - `jPulse.UI.input.setFormData` / `getFormData` — JSON stringify/parse the opaque value through the hidden proxy field
+  - `jPulse.UI.tabs._runSchemaPostRender` — resolve and invoke the renderer with `{ container, value, onChange, schema, config, disabled }`
+  - `jPulse.schemaForm._resolveCustomRenderer` — new: resolve `renderer` strings against `jPulse.plugins.*` first, falling back to the registry/bare-`window` `resolve()`
+  - `jPulse.schemaForm.pluginSchemaToBlocks` — assign synthetic keys to id-less (help/separator) fields so they aren't dropped
+- `webapp/utils/plugin-manager.js` — `validatePluginJson`: require a `renderer` string for `type: "custom"` fields
+- `webapp/model/plugin.js` — `validateConfig`: skip type/pattern validation for `type: "custom"` fields
+- `plugins/hello-world/plugin.json` — `quickLinks` demo field (`type: "custom"`, `renderer: "helloWorld.renderLinkList"`) + intro `help` block
+- `plugins/hello-world/webapp/view/jpulse-common.js` — `helloWorld.renderLinkList` demo renderer
+- `plugins/hello-world/webapp/view/jpulse-common.css` — styles for the demo list editor (`.plg-link-*`)
+- `webapp/tests/unit/utils/plugin-config-renderer.test.js`, `webapp/tests/unit/utils/jpulse-schema-form-pipeline.test.js`, `webapp/tests/unit/model/plugin.test.js` — normalization, render/save round-trip, post-render renderer invocation, help/separator field survival, backend validation coverage
+
+**Documentation**:
+- `docs/plugins/creating-plugins.md` — new "Custom Field Renderers" section documenting the `renderer` contract and context object
+- `docs/plugins/plugin-api-reference.md` — document `type: "custom"` and the renderer context contract
+- `docs/jpulse-ui-reference.md` — add `custom` to the supported schema `inputType` list and the legacy `type` → unified `(type, inputType)` normalization table; note synthetic keys for id-less help/separator fields
+- `README.md`, `docs/README.md` — Latest Release Highlights — v1.7.0 / W-194
+- `docs/CHANGELOG.md` — this section
+- `docs/dev/work-items.md` — W-194 objective/rationale/features/bug fixes/deliverables/manual test steps
+
+**Release**:
+- Work Item: W-194
+- Version: v1.7.0
+- Release Date: 2026-07-23
 
 ________________________________________________
 ## v1.6.50, W-193, 2026-07-07

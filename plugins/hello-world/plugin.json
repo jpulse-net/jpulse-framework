@@ -1,7 +1,7 @@
 {
     "name": "hello-world",
     "npmPackage": "@jpulse-net/plugin-hello-world",
-    "version": "1.6.50",
+    "version": "1.7.0",
     "icon": "🔌",
     "summary": "Hello World demo plugin for jPulse Framework",
     "description": "<p>This demo plugin showcases the jPulse Framework plugin system with:</p><ul><li><strong>Dynamic Configuration:</strong> Tab-based settings with various field types</li><li><strong>MVC Components:</strong> Controller, Model, and View integration</li><li><strong>Append Mode:</strong> Extending framework CSS and JavaScript</li></ul><p>Use this as a reference when creating your own plugins.</p>",
@@ -82,6 +82,20 @@
                 "rows": 5,
                 "placeholder": "Enter a custom description for this plugin...",
                 "help": "Optional custom description (supports multiline text)",
+                "tab": "Advanced"
+            },
+            {
+                "type": "help",
+                "content": "<strong>🧩 Custom Field Renderer:</strong> The field below is not one of the built-in types — it's rendered entirely by this plugin's own JavaScript, demonstrating the <code>type: \"custom\"</code> escape hatch for config UIs that don't fit a flat schema.",
+                "tab": "Advanced"
+            },
+            {
+                "id": "quickLinks",
+                "label": "Quick Links",
+                "type": "custom",
+                "renderer": "helloWorld.renderLinkList",
+                "default": [],
+                "help": "Mini list editor (label + URL pairs) stored as a JSON array. The framework treats this value as opaque — see plugins/hello-world/webapp/view/jpulse-common.js for the renderer.",
                 "tab": "Advanced"
             }
         ]

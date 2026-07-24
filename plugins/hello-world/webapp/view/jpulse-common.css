@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the Hello World Plugin
  * @description     Common CSS for the Hello World Plugin, appended to the framework common CSS
  * @file            plugins/hello-world/webapp/view/jpulse-common.css
- * @version         1.6.50
- * @release         2026-07-07
+ * @version         1.7.0
+ * @release         2026-07-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -39,6 +39,53 @@
 /* Plugin dashboard icon sizing (W-045) */
 .jp-card-dashboard .jp-icon-container {
     font-size: 64px;
+}
+
+/* W-194 demo: "Quick Links" custom field renderer (config.schema type:"custom") */
+.plg-link-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.plg-link-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border: 1px solid var(--jp-theme-border-color);
+    border-radius: 6px;
+    background-color: var(--jp-theme-bg-secondary);
+}
+
+.plg-link-label {
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.plg-link-url {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.plg-link-remove {
+    margin-left: auto;
+}
+
+.plg-link-add {
+    display: flex;
+    gap: 8px;
+}
+
+.plg-link-add .plg-link-add-label {
+    flex: 0 0 30%;
+}
+
+.plg-link-add .plg-link-add-url {
+    flex: 1;
 }
 
 /* EOF plugins/hello-world/webapp/view/jpulse-common.css */

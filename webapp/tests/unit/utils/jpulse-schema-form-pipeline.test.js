@@ -5,8 +5,8 @@
  *                  loadOptions function/string forms, rejection isolation, onInit ctx + widgetOptions
  *                  mutation, ready Promise resolution, enum alias, showWhen post-pipeline setup.
  * @file            webapp/tests/unit/utils/jpulse-schema-form-pipeline.test.js
- * @version         1.6.50
- * @release         2026-07-07
+ * @version         1.7.0
+ * @release         2026-07-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -766,6 +766,136 @@ describe('W-189 — _runSchemaPostRender async pipeline (runtime)', () => {
             const sel = card.querySelector('select');
             const values = Array.from(sel.options).map((o) => o.value);
             expect(values).toContain('eu');
+        });
+    });
+
+    // ─── custom renderer (W-194) ───────────────────────────────────────────────
+
+    describe('custom renderer (W-194)', () => {
+        afterEach(() => {
+            try { win.jPulse.schemaForm.unregister('test.renderCustom'); } catch (_) {}
+        });
+
+        test('renderer is invoked once with the full context contract', async () => {
+            let capturedCtx = null;
+            const blockDef = {
+                _meta: {},
+                links: {
+                    type: 'custom', inputType: 'custom', label: 'Links',
+                    renderer: (ctx) => { capturedCtx = ctx; },
+                    default: []
+                }
+            };
+            const form = buildForm('blk', blockDef, { links: [{ label: 'Docs', url: 'https://x' }] });
+            const schema = { data: { blk: blockDef } };
+            await runPipeline(form, schema, { blk: { links: [{ label: 'Docs', url: 'https://x' }] } });
+
+            expect(capturedCtx).not.toBeNull();
+            expect(capturedCtx.value).toEqual([{ label: 'Docs', url: 'https://x' }]);
+            expect(typeof capturedCtx.onChange).toBe('function');
+            expect(capturedCtx.schema).toBe(blockDef.links);
+            expect(capturedCtx.config).toEqual({ links: [{ label: 'Docs', url: 'https://x' }] });
+            expect(capturedCtx.disabled).toBe(false);
+            expect(capturedCtx.container).toBeInstanceOf(win.HTMLElement);
+            expect(capturedCtx.container.id).toBe(form.querySelector('[data-path="blk.links"]').dataset.customContainer);
+        });
+
+        test('renderer resolves via jPulse.schemaForm registry (string form)', async () => {
+            let called = false;
+            win.jPulse.schemaForm.register('test.renderCustom', () => { called = true; });
+            const blockDef = {
+                _meta: {},
+                links: { type: 'custom', inputType: 'custom', label: 'Links', renderer: 'test.renderCustom', default: [] }
+            };
+            const form = buildForm('blk', blockDef, {});
+            const schema = { data: { blk: blockDef } };
+            await runPipeline(form, schema, { blk: {} });
+
+            expect(called).toBe(true);
+        });
+
+        test('renderer resolves against window.jPulse.plugins.* per documented contract (dotted name, not registered)', async () => {
+            // Matches docs/plugins/creating-plugins.md: "myPlugin.renderQuickLinks" resolves to
+            // window.jPulse.plugins.myPlugin.renderQuickLinks — no jPulse.schemaForm.register() call needed.
+            // Regression guard: _resolveCustomRenderer must NOT fall back to bare window.myPlugin.renderQuickLinks.
+            let capturedValue = null;
+            win.jPulse.plugins = win.jPulse.plugins || {};
+            win.jPulse.plugins.testPlugin = {
+                renderQuickLinks: (ctx) => { capturedValue = ctx.value; }
+            };
+            const blockDef = {
+                _meta: {},
+                links: { type: 'custom', inputType: 'custom', label: 'Links', renderer: 'testPlugin.renderQuickLinks', default: [] }
+            };
+            const form = buildForm('blk', blockDef, { links: [{ label: 'Docs', url: 'https://x' }] });
+            const schema = { data: { blk: blockDef } };
+            await runPipeline(form, schema, { blk: { links: [{ label: 'Docs', url: 'https://x' }] } });
+
+            expect(capturedValue).toEqual([{ label: 'Docs', url: 'https://x' }]);
+            delete win.jPulse.plugins.testPlugin;
+        });
+
+        test('onChange writes JSON to the hidden proxy field and dispatches change', async () => {
+            let onChangeFn = null;
+            const blockDef = {
+                _meta: {},
+                links: {
+                    type: 'custom', inputType: 'custom', label: 'Links',
+                    renderer: (ctx) => { onChangeFn = ctx.onChange; },
+                    default: []
+                }
+            };
+            const form = buildForm('blk', blockDef, {});
+            const schema = { data: { blk: blockDef } };
+            await runPipeline(form, schema, { blk: {} });
+
+            const hidden = form.querySelector('[data-path="blk.links"]');
+            let changeEventSeen = false;
+            hidden.addEventListener('change', () => { changeEventSeen = true; });
+
+            onChangeFn([{ label: 'New', url: 'https://y' }]);
+
+            expect(JSON.parse(hidden.value)).toEqual([{ label: 'New', url: 'https://y' }]);
+            expect(changeEventSeen).toBe(true);
+        });
+
+        test('missing renderer: warns and does not throw', async () => {
+            const consoleWarns = [];
+            const origWarn = win.console.warn;
+            win.console.warn = (...args) => consoleWarns.push(args.join(' '));
+
+            const blockDef = {
+                _meta: {},
+                links: { type: 'custom', inputType: 'custom', label: 'Links', renderer: 'test.noSuchRenderer', default: [] }
+            };
+            const form = buildForm('blk', blockDef, {});
+            const schema = { data: { blk: blockDef } };
+
+            await expect(runPipeline(form, schema, { blk: {} })).resolves.not.toThrow();
+            expect(consoleWarns.some((m) => m.includes('custom renderer not found'))).toBe(true);
+
+            win.console.warn = origWarn;
+        });
+
+        test('renderer throwing synchronously: warns and does not block pipeline', async () => {
+            const consoleWarns = [];
+            const origWarn = win.console.warn;
+            win.console.warn = (...args) => consoleWarns.push(args.join(' '));
+
+            const blockDef = {
+                _meta: {},
+                links: {
+                    type: 'custom', inputType: 'custom', label: 'Links',
+                    renderer: () => { throw new Error('boom'); },
+                    default: []
+                },
+                other: { type: 'string', label: 'Other' }
+            };
+            const form = buildForm('blk', blockDef, {});
+            const schema = { data: { blk: blockDef } };
+
+            await expect(runPipeline(form, schema, { blk: {} })).resolves.not.toThrow();
+            expect(consoleWarns.some((m) => m.includes('custom renderer failed'))).toBe(true);
         });
     });
 });

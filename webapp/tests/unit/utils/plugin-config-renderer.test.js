@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for plugin.json schema → unified block-structure adapter (W-189)
  * @description     pluginSchemaToBlocks normalization table, flattenBlockValues, integration smoke tests
  * @file            webapp/tests/unit/utils/plugin-config-renderer.test.js
- * @version         1.6.50
- * @release         2026-07-07
+ * @version         1.7.0
+ * @release         2026-07-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -107,6 +107,16 @@ describe('jPulse.schemaForm.pluginSchemaToBlocks (W-189)', () => {
             expect(out.inputType).toBe('slider');
         });
 
+        test('custom → type:custom + inputType:custom, renderer preserved (W-194)', () => {
+            const out = win.jPulse.schemaForm._normalizePluginFieldDef({
+                id: 'links', type: 'custom', label: 'Links', renderer: 'myPlugin.renderLinks', default: []
+            });
+            expect(out.type).toBe('custom');
+            expect(out.inputType).toBe('custom');
+            expect(out.renderer).toBe('myPlugin.renderLinks');
+            expect(out.default).toEqual([]);
+        });
+
         test('help / separator → inputType only (no data type)', () => {
             ['help', 'separator'].forEach((t) => {
                 const out = win.jPulse.schemaForm._normalizePluginFieldDef({ id: 'note', type: t, label: 'Note' });
@@ -187,6 +197,37 @@ describe('jPulse.schemaForm.pluginSchemaToBlocks (W-189)', () => {
             expect(Object.keys(schema.data.general)).toContain('apiKey');
         });
 
+        test('bug fix: help/separator fields (no id) survive into the block instead of being dropped', () => {
+            const configSchema = [
+                { type: 'help', content: '<p>Intro</p>', tab: 'Advanced' },
+                { id: 'timeout', type: 'number', tab: 'Advanced', default: 30 },
+                { type: 'separator', tab: 'Advanced' },
+                { id: 'apiKey', type: 'text', tab: 'Advanced' }
+            ];
+            const { schema, data } = win.jPulse.schemaForm.pluginSchemaToBlocks(configSchema, {});
+            const keys = Object.keys(schema.data.advanced);
+            expect(keys).toContain('timeout');
+            expect(keys).toContain('apiKey');
+            // Two non-id fields must both be present under distinct synthetic keys.
+            const nonFieldKeys = keys.filter((k) => k !== '_meta' && k !== 'timeout' && k !== 'apiKey');
+            expect(nonFieldKeys).toHaveLength(2);
+            expect(schema.data.advanced[nonFieldKeys[0]].inputType).toBe('help');
+            expect(schema.data.advanced[nonFieldKeys[1]].inputType).toBe('separator');
+            // Synthetic keys must never leak into persisted data (no id => no value).
+            expect(Object.keys(data.advanced).sort()).toEqual(['timeout']);
+        });
+
+        test('bug fix: rendered HTML includes help/separator content that was previously dropped', () => {
+            const configSchema = [
+                { type: 'help', content: 'Intro text', tab: 'Advanced' },
+                { id: 'timeout', type: 'number', label: 'Timeout', tab: 'Advanced', default: 30 }
+            ];
+            const { schema, data } = win.jPulse.schemaForm.pluginSchemaToBlocks(configSchema, {});
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('advanced', schema.data.advanced, data.advanced);
+            expect(html).toContain('Intro text');
+            expect(html).toContain('Timeout');
+        });
+
         test('normalizes tab labels with non-alphanumeric chars to clean block keys', () => {
             const configSchema = [{ id: 'x', type: 'text', tab: 'Auth & API' }];
             const { schema } = win.jPulse.schemaForm.pluginSchemaToBlocks(configSchema, {});
@@ -244,6 +285,50 @@ describe('jPulse.schemaForm.pluginSchemaToBlocks (W-189)', () => {
             expect(flat.apiKey).toBe('sk-xyz');
             expect(flat.enabled).toBe(true);
             expect(flat.timeout).toBe(45);
+        });
+
+        test('custom field: render emits container + hidden proxy; value survives round-trip (W-194)', () => {
+            const configSchema = [
+                { id: 'links', type: 'custom', label: 'Links', renderer: 'test.renderLinks', tab: 'Advanced', default: [] }
+            ];
+            const initial = { links: [{ label: 'Docs', url: 'https://example.com' }] };
+            const { schema, data } = win.jPulse.schemaForm.pluginSchemaToBlocks(configSchema, initial);
+
+            doc.body.innerHTML = '<form id="f"></form>';
+            const form = doc.getElementById('f');
+            const html = Object.entries(schema.data)
+                .map(([blockKey, blockDef]) => win.jPulse.UI.tabs._renderSchemaBlockFields(blockKey, blockDef, data[blockKey] || {}))
+                .join('');
+            form.innerHTML = html;
+
+            const hidden = form.querySelector('[data-path="advanced.links"]');
+            expect(hidden).not.toBeNull();
+            expect(hidden.type).toBe('hidden');
+            const containerId = hidden.dataset.customContainer;
+            expect(containerId).toBeTruthy();
+            expect(form.querySelector('#' + containerId)).not.toBeNull();
+
+            win.jPulse.UI.input.setFormData(form, data, schema);
+            expect(JSON.parse(hidden.value)).toEqual([{ label: 'Docs', url: 'https://example.com' }]);
+
+            const blockData = win.jPulse.UI.input.getFormData(form, schema).data;
+            const flat = win.jPulse.schemaForm.flattenBlockValues(blockData);
+            expect(flat.links).toEqual([{ label: 'Docs', url: 'https://example.com' }]);
+        });
+
+        test('custom field: getFormData falls back to schema default on invalid JSON (W-194)', () => {
+            const configSchema = [
+                { id: 'links', type: 'custom', label: 'Links', renderer: 'test.renderLinks', default: [] }
+            ];
+            const { schema, data } = win.jPulse.schemaForm.pluginSchemaToBlocks(configSchema, {});
+            doc.body.innerHTML = '<form id="f"></form>';
+            const form = doc.getElementById('f');
+            form.innerHTML = win.jPulse.UI.tabs._renderSchemaBlockFields('general', schema.data.general, data.general || {});
+            const hidden = form.querySelector('[data-path="general.links"]');
+            hidden.value = 'not-json{';
+
+            const blockData = win.jPulse.UI.input.getFormData(form, schema).data;
+            expect(blockData.general.links).toEqual([]);
         });
     });
 });

@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-134 reserved username validation
  * @description     Tests for reserved username validation in UserModel
  * @file            webapp/tests/unit/model/user-reserved-usernames.test.js
- * @version         1.6.50
- * @release         2026-07-07
+ * @version         1.7.0
+ * @release         2026-07-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

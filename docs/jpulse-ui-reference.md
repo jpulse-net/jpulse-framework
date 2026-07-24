@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.6.50
+# jPulse Docs / jPulse.UI Widget Reference v1.7.0
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -714,7 +714,7 @@ jPulse.UI.input.initAll(configForm);
 
 If `data-slider-default` (or `options.default`) is set, a small vertical line is drawn on the track at that value. If default is not set, no tick is shown.
 
-**Schema-driven forms:** When rendering forms from a schema (e.g. `jPulse.UI.tabs.renderTabsAndPanelsFromSchema` with config or plugin schema), you can use **`inputType: 'slider'`** on a field to render a slider instead of a plain number input. The field should have `type: 'number'` and may include `min`, `max`, `step`, `default` (for the default tick), and `suffix` (for the thumb label, e.g. `"%"` or `" ms"`). The rendered input will have `data-slider` and the appropriate `data-slider-*` attributes; call `jPulse.UI.input.initAll(form)` after populating so the slider is initialized. Supported schema inputTypes for form rendering include: `checkbox`, `tagInput`, `textarea`, `number`, **`slider`**, `select`, `jpSelect`, `jpCombo`, `radio`, `checkboxGroup`, **`fieldGrid`**, `help`, `separator`, `button`, `password`, `text`, `email`, `url`, `tel`.
+**Schema-driven forms:** When rendering forms from a schema (e.g. `jPulse.UI.tabs.renderTabsAndPanelsFromSchema` with config or plugin schema), you can use **`inputType: 'slider'`** on a field to render a slider instead of a plain number input. The field should have `type: 'number'` and may include `min`, `max`, `step`, `default` (for the default tick), and `suffix` (for the thumb label, e.g. `"%"` or `" ms"`). The rendered input will have `data-slider` and the appropriate `data-slider-*` attributes; call `jPulse.UI.input.initAll(form)` after populating so the slider is initialized. Supported schema inputTypes for form rendering include: `checkbox`, `tagInput`, `textarea`, `number`, **`slider`**, `select`, `jpSelect`, `jpCombo`, `radio`, `checkboxGroup`, **`fieldGrid`**, **`custom`**, `help`, `separator`, `button`, `password`, `text`, `email`, `url`, `tel`.
 
 ---
 
@@ -1029,10 +1029,11 @@ When `pluginSchemaToBlocks` adapts a flat plugin.json schema, it normalizes lega
 | `multiselect` | `array` + `inputType: 'multiselect'` (alias rewritten to `jpSelect`+`multiple` by renderer) |
 | `checkbox-group` / `checkboxGroup` | `array` + `inputType: 'checkboxGroup'` |
 | `tagInput` | `array` + `inputType: 'tagInput'` |
+| `custom` | `custom` + `inputType: 'custom'` — plugin-supplied renderer, see [Custom Field Renderers](../plugins/creating-plugins.md#custom-field-renderers) |
 | `help` / `separator` | `inputType: <same>` (no data type — non-field) |
 | `hidden` | **Skipped** (not rendered) |
 
-Existing plugin.json schemas continue to work unchanged. The adapter also strips the per-field `id` (it becomes the block-key in the unified shape) and `tab` (it determines block placement and `_meta.tabLabel`).
+Existing plugin.json schemas continue to work unchanged. The adapter also strips the per-field `id` (it becomes the block-key in the unified shape) and `tab` (it determines block placement and `_meta.tabLabel`). Fields with no `id` (`help` / `separator`) are assigned a synthetic block key internally so they still render — they carry no value, so they're excluded from `getFormData`/`setFormData` and never appear in the flat payload sent to `PUT /api/1/plugin/:name/config`.
 
 ---
 

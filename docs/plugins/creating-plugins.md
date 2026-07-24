@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.6.50
+# jPulse Docs / Plugins / Creating Plugins v1.7.0
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -140,6 +140,7 @@ Configuration fields are automatically turned into an admin UI:
 - `number` - Numeric input (supports `min`, `max`, `step`)
 - `boolean` - Checkbox
 - `select` - Dropdown menu (use `options` array)
+- `custom` - Plugin-supplied renderer for anything that doesn't fit a flat field (see [Custom Field Renderers](#custom-field-renderers) below)
 
 ### Field Attributes:
 - `id` - Unique field identifier (required for input fields)
@@ -153,6 +154,34 @@ Configuration fields are automatically turned into an admin UI:
 - `min`, `max`, `step` - For number fields
 - `rows` - For textarea height
 - `options` - For select dropdown (array of `{value, label}`)
+
+### Custom Field Renderers
+
+Most plugin settings fit the flat field types above, but some don't — a list of identity providers, column mappings, color pickers, anything shaped like an array of objects or a bespoke widget. `type: "custom"` (W-194) is an escape hatch: the plugin renders the field itself, and the framework just persists whatever value it reports.
+
+```json
+{
+    "id": "quickLinks",
+    "label": "Quick Links",
+    "type": "custom",
+    "renderer": "myPlugin.renderQuickLinks",
+    "default": [],
+    "help": "Mini list editor stored as a JSON array",
+    "tab": "Advanced"
+}
+```
+
+- `renderer` - **Required.** A dotted name resolved against `window.jPulse.plugins.*` (e.g. `"myPlugin.renderQuickLinks"` → `window.jPulse.plugins.myPlugin.renderQuickLinks`), or a name registered via `jPulse.schemaForm.register(name, fn)`.
+- The framework calls your renderer **once**, after the config form is in the DOM, with a single context object:
+  - `container` - An empty `<div>` for you to render into
+  - `value` - The field's current value (whatever JSON shape you last reported — array, object, anything)
+  - `onChange(newValue)` - Call this whenever the value changes; the framework serializes it for save
+  - `schema` - The field's own definition from `plugin.json` (label, help, default, etc.)
+  - `config` - The rest of the current tab's config values (for cross-field logic)
+  - `disabled` - `true` when the field should render read-only
+- Your renderer owns the DOM inside `container`, all interaction, and any client-side validation. The framework treats the value as opaque JSON — it does not inspect or type-check it (aside from requiring the field to declare a `renderer`).
+
+See `plugins/hello-world/plugin.json` (`quickLinks` field) and `plugins/hello-world/webapp/view/jpulse-common.js` (`renderLinkList`) for a complete working example.
 
 ## Step 3: Create Controller (Optional)
 

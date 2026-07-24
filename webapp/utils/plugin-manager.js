@@ -3,8 +3,8 @@
  * @tagline         Plugin Discovery and Lifecycle Management
  * @description     Manages plugin discovery, validation, dependencies, and lifecycle
  * @file            webapp/utils/plugin-manager.js
- * @version         1.6.50
- * @release         2026-07-07
+ * @version         1.7.0
+ * @release         2026-07-23
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -275,6 +275,11 @@ class PluginManager {
                         if (!field.label && field.type !== 'hidden') {
                             errors.push(`Invalid config.schema field of type "${field.type}": missing label`);
                         }
+                    }
+
+                    // W-194: custom fields must declare which renderer draws them
+                    if (field.type === 'custom' && (!field.renderer || typeof field.renderer !== 'string')) {
+                        errors.push(`Invalid config.schema field "${field.id}" of type "custom": missing renderer`);
                     }
                 }
             }

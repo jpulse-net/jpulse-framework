@@ -2282,7 +2282,7 @@ export default class MyPluginController {
 }
 ```
 
-**See Also**: [Creating Plugins - Step 3.5: Add Handlebars Helpers](../plugins/creating-plugins.md#step-35-add-handlebars-helpers-optional-w-116) for detailed plugin integration guide.
+**See Also**: [Creating Plugins - Step 3.5: Add Handlebars Helpers](../plugins/creating-plugins.md#step-35-add-handlebars-helpers-optional) for detailed plugin integration guide.
 
 ## Comments
 

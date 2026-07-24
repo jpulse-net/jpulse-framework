@@ -31,7 +31,7 @@ Templates use the `.shtml` extension and follow the MVC directory structure:
 
 ```
 site/webapp/view/           # Site override templates (checked first)
-├── jpulse-navigation.js    # Site navigation overrides (W-098)
+├── jpulse-navigation.js    # Site navigation overrides
 ├── components/
 │   └── custom-icons.tmpl   # Site-specific component library
 ├── home/
@@ -224,7 +224,7 @@ Define your own template variables safely using the `vars` namespace:
 {{i18n.controller.*}}                               <!-- all controller messages -->
 {{i18n.view.*}}                                     <!-- all view messages -->
 
-{{!-- Navigation with i18n (W-098 pattern) --}}
+{{!-- Navigation with i18n --}}
 // Framework navigation (webapp/view/jpulse-navigation.js)
 window.jPulseNavigation = {
     site: {

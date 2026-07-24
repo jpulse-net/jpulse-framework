@@ -157,7 +157,7 @@ Configuration fields are automatically turned into an admin UI:
 
 ### Custom Field Renderers
 
-Most plugin settings fit the flat field types above, but some don't — a list of identity providers, column mappings, color pickers, anything shaped like an array of objects or a bespoke widget. `type: "custom"` (W-194) is an escape hatch: the plugin renders the field itself, and the framework just persists whatever value it reports.
+Most plugin settings fit the flat field types above, but some don't — a list of identity providers, column mappings, color pickers, anything shaped like an array of objects or a bespoke widget. `type: "custom"` is an escape hatch: the plugin renders the field itself, and the framework just persists whatever value it reports.
 
 ```json
 {
@@ -243,7 +243,7 @@ export default class YourPluginController {
 - Calls your handlers at the appropriate points
 - See details in [Plugin Hooks](plugin-hooks.md)
 
-## Step 3.5: Add Handlebars Helpers (Optional) (W-116)
+## Step 3.5: Add Handlebars Helpers (Optional)
 
 Handlebars helpers allow your plugin to add custom template functions that can be used in views. Helpers are automatically discovered during bootstrap using the `handlebar*` naming convention.
 
@@ -252,7 +252,7 @@ Handlebars helpers allow your plugin to add custom template functions that can b
 ```javascript
 export default class YourPluginController {
     /**
-     * W-116: Regular helper - converts text to uppercase
+     * Regular helper - converts text to uppercase
      * Usage: {{uppercase "hello"}} → "HELLO"
      * Note: The description and example below are extracted by the handlebars doc system.
      * @description Convert text to UPPERCASE (hello-world plugin example)
@@ -271,7 +271,7 @@ export default class YourPluginController {
     }
 
     /**
-     * W-116: Block helper - repeats content N times
+     * Block helper - repeats content N times
      * Usage: {{#repeat count=3}}Hello{{/repeat}} → "HelloHelloHello"
      * Supports {{@index}} and {{@first}} / {{@last}} iteration variables
      * Note: The description and example below are extracted by the handlebars doc system.

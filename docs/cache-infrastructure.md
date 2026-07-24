@@ -1168,7 +1168,7 @@ A: Check System Status page for cache metrics. Enable debug logging in `RedisMan
 
 ## Version History
 
-- **v1.6.0** - Added Redis Cache infrastructure (W-143)
+- **v1.6.0** - Added Redis Cache infrastructure
 - **v1.5.0** - File cache system with auto-refresh
 - **v1.0.0** - Initial release
 

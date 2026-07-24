@@ -6345,16 +6345,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `npm start` / `npm run dev` locally: app boots normally, no error from the guarded `process.send` check (no IPC channel present outside PM2)
   - `pm2 start deploy/ecosystem.prod.config.cjs` then `pm2 reload <name>` on a multi-instance cluster: old workers are killed within a second or two of the new workers logging readiness, instead of after the ~58s `listen_timeout`-bounded stall
 
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-194, v1.7.0, 2026-07-08: plugins: add custom renderer field type in plugin.json config schema
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: universal escape hatch for plugins whose config doesn't fit the flat schema (lists, nested objects, custom widgets)
 - rationale: multiple future plugins hit the same wall (auth-oauth provider list, auth-ldap attribute mappings, theme color pickers, notification recipient rules); solve it once at the framework level rather than each plugin building its own admin page
@@ -6402,7 +6394,14 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-### W-195, v1.7.1, 2026-07-09: auth: framework enhancements for external auth plugins (OAuth, LDAP, SAML)
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-195, v1.7.1, 2026-07-24: auth: framework enhancements for external auth plugins (OAuth, LDAP, SAML)
 - status: 🕑 PENDING
 - type: Feature
 - objective: provide the framework-level hooks and helpers external auth plugins need — browser-redirect login completion, login page button injection, local-auth policy, and a break-glass path for SSO outages
@@ -6449,6 +6448,11 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - docs/deployment.md:
     - new "Break-Glass Account Runbook" section (reserve local admin account, MFA-protect it, document recovery URL)
   - docs/CHANGELOG.md: release notes
+
+
+
+
+
 
 ### W-196, v1.0.0, 2026-07-11: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
 - status: 🕑 PENDING

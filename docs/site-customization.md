@@ -505,7 +505,7 @@ Create `site/webapp/view/components/site-sidebars.tmpl`:
 > 📚 **Complete Documentation**: See [Sidebars Guide](sidebars.md) for configuration options, built-in components, JavaScript API, and responsive design details. See [Sidebar Components Guide](sidebar-components.md) for creating custom components with dynamic content, API integration, and advanced patterns.
 
 ________________________________________________
-## Site Documentation System (W-049)
+## Site Documentation System
 
 jPulse includes a powerful markdown-based documentation system that allows sites to create multiple documentation namespaces for different audiences.
 

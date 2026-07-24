@@ -103,7 +103,7 @@ Response: { success: true, data: {...} }
         { "value": "opt2", "label": "Option 2" }
     ],
 
-    // For custom fields (W-194) — required, dotted name resolved against
+    // For custom fields — required, dotted name resolved against
     // window.jPulse.plugins.* or the jPulse.schemaForm registry:
     "renderer": "myPlugin.renderMyWidget"
 }
@@ -111,7 +111,7 @@ Response: { success: true, data: {...} }
 
 Plugin config blocks can use the same schema shape and flow as framework config (tabs/panels from schema, layout with `maxColumns` / `startNewRow` / `fullWidth`, virtual buttons). See [Schema-driven config forms](../front-end-development.md#-schema-driven-config-forms) in the Front-End Development Guide.
 
-### `type: "custom"` — plugin-supplied renderer (W-194)
+### `type: "custom"` — plugin-supplied renderer
 
 An escape hatch for config values that don't fit a flat field — lists of objects, nested structures, bespoke widgets. The framework renders a mount point and a hidden proxy field, then calls the plugin's `renderer` once the form is in the DOM:
 

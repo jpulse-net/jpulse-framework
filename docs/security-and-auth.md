@@ -484,7 +484,7 @@ For authenticated namespaces, **connection context (`ctx`) is established at upg
 
 The following security features are planned or recommended for future implementation:
 
-### Planned Features (W-084)
+### Planned Features
 
 - **CSRF Protection**: Token-based CSRF protection for form submissions
 - **MFA (Multi-Factor Authentication)**: SMS or authenticator app support (planned as plugin)

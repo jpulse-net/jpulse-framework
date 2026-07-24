@@ -1349,7 +1349,7 @@ If you create or update a page/view, follow these guidelines so it works well ac
 
 ### Theme Implementation
 Theme selection is typically done via the **User Profile** page and stored in user preferences.
-Templates use a central `htmlAttrs` helper string (W-129):
+Templates use a central `htmlAttrs` helper string:
 
 ```html
 <html {{appConfig.system.htmlAttrs}}>

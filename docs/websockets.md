@@ -929,7 +929,7 @@ The framework already **re-validates** the session on each health-check pass for
 
 ### `WebSocketController.revalidateClientSession(namespacePath, clientId)`
 
-**W-176:** For **write** paths that must reject work **immediately** after logout (before the next ping), call this **opt-in** helper from your **`onMessage`** handler (or a wrapper).
+For **write** paths that must reject work **immediately** after logout (before the next ping), call this **opt-in** helper from your **`onMessage`** handler (or a wrapper).
 
 ```javascript
 // Example: `namespacePath` must match the literal key in WebSocketController.namespaces

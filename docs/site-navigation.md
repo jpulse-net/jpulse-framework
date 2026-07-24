@@ -56,7 +56,7 @@ window.jPulseNavigation.site.admin.pages.contacts = {
 };
 ```
 
-### Append Mode (W-098)
+### Append Mode
 
 The framework uses **append mode** for `.js` files:
 1. Framework `jpulse-navigation.js` is loaded first (defines `window.jPulseNavigation`)

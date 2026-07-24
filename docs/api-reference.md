@@ -374,7 +374,7 @@ export default class ProductController {
 
 ## ⚡ WebSocket Controller API
 
-> **📖 Full guide:** [WebSocket Real-Time Communication](websockets.md) — setup, patterns, client API, dynamic namespaces (path patterns, onCreate, removeNamespace), conn = { clientId, ctx }, public access (whitelist), message limits, reconnect/missed-updates handling, and [session re-validation for write handlers](websockets.md#session-security-server-side) (W-176: `WebSocketController.revalidateClientSession`).
+> **📖 Full guide:** [WebSocket Real-Time Communication](websockets.md) — setup, patterns, client API, dynamic namespaces (path patterns, onCreate, removeNamespace), conn = { clientId, ctx }, public access (whitelist), message limits, reconnect/missed-updates handling, and [session re-validation for write handlers](websockets.md#session-security-server-side) (`WebSocketController.revalidateClientSession`).
 
 Server-side WebSocket namespaces are created with `WebSocketController.createNamespace(path, options?)`. Handlers receive **conn** = `{ clientId, ctx }` (onMessage adds `message`); pass **ctx** to `broadcast()` and `sendToClient()` for logging and Redis relay.
 
@@ -390,7 +390,7 @@ ns.onConnect((conn) => {}).onMessage((conn) => {}).onDisconnect((conn) => {});
 - **ns.getStats()**: Namespace statistics (e.g. `clientCount`).
 - **Payload**: App payload is `{ type, data, ctx }`; framework adds ctx to wire and Redis.
 - **Config** (`app.conf` → `controller.websocket`): **publicAccess** (`enabled`, `whitelisted`) for non-admin access to whitelisted namespaces with filtered stats; **messageLimits** (`maxSize`, `interval`, `maxMessages`) for DoS protection. See [websockets.md](websockets.md#public-access-demo--non-admin).
-- **Session re-validation (W-176):** `WebSocketController.revalidateClientSession(namespacePath, clientId)` returns `Promise<boolean>` — re-reads the session store from the client’s cookie (same pattern as the internal health check). Optional **before write operations** in `onMessage` when you need immediate consistency after logout in another tab; see [websockets.md — Session security](websockets.md#session-security-server-side).
+- **Session re-validation:** `WebSocketController.revalidateClientSession(namespacePath, clientId)` returns `Promise<boolean>` — re-reads the session store from the client’s cookie (same pattern as the internal health check). Optional **before write operations** in `onMessage` when you need immediate consistency after logout in another tab; see [websockets.md — Session security](websockets.md#session-security-server-side).
 
 **Log context:** `CommonUtils.getLogContext(reqOrContext)` returns `{ username?, ip? }` for Express `req` or plain context; use for LogController when request is not available. Redis broadcast context: `RedisManager.getBroadcastContext(req)` for server-side broadcasts from REST handlers.
 
@@ -963,7 +963,7 @@ GET /api/1/user/search?limit=25&offset=50&sort=-lastLogin
 }
 ```
 
-**Note on Field Filtering (W-134):**
+**Note on Field Filtering:**
 
 Search results respect the same field filtering as `/api/1/user/public/:id`:
 - Always includes: `username`, `profile.firstName`, `profile.lastName`, `initials`
@@ -1386,7 +1386,6 @@ ConfigModel.extendSchema({
 
 - **When:** Call before `ConfigModel.initializeSchema()` runs (e.g. during plugin/site init, which runs before bootstrap finalizes the schema).
 - **Scope:** Tab-level only; each extension key becomes one block in `data` and one tab in the admin config UI.
-- **Reference:** Design doc `docs/dev/design/W-147-make-config-schema-extensible.md`.
 
 #### Effective roles (cached, sync)
 
@@ -2531,7 +2530,7 @@ curl "http://localhost:8080/api/1/log/search?docType=config&action=update" \
 {
     _id: String,        // Unique identifier
     data: {             // Configuration object (schema extensible via ConfigModel.extendSchema)
-        general: {      // W-147: roles and adminRoles (Admin → Site Configuration → General)
+        general: {      // roles and adminRoles (Admin → Site Configuration → General)
             roles: Array,      // Assignable role codes, e.g. ['user', 'admin', 'root']
             adminRoles: Array  // Admin role codes, e.g. ['admin', 'root']
         },

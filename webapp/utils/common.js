@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1240,8 +1240,9 @@ class CommonUtils {
                 return match.endsWith('/>') ? `<${tagName}/>` : `<${tagName}>`;
             }
 
-            // Extract and filter attributes
-            const attrPattern = /(\w+)\s*=\s*["']([^"']*)["']/g;
+            // Extract and filter attributes, including hyphenated attribute names
+            // (e.g. SVG's stroke-width/fill-rule, or aria-*/data-*)
+            const attrPattern = /([\w-]+)\s*=\s*["']([^"']*)["']/g;
             let filteredAttrs = '';
             let attrMatch;
 

@@ -9,6 +9,12 @@ alwaysApply: true
 
 **ALWAYS ask first: "May I run git commands to check X?"**
 
+# ⛔ CRITICAL: NEVER RUN THE BUMP-VERSION SCRIPT
+
+**NEVER run `npx jpulse bump-version` (or `bin/bump-version.js`) yourself.** It rewrites the `@version`/`@release` header in every source file repo-wide, creating a massive diff unrelated to the actual work item.
+
+**NEVER touch the `@version`/`@release` header of any file, period - even files you genuinely edit.** Leave headers exactly as found. The user runs the bump-version script themselves before build, which updates all headers in one clean pass; the agent bumping headers only adds clutter to review.
+
 # Framework Critical Patterns
 
 1. **Site Override System**: All site code goes in `site/webapp/`, NEVER modify `webapp/` (framework-managed, updated by jpulse-update)

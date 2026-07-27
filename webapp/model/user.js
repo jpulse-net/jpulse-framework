@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -52,6 +52,11 @@ class UserModel {
         status: { type: 'string',
                   default: 'active',
                   enum: [ 'pending', 'active', 'inactive', 'suspended', 'terminated' ] },
+        // W-195: does this user know a real, usable local password? External-auth plugins
+        // (OAuth, LDAP, SAML) set this to false at JIT-creation time when they write a
+        // synthetic/unknown passwordHash; changePassword() resets it to true on success.
+        // Default true + absent-reads-as-true means no migration/backfill is needed.
+        hasLocalPassword: { type: 'boolean', default: true },
         lastLogin: { type: 'date', default: null },
         loginCount: { type: 'number', default: 0 },
         createdAt: { type: 'date', auto: true },

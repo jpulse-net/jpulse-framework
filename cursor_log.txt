@@ -19628,3 +19628,19 @@ Reviewed tt-git-diff.txt against the finalized W-194 work-items.md entry: all de
 
 
 ============================================================
+
+2026-07-24 22:21
+
+In the jpulse-framework repo, please investigate and report back concretely (with file:line citations and code snippets) on the following, needed to plan a new OAuth plugin (auth-oauth) that will have endpoints with URL path parameters like `/api/1/auth-oauth/init/:provider` and `/api/1/auth-oauth/callback/:provider`: (1) auto-discovery path params, (2) plugin npm deps install, (3) user schema dynamic keys under extensions, (4) rate-limiting middleware, (5) PluginModel.getConfig caching/cost on hot path.
+
+Research findings for W-196 auth-oauth planning: (1) api* auto-discovery only produces fixed kebab paths or hardcoded CRUD `:id` suffixes — custom params like `:provider` require explicit `static routes` (auth-mfa pattern). (2) Plugin npm deps install into plugins/<name>/node_modules via installPluginRuntimeDependencies (site context); Node resolves from plugin-local node_modules (qrcode example). (3) UserModel.validate() does not validate extension blocks; dynamic oauth.{providerId} keys are allowed at save; auth-mfa uses fixed mfa.* keys. (4) No Express rate-limit middleware on routes — RedisManager.cacheCheckRateLimit() helper called inside handlers. (5) No PluginModel.getConfig; getByName is uncached MongoDB findOne — cache in plugin for onAuthGetLoginProviders.
+
+============================================================
+2026-07-26 22:52
+
+update commit-message.txt for W-195, following the same format as previous entries (don't commit); append to cursor_log.txt.
+
+Compared tt-git-diff2.txt (post W-196 design session) against the earlier tt-git-diff.txt snapshot to find a "small change done in framework by W-196 session"; found and reviewed two independent sanitizer bug fixes in webapp/utils/common.js and webapp/view/jpulse-common.js (plus their two test files), confirmed 104/104 related tests pass, then per instruction folded them into the not-yet-committed W-195 entry (date bumped to 2026-07-26) across docs/dev/work-items.md, docs/CHANGELOG.md, README.md, and docs/README.md rather than opening a new work item. Followed up in this turn by updating commit-message.txt for W-195 (FEATURE paragraph, Objective, Key features, per-file Code Changes and Documentation Updates, Work Item/Version/Release Date trailer) mirroring the W-194 commit-message.txt format exactly, including the two sanitizer fixes; did not commit.
+
+
+============================================================

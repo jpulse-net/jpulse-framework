@@ -3,8 +3,8 @@
  * @tagline         Unit tests for CommonUtils.sanitizeHtml() security function
  * @description     Tests HTML sanitization to prevent XSS attacks
  * @file            webapp/tests/unit/utils/common-utils-sanitize.test.js
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -357,6 +357,29 @@ describe('CommonUtils.sanitizeHtml() - XSS Prevention', () => {
             });
             expect(result).toBe('TextBold');
             expect(result).not.toContain('<');
+        });
+
+        // Bug fix: the attribute regex used \w+ (no hyphen support), so a hyphenated attribute
+        // name was mis-parsed as its suffix after the last hyphen (e.g. "stroke-width" read as
+        // "width"), silently dropping it even when explicitly allow-listed. This matters for
+        // SVG-style presentation attributes (stroke-width, fill-rule, clip-rule) and for
+        // aria-*/data-* attributes in general.
+        test('should preserve hyphenated attribute names when explicitly allowed (bug fix)', () => {
+            const html = '<div stroke-width="2" data-toggle="modal">Content</div>';
+            const result = CommonUtils.sanitizeHtml(html, {
+                allowedTags: ['div'],
+                allowedAttributes: {
+                    'div': ['stroke-width', 'data-toggle']
+                }
+            });
+            expect(result).toContain('stroke-width="2"');
+            expect(result).toContain('data-toggle="modal"');
+        });
+
+        test('should still strip hyphenated attributes that are not in allowedAttributes', () => {
+            const html = '<div stroke-width="2">Content</div>';
+            const result = CommonUtils.sanitizeHtml(html, { allowedTags: ['div'] });
+            expect(result).toBe('<div>Content</div>');
         });
     });
 

@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse Common Client-Side Utilities
  * @description     Tests for client-side JavaScript utilities in jpulse-common.js
  * @file            webapp/tests/unit/utils/jpulse-common.test.js
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -435,6 +435,89 @@ describe('jPulse Client-Side Utilities', () => {
             expect(typeof window.jPulse.api.post).toBe('function');
             expect(typeof window.jPulse.api.put).toBe('function');
             expect(typeof window.jPulse.api.delete).toBe('function');
+        });
+    });
+
+    describe('jPulse.string.sanitizeHtml', () => {
+
+        // Dangerous tags are replaced with their inert text content (never executable, just
+        // displayed as plain text) rather than removed outright - matches the JSDoc contract
+        // "strip only dangerous content".
+        test('non-strict: strips dangerous tags (script, iframe, object, embed, form, style)', () => {
+            expect(window.jPulse.string.sanitizeHtml('<p>Hi</p><script>alert(1)</script>')).not.toContain('<script');
+            expect(window.jPulse.string.sanitizeHtml('<iframe src="evil.com"></iframe>text')).toBe('text');
+            expect(window.jPulse.string.sanitizeHtml('<object data="evil.swf"></object>text')).toBe('text');
+            expect(window.jPulse.string.sanitizeHtml('<embed src="evil.swf">text')).toBe('text');
+            expect(window.jPulse.string.sanitizeHtml('<form action="evil.com"><input></form>text')).toBe('text');
+            expect(window.jPulse.string.sanitizeHtml('<style>body{display:none}</style>text')).not.toContain('<style');
+        });
+
+        test('non-strict: strips on* event handler attributes but keeps the element', () => {
+            const result = window.jPulse.string.sanitizeHtml('<img src="x.png" onerror="alert(1)">');
+            expect(result).toBe('<img src="x.png">');
+        });
+
+        test('non-strict: strips javascript: and data: URLs from href/src', () => {
+            expect(window.jPulse.string.sanitizeHtml('<a href="javascript:alert(1)">click</a>')).toBe('<a>click</a>');
+            expect(window.jPulse.string.sanitizeHtml('<img src="data:text/html,<script>alert(1)</script>">')).toBe('<img>');
+        });
+
+        test('non-strict: passes through ordinary formatting tags unchanged', () => {
+            expect(window.jPulse.string.sanitizeHtml('<b>bold</b> and <a href="/page">link</a>'))
+                .toBe('<b>bold</b> and <a href="/page">link</a>');
+        });
+
+        test('non-strict: passes through SVG shape markup unchanged (not a dangerous tag)', () => {
+            const svg = '<svg viewBox="0 0 24 24"><path d="M1 1h2v2H1z" fill="currentColor"></path></svg>';
+            expect(window.jPulse.string.sanitizeHtml(svg)).toBe(svg);
+        });
+
+        // Bug fix (2026-07-26): foreign-namespace elements (SVG, MathML) report tagName in
+        // authored case, not uppercased like HTML elements - without normalizing case, a
+        // <script> nested inside <svg> slipped through the dangerousTags check untouched.
+        test('non-strict: strips <script> nested directly inside <svg> (regression)', () => {
+            const result = window.jPulse.string.sanitizeHtml('<svg><script>alert(1)</script></svg>');
+            expect(result.toLowerCase()).not.toContain('<script');
+        });
+
+        test('non-strict: strips <iframe>/<style> nested inside <svg>, keeps safe siblings (regression)', () => {
+            const result = window.jPulse.string.sanitizeHtml('<svg><iframe src="evil.com"></iframe><style>x{}</style><path d="M1 1"></path></svg>');
+            expect(result.toLowerCase()).not.toContain('<iframe');
+            expect(result.toLowerCase()).not.toContain('<style');
+            expect(result).toContain('<path');
+        });
+
+        test('non-strict: strips on* attributes on SVG elements regardless of case', () => {
+            const result = window.jPulse.string.sanitizeHtml('<svg><path onload="alert(1)" d="M1 1"></path></svg>');
+            expect(result).toBe('<svg><path d="M1 1"></path></svg>');
+        });
+
+        test('strict: whitelists only a/strong/em/br at the top level, neutralizes disallowed tags', () => {
+            const result = window.jPulse.string.sanitizeHtml('<strong>bold</strong><script>alert(1)</script>', true);
+            expect(result).toContain('<strong>bold</strong>');
+            expect(result).not.toContain('<script');
+        });
+
+        test('strict: a disallowed wrapper collapses its whole subtree to inert text (documents current behavior)', () => {
+            // Note: strict mode does not recurse into a disallowed element before collapsing it -
+            // nested allowed tags (e.g. <strong>) lose their markup too. Not a security issue
+            // (output is inert text either way), just a formatting limitation worth knowing about.
+            const result = window.jPulse.string.sanitizeHtml('<div><strong>bold</strong><script>alert(1)</script></div>', true);
+            expect(result).not.toContain('<div');
+            expect(result).not.toContain('<strong');
+            expect(result).not.toContain('<script');
+        });
+
+        test('strict: neutralizes SVG content (not whitelisted, collapsed to inert text)', () => {
+            const result = window.jPulse.string.sanitizeHtml('<svg><script>alert(1)</script></svg>', true);
+            expect(result.toLowerCase()).not.toContain('<svg');
+            expect(result.toLowerCase()).not.toContain('<script');
+        });
+
+        test('handles empty/non-string input gracefully', () => {
+            expect(window.jPulse.string.sanitizeHtml('')).toBe('');
+            expect(window.jPulse.string.sanitizeHtml(null)).toBe('');
+            expect(window.jPulse.string.sanitizeHtml(undefined)).toBe('');
         });
     });
 

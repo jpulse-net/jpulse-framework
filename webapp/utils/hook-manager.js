@@ -4,8 +4,8 @@
  * @description     Manages plugin hook registration, execution, and lifecycle.
  *                  Plugins declare hooks in static `hooks` object, PluginManager auto-registers.
  * @file            webapp/utils/hook-manager.js
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -202,13 +202,13 @@ class HookManager {
 
     /**
      * Get all available hooks that the framework supports
-     * Phase 8: Simplified naming convention - onBucketAction (12 hooks total)
+     * Phase 8: Simplified naming convention - onBucketAction (13 hooks total)
      * @returns {object} Map of hook names to descriptions
      */
     static getAvailableHooks() {
         return {
             // ================================================================
-            // Authentication hooks (7)
+            // Authentication hooks (8)
             // ================================================================
             onAuthBeforeLogin: {
                 description: 'Before credential validation - external auth (LDAP/OAuth), captcha',
@@ -249,6 +249,12 @@ class HookManager {
             onAuthGetWarnings: {
                 description: 'Get non-blocking login warnings (nag messages)',
                 context: '{ req, user, warnings }',
+                canModify: true,
+                canCancel: false
+            },
+            onAuthGetLoginProviders: {
+                description: 'W-195: Provide external auth provider buttons for the login page (OAuth, LDAP, SAML)',
+                context: '{ req, providers }',
                 canModify: true,
                 canCancel: false
             },

@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -167,13 +167,8 @@ class UserController {
 
             const { currentPassword, newPassword } = req.body;
 
-            if (!currentPassword || !newPassword) {
-                LogController.logError(req, 'user.changePassword', 'error: missing current or new password');
-                const message = global.i18n.translate(req, 'controller.user.password.missingPasswords');
-                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_PASSWORDS');
-            }
-
-            // Get current user
+            // Get current user (needed up front - W-195: hasLocalPassword decides whether
+            // currentPassword is required below)
             const user = await UserModel.findById(req.session.user.id);
             if (!user) {
                 LogController.logError(req, 'user.changePassword', `error: user not found for session ID: ${req.session.user.id}`);
@@ -181,18 +176,35 @@ class UserController {
                 return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
             }
 
-            // Verify current password
-            const isCurrentValid = await UserModel.verifyPassword(currentPassword, user.passwordHash);
-            if (!isCurrentValid) {
-                LogController.logError(req, 'user.changePassword', `error: invalid current password for user ${req.session.user.username}`);
-                const message = global.i18n.translate(req, 'controller.user.password.invalidCurrentPassword');
-                return global.CommonUtils.sendError(req, res, 400, message, 'INVALID_CURRENT_PASSWORD');
+            // W-195: users without a usable local password (e.g. JIT-created by an external-auth
+            // plugin with a synthetic passwordHash) can never satisfy a currentPassword check by
+            // construction - their session already proves identity, so skip it for them.
+            const hasLocalPassword = user.hasLocalPassword !== false;
+
+            if (!newPassword || (hasLocalPassword && !currentPassword)) {
+                LogController.logError(req, 'user.changePassword', 'error: missing current or new password');
+                const message = hasLocalPassword
+                    ? global.i18n.translate(req, 'controller.user.password.missingPasswords')
+                    : global.i18n.translate(req, 'controller.user.password.missingNewPassword');
+                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_PASSWORDS');
             }
 
-            // Update password
+            if (hasLocalPassword) {
+                // Verify current password
+                const isCurrentValid = await UserModel.verifyPassword(currentPassword, user.passwordHash);
+                if (!isCurrentValid) {
+                    LogController.logError(req, 'user.changePassword', `error: invalid current password for user ${req.session.user.username}`);
+                    const message = global.i18n.translate(req, 'controller.user.password.invalidCurrentPassword');
+                    return global.CommonUtils.sendError(req, res, 400, message, 'INVALID_CURRENT_PASSWORD');
+                }
+            }
+
+            // Update password - W-195: hasLocalPassword is set/reset to true, since the user
+            // now knows a real, usable local password (whether they had one before or not)
             const updateData = {
                 password: newPassword,
-                updatedBy: req.session.user.username
+                updatedBy: req.session.user.username,
+                hasLocalPassword: true
             };
 
             await UserModel.updateById(req.session.user.id, updateData);

@@ -3,8 +3,8 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -228,15 +228,16 @@ class AuthController {
     }
 
     /**
-     * Complete login - create session, return user
-     * W-109: Shared function for single-step and multi-step login completion
+     * Create session, run post-login hooks - shared core of login completion
+     * W-109: Extracted from _completeLogin so it can be reused without a `res.json(...)` response.
+     * W-195: No `res` calls here - lets completeExternalAuth() finish with a 302 instead of JSON.
      * @param {object} req - Express request
-     * @param {object} res - Express response
      * @param {object} user - User object
      * @param {string} authMethod - Authentication method used
      * @param {number} startTime - Request start time for elapsed calculation
+     * @returns {Promise<{warnings: array, elapsed: number}>}
      */
-    static async _completeLogin(req, res, user, authMethod, startTime) {
+    static async _completeLoginSession(req, user, authMethod, startTime) {
         // Update login statistics
         await UserModel.updateById(user._id, {
             lastLogin: new Date(),
@@ -265,7 +266,7 @@ class AuthController {
         // Hook: get non-blocking warnings
         const warningContext = { req, user, warnings: [] };
         const warningResult = await global.HookManager.execute('onAuthGetWarnings', warningContext);
-        global.LogController.logInfo(req, 'auth._completeLogin',
+        global.LogController.logInfo(req, 'auth._completeLoginSession',
             `Warnings hook result: ${warningResult.warnings?.length || 0} warning(s)`);
 
         // Create session
@@ -281,15 +282,84 @@ class AuthController {
         global.LogController.logInfo(req, 'auth.login',
             `success: ${user.username} logged in via ${authMethod}, completed in ${elapsed}ms`);
 
+        return { warnings: warningResult.warnings, elapsed };
+    }
+
+    /**
+     * Complete login - create session, return user via JSON
+     * W-109: Shared function for single-step and multi-step login completion (AJAX flow)
+     * @param {object} req - Express request
+     * @param {object} res - Express response
+     * @param {object} user - User object
+     * @param {string} authMethod - Authentication method used
+     * @param {number} startTime - Request start time for elapsed calculation
+     */
+    static async _completeLogin(req, res, user, authMethod, startTime) {
+        const { warnings, elapsed } = await AuthController._completeLoginSession(req, user, authMethod, startTime);
+
         const message = global.i18n.translate(req, 'controller.auth.loginSuccess');
         return res.json({
             success: true,
             nextStep: null,
             data: { user: req.session.user },
-            warnings: warningResult.warnings,
+            warnings,
             message,
             elapsed
         });
+    }
+
+    /**
+     * Complete a browser-redirect-based external login (OAuth, LDAP, SAML plugins)
+     * W-195: 302-redirect-friendly counterpart to the AJAX login() flow. External-auth plugins
+     * call this from their own callback controller after resolving/creating the local user -
+     * the framework owns pendingAuth bookkeeping, multi-step continuation (e.g. MFA), and final
+     * session creation, so plugins never touch req.session or _completeLoginSession directly.
+     *
+     * No implicit gate on user.status here - the plugin's callback handler must check it
+     * (e.g. 'pending' approval) before calling this. localAuthRestriction is not enforced here
+     * either - it's a policy for local username/password login only, not external auth.
+     *
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     * @param {object} user - Resolved/created local user document
+     * @param {string} authMethod - Authentication method used (e.g. 'oauth', 'ldap', 'saml')
+     * @param {string} redirectUrl - Destination URL once login is fully complete
+     */
+    static async completeExternalAuth(req, res, user, authMethod, redirectUrl) {
+        const startTime = Date.now();
+        const finalRedirect = redirectUrl || '/';
+
+        const pending = {
+            userId: user._id.toString(),
+            username: user.username,
+            authMethod,
+            completedSteps: ['credentials'],
+            createdAt: Date.now()
+        };
+
+        const requiredSteps = await AuthController._getRequiredSteps(req, user, pending.completedSteps);
+
+        if (requiredSteps.length > 0) {
+            const nextStep = requiredSteps[0];
+            pending.requiredSteps = ['credentials', ...requiredSteps.map(s => s.step)];
+            req.session.pendingAuth = pending;
+
+            global.LogController.logInfo(req, 'auth.completeExternalAuth',
+                `credentials valid for ${user.username} via ${authMethod}, next step: ${nextStep.step}`);
+
+            // W-195: step-provided `page` (see onAuthGetSteps) drives the redirect target;
+            // a step without one can't be resolved for a browser-redirect flow - fall back
+            // to the login page rather than guessing (misconfigured plugin, not a security gap).
+            if (!nextStep.page) {
+                global.LogController.logWarning(req, 'auth.completeExternalAuth',
+                    `warning: step '${nextStep.step}' has no 'page' for browser-redirect flow, falling back to /auth/login.shtml`);
+            }
+            const nextPage = nextStep.page || '/auth/login.shtml';
+            return res.redirect(`${nextPage}?redirect=${encodeURIComponent(finalRedirect)}`);
+        }
+
+        await AuthController._completeLoginSession(req, user, authMethod, startTime);
+        return res.redirect(finalRedirect);
     }
 
     /**
@@ -386,6 +456,32 @@ class AuthController {
                     });
                 }
 
+                // W-195: enforce site-wide local-auth restriction policy (internal auth only -
+                // external auth methods already proved identity via their own hook/provider)
+                if (beforeLoginContext.authMethod === 'internal') {
+                    const localAuthRestriction = global.appConfig?.controller?.auth?.localAuthRestriction || 'none';
+                    const isRestricted = localAuthRestriction === 'disabled' ||
+                        (localAuthRestriction === 'admins-only' && !AuthController.userIsAdmin(user));
+
+                    if (isRestricted) {
+                        await global.HookManager.execute('onAuthFailure', {
+                            req,
+                            identifier,
+                            reason: 'LOCAL_AUTH_RESTRICTED',
+                            authMethod: 'internal'
+                        });
+
+                        global.LogController.logError(req, 'auth.login',
+                            `error: local auth restricted (${localAuthRestriction}) for identifier: ${identifier}`);
+                        const message = global.i18n.translate(req, 'controller.auth.localAuthRestricted');
+                        return res.status(403).json({
+                            success: false,
+                            error: message,
+                            code: 'LOCAL_AUTH_RESTRICTED'
+                        });
+                    }
+                }
+
                 // Check account status
                 if (user.status === 'locked') {
                     global.LogController.logError(req, 'auth.login',
@@ -430,6 +526,7 @@ class AuthController {
                     return res.json({
                         success: true,
                         nextStep: nextStep.step,
+                        page: nextStep.page,
                         ...nextStep.data
                     });
                 }
@@ -526,6 +623,7 @@ class AuthController {
                 return res.json({
                     success: true,
                     nextStep: nextStep.step,
+                    page: nextStep.page,
                     ...nextStep.data
                 });
             }

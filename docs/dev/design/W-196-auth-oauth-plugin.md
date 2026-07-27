@@ -62,7 +62,7 @@ The plugin leverages the existing multi-step authentication flow (W-109), so any
 - **W-194:** Plugin config custom renderer (prerequisite) — used for provider list config UI
 - **W-195:** External auth framework helpers (prerequisite) — provides `AuthController.completeExternalAuth()`, `localAuthRestriction`, `onAuthGetLoginProviders` hook, `?localFallback=1` recovery mode, **and** (added during W-196 design review) the `hasLocalPassword` user-schema primitive + the corresponding `currentPassword`-optional path in `UserController.changePassword()` (see §11)
 
-**Consumes but does not modify:** W-194, W-195. All framework changes needed for W-196 are done in W-195 — this includes the small `hasLocalPassword` addition identified while designing §11 (Account Lifecycle), which belongs in the framework rather than this plugin because it's a general external-auth primitive (also useful to any future auth-ldap/auth-saml plugin).
+**Consumes but does not modify:** W-194, W-195. Nearly all framework plumbing needed for W-196 was already done in W-195 — this includes the small `hasLocalPassword` addition identified while designing §11 (Account Lifecycle), which belongs in the framework rather than this plugin because it's a general external-auth primitive (also useful to any future auth-ldap/auth-saml plugin). **One additional small framework file is introduced by W-196 itself** (found during spec review, not by reopening W-195): `webapp/utils/crypto-secrets.js`, a generic secret-encryption helper (see §8) — there was no shared encryption utility in the framework before this plugin needed one to store OAuth client secrets at rest. This is added as an ordinary new framework file alongside the plugin work, the same way any framework-level utility gets added; `auth-mfa`'s existing in-model TOTP encryption is left untouched (not retrofitted onto the new util).
 
 ---
 
@@ -112,7 +112,7 @@ export const PROVIDER_PRESETS = {
     google: {
         type: 'oidc',
         label: 'Google',
-        icon: '🇬',                              // Or SVG string / URL — admin can override
+        icon: '🇬',                              // Or inline SVG markup — admin can override
         buttonColor: '#4285F4',
         discoveryUrl: 'https://accounts.google.com/.well-known/openid-configuration',
         scopes: ['openid', 'email', 'profile'],
@@ -124,7 +124,8 @@ export const PROVIDER_PRESETS = {
         type: 'oidc',
         label: 'OIDC Provider',
         icon: '🔐',
-        buttonColor: '#4a5568',
+        // #7f8fa6 keeps >=3:1 contrast against both the light and dark theme's button background
+        buttonColor: '#7f8fa6',
         // discoveryUrl is admin-supplied (e.g. https://myorg.okta.com/.well-known/openid-configuration)
         scopes: ['openid', 'email', 'profile'],
         requiresClientSecret: true,
@@ -134,7 +135,7 @@ export const PROVIDER_PRESETS = {
         type: 'oauth2',
         label: 'OAuth2 Provider',
         icon: '🔗',
-        buttonColor: '#4a5568',
+        buttonColor: '#7f8fa6',
         // Admin supplies authorizeUrl, tokenUrl, userinfoUrl, and userinfo → user field mapping
         scopes: [],
         requiresClientSecret: true
@@ -237,8 +238,9 @@ The plugin uses the standard Authorization Code flow with mandatory PKCE. The fl
 
 The plugin **consumes** these framework APIs (all delivered in W-195):
 
-- `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)` — sets `pendingAuth`, runs `_getRequiredSteps`, either 302s to the next-step page or calls `_completeLogin` and 302s to `redirectUrl`. Owns the "browser-redirect finish" behavior so W-196 doesn't reach into private framework methods.
-- `onAuthGetLoginProviders` hook — plugin returns `[{ id, label, icon, buttonColor, initUrl, order }]` for each enabled provider; framework's login page renders the buttons.
+- `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)` — sets `pendingAuth`, runs `_getRequiredSteps`, either 302s to the next-step page or calls `_completeLogin` and 302s to `redirectUrl`. Owns the "browser-redirect finish" behavior so W-196 doesn't reach into private framework methods. **A step without a `page` field falls back to `/auth/login.shtml` (with a logged warning) here** — see the `page` note below.
+- `onAuthGetLoginProviders` hook — plugin returns `[{ id, label, icon, buttonColor, initUrl, order }]` for each enabled provider; framework's login page renders the buttons via `{{#each authProviders}}` into `.local-auth-methods`/`.local-auth-method` markup (see "UI Components" §1) — only `label`/`icon`/`buttonColor`/`initUrl`/`order` are actually read by the template.
+- **`page` on every `onAuthGetSteps` step this plugin returns** (`oauth-profile-complete`, and any future custom step) — `login.shtml`'s client-side `handleNextStep()` only has built-in routing for the framework's own `'mfa'`/`'mfa-setup'`/`'email-verify'` step names; any plugin-defined step name is unrouted in the AJAX flow too unless it carries its own `page`. Not just a `completeExternalAuth()`/browser-redirect concern — see §10 Stage B.
 - `?localFallback=1` on `/auth/login.shtml` — plugin doesn't touch this; it's the framework's break-glass path.
 - `controller.auth.localAuthRestriction` config — plugin doesn't enforce this; documentation only.
 
@@ -346,6 +348,8 @@ UserModel.extendSchema({
 | DELETE | `/api/1/auth-oauth/admin/providers/:id` | Admin | Delete provider config |
 | POST | `/api/1/auth-oauth/admin/providers/:id/test` | Admin | Force OIDC discovery refresh, return endpoints |
 
+**Routing note (found during W-196 spec review):** `webapp/utils/site-controller-registry.js`'s `api*`-method auto-discovery (used by `hello-world`) only produces fixed kebab-case paths, plus a hardcoded `:id` suffix for recognized CRUD verb names — it cannot generate a route with a custom path parameter like `/init/:provider` or `/callback/:provider`. All of this plugin's endpoints are therefore declared via an explicit `static routes = [{ method, path, handler, auth }, ...]` array — the same pattern `auth-mfa` already uses for its fixed-path endpoints — not `api*` auto-discovery. Handler method names (`apiInit`, `apiCallback`, etc.) are kept for readability/consistency even though auto-discovery doesn't apply to them; `auth` per route is `'none' | 'user' | 'admin'` matching the "Auth" column above.
+
 **Note on the `link` flow:** the same init/callback endpoints handle both "login" and "link an additional provider to current user" flows. The distinction is a `mode` field in the pending OAuth state (`login` or `link`). In `link` mode, the callback attaches the resolved `sub` + profile to the currently-authenticated user rather than creating a session; it never creates a new user.
 
 **Note on multi-step continuation:** additional login steps introduced by the plugin (e.g., `oauth-profile-complete` — see §10) are submitted through the framework's shared multi-step endpoint `POST /api/1/auth/login` with `{ step: "oauth-profile-complete", ... }`, not through a plugin-specific endpoint. This keeps the whole authentication chain uniform (credentials → mfa → oauth-profile-complete → mfa-setup → complete) and lets the framework's `_getRequiredSteps` orchestrator decide the order.
@@ -355,7 +359,7 @@ UserModel.extendSchema({
 Per-provider config (in the provider record, not global). Admin picks one of three strategies:
 
 **`sub-only` — strictest**
-- Lookup: `db.users.findOne({ [`oauth.${provider}.sub`]: sub })`
+- Lookup: `(await UserModel.find({ [`oauth.${provider}.sub`]: sub }, { limit: 1 }))[0]` (plugins have no raw collection handle — `UserModel.find()` is the existing generic query method; it already strips `passwordHash` from results)
 - No match → login fails with `USER_NOT_PROVISIONED`
 - Use case: high-security internal systems where admins pre-provision all users and users only link accounts through admin-initiated flow
 
@@ -490,7 +494,8 @@ window.jPulse.plugins.authOauth.renderProviders = function(ctx) {
     // - id (unique key like "google-corp", "okta-prod")
     // - preset (dropdown: google | oidc | oauth2)
     // - label (display name on button)
-    // - icon (emoji or URL)
+    // - icon (emoji or inline SVG markup — not an image URL; it renders raw/unescaped inside a
+    //   <span> on the login page, so it's sanitized server-side, see _validateProviderInput())
     // - buttonColor (color picker)
     // - enabled (checkbox)
     // - Preset-specific fields (see below)
@@ -510,7 +515,7 @@ window.jPulse.plugins.authOauth.renderProviders = function(ctx) {
     id:              'google-corp',          // Unique key (admin-chosen, becomes URL segment: /api/1/auth-oauth/init/google-corp)
     preset:          'google',               // 'google' | 'oidc' | 'oauth2'
     label:           'Sign in with Google',  // Button label
-    icon:            '🇬',                    // Or SVG string / URL
+    icon:            '🇬',                    // Or inline SVG markup (sanitized server-side, not an image URL)
     buttonColor:     '#4285F4',
     enabled:         true,
     order:           10,                     // Button order on login page
@@ -541,7 +546,31 @@ window.jPulse.plugins.authOauth.renderProviders = function(ctx) {
 
 **Client secret storage:**
 
-The `clientSecretRef` in the providers array points to an encrypted secret stored in the `authOauth_providers` MongoDB collection. Encryption uses the framework's encryption utility (same one auth-mfa uses for TOTP secrets). The plaintext secret is never returned to the admin UI after initial entry — the UI shows `••••••••` and a "Change secret" button. This mirrors how AWS/GCP/Azure consoles handle SDK credentials.
+The `clientSecretRef` in the providers array points to an encrypted secret stored in the `authOauth_providers` MongoDB collection. **Corrected during spec review:** there is no pre-existing "framework encryption utility" — `auth-mfa` encrypts its TOTP secret with AES-256-GCM + `scrypt(sessionSecret, salt)` duplicated inline inside its own model (`MfaAuthModel.encrypt`/`getEncryptionKey`), not via a shared helper. W-196 extracts that same pattern into a new, genuinely shared framework primitive so it isn't duplicated a second time:
+
+```javascript
+// webapp/utils/crypto-secrets.js (new framework file, added alongside this plugin)
+import crypto from 'crypto';
+
+export function encryptSecret(plaintext, salt) {
+    const key = crypto.scryptSync(global.appConfig?.security?.sessionSecret || 'jpulse-default-secret-change-me', salt, 32);
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+    return Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString('base64');
+}
+
+export function decryptSecret(ciphertext, salt) {
+    const key = crypto.scryptSync(global.appConfig?.security?.sessionSecret || 'jpulse-default-secret-change-me', salt, 32);
+    const buf = Buffer.from(ciphertext, 'base64');
+    const iv = buf.subarray(0, 16), authTag = buf.subarray(16, 32), encrypted = buf.subarray(32);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
+}
+```
+
+`oauthProvider.js` calls `encryptSecret(clientSecret, 'oauth-provider-salt')` before writing to Mongo and `decryptSecret(...)` only at token-exchange time inside `apiCallback` — the decrypted value never appears in any API response. `auth-mfa`'s existing TOTP encryption is left as-is (not retrofitted onto this util) to avoid touching a shipped, independently-versioned plugin as a side effect of this work item; it can adopt `crypto-secrets.js` later if desired. The plaintext secret is never returned to the admin UI after initial entry — the UI shows `••••••••` and a "Change secret" button. This mirrors how AWS/GCP/Azure consoles handle SDK credentials.
 
 **Why not just store the encrypted secret in the providers array?**  The `pluginConfigs` collection is heavily read on every request (config values are accessed frequently). Keeping secrets in a separate collection lets us apply MongoDB-level field encryption or additional access controls to just the sensitive collection.
 
@@ -705,6 +734,11 @@ static async onAuthGetSteps(context) {
     requiredSteps.push({
         step:     'oauth-profile-complete',
         priority: 20,                          // Before mfa-setup (100), after tenant-select (5)
+        // 'page' is REQUIRED here, not just a browser-redirect nicety (contrast with the
+        // built-in 'mfa'/'mfa-setup' steps): login.shtml's client-side handleNextStep() only
+        // knows how to route those two hardcoded step names without a 'page' — any plugin-defined
+        // step like this one falls through unhandled unless it supplies its own 'page'.
+        page: '/auth/oauth-profile-complete.shtml',
         data: {
             missingFields: missing,            // e.g. ['lastName'] — only the fields that need a real answer
             prefill: {
@@ -742,7 +776,7 @@ static async onAuthValidateStep(context) {
 }
 ```
 
-**Design decision (confirmed):** the profile-complete step fires **only** for JIT-created users with unresolved placeholder fields, gated by `oauth._jit.placeholderFields`/`profileCompletedAt`. Existing users linked via Path A or B never have an `oauth._jit` block at all, so they never see the prompt — they manage their profile through `/user/profile.shtml` like any other user. This keeps the SSO flow simple and predictable ("only new users with genuinely missing data get onboarding").
+**Design decision (confirmed):** the profile-complete step fires **only** for JIT-created users with unresolved placeholder fields, gated by `oauth._jit.placeholderFields`/`profileCompletedAt`. Existing users linked via Path A or B never have an `oauth._jit` block at all, so they never see the prompt — they manage their profile through `/user/me` like any other user. This keeps the SSO flow simple and predictable ("only new users with genuinely missing data get onboarding").
 
 #### The composed flow — SSO signup + profile completion + MFA setup
 
@@ -763,15 +797,16 @@ static async onAuthValidateStep(context) {
      oauth._jit:        { createdAt: now, viaProvider: 'google', placeholderFields: ['firstName', 'lastName'], profileCompletedAt: null }
 7. AuthController.completeExternalAuth() (W-195) sets pendingAuth, calls _getRequiredSteps
 8. Hooks contribute steps:
-     - auth-oauth returns [{ step: 'oauth-profile-complete', priority: 20, ...}]
-     - auth-mfa   returns [{ step: 'mfa-setup',              priority: 100, ...}]
-9. Server response: { success: true, nextStep: 'oauth-profile-complete', missingFields, prefill }
-10. Browser → /auth/oauth-profile-complete.shtml (form with pre-fills)
+     - auth-oauth returns [{ step: 'oauth-profile-complete', priority: 20, page: '/auth/oauth-profile-complete.shtml', ...}]
+     - auth-mfa   returns [{ step: 'mfa-setup',              priority: 100, page: '/auth/mfa-setup.shtml', ...}]
+9. Server response: { success: true, nextStep: 'oauth-profile-complete', page: '/auth/oauth-profile-complete.shtml', missingFields, prefill }
+10. Browser → /auth/oauth-profile-complete.shtml (form with pre-fills) — client-side handleNextStep()
+    follows result.page, since 'oauth-profile-complete' has no built-in case of its own
 11. User fills First Name = "Jane", Last Name = "Doe"
 12. → POST /api/1/auth/login { step: 'oauth-profile-complete', firstName: 'Jane', lastName: 'Doe' }
 13. onAuthValidateStep saves fields, sets oauth._jit.placeholderFields = [], oauth._jit.profileCompletedAt = now
-14. _getRequiredSteps loops back → returns [{ step: 'mfa-setup' }]
-15. Server response: { success: true, nextStep: 'mfa-setup' }
+14. _getRequiredSteps loops back → returns [{ step: 'mfa-setup', page: '/auth/mfa-setup.shtml' }]
+15. Server response: { success: true, nextStep: 'mfa-setup', page: '/auth/mfa-setup.shtml' }
 16. Browser → /auth/mfa-setup.shtml (auth-mfa's page)
 17. User scans QR, submits code
 18. auth-mfa validates; _getRequiredSteps returns []
@@ -788,7 +823,7 @@ Apple returns `name` **only on first consent** and only if the user chose to sha
 
 | Config field | Purpose |
 |---|---|
-| `profileRequiredFields` | Which fields trigger Stage B when Stage A could only produce a placeholder for them (per `oauth._jit.placeholderFields`). Default `['firstName', 'lastName']`. Set `[]` to skip the completion step entirely (placeholder values are kept as-is; user can edit later via `/user/profile.shtml`). |
+| `profileRequiredFields` | Which fields trigger Stage B when Stage A could only produce a placeholder for them (per `oauth._jit.placeholderFields`). Default `['firstName', 'lastName']`. Set `[]` to skip the completion step entirely (placeholder values are kept as-is; user can edit later via `/user/me`). |
 | `jitDefaultRoles` | Roles assigned to JIT-created users (`admin`/`root` always stripped, defense in depth — see §8). |
 | `jitDefaultStatus` | `'active'` (login immediately) or `'pending'` (blocked until admin approves — see §7). |
 
@@ -836,7 +871,7 @@ if (remainingProviders.length === 0 && user.hasLocalPassword === false) {
 
 **Decision: block, don't force an inline flow.** Rather than building a custom "set a password before you can unlink" wizard inside the linked-accounts page, the error message links directly to the existing Security panel:
 
-> "This is your only way to sign in. Set a local password or link another provider before removing this one." → **Set a Password** (`/user/profile.shtml#security`)
+> "This is your only way to sign in. Set a local password or link another provider before removing this one." → **Set a Password** (`/user/settings` — Security panel)
 
 This reuses the framework's existing password UI instead of duplicating it inside the plugin, and keeps the unlink action a simple, predictable guard rather than a multi-step forced flow.
 
@@ -870,6 +905,29 @@ No new configuration flags are needed here — the framework **already has** eve
 
 None of these settings live in the `auth-oauth` plugin config — they're all framework-level. The plugin's README documents this table so admins configure the right combination without piecing it together from three different docs ("don't make me think").
 
+### 13. Provider Config Caching (found during W-196 spec review)
+
+`onAuthGetLoginProviders` runs on every unauthenticated render of `/auth/login.shtml` — the single highest-traffic unauthenticated route on the site. The naive approach (a `PluginModel.getByName('auth-oauth')` call per render — see §6/Hook Implementations correction above) is one uncached MongoDB round-trip per page view.
+
+The framework has no `onPluginConfigSave`-style hook to invalidate a cache the instant an admin edits provider config, so this plugin uses a short-TTL cache rather than event-based invalidation:
+
+```javascript
+// plugins/auth-oauth/webapp/model/oauthAuth.js (excerpt)
+const CONFIG_CACHE_TTL_SECONDS = 20;
+
+static async getCachedConfig() {
+    const cached = await RedisManager.cacheGetObject('plugin:auth-oauth', 'config');
+    if (cached) return cached;
+
+    const pluginDoc = await PluginModel.getByName('auth-oauth');
+    const config = pluginDoc?.config || {};
+    await RedisManager.cacheSetObject('plugin:auth-oauth', 'config', config, { ttlSeconds: CONFIG_CACHE_TTL_SECONDS });
+    return config;
+}
+```
+
+`RedisManager.cacheGetObject`/`cacheSetObject` already fail open (no-op / return `null`) when Redis is unavailable, so this degrades automatically to the original uncached-Mongo-read behavior — no separate in-memory fallback needed. A ~20-second staleness window on provider *metadata* (label/icon/enabled/order — never secrets) is an acceptable trade for admins toggling a provider on the config page; there's no correctness risk, since the actual token exchange in `apiCallback` always reads provider config fresh (uncached) — that path is far lower-traffic and correctness there matters more than a few seconds of caching.
+
 ---
 
 ## Security Requirements
@@ -887,7 +945,7 @@ None of these settings live in the `auth-oauth` plugin config — they're all fr
 | Client secret in transit | Never sent to browser; UI shows `••••••••` after initial entry |
 | Session rotation | Framework's `_completeLogin` already rotates session ID post-authentication |
 | Email verification | `email_verified: true` required for `link-by-email` and JIT provisioning; unverified emails treated as opaque strings |
-| Rate limiting | Per-IP throttle on `/init/:provider` and `/callback/:provider` (60/min default, admin-configurable). Applied at plugin level; framework already has rate-limiting middleware. |
+| Rate limiting | Per-IP throttle on `/init/:provider` and `/callback/:provider` (60/min default, admin-configurable). **Corrected during spec review:** there is no route-level rate-limit *middleware* in the framework — implemented by calling the existing `RedisManager.cacheCheckRateLimit(path, key, { limit, windowSeconds })` helper manually at the top of `apiInit`/`apiCallback`; fails open (no throttling) if Redis is unavailable. |
 | Timing-safe compare | Use `crypto.timingSafeEqual` for `state` and `nonce` comparisons |
 | Logging | All init/callback attempts logged via `LogController` with provider, outcome, and (on success) `sub` — never log tokens, codes, or secrets |
 | Provider allowlist | `allowedDomains` per-provider option prevents Google-signup users from a rival org from getting `user` role at your public site |
@@ -950,10 +1008,16 @@ class OauthAuthController {
 
     /**
      * W-195: Provide OAuth provider buttons for the login page
+     *
+     * Note (corrected during spec review): PluginModel.getConfig() doesn't exist — the real
+     * method is PluginModel.getByName(name), returning the whole plugin doc (config lives at
+     * .config). See _getCachedConfig() below and §13 "Provider Config Caching" — this hook
+     * fires on every unauthenticated /auth/login.shtml render, so an uncached Mongo read here
+     * would be a real, easy-to-miss perf cost.
      */
     static async onAuthGetLoginProviders(context) {
         const { req, providers } = context;
-        const config = await PluginModel.getConfig('auth-oauth');
+        const config = await OauthAuthController._getCachedConfig();
         const providerList = (config?.providers || []).filter(p => p.enabled);
 
         for (const p of providerList) {
@@ -972,6 +1036,15 @@ class OauthAuthController {
     /**
      * W-105: Merge OAuth profile data into user record
      * Called during callback flow after user resolution
+     *
+     * Note (found during spec review, kept intentionally): grep of webapp/ confirms
+     * onUserSyncProfile has zero call sites anywhere in the framework today — nothing
+     * currently fires this hook. It's registered here anyway, ahead of any real caller,
+     * as a deliberate future-proofing decision: if a future framework feature (e.g. an
+     * admin "resync profile from IdP" action) is added, this handler is already wired up.
+     * Until then this method is dormant; the actual profile merge into user.oauth.{provider}
+     * during the live OAuth callback happens as a plain function call from apiCallback (§7),
+     * not through this hook.
      */
     static async onUserSyncProfile(context) {
         const { user, externalProfile, provider } = context;
@@ -993,14 +1066,35 @@ class OauthAuthController {
         return context;
     }
 
-    // API endpoints (auto-discovered by controller registry):
-    static async apiGetProviders(req, res)      { /* GET /api/1/auth-oauth/providers */ }
-    static async apiGetInit(req, res)           { /* GET /api/1/auth-oauth/init/:provider */ }
-    static async apiGetCallback(req, res)       { /* GET /api/1/auth-oauth/callback/:provider */ }
-    static async apiGetUserProviders(req, res)  { /* GET /api/1/auth-oauth/user/providers */ }
-    static async apiPostLink(req, res)          { /* POST /api/1/auth-oauth/link/:provider */ }
-    static async apiDeleteLink(req, res)        { /* DELETE /api/1/auth-oauth/link/:provider */ }
-    // ... admin endpoints
+    // API endpoints — declared via static routes (see §6 "Routing note"; auto-discovery
+    // cannot express the `:provider` path parameter these endpoints need):
+    static routes = [
+        { method: 'GET',    path: '/api/1/auth-oauth/providers',              handler: 'apiProviders',       auth: 'none'  },
+        { method: 'GET',    path: '/api/1/auth-oauth/init/:provider',         handler: 'apiInit',            auth: 'none'  },
+        { method: 'GET',    path: '/api/1/auth-oauth/callback/:provider',     handler: 'apiCallback',        auth: 'none'  },
+        { method: 'GET',    path: '/api/1/auth-oauth/user/providers',         handler: 'apiUserProviders',   auth: 'user'  },
+        { method: 'POST',   path: '/api/1/auth-oauth/link/:provider',        handler: 'apiLink',             auth: 'user'  },
+        { method: 'DELETE', path: '/api/1/auth-oauth/link/:provider',        handler: 'apiUnlink',           auth: 'user'  },
+        { method: 'GET',    path: '/api/1/auth-oauth/admin/providers',        handler: 'apiAdminProviders',      auth: 'admin' },
+        { method: 'POST',   path: '/api/1/auth-oauth/admin/providers',        handler: 'apiAdminProvidersCreate', auth: 'admin' },
+        { method: 'PUT',    path: '/api/1/auth-oauth/admin/providers/:id',    handler: 'apiAdminProvidersUpdate', auth: 'admin' },
+        { method: 'DELETE', path: '/api/1/auth-oauth/admin/providers/:id',    handler: 'apiAdminProvidersDelete', auth: 'admin' },
+        { method: 'POST',   path: '/api/1/auth-oauth/admin/providers/:id/test', handler: 'apiAdminProvidersTest', auth: 'admin' }
+    ];
+
+    static async apiProviders(req, res)             { /* GET /api/1/auth-oauth/providers */ }
+    static async apiInit(req, res)                  { /* GET /api/1/auth-oauth/init/:provider */ }
+    static async apiCallback(req, res)               { /* GET /api/1/auth-oauth/callback/:provider */ }
+    static async apiUserProviders(req, res)          { /* GET /api/1/auth-oauth/user/providers */ }
+    static async apiLink(req, res)                   { /* POST /api/1/auth-oauth/link/:provider */ }
+    static async apiUnlink(req, res)                 { /* DELETE /api/1/auth-oauth/link/:provider */ }
+    // ... admin endpoints (apiAdminProviders*)
+
+    /**
+     * §13: short-TTL Redis cache in front of PluginModel.getByName('auth-oauth'),
+     * so the login page doesn't do an uncached Mongo read per render.
+     */
+    static async _getCachedConfig() { /* see §13 "Provider Config Caching" */ }
 }
 ```
 
@@ -1010,24 +1104,25 @@ class OauthAuthController {
 
 ### 1. Login Page Buttons (rendered by framework via W-195 hook)
 
-The framework's `/auth/login.shtml` (updated in W-195) renders provider buttons above the local username/password form. Each button is a styled anchor:
+The framework's `/auth/login.shtml` (updated in W-195) iterates the `authProviders` array (populated via the `onAuthGetLoginProviders` hook, see §4) and renders one anchor per provider — this is actual framework markup, not something the plugin renders itself:
 
 ```html
-<div class="jp-auth-providers">
-    <a href="/api/1/auth-oauth/init/google-corp?redirect=..." class="jp-auth-provider-btn" style="--btn-color: #4285F4">
-        <span class="jp-auth-provider-icon">🇬</span>
+<!-- webapp/view/auth/login.shtml — {{#each authProviders}} -->
+<div class="local-auth-methods" id="authMethods">
+    <a href="/api/1/auth-oauth/init/google-corp?redirect=..." class="local-auth-method" style="border-color: #4285F4;">
+        <span>🇬</span>
         <span>Sign in with Google</span>
     </a>
-    <a href="/api/1/auth-oauth/init/okta-prod?redirect=..." class="jp-auth-provider-btn" style="--btn-color: #007dc1">
-        <span class="jp-auth-provider-icon">🔐</span>
+    <a href="/api/1/auth-oauth/init/okta-prod?redirect=..." class="local-auth-method" style="border-color: #007dc1;">
+        <span>🔐</span>
         <span>Sign in with Okta</span>
     </a>
 </div>
-<div class="jp-divider"><span>or</span></div>
-<!-- Local form below -->
+<div class="jp-divider"><span>or sign in with</span></div>
+<!-- Local form below (or above, if localAuthRestriction hides/restricts it - see W-195) -->
 ```
 
-Provider button styles live in the plugin's `webapp/view/jpulse-common.css`. The framework provides the div structure; the plugin owns the buttons' appearance.
+Each provider object supplies `label`/`icon`/`buttonColor`/`initUrl` (§7 "Hook Implementations" below) — the framework only cares about those four fields plus `order`. Provider button *styling beyond the inline `border-color`* (hover states, icon sizing, etc.) lives in the plugin's `webapp/view/jpulse-common.css`, scoped to `.local-auth-method`. The plugin does not own the wrapping markup or class names — those are framework-controlled (`local-auth-methods`/`local-auth-method`, `webapp/view/auth/login.shtml`), so a plugin should not assume it can restructure this HTML.
 
 ### 2. Linked Accounts Page (`/jpulse-plugins/auth-oauth.shtml`)
 
@@ -1109,12 +1204,12 @@ Ships with `en` and `de` at minimum, mirroring auth-mfa.
 | 7 | JIT — new user, IdP provides only full `name` claim | Name split heuristically ("Jane Doe" → firstName="Jane", lastName="Doe"); no profile-complete step |
 | 8 | JIT — new user, IdP provides no name claims at all | User created with schema-conformant placeholder firstName/lastName (`oauth._jit.placeholderFields: ['firstName','lastName']`); passwordHash is a random unusable hash, `hasLocalPassword: false`; profile-complete step fires; user fills form; placeholders overwritten, `oauth._jit.profileCompletedAt` set; login continues |
 | 9 | JIT + MFA required — new user, missing name claims | Two-step onboarding: profile-complete → mfa-setup → complete |
-| 10 | `profileRequiredFields: []` — new user, missing name claims | Step skipped; user logs in with placeholder firstName/lastName still in place (e.g. email local-part / `'-'`), editable later via `/user/profile.shtml` |
+| 10 | `profileRequiredFields: []` — new user, missing name claims | Step skipped; user logs in with placeholder firstName/lastName still in place (e.g. email local-part / `'-'`), editable later via `/user/me` |
 | 11 | Provider returns `email_verified: false` | Path A refused (`EMAIL_NOT_VERIFIED_AT_PROVIDER`); JIT refused with same reason |
 | 12 | State mismatch (open callback URL directly) | Redirects to /auth/oauth-error.shtml?reason=STATE_MISMATCH |
 | 13 | Provider returns error param on callback | Redirects to /auth/oauth-error.shtml?reason=PROVIDER_ERROR |
 | 14 | JIT user (`hasLocalPassword: false`) tries to unlink their only linked provider | Blocked with `LAST_AUTH_METHOD`; message links to Set Password page (§11) |
-| 15 | Same user as #14 runs "Set Password" from `/user/profile.shtml`, then retries unlink | `changePassword()` skips `currentPassword` check (W-195), sets `hasLocalPassword: true`; unlink now succeeds |
+| 15 | Same user as #14 runs "Set Password" from `/user/settings` (Security panel), then retries unlink | `changePassword()` skips `currentPassword` check (W-195), sets `hasLocalPassword: true`; unlink now succeeds |
 | 16 | Migrated user (`hasLocalPassword: true` from the start) unlinks their only provider | Allowed — local password already usable |
 | 17 | `jitDefaultStatus: 'pending'` — brand-new JIT user | Plugin's callback handler checks `status` before calling `completeExternalAuth()`; redirects to `/auth/oauth-error.shtml?reason=ACCOUNT_PENDING_APPROVAL` instead of logging in; admin flips status to `active` via `/admin/users.shtml`; user retries and logs in normally |
 | 18 | User re-authenticates via a provider where the stored `sub` no longer matches the `sub` returned for the same verified email | Rejected with `PROVIDER_IDENTITY_MISMATCH`, logged for admin review — no silent re-link |
@@ -1144,6 +1239,7 @@ Ships with `en` and `de` at minimum, mirroring auth-mfa.
 
 ## Deliverables
 
+- [ ] `webapp/utils/crypto-secrets.js` (new framework file, found during spec review — see §8): shared `encryptSecret()`/`decryptSecret()` primitive, since none existed before this plugin needed one
 - [ ] Plugin structure (`plugins/auth-oauth/`)
 - [ ] Plugin manifest (`plugin.json`) with W-194 custom renderer field and `profileRequiredFields` option
 - [ ] Controller with hooks + API endpoints (`webapp/controller/oauthAuth.js`)
@@ -1161,6 +1257,8 @@ Ships with `en` and `de` at minimum, mirroring auth-mfa.
 - [ ] Unlink-last-method guard consuming the W-195 `hasLocalPassword` flag (§11) — `DELETE /api/1/auth-oauth/link/:provider`
 - [ ] `status: 'pending'` check in the callback handler, before calling `AuthController.completeExternalAuth()` (§7)
 - [ ] Computed, copyable redirect URI shown per provider in the custom renderer (§8)
+- [ ] `static routes` declaration for all API endpoints (§6 — required for `:provider`/`:id` path params; auto-discovery does not apply)
+- [ ] Provider config caching (`getCachedConfig()`, §13) — short-TTL Redis cache in front of `PluginModel.getByName('auth-oauth')`, consumed by `onAuthGetLoginProviders`
 - [ ] User docs (`docs/README.md`) — includes provider setup guides (Google, Okta, Keycloak, Azure Entra), migration walkthrough (Paths A/B/C), and the site-mode config table (§12: `disableSignup`/`hideSignup`/`localAuthRestriction` combinations)
 - [ ] Developer docs (`README.md`)
 - [ ] i18n (en, de) — including plugin.authOauth.profileComplete.*, plugin.authOauth.error.lastMethodBlocked strings
@@ -1174,6 +1272,8 @@ Ships with `en` and `de` at minimum, mirroring auth-mfa.
 
 | Component | Estimate |
 |---|---|
+| `webapp/utils/crypto-secrets.js` framework primitive (§8, new — found during spec review) | 2h |
+| Provider config caching (§13, new — found during spec review) | 1h |
 | Plugin scaffold & manifest | 2h |
 | Provider registry + presets (Google, OIDC, OAuth2) | 3h |
 | openid-client wrapper + discovery cache | 3h |
@@ -1197,7 +1297,7 @@ Ships with `en` and `de` at minimum, mirroring auth-mfa.
 | Manual testing across 28 scenarios | 5h |
 | Publishing (repo setup, npm package, install docs) | 2h |
 | Buffer | 2h |
-| **Total** | **~64h** |
+| **Total** | **~67h** |
 
 Higher than the initial "25-35h" and revised "48h" estimates because:
 - Provider setup guides (Google, Okta, Keycloak, Entra) each need their own console-UI walkthrough
@@ -1231,4 +1331,28 @@ Consumer providers (Google, Apple, GitHub) obviously cannot work air-gapped sinc
 
 ---
 
-**Last Updated:** 2026-07-23
+**Last Updated:** 2026-07-24 (spec review pass #2, pre-implementation — see change note below)
+
+---
+
+## Review Note (2026-07-24, spec review pass #2, pre-implementation)
+
+Before starting implementation, the doc was checked against real framework code for five more drift points (beyond the W-195 API surface, which checked out clean — see the review note below). All five were real corrections, not just doc typos — each would have surfaced mid-implementation otherwise:
+
+1. **API routing must use `static routes`, not `api*` auto-discovery.** `site-controller-registry.js`'s auto-discovery can't express a custom path parameter like `/init/:provider`. Added a routing note to §6, and rewrote the `static hooks`/endpoint block in "Hook Implementations" to show an explicit `static routes` array (the same pattern `auth-mfa` already uses), matching how `auth-mfa` really registers its endpoints.
+2. **No shared framework encryption utility existed.** The doc previously implied one; `auth-mfa` actually duplicates AES-256-GCM+scrypt logic inline in its own model. Decision (confirmed): extract a small new shared primitive, `webapp/utils/crypto-secrets.js`, as part of this work item (§8) — `auth-mfa` is left unchanged.
+3. **"Framework rate-limiting middleware" doesn't exist** — only a callable helper, `RedisManager.cacheCheckRateLimit()`. Corrected the Security Requirements table row to describe calling it manually inside `apiInit`/`apiCallback`.
+4. **`PluginModel.getConfig()` doesn't exist** (`PluginModel.getByName(name)` is the real API), and it's uncached — a real concern since `onAuthGetLoginProviders` fires on every unauthenticated `/auth/login.shtml` render. Added §13 "Provider Config Caching" (short-TTL Redis cache, fails open if Redis is down) and fixed the Hook Implementations code sample.
+5. **`onUserSyncProfile` has zero call sites anywhere in the framework today.** Decision (confirmed): keep it registered anyway as a deliberate future-proofing placeholder (documented inline as dormant), rather than removing it — the actual profile merge during a live callback happens as a plain function call, not through this hook.
+
+Also fixed: §7's `sub-only` lookup pseudocode now uses the real `UserModel.find()` API instead of a raw `db.users.findOne(...)` (plugins have no raw collection handle).
+
+---
+
+## Review Note (2026-07-24, post-W-195 implementation)
+
+W-195 shipped and this doc was checked against the real code for drift. Everything else lined up exactly as designed (`completeExternalAuth()` signature, `onAuthGetLoginProviders` context shape `{ req, providers }` and field names `label`/`icon`/`buttonColor`/`initUrl`/`order`, `?localFallback=1`, `controller.auth.localAuthRestriction` values, `hasLocalPassword` default/behavior, `changePassword()` skip logic). Three things were corrected above:
+
+1. **`page` field is mandatory for custom plugin steps, not just browser-redirect flows.** `login.shtml`'s `handleNextStep()` only has hardcoded routing for the framework's own `'mfa'`/`'mfa-setup'`/`'email-verify'` step names — a plugin-defined step like `oauth-profile-complete` needs its own `page` even in the pure-AJAX `login()` flow, or the client has nowhere to redirect to. Added `page: '/auth/oauth-profile-complete.shtml'` to the §10 Stage B example and the composed-flow walkthrough.
+2. **Login page markup uses `.local-auth-methods`/`.local-auth-method`, not `.jp-auth-providers`/`.jp-auth-provider-btn`.** Updated the "UI Components" §1 example to match the real `webapp/view/auth/login.shtml` template.
+3. **`/user/profile.shtml` doesn't exist.** The real routes are `/user/me` (profile fields) and `/user/settings` (Security panel, `panel-security`) — there's also no `#security` hash deep-link support today. Updated all five references.

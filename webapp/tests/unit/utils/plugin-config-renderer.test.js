@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for plugin.json schema → unified block-structure adapter (W-189)
  * @description     pluginSchemaToBlocks normalization table, flattenBlockValues, integration smoke tests
  * @file            webapp/tests/unit/utils/plugin-config-renderer.test.js
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

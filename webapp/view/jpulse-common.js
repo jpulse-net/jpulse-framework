@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -736,7 +736,10 @@ window.jPulse = {
                 nodes.forEach((node) => {
                     if (node.nodeType === Node.TEXT_NODE) return;
                     if (node.nodeType === Node.ELEMENT_NODE) {
-                        const tag = node.tagName;
+                        // foreign-namespace elements (SVG, MathML) report tagName in
+                        // authored case (e.g. "script"), not uppercased like HTML elements - without
+                        // toUpperCase() here, <svg><script>...</script></svg> would slip through.
+                        const tag = node.tagName.toUpperCase();
                         if (dangerousTags.indexOf(tag) !== -1) {
                             parent.replaceChild(document.createTextNode(node.textContent || ''), node);
                             return;
@@ -762,7 +765,8 @@ window.jPulse = {
                 nodes.forEach((node) => {
                     if (node.nodeType === Node.TEXT_NODE) return;
                     if (node.nodeType === Node.ELEMENT_NODE) {
-                        const tag = node.tagName;
+                        // see stripDangerous() - normalize case for foreign-namespace elements
+                        const tag = node.tagName.toUpperCase();
                         if (!strictAllowed[tag]) {
                             parent.replaceChild(document.createTextNode(node.textContent || ''), node);
                             return;

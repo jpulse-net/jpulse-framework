@@ -6401,21 +6401,22 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-195, v1.7.1, 2026-07-24: auth: framework enhancements for external auth plugins (OAuth, LDAP, SAML)
-- status: 🕑 PENDING
+### W-195, v1.7.1, 2026-07-26: auth: jPulse enhancements for external auth plugins (OAuth, LDAP, SAML)
+- status: 🚧 IN_PROGRESS
 - type: Feature
 - objective: provide the framework-level hooks and helpers external auth plugins need — browser-redirect login completion, login page button injection, local-auth policy, and a break-glass path for SSO outages
 - rationale: OAuth/LDAP/SAML plugins all need the same three things (finish login after browser redirect, inject provider buttons onto the login page, honor a site-wide local-auth restriction); solving these once in the framework keeps each auth plugin small and prevents divergence
 - depends on: W-105 (plugin hooks), W-109 (multi-step auth)
 - features:
-  - `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)` helper: browser-redirect-friendly login completion; sets `pendingAuth`, runs `_getRequiredSteps`, either 302s to the next-step page (e.g., MFA verify) or calls `_completeLogin` and 302s to `redirectUrl`
+  - `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)` helper: browser-redirect-friendly login completion; sets `pendingAuth`, runs `_getRequiredSteps`, either 302s to the next-step page (e.g., MFA verify) or completes the session and 302s to `redirectUrl`
+    - implementation note (found during readiness review): current `_completeLogin(req, res, user, authMethod, startTime)` ends with `res.json(...)`, built for the AJAX `POST /api/1/auth/login` flow — cannot be called as-is before a 302. Refactor: extract `_completeLoginSession(req, user, authMethod, startTime)` (session creation + hooks, returns `{ warnings, elapsed }`, no `res` calls); `login()` keeps sending JSON from it, `completeExternalAuth()` sends a 302 from it. No behavior change for the existing multi-step JSON flow.
   - `onAuthGetLoginProviders` hook: plugins return `[{ id, label, icon, buttonColor, initUrl, order }]`; framework login page renders configured buttons
   - `controller.auth.localAuthRestriction` config: `'none' | 'admins-only' | 'disabled'`
     - `'none'` (default): username/password works for everyone (current behavior)
     - `'admins-only'`: username/password only works for users with admin role; regular users must use an external provider
     - `'disabled'`: no local auth at all
     - enforced in `AuthController.login()` credentials step, after `UserModel.authenticate()`, before pending init
-  - bootstrap safety check in `webapp/app.js`: if `localAuthRestriction === 'disabled'` AND no external auth plugin is enabled, forcibly downgrade to `'admins-only'` and log a warning (prevents self-lockout)
+  - bootstrap safety check in `webapp/utils/bootstrap.js` (found during implementation: this is where the actual bootstrap sequencing lives, not `webapp/app.js`): if `localAuthRestriction === 'disabled'` AND no external auth plugin is enabled, forcibly downgrade to `'admins-only'` and log a warning (prevents self-lockout); extracted as a standalone exported `checkLocalAuthRestrictionSafety()` function so it's unit-testable without running the full bootstrap sequence
   - `?localFallback=1` URL param on `/auth/login.shtml`: reveals local login form with a "Recovery mode" banner even in restricted modes (server still enforces the role check — this is a UI convenience for ops teams when SSO is broken)
   - new i18n strings for restriction messages and recovery mode banner
   - `hasLocalPassword` user-schema primitive (identified during W-196 design review): `{ type: 'boolean', default: true }` — general marker for "does this user know a real, usable local password", useful to any external-auth plugin (OAuth, LDAP, SAML), not just auth-oauth
@@ -6423,16 +6424,23 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - `UserController.changePassword()` skips the `currentPassword` check when `hasLocalPassword === false` (impossible to satisfy by construction — the user's session already proves identity); sets it back to `true` on success
     - `webapp/view/user/settings.tmpl` Security panel conditionally hides `currentPassword` and relabels the section "Set Password" vs "Change Password" based on this flag
     - no migration/backfill needed — absent field reads as `true` (default), matching existing local-signup users
+  - `CommonUtils.sanitizeHtml()` (server) / `jPulse.string.sanitizeHtml()` (client) bug fixes (found while building the W-196 auth-oauth plugin's provider-icon rendering, but independent of and useful beyond OAuth):
+    - server: attribute-extraction regex used `\w+` (no hyphen support), so hyphenated attribute names (`stroke-width`, `fill-rule`, `aria-*`, `data-*`) were mis-parsed and silently dropped even when explicitly allow-listed; fixed to `[\w-]+`
+    - client: **security fix** — foreign-namespace elements (SVG, MathML) report `tagName` in authored case, not uppercased like HTML elements; without normalizing case, `<svg><script>...</script></svg>` bypassed the dangerous-tag/strict-allowlist checks entirely; fixed by uppercasing `node.tagName` before comparison in both non-strict and strict code paths
 - deliverables:
   - webapp/controller/auth.js:
     - `completeExternalAuth()` static helper for browser-based auth flows
     - `localAuthRestriction` enforcement in `login()` credentials step
-  - webapp/app.js:
-    - bootstrap safety check for `localAuthRestriction: 'disabled'`
+    - `_completeLoginSession()` extracted from `_completeLogin()` (session creation + hooks, no `res` calls, shared by both flows)
+    - `onAuthGetSteps` step objects gain an optional `page` field, used by `completeExternalAuth()` for the next-step redirect (falls back to `/auth/login.shtml` + warning log if omitted)
+  - webapp/utils/bootstrap.js:
+    - `checkLocalAuthRestrictionSafety()` (Step 7.5) — bootstrap safety check for `localAuthRestriction: 'disabled'` (see note above; not in `webapp/app.js`)
   - webapp/view/auth/login.shtml:
-    - fetch enabled providers via `onAuthGetLoginProviders` (server-side render into `<div class="jp-auth-providers">`)
+    - fetch enabled providers via `onAuthGetLoginProviders` (server-side render, `authProviders` context array)
     - hide local form when `localAuthRestriction !== 'none'` unless `?localFallback=1`
-    - "Recovery mode" banner in fallback mode
+    - "Recovery mode" banner in fallback mode; "Restricted" notice when no providers and local form hidden
+  - webapp/controller/handlebar.js:
+    - `_buildInternalContext()`: collect `authProviders` from `onAuthGetLoginProviders`, guarded by path (`/auth/login.shtml` only) + `HookManager.hasHandlers()` so other sites pay zero cost
   - webapp/utils/hook-manager.js:
     - register `onAuthGetLoginProviders` hook definition
   - webapp/model/user.js:
@@ -6441,21 +6449,31 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - `changePassword()`: skip `currentPassword` verification when `hasLocalPassword === false`; set `hasLocalPassword: true` on successful save
   - webapp/view/user/settings.tmpl:
     - conditionally hide `currentPassword` field and relabel "Set Password" vs "Change Password" based on `hasLocalPassword`
-  - webapp/i18n/en.js, webapp/i18n/de.js:
-    - new strings: `controller.auth.localAuthRestricted`, `view.auth.login.recoveryModeBanner`, `view.auth.login.orSignInWithLocal`, `view.user.settings.setPassword`, etc.
+  - webapp/app.conf:
+    - add `controller.auth.localAuthRestriction: 'none'` (default)
+  - webapp/translations/en.conf, webapp/translations/de.conf (found during implementation: not `webapp/i18n/*.js`):
+    - new strings: `controller.auth.localAuthRestricted`, `controller.user.password.missingNewPassword`, `view.auth.login.orSignInWithLocal`, `view.auth.login.recoveryModeBanner`, `view.auth.login.restrictedNotice`, `view.user.settings.changePasswordTitle`, `view.user.settings.setPasswordTitle`, `view.user.settings.securityNoteSetPassword`, `view.user.settings.newPasswordFieldsRequired`
+  - webapp/tests/unit/controller/auth-controller.test.js, webapp/tests/unit/utils/hook-manager.test.js, webapp/tests/unit/utils/bootstrap.test.js (new), webapp/tests/unit/controller/handlebar-auth-providers.test.js (new), webapp/tests/unit/user/user-change-password.test.js (new), webapp/tests/unit/user/user-has-local-password-schema.test.js (new):
+    - unit test coverage for all of the above
+  - webapp/utils/common.js:
+    - `sanitizeHtml()` attribute-extraction regex now supports hyphenated attribute names (`[\w-]+` instead of `\w+`)
+  - webapp/view/jpulse-common.js:
+    - `jPulse.string.sanitizeHtml()`: normalize `node.tagName` to uppercase before dangerous-tag/allowlist comparison (security fix for SVG/MathML foreign-namespace elements, e.g. `<svg><script>`)
+  - webapp/tests/unit/utils/common-utils-sanitize.test.js, webapp/tests/unit/utils/jpulse-common.test.js:
+    - regression tests for both sanitizer fixes (hyphenated attributes; `<script>`/`<iframe>`/`<style>` nested in `<svg>`, non-strict and strict modes, `on*` attributes on SVG elements)
   - docs/plugins/plugin-hooks.md:
-    - document `onAuthGetLoginProviders` context, return shape, examples
+    - document `onAuthGetLoginProviders` context/return shape/example, `completeExternalAuth()` usage from a plugin callback, `onAuthGetSteps`'s `page` field, `localAuthRestriction`/`hasLocalPassword`
   - docs/deployment.md:
-    - new "Break-Glass Account Runbook" section (reserve local admin account, MFA-protect it, document recovery URL)
-  - docs/CHANGELOG.md: release notes
+    - new "Break-Glass Account Runbook" section (scenario, built-in safety net, recovery steps incl. a DB-level password reset recipe, preventive practices incl. MFA-protecting the break-glass account)
+  - docs/CHANGELOG.md, README.md, docs/README.md: release notes / highlights
 
 
 
 
 
 
-### W-196, v1.0.0, 2026-07-11: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
-- status: 🕑 PENDING
+### W-196, v1.0.0, 2026-07-25: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
+- status: 🚧 IN_PROGRESS
 - type: Feature
 - objective: SSO plugin supporting two deployment scenarios — (1) public sites with consumer providers (Google, and later Apple/GitHub), (2) org-internal sites with enterprise providers (Okta, Auth0, Azure Entra, Keycloak, ADFS via generic OIDC)
 - repository: github.com/jpulse-net/plugin-auth-oauth (separate repo, independent versioning)
@@ -6577,8 +6595,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-194, v1.7.0, 2026-07-23
-- update features & deliverables in W-194 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume W-195, v1.7.1, 2026-07-26
+- update features & deliverables in W-195 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - append to cursor_log.txt
@@ -6589,7 +6607,7 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.0 2026-07-23
+node bin/bump-version.js 1.7.1 2026-07-26
 git diff
 git status
 git add .

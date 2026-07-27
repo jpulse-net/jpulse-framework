@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for HookManager
  * @description     Tests for plugin hook registration and execution system
  * @file            webapp/tests/unit/utils/hook-manager.test.js
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -381,6 +381,45 @@ describe('HookManager', () => {
 
             expect(result.warnings).toHaveLength(1);
             expect(result.warnings[0].type).toBe('mfa-not-enabled');
+        });
+    });
+
+    // W-195: External auth login provider buttons
+    describe('W-195: onAuthGetLoginProviders', () => {
+        test('onAuthGetLoginProviders should be available', () => {
+            const hooks = HookManager.getAvailableHooks();
+            expect(hooks).toHaveProperty('onAuthGetLoginProviders');
+            expect(hooks.onAuthGetLoginProviders.description).toBeDefined();
+            expect(hooks.onAuthGetLoginProviders.canModify).toBe(true);
+        });
+
+        test('should accumulate providers from multiple plugins', async () => {
+            const handler1 = jest.fn().mockImplementation((context) => {
+                context.providers.push({ id: 'oauth', label: 'Sign in with Acme', initUrl: '/plugin/oauth/init', order: 50 });
+                return context;
+            });
+            const handler2 = jest.fn().mockImplementation((context) => {
+                context.providers.push({ id: 'ldap', label: 'Sign in with LDAP', initUrl: '/plugin/ldap/init', order: 100 });
+                return context;
+            });
+
+            HookManager.register('onAuthGetLoginProviders', 'oauth-plugin', handler1);
+            HookManager.register('onAuthGetLoginProviders', 'ldap-plugin', handler2);
+
+            const context = { providers: [] };
+            const result = await HookManager.execute('onAuthGetLoginProviders', context);
+
+            expect(result.providers).toHaveLength(2);
+            expect(result.providers.some(p => p.id === 'oauth')).toBe(true);
+            expect(result.providers.some(p => p.id === 'ldap')).toBe(true);
+        });
+
+        test('hasHandlers should reflect registration state (used by bootstrap safety check)', () => {
+            expect(HookManager.hasHandlers('onAuthGetLoginProviders')).toBe(false);
+
+            HookManager.register('onAuthGetLoginProviders', 'oauth-plugin', jest.fn());
+
+            expect(HookManager.hasHandlers('onAuthGetLoginProviders')).toBe(true);
         });
     });
 });

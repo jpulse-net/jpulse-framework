@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-103: {{let}} and {{#with}} for custom variables
  * @description     Tests for variable assignment and context switching functionality
  * @file            webapp/tests/unit/controller/handlebar-variables.test.js
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -149,6 +149,79 @@ describe('W-103: Handlebars Variables - {{let}} and {{#with}}', () => {
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
             expect(result).toContain('System user: John');
             expect(result).toContain('Custom var: myCustomUser');
+        });
+    });
+
+    describe('W-195: {{let}} Property Path Resolution (regression)', () => {
+        // Discovered during W-195 manual QA: {{let key=some.property.path}} (no parens)
+        // stores the LITERAL string "some.property.path" instead of resolving it, because
+        // the key=value parser only resolves bare (unparenthesized) property paths for
+        // positional arguments, not for key=value pairs. Wrapping the RHS in parens forces
+        // it through the subexpression resolver, which does resolve property paths.
+        test('bare property path RHS (no parens) is stored literally, NOT resolved', async () => {
+            const template = `
+                {{let mode=appConfig.controller.auth.mode}}
+                {{vars.mode}}
+            `;
+            const context = { appConfig: { controller: { auth: { mode: 'internal' } } } };
+
+            const result = await HandlebarController.expandHandlebars(mockReq, template, context);
+            expect(result.trim()).toBe('appConfig.controller.auth.mode');
+        });
+
+        test('parenthesized property path RHS is resolved to its value', async () => {
+            const template = `
+                {{let mode=(appConfig.controller.auth.mode)}}
+                {{vars.mode}}
+            `;
+            const context = { appConfig: { controller: { auth: { mode: 'internal' } } } };
+
+            const result = await HandlebarController.expandHandlebars(mockReq, template, context);
+            expect(result.trim()).toBe('internal');
+        });
+
+        test('chained {{let}} with parenthesized RHS feeds correctly into {{ne}}/{{if}}', async () => {
+            const template = `
+                {{let localAuthMode=(appConfig.controller.auth.localAuthRestriction)}}
+                {{let isRestricted=(ne vars.localAuthMode "none")}}
+                {{#if vars.isRestricted}}RESTRICTED{{else}}OPEN{{/if}}
+            `;
+
+            const openResult = await HandlebarController.expandHandlebars(mockReq, template,
+                { appConfig: { controller: { auth: { localAuthRestriction: 'none' } } } });
+            expect(openResult.trim()).toBe('OPEN');
+
+            const restrictedResult = await HandlebarController.expandHandlebars(mockReq, template,
+                { appConfig: { controller: { auth: { localAuthRestriction: 'admins-only' } } } });
+            expect(restrictedResult.trim()).toBe('RESTRICTED');
+        });
+    });
+
+    describe('W-195: Empty array truthiness with {{#if}}/{{#unless}} (regression)', () => {
+        // Discovered during W-195 manual QA: {{#if}}/{{#unless}} use plain JS Boolean()
+        // on the condition value. Since Boolean([]) === true in JavaScript, an empty array
+        // is treated as "truthy" - unlike real Handlebars.js, which treats empty arrays as
+        // falsy. Use {{array.isEmpty someArray}} (which returns a real boolean) to get
+        // correct empty/non-empty branching for arrays.
+        test('{{#if emptyArray}} incorrectly renders the "if" branch (native engine limitation)', async () => {
+            const template = `[{{#if items}}SHOWN{{/if}}]`;
+            const result = await HandlebarController.expandHandlebars(mockReq, template, { items: [] });
+            expect(result).toBe('[SHOWN]'); // documents current (surprising) behavior
+        });
+
+        test('{{#unless emptyArray}} incorrectly hides the "unless" branch (native engine limitation)', async () => {
+            const template = `[{{#unless items}}SHOWN{{/unless}}]`;
+            const result = await HandlebarController.expandHandlebars(mockReq, template, { items: [] });
+            expect(result).toBe('[]'); // documents current (surprising) behavior
+        });
+
+        test('{{#if (array.isEmpty emptyArray)}} correctly detects an empty array', async () => {
+            const template = `[{{#if (array.isEmpty items)}}EMPTY{{else}}HAS-ITEMS{{/if}}]`;
+            const emptyResult = await HandlebarController.expandHandlebars(mockReq, template, { items: [] });
+            expect(emptyResult).toBe('[EMPTY]');
+
+            const filledResult = await HandlebarController.expandHandlebars(mockReq, template, { items: ['a'] });
+            expect(filledResult).toBe('[HAS-ITEMS]');
         });
     });
 

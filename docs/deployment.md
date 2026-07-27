@@ -1,4 +1,4 @@
-# jPulse Docs / Production Deployment Guide v1.7.0
+# jPulse Docs / Production Deployment Guide v1.7.1
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -343,6 +343,96 @@ After deployment, review:
 - **Framework Updates**: Monitor for jPulse security releases
 - **Dependency Updates**: Regular `npm audit` and updates
 - **Certificate Renewal**: Verify Let's Encrypt auto-renewal
+
+## 🔓 Break-Glass Account Runbook
+
+> This runbook applies to sites using `controller.auth.localAuthRestriction`
+> (`'admins-only'` or `'disabled'`) together with an external-auth plugin (OAuth, LDAP, SAML).
+> Sites that leave `localAuthRestriction` at its default (`'none'`) are not affected - local
+> login always works there, so there's nothing to break-glass.
+
+### The Scenario
+
+Your site relies on an external identity provider (Okta, Azure AD, an LDAP server, etc.) for
+sign-in, and `localAuthRestriction` is set to `'admins-only'` or `'disabled'` so most users
+never see a local password form. Then the identity provider has an outage, a misconfiguration,
+or a network/firewall issue blocks it - and now **nobody can sign in**, including admins who
+need to fix the underlying problem.
+
+### Built-in Safety Net
+
+The framework never lets a site lock itself out completely by configuration alone:
+
+- If `localAuthRestriction` is `'disabled'` **and** no plugin registers the
+  `onAuthGetLoginProviders` hook (i.e. no external-auth plugin is enabled), bootstrap
+  automatically downgrades the setting to `'admins-only'` and logs a warning. This only
+  protects against a *missing* plugin, not a plugin that's enabled but its provider is down.
+- Regardless of `localAuthRestriction`, any admin account can always reach the local login
+  form via:
+  ```
+  /auth/login.shtml?localFallback=1
+  ```
+  This URL parameter only affects the login page's *display* (it un-hides the local form) -
+  `localAuthRestriction` is still enforced server-side, so it only helps if the account signing
+  in already qualifies (`'admins-only'` requires an admin role; `'disabled'` blocks everyone
+  except via the downgrade above).
+
+### Recovery Steps (SSO Outage)
+
+1. **Identify a break-glass account** - a user with an admin role that can use
+   `?localFallback=1` under `'admins-only'`. Note: `'disabled'` has no such exception unless
+   downgraded by the safety net above; see step 4 if you're fully locked out.
+2. **Navigate to** `https://your-site.example.com/auth/login.shtml?localFallback=1`.
+3. **Sign in with the account's local username/password.** If the account has never had a
+   local password set (`hasLocalPassword: false` - typical for accounts that were always
+   JIT-provisioned via SSO), it can't sign in locally yet; go to step 4 instead.
+4. **No usable break-glass account exists** - reset one directly against the database from a
+   trusted host with database access (this bypasses the API/UI entirely, so it works even if
+   the app itself can't reach the identity provider):
+   ```bash
+   # Generate a bcrypt hash for a strong temporary password (uses the same bcrypt version as
+   # the framework - see package.json)
+   node -e "require('bcrypt').hash('YourStrongTempPassword!', 12).then(h => console.log(h))"
+
+   # Update the admin user directly (adjust connection string/DB name for your deployment)
+   mongosh "$DB_URI" --eval '
+     db.users.updateOne(
+       { username: "admin" },
+       { $set: {
+           passwordHash: "<paste bcrypt hash from above>",
+           hasLocalPassword: true,
+           roles: ["admin"]
+       } }
+     )
+   '
+   ```
+   Then sign in at `/auth/login.shtml?localFallback=1` and **change the password immediately**
+   from Settings once inside (this also resets `hasLocalPassword` normally, so there's nothing
+   else to clean up).
+5. **Once inside, temporarily relax the policy if needed** to let other users in while the SSO
+   outage is resolved: set `controller.auth.localAuthRestriction: 'none'` in `app.conf` and
+   restart, or leave it as-is if only admin access is needed to diagnose the outage. Revert once
+   the identity provider is healthy again.
+
+### Preventive Practices
+
+- **Keep at least one admin account with a real local password** (`hasLocalPassword: true`) at
+  all times, even on SSO-first sites - this is the account you'll use in step 2 above. Avoid
+  making every admin account SSO-only.
+- **MFA-protect the break-glass account** if your site uses an MFA plugin (see
+  `onAuthGetSteps` in [Plugin Hooks](plugins/plugin-hooks.md)) - a local password alone
+  shouldn't be weaker protection than your normal SSO path.
+- **Test `?localFallback=1` during deployment**, not during an actual outage - confirm the
+  break-glass admin account can sign in before you need it for real.
+- **Document your break-glass credentials' location** (e.g. a password manager/vault) as part
+  of your incident runbook, separate from this generic guide.
+- **Monitor the bootstrap warning log** (`localAuthRestriction: 'disabled' with no external
+  auth plugin enabled - downgraded to 'admins-only'`) - it means your intended policy isn't
+  actually in effect, usually because a plugin failed to load.
+
+See also: [Plugin Hooks](plugins/plugin-hooks.md) (`onAuthGetLoginProviders` section) for how
+external-auth plugins integrate with `localAuthRestriction`, and
+[Security & Authentication](security-and-auth.md) for the broader authentication model.
 
 ## 📊 Monitoring and Maintenance
 

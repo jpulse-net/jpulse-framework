@@ -5,8 +5,8 @@
  * @description     W-134: Settings template of user profile SPA. W-161: Single mode (always edit).
  *                  W-171: Tabs interface replacing vertical card stack.
  * @file            webapp/view/user/settings.tmpl
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -35,13 +35,15 @@
         <div id="panel-preferences" class="jp-panel"></div>
 
         <!-- Panel: Security (password fields always visible; no collapsible) -->
+        <!-- W-195: heading/note text and currentPassword visibility toggled by updateSecurityPanelForLocalPassword() -->
         <div id="panel-security" class="jp-panel">
             <div class="jp-card jp-schema-section">
+                <h3 id="securityPanelHeading">{{i18n.view.user.settings.changePasswordTitle}}</h3>
                 <div class="jp-info-box">
-                    <p>{{i18n.view.user.settings.securityNote}}</p>
+                    <p id="securityPanelNote">{{i18n.view.user.settings.securityNote}}</p>
                 </div>
                 <div id="passwordFields" class="jp-password-form">
-                    <div class="jp-form-group">
+                    <div class="jp-form-group" id="currentPasswordGroup">
                         <label for="currentPassword" class="jp-form-label">{{i18n.view.user.settings.currentPassword}}</label>
                         <input type="password" id="currentPassword" name="currentPassword" class="jp-form-input" autocomplete="off">
                     </div>
@@ -357,9 +359,16 @@
             // If user wants to change password, handle that too
             if (isChangingPassword) {
 
+                // W-195: users without a usable local password (hasLocalPassword === false)
+                // don't have a currentPassword to enter - the field is hidden for them too
+                const hasLocalPassword = currentUserData.hasLocalPassword !== false;
+
                 // Validate password fields
-                if (!currentPassword || !newPassword || !confirmPassword) {
-                    jPulse.UI.toast.error(`{{i18n.view.user.settings.allPasswordFieldsRequired}}`);
+                if ((hasLocalPassword && !currentPassword) || !newPassword || !confirmPassword) {
+                    const message = hasLocalPassword
+                        ? `{{i18n.view.user.settings.allPasswordFieldsRequired}}`
+                        : `{{i18n.view.user.settings.newPasswordFieldsRequired}}`;
+                    jPulse.UI.toast.error(message);
                     return;
                 }
 
@@ -373,11 +382,10 @@
                     return;
                 }
 
-                // Save password
-                const passwordData = {
-                    currentPassword: currentPassword,
-                    newPassword: newPassword
-                };
+                // Save password (currentPassword omitted when not applicable - W-195)
+                const passwordData = hasLocalPassword
+                    ? { currentPassword: currentPassword, newPassword: newPassword }
+                    : { newPassword: newPassword };
 
                 const passwordResult = await jPulse.api.put('/api/1/user/password', passwordData);
 
@@ -418,6 +426,29 @@
         }
     }
 
+    // W-195: Toggle the Security panel between "Change Password" (currentPassword required)
+    // and "Set Password" (currentPassword hidden/not required - user has no usable local
+    // password yet, e.g. JIT-created by an external-auth plugin). Session already proves
+    // identity, so currentPassword can't be required by construction in the "set" case.
+    function updateSecurityPanelForLocalPassword(hasLocalPassword) {
+        const heading = document.getElementById('securityPanelHeading');
+        const note = document.getElementById('securityPanelNote');
+        const currentPasswordGroup = document.getElementById('currentPasswordGroup');
+        if (heading) {
+            heading.textContent = hasLocalPassword
+                ? `{{i18n.view.user.settings.changePasswordTitle}}`
+                : `{{i18n.view.user.settings.setPasswordTitle}}`;
+        }
+        if (note) {
+            note.textContent = hasLocalPassword
+                ? `{{i18n.view.user.settings.securityNote}}`
+                : `{{i18n.view.user.settings.securityNoteSetPassword}}`;
+        }
+        if (currentPasswordGroup) {
+            currentPasswordGroup.classList.toggle('jp-hidden', !hasLocalPassword);
+        }
+    }
+
     async function loadSettingsProfile() {
         try {
             // W-107/W-175: Request user data with schema extensions + core display schema
@@ -425,6 +456,9 @@
             if (result.success && result.data) {
                 const user = result.data;
                 currentUserData = user;  // W-107: Store for plugin cards
+
+                // W-195: Set Password vs Change Password (absent field reads as true - see baseSchema default)
+                updateSecurityPanelForLocalPassword(user.hasLocalPassword !== false);
 
                 // W-107: Store plugin schema metadata if provided
                 if (result.schema) {

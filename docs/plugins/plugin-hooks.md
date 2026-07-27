@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Hooks v1.7.0
+# jPulse Docs / Plugins / Plugin Hooks v1.7.1
 
 Extend jPulse Framework behavior by hooking into authentication, user management, and other framework events.
 
@@ -245,6 +245,74 @@ static async onAuthBeforeLogin(context) {
 }
 ```
 
+### External Login Providers (OAuth / LDAP / SAML - Browser Redirect)
+
+W-195 adds two framework primitives specifically for external-auth plugins that use a
+browser-redirect flow (the user's browser navigates to the provider and back, rather than an
+AJAX call): the `onAuthGetLoginProviders` hook to inject a button on the login page, and
+`AuthController.completeExternalAuth()` to finish the login once your plugin has resolved a
+local user.
+
+```javascript
+static hooks = {
+    onAuthGetLoginProviders: {}
+};
+
+// Add a button to /auth/login.shtml - only called for that page, so this is cheap
+// even on sites where your plugin's OAuth flow isn't currently in use
+static async onAuthGetLoginProviders(context) {
+    context.providers.push({
+        label: 'Sign in with Acme SSO',
+        icon: '🔑',
+        initUrl: '/jpulse-plugins/auth-oauth/authorize?provider=acme',
+        buttonColor: '#4285F4',
+        order: 50  // lower = higher on the page; omit for default (100)
+    });
+    return context;
+}
+```
+
+Your plugin's own controller (not a framework hook) handles the provider's callback -
+exchange the code/assertion, find-or-create the local `User` document (setting
+`hasLocalPassword: false` if you write a synthetic `passwordHash` - see below), then hand off
+to the framework to finish the login:
+
+```javascript
+// e.g. GET /jpulse-plugins/auth-oauth/callback
+static async apiCallback(req, res) {
+    const user = await this.resolveOrCreateUser(req);  // your own logic
+    const redirectUrl = req.query.redirect || '/';
+
+    // Framework takes over from here: runs onAuthGetSteps (MFA, etc. - redirecting to each
+    // step's `page` if any are pending), creates the session, and does the final 302.
+    // Note: this is the res.redirect() counterpart to the AJAX login() flow's _completeLogin() -
+    // never call req.session.* or _completeLoginSession() directly from a plugin.
+    return AuthController.completeExternalAuth(req, res, user, 'acme-sso', redirectUrl);
+}
+```
+
+`completeExternalAuth()` does not re-check `user.status` or `localAuthRestriction` (the latter
+only governs the local username/password path) - your callback handler is responsible for
+rejecting e.g. `status: 'pending'` users before calling it.
+
+### Local Auth Restriction & `hasLocalPassword`
+
+Two more W-195 primitives that matter once an external-auth plugin is installed:
+
+- **`controller.auth.localAuthRestriction`** (`app.conf`) - site-wide policy for the local
+  username/password login path (`'none'` | `'admins-only'` | `'disabled'`). It never affects
+  external auth. Site admins set this once they trust their SSO provider is the primary sign-in
+  method; end users can still reach the local form via `/auth/login.shtml?localFallback=1` for
+  recovery (server-enforced, not just hidden UI). If no plugin registers
+  `onAuthGetLoginProviders`, the bootstrap sequence downgrades `'disabled'` to `'admins-only'`
+  to prevent locking everyone out - see `docs/deployment.md` (Break-Glass Account Runbook).
+- **`hasLocalPassword`** (`User` schema, default `true`) - set to `false` by your plugin at
+  JIT-user-creation time if you write a synthetic/unknown `passwordHash` for a user who only
+  ever signs in externally. `UserController.changePassword()` and the settings page's Security
+  panel read this flag to skip the (unsatisfiable) current-password check and show "Set
+  Password" instead of "Change Password". It's reset to `true` automatically the first time the
+  user successfully sets a local password.
+
 ### Multi-Factor Authentication (MFA)
 
 Uses the multi-step authentication flow:
@@ -264,7 +332,10 @@ static async onAuthGetSteps(context) {
         requiredSteps.push({
             step: 'mfa',
             priority: 100,
-            data: { mfaMethod: user.mfa.method || 'totp' }
+            data: { mfaMethod: user.mfa.method || 'totp' },
+            // W-195: required for browser-redirect flows (see completeExternalAuth()) - the AJAX
+            // login() flow doesn't need it, since the SPA already knows how to render each step
+            page: '/auth/mfa-verify.shtml'
         });
     }
     return context;
@@ -404,3 +475,4 @@ Use these in your markdown documentation:
 - [Creating Plugins](creating-plugins.md) - Build your first plugin
 - [Plugin Architecture](plugin-architecture.md) - How the plugin system works
 - [Hello World Plugin](../installed-plugins/hello-world/README.md) - Working example with hooks
+- [Deployment Guide](../deployment.md) - Break-Glass Account Runbook for `localAuthRestriction`

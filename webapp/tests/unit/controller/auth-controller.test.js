@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -91,6 +91,7 @@ describe('AuthController', () => {
         jest.spyOn(global.CommonUtils, 'sendError').mockImplementation(() => {});
         jest.spyOn(global.LogController, 'logError').mockImplementation(() => {});
         jest.spyOn(global.LogController, 'logInfo').mockImplementation(() => {});
+        jest.spyOn(global.LogController, 'logWarning').mockImplementation(() => {});
 
         // Clear all mocks
         jest.clearAllMocks();
@@ -624,6 +625,182 @@ describe('AuthController', () => {
                     AuthController.updateUserSession(mockReq, updatedData);
                 }).not.toThrow();
             });
+        });
+    });
+
+    // W-195: External-auth framework enhancements (placed before "W-109: Multi-step login
+    // helpers" below, which permanently replaces global.HookManager with a bare { execute }
+    // stub that has no register() - tests needing the real HookManager must run before it)
+    describe('W-195: completeExternalAuth', () => {
+        const mockUser = {
+            _id: 'ext-user-1',
+            username: 'extuser',
+            email: 'extuser@example.com',
+            profile: { firstName: 'Ext', lastName: 'User' },
+            roles: ['user'],
+            loginCount: 2
+        };
+
+        beforeEach(() => {
+            UserModel.updateById = jest.fn().mockResolvedValue({});
+            global.HookManager?.clear?.();
+        });
+
+        test('should create session and redirect to redirectUrl when no further steps are required', async () => {
+            await AuthController.completeExternalAuth(mockReq, mockRes, mockUser, 'oauth', '/dashboard');
+
+            expect(mockReq.session.user).toMatchObject({
+                username: 'extuser',
+                isAuthenticated: true
+            });
+            expect(mockRes.redirect).toHaveBeenCalledWith('/dashboard');
+            expect(mockRes.json).not.toHaveBeenCalled();
+        });
+
+        test('should default redirectUrl to / when not provided', async () => {
+            await AuthController.completeExternalAuth(mockReq, mockRes, mockUser, 'oauth', undefined);
+
+            expect(mockRes.redirect).toHaveBeenCalledWith('/');
+        });
+
+        test('should redirect to the next step\'s page when onAuthGetSteps reports one pending', async () => {
+            global.HookManager.register('onAuthGetSteps', 'test-plugin', (context) => {
+                context.requiredSteps.push({ step: 'mfa', priority: 100, page: '/auth/mfa-verify.shtml' });
+                return context;
+            });
+
+            await AuthController.completeExternalAuth(mockReq, mockRes, mockUser, 'oauth', '/dashboard');
+
+            expect(mockRes.redirect).toHaveBeenCalledWith(
+                `/auth/mfa-verify.shtml?redirect=${encodeURIComponent('/dashboard')}`
+            );
+            expect(mockReq.session.pendingAuth).toMatchObject({
+                username: 'extuser',
+                authMethod: 'oauth',
+                requiredSteps: ['credentials', 'mfa']
+            });
+            // Session should not be finalized yet - still mid multi-step flow
+            expect(mockReq.session.user).toBeUndefined();
+        });
+
+        test('should fall back to /auth/login.shtml and log a warning when the next step has no page', async () => {
+            global.HookManager.register('onAuthGetSteps', 'test-plugin', (context) => {
+                context.requiredSteps.push({ step: 'mfa', priority: 100 });
+                return context;
+            });
+
+            await AuthController.completeExternalAuth(mockReq, mockRes, mockUser, 'oauth', '/dashboard');
+
+            expect(mockRes.redirect).toHaveBeenCalledWith(
+                `/auth/login.shtml?redirect=${encodeURIComponent('/dashboard')}`
+            );
+            expect(global.LogController.logWarning).toHaveBeenCalledWith(
+                mockReq, 'auth.completeExternalAuth',
+                expect.stringContaining("step 'mfa' has no 'page'")
+            );
+        });
+    });
+
+    // W-195: localAuthRestriction enforcement in the credentials step
+    describe('W-195: localAuthRestriction enforcement', () => {
+        const mockUser = {
+            _id: 'user123',
+            username: 'testuser',
+            email: 'testuser@example.com',
+            profile: { firstName: 'Test', lastName: 'User' },
+            roles: ['user'],
+            loginCount: 0
+        };
+        const mockAdminUser = { ...mockUser, username: 'adminuser', roles: ['admin'] };
+
+        // Snapshot the real controller.auth config so it can be restored after each test -
+        // login() reads other fields off it too (e.g. disableLogin), so it must never be left
+        // fully deleted for later tests/describes in this file.
+        const originalAuthConfig = { ...global.appConfig.controller.auth };
+
+        beforeEach(() => {
+            mockReq.body = { identifier: 'testuser', password: 'validpassword' };
+            global.i18n.translate = jest.fn((req, key) => {
+                if (key === 'controller.auth.localAuthRestricted') return 'Local sign-in is restricted';
+                return key;
+            });
+            global.HookManager?.clear?.();
+        });
+
+        afterEach(() => {
+            global.appConfig.controller.auth = { ...originalAuthConfig };
+        });
+
+        test("should block non-admin users when localAuthRestriction is 'admins-only'", async () => {
+            global.appConfig.controller.auth = { localAuthRestriction: 'admins-only' };
+            UserModel.authenticate.mockResolvedValue(mockUser);
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(mockRes.status).toHaveBeenCalledWith(403);
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: false,
+                error: 'Local sign-in is restricted',
+                code: 'LOCAL_AUTH_RESTRICTED'
+            });
+            expect(mockReq.session.user).toBeUndefined();
+        });
+
+        test("should allow admin users when localAuthRestriction is 'admins-only'", async () => {
+            global.appConfig.controller.auth = { localAuthRestriction: 'admins-only' };
+            UserModel.authenticate.mockResolvedValue(mockAdminUser);
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(mockRes.status).not.toHaveBeenCalledWith(403);
+            expect(mockReq.session.user).toMatchObject({ username: 'adminuser', isAuthenticated: true });
+        });
+
+        test("should block all local sign-ins when localAuthRestriction is 'disabled'", async () => {
+            global.appConfig.controller.auth = { localAuthRestriction: 'disabled' };
+            UserModel.authenticate.mockResolvedValue(mockAdminUser);
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(mockRes.status).toHaveBeenCalledWith(403);
+            expect(mockRes.json).toHaveBeenCalledWith(
+                expect.objectContaining({ success: false, code: 'LOCAL_AUTH_RESTRICTED' })
+            );
+        });
+
+        test("should allow local sign-in when localAuthRestriction is 'none' (default)", async () => {
+            global.appConfig.controller.auth = { localAuthRestriction: 'none' };
+            UserModel.authenticate.mockResolvedValue(mockUser);
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(mockRes.status).not.toHaveBeenCalledWith(403);
+            expect(mockReq.session.user).toMatchObject({ username: 'testuser', isAuthenticated: true });
+        });
+
+        test('should allow local sign-in when localAuthRestriction is absent (pre-W-195 site config)', async () => {
+            delete global.appConfig.controller.auth.localAuthRestriction;
+            UserModel.authenticate.mockResolvedValue(mockUser);
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(mockRes.status).not.toHaveBeenCalledWith(403);
+            expect(mockReq.session.user).toMatchObject({ username: 'testuser', isAuthenticated: true });
+        });
+
+        test('should not apply localAuthRestriction to external auth (skipPasswordCheck) methods', async () => {
+            global.appConfig.controller.auth = { localAuthRestriction: 'disabled' };
+            global.HookManager.register('onAuthBeforeLogin', 'ext-plugin', (context) => {
+                context.skipPasswordCheck = true;
+                context.user = mockUser;
+                context.authMethod = 'ldap';
+                return context;
+            });
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(mockRes.status).not.toHaveBeenCalledWith(403);
+            expect(mockReq.session.user).toMatchObject({ username: 'testuser', isAuthenticated: true });
         });
     });
 

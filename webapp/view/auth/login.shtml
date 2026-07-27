@@ -4,8 +4,8 @@
  * @tagline         User authentication login page
  * @description     Login form for internal authentication with support for LDAP/OAuth2 planning
  * @file            webapp/view/auth/login.shtml
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -191,6 +191,27 @@
             display: none;
         }
 
+        .local-recovery-banner {
+            background: var(--jp-theme-color-warning-bg, #fff3cd);
+            color: var(--jp-theme-color-warning-text, #856404);
+            border: 1px solid var(--jp-theme-color-warning, #ffc107);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .local-restricted-notice {
+            background: var(--jp-theme-bg-secondary, #f8f9fa);
+            color: var(--jp-theme-text-secondary, #666);
+            border: 1px solid var(--jp-theme-border-color, #dee2e6);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
         .local-action-buttons {
             display: flex;
             gap: 10px;
@@ -240,71 +261,117 @@
                     <p>{{i18n.view.auth.login.subtitle}}</p>
                 </div>
 
-                <div class="local-redirect-info local-hidden">
-                    {{i18n.view.auth.login.redirectMessage}}
-                </div>
+                <!-- W-195: localAuthMode/isRestricted/showLocalForm drive layout below -->
+                <!-- Note: RHS must be parenthesized to force property resolution for {{let key=(...)}}.
+                     Also note: controller.auth.localAuthRestriction must be on app.conf's
+                     controller.handlebar.contextFilter.alwaysAllow list, since appConfig.controller.*
+                     is otherwise stripped for unauthenticated requests - and this page is by
+                     definition always viewed unauthenticated. Use string.default (not or/not) for
+                     the fallback below: {{or}} returns a boolean, not the value itself, so it can't
+                     be used to coalesce a config value with a default. string.default covers sites
+                     whose config predates this setting (value absent from appConfig entirely). -->
+                {{let localAuthMode=(string.default (appConfig.controller.auth.localAuthRestriction) "none")}}
+                {{let isRestricted=(ne vars.localAuthMode "none")}}
+                {{let showLocalForm=(or (not vars.isRestricted) (eq url.param.localFallback "1"))}}
+                {{let hasAuthProviders=(not (array.isEmpty authProviders))}}
 
-                <div class="local-signup-success-info local-hidden">
-                    <div class="local-success-message">
-                        <span class="local-success-icon">✅</span>
-                        <span id="signupSuccessText">{{i18n.view.auth.login.signupSuccessMessage}}</span>
+                {{#if vars.isRestricted}}
+                  <!-- Restricted site: external providers are the primary sign-in method -->
+                  {{#if vars.hasAuthProviders}}
+                    <div class="local-auth-methods" id="authMethods">
+                        {{#each authProviders}}
+                            <a href="{{this.initUrl}}" class="local-auth-method" style="border-color: {{this.buttonColor}};">
+                                <span>{{this.icon}}</span>
+                                <span>{{this.label}}</span>
+                            </a>
+                        {{/each}}
                     </div>
-                </div>
+                  {{/if}}
 
-                <!-- Login form for internal authentication -->
-                <form id="loginForm" class="jp-form">
-                    <div class="jp-form-group">
-                        <label for="identifier" class="jp-form-label">{{i18n.view.auth.login.identifier}}</label>
-                        <input type="text"
-                               id="identifier"
-                               name="identifier"
-                               class="jp-form-input"
-                               placeholder="{{i18n.view.auth.login.identifierPlaceholder}}"
-                               required
-                               autocomplete="username">
+                  {{#if vars.showLocalForm}}
+                    <div class="jp-divider" id="authDividerLocal">
+                        <span>{{i18n.view.auth.login.orSignInWithLocal}}</span>
                     </div>
-
-                    <div class="jp-form-group">
-                        <label for="password" class="jp-form-label">{{i18n.view.auth.login.password}}</label>
-                        <input type="password"
-                               id="password"
-                               name="password"
-                               class="jp-form-input"
-                               placeholder="{{i18n.view.auth.login.passwordPlaceholder}}"
-                               required
-                               autocomplete="current-password">
+                    <div class="local-recovery-banner">
+                        {{i18n.view.auth.login.recoveryModeBanner}}
                     </div>
+                  {{else}}
+                    {{#unless vars.hasAuthProviders}}
+                      <div class="local-restricted-notice">
+                          {{i18n.view.auth.login.restrictedNotice}}
+                      </div>
+                    {{/unless}}
+                  {{/if}}
+                {{/if}}
 
-                    <div class="local-remember-forgot">
-                        <label class="local-remember-me">
-                            <input type="checkbox" id="rememberMe" name="rememberMe">
-                            <span>{{i18n.view.auth.login.rememberMe}}</span>
-                        </label>
-                        <a href="#" class="local-forgot-password" onclick="showForgotPassword()">
-                            {{i18n.view.auth.login.forgotPassword}}
-                        </a>
+                {{#if vars.showLocalForm}}
+                  <div class="local-redirect-info local-hidden">
+                      {{i18n.view.auth.login.redirectMessage}}
+                  </div>
+
+                  <div class="local-signup-success-info local-hidden">
+                      <div class="local-success-message">
+                          <span class="local-success-icon">✅</span>
+                          <span id="signupSuccessText">{{i18n.view.auth.login.signupSuccessMessage}}</span>
+                      </div>
+                  </div>
+
+                  <!-- Login form for internal authentication -->
+                  <form id="loginForm" class="jp-form">
+                      <div class="jp-form-group">
+                          <label for="identifier" class="jp-form-label">{{i18n.view.auth.login.identifier}}</label>
+                          <input type="text"
+                                 id="identifier"
+                                 name="identifier"
+                                 class="jp-form-input"
+                                 placeholder="{{i18n.view.auth.login.identifierPlaceholder}}"
+                                 required
+                                 autocomplete="username">
+                      </div>
+
+                      <div class="jp-form-group">
+                          <label for="password" class="jp-form-label">{{i18n.view.auth.login.password}}</label>
+                          <input type="password"
+                                 id="password"
+                                 name="password"
+                                 class="jp-form-input"
+                                 placeholder="{{i18n.view.auth.login.passwordPlaceholder}}"
+                                 required
+                                 autocomplete="current-password">
+                      </div>
+
+                      <div class="local-remember-forgot">
+                          <label class="local-remember-me">
+                              <input type="checkbox" id="rememberMe" name="rememberMe">
+                              <span>{{i18n.view.auth.login.rememberMe}}</span>
+                          </label>
+                          <a href="#" class="local-forgot-password" onclick="showForgotPassword()">
+                              {{i18n.view.auth.login.forgotPassword}}
+                          </a>
+                      </div>
+
+                      <button type="submit" class="jp-btn jp-btn-primary jp-btn-submit local-auth-submit" id="loginButton">
+                          {{i18n.view.auth.login.signIn}}
+                      </button>
+                  </form>
+                {{/if}}
+
+                {{#unless vars.isRestricted}}
+                  <!-- Unrestricted site: local form is primary, external providers are secondary -->
+                  {{#if vars.hasAuthProviders}}
+                    <div class="jp-divider" id="authDivider">
+                        <span>{{i18n.view.auth.login.orSignInWith}}</span>
                     </div>
-
-                    <button type="submit" class="jp-btn jp-btn-primary jp-btn-submit local-auth-submit" id="loginButton">
-                        {{i18n.view.auth.login.signIn}}
-                    </button>
-                </form>
-
-                <!-- Future auth methods (LDAP, OAuth2) -->
-                <div class="jp-divider local-hidden" id="authDivider">
-                    <span>{{i18n.view.auth.login.orSignInWith}}</span>
-                </div>
-
-                <div class="local-auth-methods local-hidden" id="authMethods">
-                    <a href="#" class="local-auth-method disabled" id="ldapAuth">
-                        <span>🏢</span>
-                        <span>{{i18n.view.auth.login.signInLDAP}}</span>
-                    </a>
-                    <a href="#" class="local-auth-method disabled" id="oauth2Auth">
-                        <span>🔗</span>
-                        <span>{{i18n.view.auth.login.signInOAuth2}}</span>
-                    </a>
-                </div>
+                    <div class="local-auth-methods" id="authMethods">
+                        {{#each authProviders}}
+                            <a href="{{this.initUrl}}" class="local-auth-method" style="border-color: {{this.buttonColor}};">
+                                <span>{{this.icon}}</span>
+                                <span>{{this.label}}</span>
+                            </a>
+                        {{/each}}
+                    </div>
+                  {{/if}}
+                {{/unless}}
 
                 <div class="local-signup-link">
                     {{i18n.view.auth.login.noAccount}}
@@ -322,64 +389,67 @@
             const loginForm = document.getElementById('loginForm');
             const redirectUrl = `{{url.param.redirect}}` || '/';
 
-            // Custom form handler for multi-step login
-            loginForm.addEventListener('submit', async (event) => {
-                event.preventDefault();
+            // W-195: loginForm is absent when localAuthRestriction hides the local form
+            if (loginForm) {
+                // Custom form handler for multi-step login
+                loginForm.addEventListener('submit', async (event) => {
+                    event.preventDefault();
 
-                const identifier = loginForm.querySelector('#identifier').value.trim();
-                const password = loginForm.querySelector('#password').value;
+                    const identifier = loginForm.querySelector('#identifier').value.trim();
+                    const password = loginForm.querySelector('#password').value;
 
-                if (!identifier || !password) {
-                    jPulse.UI.toast.error(`{{i18n.view.auth.login.errorMissingFields}}`);
-                    return;
-                }
-
-                const submitButton = loginForm.querySelector('#loginButton');
-                jPulse.form.setLoadingState(submitButton, true, `{{i18n.view.auth.login.signingIn}}`);
-
-                try {
-                    // W-109: Send step=credentials for multi-step flow
-                    const result = await jPulse.api.post('/api/1/auth/login', {
-                        step: 'credentials',
-                        identifier: identifier,
-                        password: password
-                    });
-
-                    if (result.success) {
-                        // W-109: Check if more steps are required
-                        if (result.nextStep) {
-                            // Handle multi-step authentication
-                            handleNextStep(result.nextStep, result, redirectUrl);
-                        } else {
-                            // Login complete - redirect with deferred success toast
-                            // Determine redirect URL (MFA required warning overrides)
-                            let finalRedirectUrl = redirectUrl;
-                            if (result.warnings && result.warnings.length > 0) {
-                                const mfaWarning = result.warnings.find(w => w.type === 'mfa-not-enabled');
-                                if (mfaWarning && mfaWarning.link) {
-                                    finalRedirectUrl = mfaWarning.link;
-                                }
-                            }
-
-                            // Build toast queue: success message + any warnings
-                            const toasts = [
-                                { toastType: 'success', message: `{{i18n.view.auth.login.loginSuccess}}` },
-                                ...(result.warnings || [])
-                            ];
-
-                            // Redirect immediately with deferred toasts
-                            jPulse.url.redirect(finalRedirectUrl, { toasts });
-                        }
-                    } else {
-                        // Error handling
-                        handleLoginError(result.error || result.code || 'Login failed', loginForm);
+                    if (!identifier || !password) {
+                        jPulse.UI.toast.error(`{{i18n.view.auth.login.errorMissingFields}}`);
+                        return;
                     }
-                } catch (error) {
-                    jPulse.UI.toast.error(`{{i18n.view.auth.login.networkError}}`);
-                } finally {
-                    jPulse.form.setLoadingState(submitButton, false);
-                }
-            });
+
+                    const submitButton = loginForm.querySelector('#loginButton');
+                    jPulse.form.setLoadingState(submitButton, true, `{{i18n.view.auth.login.signingIn}}`);
+
+                    try {
+                        // W-109: Send step=credentials for multi-step flow
+                        const result = await jPulse.api.post('/api/1/auth/login', {
+                            step: 'credentials',
+                            identifier: identifier,
+                            password: password
+                        });
+
+                        if (result.success) {
+                            // W-109: Check if more steps are required
+                            if (result.nextStep) {
+                                // Handle multi-step authentication
+                                handleNextStep(result.nextStep, result, redirectUrl);
+                            } else {
+                                // Login complete - redirect with deferred success toast
+                                // Determine redirect URL (MFA required warning overrides)
+                                let finalRedirectUrl = redirectUrl;
+                                if (result.warnings && result.warnings.length > 0) {
+                                    const mfaWarning = result.warnings.find(w => w.type === 'mfa-not-enabled');
+                                    if (mfaWarning && mfaWarning.link) {
+                                        finalRedirectUrl = mfaWarning.link;
+                                    }
+                                }
+
+                                // Build toast queue: success message + any warnings
+                                const toasts = [
+                                    { toastType: 'success', message: `{{i18n.view.auth.login.loginSuccess}}` },
+                                    ...(result.warnings || [])
+                                ];
+
+                                // Redirect immediately with deferred toasts
+                                jPulse.url.redirect(finalRedirectUrl, { toasts });
+                            }
+                        } else {
+                            // Error handling
+                            handleLoginError(result.error || result.code || 'Login failed', loginForm);
+                        }
+                    } catch (error) {
+                        jPulse.UI.toast.error(`{{i18n.view.auth.login.networkError}}`);
+                    } finally {
+                        jPulse.form.setLoadingState(submitButton, false);
+                    }
+                });
+            }
 
             // Auto-focus first input field
             const identifierField = document.getElementById('identifier');
@@ -391,19 +461,20 @@
             const signupSuccess = `{{url.param.signup}}`;
             const username = `{{url.param.username}}`;
 
+            // W-195: these boxes only exist in the DOM when the local form is rendered
             if (signupSuccess === 'success' && username) {
                 const signupText = document.getElementById('signupSuccessText');
                 if (signupText) {
                     const messageTemplate = signupText.textContent;
                     signupText.textContent = messageTemplate.replace('{username}', username);
                 }
-                document.querySelector('.local-signup-success-info').classList.remove('local-hidden');
+                document.querySelector('.local-signup-success-info')?.classList.remove('local-hidden');
             }
 
             // Show redirect info if redirect parameter exists
             const redirectParam = `{{url.param.redirect}}`;
             if (redirectParam) {
-                document.querySelector('.local-redirect-info').classList.remove('local-hidden');
+                document.querySelector('.local-redirect-info')?.classList.remove('local-hidden');
             }
 
             // Clear error states on input using jPulse
@@ -421,6 +492,13 @@
         function handleNextStep(nextStep, result, redirectUrl) {
             // Build redirect URL with return path
             const returnParam = encodeURIComponent(redirectUrl);
+
+            // W-195: plugin-provided step page (see onAuthGetSteps `page`) takes precedence over
+            // the built-in switch-case below, so future step plugins don't need a framework change
+            if (result.page) {
+                window.location.href = `${result.page}?redirect=${returnParam}`;
+                return;
+            }
 
             switch (nextStep) {
                 case 'mfa':

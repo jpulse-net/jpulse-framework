@@ -3,8 +3,8 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,6 +18,27 @@ let isBootstrapped = false;
 
 function bootstrapLog(message, level = 'info') {
     console.log(CommonUtils.formatLogMessage('bootstrap', message, level));
+}
+
+/**
+ * W-195: Prevent total self-lockout when localAuthRestriction is 'disabled'. If local login is
+ * fully disabled AND no plugin provides an external login method, nobody could ever sign in -
+ * downgrade to 'admins-only' instead, which still allows recovery via
+ * /auth/login.shtml?localFallback=1 for admin accounts. Extracted as a standalone function
+ * (rather than inlined in bootstrap()) so it can be unit-tested without running the full
+ * bootstrap sequence.
+ * @param {object} appConfig - global.appConfig (mutated in place if downgraded)
+ * @param {object} hookManager - HookManager module (needs hasHandlers())
+ * @param {function} log - Logging function (message, level)
+ */
+export function checkLocalAuthRestrictionSafety(appConfig, hookManager, log = bootstrapLog) {
+    if (appConfig?.controller?.auth?.localAuthRestriction === 'disabled' &&
+        !hookManager.hasHandlers('onAuthGetLoginProviders')) {
+        appConfig.controller.auth.localAuthRestriction = 'admins-only';
+        log(`⚠️  localAuthRestriction: 'disabled' with no external auth plugin enabled - ` +
+            `downgraded to 'admins-only' to prevent self-lockout (see docs/deployment.md, ` +
+            `Break-Glass Account Runbook)`, 'warn');
+    }
 }
 
 /**
@@ -116,6 +137,9 @@ export async function bootstrap(options = {}) {
         if (hookStats.registered > 0) {
             bootstrapLog(`✅ PluginHooks: Registered ${hookStats.registered} hook(s) from ${hookStats.plugins.length} plugin(s)`);
         }
+
+        // Step 7.5: Bootstrap safety check for localAuthRestriction: 'disabled' (W-195)
+        checkLocalAuthRestrictionSafety(global.appConfig, HookManagerModule.default, bootstrapLog);
 
         // Step 8: ViewController (depends on LogController, i18n, database, PluginManager)
         // Now builds view registry WITH plugin directories automatically (no rebuild needed!)

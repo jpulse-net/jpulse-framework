@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.7.0
- * @release         2026-07-23
+ * @version         1.7.1
+ * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -71,7 +71,7 @@ class HandlebarController {
         {name: 'gte', type: 'regular', source: 'jpulse', description: 'Greater than or equal comparison, returns `true` or `false` (2 arguments)', example: '{{gte user.count 10}}'},
         {name: 'i18n', type: 'regular', source: 'jpulse', description: 'Internationalization messages from translation files', example: '{{i18n.view.home.introduction}}'},
         {name: 'json.parse', type: 'regular', source: 'jpulse', description: 'Parse JSON string to native array or object (1 arg: JSON string)', example: '{{json.parse vars.jsonData}}'},
-        {name: 'let', type: 'regular', source: 'jpulse', description: 'Define custom variables (accessed via `{{vars.*}}`)', example: '{{let pageTitle="Dashboard" maxItems=10}}'},
+        {name: 'let', type: 'regular', source: 'jpulse', description: 'Define custom variables (accessed via `{{vars.*}}`). NOTE: a `key=value` RHS is taken literally, so wrap property paths in parens to resolve them, e.g. `{{let mode=(appConfig.controller.auth.mode)}}`', example: '{{let pageTitle="Dashboard" maxItems=10 mode=(appConfig.controller.auth.mode)}}'},
         {name: 'lt', type: 'regular', source: 'jpulse', description: 'Less than comparison, returns `true` or `false` (2 arguments)', example: '{{lt user.age 18}}'},
         {name: 'lte', type: 'regular', source: 'jpulse', description: 'Less than or equal comparison, returns `true` or `false` (2 arguments)', example: '{{lte user.items 5}}'},
         {name: 'math.add', type: 'regular', source: 'jpulse', description: 'Sum all arguments (variadic, 1+ args)', example: '{{math.add 2 4 6}}'},
@@ -733,6 +733,21 @@ class HandlebarController {
             }
         }
 
+        // W-195: External auth provider buttons for the login page. Guarded by hasHandlers() +
+        // path check so sites without an external-auth plugin (the common case) pay zero cost.
+        let authProviders = [];
+        if (req.path === '/auth/login.shtml' && global.HookManager?.hasHandlers?.('onAuthGetLoginProviders')) {
+            try {
+                const providersResult = await global.HookManager.execute('onAuthGetLoginProviders', { req, providers: [] });
+                authProviders = (providersResult.providers || [])
+                    .slice()
+                    .sort((a, b) => (a.order || 100) - (b.order || 100));
+            } catch (error) {
+                LogController.logWarning(req, 'handlebar._buildInternalContext',
+                    `Failed to collect auth login providers: ${error.message}`);
+            }
+        }
+
         const baseContext = {
             app: appConfig.app,
             user: {
@@ -777,6 +792,8 @@ class HandlebarController {
             components: {},
             // W-103: User-defined variables namespace (populated by {{let}})
             vars: {},
+            // W-195: External auth provider buttons for /auth/login.shtml (empty elsewhere)
+            authProviders: authProviders,
             // W-159: Per-page sidebar disable (set by ViewController from view's <body> before expand)
             pageDisableSidebars: !!req.pageDisableSidebars
         };

@@ -4,8 +4,8 @@
  * @description     Tests for standalone bootstrap helper functions (not the full bootstrap sequence,
  *                   which has heavy side effects and is already exercised by the Jest global setup)
  * @file            webapp/tests/unit/utils/bootstrap.test.js
- * @version         1.7.1
- * @release         2026-07-26
+ * @version         1.7.2
+ * @release         2026-07-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

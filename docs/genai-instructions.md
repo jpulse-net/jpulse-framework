@@ -1,4 +1,4 @@
-# jPulse Docs / Generative-AI Instructions for AI Assistants v1.7.1
+# jPulse Docs / Generative-AI Instructions for AI Assistants v1.7.2
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
@@ -350,6 +350,7 @@ Complete details:
 - Session management and security
 - Login/logout patterns
 - Password handling
+- External auth support: `completeExternalAuth()` for browser-redirect login completion, `onAuthGetLoginProviders` hook for login-page buttons, `controller.auth.localAuthRestriction` policy — see [Plugin Hooks](plugins/plugin-hooks.md)
 - What to learn: Authentication patterns, security practices
 
 **User Management**: `webapp/controller/user.js`
@@ -431,7 +432,8 @@ Complete details:
 - Creating and publishing plugins
 - Plugin API reference
 - Managing installed plugins
-- When to use: "How do I create a plugin...", "How do plugins work..."
+- Plugin hooks (all 13, including auth hooks like `onAuthGetLoginProviders`): [Plugin Hooks Guide](plugins/plugin-hooks.md)
+- When to use: "How do I create a plugin...", "How do plugins work...", "How do I add a login button..."
 
 ## 🔧 Implementation Guidance
 

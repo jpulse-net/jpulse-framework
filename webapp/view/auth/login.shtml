@@ -4,13 +4,13 @@
  * @tagline         User authentication login page
  * @description     Login form for internal authentication with support for LDAP/OAuth2 planning
  * @file            webapp/view/auth/login.shtml
- * @version         1.7.1
- * @release         2026-07-26
+ * @version         1.7.2
+ * @release         2026-07-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 3.13, Claude Sonnet 5
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>

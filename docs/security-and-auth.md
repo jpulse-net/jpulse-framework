@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.7.1
+# jPulse Docs / Security & Authentication v1.7.2
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -124,9 +124,23 @@ Content-Type: application/json
 ```
 
 **Error Responses:**
-- **400**: Missing credentials
-- **401**: Invalid credentials
-- **403**: Login disabled (`appConfig.controller.auth.disableLogin`)
+- **400**: Missing credentials (`MISSING_CREDENTIALS`)
+- **401**: Invalid credentials (`INVALID_CREDENTIALS`)
+- **403**: Login disabled (`LOGIN_DISABLED`, `appConfig.controller.auth.disableLogin`)
+- **403**: Local auth restricted (`LOCAL_AUTH_RESTRICTED`, `appConfig.controller.auth.localAuthRestriction`, internal auth only — see below)
+- **403**: Account locked/disabled (`ACCOUNT_LOCKED` / `ACCOUNT_DISABLED`)
+
+#### Restricting Local (Username/Password) Login
+
+`appConfig.controller.auth.localAuthRestriction` lets a site restrict or disable local username/password login once an external auth provider (OAuth, LDAP, SAML, etc.) is trusted:
+
+- **`'none'`** (default): local login works for everyone
+- **`'admins-only'`**: local login only works for users with the `admin` role; regular users must use an external provider
+- **`'disabled'`**: no local login at all
+
+A bootstrap safety check downgrades `'disabled'` to `'admins-only'` automatically if no plugin has registered the `onAuthGetLoginProviders` hook, preventing a config-only total lockout. `/auth/login.shtml?localFallback=1` reveals the local login form with a "Recovery mode" banner regardless of the restriction, as an ops convenience — the server-side restriction above is still enforced. If SSO is down and no local admin account is usable, see the **[Break-Glass Account Runbook](deployment.md#break-glass-account-runbook)**.
+
+External auth plugins (OAuth, LDAP, SAML) finish a browser-redirect login via `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)`, and inject "Sign in with ..." buttons onto the login page via the `onAuthGetLoginProviders` hook — see [Plugin Hooks](plugins/plugin-hooks.md) for both.
 
 #### Logout
 
@@ -348,9 +362,12 @@ static schema = {
     username: { type: 'string', required: true, unique: true },
     email: { type: 'string', required: true, unique: true, validate: 'email' },
     passwordHash: { type: 'string', required: true },
+    hasLocalPassword: { type: 'boolean', default: true },
     roles: { type: 'array', default: ['user'], enum: ['guest', 'user', 'admin', 'root'] }
 };
 ```
+
+`hasLocalPassword` marks whether a user has a real, usable local password — external-auth plugins set it to `false` when they JIT-create a user with a synthetic/unknown `passwordHash`. `UserController.changePassword()` skips the `currentPassword` check when it's `false` (the session already proves identity) and resets it to `true` on success; absent reads as `true`, so no migration is needed for existing local-signup users.
 
 **Validation Features:**
 - Type checking (string, number, date, objectId, etc.)
@@ -475,7 +492,7 @@ For authenticated namespaces, **connection context (`ctx`) is established at upg
 1. **Input validation**: Always validate and sanitize user inputs
 2. **Path traversal**: Use path normalization and validation
 3. **SQL injection**: Use parameterized queries (MongoDB driver handles this)
-4. **XSS prevention**: Escape user-generated content in templates
+4. **XSS prevention**: Escape user-generated content in templates; when rendering trusted-but-untrusted-content HTML (e.g. from a WYSIWYG editor), use `CommonUtils.sanitizeHtml()` (server) or `jPulse.string.sanitizeHtml()` (client) rather than a custom filter — both strip dangerous tags/attributes and normalize element tag-name case so foreign-namespace content (SVG, MathML) can't smuggle a `<script>` past a case-sensitive check
 5. **CSRF protection**: Consider implementing CSRF tokens for state-changing operations
 
 ---
@@ -488,8 +505,8 @@ The following security features are planned or recommended for future implementa
 
 - **CSRF Protection**: Token-based CSRF protection for form submissions
 - **MFA (Multi-Factor Authentication)**: SMS or authenticator app support (planned as plugin)
-- **OAuth2 Authentication**: OAuth2 provider integration (planned as plugin)
-- **LDAP Authentication**: LDAP/Active Directory integration (planned as plugin)
+- **OAuth2 Authentication**: OAuth2 provider integration (planned as plugin; the framework-level primitives it needs — `completeExternalAuth()`, `onAuthGetLoginProviders`, `localAuthRestriction`, `hasLocalPassword` — already ship in core, see above)
+- **LDAP Authentication**: LDAP/Active Directory integration (planned as plugin; same framework primitives apply)
 - **Security Audit Logging**: Enhanced logging for security events
 - **Password Policy Enforcement**: Configurable password complexity requirements
 - **Account Lockout**: Automatic account lockout after failed login attempts

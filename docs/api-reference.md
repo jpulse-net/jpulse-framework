@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.7.1
+# jPulse Docs / REST API Reference v1.7.2
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -431,9 +431,12 @@ Authenticate user and create session.
 ```
 
 **Error Responses:**
-- **400**: Missing identifier or password
-- **401**: Invalid credentials
+- **400**: Missing identifier or password (`MISSING_CREDENTIALS`)
+- **401**: Invalid credentials (`INVALID_CREDENTIALS`)
+- **403**: Login disabled (`LOGIN_DISABLED`), local auth restricted (`LOCAL_AUTH_RESTRICTED` — see [`controller.auth.localAuthRestriction`](security-and-auth.md#restricting-local-usernamepassword-login)), or account locked/disabled (`ACCOUNT_LOCKED` / `ACCOUNT_DISABLED`)
 - **500**: Internal server error
+
+> **External auth plugins** (OAuth, LDAP, SAML) that complete login via a browser redirect rather than this AJAX endpoint should call `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)` instead — see [Plugin Hooks](plugins/plugin-hooks.md) for details and for the `onAuthGetLoginProviders` hook used to add a provider button to the login page.
 
 #### User Logout
 End user session and clear authentication.
@@ -675,7 +678,7 @@ GET /api/1/user/enums?fields=roles,status
 ```
 
 #### Change Password
-Change user's password with current password verification.
+Change user's password, with current password verification (unless the user has no local password — see below).
 
 **Route:** `PUT /api/1/user/password`
 **Middleware:** `AuthController.requireAuthentication`
@@ -684,7 +687,7 @@ Change user's password with current password verification.
 **Request Body:**
 ```json
 {
-    "currentPassword": "oldpassword123",
+    "currentPassword": "oldpassword123",   // omit when hasLocalPassword === false
     "newPassword": "newsecurepassword456"
 }
 ```
@@ -698,9 +701,11 @@ Change user's password with current password verification.
 ```
 
 **Error Responses:**
-- **400**: Missing passwords or validation failure
-- **401**: Current password incorrect
+- **400**: Missing passwords or validation failure (`MISSING_PASSWORDS`), incorrect current password (`INVALID_CURRENT_PASSWORD`)
+- **404**: User not found (`USER_NOT_FOUND`)
 - **422**: New password doesn't meet requirements
+
+**`hasLocalPassword`:** If the user's `hasLocalPassword` field is `false` (set by an external-auth plugin when it JIT-creates a user with a synthetic, unusable `passwordHash`), `currentPassword` is not required — the user's session already proves identity. `hasLocalPassword` is set/reset to `true` on any successful password change. See [Security & Authentication](security-and-auth.md#input-validation).
 
 #### User Registration (Signup)
 Create new user account with validation.
@@ -2503,6 +2508,8 @@ curl "http://localhost:8080/api/1/log/search?docType=config&action=update" \
     username: String,           // Unique login identifier
     email: String,              // Unique email address (validated)
     passwordHash: String,       // bcrypt hashed password (never returned in API)
+    hasLocalPassword: Boolean,  // false if set by an external-auth plugin (JIT-created,
+                                // no usable local password); default true, absent reads as true
     profile: {
         firstName: String,      // Required
         lastName: String,       // Required

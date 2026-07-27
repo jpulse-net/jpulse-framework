@@ -1,6 +1,6 @@
 {
     "name": "@jpulse-net/jpulse-framework",
-    "version": "1.7.1",
+    "version": "1.7.2",
     "description": "Generic web application framework using MongoDB, Node.js, Express",
     "type": "module",
     "main": "webapp/app.js",
@@ -67,15 +67,15 @@
     "devDependencies": {
         "@babel/core": "^7.23.0",
         "@babel/preset-env": "^7.23.0",
-        "@jest/globals": "^29.7.0",
-        "babel-jest": "^29.7.0",
-        "jest": "^29.7.0",
+        "@jest/globals": "^30.4.0",
+        "babel-jest": "^30.4.0",
+        "jest": "^30.4.0",
         "jsdom": "^26.1.0",
         "shellcheck": "^1.1.0",
         "supertest": "^7.1.4"
     },
     "engines": {
-        "node": ">=16.0.0"
+        "node": ">=24.0.0"
     },
     "jest": {
         "transform": {
@@ -104,7 +104,7 @@
         "setupFiles": [
             "<rootDir>/webapp/tests/setup/env-setup.js"
         ],
-        "globalSetup": "./webapp/tests/setup/global-setup.js",
-        "globalTeardown": "./webapp/tests/setup/global-teardown.js"
+        "globalSetup": "./webapp/tests/setup/global-setup.mjs",
+        "globalTeardown": "./webapp/tests/setup/global-teardown.mjs"
     }
 }

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Requirements Document v1.7.1
+# jPulse Docs / Dev / Requirements Document v1.7.2
 
 Strategic requirements and specifications for the jPulse Framework, targeting enterprise and government organizations with focus on security, scalability, and maintainability.
 
@@ -41,6 +41,7 @@ Strategic requirements and specifications for the jPulse Framework, targeting en
 
 ### Authentication & Authorization
 - **Multi-Auth Support**: Internal (default), LDAP, OAuth2 authentication methods
+- **External Auth Framework Primitives**: `completeExternalAuth()`, `onAuthGetLoginProviders` hook, `localAuthRestriction` policy, `hasLocalPassword` — shared plumbing consumed by LDAP/OAuth2/SAML plugins
 - **Role-Based Access**: `guest`, `user`, `admin`, `root` roles with method-level authorization
 - **Session Management**: MongoDB-backed persistent sessions with configurable TTL
 - **Security Features**: bcrypt password hashing, CSRF protection, input validation, audit logging
@@ -203,7 +204,7 @@ docs/
 ## Technical Specifications
 
 ### Technology Stack
-- **Runtime**: Node.js 18+ with ES modules support
+- **Runtime**: Node.js 24+ with ES modules support
 - **Web Framework**: Express.js 4.x with middleware architecture
 - **Database**: MongoDB 4.4+ (required for enterprise features)
 - **Session Store**: MongoDB with TTL expiration

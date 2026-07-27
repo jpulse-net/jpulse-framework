@@ -3,13 +3,13 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         1.7.1
- * @release         2026-07-26
+ * @version         1.7.2
+ * @release         2026-07-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.13, Claude Sonnet 5
  */
 
 // Load required modules
@@ -229,7 +229,19 @@ async function generateConsolidatedConfig(fs, confPath) {
 
 // Load configuration
 const appConfig = await loadAppConfig();
-appLog('App configuration: ' + JSON.stringify(appConfig));
+
+// Secret-like config keys to redact before logging (suffix-matched, case-insensitive, at any nesting depth).
+// Suffix matching (not substring) avoids false positives like model.user.passwordPolicy or redis.*.keyPrefix.
+// This does not require enumerating exact paths, so it also covers secrets added by plugins/sites.
+const APP_CONFIG_LOG_SECRET_PATTERNS = [
+    '**.*secret',
+    '**.*password',
+    '**.*pass',
+    '**.*key',
+    '**.*token',
+    '**.*credential'
+];
+appLog('App configuration: ' + JSON.stringify(CommonUtils.sanitizeObject(appConfig, APP_CONFIG_LOG_SECRET_PATTERNS)));
 
 // Make appConfig globally available for other modules
 global.appConfig = appConfig;

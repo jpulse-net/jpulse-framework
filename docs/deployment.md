@@ -1,4 +1,4 @@
-# jPulse Docs / Production Deployment Guide v1.7.1
+# jPulse Docs / Production Deployment Guide v1.7.2
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -85,7 +85,7 @@ my-site/
 - **Access**: Root access for system installation
 
 ### Software Requirements
-- **Node.js**: v18.18.0+ or v20.9.0+ (see package.json engines.node)
+- **Node.js**: v24.0.0+ (see package.json engines.node)
 - **MongoDB**: v6.0+ (v7.0+ recommended)
 - **Redis**: v6.0+ (required for cluster features)
   - Required for: WebSocket communication, broadcast messaging, Redis cache

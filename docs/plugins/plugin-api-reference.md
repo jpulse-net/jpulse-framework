@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.7.1
+# jPulse Docs / Plugins / Plugins API Reference v1.7.2
 
 Complete API reference for jPulse plugin developers.
 
@@ -462,6 +462,7 @@ jPulse.UI.collapsible.register('collapsible-id', config);
 // 1. Escape HTML:
 jPulse.string.escapeHtml(html);
 // 2. Sanitize HTML from trusted sources: strip dangerous tags/attributes
+//    (tagName is case-normalized, closing an SVG/MathML <script> bypass)
 jPulse.string.sanitizeHtml(html, strict);
 // 3. Safe HTML from untrusted sources: whitelist a, strong, em, br tags only
 jPulse.string.sanitizeHtml(html, strict);

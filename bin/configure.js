@@ -4,8 +4,8 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         1.7.1
- * @release         2026-07-26
+ * @version         1.7.2
+ * @release         2026-07-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1221,7 +1221,19 @@ async function setup() {
                 try {
                     const stats = fs.lstatSync(docsDestination);
                     // If we get here, something exists (file, directory, or symlink)
-                    fs.rmSync(docsDestination, { recursive: true, force: true });
+                    if (stats.isSymbolicLink()) {
+                        // fs.rmSync({ force: true }) stats the symlink's target to decide
+                        // whether to recurse; for a dangling symlink (e.g. a copied dev-only
+                        // "jpulse-docs -> ../../../docs" link whose relative target no longer
+                        // resolves in the new site directory) that stat fails with ENOENT,
+                        // which force:true silently treats as "already removed" WITHOUT
+                        // unlinking the symlink itself, leaving a stale entry that then makes
+                        // the mkdirSync below fail with ENOENT. unlinkSync() operates on the
+                        // link entry directly, so it works regardless of the target.
+                        fs.unlinkSync(docsDestination);
+                    } else {
+                        fs.rmSync(docsDestination, { recursive: true, force: true });
+                    }
                 } catch (error) {
                     // Path doesn't exist, which is fine
                     if (error.code !== 'ENOENT') {

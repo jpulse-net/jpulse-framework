@@ -1,4 +1,4 @@
-# jPulse Docs / Site Installation Guide v1.7.1
+# jPulse Docs / Site Installation Guide v1.7.2
 
 This guide covers creating and setting up jPulse sites for development and production environments.
 
@@ -7,7 +7,7 @@ This guide covers creating and setting up jPulse sites for development and produ
 ## Prerequisites
 
 ### Required
-- **Node.js 18+** - JavaScript runtime
+- **Node.js 24+** - JavaScript runtime
 - **npm** - Package manager
 - **MongoDB 4.4+** - Database (required for user management, configuration, and logging)
 
@@ -24,14 +24,14 @@ For Red Hat Enterprise Linux, CentOS Stream, Rocky Linux, and Fedora systems:
 # Install curl if not already installed
 sudo dnf install -y curl
 
-# Add NodeSource repository for Node.js 20.x LTS
-curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
+# Add NodeSource repository for Node.js 24.x LTS
+curl -fsSL https://rpm.nodesource.com/setup_24.x | sudo bash -
 
 # Install Node.js and npm
 sudo dnf install -y nodejs
 
 # Verify installation
-node --version  # Should show v20.x.x
+node --version  # Should show v24.x.x
 npm --version   # Should show 10.x.x or higher
 ```
 
@@ -438,7 +438,7 @@ npm config set prefix ~/.npm-global
 **Test failures:**
 - Ensure no other jPulse instances are running
 - Clear any test databases: `npm run test:cleanup`
-- Check Node.js version: `node --version` (should be 18+)
+- Check Node.js version: `node --version` (should be 24+)
 
 ### Getting Help
 

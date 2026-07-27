@@ -3,13 +3,13 @@
  * @tagline         Redis connection management with cluster support and graceful fallback
  * @description     Manages Redis connections for sessions, WebSocket, broadcasting, and metrics
  * @file            webapp/utils/redis-manager.js
- * @version         1.7.1
- * @release         2026-07-26
+ * @version         1.7.2
+ * @release         2026-07-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.13, Claude Sonnet 5
  */
 
 import Redis from 'ioredis';
@@ -85,25 +85,31 @@ class RedisManager {
 
     /**
      * Initialize Redis Manager
+     * Awaits the initial connection test so callers (e.g. bootstrap's configureSessionStore())
+     * see an accurate isAvailable/getClient() state immediately after this resolves - avoids a
+     * startup race where lazyConnect's ping hadn't resolved yet and sessions silently fell back
+     * to memory even though Redis was actually reachable.
      * @param {Object} redisConfig - Redis configuration from app.conf
-     * @returns {RedisManager} Singleton instance
+     * @returns {Promise<RedisManager>} Singleton instance
      */
-    static initialize(redisConfig) {
+    static async initialize(redisConfig) {
         if (RedisManager.instance) {
             return RedisManager.instance;
         }
 
         RedisManager.config = redisConfig;
 
+        // Set the singleton instance immediately (before any await) so concurrent/unawaited
+        // callers hit the early-return guard above instead of racing into _createConnections() again
+        RedisManager.instance = RedisManager;
+
         // Only create connections if Redis is enabled
         if (redisConfig.enabled) {
-            RedisManager._createConnections();
+            await RedisManager._createConnections();
         } else {
             global.LogController?.logInfo(null, 'redis-manager.initialize',
                 'Redis disabled - graceful fallback mode (sessions: memory, websocket: local, cache: ignore, metrics: local)');
         }
-
-        RedisManager.instance = RedisManager;
 
         // Register metrics provider (W-112)
         (async () => {
@@ -126,7 +132,7 @@ class RedisManager {
      * Create Redis connections based on configuration
      * @private
      */
-    static _createConnections() {
+    static async _createConnections() {
         try {
             const config = RedisManager.config;
 
@@ -178,8 +184,9 @@ class RedisManager {
 
         // Test connection to set isAvailable flag properly
         // This is needed because lazyConnect: true doesn't trigger connect events until first operation
+        // Awaited (not fire-and-forget) so initialize() only resolves once availability is known
         if (RedisManager.config.enabled) {
-            RedisManager._testConnection();
+            await RedisManager._testConnection();
         }
     }
 

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v1.7.1
+# jPulse Docs / Site Customization Guide v1.7.2
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -162,6 +162,20 @@ app: {
   - external URLs are also supported
   - expected size: 22×22 pixels
 - **logoAlt** – Alt text for the logo (accessibility)
+
+### Authentication Policy
+
+Once an external auth plugin (OAuth, LDAP, SAML) is trusted, restrict or disable local username/password login site-wide in `site/webapp/app.conf`:
+
+```javascript
+controller: {
+    auth: {
+        localAuthRestriction: 'admins-only'  // 'none' (default) | 'admins-only' | 'disabled'
+    }
+}
+```
+
+A bootstrap safety check automatically prevents `'disabled'` from locking everyone out if no plugin provides a login option. See [Security & Authentication](security-and-auth.md#restricting-local-usernamepassword-login) for the full policy and the break-glass recovery runbook.
 
 ### View Configuration
 

@@ -3,13 +3,13 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.7.1
- * @release         2026-07-26
+ * @version         1.7.2
+ * @release         2026-07-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.6, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.13, Claude Sonnet 5
  */
 
 import { ObjectId } from 'mongodb';
@@ -829,10 +829,13 @@ class CommonUtils {
      * Sanitize an object by applying path patterns to a deep clone; sensitive leaves are obfuscated or removed.
      * Used for config/API responses so sensitive fields (e.g. smtpPass, license.key) are not exposed.
      * Obfuscation preserves type: string → stringPlaceholder, number → numberPlaceholder, boolean → false, null → null, object → {}, array → [].
-     * Path patterns use dot notation; the last segment may be a wildcard: prefix* (e.g. smtp*), *suffix (e.g. *pass), or exact key.
+     * Path patterns use dot notation; the last segment may be a wildcard: prefix* (e.g. smtp*), *suffix (e.g. *pass),
+     * *contains* (e.g. *secret*), or exact key. A pattern prefixed with '**.' (e.g. '**.password', '**.*secret*')
+     * matches the last-segment pattern at ANY level of nesting anywhere in the object tree, not just a specific path -
+     * useful for sanitizing a whole config object of unknown/variable shape (e.g. before logging it).
      *
      * @param {object} obj - Plain object to sanitize (not mutated)
-     * @param {string[]} pathPatterns - Dot-notation paths, e.g. ['data.email.smtp*', 'data.email.*pass', 'data.manifest.license.key']
+     * @param {string[]} pathPatterns - Dot-notation paths, e.g. ['data.email.smtp*', 'data.email.*pass', 'data.manifest.license.key', '**.*secret*']
      * @param {object} options - Optional settings
      * @param {string} [options.mode='obfuscate'] - 'obfuscate' = set matched leaves to type-preserving placeholder; 'remove' = delete matched keys
      * @param {string} [options.stringPlaceholder='********'] - Value when obfuscated leaf is a string
@@ -876,7 +879,8 @@ class CommonUtils {
     }
 
     /**
-     * Apply a single path pattern to obj (mutates obj). Dot notation; last segment may be prefix*, *suffix, or exact.
+     * Apply a single path pattern to obj (mutates obj). Dot notation; last segment may be prefix*, *suffix,
+     * *contains*, or exact. A pattern prefixed with '**.' matches the remaining leaf pattern at any nesting depth.
      * @param {object} obj - Object to mutate (clone)
      * @param {string} pattern - Path pattern
      * @param {string} mode - 'obfuscate' | 'remove'
@@ -884,6 +888,15 @@ class CommonUtils {
      * @private
      */
     static _sanitizeObjectApplyPath(obj, pattern, mode, placeholders) {
+        // Deep wildcard: '**.<leafPattern>' matches <leafPattern> at any level of nesting anywhere in obj
+        if (pattern.startsWith('**.')) {
+            const leafPattern = pattern.slice(3);
+            if (leafPattern) {
+                this._sanitizeObjectApplyLeafPatternDeep(obj, leafPattern, mode, placeholders);
+            }
+            return;
+        }
+
         const parts = pattern.split('.');
         const lastPart = parts[parts.length - 1];
         const prefixParts = parts.slice(0, -1);
@@ -897,30 +910,82 @@ class CommonUtils {
         }
         if (current == null || typeof current !== 'object') return;
 
-        if (lastPart.includes('*')) {
-            if (lastPart.startsWith('*')) {
-                const suffix = lastPart.replace(/^\*/, '');
-                const suffixLower = suffix.toLowerCase();
-                for (const key of Object.keys(current)) {
-                    if (key.toLowerCase().endsWith(suffixLower)) {
-                        if (mode === 'remove') delete current[key];
-                        else current[key] = this._sanitizeObjectPlaceholderForValue(current[key], placeholders);
+        this._sanitizeObjectApplyLeafPattern(current, lastPart, mode, placeholders);
+    }
+
+    /**
+     * Match a leaf pattern (prefix*, *suffix, *contains*, or exact) against the direct keys of obj,
+     * obfuscating/removing matches in place. Wildcard matching is case-insensitive; exact matching is
+     * case-sensitive (matches historical sanitizeObject() behavior).
+     * @param {object} obj - Object level to scan (its own direct keys)
+     * @param {string} leafPattern - prefix*, *suffix, *contains*, or exact key name
+     * @param {string} mode - 'obfuscate' | 'remove'
+     * @param {{ str: string, num: number }} placeholders - When obfuscate (type-preserving)
+     * @private
+     */
+    static _sanitizeObjectApplyLeafPattern(obj, leafPattern, mode, placeholders) {
+        if (obj == null || typeof obj !== 'object') return;
+
+        if (leafPattern.includes('*')) {
+            const startsWithStar = leafPattern.startsWith('*');
+            const endsWithStar = leafPattern.endsWith('*') && leafPattern.length > 1;
+
+            if (startsWithStar && endsWithStar) {
+                // *contains* - substring match anywhere in the key (case-insensitive)
+                const needle = leafPattern.slice(1, -1).toLowerCase();
+                if (!needle) return;
+                for (const key of Object.keys(obj)) {
+                    if (key.toLowerCase().includes(needle)) {
+                        if (mode === 'remove') delete obj[key];
+                        else obj[key] = this._sanitizeObjectPlaceholderForValue(obj[key], placeholders);
                     }
                 }
-            } else if (lastPart.endsWith('*')) {
-                const prefix = lastPart.replace(/\*$/, '');
-                const prefixLower = prefix.toLowerCase();
-                for (const key of Object.keys(current)) {
-                    if (key.toLowerCase().startsWith(prefixLower)) {
-                        if (mode === 'remove') delete current[key];
-                        else current[key] = this._sanitizeObjectPlaceholderForValue(current[key], placeholders);
+            } else if (startsWithStar) {
+                // *suffix - matches keys ending with suffix (case-insensitive)
+                const suffix = leafPattern.slice(1).toLowerCase();
+                for (const key of Object.keys(obj)) {
+                    if (key.toLowerCase().endsWith(suffix)) {
+                        if (mode === 'remove') delete obj[key];
+                        else obj[key] = this._sanitizeObjectPlaceholderForValue(obj[key], placeholders);
+                    }
+                }
+            } else if (endsWithStar) {
+                // prefix* - matches keys starting with prefix (case-insensitive)
+                const prefix = leafPattern.slice(0, -1).toLowerCase();
+                for (const key of Object.keys(obj)) {
+                    if (key.toLowerCase().startsWith(prefix)) {
+                        if (mode === 'remove') delete obj[key];
+                        else obj[key] = this._sanitizeObjectPlaceholderForValue(obj[key], placeholders);
                     }
                 }
             }
+            // A '*' in the middle only (e.g. 'a*b') is not supported; no-op
         } else {
-            if (lastPart in current) {
-                if (mode === 'remove') delete current[lastPart];
-                else current[lastPart] = this._sanitizeObjectPlaceholderForValue(current[lastPart], placeholders);
+            // Exact key match (case-sensitive, matches historical behavior)
+            if (leafPattern in obj) {
+                if (mode === 'remove') delete obj[leafPattern];
+                else obj[leafPattern] = this._sanitizeObjectPlaceholderForValue(obj[leafPattern], placeholders);
+            }
+        }
+    }
+
+    /**
+     * Recursively apply a leaf pattern at every level of nesting in obj (for '**.' patterns).
+     * @param {object} obj - Object (sub)tree to scan
+     * @param {string} leafPattern - prefix*, *suffix, *contains*, or exact key name
+     * @param {string} mode - 'obfuscate' | 'remove'
+     * @param {{ str: string, num: number }} placeholders - When obfuscate (type-preserving)
+     * @private
+     */
+    static _sanitizeObjectApplyLeafPatternDeep(obj, leafPattern, mode, placeholders) {
+        if (obj == null || typeof obj !== 'object') return;
+
+        this._sanitizeObjectApplyLeafPattern(obj, leafPattern, mode, placeholders);
+
+        for (const key of Object.keys(obj)) {
+            const value = obj[key];
+            if (value !== null && typeof value === 'object') {
+                this._sanitizeObjectApplyLeafPatternDeep(value, leafPattern, mode, placeholders);
             }
         }
     }

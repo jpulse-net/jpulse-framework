@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.7.1
+# jPulse Docs / Plugins / Creating Plugins v1.7.2
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -537,7 +537,7 @@ export default class YourPluginController {
 ```
 
 **Available Hooks:**
-- **Auth (7):** `onAuthBeforeLogin`, `onAuthBeforeSession`, `onAuthAfterLogin`, `onAuthFailure`, `onAuthGetSteps`, `onAuthValidateStep`, `onAuthGetWarnings`
+- **Auth (8):** `onAuthBeforeLogin`, `onAuthBeforeSession`, `onAuthAfterLogin`, `onAuthFailure`, `onAuthGetSteps`, `onAuthValidateStep`, `onAuthGetWarnings`, `onAuthGetLoginProviders`
 - **User (5):** `onUserBeforeSave`, `onUserAfterSave`, `onUserBeforeDelete`, `onUserAfterDelete`, `onUserSyncProfile`
 
 📖 **Full Documentation:** [Plugin Hooks](plugin-hooks.md) for context specs, examples, and best practices.

@@ -1,6 +1,54 @@
-# jPulse Docs / Version History v1.7.1
+# jPulse Docs / Version History v1.7.2
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.2, W-196, 2026-07-27
+
+**Commit:** `W-196, v1.7.2: infrastructure: Node.js 24 upgrade; fix startup secret leakage & Redis session race condition`
+
+**Objective**: Upgrade the framework's supported Node.js runtime to v24 (Active LTS) — fixing GitHub Actions' Node.js 20 deprecation warning and the Jest 30 upgrade this requires — and fix bugs discovered while upgrading and reviewing a fresh `npm start` startup log: a CLI docs-copy regression, cleartext secrets in the startup log, and a Redis session-store fallback race condition.
+
+**Summary**: A GitHub Actions build failure ("Node.js 20 is deprecated ... actions/checkout@v4, actions/setup-node@v4") triggered a Node.js runtime upgrade to v24 across the framework. `package.json`'s `engines.node` moved from `>=16.0.0` to `>=24.0.0`, and `.github/workflows/publish.yml` now runs CI on Node 24 with `actions/checkout`/`actions/setup-node` bumped from v4 to v7. The Node 24 upgrade required moving Jest from `^29.7.0` to `^30.4.0`: Jest 29's `globalSetup`/`globalTeardown` loader can't handle ESM files under Node 24 when `package.json` declares `"type": "module"`, failing with `ReferenceError: exports is not defined in ES module scope`; renaming `webapp/tests/setup/global-setup.js`/`global-teardown.js` to `.mjs` forces Jest's loader to use native `import()` instead of CJS `require()`, resolving the error. Running the CLI test suite after the upgrade surfaced a pre-existing bug: `bin/configure.js`/`bin/jpulse-update.js`'s docs-copy step failed with `ENOENT: no such file or directory, mkdir 'webapp/static/assets/jpulse-docs'` — a dev-only symlink (`jpulse-docs -> ../../../docs`) gets copied into new sites, and once copied its relative target no longer resolves (dangling symlink); `fs.rmSync(dest, { recursive: true, force: true })` stats the symlink's *target* to decide whether to recurse, so that failed stat (ENOENT) is silently treated as "already removed" by `force: true` without actually unlinking the symlink itself, leaving a stale entry that then blocks the subsequent `mkdirSync`. Fixed by detecting symlinks via `fs.lstatSync().isSymbolicLink()` and removing them directly with `fs.unlinkSync()`, which operates on the link entry regardless of the target. A routine review of a fresh `npm start` startup log then surfaced two more issues, both fixed in this release. First, a security issue: the "App configuration:" log line printed the fully-resolved `appConfig` object in cleartext at INFO level, including `middleware.session.secret`, `redis.single.password`, `redis.cluster.password`, `controller.auth.ldap.bindPass`, and `controller.auth.oauth2.clientSecret`. `CommonUtils.sanitizeObject()` was extended with `**.`-prefixed deep-wildcard path support — a pattern like `**.password` now matches that leaf pattern (prefix\*, \*suffix, \*contains\*, or exact) at *any* nesting depth in the object tree, not just one specific dot-notation path, which is what makes it practical to sanitize a whole config object of unknown/variable shape before logging it; the same change added `*contains*` matching (a pattern like `*secret*` previously matched nothing, since the old suffix-detection logic treated the trailing `*` as a literal character). `webapp/app.js` now redacts `appConfig` via a hardcoded `APP_CONFIG_LOG_SECRET_PATTERNS` array (`**.*secret`, `**.*password`, `**.*pass`, `**.*key`, `**.*token`, `**.*credential`) before logging it. These patterns are deliberately suffix-matched rather than substring-matched: live testing against the real config showed that a substring pattern like `**.*password*` would have false-positively redacted `model.user.passwordPolicy` (an unrelated config object, not a secret) purely because its name contains the substring "password"; suffix matching also correctly leaves `redis.connections.*.keyPrefix` and `controller.auth.oauth2.clientID` visible. Second, a session-store bug: sessions were silently falling back to in-memory storage (`MemoryStore`) on every fresh startup, even when Redis was fully reachable — verified by comparing a real startup log's ordering, where `RedisManager: Initialized ... Available: false` and `Session store: Memory (fallback mode)` were logged *before* the later `Redis connection test successful - Redis available` message. Root cause: `RedisManager._createConnections()` calls `_testConnection()` — the async function whose `sessionClient.ping()` call actually flips `isAvailable` to `true`, necessary because `lazyConnect: true` doesn't trigger `connect` events until the client is first used — without awaiting it (fire-and-forget). `bootstrap.js` calls `configureSessionStore()` immediately after `await RedisManager.initialize(...)` resolves, but since `initialize()` wasn't genuinely `async` either, that `await` returned before the ping had actually completed, so `RedisManager.getClient('session')` always returned `null` on the very first boot. Fixed by making `initialize()` and `_createConnections()` properly `async` and having both `await` the connection test before resolving, so `isAvailable` reflects reality by the time `configureSessionStore()` runs; the singleton guard (`RedisManager.instance = RedisManager`) was moved to before the `await` so it's still set synchronously for any caller that doesn't await `initialize()` (a few unit tests call it fire-and-forget). All fixes were verified against a real `npm start` run, not just unit tests.
+
+**Key features**:
+- CI: `.github/workflows/publish.yml` — `actions/checkout@v4→v7`, `actions/setup-node@v4→v7`, build/publish Node version `'18'→'24'`
+- Runtime: `package.json` `engines.node` `>=16.0.0→>=24.0.0`; `jest`/`babel-jest`/`@jest/globals` `^29.7.0→^30.4.0`; new `.nvmrc` pinned to `24`
+- Bug fix: `bin/configure.js`/`bin/jpulse-update.js` docs-copy step now removes dangling symlinks via `fs.unlinkSync()` instead of relying on `fs.rmSync({ force: true })`
+- **Security fix**: `CommonUtils.sanitizeObject()` gains `**.`-prefixed deep-wildcard path support and new `*contains*` matching; `webapp/app.js` redacts secrets from the startup `App configuration:` log line
+- Bug fix: `RedisManager.initialize()`/`_createConnections()` now `await` the connection-availability test before resolving, fixing a race that caused sessions to silently fall back to Memory storage on every fresh startup even when Redis was reachable
+
+**Files changed**:
+- `.github/workflows/publish.yml`:
+  - `actions/checkout`/`actions/setup-node` v4→v7; Node build version `'18'→'24'`
+- `package.json`, `package-lock.json`:
+  - `engines.node` →`>=24.0.0`; `jest`/`babel-jest`/`@jest/globals` →`^30.4.0`; `jest.globalSetup`/`globalTeardown` paths →`.mjs`
+- `.nvmrc` (new):
+  - pinned to `24`
+- `webapp/tests/setup/global-setup.mjs`, `webapp/tests/setup/global-teardown.mjs`:
+  - renamed from `.js` (forces Jest's `requireOrImportModule` to use native `import()`)
+- `bin/configure.js`, `bin/jpulse-update.js`:
+  - docs-copy step: detect symlinks via `fs.lstatSync().isSymbolicLink()`, remove with `fs.unlinkSync()` instead of `fs.rmSync({ force: true })`
+- `webapp/utils/common.js`:
+  - `sanitizeObject()` / `_sanitizeObjectApplyPath()`: `**.`-prefixed deep-wildcard support (matches a leaf pattern at any nesting depth)
+  - new `_sanitizeObjectApplyLeafPattern()` / `_sanitizeObjectApplyLeafPatternDeep()` helpers (leaf-matching logic factored out, now shared by exact-path and deep-wildcard cases)
+  - new `*contains*` leaf-pattern matching (substring, case-insensitive)
+- `webapp/app.js`:
+  - redact `appConfig` via `CommonUtils.sanitizeObject()` + hardcoded `APP_CONFIG_LOG_SECRET_PATTERNS` before the `App configuration:` startup log line
+- `webapp/utils/redis-manager.js`:
+  - `initialize()` and `_createConnections()` made properly `async`; both now `await` `_testConnection()` before resolving
+  - singleton guard (`RedisManager.instance = RedisManager`) moved to before the `await` so it's still set synchronously for unawaited callers
+
+**Documentation**:
+- `docs/deployment.md`, `docs/installation.md`, `docs/getting-started.md`, `docs/dev/installation.md`, `docs/dev/requirements.md`, `docs/dev/README.md`, `docs/dev/roadmap.md`, `README.md` (Deployment Requirements) — Node.js version requirement updated to v24+
+- `README.md`, `docs/README.md` — Latest Release Highlights — v1.7.2 / W-196
+- `docs/CHANGELOG.md` — this section
+- `docs/dev/work-items.md` — W-196 objective/features/deliverables/test-verify
+
+**Release**:
+- Work Item: W-196
+- Version: v1.7.2
+- Release Date: 2026-07-27
 
 ________________________________________________
 ## v1.7.1, W-195, 2026-07-26

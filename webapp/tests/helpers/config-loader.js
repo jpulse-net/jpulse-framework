@@ -3,8 +3,8 @@
  * @tagline         Jest-independent configuration loader for tests
  * @description     Loads consolidated configuration without Jest dependencies
  * @file            webapp/tests/helpers/config-loader.js
- * @version         1.7.1
- * @release         2026-07-26
+ * @version         1.7.2
+ * @release         2026-07-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -84,10 +84,14 @@ export function setupGlobalAppConfig() {
                 config: {
                     defaultDocName: 'global'
                 },
+                auth: {
+                    localAuthRestriction: 'none'
+                },
                 handlebar: {
                     contextFilter: {
                         withoutAuth: [],
-                        withAuth: []
+                        withAuth: [],
+                        alwaysAllow: [ 'controller.auth.localAuthRestriction' ]
                     },
                     maxIncludeDepth: 10,
                     cacheIncludes: {

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Framework Development Installation v1.7.1
+# jPulse Docs / Dev / Framework Development Installation v1.7.2
 
 This guide covers setting up the jPulse Framework for core development and contributions.
 
@@ -7,7 +7,7 @@ This guide covers setting up the jPulse Framework for core development and contr
 ## Prerequisites
 
 ### Required
-- **Node.js 18+** - JavaScript runtime
+- **Node.js 24+** - JavaScript runtime
 - **npm** - Package manager
 - **Git** - Version control
 - **MongoDB 4.4+** - Database (required for testing and development)

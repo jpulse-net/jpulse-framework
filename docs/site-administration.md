@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administration v1.7.1
+# jPulse Docs / Site Administration v1.7.2
 
 Complete guide to managing your jPulse site through the admin interface.
 
@@ -366,7 +366,8 @@ Application configuration is stored in JavaScript files, not MongoDB. This is fo
     controller: {
         auth: {
             mode: 'internal',
-            disableLogin: false
+            disableLogin: false,
+            localAuthRestriction: 'none'  // 'none' | 'admins-only' | 'disabled'
         }
     }
 }

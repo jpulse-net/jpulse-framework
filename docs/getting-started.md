@@ -1,4 +1,4 @@
-# jPulse Docs / Getting Started with jPulse v1.7.1
+# jPulse Docs / Getting Started with jPulse v1.7.2
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the site override system.
 
@@ -6,7 +6,7 @@ This tutorial will guide you through creating your first jPulse site, from basic
 
 Before starting, ensure you have:
 - jPulse Framework installed ([Installation Guide](installation.md))
-- Node.js 18+ and npm/yarn
+- Node.js 24+ and npm/yarn
 - Basic knowledge of HTML, CSS, and JavaScript
 - Text editor or IDE
 

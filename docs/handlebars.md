@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v1.7.1
+# jPulse Docs / Handlebars Templating v1.7.2
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -199,6 +199,10 @@ Leaf-string `{{i18n.x.y}}` usage is unchanged: a string is returned directly, an
 - `{{user.roles}}` - JSON array of user roles
 - `{{user.isAuthenticated}}` - Login status (true/false)
 - `{{user.isAdmin}}` - Admin status (true/false)
+
+### `{{authProviders}}` - External Login Providers
+
+Array of `{ label, icon, initUrl, buttonColor, order }` objects contributed by plugins via the `onAuthGetLoginProviders` hook (see [Plugin Hooks](plugins/plugin-hooks.md)), sorted by `order`. Populated only when rendering `/auth/login.shtml` and only if a handler is registered; empty array (`[]`) elsewhere/otherwise, so use `{{#unless (array.isEmpty authProviders)}}` rather than `{{#if authProviders}}` (an empty array is truthy in Handlebars).
 
 ### `{{vars.*}}` - Custom Variables
 

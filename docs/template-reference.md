@@ -1,4 +1,4 @@
-# jPulse Docs / Template Reference v1.7.1
+# jPulse Docs / Template Reference v1.7.2
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -48,7 +48,7 @@ webapp/view/                # Framework templates (checked second)
 ├── home/
 │   └── index.shtml         # Home page template
 ├── auth/
-│   ├── login.shtml         # Login page
+│   ├── login.shtml         # Login page (renders authProviders buttons + localAuthRestriction UI)
 │   └── logout.shtml        # Logout page
 ├── admin/
 │   ├── index.shtml         # Admin dashboard
@@ -121,6 +121,18 @@ Templates have access to a rich context object with application data, user infor
 
 {{!-- User preferences --}}
 <body class="theme-{{user.preferences.theme}} lang-{{user.preferences.language}}">
+```
+
+### External Login Providers
+
+`{{authProviders}}` is populated on `/auth/login.shtml` only, from plugins that register the `onAuthGetLoginProviders` hook (see [Handlebars Guide](handlebars.md#authproviders-external-login-providers-w-195)):
+
+```html
+{{#unless (array.isEmpty authProviders)}}
+    {{#each authProviders}}
+        <a class="jp-btn" href="{{this.initUrl}}" style="background:{{this.buttonColor}}">{{this.icon}} {{this.label}}</a>
+    {{/each}}
+{{/unless}}
 ```
 
 ### Configuration Access

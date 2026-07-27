@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.0
+# jPulse Docs / Dev / Work Items v1.7.2
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -6390,19 +6390,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `GET /api/1/plugin/hello-world/config`: `schema` includes both `help` entries and the `quickLinks` custom field exactly as declared in `plugin.json`; `values.quickLinks` reflects the saved TWiki/jPulse.net entries
   - full unit suite: 87 suites / 2414 tests pass
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-195, v1.7.1, 2026-07-26: auth: jPulse enhancements for external auth plugins (OAuth, LDAP, SAML)
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: provide the framework-level hooks and helpers external auth plugins need — browser-redirect login completion, login page button injection, local-auth policy, and a break-glass path for SSO outages
 - rationale: OAuth/LDAP/SAML plugins all need the same three things (finish login after browser redirect, inject provider buttons onto the login page, honor a site-wide local-auth restriction); solving these once in the framework keeps each auth plugin small and prevents divergence
@@ -6465,6 +6454,22 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - document `onAuthGetLoginProviders` context/return shape/example, `completeExternalAuth()` usage from a plugin callback, `onAuthGetSteps`'s `page` field, `localAuthRestriction`/`hasLocalPassword`
   - docs/deployment.md:
     - new "Break-Glass Account Runbook" section (scenario, built-in safety net, recovery steps incl. a DB-level password reset recipe, preventive practices incl. MFA-protecting the break-glass account)
+  - docs/security-and-auth.md:
+    - Login error codes (`LOCAL_AUTH_RESTRICTED`), new "Restricting Local (Username/Password) Login" subsection, `hasLocalPassword` in the User schema example, sanitizer security-fix note, "Planned Features" cross-reference to the now-shipped framework primitives
+  - docs/api-reference.md:
+    - Login error codes, `completeExternalAuth()` pointer, Change Password `hasLocalPassword` behavior, `hasLocalPassword` in User Schema
+  - docs/plugins/creating-plugins.md:
+    - Auth hook count/list corrected to include `onAuthGetLoginProviders` (7 → 8)
+  - docs/site-administration.md, docs/site-customization.md:
+    - `controller.auth.localAuthRestriction` config examples
+  - docs/handlebars.md, docs/template-reference.md:
+    - `{{authProviders}}` context variable documented
+  - docs/genai-instructions.md:
+    - Auth controller bullet + Plugin Documentation section reference the new primitives and `plugin-hooks.md`
+  - docs/front-end-development.md, docs/plugins/plugin-api-reference.md:
+    - `sanitizeHtml()` usage notes call out the SVG/MathML `tagName` security fix
+  - docs/dev/requirements.md:
+    - "Authentication & Authorization" bullet references the new framework primitives
   - docs/CHANGELOG.md, README.md, docs/README.md: release notes / highlights
 
 
@@ -6472,7 +6477,67 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-### W-196, v1.0.0, 2026-07-25: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-196, v1.7.2, 2026-07-27: infrastructure: Node.js 24 upgrade; fix startup secret leakage & Redis session race condition
+- status: 🚧 IN_PROGRESS
+- type: Infrastructure + Bugfix
+- objectives:
+  - eliminate GitHub Actions' "Node.js 20 is deprecated" warning by moving CI to Node 24
+  - upgrade the framework's supported Node.js runtime to v24 (Active LTS), including the Jest 30 upgrade this requires
+  - fix bugs discovered while upgrading and reviewing a fresh `npm start` startup log: a CLI docs-copy regression, cleartext secrets in the startup log, and a Redis session-store fallback race condition
+- discovered while: GitHub Actions build failure ("Node.js 20 is deprecated ... actions/checkout@v4, actions/setup-node@v4"), followed by a routine post-upgrade `npm start` log review
+- features:
+  - CI: `.github/workflows/publish.yml` — `actions/checkout@v4→v7`, `actions/setup-node@v4→v7`, build/publish Node version `'18'→'24'` (fixes the GitHub Actions deprecation warning)
+  - runtime upgrade: `package.json` `engines.node` `>=16.0.0→>=24.0.0`; `jest`/`babel-jest`/`@jest/globals` `^29.7.0→^30.4.0` (Jest 30 is required — Jest 29's `globalSetup`/`globalTeardown` loader can't handle ESM files under Node 24 with `"type": "module"` in `package.json`); new `.nvmrc` pinned to `24`; Node.js requirement updated to v24+ across `docs/deployment.md`, `docs/installation.md`, `docs/getting-started.md`, `docs/dev/installation.md`, `docs/dev/requirements.md`, `docs/dev/README.md`, `docs/dev/roadmap.md`, `README.md`
+  - Jest ESM fix: renamed `webapp/tests/setup/global-setup.js`/`global-teardown.js` to `.mjs` (forces Jest's `requireOrImportModule` to use native `import()` instead of CJS `require()`, fixing `ReferenceError: exports is not defined in ES module scope` under Jest 30 + Node 24)
+  - CLI bug fix (found via `npm run test:cli` after the upgrade): `bin/configure.js`/`bin/jpulse-update.js` docs-copy step failed with `ENOENT: no such file or directory, mkdir 'webapp/static/assets/jpulse-docs'` — root cause: `fs.rmSync(dest, { recursive: true, force: true })` stats a symlink's *target* to decide whether to recurse, so a dangling dev-only symlink (`jpulse-docs -> ../../../docs`, whose relative target doesn't resolve once copied into a new site) fails that stat with ENOENT and `force: true` silently treats it as "already gone" without unlinking it, leaving a stale symlink that then blocks the subsequent `mkdirSync`; fixed by detecting symlinks via `fs.lstatSync().isSymbolicLink()` and removing them with `fs.unlinkSync()` (which operates on the link entry itself, regardless of the target)
+  - security fix: the startup log printed the fully-resolved `appConfig` in cleartext at INFO level, including `middleware.session.secret`, `redis.single.password`, `redis.cluster.password`, `controller.auth.ldap.bindPass`, and `controller.auth.oauth2.clientSecret`
+    - `webapp/utils/common.js`: extended `CommonUtils.sanitizeObject()` with `**.`-prefixed deep-wildcard path support — matches a leaf pattern (`prefix*`, `*suffix`, `*contains*`, or exact) at *any* nesting depth in the object tree, not just a specific path; also added new `*contains*` matching (previously `*x*` patterns silently matched nothing); leaf-matching logic factored into shared `_sanitizeObjectApplyLeafPattern()` / `_sanitizeObjectApplyLeafPatternDeep()` helpers, existing exact-path behavior unchanged (verified: 6/6 pre-existing tests still pass)
+    - `webapp/app.js`: redact `appConfig` before logging via a hardcoded `APP_CONFIG_LOG_SECRET_PATTERNS` array (`**.*secret`, `**.*password`, `**.*pass`, `**.*key`, `**.*token`, `**.*credential`) — deliberately suffix-matched (not substring) after live testing showed a `*password*` substring pattern would have false-positively redacted `model.user.passwordPolicy`; suffix matching also leaves `redis.*.keyPrefix` and `controller.auth.oauth2.clientID` correctly visible
+  - Redis session-store race condition fix: sessions silently fell back to in-memory storage on every fresh startup even when Redis was fully reachable
+    - root cause: `RedisManager._createConnections()` fired `_testConnection()`'s `ping()` (the call that actually sets `isAvailable = true`, needed because `lazyConnect: true` doesn't trigger `connect` events until first use) without awaiting it; `bootstrap.js` immediately called `configureSessionStore()` right after `await RedisManager.initialize(...)` returned, before that ping had resolved, so `getClient('session')` always returned `null` on the very first boot and the store fell back to `MemoryStore`
+    - `webapp/utils/redis-manager.js`: `initialize()` and `_createConnections()` made properly `async` and now `await RedisManager._testConnection()` before resolving, so `isAvailable` reflects reality by the time `configureSessionStore()` runs; the singleton guard (`RedisManager.instance = RedisManager`) was moved to before the `await` so it's still set synchronously for any caller that doesn't await `initialize()` (some unit tests call it fire-and-forget)
+  - CI fix: the GitHub Actions "Run tests" step failed on a fresh checkout (masked locally by a cached `.jpulse/app.json`) — `webapp/tests/helpers/config-loader.js`'s fallback `appConfig` stub (used whenever `.jpulse/app.json` doesn't exist) had no `controller.auth` section or `contextFilter.alwaysAllow` array, so two W-195 regression tests (`handlebar-auth-providers.test.js`, `login-page-render.test.js`) that read/write `controller.auth.localAuthRestriction` threw `TypeError`s; fixed by adding both to the fallback stub, mirroring `webapp/app.conf`
+- deliverables:
+  - `.github/workflows/publish.yml`:
+    - CI Node 20→24, `actions/checkout`/`actions/setup-node` v4→v7
+  - `package.json`, `package-lock.json`, `.nvmrc` (new):
+    - `engines.node` →`>=24.0.0`; Jest/babel-jest/@jest/globals →`^30.4.0`; `jest.globalSetup`/`globalTeardown` paths →`.mjs`; `.nvmrc` pinned to `24`
+  - `docs/deployment.md`, `docs/installation.md`, `docs/getting-started.md`, `docs/dev/installation.md`, `docs/dev/requirements.md`, `docs/dev/README.md`, `docs/dev/roadmap.md`, `README.md` (Deployment Requirements):
+    - Node.js version requirement updated to v24+
+  - `webapp/tests/setup/global-setup.mjs`, `webapp/tests/setup/global-teardown.mjs`:
+    - renamed from `.js` (content unchanged besides the `@file`/`EOF` comment and internal `TEST_FILE` constant)
+  - `bin/configure.js`, `bin/jpulse-update.js`:
+    - docs-copy step now detects and `unlinkSync()`s dangling symlinks instead of relying on `fs.rmSync({ force: true })`
+  - `webapp/utils/common.js`:
+    - `sanitizeObject()` / `_sanitizeObjectApplyPath()`: `**.` deep-wildcard support, new `*contains*` matching, `_sanitizeObjectApplyLeafPattern()` / `_sanitizeObjectApplyLeafPatternDeep()` helpers
+  - `webapp/app.js`:
+    - redact `appConfig` via `CommonUtils.sanitizeObject()` + `APP_CONFIG_LOG_SECRET_PATTERNS` before the `App configuration:` startup log line
+  - `webapp/utils/redis-manager.js`:
+    - `initialize()` / `_createConnections()` now `async`, await the connection test before resolving; singleton guard set before the `await`
+  - `webapp/tests/helpers/config-loader.js`:
+    - fallback `appConfig` stub gains `controller.auth: { localAuthRestriction: 'none' }` and `controller.handlebar.contextFilter.alwaysAllow: [ 'controller.auth.localAuthRestriction' ]`, mirroring `webapp/app.conf`
+- test / verify (manual):
+  - `npm start`: startup log confirms `middleware.session.secret`, `redis.single.password`, `redis.cluster.password`, `controller.auth.ldap.bindPass`, `controller.auth.oauth2.clientSecret` all show as `********`, while `controller.auth.oauth2.clientID`, `model.user.passwordPolicy`, and all `redis.connections.*.keyPrefix` values remain fully visible; `RedisManager: Initialized ... Available: true` and `Session store: Redis (cluster-ready)` on first boot (previously `Available: false` / `Session store: Memory (fallback mode)`, self-corrected only after session-store selection had already happened)
+  - `npm run test:cli` passes after the symlink fix (previously failed with `ENOENT ... mkdir 'webapp/static/assets/jpulse-docs'`)
+  - full suite: 105 suites / 2757 unit tests + 11 suites / 108 integration tests pass (2894 total, 0 failures), confirmed both with the dev machine's cached `.jpulse/app.json` and from a genuinely clean checkout (`.jpulse/` removed) matching GitHub Actions' environment — the original release commit only tested the former, which is what let the CI-only fallback-config bug ship
+
+
+
+
+
+
+
+
+
+
+### W-197, v1.0.0, 2026-07-28: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
 - status: 🚧 IN_PROGRESS
 - type: Feature
 - objective: SSO plugin supporting two deployment scenarios — (1) public sites with consumer providers (Google, and later Apple/GitHub), (2) org-internal sites with enterprise providers (Okta, Auth0, Azure Entra, Keycloak, ADFS via generic OIDC)
@@ -6595,8 +6660,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-195, v1.7.1, 2026-07-26
-- update features & deliverables in W-195 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume W-196, v1.7.2, 2026-07-27
+- update features & deliverables in W-196 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - append to cursor_log.txt
@@ -6607,12 +6672,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.1 2026-07-26
+node bin/bump-version.js 1.7.2 2026-07-27
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.0; git push origin main --tags
+git tag v1.7.2; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff

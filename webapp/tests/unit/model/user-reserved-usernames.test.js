@@ -3,13 +3,13 @@
  * @tagline         Unit tests for W-134 reserved username validation
  * @description     Tests for reserved username validation in UserModel
  * @file            webapp/tests/unit/model/user-reserved-usernames.test.js
- * @version         1.7.1
- * @release         2026-07-26
+ * @version         1.7.2
+ * @release         2026-07-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           90%, Cursor 2.3, Claude Sonnet 4.5
+ * @genai           90%, Cursor 3.13, Claude Sonnet 5
  */
 
 import { describe, test, expect, beforeAll, beforeEach, afterEach } from '@jest/globals';

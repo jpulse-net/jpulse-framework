@@ -15,6 +15,14 @@ alwaysApply: true
 
 **NEVER touch the `@version`/`@release` header of any file, period - even files you genuinely edit.** Leave headers exactly as found. The user runs the bump-version script themselves before build, which updates all headers in one clean pass; the agent bumping headers only adds clutter to review.
 
+# ⛔ CRITICAL: NEVER MOVE WORK ITEMS OR CHANGE THEIR STATUS IN docs/dev/work-items.md
+
+**NEVER move a work item between sections** (e.g. from the "🚧 IN_PROGRESS Work Items" section into the DONE/history area above it, or vice versa) - this includes relocating the `## 🚧 IN_PROGRESS Work Items` section marker itself.
+
+**NEVER change a work item's `- status:` line** (e.g. `🚧 IN_PROGRESS` → `✅ DONE`) unless the user explicitly asks for that specific change.
+
+Only touch `docs/dev/work-items.md` content the user explicitly asks for (e.g. filling in `features`/`deliverables`/other documentation for a work item). Leave status and section placement exactly as found otherwise - the user decides and makes that call themselves.
+
 # Framework Critical Patterns
 
 1. **Site Override System**: All site code goes in `site/webapp/`, NEVER modify `webapp/` (framework-managed, updated by jpulse-update)

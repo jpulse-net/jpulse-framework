@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Development Guide v1.7.1
+# jPulse Docs / Dev / Development Guide v1.7.2
 
 **For Framework Contributors & Core Developers**
 
@@ -16,7 +16,7 @@ Technical documentation for developers working on the jPulse Framework itself. T
 5. **Maintainability**: Modular structure, comprehensive documentation, consistent patterns
 
 ### Technology Stack
-- **Backend**: Node.js 18+, Express.js 4.x with ES modules
+- **Backend**: Node.js 24+, Express.js 4.x with ES modules
 - **Database**: MongoDB 4.4+ (required for enterprise features)
 - **Configuration**: JavaScript-based `.conf` files with dynamic evaluation
 - **Templating**: Custom Handlebars implementation with security features

@@ -5,13 +5,13 @@
  *                  syncSettingsPluginFieldFromElement() tagInput branch, and
  *                  renderPluginCards() initAll() call after DOM insertion.
  * @file            webapp/tests/unit/user/settings-plugin-fields.test.js
- * @version         1.7.1
- * @release         2026-07-26
+ * @version         1.7.2
+ * @release         2026-07-27
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.5, Claude Sonnet 4.6
+ * @genai           80%, Cursor 3.13, Claude Sonnet 5
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';

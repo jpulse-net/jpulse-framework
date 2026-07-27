@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Roadmap v1.7.1
+# jPulse Docs / Dev / Roadmap v1.7.2
 
 Strategic roadmap for jPulse Framework development, targeting enterprise and government organizations with a focus on maintainability, scalability, and developer productivity.
 
@@ -194,7 +194,7 @@ Strategic roadmap for jPulse Framework development, targeting enterprise and gov
 ## Technology Evolution
 
 ### Current Stack
-- **Runtime**: Node.js 18+
+- **Runtime**: Node.js 24+
 - **Database**: MongoDB 4.4+
 - **Web Server**: nginx
 - **Process Manager**: PM2

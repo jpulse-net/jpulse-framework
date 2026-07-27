@@ -2,14 +2,14 @@
  * @name            jPulse Framework / WebApp / Tests / Setup / Global Setup
  * @tagline         Jest Global Setup
  * @description     Global setup for Jest tests runs once before all tests start
- * @file            webapp/tests/setup/global-setup.js
+ * @file            webapp/tests/setup/global-setup.mjs
  * @version         1.7.1
  * @release         2026-07-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 3.13, Claude Sonnet 5
  */
 
 import { promises as fs } from 'fs';
@@ -20,7 +20,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Get test file name for warning messages
-const TEST_FILE = 'webapp/tests/setup/global-setup.js';
+const TEST_FILE = 'webapp/tests/setup/global-setup.mjs';
 
 /**
  * Global warning collector for test warnings
@@ -193,4 +193,4 @@ export default async function globalSetup() {
     }
 }
 
-// EOF webapp/tests/setup/global-setup.js
+// EOF webapp/tests/setup/global-setup.mjs

@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v1.7.1
+# jPulse Docs / Front-End Development Guide v1.7.2
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -998,6 +998,8 @@ const trustedHtml = jPulse.string.sanitizeHtml(schemaDescription);
 // Safe HTML: Whitelist with a, strong, em, br tags only
 const minimalHtml = jPulse.string.sanitizeHtml(panelDescription, true);
 ```
+
+> **Security:** `sanitizeHtml()` normalizes element tag-name case before its dangerous-tag/allowlist checks, so foreign-namespace content (e.g. `<svg><script>...</script></svg>`) can't bypass filtering — SVG/MathML elements report `tagName` in authored case, not uppercased like HTML elements.
 
 ### Object Utilities
 

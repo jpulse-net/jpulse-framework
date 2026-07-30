@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-045 PluginController
  * @description     Tests plugin API endpoints including new public getInfo()
  * @file            webapp/tests/unit/controller/plugin-controller.test.js
- * @version         1.7.3
+ * @version         1.7.4
  * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -23,9 +23,10 @@ jest.mock('../../../utils/plugin-manager.js');
 jest.mock('../../../model/plugin.js');
 jest.mock('../../../controller/log.js');
 jest.mock('../../../utils/common.js');
+jest.mock('../../../utils/hook-manager.js');
 
 // Declare variables for dynamically imported modules
-let PluginController, PluginManager, PluginModel, LogController, CommonUtils;
+let PluginController, PluginManager, PluginModel, LogController, CommonUtils, HookManager;
 
 describe('PluginController (W-045)', () => {
     beforeAll(async () => {
@@ -34,12 +35,14 @@ describe('PluginController (W-045)', () => {
         PluginModel = (await import('../../../model/plugin.js')).default;
         LogController = (await import('../../../controller/log.js')).default;
         CommonUtils = (await import('../../../utils/common.js')).default;
+        HookManager = (await import('../../../utils/hook-manager.js')).default;
 
         // Set up global references (used by controller)
         global.PluginManager = PluginManager;
         global.PluginModel = PluginModel;
         global.LogController = LogController;
         global.CommonUtils = CommonUtils;
+        global.HookManager = HookManager;
 
         // Mock i18n
         global.i18n = {
@@ -100,6 +103,9 @@ describe('PluginController (W-045)', () => {
         LogController.logChange.mockImplementation(() => {});
 
         CommonUtils.sendError.mockImplementation(() => {});
+
+        // W-200: default no-op - echoes context back unchanged, like no handler being registered
+        HookManager.executeForPlugin.mockImplementation((hookName, pluginName, context) => Promise.resolve(context));
 
         // Clear all mocks
         jest.clearAllMocks();
@@ -424,6 +430,102 @@ describe('PluginController (W-045)', () => {
                 expect.any(String),
                 'PLUGIN_NOT_FOUND'
             );
+        });
+
+        // W-200: onPluginConfigBeforeSave hook
+        describe('onPluginConfigBeforeSave hook (W-200)', () => {
+            const mockPlugin = {
+                name: 'test-plugin',
+                metadata: {
+                    config: {
+                        schema: [
+                            { id: 'apiKey', label: 'API Key', type: 'custom', renderer: 'testPlugin.renderApiKey' }
+                        ]
+                    }
+                }
+            };
+
+            test('should call executeForPlugin with req, pluginName, configData, and oldConfig', async () => {
+                const configData = { apiKey: 'plaintext-secret' };
+                const oldConfigDoc = { config: { apiKey: 'encrypted:old' } };
+
+                PluginManager.getPlugin.mockReturnValue(mockPlugin);
+                PluginModel.getByName.mockResolvedValue(oldConfigDoc);
+
+                mockReq.params.name = 'test-plugin';
+                mockReq.body = { config: configData };
+
+                await PluginController.updateConfig(mockReq, mockRes);
+
+                expect(HookManager.executeForPlugin).toHaveBeenCalledWith(
+                    'onPluginConfigBeforeSave',
+                    'test-plugin',
+                    expect.objectContaining({
+                        req: mockReq,
+                        pluginName: 'test-plugin',
+                        configData,
+                        oldConfig: oldConfigDoc
+                    })
+                );
+            });
+
+            test('should persist the handler-mutated configData, not the raw submitted value', async () => {
+                const configData = { apiKey: 'plaintext-secret' };
+
+                PluginManager.getPlugin.mockReturnValue(mockPlugin);
+                PluginModel.getByName.mockResolvedValue(null);
+                HookManager.executeForPlugin.mockImplementation(async (hookName, pluginName, context) => {
+                    context.configData.apiKey = 'encrypted:new';
+                    return context;
+                });
+
+                mockReq.params.name = 'test-plugin';
+                mockReq.body = { config: configData };
+
+                await PluginController.updateConfig(mockReq, mockRes);
+
+                expect(PluginModel.upsert).toHaveBeenCalledWith(
+                    'test-plugin',
+                    { apiKey: 'encrypted:new' },
+                    'testuser'
+                );
+            });
+
+            test('should abort the save with 400 CONFIG_SAVE_REJECTED when the handler throws', async () => {
+                PluginManager.getPlugin.mockReturnValue(mockPlugin);
+                PluginModel.getByName.mockResolvedValue(null);
+                HookManager.executeForPlugin.mockRejectedValue(new Error('Failed to encrypt API key'));
+
+                mockReq.params.name = 'test-plugin';
+                mockReq.body = { config: { apiKey: 'plaintext-secret' } };
+
+                await PluginController.updateConfig(mockReq, mockRes);
+
+                expect(PluginModel.upsert).not.toHaveBeenCalled();
+                expect(CommonUtils.sendError).toHaveBeenCalledWith(
+                    mockReq,
+                    mockRes,
+                    400,
+                    'Failed to encrypt API key',
+                    'CONFIG_SAVE_REJECTED'
+                );
+            });
+
+            test('should still call the hook when the plugin has no config schema (hook call is unconditional, unlike schema validation)', async () => {
+                PluginManager.getPlugin.mockReturnValue({ name: 'test-plugin', metadata: {} });
+                PluginModel.getByName.mockResolvedValue(null);
+
+                mockReq.params.name = 'test-plugin';
+                mockReq.body = { config: {} };
+
+                await PluginController.updateConfig(mockReq, mockRes);
+
+                expect(HookManager.executeForPlugin).toHaveBeenCalledWith(
+                    'onPluginConfigBeforeSave',
+                    'test-plugin',
+                    expect.objectContaining({ configData: {}, oldConfig: null })
+                );
+            });
         });
     });
 });

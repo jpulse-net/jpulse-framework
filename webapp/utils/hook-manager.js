@@ -4,7 +4,7 @@
  * @description     Manages plugin hook registration, execution, and lifecycle.
  *                  Plugins declare hooks in static `hooks` object, PluginManager auto-registers.
  * @file            webapp/utils/hook-manager.js
- * @version         1.7.3
+ * @version         1.7.4
  * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -129,6 +129,31 @@ class HookManager {
     }
 
     /**
+     * Execute only the hook handlers registered by one specific plugin - not a broadcast to
+     * every plugin registered for the hook (unlike execute()/executeWithCancel()/executeFirst()).
+     * Does NOT catch handler errors - they propagate straight to the caller. This is intentional:
+     * it's the only execution mode where a thrown error is meant to abort the caller's operation
+     * (e.g. reject a config save) rather than being logged and swallowed. See W-200.
+     * @param {string} hookName - Name of the hook
+     * @param {string} pluginName - Only run handlers registered by this plugin
+     * @param {object} context - Context object passed to handlers
+     * @returns {Promise<object>} Modified context
+     * @throws {Error} Propagates any error thrown by a handler
+     */
+    static async executeForPlugin(hookName, pluginName, context) {
+        const handlers = (this.hooks.get(hookName) || []).filter(h => h.pluginName === pluginName);
+
+        for (const { handler } of handlers) {
+            const result = await handler(context);
+            if (result !== undefined) {
+                context = result;
+            }
+        }
+
+        return context;
+    }
+
+    /**
      * Execute hook handlers and return first non-null/undefined result
      * Useful for hooks that return a value
      * @param {string} hookName - Name of the hook
@@ -202,7 +227,7 @@ class HookManager {
 
     /**
      * Get all available hooks that the framework supports
-     * Phase 8: Simplified naming convention - onBucketAction (13 hooks total)
+     * Phase 8: Simplified naming convention - onBucketAction (15 hooks total)
      * @returns {object} Map of hook names to descriptions
      */
     static getAvailableHooks() {
@@ -291,6 +316,19 @@ class HookManager {
                 context: '{ req, user, externalProfile, provider }',
                 canModify: true,
                 canCancel: false
+            },
+
+            // ================================================================
+            // Plugin config hooks (1)
+            // ================================================================
+            onPluginConfigBeforeSave: {
+                description: 'W-200: Before a plugin config save is persisted - transform/encrypt ' +
+                    '"custom"-type field values (e.g. secrets). Unlike every other canCancel hook, ' +
+                    '"cancel" here means the handler THROWS (propagated to the caller, which aborts ' +
+                    'the save with a 400) - it does not mean the handler returns false.',
+                context: '{ req, pluginName, configData, oldConfig }',
+                canModify: true,
+                canCancel: true
             },
 
             // ================================================================

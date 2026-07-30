@@ -1,6 +1,46 @@
-# jPulse Docs / Version History v1.7.3
+# jPulse Docs / Version History v1.7.4
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.4, W-200, 2026-07-30
+
+**Commit:** `W-200, v1.7.4: plugins: add onPluginConfigBeforeSave hook so plugin config saves can transform/encrypt values before persistence`
+
+**Objective**: Let a plugin's `type: "custom"` config field (W-194) participate in the page's single generic "Save Changes" action for anything that needs server-side processing before persistence (most importantly: encrypting a secret), instead of being forced into its own fully separate save path/button as the only safe option today.
+
+**Summary**: Discovered while building W-197's auth-oauth plugin — its "Identity Providers" custom-rendered field (a CRUD table of OAuth provider configs, each with a Client Secret) hit this gap directly and shipped a real usability bug because of it. Today, `type: "custom"` fields are documented to expose exactly `{ container, value, onChange, schema, config, disabled }` to the renderer, with `onChange(v)` as the only channel back to the framework and "framework persists it as JSON" verbatim — no field-specific processing of any kind. The page's own generic "Save Changes" button hits a fully plugin-agnostic endpoint (`PluginController.updateConfig()`) that only does schema-shape validation before one whole-document `PluginModel.upsert()` — it has no hook for "transform/encrypt this one field's value before it touches storage." Net effect: any custom renderer whose value contains something that must never be written as-is (e.g. a plaintext secret) cannot safely rely on the generic Save button at all — it must own a fully separate, plugin-specific write path to get a chance to intercept and transform the value server-side first, forcing a confusing two-Save-buttons-on-one-page UX (auth-oauth's v1.0.0 shipped a stopgap warning-banner fix, not a structural one). Fixed by a new `onPluginConfigBeforeSave` hook, fitting the framework's existing plugin hook system (W-105) rather than bolting a new concept onto the `type: "custom"` client contract. This required a new `HookManager.executeForPlugin(hookName, pluginName, context)` method rather than the existing `execute()`/`executeWithCancel()`/`executeFirst()`, all three of which broadcast to every plugin registered for the hook and swallow (log-and-continue) any thrown error — exactly wrong for this use case, since a swallowed encryption failure would leave `configData` still containing the raw secret for `PluginModel.upsert()` to happily persist in the clear. `executeForPlugin()` instead scopes to a single plugin's handlers and does **not** catch errors — they propagate straight to the caller, which is the abort mechanism. `oldConfig` in the hook context (already fetched unconditionally by `updateConfig()` for change-logging, just passed through) is what makes the established "leave the field blank to keep the existing secret" convention actually implementable — without it a handler can't tell "admin left this blank, keep the old encrypted ref" apart from "admin wants to clear it." `PluginController.updateConfig()` calls the hook right after the existing `oldConfig` fetch and before `PluginModel.upsert()`; a thrown error aborts the whole save with a 400 `CONFIG_SAVE_REJECTED` response, showing the admin the thrown message verbatim (plugin authors must throw a user-facing, non-sensitive message, never a raw crypto/library error). Migrating `auth-oauth` onto the new hook (to retire its W-197 stopgap banner and collapse its two Save buttons into one) is an explicit, optional follow-up — not part of this release, since its existing dedicated-endpoint pattern is already correct and secure. Verified via the full unit suite (119 suites / 2905 tests, including 6 new `hook-manager.test.js` tests and 4 new `plugin-controller.test.js` tests) and manually via a live `npm start` + Admin → Plugins session using a throwaway test plugin registering a handler that throws on one input value and mutates on another — both the rejection path (save blocked, thrown message shown, nothing persisted) and the mutation path (persisted value is the handler-mutated one, not the raw submitted value) confirmed working as designed.
+
+**Key features**:
+- `HookManager.executeForPlugin(hookName, pluginName, context)` — filters registered handlers down to just the ones registered by `pluginName` (not a broadcast to every plugin), and does **not** catch handler errors — they propagate straight to the caller, which is the abort mechanism
+- `onPluginConfigBeforeSave` registered in `getAvailableHooks()`: `context: '{ req, pluginName, configData, oldConfig }'`, `canModify: true`, `canCancel: true` — its description explicitly calls out that "cancel" here means "handler throws," not "handler returns `false`" (unlike every other `canCancel: true` hook in the registry)
+- `PluginController.updateConfig()` calls the hook after the existing `oldConfig` fetch and before `PluginModel.upsert()`; a thrown error aborts the whole save with `CommonUtils.sendError(req, res, 400, hookError.message, 'CONFIG_SAVE_REJECTED')`
+- New "Plugin Config Hooks" documentation section (`plugin-hooks.md`) and a worked "Encrypting a Plugin Config Secret" example demonstrating the handler pattern, the "throw to abort" contract, and the `oldConfig`-based "leave blank to keep existing secret" convention
+
+**Files changed**:
+- `webapp/utils/hook-manager.js`:
+  - added `executeForPlugin(hookName, pluginName, context)` (single-plugin scope, propagates errors instead of swallowing them)
+  - registered `onPluginConfigBeforeSave` in `getAvailableHooks()`
+  - bumped the stale "Phase 8: ... (13 hooks total)" docblock comment (already stale at 14 since W-195 added `onAuthGetLoginProviders`) to 15
+- `webapp/controller/plugin.js`:
+  - `updateConfig()` now invokes the hook right after the existing `oldConfig` fetch and before `PluginModel.upsert()`; a thrown error maps to a 400 `CONFIG_SAVE_REJECTED` response
+- `webapp/tests/unit/utils/hook-manager.test.js` (6 new tests):
+  - `executeForPlugin()` single-plugin scoping, error propagation (not swallowed/logged-and-continued), stop-at-throwing-handler, no-handlers-registered no-op case, and the hook's `getAvailableHooks()` registration shape
+- `webapp/tests/unit/controller/plugin-controller.test.js` (4 new tests):
+  - `updateConfig()`'s new hook call — correct `{ req, pluginName, configData, oldConfig }` context, happy path (handler-mutated `configData` is what's passed to `PluginModel.upsert()`), rejection path (handler throws → 400 `CONFIG_SAVE_REJECTED`, `PluginModel.upsert()` never called), and the hook still firing even when the plugin declares no config schema
+
+**Documentation**:
+- `docs/plugins/plugin-hooks.md` — new "Plugin Config Hooks" section using the `%DYNAMIC{plugins-hooks-list-table namespace="onPluginConfig"}%` mechanism, plus a new "Encrypting a Plugin Config Secret" worked example in "Common Use Cases"
+- `docs/plugins/plugin-api-reference.md` — cross-referenced the new hook from the `type: "custom"` section
+- `docs/plugins/creating-plugins.md` — "Available Hooks" bullet list gains `**Plugin Config (1):** onPluginConfigBeforeSave`
+- `docs/dev/work-items.md` — W-200 objective/features/deliverables/test-verify
+- `README.md`, `docs/README.md` — Latest Release Highlights — v1.7.4 / W-200
+- `docs/CHANGELOG.md` — this section
+
+**Release**:
+- Work Item: W-200
+- Version: v1.7.4
+- Release Date: 2026-07-30
 
 ________________________________________________
 ## v1.7.3, W-199, 2026-07-30

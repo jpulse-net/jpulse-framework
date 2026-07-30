@@ -3,7 +3,7 @@
  * @tagline         Plugin Controller for jPulse Framework WebApp
  * @description     Plugin management controller for the jPulse Framework WebApp
  * @file            webapp/controller/plugin.js
- * @version         1.7.3
+ * @version         1.7.4
  * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,6 +16,7 @@ import PluginManager from '../utils/plugin-manager.js';
 import PluginModel from '../model/plugin.js';
 import LogController from './log.js';
 import CommonUtils from '../utils/common.js';
+import HookManager from '../utils/hook-manager.js';
 
 /**
  * Plugin Controller - handles /api/1/plugin/* REST API endpoints
@@ -437,6 +438,17 @@ class PluginController {
 
             // Get current config for change logging
             const oldConfig = await PluginModel.getByName(name);
+
+            // W-200: let the plugin transform/encrypt configData in place before it's persisted
+            // (e.g. encrypting a secret submitted through a `type: "custom"` field). Unlike other
+            // hooks, a thrown error here is NOT swallowed - it aborts the save with a 400.
+            try {
+                await HookManager.executeForPlugin('onPluginConfigBeforeSave', name,
+                    { req, pluginName: name, configData, oldConfig });
+            } catch (hookError) {
+                LogController.logError(req, 'plugin.updateConfig', `error: ${hookError.message}`);
+                return CommonUtils.sendError(req, res, 400, hookError.message, 'CONFIG_SAVE_REJECTED');
+            }
 
             // Save configuration
             const user = req.session?.user;

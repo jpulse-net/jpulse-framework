@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for HookManager
  * @description     Tests for plugin hook registration and execution system
  * @file            webapp/tests/unit/utils/hook-manager.test.js
- * @version         1.7.3
+ * @version         1.7.4
  * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -209,6 +209,79 @@ describe('HookManager', () => {
             const result = await HookManager.executeFirst('onAuthBeforeLogin', {});
 
             expect(result).toBeNull();
+        });
+    });
+
+    // W-200: single-plugin-scoped, error-propagating execution mode (plugin config save hooks)
+    describe('executeForPlugin', () => {
+        test('should only run handlers registered by the target plugin', async () => {
+            const targetHandler = jest.fn().mockImplementation((ctx) => ({ ...ctx, ran: 'target' }));
+            const otherHandler = jest.fn();
+
+            HookManager.register('onPluginConfigBeforeSave', 'target-plugin', targetHandler);
+            HookManager.register('onPluginConfigBeforeSave', 'other-plugin', otherHandler);
+
+            const result = await HookManager.executeForPlugin('onPluginConfigBeforeSave', 'target-plugin', {});
+
+            expect(targetHandler).toHaveBeenCalled();
+            expect(otherHandler).not.toHaveBeenCalled();
+            expect(result.ran).toBe('target');
+        });
+
+        test('should pass context to the handler and return the modified context', async () => {
+            const handler = jest.fn().mockImplementation((ctx) => {
+                ctx.configData.secret = 'encrypted:abc';
+                return ctx;
+            });
+            HookManager.register('onPluginConfigBeforeSave', 'test-plugin', handler);
+
+            const context = { pluginName: 'test-plugin', configData: { secret: 'plaintext' }, oldConfig: null };
+            const result = await HookManager.executeForPlugin('onPluginConfigBeforeSave', 'test-plugin', context);
+
+            expect(handler).toHaveBeenCalledWith(context);
+            expect(result.configData.secret).toBe('encrypted:abc');
+        });
+
+        test('should propagate a thrown error instead of swallowing it', async () => {
+            const handler = jest.fn().mockImplementation(() => { throw new Error('Encryption failed'); });
+            HookManager.register('onPluginConfigBeforeSave', 'test-plugin', handler);
+
+            await expect(
+                HookManager.executeForPlugin('onPluginConfigBeforeSave', 'test-plugin', {})
+            ).rejects.toThrow('Encryption failed');
+
+            // Unlike execute()/executeWithCancel()/executeFirst(), the error is NOT logged and
+            // swallowed here - it's the caller's job to catch it (e.g. to abort a save with a 400).
+            expect(global.LogController.logError).not.toHaveBeenCalled();
+        });
+
+        test('should stop at the throwing handler and not run subsequent handlers for the same plugin', async () => {
+            const handler1 = jest.fn().mockImplementation(() => { throw new Error('First handler failed'); });
+            const handler2 = jest.fn();
+
+            HookManager.register('onPluginConfigBeforeSave', 'test-plugin', handler1, 50);
+            HookManager.register('onPluginConfigBeforeSave', 'test-plugin', handler2, 100);
+
+            await expect(
+                HookManager.executeForPlugin('onPluginConfigBeforeSave', 'test-plugin', {})
+            ).rejects.toThrow('First handler failed');
+
+            expect(handler2).not.toHaveBeenCalled();
+        });
+
+        test('should be a no-op returning the original context when no handlers are registered', async () => {
+            const context = { pluginName: 'test-plugin', configData: {} };
+            const result = await HookManager.executeForPlugin('onPluginConfigBeforeSave', 'test-plugin', context);
+
+            expect(result).toEqual(context);
+        });
+
+        test('onPluginConfigBeforeSave should be registered as an available hook', () => {
+            const hooks = HookManager.getAvailableHooks();
+            expect(hooks).toHaveProperty('onPluginConfigBeforeSave');
+            expect(hooks.onPluginConfigBeforeSave.canModify).toBe(true);
+            expect(hooks.onPluginConfigBeforeSave.canCancel).toBe(true);
+            expect(hooks.onPluginConfigBeforeSave.context).toContain('oldConfig');
         });
     });
 

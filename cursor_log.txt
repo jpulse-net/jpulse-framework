@@ -19739,3 +19739,22 @@ The diff also contained several unrelated, previously-deferred changes left unco
 Updated release docs to cover the full bundle: added a new `v1.7.3, W-199, 2026-07-30` bullet to the top of "Latest Release Highlights" in both `README.md` and `docs/README.md` (existing `v1.7.2` header/bullets left as-is, no version bump); added a full `## v1.7.3, W-199, 2026-07-30` section to the top of `docs/CHANGELOG.md` following the established Commit/Objective/Summary/Key features/Files changed/Documentation/Release structure, covering both the W-199 fix and the bundled secondary items; rewrote `commit-message.txt` in the same format as the v1.7.2 commit message (FEATURE paragraph, per-instance root-cause narrative, a clearly separated "Also bundled into this release" section for the CI/allowScripts/app.conf items, Objectives, Key features, Code Changes per file, Documentation Updates, Work Item/Version/Release Date footer) - not committed, per instructions.
 
 ============================================================
+2026-07-30 16:46
+
+release prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-200, v1.7.4, 2026-07-30
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Before this release-prep step, manually verified W-200's `onPluginConfigBeforeSave` hook live: created a throwaway `plugins/w200-hook-test/` plugin (a single text field plus a hook handler that throws on input `"throw"` and otherwise prefixes the value with `MUTATED:`), ran `npm start`, and confirmed via Admin → Plugins that (1) typing `throw` and saving surfaced the thrown message and left the config unpersisted (logged as `ERROR ... plugin.updateConfig`, no `log.change` entry), and (2) typing `hello` and saving persisted `MUTATED:hello`, not the raw submitted value, confirming the hook's mutation is what's actually written to storage. Updated W-200's `test / verify` section in `docs/dev/work-items.md` to record both outcomes; the throwaway plugin was left for the user to delete themselves after verifying.
+
+Reviewed `tt-git-diff.txt` against W-200's `docs/dev/work-items.md` entry: the diff's `webapp/utils/hook-manager.js` (`executeForPlugin()` + `onPluginConfigBeforeSave` registration + hook-count docblock bump), `webapp/controller/plugin.js` (`updateConfig()` hook call + 400 `CONFIG_SAVE_REJECTED` abort path), the two new/extended test files (6 new `hook-manager.test.js` tests, 4 new `plugin-controller.test.js` tests), and the three doc files (`plugin-hooks.md`, `plugin-api-reference.md`, `creating-plugins.md`) all matched exactly what the work item already documented - no gaps found, nothing to add.
+
+Flagged a date discrepancy before proceeding: the W-200 work item header says `v1.7.4, 2026-07-31`, but the prompt said to assume `2026-07-30` (matching today and the prior W-199 release date); asked the user to confirm rather than guess - confirmed `2026-07-30` for all release docs, without touching the work item's own header date (out of scope per "don't make any other changes to this file").
+
+Added a new `v1.7.4, W-200, 2026-07-30` bullet to the top of "Latest Release Highlights" in both `README.md` and `docs/README.md` (existing `v1.7.3` header/bullets left as-is, no version bump); added a full `## v1.7.4, W-200, 2026-07-30` section to the top of `docs/CHANGELOG.md` following the established Commit/Objective/Summary/Key features/Files changed/Documentation/Release structure; rewrote `commit-message.txt` in the same format as the W-199 commit message (FEATURE paragraph, root-cause narrative covering the "two Save buttons" UX bug and why `executeForPlugin()` needed to be a new, error-propagating hook execution mode distinct from the existing swallow-and-continue ones, Objectives, Key features, Code Changes per file, Documentation Updates, Work Item/Version/Release Date footer) - not committed, per instructions. Checked `docs/` for any other hook-count references that might be stale after the "15 hooks total" docblock bump; found none outside `hook-manager.js` itself.
+
+
+============================================================

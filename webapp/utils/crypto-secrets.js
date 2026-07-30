@@ -11,7 +11,7 @@
  *                   left as-is (not retrofitted onto this util) to avoid touching a shipped,
  *                   independently-versioned plugin as a side effect of this work item.
  * @file            webapp/utils/crypto-secrets.js
- * @version         1.7.3
+ * @version         1.7.4
  * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

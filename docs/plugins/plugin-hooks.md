@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Hooks v1.7.3
+# jPulse Docs / Plugins / Plugin Hooks v1.7.4
 
 Extend jPulse Framework behavior by hooking into authentication, user management, and other framework events.
 
@@ -174,6 +174,24 @@ Total: %DYNAMIC{plugins-hooks-count namespace="onUser"}% hooks
 | `onUserAfterDelete` | `{ req, user }` | ❌ | ❌ | After user deletion - cleanup, audit |
 | `onUserSyncProfile` | `{ req, user, externalProfile, provider }` | ✅ | ❌ | Sync external profile data (LDAP/OAuth) |
 -->
+
+### Plugin Config Hooks
+
+%DYNAMIC{plugins-hooks-list-table namespace="onPluginConfig"}%
+
+Total: %DYNAMIC{plugins-hooks-count namespace="onPluginConfig"}% hooks
+
+<!-- Plugin hooks as of v1.7.4: (above dynamic list shows the current list)
+| Hook | Context | Can Modify | Can Cancel | Description |
+|------|---------|------------|------------|-------------|
+| `onPluginConfigBeforeSave` | `{ req, pluginName, configData, oldConfig }` | ✅ | ✅ | Before a plugin config save is persisted - transform/encrypt values |
+-->
+
+**Important - this hook's "Can Cancel" works differently than every other hook above:** for
+every other `canCancel` hook, cancelling means the handler *returns* `false`. For
+`onPluginConfigBeforeSave`, cancelling means the handler *throws* - the error propagates and
+aborts the save (400 response), instead of being logged and the save proceeding anyway. See
+"Encrypting a Plugin Config Secret" below.
 
 ## Hook Execution
 
@@ -434,6 +452,58 @@ static async onAuthFailure(context) {
     return context;
 }
 ```
+
+### Encrypting a Plugin Config Secret
+
+W-200 adds `onPluginConfigBeforeSave` for plugins with a `type: "custom"` config field (see
+[Plugin API Reference](plugin-api-reference.md) "`type: "custom"`") whose value contains
+something that must never be persisted as-is - most commonly a secret. It runs once, right
+before the framework's generic "Save Changes" button persists a plugin's config, so a custom
+renderer no longer needs its own separate save path just to get a chance to transform its value
+first.
+
+```javascript
+static hooks = {
+    onPluginConfigBeforeSave: {}
+};
+
+// context: { req, pluginName, configData, oldConfig }
+static async onPluginConfigBeforeSave(context) {
+    const { configData, oldConfig } = context;
+
+    for (const provider of configData.providers || []) {
+        if (!provider.clientSecret) {
+            // Left blank in the form -> keep whatever was already persisted for this provider.
+            const existing = oldConfig?.config?.providers?.find(p => p.id === provider.id);
+            provider.clientSecretRef = existing?.clientSecretRef;
+            delete provider.clientSecret;
+            continue;
+        }
+
+        try {
+            // Encrypt and store the secret, keep only a reference in configData.
+            provider.clientSecretRef = await SecretStore.encrypt(provider.clientSecret);
+        } catch (error) {
+            // Throwing (not returning false) is what aborts the save for THIS hook - see below.
+            throw new Error('Failed to encrypt client secret');
+        }
+        delete provider.clientSecret;
+    }
+    // No need to return context - configData is mutated in place and the framework re-reads it.
+}
+```
+
+**This hook's cancel contract is different from every other hook on this page.** Elsewhere,
+`canCancel: true` means "return `false`". Here, it means "throw" - a thrown error propagates
+straight to `PluginController.updateConfig()`, which aborts the whole save with a 400
+`CONFIG_SAVE_REJECTED` response (the admin sees your thrown message verbatim, so throw a
+user-facing, non-sensitive message, never a raw crypto/library error). Returning `false` from
+this hook has no special meaning and does not cancel the save.
+
+`oldConfig` (the plugin's current, already-persisted config document, or `null` if none exists
+yet) is what makes the common "leave the field blank to keep the existing secret" pattern
+possible - without it, a handler can't tell "admin left this blank, keep the old value" apart
+from "admin wants to clear it".
 
 ## Debugging Hooks
 

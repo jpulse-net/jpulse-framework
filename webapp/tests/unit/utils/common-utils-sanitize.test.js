@@ -3,7 +3,7 @@
  * @tagline         Unit tests for CommonUtils.sanitizeHtml() security function
  * @description     Tests HTML sanitization to prevent XSS attacks
  * @file            webapp/tests/unit/utils/common-utils-sanitize.test.js
- * @version         1.7.3
+ * @version         1.7.4
  * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

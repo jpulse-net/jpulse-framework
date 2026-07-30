@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.2
+# jPulse Docs / Dev / Work Items v1.7.3
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -6294,7 +6294,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-192, v1.6.49, 2026-06-28: fieldGrid: auto-appended rows show column default in select cells instead of blank
 - status: ✅ DONE
-- type: Bug fix
+- type: Bugfix
 - objectives:
   - make auto-appended `fieldGrid` rows visually consistent with the server-rendered empty rows: an otherwise-empty trailing row's `select` cell must start blank, not pre-filled with the column `default`
   - prevent a column `default` from leaking into the grid as apparent data on rows the user never touched
@@ -6319,7 +6319,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 ### W-193, v1.6.50, 2026-07-07: deployment: pm2 reload unnecessarily slow due to missing process.send('ready')
 - status: ✅ DONE
-- type: Bug fix
+- type: Bugfix
 - objectives:
   - make `pm2 reload` cut over to a new cluster worker within milliseconds of it actually being ready, instead of stalling for the full `listen_timeout` fallback
   - make the generated `ecosystem.prod.config.cjs`'s `wait_ready: true` setting behave as documented
@@ -6408,12 +6408,12 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - bootstrap safety check in `webapp/utils/bootstrap.js` (found during implementation: this is where the actual bootstrap sequencing lives, not `webapp/app.js`): if `localAuthRestriction === 'disabled'` AND no external auth plugin is enabled, forcibly downgrade to `'admins-only'` and log a warning (prevents self-lockout); extracted as a standalone exported `checkLocalAuthRestrictionSafety()` function so it's unit-testable without running the full bootstrap sequence
   - `?localFallback=1` URL param on `/auth/login.shtml`: reveals local login form with a "Recovery mode" banner even in restricted modes (server still enforces the role check — this is a UI convenience for ops teams when SSO is broken)
   - new i18n strings for restriction messages and recovery mode banner
-  - `hasLocalPassword` user-schema primitive (identified during W-196 design review): `{ type: 'boolean', default: true }` — general marker for "does this user know a real, usable local password", useful to any external-auth plugin (OAuth, LDAP, SAML), not just auth-oauth
+  - `hasLocalPassword` user-schema primitive (identified during W-197 design review): `{ type: 'boolean', default: true }` — general marker for "does this user know a real, usable local password", useful to any external-auth plugin (OAuth, LDAP, SAML), not just auth-oauth
     - external-auth plugins set it to `false` when they write a synthetic/unknown `passwordHash` at JIT-creation time
     - `UserController.changePassword()` skips the `currentPassword` check when `hasLocalPassword === false` (impossible to satisfy by construction — the user's session already proves identity); sets it back to `true` on success
     - `webapp/view/user/settings.tmpl` Security panel conditionally hides `currentPassword` and relabels the section "Set Password" vs "Change Password" based on this flag
     - no migration/backfill needed — absent field reads as `true` (default), matching existing local-signup users
-  - `CommonUtils.sanitizeHtml()` (server) / `jPulse.string.sanitizeHtml()` (client) bug fixes (found while building the W-196 auth-oauth plugin's provider-icon rendering, but independent of and useful beyond OAuth):
+  - `CommonUtils.sanitizeHtml()` (server) / `jPulse.string.sanitizeHtml()` (client) bug fixes (found while building the W-197 auth-oauth plugin's provider-icon rendering, but independent of and useful beyond OAuth):
     - server: attribute-extraction regex used `\w+` (no hyphen support), so hyphenated attribute names (`stroke-width`, `fill-rule`, `aria-*`, `data-*`) were mis-parsed and silently dropped even when explicitly allow-listed; fixed to `[\w-]+`
     - client: **security fix** — foreign-namespace elements (SVG, MathML) report `tagName` in authored case, not uppercased like HTML elements; without normalizing case, `<svg><script>...</script></svg>` bypassed the dangerous-tag/strict-allowlist checks entirely; fixed by uppercasing `node.tagName` before comparison in both non-strict and strict code paths
 - deliverables:
@@ -6472,20 +6472,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - "Authentication & Authorization" bullet references the new framework primitives
   - docs/CHANGELOG.md, README.md, docs/README.md: release notes / highlights
 
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-196, v1.7.2, 2026-07-27: infrastructure: Node.js 24 upgrade; fix startup secret leakage & Redis session race condition
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Infrastructure + Bugfix
 - objectives:
   - eliminate GitHub Actions' "Node.js 20 is deprecated" warning by moving CI to Node 24
@@ -6537,97 +6525,64 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-### W-197, v1.0.0, 2026-07-28: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-199, v1.7.3, 2026-07-30: infrastructure: fix startup race conditions in `.jpulse/*.json` caches and Redis connection-availability tracking
 - status: 🚧 IN_PROGRESS
-- type: Feature
-- objective: SSO plugin supporting two deployment scenarios — (1) public sites with consumer providers (Google, and later Apple/GitHub), (2) org-internal sites with enterprise providers (Okta, Auth0, Azure Entra, Keycloak, ADFS via generic OIDC)
-- repository: github.com/jpulse-net/plugin-auth-oauth (separate repo, independent versioning)
-- npm package: @jpulse-net/plugin-auth-oauth@1.0.0 (planned, GitHub Package Registry)
-- depends on: W-105 (plugin hooks), W-107 (data-driven user cards), W-109 (multi-step login), W-194 (custom renderer), W-195 (external auth helpers)
-- working doc: docs/dev/design/W-196-auth-oauth-plugin.md
-- scope v1.0.0:
-  - Google preset (public sites)
-  - generic OIDC preset (Okta, Auth0, Entra, Keycloak, ADFS via discovery URL)
-  - custom OAuth2 preset (manual URLs, non-OIDC providers)
-  - multiple providers active simultaneously; provider list stored via W-194 custom renderer
-  - out of scope for v1.0.0: Apple SSO (form_post + first-consent-only email), GitHub preset, token persistence, backchannel logout, SAML — deferred to v1.1+
+- type: Bugfix
+- objective: eliminate startup race conditions that write/sample shared state on every process boot with no locking or per-connection accuracy, under PM2 cluster mode's N-independent-processes model
+- discovered while: post Node.js 24 upgrade (W-196) rollout — `auth-mfa` was found disabled, unexplained, in three separate environments within 24 hours (dev Mac, jpulse.net prod, bubblemap.net prod); a broader audit (grep for `fs.writeFileSync`/`fs.writeFile` across `webapp/`, plus a full re-read of `redis-manager.js`'s connection lifecycle) then found two more related instances in `webapp/app.js` and `webapp/utils/redis-manager.js`
+- shared architectural root cause: PM2 `exec_mode: 'cluster'` runs N fully independent OS processes (no leader election, no shared memory — confirmed no `cluster.isPrimary` guard anywhere in `bootstrap.js`); any module that reads a `.jpulse/*.json` file, regenerates its content, and unconditionally re-persists it via a bare `fs.writeFileSync()` (no file lock, no atomic temp+rename) on every single process boot is exposed to concurrent read/write races when multiple instances restart close together (e.g. every `npx jpulse update` + `pm2 start`/`reload` cycle)
+- instance (a) — `webapp/utils/plugin-manager.js` (`.jpulse/plugins.json`) — HIGH severity, silent state corruption:
+  - `PluginManager.registry` is a per-process, in-memory singleton; `saveRegistry()` is a bare `fs.writeFileSync()`; `initialize()` unconditionally calls it on every boot
+  - two distinct triggers converge on the same silent-reset behavior:
+    - missing/unreadable registry file: if `.jpulse/plugins.json` doesn't exist, or a read hits invalid/truncated JSON, the `catch` block resets the in-memory registry to fully empty; `discoverPlugins()` then treats every plugin as brand-new and re-defaults each one to its own `autoEnable` value (`false` for `auth-mfa`/`auth-oauth`), then persists that reset state — reproduced in dev when an agent-run `rm -rf .jpulse` (during CI debugging) wasn't restored before the next boot
+    - concurrent multi-process access with zero locking: each of the N instances holds its own in-memory registry copy loaded once at boot; if one instance's registry is updated (admin GUI enable, or CLI `jpulse plugin enable`) while a peer instance still holds an older in-memory snapshot, that peer's next `saveRegistry()` call (its own restart, or any other plugin action routed to it) silently clobbers the correct state with its stale copy — `enablePlugin()`'s own return message ("Restart required to take effect.") implicitly acknowledges this gap without actually guarding against it; a `fs.writeFileSync` "torn read" during concurrent access can also trigger the missing/unreadable-file path on just one of the N processes, with the same end result — reproduced independently on both jpulse.net and bubblemap.net (3-instance PM2 clusters) during the rapid, overlapping `pm2 update`/`start`/`reload` cycles of the W-196 VM rollout
+  - confirmed to NOT be a case of `.jpulse/app.json` deletion (which only affects app config, not `plugins.json`) — this is strictly a `PluginManager` design gap
+- instance (b) — `webapp/app.js` (`loadAppConfig()`, `.jpulse/app.json` + `.jpulse/config-sources.json`) — LOWER severity, self-healing crash instead of silent corruption:
+  - same shape: `shouldRegenerateConfig()` triggers on `app.conf`/site `app.conf`/`app-secret.conf` mtime (i.e. right after every `npx jpulse update` or live config edit — exactly when all N instances restart together); regeneration path does two unguarded `fs.writeFileSync()` calls with no lock, no atomic write; runs at module-load time in every one of the N processes, before `bootstrap()` even starts
+  - unlike plugins.json, the regenerated content is a pure, deterministic function of the source `.conf` files (no separate "toggled state" to lose), so a race here can't silently corrupt security-relevant state — but if one instance's cached-load branch (`JSON.parse(fs.readFileSync(jsonPath, 'utf8'))`) catches another instance mid-write, `JSON.parse` throws, and the enclosing `catch` calls `process.exit(1)`, crashing that instance outright; PM2 auto-respawns it and the retry succeeds once the write has finished, so it's self-healing but causes a startup crash/flap on any deploy where multiple instances restart together — a plausible, quieter cousin of the W-196 VM incident that wasn't specifically confirmed in this round's logs
+- instance (c) — `webapp/utils/redis-manager.js` (shared `isAvailable` flag, not a file race) — MEDIUM severity, low probability but non-self-correcting for the process's lifetime:
+  - confirmed NOT affected by the file-race class: all cross-instance coordination goes through genuinely atomic Redis primitives (`SET NX EX` for locks, Lua script for owner-safe lock release, per-instance-unique keys for instance registration) — no local shared file is read-modify-written
+  - but a *different* startup race exists: `RedisManager.isAvailable` is a single shared static boolean, mutated by the `connect`/`error`/`close` event handlers (`_addConnectionHandlers()`) of all 7 independently-lifecycled connections (`session`, `websocket.publisher/subscriber`, `broadcast.publisher/subscriber`, `metrics`, `cache`); `getClient(service)` only checks this one shared flag plus non-null — it never checks the specific client's own `.status` (ioredis exposes e.g. `'ready'`/`'connecting'`/`'close'`)
+  - with `lazyConnect: true`, most of the 7 connections stay fully dormant during boot (no command issued yet), but two others *do* actively connect in the same narrow boot window as `session`'s awaited `ping()` in `_testConnection()`: `broadcast.subscriber` (via the synchronous `psubscribe()` call in `_createConnections()`, fired just before the ping) and `metrics` (via `_registerInstance()`'s `setex`/`sadd`, called right after the ping succeeds) — if either of those two hits any transient connection blip (auth handshake delay, brief network hiccup, Redis momentarily busy) during that window, their `error`/`close` handler flips the *shared* `isAvailable` to `false`, even though the `session` connection itself is perfectly healthy
+  - severity is amplified because `configureSessionStore()` (bootstrap Step 9.1) calls `RedisManager.getClient('session')` exactly once, at boot, and whatever it gets back (real `RedisStore` vs. `MemoryStore`/Mongo fallback) is used for that process's *entire lifetime* — there's no later re-check, so an unlucky, purely transient hiccup on `metrics` or the broadcast subscriber could silently doom session persistence for that one PM2 instance until its next restart, architecturally the same class of fragility as the W-196 session-store-selection bug already fixed, just with a different trigger
+  - everything else in `bootstrap.js` (LogController, i18n, HookManager, ViewController, SiteControllerRegistry, ThemeManager, HandlebarController, MongoDB index creation via `ensureIndexes()`) either keeps no cross-process persisted local state, or relies on MongoDB's own atomic index-creation guarantees under concurrent calls — no further issues found there
+- minor/optional secondary finding (not blocking, no action needed unless revisited): `HealthController.initializeComplianceScheduler()` (bootstrap Step 11.1) also runs independently in every PM2 instance and decides whether to send a license-compliance report via a plain Redis `GET` then later `SET` of `lastScheduledTimestamp` (`_shouldSendReport()`) rather than an atomic compare-and-swap/lock; if two instances' randomized 0-14-minute send delays land within the same window, there's a narrow theoretical chance of a duplicate report send — already mitigated by design (random spreading + 30-minute dedup window), impact is just a duplicate outbound report, not corrupted app state
 - features:
-  - Authorization Code flow with mandatory PKCE (S256), state (CSRF), nonce (OIDC)
-  - ID token signature verification via provider JWKS (cached by openid-client)
-  - three user linking strategies, per-provider configurable:
-    - `sub-only`: strict — admin must pre-provision users
-    - `link-by-email` (default): match existing local user by verified email, then use sub for subsequent logins
-    - `jit-create`: create new users on first login with default role and status; writes only fields already present in `UserModel.baseSchema` — no framework schema changes needed (synthetic random `passwordHash`, `hasLocalPassword: false`, guaranteed non-empty `profile.firstName`/`lastName` via fallback chain; see design doc §7, §10)
-  - `email_verified: true` (an IdP-provided claim, not a persisted user field) required for `link-by-email` and JIT (prevents account takeover via unverified email at IdP); stored for audit only inside `oauth.{provider}.emailVerified`, never on the base user document
-  - migration paths for existing internal-auth sites (see design doc §9):
-    - Path A: automatic email-link on first SSO login (zero admin work when local email = IdP email)
-    - Path B: self-service link from linked-accounts page (user logs in locally first, then connects SSO provider)
-    - Path C: admin bulk CSV import — deferred to v2.0
-  - profile field extraction & JIT completion (see design doc §10):
-    - Stage A: best-effort claim extraction with fallbacks (given_name / family_name / name-split heuristics / preferred_username / email local-part), always resolving to a non-empty value since `profile.firstName`/`lastName` are schema-required; tracks which fields only got a placeholder via `oauth._jit.placeholderFields`
-    - Stage B: interactive `oauth-profile-complete` step injected into the W-109 multi-step flow when Stage A only produced placeholders for a field in `profileRequiredFields` — JIT-created users only (gated by presence of `oauth._jit`), existing users never re-prompted
-    - `profileRequiredFields` config option (default `['firstName', 'lastName']`) controls which fields trigger Stage B
-    - `oauth._jit` sentinel (`{ createdAt, viaProvider, placeholderFields, profileCompletedAt }`) lives as a sibling of provider blocks under `user.oauth`, not nested inside any one provider's block — it's a property of the user, not of a specific provider link
-  - `status: 'pending'` (existing `UserModel` enum value, not a new one) supported for JIT: the plugin's callback handler checks it explicitly before calling `AuthController.completeExternalAuth()` — there is no implicit framework-side gate for this
-  - account lifecycle / local-password interplay (see design doc §11): unlink-last-method guard blocks removing a user's only sign-in method when `hasLocalPassword === false` (W-195 primitive), pointing them to the existing "Set Password" flow instead of building new password UI
-  - `allowedDomains` per-provider option for domain-restricted signup
-  - `jitDefaultRoles`/`jitRoles` never offer or accept `admin`/`root` — stripped in code as defense in depth, not just excluded from the config UI
-  - user schema extension: `user.oauth.{provider}` block with W-107 adminCard/userCard for link/unlink management
-  - no IdP session or token persistence — only `sub`, `email`, `emailVerified`, `name`, `picture`, `preferredUsername`, `iss`, `linkedAt`, `lastLoginAt`
-  - client_secret encrypted at rest in `authOauth_providers` collection using framework encryption utility (same pattern as auth-mfa TOTP secret)
-  - login page buttons injected via `onAuthGetLoginProviders` (from W-195), per-provider `icon` / `buttonColor` / `label` for branding
-  - computed, copyable redirect URI shown per provider in the config renderer (derived from `req.protocol`/`req.get('host')`, same pattern as `handlebar.js`'s `url.domain`) — admin never has to guess the callback URL to paste into the IdP console
-  - composes with auth-mfa: MFA step runs after successful OAuth identity resolution via existing W-109 flow
-  - user linked-accounts management page (`/jpulse-plugins/auth-oauth.shtml`) for connecting/disconnecting providers
-  - error page (`/auth/oauth-error.shtml`) with i18n error mapping (never leaks raw provider errors)
-  - rate limiting on init/callback endpoints
-  - documents existing `controller.user.disableSignup`/`view.auth.hideSignup` + `localAuthRestriction` (W-195) combinations per site mode in README (see design doc §12) — no new signup/login-visibility flags needed, framework already has what's required
-- npm dependency: openid-client (~500KB with jose + oauth4webapi)
-- security posture:
-  - mandatory PKCE for all providers, even confidential clients
-  - state one-time-use, 5-minute expiry
-  - ID token: signature via JWKS, iss matches discovery, aud matches client_id, exp check, nonce match
-  - only authorization code flow — no implicit, no resource owner password credentials
-  - timing-safe compare for state/nonce
-  - never log tokens, codes, or secrets
+  - shared helper `CommonUtils.writeFileAtomic()` (temp file in the same directory + `fs.renameSync()`) eliminates torn reads for all three files (`plugins.json`, `app.json`, `config-sources.json`); used by both `plugin-manager.js` and `app.js` instead of duplicating the pattern
+  - `plugin-manager.js`: `saveRegistry()` now atomic; `initialize()`'s corrupt/missing-registry `catch` now logs a loud `LogController.logError` before resetting, instead of silently `console.error`-ing and moving on; new `_reloadRegistryFromDisk()` re-reads the on-disk registry fresh (re-pointing `discovered`'s cached `registryEntry` references to the freshly-loaded objects) immediately before `enablePlugin()`/`disablePlugin()`/`rescan()` merge their change and save - closes the cross-instance clobbering hole without a lockfile or leader-instance election, since each mutating action now starts from the latest on-disk state instead of a potentially-stale full in-memory snapshot
+  - `app.js`: both `.jpulse/app.json` and `.jpulse/config-sources.json` writes now atomic; the cached-load branch's `JSON.parse` is wrapped in its own try/catch that falls back to regenerating from the source `.conf` files (same as a `needsRegeneration` boot) instead of letting the outer catch's `process.exit(1)` crash the process - a peer instance's mid-write (or a genuinely corrupt cache) now self-heals within the same boot instead of crash-looping until the write finishes
+  - `redis-manager.js`: `getClient(service, type)` now checks the specific resolved client's own ioredis `.status` first - `'ready'` is authoritative (returned even if the shared `isAvailable` is currently false), `'end'` is authoritative (null even if `isAvailable` is currently true), any other status (including a still-dormant `lazyConnect` `'wait'`) falls back to the shared flag as before; scoped narrowly to `getClient()` only - the ~15 other direct `RedisManager.isAvailable` reads elsewhere in the file (`publishBroadcast`, `healthCheck`, `getMetrics`, etc.) are unchanged
+  - explicitly out of scope (decided during planning, not oversights): no advisory lockfile, no leader-PM2-instance election - `_reloadRegistryFromDisk()`'s re-read-before-merge was judged sufficient for the admin-action clobbering scenario without the added complexity/failure modes a lock or leader election would introduce; `HealthController.initializeComplianceScheduler()`'s duplicate-report race left untouched, as originally flagged "not blocking"
+  - complementary process guardrail (not a code fix, but directly motivated by the same incident): `.jpulse/*.json` files are generated/read-only cache, derived from real source config - the original dev-environment `auth-mfa`/`auth-oauth` disablement was ultimately traced to an agent directly editing/deleting `.jpulse/` state rather than the concurrency race itself; added a `.cursor/rules/` rule forbidding any agent from running `rm`/`mv`/edits against `.jpulse/` directly, matching the existing "never touch version headers" / "never run bump-version" guardrail pattern
 - deliverables:
-  - plugins/auth-oauth/plugin.json:
-    - plugin manifest with globals (defaultLinkingStrategy, jitDefaultRoles, jitDefaultStatus)
-    - `type: "custom"` field for `providers` with renderer `authOauth.renderProviders` (uses W-194)
-  - plugins/auth-oauth/package.json:
-    - openid-client dependency
-  - plugins/auth-oauth/README.md, plugins/auth-oauth/docs/README.md:
-    - dev + user docs, includes provider setup guides for Google, Okta, Keycloak, Azure Entra
-  - plugins/auth-oauth/webapp/controller/oauthAuth.js:
-    - hooks: onAuthGetLoginProviders, onUserSyncProfile, onAuthAfterLogin
-    - api endpoints: providers, init, callback, user/providers, link, unlink, admin CRUD, test-connection
-  - plugins/auth-oauth/webapp/model/oauthAuth.js:
-    - `user.oauth` schema extension with W-107 adminCard/userCard metadata
-  - plugins/auth-oauth/webapp/model/oauthProvider.js:
-    - `authOauth_providers` collection CRUD
-    - client_secret encryption at rest
-  - plugins/auth-oauth/webapp/utils/providerRegistry.js:
-    - preset definitions (google, oidc, oauth2) with discovery URLs, default scopes
-  - plugins/auth-oauth/webapp/utils/oauthClient.js:
-    - openid-client wrapper: discovery caching, PKCE, JWKS
-  - plugins/auth-oauth/webapp/utils/profileExtractor.js:
-    - Stage A best-effort claim → user field mapping with fallbacks (given_name → name-split → preferred_username → email local-part)
-  - plugins/auth-oauth/webapp/view/auth/oauth-profile-complete.shtml:
-    - Stage B form for filling in missing firstName / lastName / nickName after JIT signup
-  - plugins/auth-oauth/webapp/view/auth/oauth-error.shtml:
-    - error landing page with i18n reason mapping
-  - plugins/auth-oauth/webapp/view/jpulse-plugins/auth-oauth.shtml:
-    - user linked-accounts management (connect, disconnect, view)
-  - plugins/auth-oauth/webapp/view/jpulse-common.js:
-    - `authOauth.renderProviders` custom renderer (provider CRUD table for W-194)
-  - plugins/auth-oauth/webapp/view/jpulse-common.css:
-    - provider button styles, branding classes
-  - plugins/auth-oauth/webapp/view/jpulse-navigation.js:
-    - link to /jpulse-plugins/auth-oauth.shtml from user menu
-  - plugins/auth-oauth/webapp/bump-version.conf:
-    - version management config
-  - i18n files (en, de) for plugin.authOauth.* namespace
-  - published to github.com/jpulse-net/plugin-auth-oauth as v1.0.0
+  - `webapp/utils/common.js`:
+    - new `writeFileAtomic(filePath, data)` - temp file + `fs.renameSync()`, with best-effort temp-file cleanup on error; added to both the default export and the named-export destructure list
+  - `webapp/utils/plugin-manager.js`:
+    - `saveRegistry()`: atomic write via `CommonUtils.writeFileAtomic()`
+    - `initialize()`: corrupt/missing-registry `catch` now logs via `LogController.logError` before resetting to an empty registry
+    - new `_reloadRegistryFromDisk()`: re-reads `plugins.json` fresh, re-points `discovered` entries' `registryEntry` references; on read/parse failure, logs a warning and keeps the current in-memory registry (no silent reset)
+    - `enablePlugin()`, `disablePlugin()`, `rescan()`: now call `_reloadRegistryFromDisk()` before merging their change and saving
+  - `webapp/app.js`:
+    - `loadAppConfig()`: extracted `regenerateConfig()` helper (atomic writes for `app.json`/`config-sources.json`, shared by both the `needsRegeneration` path and the new fallback path); cached-load branch's `JSON.parse` wrapped in its own try/catch that calls `regenerateConfig()` instead of falling through to the outer catch's `process.exit(1)`
+  - `webapp/utils/redis-manager.js`:
+    - `getClient(service, type)`: checks the resolved client's own `.status` (`'ready'`/`'end'` authoritative, otherwise falls back to the shared `isAvailable` flag)
+  - `webapp/tests/unit/utils/plugin-manager.test.js` (new, 6 tests):
+    - atomic `saveRegistry()` leaves no leftover temp file; corrupt-registry `catch` logs via `LogController.logError`; `enablePlugin()`/`disablePlugin()` preserve a simulated peer instance's concurrent change to a different plugin instead of clobbering it; `_reloadRegistryFromDisk()` resiliency (corrupt file, missing file)
+  - `webapp/tests/unit/utils/common-utils-file.test.js` (new, 6 tests):
+    - `writeFileAtomic()` create/overwrite/no-leftover-temp-file/large-payload/missing-target-dir-cleanup/distinct-temp-filenames
+  - `webapp/tests/unit/utils/redis-get-client.test.js` (new, 11 tests):
+    - regression coverage for the exact reported race - `getClient()` returns the requested client when its own status is `'ready'` even though the shared `isAvailable` is false, returns `null` when its own status is `'end'` even though `isAvailable` is true, and falls back to the shared flag for ambiguous statuses (`'wait'`/`'connecting'`/`'connect'`/`'close'`/`'reconnecting'`/undefined)
+  - note: `app.js`'s `loadAppConfig()` itself has no direct unit test (new or pre-existing) - importing `app.js` runs `startApp()` at module load (binds a real port), so it isn't safely importable in a unit test without a refactor beyond this fix's scope; verified instead via the manual boot check below
+  - `.cursor/rules/jpulse-core-standards.mdc`:
+    - new "NEVER MOVE, DELETE, OR EDIT FILES IN .jpulse/" rule section (agent-facing guardrail, see complementary finding above)
+- test / verify:
+  - full suite: 108 suites / 2787 unit tests + 11 suites / 108 integration tests pass (2895 total, 0 failures), including the 23 new tests above
+  - manual `npm start`: fresh boot log confirms `Using cached configuration from .jpulse/app.json`, `PluginManager: Discovered 3 plugins (3 enabled, 0 disabled)` with `auth-mfa`/`auth-oauth` both still `enabled: true` (the exact state that was previously found silently reverted), and `RedisManager: ... Available: true` / `Session store: Redis (cluster-ready)`; confirmed no leftover `.tmp.*` files in `.jpulse/` after boot
+- benefits: prevents silent, unattended reversion of security-relevant plugin state (e.g. `auth-mfa` disabling itself), eliminates a self-healing-but-avoidable crash/flap on config-file changes, and closes a non-self-correcting session-store-fallback edge case caused by an unrelated Redis connection's transient hiccup — in both single-instance and PM2 cluster deployments
+
 
 
 
@@ -6660,8 +6615,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-196, v1.7.2, 2026-07-27
-- update features & deliverables in W-196 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume W-199, v1.7.3, 2026-07-30
+- update features & deliverables in W-199 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - append to cursor_log.txt
@@ -6672,12 +6627,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.2 2026-07-27
+node bin/bump-version.js 1.7.3 2026-07-30
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.2; git push origin main --tags
+git tag v1.7.3; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff
@@ -6732,7 +6687,7 @@ npx jest webapp/tests/unit/controller/handlebar-logical-helpers.test.js
 ## 🕑 PENDING Work Items
 
 template:
-### W-1, v1.6., 2026-02-:
+### W-1, v1.7., 2026-08-:
 - status: 🕑 PENDING
 - type: Feature
 - objectives:
@@ -6740,6 +6695,283 @@ template:
 - deliverables:
   - FIXME `path/file`:
     - FIXME summary
+
+### W-197, v1.0.0, 2026-07-28: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: SSO plugin supporting two deployment scenarios — (1) public sites with consumer providers (Google, and later Apple/GitHub), (2) org-internal sites with enterprise providers (Okta, Auth0, Azure Entra, Keycloak, ADFS via generic OIDC)
+- repository: github.com/jpulse-net/plugin-auth-oauth (separate repo, independent versioning)
+- npm package: @jpulse-net/plugin-auth-oauth@1.0.0 (planned, GitHub Package Registry)
+- depends on: W-105 (plugin hooks), W-107 (data-driven user cards), W-109 (multi-step login), W-194 (custom renderer), W-195 (external auth helpers)
+- working doc: docs/dev/design/W-197-auth-oauth-plugin.md
+- scope v1.0.0:
+  - Google preset (public sites)
+  - generic OIDC preset (Okta, Auth0, Entra, Keycloak, ADFS via discovery URL)
+  - custom OAuth2 preset (manual URLs, non-OIDC providers)
+  - multiple providers active simultaneously; provider list stored via W-194 custom renderer
+  - out of scope for v1.0.0: Apple SSO (form_post + first-consent-only email), GitHub preset, token persistence, backchannel logout, SAML — deferred to v1.1+
+- features:
+  - Authorization Code flow with mandatory PKCE (S256), state (CSRF), nonce (OIDC)
+  - ID token signature verification via provider JWKS (cached by openid-client)
+  - three user linking strategies, per-provider configurable:
+    - `sub-only`: strict — admin must pre-provision users
+    - `link-by-email` (default): match existing local user by verified email, then use sub for subsequent logins
+    - `jit-create`: create new users on first login with default role and status; writes only fields already present in `UserModel.baseSchema` — no framework schema changes needed (synthetic random `passwordHash`, `hasLocalPassword: false`, guaranteed non-empty `profile.firstName`/`lastName` via fallback chain; see design doc §7, §10)
+  - `email_verified: true` (an IdP-provided claim, not a persisted user field) required for `link-by-email` and JIT (prevents account takeover via unverified email at IdP); stored for audit only inside `oauth.{provider}.emailVerified`, never on the base user document
+  - migration paths for existing internal-auth sites (see design doc §9):
+    - Path A: automatic email-link on first SSO login (zero admin work when local email = IdP email)
+    - Path B: self-service link from linked-accounts page (user logs in locally first, then connects SSO provider)
+    - Path C: admin bulk CSV import — deferred to v2.0
+  - profile field extraction & JIT completion (see design doc §10):
+    - Stage A: best-effort claim extraction with fallbacks (given_name / family_name / name-split heuristics / preferred_username / email local-part), always resolving to a non-empty value since `profile.firstName`/`lastName` are schema-required; tracks which fields only got a placeholder via `oauth._jit.placeholderFields`
+    - Stage B: interactive `oauth-profile-complete` step injected into the W-109 multi-step flow when Stage A only produced placeholders for a field in `profileRequiredFields` — JIT-created users only (gated by presence of `oauth._jit`), existing users never re-prompted
+    - `profileRequiredFields` config option (default `['firstName', 'lastName']`) controls which fields trigger Stage B
+    - `oauth._jit` sentinel (`{ createdAt, viaProvider, placeholderFields, profileCompletedAt }`) lives as a sibling of provider blocks under `user.oauth`, not nested inside any one provider's block — it's a property of the user, not of a specific provider link
+  - `status: 'pending'` (existing `UserModel` enum value, not a new one) supported for JIT: the plugin's callback handler checks it explicitly before calling `AuthController.completeExternalAuth()` — there is no implicit framework-side gate for this
+  - account lifecycle / local-password interplay (see design doc §11): unlink-last-method guard blocks removing a user's only sign-in method when `hasLocalPassword === false` (W-195 primitive), pointing them to the existing "Set Password" flow instead of building new password UI
+  - `allowedDomains` per-provider option for domain-restricted signup
+  - `jitDefaultRoles`/`jitRoles` never offer or accept `admin`/`root` — stripped in code as defense in depth, not just excluded from the config UI
+  - user schema extension: `user.oauth.{provider}` block with W-107 adminCard/userCard for link/unlink management
+  - no IdP session or token persistence — only `sub`, `email`, `emailVerified`, `name`, `picture`, `preferredUsername`, `iss`, `linkedAt`, `lastLoginAt`
+  - client_secret encrypted at rest in `authOauth_providers` collection using framework encryption utility (same pattern as auth-mfa TOTP secret)
+  - login page buttons injected via `onAuthGetLoginProviders` (from W-195), per-provider `icon` / `buttonColor` / `label` for branding
+  - computed, copyable redirect URI shown per provider in the config renderer (derived from `req.protocol`/`req.get('host')`, same pattern as `handlebar.js`'s `url.domain`) — admin never has to guess the callback URL to paste into the IdP console
+  - composes with auth-mfa: MFA step runs after successful OAuth identity resolution via existing W-109 flow
+  - user linked-accounts management page (`/jpulse-plugins/auth-oauth.shtml`) for connecting/disconnecting providers
+  - error page (`/auth/oauth-error.shtml`) with a client-side reason-code → friendly-message map (never leaks raw provider errors; no framework i18n yet, see below)
+  - rate limiting on init/callback endpoints
+  - documents existing `controller.user.disableSignup`/`view.auth.hideSignup` + `localAuthRestriction` (W-195) combinations per site mode in README (see design doc §12) — no new signup/login-visibility flags needed, framework already has what's required
+- npm dependency: openid-client (~500KB with jose + oauth4webapi)
+- security posture:
+  - mandatory PKCE for all providers, even confidential clients
+  - state one-time-use, 5-minute expiry
+  - ID token: signature via JWKS, iss matches discovery, aud matches client_id, exp check, nonce match
+  - only authorization code flow — no implicit, no resource owner password credentials
+  - timing-safe compare for state/nonce
+  - never log tokens, codes, or secrets
+- deliverables:
+  - webapp/utils/crypto-secrets.js (new framework file, found during spec review - see design doc §8):
+    - generic secret-encryption helper (AES-256-GCM + `scrypt`), extracted from `auth-mfa`'s inline TOTP-encryption pattern so it's a genuinely shared primitive rather than duplicated a second time; `auth-mfa` itself left untouched (not retrofitted)
+  - plugins/auth-oauth/plugin.json:
+    - plugin manifest with globals (defaultLinkingStrategy, jitDefaultRoles, jitDefaultStatus)
+    - `type: "custom"` field for `providers` with renderer `authOauth.renderProviders` (uses W-194)
+  - plugins/auth-oauth/package.json:
+    - openid-client dependency
+  - plugins/auth-oauth/README.md, plugins/auth-oauth/docs/README.md:
+    - dev + user docs, includes provider setup guides for Google, Okta, Keycloak, Azure Entra
+  - plugins/auth-oauth/webapp/controller/oauthAuth.js:
+    - hooks: onAuthGetLoginProviders, onAuthGetSteps, onAuthValidateStep (found during implementation: the JIT profile-completion step integrates with W-109's multi-step login flow via these two hooks, not a bespoke onUserSyncProfile/onAuthAfterLogin pair as originally sketched - see design doc §10)
+    - api endpoints: providers, init, callback, user/providers, link, unlink, profile-draft, admin CRUD, test-connection
+  - plugins/auth-oauth/webapp/model/oauthAuth.js:
+    - `user.oauth` schema extension with W-107 adminCard/userCard metadata
+  - plugins/auth-oauth/webapp/model/oauthProvider.js:
+    - `authOauth_providers` collection CRUD
+    - client_secret encryption at rest
+  - plugins/auth-oauth/webapp/utils/providerRegistry.js:
+    - preset definitions (google, oidc, oauth2) with discovery URLs, default scopes
+  - plugins/auth-oauth/webapp/utils/oauthClient.js:
+    - openid-client wrapper: discovery caching, PKCE, JWKS
+  - plugins/auth-oauth/webapp/utils/profileExtractor.js:
+    - Stage A best-effort claim → user field mapping with fallbacks (given_name → name-split → preferred_username → email local-part)
+  - plugins/auth-oauth/webapp/view/auth/oauth-profile-complete.shtml:
+    - Stage B form for filling in missing firstName / lastName / nickName after JIT signup
+  - plugins/auth-oauth/webapp/view/auth/oauth-error.shtml:
+    - error landing page with a client-side reason-code → friendly-message map (no framework i18n yet)
+  - plugins/auth-oauth/webapp/view/jpulse-plugins/auth-oauth.shtml:
+    - user linked-accounts management (connect, disconnect, view)
+  - plugins/auth-oauth/webapp/view/jpulse-common.js:
+    - `authOauth.renderProviders` custom renderer (provider CRUD table for W-194)
+  - plugins/auth-oauth/webapp/view/jpulse-common.css:
+    - provider button styles, branding classes
+  - plugins/auth-oauth/webapp/view/jpulse-navigation.js:
+    - link to /jpulse-plugins/auth-oauth.shtml from user menu
+  - plugins/auth-oauth/webapp/bump-version.conf:
+    - version management config
+  - plugins/auth-oauth/webapp/tests/unit/{controller,model,utils}/*.test.js:
+    - 141 tests covering the controller (incl. JIT creation, Stage A/B profile completion, admin CRUD), both models, and all three utils modules - all framework/DB dependencies mocked, no live IdP calls
+  - i18n: deferred (found during implementation: no plugin-level i18n mechanism exists in the framework yet - `webapp/translations/*.conf` only loads framework/site strings, see design doc §"UI Components"); all plugin-facing strings are English-only for v1.0.0
+  - published to github.com/jpulse-net/plugin-auth-oauth as v1.0.0
+
+### W-198, v1.7.x, 2026-08-xx: security: email uniqueness is case-sensitive and unverified - enables duplicate accounts and an OAuth pre-linking account-takeover
+- status: 🕑 PENDING
+- type: Bugfix (security)
+- objective: close two related gaps in `UserModel`'s email handling - (a) email uniqueness checks are case-sensitive with no DB-level index, allowing case-variant duplicate accounts, and (b) neither signup nor profile email-change verifies actual ownership of the address, which combined with the auth-oauth plugin's (W-197) `link-by-email`/`jit-create` strategies enables a pre-authentication account-takeover attack
+- discovered while: manually testing W-197's auth-oauth plugin end-to-end against a live Google IdP, then investigating whether duplicate-email accounts are possible in the framework at all
+- finding (a) - case-sensitive uniqueness, no DB index:
+  - `UserModel.findByEmail()` (`webapp/model/user.js`) does an exact case-sensitive match (`{ email: email }`) with no `.toLowerCase()` normalization, unlike `findByUsername()`, which normalizes to lowercase both client-side (signup form's `oninput` handler) and server-side
+  - no MongoDB unique index exists on `users.email` (or `users.username`) at all - confirmed no `createIndex()` call anywhere for the `users` collection (contrast `plugins.name`, which does get one) - the schema's `unique: true` is declarative only, enforced solely by app-level `findByEmail()`/`findByUsername()` pre-checks in `UserModel.create()`
+  - net effect: `peter@thoeny.org` and `Peter@Thoeny.org` can coexist as two separate accounts; the non-atomic check-then-insert (no transaction, no index) can also, in rare cases, create two accounts with the identical email string via a race
+- finding (b) - email is never verified, at signup or on change - the more serious one:
+  - grepped the entire `webapp/` tree for `emailVerified`/`verifyEmail`/`confirmEmail` - the only hit is a single comment in `webapp/controller/user.js` ("W-105: Enhanced with plugin hooks for email confirmation...") describing a hook extension *point*, not an actual implementation; no verification email is ever sent, no confirmation token/flow exists anywhere
+  - `UserModel.create()` and the profile-update path (`webapp/controller/user.js` `apiUpdate`, ~line 719-724) both only check "does any other account already hold this exact email string" - neither checks nor requires any proof that the requester actually controls that inbox
+  - exploit chain against W-197's auth-oauth plugin:
+    1. attacker creates (or already has) an ordinary local jPulse account
+    2. attacker changes their own account's email, via the standard profile-update endpoint, to the victim's real email (e.g. `victim@thoeny.org`) - this succeeds as long as no other local account currently holds that exact string, which is the common case for a victim who has never signed up locally
+    3. when the real victim later does their first Google/OIDC SSO login (`link-by-email` or `jit-create` strategy), `OauthAuthController._resolveUser()`'s email lookup (`UserModel.find({ email: identity.email }, { limit: 2 })`) finds exactly one match - the attacker's now-relabeled account - and links the victim's verified IdP identity to it (the `emailMatches.length === 1` branch, `plugins/auth-oauth/webapp/controller/oauthAuth.js` ~line 823)
+    4. the victim is transparently logged into the attacker-controlled account for that flow, and every future SSO login from the victim's real Google identity lands on the same attacker-controlled account, which the attacker can still also access via their own known local password
+    5. `AMBIGUOUS_EMAIL_MATCH` (W-197's existing safeguard) does **not** catch this case, because there's only ever one account holding that email string - the safeguard only fires on a pre-existing exact duplicate, not on a single squatted email
+  - secondary, lower-severity abuse of the same gap (no OAuth involved): email squatting as denial-of-service - anyone can pre-claim an arbitrary real email address on a dummy local account, permanently blocking the real owner of that inbox from ever signing up locally, via `UserModel.create()`'s "Email address already registered" check
+  - root cause is framework-wide (a general `UserModel`/profile-update gap, not specific to the auth-oauth plugin), but the auth-oauth plugin's `link-by-email`/`jit-create` strategies are what turn it from a data-hygiene nitpick into an account-takeover primitive, since they implicitly trust "this local account's stored email == this IdP-verified email" as sufficient proof of identity
+- proposed fix direction (none implemented yet - filed for future work):
+  - add a real `emailVerified` boolean to the user schema, defaulting to `false`; send a confirmation link on signup and on every email change; only flip to `true` once the link is clicked
+  - normalize email to lowercase everywhere it's read/written/compared (`findByEmail()`, `create()`, profile-update's duplicate check, signup), mirroring the existing `username` normalization, closing finding (a)
+  - add a real MongoDB unique index on `users.email` (case-insensitive collation, or index the lowercased value) as a backstop against the check-then-insert race, not just an app-level pre-check
+  - in auth-oauth's `link-by-email`/`jit-create` strategies specifically, require the matched local account's `emailVerified === true` in addition to the IdP's `email_verified` claim before auto-linking; if the local account's email isn't verified, fail closed with a new reason code (e.g. `LOCAL_EMAIL_NOT_VERIFIED`) instead of silently linking
+  - consider putting an account into a short-lived "pending re-verification" state on email change (old email still usable to log in / reverse the change) rather than trusting the new email immediately
+- deliverables:
+  - `webapp/model/user.js`:
+    - FIXME: add `emailVerified` field, lowercase-normalize email in `findByEmail()`/`create()`, add DB-level unique index
+  - `webapp/controller/user.js`:
+    - FIXME: send/require email confirmation on signup and on email change (ties into the existing W-105 hook comment)
+  - `plugins/auth-oauth/webapp/controller/oauthAuth.js`:
+    - FIXME: require local `emailVerified === true` in `_resolveUser()`'s email-match branch before linking; new `LOCAL_EMAIL_NOT_VERIFIED` reason code
+  - `plugins/auth-oauth/webapp/view/auth/oauth-error.shtml`:
+    - FIXME: friendly message for `LOCAL_EMAIL_NOT_VERIFIED`
+  - `docs/dev/design/W-197-auth-oauth-plugin.md`:
+    - FIXME: update the threat-model table with this finding and its fix once implemented
+- benefits: closes a pre-authentication account-takeover vector against the auth-oauth plugin's email-based linking strategies, closes an email-squatting DoS vector, and brings email uniqueness handling in line with the existing (correct) username-normalization pattern
+
+### W-200, v1.7.4, 2026-07-31: plugins: add onPluginConfigBeforeSave hook so plugin config saves can transform/encrypt values before persistence
+- status: 🕑 PENDING
+- type: Feature
+- objective: let a plugin's `type: "custom"` config field (W-194) participate in the page's single
+  generic "Save Changes" action for anything that needs server-side processing before persistence
+  (most importantly: encrypting a secret), instead of being forced into its own fully separate
+  save path/button as the only safe option today
+- discovered while: building W-197's auth-oauth plugin - its "Identity Providers" custom-rendered
+  field (a CRUD table of OAuth provider configs, each with a Client Secret) hit this gap directly
+  and shipped a real usability bug because of it (see docs/dev/design/W-197-auth-oauth-plugin.md
+  and plugins/auth-oauth/docs/README.md "Known gotcha: two independent Save buttons")
+- current contract/gap:
+  - `type: "custom"` fields are documented (`docs/plugins/plugin-api-reference.md` "`type: "custom"`
+    — plugin-supplied renderer") to expose exactly `{ container, value, onChange, schema, config,
+    disabled }` to the renderer - `onChange(v)` is the *only* channel back to the framework, and
+    "framework persists it as JSON" verbatim, with no field-specific processing of any kind
+  - the page's own generic "Save Changes" button hits a fully plugin-agnostic endpoint
+    (`PluginController.updateConfig()`, `webapp/controller/plugin.js`) that only does schema-shape
+    validation (`PluginModel.validateConfig()`) before one whole-document `PluginModel.upsert()` -
+    it has no hook for "transform/encrypt this one field's value before it touches storage"
+  - net effect: any custom renderer whose value contains something that must never be written to
+    `pluginConfigs` as-is (e.g. a plaintext secret) *cannot* safely rely on the generic Save button
+    at all - it must instead own a fully separate, plugin-specific write path (its own dedicated
+    API endpoint(s) + its own explicit Save button in the UI) to get a chance to intercept and
+    transform the value server-side first (see `plugins/auth-oauth/webapp/controller/oauthAuth.js`
+    `apiAdminProvidersCreate`/`apiAdminProvidersUpdate` + `OauthProviderModel.setClientSecret()`)
+  - this forces a confusing two-Save-buttons-on-one-page UX onto any plugin author who needs it:
+    the field's own dedicated Save persists immediately and correctly, but the page's generic Save
+    only knows about the field's value as of the *last* `ctx.onChange()` call - if an admin edits
+    the custom field's form and clicks only the page-level Save (the more prominent/expected one),
+    their edit is silently discarded, even though the page reports a "success" message (which is
+    accurate for every *other* field, just not this one) - auth-oauth's v1.0.0 shipped a stopgap
+    fix (a warning banner + auto-scroll to the field's own Save button, `plugins/auth-oauth/webapp/
+    view/jpulse-common.js`), not a structural fix
+- design decision (locked in): new `onPluginConfigBeforeSave` hook, fitting the framework's
+  existing plugin hook system (W-105) rather than bolting a new concept onto the `type: "custom"`
+  client contract - the alternative (extending `ctx.onChange`'s client contract with an optional
+  async `beforeSave`) was rejected: it's less symmetrical with how every other cross-cutting
+  concern in the framework is implemented, and would still need its own new server-side endpoint
+  per plugin to do the actual encryption, which is most of what a dedicated endpoint already
+  provides today - no benefit over a hook, for more surface area
+- why this needs a *new* `HookManager` method, not the existing `execute()`/`executeWithCancel()`/
+  `executeFirst()` (checked all three, `webapp/utils/hook-manager.js`): all three (a) broadcast to
+  *every* plugin registered for the hook name, and (b) `try`/`catch` around each handler and swallow
+  any thrown error (log-and-continue) - confirmed by example: `onUserBeforeSave` is documented
+  `canCancel: true` in `getAvailableHooks()`, but `UserModel.create()`/`update()` actually invoke it
+  via plain `execute()` (`webapp/model/user.js` lines 833, 901), so a throwing handler there is
+  silently ignored and the save proceeds anyway - i.e. `canCancel: true` is aspirational/inaccurate
+  for that hook today, not an actual guarantee. That swallow-and-continue behavior is fine for
+  "nice-to-have" hooks but is exactly wrong for this use case: if a plugin's transform handler
+  throws (e.g. encryption fails) and the error gets swallowed, `configData` still contains the raw
+  secret and `PluginModel.upsert()` would happily persist it in the clear - the failure mode has to
+  be "abort the save," not "silently save the un-transformed value anyway"
+  - new method: `HookManager.executeForPlugin(hookName, pluginName, context)` - filters registered
+    handlers down to just the ones registered by `pluginName` (not a broadcast), and does **not**
+    catch handler errors - they propagate straight to the caller, which is the abort mechanism
+  - register `onPluginConfigBeforeSave` in `getAvailableHooks()`: `context: '{ req, pluginName,
+    configData }'`, `canModify: true`, `canCancel: true` - call out in its description that
+    "cancel" here means "handler throws," not "handler returns `false`" (unlike every other
+    `canCancel: true` hook in the registry), since it's a new, different convention
+- `PluginController.updateConfig()` (`webapp/controller/plugin.js`): call
+  `HookManager.executeForPlugin('onPluginConfigBeforeSave', name, { req, pluginName: name,
+  configData })` right after schema validation passes and before `PluginModel.upsert()`; a thrown
+  error aborts with `CommonUtils.sendError(req, res, 400, hookError.message, 'CONFIG_SAVE_REJECTED')`
+  - whole-save-aborts-on-throw (not per-field partial success) - simplest semantics, matches how
+    schema validation failure already aborts the entire save today, and avoids ever landing on a
+    half-transformed `configData` in storage
+- auth-oauth migration: explicitly out of scope for this work item. `plugins/auth-oauth`'s
+  existing dedicated-endpoint pattern (`apiAdminProvidersCreate`/`apiAdminProvidersUpdate` +
+  `OauthProviderModel.setClientSecret()`) is already correct and secure - it just doesn't get the
+  benefit of a single unified Save button. Migrating it onto the new hook once it exists (to retire
+  the W-197 stopgap warning banner and collapse the two Save buttons into one) is worth doing later,
+  but is a separate, optional follow-up, not a prerequisite for this work item to be complete.
+- deliverables:
+  - `webapp/utils/hook-manager.js`:
+    - FIXME: add `executeForPlugin(hookName, pluginName, context)` (single-plugin scope, propagates
+      errors instead of swallowing them - see rationale above)
+    - FIXME: register `onPluginConfigBeforeSave` in `getAvailableHooks()`
+  - `webapp/controller/plugin.js`:
+    - FIXME: invoke the hook from `updateConfig()` before `PluginModel.upsert()`, per the locked-in
+      design above; map a thrown error to a 400 `CONFIG_SAVE_REJECTED` response
+  - `docs/plugins/plugin-hooks.md` and/or `docs/plugins/plugin-api-reference.md`:
+    - FIXME: document the new hook, explicitly flagging that its "throw to abort" contract differs
+      from every other hook's catch-and-continue behavior, with auth-oauth's clientSecret encryption
+      as the canonical example use case
+  - `plugins/auth-oauth/webapp/controller/oauthAuth.js`, `plugins/auth-oauth/webapp/view/
+    jpulse-common.js`:
+    - FIXME (optional follow-up, not part of this work item's completion criteria): consider
+      migrating the provider CRUD table onto the new hook to collapse its two Save buttons into
+      one, retiring the W-197 stopgap banner
+- benefits: removes a real, already-shipped usability footgun (silently discarded config edits with
+  a misleading "success" message) for any current or future plugin whose custom-rendered config
+  field needs server-side processing before persistence, and gives plugin authors a documented,
+  supported way to do that instead of each one having to invent its own fully separate save path
+
+### W-201, v1.7.5, 2026-08-xx: auth: `auth.js` login controller checks account status against a stale enum ('locked'/'disabled' don't exist)
+- status: 🕑 PENDING
+- type: Bugfix
+- objective: replace `webapp/controller/auth.js`'s dead `user.status === 'locked'` / `'disabled'`
+  checks with checks against `UserModel`'s actual status enum, and clean up the two matching stale
+  translation strings, so the controller-layer code no longer contradicts the schema it's reading
+- discovered while: fixing the identical (but live/exploitable, not dead) bug in the auth-oauth
+  plugin (W-197) - its own account-status gate literally commented "mirrors the existing
+  locked/disabled convention used elsewhere in auth.js", which is exactly where the stale enum
+  values were copied from
+- current gap:
+  - `UserModel`'s real, enforced status enum is `'pending' | 'active' | 'inactive' | 'suspended' |
+    'terminated'` (`webapp/model/user.js` line 54) - there is no `'locked'` or `'disabled'` value
+  - `auth.js`'s `login()` method checks for exactly those two nonexistent values
+    (`webapp/controller/auth.js` lines 486, 496), each with its own translated error message
+    (`controller.auth.accountLocked` / `accountDisabled` in `webapp/translations/en.conf` lines
+    34-35, and the `de.conf` equivalents) - none of this can ever fire for any account created
+    through the current schema
+  - currently **harmless in this one call path only** because `UserModel.authenticate()` (called
+    just above, `webapp/model/user.js` lines 966-969) already throws for any `status !== 'active'`
+    before execution ever reaches the stale checks - local password login is correctly protected,
+    just via a different, less specific code path (a generic thrown `Error`, not the intended
+    per-status `ACCOUNT_LOCKED`/`ACCOUNT_DISABLED` JSON responses, which are unreachable)
+  - risk: any *future* external-auth integration that hooks into `onAuthBeforeLogin` with
+    `skipPasswordCheck: true` (bypassing `UserModel.authenticate()`, the same way auth-oauth's
+    direct `completeExternalAuth()` call does) would inherit this exact live exploit if it copies
+    this "existing convention" the way auth-oauth's author did - the dead code is a trap for the
+    next integration, not just harmless cruft
+- deliverables:
+  - `webapp/controller/auth.js`:
+    - FIXME: replace the `'locked'`/`'disabled'` checks (lines ~486-504) with checks against the
+      real enum (`'inactive'`, `'suspended'`, `'terminated'`, alongside the existing `'pending'`
+      handling elsewhere in the multi-step flow, if any) - or remove them entirely as pure dead
+      code if `UserModel.authenticate()`'s existing generic-error gate is considered sufficient for
+      this one call path, documenting explicitly why no controller-layer check is needed here
+  - `webapp/translations/en.conf`, `webapp/translations/de.conf`:
+    - FIXME: update/replace `controller.auth.accountLocked` / `accountDisabled` to match whichever
+      real statuses end up with their own controller-layer messages
+  - `plugins/auth-oauth/webapp/controller/oauthAuth.js`:
+    - DONE (this session, ahead of the framework fix): already corrected to check
+      `'suspended'`/`'terminated'`/`'inactive'`/`'pending'` directly against the real enum, with its
+      own `ACCOUNT_SUSPENDED`/`ACCOUNT_TERMINATED`/`ACCOUNT_INACTIVE`/`ACCOUNT_PENDING_APPROVAL`
+      reason codes - no longer copies this convention, so this work item is about the framework
+      catching up to the plugin, not the other way around
+- benefits: removes a source of copy-paste bugs for future external-auth plugins/hooks, and makes
+  the controller layer's status handling match the schema it's actually reading from
 
 ### W-055: deployment: load balancer and multi-server setup
 - status: 🕑 PENDING

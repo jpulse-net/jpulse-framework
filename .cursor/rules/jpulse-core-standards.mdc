@@ -23,6 +23,12 @@ alwaysApply: true
 
 Only touch `docs/dev/work-items.md` content the user explicitly asks for (e.g. filling in `features`/`deliverables`/other documentation for a work item). Leave status and section placement exactly as found otherwise - the user decides and makes that call themselves.
 
+# ⛔ CRITICAL: NEVER MOVE, DELETE, OR EDIT FILES IN .jpulse/
+
+**NEVER run `rm`, `mv`, `rm -rf`, or any edit against the live project's `.jpulse/` directory or its contents** (`.jpulse/app.json`, `.jpulse/config-sources.json`, `.jpulse/plugins.json`, etc.), even temporarily to reproduce a CI/clean-environment issue. This directory holds live runtime state (including the plugin enabled/disabled registry) that is NOT safely reconstructible from source - deleting it can silently reset plugin enabled state to each plugin's `autoEnable` default.
+
+**To reproduce a "fresh/CI-like" environment locally, use an isolated copy or a separate checkout/worktree** - never manipulate the actual working repo's `.jpulse/` directory.
+
 # Framework Critical Patterns
 
 1. **Site Override System**: All site code goes in `site/webapp/`, NEVER modify `webapp/` (framework-managed, updated by jpulse-update)

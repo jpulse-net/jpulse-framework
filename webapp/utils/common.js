@@ -3,8 +3,8 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.7.2
- * @release         2026-07-27
+ * @version         1.7.3
+ * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -12,6 +12,8 @@
  * @genai           60%, Cursor 3.13, Claude Sonnet 5
  */
 
+import fs from 'fs';
+import path from 'path';
 import { ObjectId } from 'mongodb';
 
 /**
@@ -1544,6 +1546,39 @@ class CommonUtils {
     }
 
     // =========================================================================
+    // File Utilities (W-199)
+    // =========================================================================
+
+    /**
+     * Write a file atomically: write to a temp file in the same directory, then
+     * fs.renameSync() over the target. Eliminates torn reads for concurrent readers
+     * (e.g. multiple PM2 cluster instances reading a shared `.jpulse/*.json` cache
+     * while another instance is mid-write) - a reader either sees the fully-old or
+     * fully-new content, never a partially-written file.
+     * @param {string} filePath - Destination file path
+     * @param {string} data - File content to write
+     */
+    static writeFileAtomic(filePath, data) {
+        const dir = path.dirname(filePath);
+        const tmpPath = path.join(dir, `.${path.basename(filePath)}.tmp.${process.pid}.${Date.now()}`);
+
+        try {
+            fs.writeFileSync(tmpPath, data);
+            fs.renameSync(tmpPath, filePath);
+        } catch (error) {
+            // Best-effort cleanup of the temp file if the write/rename failed partway
+            try {
+                if (fs.existsSync(tmpPath)) {
+                    fs.unlinkSync(tmpPath);
+                }
+            } catch (cleanupError) {
+                // Ignore cleanup errors - the original error is what matters
+            }
+            throw error;
+        }
+    }
+
+    // =========================================================================
     // Pagination Utilities (W-080)
     // =========================================================================
 
@@ -2020,7 +2055,8 @@ export const {
     formatTimestamp,
     formatLogMessage,
     formatUptime,
-    paginatedSearch
+    paginatedSearch,
+    writeFileAtomic
 } = CommonUtils;
 
 // EOF webapp/utils/common.js

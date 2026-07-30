@@ -1,4 +1,4 @@
-# W-196: plugins: auth-oauth plugin for OAuth 2.0 / OIDC single sign-on
+# W-197: plugins: auth-oauth plugin for OAuth 2.0 / OIDC single sign-on
 
 ## Status
 🕑 PENDING
@@ -60,9 +60,9 @@ The plugin leverages the existing multi-step authentication flow (W-109), so any
 - **W-108:** auth-mfa plugin (complete) — reference implementation to model after
 - **W-109:** Multi-step authentication (complete) — provides `onAuthGetSteps`, `onAuthValidateStep`, `onAuthGetWarnings`
 - **W-194:** Plugin config custom renderer (prerequisite) — used for provider list config UI
-- **W-195:** External auth framework helpers (prerequisite) — provides `AuthController.completeExternalAuth()`, `localAuthRestriction`, `onAuthGetLoginProviders` hook, `?localFallback=1` recovery mode, **and** (added during W-196 design review) the `hasLocalPassword` user-schema primitive + the corresponding `currentPassword`-optional path in `UserController.changePassword()` (see §11)
+- **W-195:** External auth framework helpers (prerequisite) — provides `AuthController.completeExternalAuth()`, `localAuthRestriction`, `onAuthGetLoginProviders` hook, `?localFallback=1` recovery mode, **and** (added during W-197 design review) the `hasLocalPassword` user-schema primitive + the corresponding `currentPassword`-optional path in `UserController.changePassword()` (see §11)
 
-**Consumes but does not modify:** W-194, W-195. Nearly all framework plumbing needed for W-196 was already done in W-195 — this includes the small `hasLocalPassword` addition identified while designing §11 (Account Lifecycle), which belongs in the framework rather than this plugin because it's a general external-auth primitive (also useful to any future auth-ldap/auth-saml plugin). **One additional small framework file is introduced by W-196 itself** (found during spec review, not by reopening W-195): `webapp/utils/crypto-secrets.js`, a generic secret-encryption helper (see §8) — there was no shared encryption utility in the framework before this plugin needed one to store OAuth client secrets at rest. This is added as an ordinary new framework file alongside the plugin work, the same way any framework-level utility gets added; `auth-mfa`'s existing in-model TOTP encryption is left untouched (not retrofitted onto the new util).
+**Consumes but does not modify:** W-194, W-195. Nearly all framework plumbing needed for W-197 was already done in W-195 — this includes the small `hasLocalPassword` addition identified while designing §11 (Account Lifecycle), which belongs in the framework rather than this plugin because it's a general external-auth primitive (also useful to any future auth-ldap/auth-saml plugin). **One additional small framework file is introduced by W-197 itself** (found during spec review, not by reopening W-195): `webapp/utils/crypto-secrets.js`, a generic secret-encryption helper (see §8) — there was no shared encryption utility in the framework before this plugin needed one to store OAuth client secrets at rest. This is added as an ordinary new framework file alongside the plugin work, the same way any framework-level utility gets added; `auth-mfa`'s existing in-model TOTP encryption is left untouched (not retrofitted onto the new util).
 
 ---
 
@@ -238,7 +238,7 @@ The plugin uses the standard Authorization Code flow with mandatory PKCE. The fl
 
 The plugin **consumes** these framework APIs (all delivered in W-195):
 
-- `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)` — sets `pendingAuth`, runs `_getRequiredSteps`, either 302s to the next-step page or calls `_completeLogin` and 302s to `redirectUrl`. Owns the "browser-redirect finish" behavior so W-196 doesn't reach into private framework methods. **A step without a `page` field falls back to `/auth/login.shtml` (with a logged warning) here** — see the `page` note below.
+- `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)` — sets `pendingAuth`, runs `_getRequiredSteps`, either 302s to the next-step page or calls `_completeLogin` and 302s to `redirectUrl`. Owns the "browser-redirect finish" behavior so W-197 doesn't reach into private framework methods. **A step without a `page` field falls back to `/auth/login.shtml` (with a logged warning) here** — see the `page` note below.
 - `onAuthGetLoginProviders` hook — plugin returns `[{ id, label, icon, buttonColor, initUrl, order }]` for each enabled provider; framework's login page renders the buttons via `{{#each authProviders}}` into `.local-auth-methods`/`.local-auth-method` markup (see "UI Components" §1) — only `label`/`icon`/`buttonColor`/`initUrl`/`order` are actually read by the template.
 - **`page` on every `onAuthGetSteps` step this plugin returns** (`oauth-profile-complete`, and any future custom step) — `login.shtml`'s client-side `handleNextStep()` only has built-in routing for the framework's own `'mfa'`/`'mfa-setup'`/`'email-verify'` step names; any plugin-defined step name is unrouted in the AJAX flow too unless it carries its own `page`. Not just a `completeExternalAuth()`/browser-redirect concern — see §10 Stage B.
 - `?localFallback=1` on `/auth/login.shtml` — plugin doesn't touch this; it's the framework's break-glass path.
@@ -348,7 +348,7 @@ UserModel.extendSchema({
 | DELETE | `/api/1/auth-oauth/admin/providers/:id` | Admin | Delete provider config |
 | POST | `/api/1/auth-oauth/admin/providers/:id/test` | Admin | Force OIDC discovery refresh, return endpoints |
 
-**Routing note (found during W-196 spec review):** `webapp/utils/site-controller-registry.js`'s `api*`-method auto-discovery (used by `hello-world`) only produces fixed kebab-case paths, plus a hardcoded `:id` suffix for recognized CRUD verb names — it cannot generate a route with a custom path parameter like `/init/:provider` or `/callback/:provider`. All of this plugin's endpoints are therefore declared via an explicit `static routes = [{ method, path, handler, auth }, ...]` array — the same pattern `auth-mfa` already uses for its fixed-path endpoints — not `api*` auto-discovery. Handler method names (`apiInit`, `apiCallback`, etc.) are kept for readability/consistency even though auto-discovery doesn't apply to them; `auth` per route is `'none' | 'user' | 'admin'` matching the "Auth" column above.
+**Routing note (found during W-197 spec review):** `webapp/utils/site-controller-registry.js`'s `api*`-method auto-discovery (used by `hello-world`) only produces fixed kebab-case paths, plus a hardcoded `:id` suffix for recognized CRUD verb names — it cannot generate a route with a custom path parameter like `/init/:provider` or `/callback/:provider`. All of this plugin's endpoints are therefore declared via an explicit `static routes = [{ method, path, handler, auth }, ...]` array — the same pattern `auth-mfa` already uses for its fixed-path endpoints — not `api*` auto-discovery. Handler method names (`apiInit`, `apiCallback`, etc.) are kept for readability/consistency even though auto-discovery doesn't apply to them; `auth` per route is `'none' | 'user' | 'admin'` matching the "Auth" column above.
 
 **Note on the `link` flow:** the same init/callback endpoints handle both "login" and "link an additional provider to current user" flows. The distinction is a `mode` field in the pending OAuth state (`login` or `link`). In `link` mode, the callback attaches the resolved `sub` + profile to the currently-authenticated user rather than creating a session; it never creates a new user.
 
@@ -390,8 +390,8 @@ Per-provider config (in the provider record, not global). Admin picks one of thr
 - Use case: public sites where signup = "just sign in with Google"
 
 **Interaction with `status: 'pending'` (JIT + `jitDefaultStatus: 'pending'`):**
-- There is no implicit framework-side gate on `user.status` inside `_completeLogin` — the plugin's own callback handler must check it explicitly, **before** calling `AuthController.completeExternalAuth()` (W-195)
-- If `status !== 'active'`, the callback redirects to `/auth/oauth-error.shtml?reason=ACCOUNT_PENDING_APPROVAL` instead of completing login (mirrors the same explicit-check pattern used for the framework's `'locked'`/`'disabled'` status conventions elsewhere in `auth.js`)
+- There is no implicit framework-side gate on `user.status` inside `_completeLogin` — the plugin's own callback handler must check it explicitly, **before** calling `AuthController.completeExternalAuth()` (W-195); OAuth login bypasses `auth.js`'s `login()`/`UserModel.authenticate()` entirely (it calls `completeExternalAuth()` directly), so this is the *only* status gate in the OAuth path, unlike local login
+- Checked against `UserModel`'s actual status enum (`webapp/model/user.js`: `'pending' | 'active' | 'inactive' | 'suspended' | 'terminated'`), each redirecting to its own `/auth/oauth-error.shtml?reason=...` (`ACCOUNT_PENDING_APPROVAL` / `ACCOUNT_INACTIVE` / `ACCOUNT_SUSPENDED` / `ACCOUNT_TERMINATED`) instead of completing login - **not** the `'locked'`/`'disabled'` values used (as dead code) elsewhere in `auth.js`, which don't exist in the real enum and were mistakenly mirrored here in an earlier draft (caught during pre-release review, see `docs/dev/work-items.md`)
 - Admin approves via `/admin/users.shtml`, flipping `status` to `'active'` (existing framework admin UI — no plugin-specific approval page needed)
 - Optional email to admin (via a future notification plugin) — not in v1.0 scope
 
@@ -546,7 +546,7 @@ window.jPulse.plugins.authOauth.renderProviders = function(ctx) {
 
 **Client secret storage:**
 
-The `clientSecretRef` in the providers array points to an encrypted secret stored in the `authOauth_providers` MongoDB collection. **Corrected during spec review:** there is no pre-existing "framework encryption utility" — `auth-mfa` encrypts its TOTP secret with AES-256-GCM + `scrypt(sessionSecret, salt)` duplicated inline inside its own model (`MfaAuthModel.encrypt`/`getEncryptionKey`), not via a shared helper. W-196 extracts that same pattern into a new, genuinely shared framework primitive so it isn't duplicated a second time:
+The `clientSecretRef` in the providers array points to an encrypted secret stored in the `authOauth_providers` MongoDB collection. **Corrected during spec review:** there is no pre-existing "framework encryption utility" — `auth-mfa` encrypts its TOTP secret with AES-256-GCM + `scrypt(sessionSecret, salt)` duplicated inline inside its own model (`MfaAuthModel.encrypt`/`getEncryptionKey`), not via a shared helper. W-197 extracts that same pattern into a new, genuinely shared framework primitive so it isn't duplicated a second time:
 
 ```javascript
 // webapp/utils/crypto-secrets.js (new framework file, added alongside this plugin)
@@ -635,7 +635,7 @@ Once enough users have linked their SSO accounts (via A or B):
 | Local `email` doesn't match IdP `email` | Path A fails silently, Path B available |
 | IdP returns `email_verified: false` | Path A refused (account-takeover risk); Path B still works from an authenticated session |
 | Two local users somehow share the same email | Path A refuses with `AMBIGUOUS_EMAIL_MATCH`, logged for admin investigation |
-| User attempts SSO login while local account is `locked` or `disabled` | Same status checks as local auth apply (`ACCOUNT_LOCKED` / `ACCOUNT_DISABLED`) — SSO does not bypass account gating |
+| User attempts SSO login while local account is `suspended`, `terminated`, or `inactive` | Blocked with the matching `ACCOUNT_SUSPENDED` / `ACCOUNT_TERMINATED` / `ACCOUNT_INACTIVE` reason — SSO does not bypass account status gating |
 | Admin wants to preview which users will migrate cleanly | Not in v1.0 — nice-to-have admin ops page (deferred to v1.1) |
 | Attacker pre-registers a local account using the victim's email *before* the victim ever tries SSO, then Path A auto-links the attacker's account to the victim's IdP identity | Residual risk whenever public local signup and Path A coexist. Not automatically blocked in v1.0 — no local-signup email-verification feature exists in the framework yet to gate on (tracked as a separate future work item). Mitigate operationally: don't enable public local signup alongside Path A on the same site, or restrict Path A to accounts older than a short grace window. Documented as an admin responsibility in the plugin README. |
 | Same IdP `sub` shows up under a *different* verified email (IdP-side account recycling), or an already-linked provider suddenly reports a different `sub` for the same email | Treated as a mismatch, not a silent re-link: rejected with `PROVIDER_IDENTITY_MISMATCH`, logged for admin review. Silently re-linking on IdP-side identity churn is a security smell (could mask account takeover), so v1.0 always fails closed here — no configurable override. |
@@ -905,7 +905,7 @@ No new configuration flags are needed here — the framework **already has** eve
 
 None of these settings live in the `auth-oauth` plugin config — they're all framework-level. The plugin's README documents this table so admins configure the right combination without piecing it together from three different docs ("don't make me think").
 
-### 13. Provider Config Caching (found during W-196 spec review)
+### 13. Provider Config Caching (found during W-197 spec review)
 
 `onAuthGetLoginProviders` runs on every unauthenticated render of `/auth/login.shtml` — the single highest-traffic unauthenticated route on the site. The naive approach (a `PluginModel.getByName('auth-oauth')` call per render — see §6/Hook Implementations correction above) is one uncached MongoDB round-trip per page view.
 

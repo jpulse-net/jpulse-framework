@@ -3,8 +3,8 @@
  * @tagline         Redis connection management with cluster support and graceful fallback
  * @description     Manages Redis connections for sessions, WebSocket, broadcasting, and metrics
  * @file            webapp/utils/redis-manager.js
- * @version         1.7.2
- * @release         2026-07-27
+ * @version         1.7.3
+ * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -388,20 +388,46 @@ class RedisManager {
 
     /**
      * Get Redis client for specific service
+     *
+     * W-199: the shared `isAvailable` flag is mutated by all 7 independently-lifecycled
+     * connections' event handlers, so an unrelated connection's transient error/close can
+     * flip it to false even though the requested client itself is healthy (and vice versa,
+     * a torn-down client can look "available" if some other connection is currently fine).
+     * To get per-connection accuracy without regressing the "Redis genuinely unreachable"
+     * case, this checks the specific resolved client's own ioredis `.status`:
+     * - `'ready'` (its own handshake/ping already succeeded) is authoritative - return it
+     *   even if the shared flag is currently false.
+     * - `'end'` (permanently torn down, e.g. after disconnect()) is authoritative - return
+     *   null even if the shared flag is currently true.
+     * - any other status (`'wait'`/`'connecting'`/`'connect'`/`'close'`/`'reconnecting'`) is
+     *   ambiguous (e.g. a lazyConnect client that has simply never been used yet), so fall
+     *   back to the shared flag as before.
+     *
      * @param {string} service - Service name: 'session', 'websocket', 'broadcast', 'metrics'
      * @param {string} type - For pub/sub services: 'publisher' or 'subscriber'
      * @returns {Redis|null} Redis client or null if unavailable
      */
     static getClient(service, type = null) {
-        if (!RedisManager.config?.enabled || !RedisManager.isAvailable) {
+        if (!RedisManager.config?.enabled) {
             return null;
         }
 
-        if (type) {
-            return RedisManager.connections[service]?.[type] || null;
+        const client = type
+            ? RedisManager.connections[service]?.[type] || null
+            : RedisManager.connections[service] || null;
+
+        if (!client) {
+            return null;
         }
 
-        return RedisManager.connections[service] || null;
+        if (client.status === 'ready') {
+            return client;
+        }
+        if (client.status === 'end') {
+            return null;
+        }
+
+        return RedisManager.isAvailable ? client : null;
     }
 
     /**

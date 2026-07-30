@@ -4,8 +4,8 @@
  * @description     Tests for _renderSchemaBlockFields fieldGrid rendering, initAll handler,
  *                  adjustRows, serializeRows, and setFormData/getFormData integration
  * @file            webapp/tests/unit/utils/jpulse-ui-input-fieldgrid.test.js
- * @version         1.7.2
- * @release         2026-07-27
+ * @version         1.7.3
+ * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

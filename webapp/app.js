@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         1.7.2
- * @release         2026-07-27
+ * @version         1.7.3
+ * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -76,28 +76,44 @@ async function loadAppConfig() {
             appLog('Created .jpulse directory at project root');
         }
 
+        // W-199: regenerate consolidated config from source .conf files and persist it
+        // atomically (temp file + rename), so a concurrent reader (e.g. another PM2
+        // cluster instance restarting at the same time) never observes a torn/partial file
+        const regenerateConfig = async () => {
+            const generated = await generateConsolidatedConfig(fs, confPath);
+
+            // Save consolidated config (remove internal _sources before saving)
+            const configToSave = { ...generated };
+            delete configToSave._sources;
+            CommonUtils.writeFileAtomic(jsonPath, JSON.stringify(configToSave, null, 2));
+
+            // Save source metadata from config
+            CommonUtils.writeFileAtomic(sourcesPath, JSON.stringify(generated._sources, null, 2));
+
+            appLog('Generated consolidated configuration in .jpulse/app.json');
+            return generated;
+        };
+
         // Check if JSON needs regeneration
         let config = null;
         const needsRegeneration = shouldRegenerateConfig(fs, confPath, jsonPath);
 
         if (needsRegeneration) {
             appLog('Configuration changed, regenerating .jpulse/app.json...');
-            config = await generateConsolidatedConfig(fs, confPath);
-
-            // Save consolidated config (remove internal _sources before saving)
-            const configToSave = { ...config };
-            delete configToSave._sources;
-            fs.writeFileSync(jsonPath, JSON.stringify(configToSave, null, 2));
-
-            // Save source metadata from config
-            fs.writeFileSync(sourcesPath, JSON.stringify(config._sources, null, 2));
-
-            appLog('Generated consolidated configuration in .jpulse/app.json');
+            config = await regenerateConfig();
             // Fall through to initialize system metadata
         } else {
             // Load config from cached JSON
-            appLog('Using cached configuration from .jpulse/app.json');
-            config = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+            try {
+                appLog('Using cached configuration from .jpulse/app.json');
+                config = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+            } catch (parseError) {
+                // W-199: a peer PM2 instance mid-write (or a genuinely corrupt cache) used
+                // to crash this process via the outer catch's process.exit(1); self-heal
+                // instead by regenerating from the source .conf files - no restart needed
+                appLog(`Cached .jpulse/app.json unreadable (${parseError.message}), regenerating from source .conf files...`, 'WARN');
+                config = await regenerateConfig();
+            }
         }
 
         // Initialize system metadata (same values as early block for log context)

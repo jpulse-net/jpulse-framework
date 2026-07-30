@@ -3,8 +3,8 @@
  * @tagline         Plugin Discovery and Lifecycle Management
  * @description     Manages plugin discovery, validation, dependencies, and lifecycle
  * @file            webapp/utils/plugin-manager.js
- * @version         1.7.2
- * @release         2026-07-27
+ * @version         1.7.3
+ * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -72,7 +72,14 @@ class PluginManager {
             try {
                 this.registry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
             } catch (error) {
-                console.error('Failed to load plugin registry, creating new one:', error.message);
+                // W-199: never silently persist a mass-reset - a corrupt/unreadable
+                // registry file would otherwise cause discoverPlugins() to treat every
+                // plugin as brand-new and re-default it to its own autoEnable value
+                // (e.g. re-disabling auth-mfa/auth-oauth), then persist that reset
+                // state on top of the previously-correct one. Log loudly so this is
+                // never a silent, unattended state change.
+                global.LogController?.logError(null, 'plugin-manager.initialize',
+                    `error: Failed to load plugin registry (${registryPath}), resetting to empty and re-discovering all plugins with their default autoEnable values: ${error.message}`);
                 this.registry = {
                     plugins: [],
                     loadOrder: [],
@@ -395,11 +402,54 @@ class PluginManager {
     }
 
     /**
+     * Re-read the on-disk plugin registry immediately before a mutating action
+     * (enablePlugin/disablePlugin/rescan), so this instance's in-memory copy - which
+     * may be stale relative to a peer PM2 instance's more recent write - doesn't
+     * blindly clobber that peer's change when this instance saves (W-199).
+     * Re-points each `discovered` entry's cached `registryEntry` reference to the
+     * freshly-loaded object so getActivePlugins()/hook registration stay in sync
+     * with the reloaded registry.
+     * On read/parse failure, logs a warning and keeps the current in-memory registry
+     * rather than resetting it (never silently mass-reset).
+     */
+    static _reloadRegistryFromDisk() {
+        const projectRoot = global.appConfig.system.projectRoot;
+        const registryPath = path.join(projectRoot, '.jpulse', 'plugins.json');
+
+        if (!fs.existsSync(registryPath)) {
+            return;
+        }
+
+        let freshRegistry;
+        try {
+            freshRegistry = JSON.parse(fs.readFileSync(registryPath, 'utf8'));
+        } catch (error) {
+            global.LogController?.logError(null, 'plugin-manager._reloadRegistryFromDisk',
+                `error: Failed to re-read plugin registry (${registryPath}) before write, keeping current in-memory state: ${error.message}`);
+            return;
+        }
+
+        this.registry = freshRegistry;
+
+        // Re-point discovered plugins' cached registryEntry to the freshly-loaded objects
+        for (const [pluginName, pluginData] of this.discovered.entries()) {
+            const freshEntry = this.registry.plugins.find(p => p.name === pluginName);
+            if (freshEntry) {
+                pluginData.registryEntry = freshEntry;
+            }
+        }
+    }
+
+    /**
      * Enable a plugin
      * @param {string} name - Plugin name
      * @returns {object} Result { success: boolean, message: string }
      */
     static async enablePlugin(name) {
+        // W-199: re-read the on-disk registry fresh before merging, so a peer PM2
+        // instance's more recent write isn't clobbered by this instance's stale copy
+        this._reloadRegistryFromDisk();
+
         const plugin = this.registry.plugins.find(p => p.name === name);
 
         if (!plugin) {
@@ -442,6 +492,10 @@ class PluginManager {
      * @returns {object} Result { success: boolean, message: string }
      */
     static async disablePlugin(name) {
+        // W-199: re-read the on-disk registry fresh before merging, so a peer PM2
+        // instance's more recent write isn't clobbered by this instance's stale copy
+        this._reloadRegistryFromDisk();
+
         const plugin = this.registry.plugins.find(p => p.name === name);
 
         if (!plugin) {
@@ -490,7 +544,9 @@ class PluginManager {
         const jpulseDir = path.join(projectRoot, '.jpulse');
         const registryPath = path.join(jpulseDir, 'plugins.json');
 
-        fs.writeFileSync(registryPath, JSON.stringify(this.registry, null, 2));
+        // W-199: atomic write (temp file + rename) eliminates torn reads by concurrent
+        // PM2 cluster instances loading this same file at their own boot time
+        CommonUtils.writeFileAtomic(registryPath, JSON.stringify(this.registry, null, 2));
     }
 
     /**
@@ -570,6 +626,10 @@ class PluginManager {
      * @returns {object} Scan statistics
      */
     static async rescan() {
+        // W-199: re-read the on-disk registry fresh before merging, so a peer PM2
+        // instance's more recent write isn't clobbered by this instance's stale copy
+        this._reloadRegistryFromDisk();
+
         const beforeCount = this.discovered.size;
         await this.discoverPlugins();
         this.resolveLoadOrder();

@@ -1,6 +1,64 @@
-# jPulse Docs / Version History v1.7.2
+# jPulse Docs / Version History v1.7.3
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.3, W-199, 2026-07-30
+
+**Commit:** `W-199, v1.7.3: infrastructure: fix startup race conditions in .jpulse/*.json caches and Redis connection-availability tracking`
+
+**Objective**: Eliminate startup race conditions that write/sample shared state on every process boot with no locking or per-connection accuracy, under PM2 cluster mode's N-independent-processes model.
+
+**Summary**: Discovered post-Node.js-24-upgrade (W-196) rollout — `auth-mfa` was found silently disabled, unexplained, in three separate environments within 24 hours (dev Mac, jpulse.net prod, bubblemap.net prod). A broader audit (grep for `fs.writeFileSync`/`fs.writeFile` across `webapp/`, plus a full re-read of `redis-manager.js`'s connection lifecycle) found two more related instances. The shared architectural root cause: PM2 `exec_mode: 'cluster'` runs N fully independent OS processes (no leader election, no shared memory — confirmed no `cluster.isPrimary` guard anywhere in `bootstrap.js`); any module that reads a `.jpulse/*.json` file, regenerates its content, and unconditionally re-persists it via a bare `fs.writeFileSync()` (no file lock, no atomic temp+rename) on every process boot is exposed to concurrent read/write races when multiple instances restart close together. Instance (a), HIGH severity — `webapp/utils/plugin-manager.js` (`.jpulse/plugins.json`): `PluginManager.registry` is a per-process, in-memory singleton; a missing/unreadable registry file reset it to empty, causing `discoverPlugins()` to re-default every plugin to its own `autoEnable` value (`false` for `auth-mfa`/`auth-oauth`); with zero locking across instances, one instance's stale in-memory copy could also silently clobber a peer instance's more recent write (e.g. an admin-GUI enable) on its own next `saveRegistry()` call — reproduced independently on both jpulse.net and bubblemap.net during the overlapping `pm2 update`/`start`/`reload` cycles of the W-196 VM rollout. Instance (b), lower severity — `webapp/app.js` (`loadAppConfig()`, `.jpulse/app.json` + `.jpulse/config-sources.json`): the regenerated content is a pure, deterministic function of the source `.conf` files, so a race here couldn't silently corrupt security-relevant state — but if one instance's cached-load `JSON.parse()` caught another instance mid-write, the enclosing `catch` called `process.exit(1)`, crashing that instance outright (self-healing via PM2 auto-respawn, but a startup crash/flap on any multi-instance restart). Instance (c), MEDIUM severity — `webapp/utils/redis-manager.js` (shared `isAvailable` flag, not a file race): `RedisManager.isAvailable` is a single shared static boolean mutated by all 7 independently-lifecycled connections' event handlers; `getClient(service)` only checked this one shared flag, never the specific client's own ioredis `.status`. With `lazyConnect: true`, two connections (`broadcast.subscriber`, `metrics`) actively connect in the same narrow boot window as `session`'s awaited `ping()` — a transient blip on either could flip the shared flag to `false` even though `session` itself was healthy, silently dooming that instance's session persistence to `MemoryStore`/Mongo fallback for its entire lifetime (no later re-check). Fixed by: a new shared `CommonUtils.writeFileAtomic()` helper (temp file + `fs.renameSync()`, best-effort temp-file cleanup on error) used by both `plugin-manager.js` and `app.js`; `plugin-manager.js`'s `saveRegistry()` made atomic, its corrupt/missing-registry `catch` now logging loudly via `LogController.logError` instead of a silent `console.error`, and a new `_reloadRegistryFromDisk()` re-reading the on-disk registry fresh immediately before `enablePlugin()`/`disablePlugin()`/`rescan()` merge their change and save — closing the cross-instance clobbering hole without a lockfile or leader election; `app.js` extracting a `regenerateConfig()` helper (atomic writes for both files) shared by the existing `needsRegeneration` path and a new fallback path, so the cached-load branch's `JSON.parse` failure now self-heals instead of crashing; and `redis-manager.js`'s `getClient(service, type)` now checking the specific resolved client's own `.status` first (`'ready'`/`'end'` authoritative, otherwise falls back to the shared flag), scoped narrowly to `getClient()` only. As a complementary process guardrail (not a code fix, but directly motivated by the same incident — the original dev-environment `auth-mfa`/`auth-oauth` disablement was ultimately traced to an agent directly editing/deleting `.jpulse/` state): added a `.cursor/rules/` rule forbidding any agent from running `rm`/`mv`/edits against `.jpulse/` directly. Verified via three new unit test files (23 tests total) plus the full suite (2924 tests, 0 failures) and a manual `npm start` smoke test confirming a clean boot with `auth-mfa`/`auth-oauth` still enabled and the Redis session store selected, with no leftover `.tmp.*` files in `.jpulse/` after boot. Also bundled into this release, unrelated fixes left uncommitted from earlier sessions: a CI fix replacing `.github/workflows/publish.yml`'s archived `actions/create-release@v1` step with `gh release create` (eliminates a lingering Node 20 deprecation warning the W-196 Node 24 upgrade didn't reach, since only `actions/checkout`/`actions/setup-node` were bumped); `package.json` npm 11 `allowScripts` approvals for `bcrypt`, `unrs-resolver`, `shellcheck`, and `fsevents` (each package's install script reviewed before approving); and a `webapp/app.conf`/`docs/site-administration.md` cleanup removing the obsolete `controller.auth.mode: 'internal'` switch and its unused `ldap`/`oauth2` placeholder blocks, since external authentication is now provided by plugins (e.g. `auth-oauth`, W-195/W-197) rather than a built-in `mode`.
+
+**Key features**:
+- New `CommonUtils.writeFileAtomic()` (temp file in the same directory + `fs.renameSync()`) eliminates torn reads for `.jpulse/plugins.json`, `app.json`, and `config-sources.json`
+- `plugin-manager.js`: `saveRegistry()` now atomic; `initialize()`'s corrupt/missing-registry `catch` now logs loudly instead of silently resetting; new `_reloadRegistryFromDisk()` re-read-before-merge in `enablePlugin()`/`disablePlugin()`/`rescan()` closes a cross-instance clobbering hole
+- `app.js`: atomic writes for `app.json`/`config-sources.json`; cached-load `JSON.parse` failure now self-heals via a new `regenerateConfig()` helper instead of `process.exit(1)`
+- `redis-manager.js`: `getClient(service, type)` now checks the specific client's own ioredis `.status` (`'ready'`/`'end'` authoritative) before falling back to the shared `isAvailable` flag
+- New `.cursor/rules/` guardrail: agents must never directly edit/delete `.jpulse/` files
+- **CI fix**: `.github/workflows/publish.yml` release step now uses `gh release create` instead of the archived `actions/create-release@v1`
+- `package.json`: npm 11 `allowScripts` approvals for `bcrypt`, `unrs-resolver`, `shellcheck`, `fsevents`
+- `webapp/app.conf`, `docs/site-administration.md`: removed the obsolete `controller.auth.mode`/`ldap`/`oauth2` placeholder config in favor of the plugin-based external-auth model (W-195/W-197)
+
+**Files changed**:
+- `webapp/utils/common.js`:
+  - new `writeFileAtomic(filePath, data)` — temp file + `fs.renameSync()`, best-effort temp-file cleanup on error; added to both the default export and the named-export destructure list
+- `webapp/utils/plugin-manager.js`:
+  - `saveRegistry()`: atomic write via `CommonUtils.writeFileAtomic()`
+  - `initialize()`: corrupt/missing-registry `catch` now logs via `LogController.logError` before resetting to an empty registry
+  - new `_reloadRegistryFromDisk()`: re-reads `plugins.json` fresh, re-points `discovered` entries' `registryEntry` references; on read/parse failure, logs a warning and keeps the current in-memory registry
+  - `enablePlugin()`, `disablePlugin()`, `rescan()`: now call `_reloadRegistryFromDisk()` before merging their change and saving
+- `webapp/app.js`:
+  - `loadAppConfig()`: extracted `regenerateConfig()` helper (atomic writes for `app.json`/`config-sources.json`), shared by the `needsRegeneration` path and a new fallback path; cached-load branch's `JSON.parse` wrapped in its own try/catch calling `regenerateConfig()` instead of falling through to the outer catch's `process.exit(1)`
+- `webapp/utils/redis-manager.js`:
+  - `getClient(service, type)`: checks the resolved client's own `.status` (`'ready'`/`'end'` authoritative, otherwise falls back to the shared `isAvailable` flag)
+- `webapp/tests/unit/utils/plugin-manager.test.js` (new, 6 tests):
+  - atomic `saveRegistry()` leaves no leftover temp file; corrupt-registry `catch` logs via `LogController.logError`; `enablePlugin()`/`disablePlugin()` preserve a simulated peer instance's concurrent change; `_reloadRegistryFromDisk()` resiliency
+- `webapp/tests/unit/utils/common-utils-file.test.js` (new, 6 tests):
+  - `writeFileAtomic()` create/overwrite/no-leftover-temp-file/large-payload/missing-target-dir-cleanup/distinct-temp-filenames
+- `webapp/tests/unit/utils/redis-get-client.test.js` (new, 11 tests):
+  - regression coverage for the exact reported race — `getClient()` honors the requested client's own status (`'ready'`/`'end'`) over the shared `isAvailable` flag, falls back to the shared flag for ambiguous statuses
+- `.cursor/rules/jpulse-core-standards.mdc`:
+  - new "NEVER MOVE, DELETE, OR EDIT FILES IN .jpulse/" rule section
+- `.github/workflows/publish.yml`:
+  - Create Release step: `actions/create-release@v1` → `gh release create` (`run:` step with heredoc release notes); `github.ref` → `github.ref_name`
+- `package.json`:
+  - new `allowScripts` block: `bcrypt@6.0.0`, `unrs-resolver@1.12.2`, `shellcheck@1.1.0`, `fsevents@2.3.3`
+- `webapp/app.conf`:
+  - `controller.auth`: removed `mode: 'internal'` and the `ldap`/`oauth2` placeholder blocks; added a comment pointing to the `auth-oauth` plugin
+- `docs/site-administration.md`:
+  - removed the `mode: 'internal'` line from the `app.conf` example; added a paragraph on external auth being plugin-provided; "Controller Settings" bullet reworded from "Authentication mode" to "Local-auth restriction policy"
+
+**Documentation**:
+- `docs/dev/work-items.md` — W-199 objective/features/deliverables/test-verify (also includes unrelated, already-applied edits from prior sessions: W-196 status marked DONE, W-192/W-193 `type` field typo fix, W-197 entry refinements, new W-198/W-200/W-201 pending backlog stubs)
+- `README.md`, `docs/README.md` — Latest Release Highlights — v1.7.3 / W-199
+- `docs/CHANGELOG.md` — this section
+
+**Release**:
+- Work Item: W-199
+- Version: v1.7.3
+- Release Date: 2026-07-30
 
 ________________________________________________
 ## v1.7.2, W-196, 2026-07-27

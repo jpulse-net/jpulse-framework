@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administration v1.7.2
+# jPulse Docs / Site Administration v1.7.3
 
 Complete guide to managing your jPulse site through the admin interface.
 
@@ -365,7 +365,6 @@ Application configuration is stored in JavaScript files, not MongoDB. This is fo
     // Controller settings
     controller: {
         auth: {
-            mode: 'internal',
             disableLogin: false,
             localAuthRestriction: 'none'  // 'none' | 'admins-only' | 'disabled'
         }
@@ -373,12 +372,17 @@ Application configuration is stored in JavaScript files, not MongoDB. This is fo
 }
 ```
 
+External authentication (OAuth/OIDC, LDAP, SAML) is not a built-in `mode` switch - it's provided
+by plugins (e.g. `auth-oauth`) that register via the plugin hook system and store their own
+provider configuration through the admin UI, not in `app.conf`. See
+[Site Customization](site-customization.md) and the plugin's own documentation for setup.
+
 ### Key Configuration Areas
 
 - **Application Info**: Site name, description, version
 - **View Settings**: Header height, navigation delays, sidebar configuration
 - **Middleware**: Session, CORS, security headers
-- **Controller Settings**: Authentication mode, API limits
+- **Controller Settings**: Local-auth restriction policy, API limits
 - **Database**: Connection settings (development/production)
 - **Redis**: Connection settings for clustering
 - **Utils**: i18n defaults, theme defaults

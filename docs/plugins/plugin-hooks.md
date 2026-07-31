@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Hooks v1.7.4
+# jPulse Docs / Plugins / Plugin Hooks v1.7.5
 
 Extend jPulse Framework behavior by hooking into authentication, user management, and other framework events.
 
@@ -138,6 +138,12 @@ static async onAuthBeforeLogin(context) {
     return context;
 }
 ```
+
+Unlike `completeExternalAuth()` (see "External Login Providers (OAuth / LDAP / SAML -
+Browser Redirect)" below, which does NOT gate on `user.status`), `context.user`'s account status
+IS enforced automatically by the framework for this `skipPasswordCheck` path - `login()` runs the
+same status check against `context.user` that it runs for internal password logins, right after
+this hook returns. Your handler does not need to (and should not) duplicate that check itself.
 
 ## Available Hooks
 
@@ -455,7 +461,7 @@ static async onAuthFailure(context) {
 
 ### Encrypting a Plugin Config Secret
 
-W-200 adds `onPluginConfigBeforeSave` for plugins with a `type: "custom"` config field (see
+Use `onPluginConfigBeforeSave` in plugins with a `type: "custom"` config field (see
 [Plugin API Reference](plugin-api-reference.md) "`type: "custom"`") whose value contains
 something that must never be persisted as-is - most commonly a secret. It runs once, right
 before the framework's generic "Save Changes" button persists a plugin's config, so a custom

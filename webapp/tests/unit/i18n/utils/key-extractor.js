@@ -3,7 +3,7 @@
  * @tagline         Extract i18n keys from view and controller files
  * @description     Utility to extract translation keys from various source formats
  * @file            webapp/tests/unit/i18n/utils/key-extractor.js
- * @version         1.7.4
+ * @version         1.7.5
  * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

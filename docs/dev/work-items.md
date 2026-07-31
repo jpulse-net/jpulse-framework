@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.4
+# jPulse Docs / Dev / Work Items v1.7.5
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -6571,20 +6571,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - manual `npm start`: fresh boot log confirms `Using cached configuration from .jpulse/app.json`, `PluginManager: Discovered 3 plugins (3 enabled, 0 disabled)` with `auth-mfa`/`auth-oauth` both still `enabled: true` (the exact state that was previously found silently reverted), and `RedisManager: ... Available: true` / `Session store: Redis (cluster-ready)`; confirmed no leftover `.tmp.*` files in `.jpulse/` after boot
 - benefits: prevents silent, unattended reversion of security-relevant plugin state (e.g. `auth-mfa` disabling itself), eliminates a self-healing-but-avoidable crash/flap on config-file changes, and closes a non-self-correcting session-store-fallback edge case caused by an unrelated Redis connection's transient hiccup — in both single-instance and PM2 cluster deployments
 
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-200, v1.7.4, 2026-07-30: plugins: add onPluginConfigBeforeSave hook so plugin config saves can transform/encrypt values before persistence
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: let a plugin's `type: "custom"` config field (W-194) participate in the page's single
   generic "Save Changes" action for anything that needs server-side processing before persistence
@@ -6740,6 +6728,155 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-201, v1.7.5, 2026-07-30: auth: fix auth login controller checking account status against non-existing enum locked/disabled
+- status: 🚧 IN_PROGRESS
+- type: Bugfix
+- objective: replace `webapp/controller/auth.js`'s dead `user.status === 'locked'` / `'disabled'`
+  checks with a single controller-layer status gate against `UserModel`'s actual status enum,
+  shared by both the internal (username/password) and external (`skipPasswordCheck`) login paths -
+  and move status enforcement out of `UserModel.authenticate()` entirely, since leaving it there is
+  what currently preempts the controller-layer check for local login and produces a 500 Internal
+  Server Error instead of a clean, actionable, per-status response
+- discovered while: fixing the identical (but live/exploitable, not dead) bug in the auth-oauth
+  plugin (W-197) - its own account-status gate literally commented "mirrors the existing
+  locked/disabled convention used elsewhere in auth.js", which is exactly where the stale enum
+  values were copied from
+- current gap (two separate, compounding bugs, not one):
+  - dead code: `UserModel`'s real, enforced status enum is `'pending' | 'active' | 'inactive' |
+    'suspended' | 'terminated'` (`webapp/model/user.js` line 54) - there is no `'locked'` or
+    `'disabled'` value. `auth.js`'s `login()` method checks for exactly those two nonexistent
+    values (`webapp/controller/auth.js` lines 486, 496), each with its own translated error
+    message (`controller.auth.accountLocked` / `accountDisabled` in `webapp/translations/en.conf`
+    lines 34-35, and the `de.conf` equivalents) - none of this can ever fire for any account
+    created through the current schema
+  - wrong-status-code UX bug (not previously called out, found during this session's review):
+    even once the enum values above are fixed, the checks still can't fire for *local password
+    login*, because `UserModel.authenticate()` (called just above, `webapp/model/user.js` lines
+    966-969) already throws a generic `Error('User account is ${status}')` for any
+    `status !== 'active'` *before* execution ever reaches the controller-layer checks - that throw
+    is caught by `login()`'s outer catch-all (`webapp/controller/auth.js` lines 634-643) and
+    surfaced to the end user as a 500 `INTERNAL_ERROR` with a message like "Internal server error
+    during login: User account is suspended," not a 403 with a specific, translated, actionable
+    message. A real user with a `pending`/`inactive`/`suspended`/`terminated` account who enters
+    the *correct* password today sees what looks like a system failure, not a clear explanation
+    of why they were rejected
+  - risk (both bugs share this root cause): any *future* external-auth integration that hooks into
+    `onAuthBeforeLogin` with `skipPasswordCheck: true` (bypassing `UserModel.authenticate()`, the
+    same way auth-oauth's own separate `completeExternalAuth()` call does) inherits whichever of
+    these two bugs applies to it - the dead code is a trap for the next integration, not just
+    harmless cruft, and fixing only the enum values (without also fixing the second bug) would
+    leave local password login's 500-error behavior in place indefinitely
+- design decision (locked in): centralize ALL account-status enforcement in `auth.js`'s `login()`,
+  not `UserModel.authenticate()` - matches the precedent W-195 already established for
+  `completeExternalAuth()` ("no implicit framework-side gate on `user.status`... the caller must
+  check it explicitly") and is the only way for internal and external login to share one status
+  gate with one set of outcomes:
+  - `UserModel.authenticate(identifier, password)` becomes credentials-only: verify
+    username/email + password, return the full user document (whatever its status) or `null` - it
+    no longer inspects/throws on `status` at all. (Single call site in the whole codebase -
+    `webapp/controller/auth.js` line 437, confirmed via repo-wide search - so this is a safe,
+    self-contained contract change with no other consumers to update.)
+  - side effect of verifying the password before status is ever inspected: closes a minor
+    account-status-enumeration timing/response-shape side channel that exists today (a caller who
+    doesn't know the password can currently learn that a given username/email belongs to an
+    account and its exact non-active status, without the request ever reaching the password
+    check) - not the primary motivation, but a genuine hardening bonus of this design, not a
+    separate work item
+  - `auth.js`'s existing "Check account status" block (already correctly positioned *after* both
+    the internal and external branches converge on a single `user` variable) gets 4 sequential
+    `if` checks against the real enum - `'pending'`, `'suspended'`, `'terminated'`, `'inactive'`,
+    in that order - mirroring `plugins/auth-oauth/webapp/controller/oauthAuth.js`
+    `_handleLoginCallback()`'s existing style/order exactly (same reason codes:
+    `ACCOUNT_PENDING_APPROVAL` / `ACCOUNT_SUSPENDED` / `ACCOUNT_TERMINATED` / `ACCOUNT_INACTIVE`),
+    so the two systems behave identically from an admin/end-user perspective - one mental model
+    for "why was my login rejected," everywhere in the framework
+- features:
+  - local password login and any current/future external-auth plugin using
+    `onAuthBeforeLogin`/`skipPasswordCheck` now get identical, correct 403 responses for every
+    non-active status - a specific translated message + machine-readable code, never a 500
+  - `docs/plugins/plugin-hooks.md`'s `onAuthBeforeLogin`/`skipPasswordCheck` example gets a short
+    note clarifying that (unlike `completeExternalAuth()`, already documented as NOT gating on
+    status) `context.user`'s status IS enforced automatically by the framework for this
+    integration path - closing the exact ambiguity that led auth-oauth's author to copy the wrong
+    convention in the first place
+- deliverables:
+  - `webapp/model/user.js`:
+    - `authenticate()`: removed the `status !== 'active'` throw; now purely verifies
+      username/email + password and returns the user (any status) or `null`
+  - `webapp/controller/auth.js`:
+    - `login()`: replaced the `'locked'`/`'disabled'` checks (lines ~486-504) with 4
+      sequential checks against `'pending'`/`'suspended'`/`'terminated'`/`'inactive'`, each with
+      its own translated message + code (see design decision above); each branch also fires
+      `onAuthFailure` (reason matching the code) before returning, matching the existing
+      `INVALID_CREDENTIALS`/`LOCAL_AUTH_RESTRICTED` branches above it in the same method - found
+      during implementation, not explicitly planned, but needed for consistency (and gives W-202's
+      future lockout counter the same hook signal every other rejection path already provides)
+  - `webapp/translations/en.conf`, `webapp/translations/de.conf`:
+    - replaced `controller.auth.accountLocked` / `accountDisabled` with
+      `accountPendingApproval` / `accountSuspended` / `accountTerminated` / `accountInactive`
+  - `docs/plugins/plugin-hooks.md`:
+    - added the status-enforcement clarification note to the `skipPasswordCheck` section
+      (see features above)
+  - `webapp/tests/unit/controller/auth-controller.test.js`:
+    - new `W-201: account status enforcement` block - `describe.each` over all 4 statuses,
+      covering both the internal (`UserModel.authenticate` mocked to return a non-active user) and
+      external (`skipPasswordCheck` hook) paths, plus a `status: 'active'` regression guard -
+      9 new tests, correct 403/code/message and confirms `req.session.user` is never set
+  - `webapp/tests/unit/user/user-*.test.js`:
+    - confirmed none of the existing status-related tests call the real
+      `UserModel.authenticate()` (they use local mock functions) - no changes needed
+  - `plugins/auth-oauth/webapp/controller/oauthAuth.js`:
+    - already corrected in prior session to check
+      `'suspended'`/`'terminated'`/`'inactive'`/`'pending'` directly against the real enum, with its
+      own `ACCOUNT_SUSPENDED`/`ACCOUNT_TERMINATED`/`ACCOUNT_INACTIVE`/`ACCOUNT_PENDING_APPROVAL`
+      reason codes - this work item's design decision adopts that same convention, so this work
+      item is about the framework catching up to the plugin, not the other way around
+  - `webapp/controller/user.js` (unrelated bug, found while preparing test accounts for the manual
+    verification below - bundled into this same release):
+    - `_filterPublicProfileFields()`'s admin branch never computed `initials` (a derived,
+      session-only value, never part of `UserModel.baseSchema`/never persisted) - raw DB documents
+      have no `initials` field, so the admin users list (`admin/users.shtml`) fell back to `?` for
+      every row's avatar; fixed by computing it the same way the non-admin branch already does
+  - `webapp/tests/unit/user/user-controller-profile-fields.test.js` (new, 4 tests):
+    - regression coverage for the `initials` fix above - admin viewer gets computed `initials`
+      matching the non-admin branch's formula, still gets every other raw field minus
+      `passwordHash`, and the empty-name-part fallback behavior
+- test / verify:
+  - full unit suite passes: 120 suites / 2918 tests (`npx jest --runInBand`), including the 9 new
+    `auth-controller.test.js` tests and the 4 new `user-controller-profile-fields.test.js` tests
+    above (2905 baseline from W-200 + 9 + 4)
+  - manually verified live via `npm start` + `/auth/login.shtml`, using 4 real accounts with a
+    real password each - confirms the fix end-to-end (browser → API → i18n → rendered message),
+    not just the controller-layer JSON asserted by the unit tests above:
+    - `pending` (`@ptester6`): "Your account is pending approval. Please check back later, or
+      contact your administrator."
+    - `inactive` (`@ptester7`): "Your account is inactive. Please contact your administrator to
+      reactivate it."
+    - `suspended` (`@ptester8`): "Your account has been suspended. Please contact your
+      administrator for more information."
+    - `terminated` (`@ptester9`): "Your account has been terminated. Please contact your
+      administrator if you believe this is a mistake."
+    - all 4 correctly rejected with the intended per-status message (previously would have been a
+      generic 500 "Internal server error during login: User account is {status}" for all 4, or
+      silently ignored the status entirely for any external-auth `skipPasswordCheck` path)
+- benefits: removes a source of copy-paste bugs for future external-auth plugins/hooks; makes the
+  controller layer's status handling match the schema it's actually reading from; and fixes a
+  real, currently-shipping UX bug where a legitimate user with a non-active account and the
+  *correct* password sees a generic 500 Internal Server Error instead of a clear, actionable
+  explanation
+
+
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -6766,8 +6903,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-200, v1.7.4, 2026-07-30
-- update features & deliverables in W-200 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume W-201, v1.7.5, 2026-07-30
+- update features & deliverables in W-201 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - append to cursor_log.txt
@@ -6778,12 +6915,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.4 2026-07-30
+node bin/bump-version.js 1.7.5 2026-07-30
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.4; git push origin main --tags
+git tag v1.7.5; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff
@@ -6943,15 +7080,45 @@ template:
   - i18n: deferred (found during implementation: no plugin-level i18n mechanism exists in the framework yet - `webapp/translations/*.conf` only loads framework/site strings, see design doc §"UI Components"); all plugin-facing strings are English-only for v1.0.0
   - published to github.com/jpulse-net/plugin-auth-oauth as v1.0.0
 
-### W-198, v1.7.x, 2026-08-xx: security: email uniqueness is case-sensitive and unverified - enables duplicate accounts and an OAuth pre-linking account-takeover
+### W-198, v1.7.x, 2026-08-xx: security: email/username uniqueness is not DB-enforced (email also case-sensitive and unverified) - enables duplicate accounts and an OAuth pre-linking account-takeover
 - status: 🕑 PENDING
 - type: Bugfix (security)
-- objective: close two related gaps in `UserModel`'s email handling - (a) email uniqueness checks are case-sensitive with no DB-level index, allowing case-variant duplicate accounts, and (b) neither signup nor profile email-change verifies actual ownership of the address, which combined with the auth-oauth plugin's (W-197) `link-by-email`/`jit-create` strategies enables a pre-authentication account-takeover attack
-- discovered while: manually testing W-197's auth-oauth plugin end-to-end against a live Google IdP, then investigating whether duplicate-email accounts are possible in the framework at all
-- finding (a) - case-sensitive uniqueness, no DB index:
-  - `UserModel.findByEmail()` (`webapp/model/user.js`) does an exact case-sensitive match (`{ email: email }`) with no `.toLowerCase()` normalization, unlike `findByUsername()`, which normalizes to lowercase both client-side (signup form's `oninput` handler) and server-side
-  - no MongoDB unique index exists on `users.email` (or `users.username`) at all - confirmed no `createIndex()` call anywhere for the `users` collection (contrast `plugins.name`, which does get one) - the schema's `unique: true` is declarative only, enforced solely by app-level `findByEmail()`/`findByUsername()` pre-checks in `UserModel.create()`
-  - net effect: `peter@thoeny.org` and `Peter@Thoeny.org` can coexist as two separate accounts; the non-atomic check-then-insert (no transaction, no index) can also, in rare cases, create two accounts with the identical email string via a race
+- objective: close two related gaps in `UserModel`'s uniqueness/email handling - (a) neither
+  `email` nor `username` uniqueness is enforced at the database level (only a non-atomic app-level
+  check-then-insert), which is a real, empirically-confirmed race, not just theoretical, plus email
+  has an additional, independent case-sensitivity gap on top of that shared race, and (b) neither
+  signup nor profile email-change verifies actual ownership of the address, which combined with the
+  auth-oauth plugin's (W-197) `link-by-email`/`jit-create` strategies enables a pre-authentication
+  account-takeover attack
+- discovered while: manually testing W-197's auth-oauth plugin end-to-end against a live Google
+  IdP, then investigating whether duplicate-email accounts are possible in the framework at all;
+  broadened (this session) after manually testing W-201 surfaced a live duplicate-`username`
+  account in a dev database, empirically confirming the race described below actually happens, not
+  just email
+- finding (a) - uniqueness is not DB-enforced for EITHER field, confirmed as a real, live race
+  (not just email):
+  - `UserModel.create()` (`webapp/model/user.js`) does a plain, non-atomic check-then-insert for
+    both fields - `findByUsername()`, then `findByEmail()`, then `insertOne()` - with no MongoDB
+    transaction and no unique index backing either one
+  - no MongoDB unique index exists on `users.email` OR `users.username` at all - confirmed no
+    `createIndex()` call anywhere for the `users` collection (contrast `plugins.name`, which does
+    get one) - the schema's `unique: true` is declarative only, enforced solely by the app-level
+    pre-checks above
+  - `findByEmail()` additionally does an exact case-sensitive match (`{ email: email }`) with no
+    `.toLowerCase()` normalization, unlike `findByUsername()`, which normalizes to lowercase both
+    client-side (signup form's `oninput` handler) and server-side - so email has both the shared
+    race gap AND this second, independent case-sensitivity gap; username only has the first
+  - **empirical confirmation (this session, W-201 manual testing):** found two live `users`
+    documents with identical `username: 'ptester8'` AND identical `email` in a dev database -
+    `createdAt` timestamps exactly 1ms apart (`2025-09-04T06:38:46.974Z` /
+    `...975Z`), confirming two near-simultaneous `create()` calls both passed the "not found"
+    check before either `insertOne()` landed - not a manual double-entry, a real race; the two
+    resulting documents also picked up different schema-extension state (one has the auth-mfa
+    plugin's `mfa` block, the other doesn't), consistent with two independent code paths through
+    `applyDefaults()`/`prepareSaveData()` at the same instant
+  - net effect: `peter@thoeny.org` and `Peter@Thoeny.org` can coexist as two separate accounts
+    (email-only, case gap); and - now confirmed live, not just theoretical - a race can create two
+    accounts with the identical `username` and/or identical `email` string (both fields, shared gap)
 - finding (b) - email is never verified, at signup or on change - the more serious one:
   - grepped the entire `webapp/` tree for `emailVerified`/`verifyEmail`/`confirmEmail` - the only hit is a single comment in `webapp/controller/user.js` ("W-105: Enhanced with plugin hooks for email confirmation...") describing a hook extension *point*, not an actual implementation; no verification email is ever sent, no confirmation token/flow exists anywhere
   - `UserModel.create()` and the profile-update path (`webapp/controller/user.js` `apiUpdate`, ~line 719-724) both only check "does any other account already hold this exact email string" - neither checks nor requires any proof that the requester actually controls that inbox
@@ -6965,13 +7132,15 @@ template:
   - root cause is framework-wide (a general `UserModel`/profile-update gap, not specific to the auth-oauth plugin), but the auth-oauth plugin's `link-by-email`/`jit-create` strategies are what turn it from a data-hygiene nitpick into an account-takeover primitive, since they implicitly trust "this local account's stored email == this IdP-verified email" as sufficient proof of identity
 - proposed fix direction (none implemented yet - filed for future work):
   - add a real `emailVerified` boolean to the user schema, defaulting to `false`; send a confirmation link on signup and on every email change; only flip to `true` once the link is clicked
-  - normalize email to lowercase everywhere it's read/written/compared (`findByEmail()`, `create()`, profile-update's duplicate check, signup), mirroring the existing `username` normalization, closing finding (a)
-  - add a real MongoDB unique index on `users.email` (case-insensitive collation, or index the lowercased value) as a backstop against the check-then-insert race, not just an app-level pre-check
+  - normalize email to lowercase everywhere it's read/written/compared (`findByEmail()`, `create()`, profile-update's duplicate check, signup), mirroring the existing `username` normalization, closing the case-sensitivity half of finding (a)
+  - add real MongoDB unique indexes on BOTH `users.email` (case-insensitive collation, or index the lowercased value) AND `users.username`, as a backstop against the check-then-insert race for both fields, not just an app-level pre-check - the empirically-confirmed duplicate found this session was a `username` collision, so fixing only the `email` index would leave the exact same race open on the other field
+  - consider a startup/migration check (or an admin utility) to detect and report any pre-existing duplicate `username`/`email` values in a live database before the new unique indexes are added, since `createIndex(..., { unique: true })` will fail outright if duplicates already exist - the `ptester8` case found this session is a live example of exactly that
   - in auth-oauth's `link-by-email`/`jit-create` strategies specifically, require the matched local account's `emailVerified === true` in addition to the IdP's `email_verified` claim before auto-linking; if the local account's email isn't verified, fail closed with a new reason code (e.g. `LOCAL_EMAIL_NOT_VERIFIED`) instead of silently linking
   - consider putting an account into a short-lived "pending re-verification" state on email change (old email still usable to log in / reverse the change) rather than trusting the new email immediately
 - deliverables:
   - `webapp/model/user.js`:
-    - FIXME: add `emailVerified` field, lowercase-normalize email in `findByEmail()`/`create()`, add DB-level unique index
+    - FIXME: add `emailVerified` field, lowercase-normalize email in `findByEmail()`/`create()`,
+      add DB-level unique indexes on both `email` and `username`
   - `webapp/controller/user.js`:
     - FIXME: send/require email confirmation on signup and on email change (ties into the existing W-105 hook comment)
   - `plugins/auth-oauth/webapp/controller/oauthAuth.js`:
@@ -6980,54 +7149,80 @@ template:
     - FIXME: friendly message for `LOCAL_EMAIL_NOT_VERIFIED`
   - `docs/dev/design/W-197-auth-oauth-plugin.md`:
     - FIXME: update the threat-model table with this finding and its fix once implemented
-- benefits: closes a pre-authentication account-takeover vector against the auth-oauth plugin's email-based linking strategies, closes an email-squatting DoS vector, and brings email uniqueness handling in line with the existing (correct) username-normalization pattern
+- benefits: closes a pre-authentication account-takeover vector against the auth-oauth plugin's
+  email-based linking strategies, closes an email-squatting DoS vector, closes the same
+  empirically-confirmed race for `username` as well as `email`, and brings both fields' uniqueness
+  handling in line with real DB-level enforcement instead of an app-level-only pre-check
 
-### W-201, v1.7.5, 2026-08-xx: auth: `auth.js` login controller checks account status against a stale enum ('locked'/'disabled' don't exist)
+### W-202, v1.7.6, 2026-08-xx: auth: add locked status
 - status: 🕑 PENDING
-- type: Bugfix
-- objective: replace `webapp/controller/auth.js`'s dead `user.status === 'locked'` / `'disabled'`
-  checks with checks against `UserModel`'s actual status enum, and clean up the two matching stale
-  translation strings, so the controller-layer code no longer contradicts the schema it's reading
-- discovered while: fixing the identical (but live/exploitable, not dead) bug in the auth-oauth
-  plugin (W-197) - its own account-status gate literally commented "mirrors the existing
-  locked/disabled convention used elsewhere in auth.js", which is exactly where the stale enum
-  values were copied from
-- current gap:
-  - `UserModel`'s real, enforced status enum is `'pending' | 'active' | 'inactive' | 'suspended' |
-    'terminated'` (`webapp/model/user.js` line 54) - there is no `'locked'` or `'disabled'` value
-  - `auth.js`'s `login()` method checks for exactly those two nonexistent values
-    (`webapp/controller/auth.js` lines 486, 496), each with its own translated error message
-    (`controller.auth.accountLocked` / `accountDisabled` in `webapp/translations/en.conf` lines
-    34-35, and the `de.conf` equivalents) - none of this can ever fire for any account created
-    through the current schema
-  - currently **harmless in this one call path only** because `UserModel.authenticate()` (called
-    just above, `webapp/model/user.js` lines 966-969) already throws for any `status !== 'active'`
-    before execution ever reaches the stale checks - local password login is correctly protected,
-    just via a different, less specific code path (a generic thrown `Error`, not the intended
-    per-status `ACCOUNT_LOCKED`/`ACCOUNT_DISABLED` JSON responses, which are unreachable)
-  - risk: any *future* external-auth integration that hooks into `onAuthBeforeLogin` with
-    `skipPasswordCheck: true` (bypassing `UserModel.authenticate()`, the same way auth-oauth's
-    direct `completeExternalAuth()` call does) would inherit this exact live exploit if it copies
-    this "existing convention" the way auth-oauth's author did - the dead code is a trap for the
-    next integration, not just harmless cruft
-- deliverables:
-  - `webapp/controller/auth.js`:
-    - FIXME: replace the `'locked'`/`'disabled'` checks (lines ~486-504) with checks against the
-      real enum (`'inactive'`, `'suspended'`, `'terminated'`, alongside the existing `'pending'`
-      handling elsewhere in the multi-step flow, if any) - or remove them entirely as pure dead
-      code if `UserModel.authenticate()`'s existing generic-error gate is considered sufficient for
-      this one call path, documenting explicitly why no controller-layer check is needed here
-  - `webapp/translations/en.conf`, `webapp/translations/de.conf`:
-    - FIXME: update/replace `controller.auth.accountLocked` / `accountDisabled` to match whichever
-      real statuses end up with their own controller-layer messages
-  - `plugins/auth-oauth/webapp/controller/oauthAuth.js`:
-    - DONE (this session, ahead of the framework fix): already corrected to check
-      `'suspended'`/`'terminated'`/`'inactive'`/`'pending'` directly against the real enum, with its
-      own `ACCOUNT_SUSPENDED`/`ACCOUNT_TERMINATED`/`ACCOUNT_INACTIVE`/`ACCOUNT_PENDING_APPROVAL`
-      reason codes - no longer copies this convention, so this work item is about the framework
-      catching up to the plugin, not the other way around
-- benefits: removes a source of copy-paste bugs for future external-auth plugins/hooks, and makes
-  the controller layer's status handling match the schema it's actually reading from
+- type: Feature
+- depends on: W-201 (centralized, per-status account-status check in `auth.js`'s `login()` - this
+  work item adds a 5th branch to that same block rather than introducing a second check location)
+- objective: give jPulse a `locked` status that is conceptually distinct from `suspended`/
+  `terminated` - `locked` protects *the account* against someone else (e.g. brute-force login
+  attempts, suspicious activity), while `suspended`/`terminated` are admin/moderator actions that
+  protect *the community* from the account - paired with the actual detection/auto-clear mechanism
+  that sets and clears it, so this doesn't become another status value nothing ever sets (the exact
+  trap W-201 exists to fix)
+- discovered while: reviewing W-201's revised spec - raised the idea of adding a `locked` status;
+  agreed it's a distinct, valuable concept, but out of scope for W-201 (a narrowly-scoped bugfix)
+  since there is currently no failed-login-attempt tracking, lockout threshold, or auto-unlock
+  mechanism anywhere in the framework (confirmed via repo-wide search - the only trace is the
+  aspirational `hook-manager.js` `onAuthFailure` doc string "On login failure - rate limiting,
+  lockout", never implemented) - adding the enum value alone, with nothing to ever set it, would
+  just recreate W-201's bug in a new shape
+- related backlog item: `W-084` ("security: harden security") already lists "Account Lockout:
+  Automatic account lockout after N failed login attempts (configurable threshold)" as an
+  undetailed to-do bullet with no design behind it - this work item formalizes/supersedes that
+  bullet with a concrete design (W-084 itself intentionally left untouched - not moved, not marked
+  done, per this session's file-editing constraints)
+- why not fold this into `suspended` via a reason sub-field instead: considered (e.g.
+  `status: 'suspended', statusReason: 'security' | 'policy'`) as a smaller-schema-footprint
+  alternative, but rejected for now - splitting "why is this account blocked" across two fields
+  is more for a developer/admin to hold in their head than one clear top-level `status` value, and
+  `locked`'s lifecycle (system-set, often auto-clearing) is different enough from `suspended`'s
+  (admin-set, admin-cleared) that conflating their storage shape would likely leak into the admin
+  UI/search/query layer anyway
+- design considerations (none locked in yet - to be resolved when this item is scheduled):
+  - tracking storage: a failed-attempt counter + `lockedUntil` timestamp, either on the user
+    document (simplest, no new infra) or in Redis via `global.RedisManager.cacheCheckRateLimit()`
+    (already the established pattern for per-IP rate limiting, e.g.
+    `plugins/auth-oauth/webapp/controller/oauthAuth.js` `apiInit`/`apiCallback` - better suited to
+    multi-server deployments, see W-055 load-balancer work item)
+  - keyed by identifier, by IP, or both - identifier-only tracking lets an attacker weaponize the
+    lockout itself as a denial-of-service against a known victim's account (repeatedly submit
+    wrong passwords for someone else's username) - likely needs IP-based rate limiting as a
+    complementary control, not a replacement, mirroring the `onAuthFailure` hook's existing
+    "rate limiting, lockout" framing as two related but separate concerns
+  - configurable threshold/duration (e.g. `appConfig.controller.auth.lockout.maxAttempts`,
+    `.lockoutDurationMinutes`), auto-clear on timeout, and/or early clear on successful password
+    reset
+  - admin manual-unlock action in the user-management UI, for support cases before the timeout
+    elapses
+  - whether the counter should be driven through the existing `onAuthFailure` hook (already fired
+    on every login failure today) rather than new bespoke tracking code in `auth.js`, so plugins
+    get the same signal for their own auditing/alerting
+  - distinct, non-punitive user-facing copy (e.g. "Too many failed attempts. Try again in
+    {{minutes}} minutes, or reset your password.") vs. `suspended`/`terminated`'s
+    "contact your administrator" framing - the whole point of separating these statuses is that
+    the message a locked-out legitimate user sees should not sound like an accusation
+  - slots into `auth.js`'s `login()` status-check block (W-201) as a 5th sequential check
+    (`'locked'` → `ACCOUNT_LOCKED`), no restructuring of that block needed
+- features: not yet scoped - see design considerations above; to be finalized when this item is
+  picked up
+- deliverables: not yet scoped - to be broken out (schema enum + optional lockout fields, tracking
+  mechanism, `appConfig` options, `login()` branch, admin unlock UI, translations, tests) once this
+  item is picked up
+- benefits: gives legitimate users a clear, actionable, non-accusatory explanation when an
+  automated security measure (not an admin decision) blocks their login, and gives the framework
+  real brute-force protection on `/api/1/auth/login`, which has none today
+
+
+
+
+
+
 
 ### W-055: deployment: load balancer and multi-server setup
 - status: 🕑 PENDING

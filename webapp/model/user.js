@@ -3,7 +3,7 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.7.4
+ * @version         1.7.5
  * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -946,10 +946,16 @@ class UserModel {
     }
 
     /**
-     * Authenticate user with loginId/email and password
+     * Authenticate user with loginId/email and password. Credentials-only - does NOT gate on
+     * account status (e.g. 'pending'/'suspended'/'terminated'/'inactive'). W-201: status
+     * enforcement is a controller-layer concern, centralized in auth.js's login() so the exact
+     * same status check applies uniformly to both this internal-password path and external-auth
+     * (skipPasswordCheck) logins - see the "Check account status" block there. Verifying the
+     * password before status is ever inspected (by not inspecting it here at all) also avoids
+     * leaking a non-active account's existence/status to a caller who doesn't know its password.
      * @param {string} identifier - LoginId or email
      * @param {string} password - Plain text password
-     * @returns {Promise<object|null>} User document if authenticated, null otherwise
+     * @returns {Promise<object|null>} User document (any status) if credentials are valid, null otherwise
      */
     static async authenticate(identifier, password) {
         try {
@@ -961,11 +967,6 @@ class UserModel {
 
             if (!user) {
                 return null;
-            }
-
-            // Check if user is active
-            if (user.status !== 'active') {
-                throw new Error(`User account is ${user.status}`);
             }
 
             // Verify password

@@ -3,7 +3,7 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.7.4
+ * @version         1.7.5
  * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -907,9 +907,13 @@ class UserController {
         const isAuthenticated = AuthController.isAuthenticated(req);
         const isAdmin = isAuthenticated && AuthController.isAuthorized(req, adminRoles);
 
-        // Admins get all fields except sensitive ones
+        // Admins get all fields except sensitive ones. `initials` is a derived, session-only
+        // value (never part of UserModel.baseSchema, never persisted) - compute it here the same
+        // way the non-admin branch below does, otherwise every row is missing it (raw DB documents
+        // never have an `initials` field), and the admin users list falls back to '?' for everyone.
         if (isAdmin) {
             const { passwordHash, ...adminFields } = user.toObject ? user.toObject() : user;
+            adminFields.initials = ((user.profile?.firstName?.[0] || '') + (user.profile?.lastName?.[0] || '')).toUpperCase();
             return adminFields;
         }
 

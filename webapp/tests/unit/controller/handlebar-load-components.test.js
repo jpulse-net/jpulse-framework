@@ -3,7 +3,7 @@
  * @tagline         Unit tests for loadComponents() - load components from template without rendering
  * @description     API-style return, asset path only, nested component structure. Fixture under tests/fixtures; PathResolver mocked so loadComponents reads from disk.
  * @file            webapp/tests/unit/controller/handlebar-load-components.test.js
- * @version         1.7.4
+ * @version         1.7.5
  * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

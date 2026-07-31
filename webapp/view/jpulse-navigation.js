@@ -7,7 +7,7 @@
  *                  See docs/site-navigation.md for more information, also available at:
  *                  https://jpulse.net/jpulse-docs/site-navigation
  * @file            webapp/view/jpulse-navigation.js
- * @version         1.7.4
+ * @version         1.7.5
  * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

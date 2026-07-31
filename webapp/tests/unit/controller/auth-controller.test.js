@@ -3,7 +3,7 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         1.7.4
+ * @version         1.7.5
  * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -796,6 +796,73 @@ describe('AuthController', () => {
                 context.authMethod = 'ldap';
                 return context;
             });
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(mockRes.status).not.toHaveBeenCalledWith(403);
+            expect(mockReq.session.user).toMatchObject({ username: 'testuser', isAuthenticated: true });
+        });
+    });
+
+    describe('W-201: account status enforcement', () => {
+        const baseUser = {
+            _id: 'user123',
+            username: 'testuser',
+            email: 'testuser@example.com',
+            profile: { firstName: 'Test', lastName: 'User' },
+            roles: ['user'],
+            loginCount: 0
+        };
+
+        beforeEach(() => {
+            mockReq.body = { identifier: 'testuser', password: 'validpassword' };
+            global.i18n.translate = jest.fn((req, key) => {
+                const translations = {
+                    'controller.auth.accountPendingApproval': 'Your account is pending approval.',
+                    'controller.auth.accountSuspended': 'Your account has been suspended.',
+                    'controller.auth.accountTerminated': 'Your account has been terminated.',
+                    'controller.auth.accountInactive': 'Your account is inactive.'
+                };
+                return translations[key] || key;
+            });
+            global.HookManager?.clear?.();
+        });
+
+        describe.each([
+            ['pending', 'ACCOUNT_PENDING_APPROVAL', 'Your account is pending approval.'],
+            ['suspended', 'ACCOUNT_SUSPENDED', 'Your account has been suspended.'],
+            ['terminated', 'ACCOUNT_TERMINATED', 'Your account has been terminated.'],
+            ['inactive', 'ACCOUNT_INACTIVE', 'Your account is inactive.']
+        ])("status '%s'", (status, code, message) => {
+            test('blocks internal (username/password) login', async () => {
+                UserModel.authenticate.mockResolvedValue({ ...baseUser, status });
+
+                await AuthController.login(mockReq, mockRes);
+
+                expect(mockRes.status).toHaveBeenCalledWith(403);
+                expect(mockRes.json).toHaveBeenCalledWith({ success: false, error: message, code });
+                expect(mockReq.session.user).toBeUndefined();
+            });
+
+            test('blocks external (skipPasswordCheck) login - no longer relies on UserModel.authenticate()', async () => {
+                global.HookManager.register('onAuthBeforeLogin', 'ext-plugin', (context) => {
+                    context.skipPasswordCheck = true;
+                    context.user = { ...baseUser, status };
+                    context.authMethod = 'ldap';
+                    return context;
+                });
+
+                await AuthController.login(mockReq, mockRes);
+
+                expect(UserModel.authenticate).not.toHaveBeenCalled();
+                expect(mockRes.status).toHaveBeenCalledWith(403);
+                expect(mockRes.json).toHaveBeenCalledWith({ success: false, error: message, code });
+                expect(mockReq.session.user).toBeUndefined();
+            });
+        });
+
+        test("allows login for status 'active' (regression guard)", async () => {
+            UserModel.authenticate.mockResolvedValue({ ...baseUser, status: 'active' });
 
             await AuthController.login(mockReq, mockRes);
 

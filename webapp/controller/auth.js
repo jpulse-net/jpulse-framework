@@ -3,7 +3,7 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         1.7.4
+ * @version         1.7.5
  * @release         2026-07-30
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -482,24 +482,77 @@ class AuthController {
                     }
                 }
 
-                // Check account status
-                if (user.status === 'locked') {
+                // Check account status (W-201): the single place status is enforced for the whole
+                // login() flow, for both the internal (UserModel.authenticate()) and external
+                // (onAuthBeforeLogin skipPasswordCheck) paths above - UserModel.authenticate() only
+                // verifies credentials, it never gates on status. Reason codes/order mirror
+                // plugins/auth-oauth/webapp/controller/oauthAuth.js _handleLoginCallback(), so the
+                // two systems behave identically from an admin/end-user perspective.
+                if (user.status === 'pending') {
+                    await global.HookManager.execute('onAuthFailure', {
+                        req,
+                        identifier,
+                        reason: 'ACCOUNT_PENDING_APPROVAL',
+                        authMethod: beforeLoginContext.authMethod
+                    });
+
                     global.LogController.logError(req, 'auth.login',
-                        `error: Account locked for user: ${user.username}`);
+                        `error: account pending approval for user: ${user.username}`);
                     return res.status(403).json({
                         success: false,
-                        error: global.i18n.translate(req, 'controller.auth.accountLocked'),
-                        code: 'ACCOUNT_LOCKED'
+                        error: global.i18n.translate(req, 'controller.auth.accountPendingApproval'),
+                        code: 'ACCOUNT_PENDING_APPROVAL'
                     });
                 }
 
-                if (user.status === 'disabled') {
+                if (user.status === 'suspended') {
+                    await global.HookManager.execute('onAuthFailure', {
+                        req,
+                        identifier,
+                        reason: 'ACCOUNT_SUSPENDED',
+                        authMethod: beforeLoginContext.authMethod
+                    });
+
                     global.LogController.logError(req, 'auth.login',
-                        `error: Account disabled for user: ${user.username}`);
+                        `error: account suspended for user: ${user.username}`);
                     return res.status(403).json({
                         success: false,
-                        error: global.i18n.translate(req, 'controller.auth.accountDisabled'),
-                        code: 'ACCOUNT_DISABLED'
+                        error: global.i18n.translate(req, 'controller.auth.accountSuspended'),
+                        code: 'ACCOUNT_SUSPENDED'
+                    });
+                }
+
+                if (user.status === 'terminated') {
+                    await global.HookManager.execute('onAuthFailure', {
+                        req,
+                        identifier,
+                        reason: 'ACCOUNT_TERMINATED',
+                        authMethod: beforeLoginContext.authMethod
+                    });
+
+                    global.LogController.logError(req, 'auth.login',
+                        `error: account terminated for user: ${user.username}`);
+                    return res.status(403).json({
+                        success: false,
+                        error: global.i18n.translate(req, 'controller.auth.accountTerminated'),
+                        code: 'ACCOUNT_TERMINATED'
+                    });
+                }
+
+                if (user.status === 'inactive') {
+                    await global.HookManager.execute('onAuthFailure', {
+                        req,
+                        identifier,
+                        reason: 'ACCOUNT_INACTIVE',
+                        authMethod: beforeLoginContext.authMethod
+                    });
+
+                    global.LogController.logError(req, 'auth.login',
+                        `error: account inactive for user: ${user.username}`);
+                    return res.status(403).json({
+                        success: false,
+                        error: global.i18n.translate(req, 'controller.auth.accountInactive'),
+                        code: 'ACCOUNT_INACTIVE'
                     });
                 }
 

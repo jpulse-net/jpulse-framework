@@ -19758,3 +19758,20 @@ Added a new `v1.7.4, W-200, 2026-07-30` bullet to the top of "Latest Release Hig
 
 
 ============================================================
+2026-07-30 20:40
+
+release prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-201, v1.7.5, 2026-07-30
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Reviewed `tt-git-diff.txt` against the current `docs/dev/work-items.md`: the diff was a stale snapshot, captured mid-session before the `test / verify` section (with the 4-account manual login verification results) had been added to W-201 - so its copy of the work item text was an earlier draft, missing that section entirely. The code-side diffs (`webapp/model/user.js`'s `authenticate()`, `webapp/controller/auth.js`'s 4-branch status-check rewrite, `webapp/controller/user.js`'s `initials` fix, both translation files, `webapp/tests/unit/controller/auth-controller.test.js`'s 9 new tests, and the pre-existing `webapp/utils/hook-manager.js`/`plugin-hooks.md` W-200 doc-string cleanup left over from before this session) all matched exactly what's documented - no gaps found there. Flagged this staleness to note in this log rather than silently trusting a diff file that no longer reflects HEAD; did not regenerate `tt-git-diff.txt` itself (would require a `git diff` command, which needs explicit approval per the git-safety rule) since the live `docs/dev/work-items.md` file already has the accurate, complete picture.
+
+One real gap found and fixed: W-201's `deliverables:` didn't yet mention the unrelated `webapp/controller/user.js` `_filterPublicProfileFields()` avatar-`initials` bug fix (found while preparing test accounts for this session's manual verification) or its new `webapp/tests/unit/user/user-controller-profile-fields.test.js` regression test file (4 tests) - added both as new deliverables bullets, without touching `status:` or any other part of the file. Also corrected the `test / verify` section's stale test count (`119 suites / 2914 tests`) to the actual current numbers - reran the full suite (`npx jest --runInBand`) and got `120 suites / 2918 tests`, all passing (2905 W-200 baseline + 9 new `auth-controller.test.js` + 4 new `user-controller-profile-fields.test.js`).
+
+Added a new `v1.7.5, W-201, 2026-07-30` bullet to the top of "Latest Release Highlights" in both `README.md` and `docs/README.md` (existing `v1.7.4` header/bullets left as-is, no version bump); added a full `## v1.7.5, W-201, 2026-07-30` section to the top of `docs/CHANGELOG.md` following the established Commit/Objective/Summary/Key features/Files changed/Documentation/Release structure, including the bundled `initials` fix and a mention of the two new PENDING backlog items (W-202 `locked` status, broadened W-198 username uniqueness) filed as documentation-only during this session; rewrote `commit-message.txt` in the same format as the W-200 commit message (BUGFIX paragraph, two-separate-compounding-bugs root-cause narrative, the centralize-in-auth.js design decision and its timing-side-channel bonus, a clearly separated "Also bundled into this release" section for the `initials` fix and the two filed-not-implemented backlog items, Objectives, Key features, Code Changes per file, Documentation Updates, Work Item/Version/Release Date footer) - not committed, per instructions.
+
+
+============================================================

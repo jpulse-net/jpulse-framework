@@ -1,6 +1,48 @@
-# jPulse Docs / Version History v1.7.4
+# jPulse Docs / Version History v1.7.5
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.5, W-201, 2026-07-30
+
+**Commit:** `W-201, v1.7.5: auth: fix auth login controller checking account status against non-existing enum 'locked'/'disabled'`
+
+**Objective**: Replace `webapp/controller/auth.js`'s dead `user.status === 'locked'` / `'disabled'` checks with a single controller-layer status gate against `UserModel`'s actual status enum, shared by both the internal (username/password) and external (`skipPasswordCheck`) login paths — and move status enforcement out of `UserModel.authenticate()` entirely, since leaving it there is what currently preempts the controller-layer check for local login and produces a 500 Internal Server Error instead of a clean, actionable, per-status response.
+
+**Summary**: Discovered while fixing the identical (but live/exploitable, not dead) bug in the auth-oauth plugin (W-197) — its own account-status gate literally commented "mirrors the existing locked/disabled convention used elsewhere in auth.js," which is exactly where the stale enum values were copied from. Two separate, compounding bugs, not one: (1) `UserModel`'s real, enforced status enum is `'pending' | 'active' | 'inactive' | 'suspended' | 'terminated'` — there is no `'locked'` or `'disabled'` value, so `auth.js`'s `login()` checks for exactly those two nonexistent values, each with its own translated error message, none of which can ever fire for any account created through the current schema; (2) even once the enum values are fixed, the checks still couldn't fire for *local password login*, because `UserModel.authenticate()` already threw a generic `Error('User account is ${status}')` for any `status !== 'active'` *before* execution ever reached the controller-layer checks — caught by `login()`'s outer catch-all and surfaced to the end user as a 500 `INTERNAL_ERROR` ("Internal server error during login: User account is suspended"), not a 403 with a specific, translated, actionable message. A real user with a `pending`/`inactive`/`suspended`/`terminated` account who enters the *correct* password saw what looked like a system failure, not a clear explanation of why they were rejected. Any future external-auth integration hooking into `onAuthBeforeLogin` with `skipPasswordCheck: true` (bypassing `UserModel.authenticate()`, the same way auth-oauth's own `completeExternalAuth()` call does) would inherit whichever of these two bugs applies to it — the dead code was a trap for the next integration, not just harmless cruft. Fixed by centralizing ALL account-status enforcement in `auth.js`'s `login()`, not `UserModel.authenticate()` — matching the precedent W-195 already established for `completeExternalAuth()` ("no implicit framework-side gate on `user.status` — the caller must check it explicitly"), and the only way for internal and external login to share one status gate with one set of outcomes. `UserModel.authenticate(identifier, password)` is now credentials-only: verifies username/email + password, returns the full user document (whatever its status) or `null` — it no longer inspects/throws on `status` at all (single call site in the whole codebase, confirmed via repo-wide search, so a safe, self-contained contract change). A side effect of verifying the password before status is ever inspected: closes a minor account-status-enumeration timing/response-shape side channel (a caller who doesn't know the password could previously learn a given username/email's exact non-active status without the request ever reaching the password check) — not the primary motivation, but a genuine hardening bonus. `auth.js`'s existing "Check account status" block gets 4 sequential `if` checks against the real enum — `'pending'`, `'suspended'`, `'terminated'`, `'inactive'`, in that order — mirroring `plugins/auth-oauth/webapp/controller/oauthAuth.js` `_handleLoginCallback()`'s existing style/order exactly (same reason codes), so the two systems behave identically from an admin/end-user perspective. Also bundled into this release, an unrelated bug found while preparing test accounts for manual verification below: `UserController._filterPublicProfileFields()`'s admin branch never computed the derived, session-only `initials` field (never part of `UserModel.baseSchema`, never persisted), so the admin users list (`admin/users.shtml`) fell back to `?` for every row's avatar; fixed by computing it the same way the non-admin branch already does.
+
+**Key features**:
+- Local password login and any current/future external-auth plugin using `onAuthBeforeLogin`/`skipPasswordCheck` now get identical, correct 403 responses for every non-active status — a specific translated message + machine-readable code, never a 500
+- `docs/plugins/plugin-hooks.md`'s `onAuthBeforeLogin`/`skipPasswordCheck` example gets a short note clarifying that (unlike `completeExternalAuth()`, already documented as NOT gating on status) `context.user`'s status IS enforced automatically by the framework for this integration path
+- Bonus: closes a minor account-status-enumeration timing/response-shape side channel, since the password is now always verified before status is ever inspected
+- Bundled fix: admin users list avatar `initials` (previously fell back to `?` for every row)
+
+**Files changed**:
+- `webapp/model/user.js`:
+  - `authenticate()`: removed the `status !== 'active'` throw; now purely verifies username/email + password and returns the user (any status) or `null`
+- `webapp/controller/auth.js`:
+  - `login()`: replaced the `'locked'`/`'disabled'` checks with 4 sequential checks against `'pending'`/`'suspended'`/`'terminated'`/`'inactive'`, each with its own translated message + code; each branch also fires `onAuthFailure` (reason matching the code) before returning, matching the existing `INVALID_CREDENTIALS`/`LOCAL_AUTH_RESTRICTED` branches above it
+- `webapp/translations/en.conf`, `webapp/translations/de.conf`:
+  - replaced `controller.auth.accountLocked` / `accountDisabled` with `accountPendingApproval` / `accountSuspended` / `accountTerminated` / `accountInactive`
+- `webapp/controller/user.js`:
+  - `_filterPublicProfileFields()`'s admin branch now computes `initials` the same way the non-admin branch does (bundled bug fix, see Summary above)
+- `webapp/tests/unit/controller/auth-controller.test.js` (9 new tests):
+  - new `W-201: account status enforcement` block — `describe.each` over all 4 statuses, covering both the internal (`UserModel.authenticate` mocked to return a non-active user) and external (`skipPasswordCheck` hook) paths, plus a `status: 'active'` regression guard — correct 403/code/message and confirms `req.session.user` is never set
+- `webapp/tests/unit/user/user-controller-profile-fields.test.js` (new, 4 tests):
+  - regression coverage for the `initials` fix — admin viewer gets computed `initials` matching the non-admin branch's formula, still gets every other raw field minus `passwordHash`, and the empty-name-part fallback behavior
+- `plugins/auth-oauth/webapp/controller/oauthAuth.js`:
+  - already corrected in a prior session to check `'suspended'`/`'terminated'`/`'inactive'`/`'pending'` directly against the real enum — this work item's design decision adopts that same convention, so this release is about the framework catching up to the plugin, not the other way around
+
+**Documentation**:
+- `docs/plugins/plugin-hooks.md` — added the status-enforcement clarification note to the `skipPasswordCheck` section
+- `docs/dev/work-items.md` — W-201 objective/features/deliverables/test-verify; new W-202 (`locked` status, PENDING) and broadened W-198 (username uniqueness, in addition to email) backlog entries
+- `README.md`, `docs/README.md` — Latest Release Highlights — v1.7.5 / W-201
+- `docs/CHANGELOG.md` — this section
+
+**Release**:
+- Work Item: W-201
+- Version: v1.7.5
+- Release Date: 2026-07-30
 
 ________________________________________________
 ## v1.7.4, W-200, 2026-07-30

@@ -1,6 +1,54 @@
-# jPulse Docs / Version History v1.7.5
+# jPulse Docs / Version History v1.7.6
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.6, W-198, 2026-07-31
+
+**Commit:** `W-198, v1.7.6: users: fix email/username uniqueness not DB-enforced (email also case-sensitive and unverified) - closes duplicate-account race and OAuth pre-linking account-takeover`
+
+**Objective**: Close two related gaps in `UserModel`'s uniqueness/email handling — (a) neither `email` nor `username` uniqueness is enforced at the database level (only a non-atomic app-level check-then-insert), which is a real, empirically-confirmed race, not just theoretical, plus `email` has an additional, independent case-sensitivity gap on top of that shared race; and (b) neither signup nor profile email-change verifies actual ownership of the address, which combined with the auth-oauth plugin's (W-197) `link-by-email`/`jit-create` strategies enables a pre-authentication account-takeover attack.
+
+**Summary**: Discovered while manually testing W-197's auth-oauth plugin end-to-end against a live Google IdP, then investigating whether duplicate-email accounts are possible in the framework at all; broadened after manually testing W-201 surfaced a live duplicate-`username` account in a dev database (`ptester8`, two documents with `createdAt` timestamps exactly 1ms apart), empirically confirming the check-then-insert race is real for both fields, not just email. Root cause (a): `UserModel.create()` does `findByUsername()` → `findByEmail()` → `insertOne()` with no MongoDB transaction and no unique index behind either field — `unique: true` in the schema was declarative only; `findByEmail()` additionally did an exact case-sensitive match, unlike `findByUsername()`, which already normalized to lowercase, so `peter@thoeny.org` and `Peter@Thoeny.org` could coexist as separate accounts. Root cause (b): grepping the entire `webapp/` tree for `emailVerified`/`verifyEmail`/`confirmEmail` found no actual implementation, only a single hook-extension-point comment — no verification email is ever sent, no confirmation flow exists. Combined with auth-oauth's `link-by-email`/`jit-create` strategies, this is a real pre-authentication account-takeover primitive: an attacker signs up (ordinary, unauthenticated, self-service) using the victim's real email; when the victim later does their first Google/OIDC SSO login, `OauthAuthController._resolveUser()`'s email lookup finds exactly one match (the attacker's account, not a duplicate) and links the victim's verified IdP identity to it — `AMBIGUOUS_EMAIL_MATCH` doesn't catch this because there's only ever one account holding that email string. A secondary, lower-severity variant (no OAuth involved) is email-squatting as denial-of-service: anyone can pre-claim an arbitrary real email on a dummy local account, permanently blocking the real owner from ever signing up locally. Scope decision: this work item ships only the DB-integrity fix (root cause a, fully closed) plus the minimal `emailVerified` schema primitive needed for a future auth-oauth fix to fail closed — root cause (b)'s account-takeover is closed by the mere existence of a default-`false` field; no email ever needs to be sent from this item. The full verification *experience* (send a code, verify it, resend, rate-limit, nag-vs-block login UX) is deferred to a new future work item, using the multi-step login infrastructure already built for exactly this scenario in W-109. Existing accounts are grandfathered: a **missing** `emailVerified` field is treated as implicitly verified; only an **explicit** `false` (stamped by `applyDefaults()` for brand-new signups going forward) means "not yet verified" — avoids a disruptive migration and avoids breaking any site's already-working OAuth `link-by-email` linking for existing users. Email case normalization uses plain lowercase-and-store (mirroring the existing `username` pattern) rather than a MongoDB collation-based index, at the cost of a one-time backfill of already-stored mixed-case values, bundled with the pre-existing-duplicate detection since normalizing old data may reveal new case-only collisions. Pre-existing-duplicate handling before adding the new unique indexes follows the existing `checkLocalAuthRestrictionSafety()` (W-195) precedent: log a loud, actionable warning and skip creating the index until an admin resolves the duplicates, never crash server startup. Verified via the full unit suite (111 suites / 2828 tests) plus the integration suite (11 suites / 108 tests), all passing, and manually via a live `npm start` boot confirming `UserModel: Indexes ensured` at startup with no errors.
+
+**Key features**:
+- `email` lowercase-normalized everywhere it's read/written/compared (`findByEmail()`, `create()`, `updateById()`), mirroring the existing `username` normalization
+- `UserModel.ensureIndexes()` (mirrors `PluginModel.ensureIndexes()`), called at startup: one-time backfill of already-stored mixed-case `email` values, then creates real MongoDB unique indexes on both `users.email` and `users.username` — skips (warns, doesn't crash) if pre-existing duplicates are found
+- `create()` catches MongoDB's own `E11000` duplicate-key error as an authoritative backstop against the check-then-insert race, translated to the existing friendly `'Username already exists'`/`'Email address already registered'` errors
+- New `emailVerified` boolean field (default `false`) on `UserModel.baseSchema` — grandfathered (treated as verified) when absent on existing documents, stamped `false` by `applyDefaults()` for every new signup; already admin-editable (`adminFields`) as an immediate manual override
+- New `controller.user.emailVerification: 'required'` config flag scaffold (`'off' | 'nag' | 'required'`) reserving the setting for the deferred future verification feature
+- Tech-debt notes captured for that future work item: core (not plugin) feature, 3-way policy flag, reuse of existing Redis token/rate-limit infrastructure, `EmailController`, and the W-109 multi-step-login `email-verify` step already stubbed in `login.shtml`
+
+**Files changed**:
+- `webapp/model/user.js`:
+  - `baseSchema`: added `emailVerified: { type: 'boolean', default: false }`
+  - `applyDefaults()`: explicitly stamps `emailVerified: false` for new documents
+  - `findByEmail()`, `create()`, `updateById()`: lowercase-and-trim email before every read/write/comparison
+  - `create()`: catches `E11000` duplicate-key errors, translating `keyPattern.username`/`keyPattern.email` to the existing friendly error messages
+  - new `static async ensureIndexes(isTest)`: mixed-case email backfill, then unique-index creation on `email`/`username` with duplicate pre-check (skip-and-warn, not crash)
+- `webapp/utils/bootstrap.js`:
+  - calls `UserModel.ensureIndexes(isTest)` at startup, right after `PluginModel.ensureIndexes()`
+- `webapp/controller/user.js`:
+  - admin `update()`: lowercase-and-trim `filteredData.email` before the duplicate check
+  - `adminFields` gains `emailVerified` for manual admin override
+- `webapp/app.conf`:
+  - added `controller.user.emailVerification: 'required'` config scaffold (not yet wired to an actual flow)
+- `webapp/tests/unit/user/user-email-verified-schema.test.js` (new): `emailVerified` defaults to `false` in `baseSchema`, stamped `false` by `applyDefaults()` for new signups, preserves an explicit `true`, and a missing field is treated as implicitly verified
+- `webapp/tests/unit/model/user-uniqueness-db.test.js` (new): `findByEmail()`/`create()`/`updateById()` normalization, `E11000` translation for both fields, `ensureIndexes()` index creation/backfill/skip-on-duplicate/graceful-DB-unavailable behavior
+
+**Documentation**:
+- `docs/dev/design/W-197-auth-oauth-plugin.md` — corrected the mistaken claim that a unique index on email/username already existed and healed concurrent JIT races
+- `docs/security-and-auth.md` — corrected the "Unique constraint checking" description to reflect real DB-level enforcement, email normalization, and the one-time backfill
+- `docs/api-reference.md` — `PUT /api/1/user` admin-editable field list now includes `emailVerified`
+- `.cursor/rules/no-work-item-numbers-in-user-docs.mdc` (new) — permanent rule: don't reference internal `W-xxx` work item numbers in user/admin-facing docs (exempt: `docs/dev/**`, `docs/CHANGELOG.md`); omit the reference or use the jPulse version number instead
+- `docs/dev/work-items.md` — W-198 objectives/rationale/features/deliverables/tech-debt, reorganized into the standardized work-item template
+- `README.md`, `docs/README.md` — Latest Release Highlights — v1.7.6 / W-198
+- `docs/CHANGELOG.md` — this section
+
+**Release**:
+- Work Item: W-198
+- Version: v1.7.6
+- Release Date: 2026-07-31
 
 ________________________________________________
 ## v1.7.5, W-201, 2026-07-30

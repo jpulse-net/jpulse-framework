@@ -10,8 +10,8 @@
  *                   truthy, (3) appConfig.controller.* is stripped from the context for
  *                   unauthenticated requests, which login.shtml always is.
  * @file            webapp/tests/unit/controller/login-page-render.test.js
- * @version         1.7.5
- * @release         2026-07-30
+ * @version         1.7.6
+ * @release         2026-07-31
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

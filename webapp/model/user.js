@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.7.5
- * @release         2026-07-30
+ * @version         1.7.6
+ * @release         2026-07-31
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -57,6 +57,14 @@ class UserModel {
         // synthetic/unknown passwordHash; changePassword() resets it to true on success.
         // Default true + absent-reads-as-true means no migration/backfill is needed.
         hasLocalPassword: { type: 'boolean', default: true },
+        // W-198: has this user's email address actually been verified? Absent (every account
+        // that existed before this field was introduced) reads as verified/grandfathered - only
+        // an explicit `false` (set by applyDefaults() below for every brand-new signup going
+        // forward) means "not yet verified". No migration/backfill needed. A future work item
+        // will add the actual send/verify flow that can flip this to true; until then it's a
+        // secure-by-default primitive that closes the auth-oauth pre-linking account-takeover
+        // (see W-198) by the mere existence of this field.
+        emailVerified: { type: 'boolean', default: false },
         lastLogin: { type: 'date', default: null },
         loginCount: { type: 'number', default: 0 },
         createdAt: { type: 'date', auto: true },
@@ -445,6 +453,12 @@ class UserModel {
         if (result.updatedBy === undefined) result.updatedBy = '';
         if (result.docVersion === undefined) result.docVersion = 1;
 
+        // W-198: applyDefaults() is only called from create() (new documents), so this
+        // explicitly stamps every brand-new signup with emailVerified: false - pre-existing
+        // documents are never touched by this method and stay absent/grandfathered (see
+        // baseSchema comment above)
+        if (result.emailVerified === undefined) result.emailVerified = false;
+
         return result;
     }
 
@@ -546,13 +560,17 @@ class UserModel {
 
     /**
      * Find user by email
+     * W-198: normalizes to lowercase before querying (mirrors findByUsername()), closing the
+     * case-sensitivity gap where e.g. 'peter@thoeny.org' and 'Peter@Thoeny.org' were treated as
+     * distinct addresses
      * @param {string} email - User email
      * @returns {Promise<object|null>} User document or null if not found
      */
     static async findByEmail(email) {
         try {
             const collection = this.getCollection();
-            const result = await collection.findOne({ email: email });
+            const normalized = (typeof email === 'string' ? email : '').trim().toLowerCase();
+            const result = await collection.findOne({ email: normalized });
             return result;
         } catch (error) {
             throw new Error(`Failed to find user by email: ${error.message}`);
@@ -839,6 +857,12 @@ class UserModel {
                 data.username = data.username.trim().toLowerCase();
             }
 
+            // W-198: normalize email to lowercase (mirrors username above), closing the
+            // case-sensitivity gap - findByEmail() also normalizes, so lookups stay consistent
+            if (data.email !== undefined && typeof data.email === 'string') {
+                data.email = data.email.trim().toLowerCase();
+            }
+
             // Validate data
             this.validate(data, false);
 
@@ -860,7 +884,23 @@ class UserModel {
 
             // Insert into database
             const collection = this.getCollection();
-            const result = await collection.insertOne(userData);
+            let result;
+            try {
+                result = await collection.insertOne(userData);
+            } catch (insertError) {
+                // W-198: DB-level backstop against the check-then-insert race above (confirmed
+                // as a real, live race, not just theoretical) - translate a unique index
+                // violation into the same friendly errors the app-level pre-checks already throw
+                if (insertError.code === 11000) {
+                    if (insertError.keyPattern?.username) {
+                        throw new Error('Username already exists');
+                    }
+                    if (insertError.keyPattern?.email) {
+                        throw new Error('Email address already registered');
+                    }
+                }
+                throw insertError;
+            }
 
             if (!result.acknowledged) {
                 throw new Error('Failed to insert user document');
@@ -887,6 +927,73 @@ class UserModel {
     }
 
     /**
+     * Ensure indexes exist on the users collection (W-198)
+     * - one-time backfill: lowercase any already-stored mixed-case `email` values, since
+     *   findByEmail() now normalizes its query to lowercase and would otherwise silently stop
+     *   matching pre-existing mixed-case documents (e.g. login-by-email, admin duplicate
+     *   checks). `username` needs no backfill - create() has always normalized it to lowercase.
+     * - creates unique indexes on `email` and `username` as a DB-level backstop against the
+     *   check-then-insert race in create() - confirmed as a real, live race (not just
+     *   theoretical), see W-198. If pre-existing duplicate values are found for a field
+     *   (including new case-only collisions surfaced by the email backfill above), index
+     *   creation for that field is skipped with a loud warning instead of crashing startup,
+     *   following checkLocalAuthRestrictionSafety() (W-195)'s non-throwing pattern - an admin
+     *   must resolve the duplicates, then a later restart will pick up the index.
+     * @param {boolean} isTest - Whether this is a test environment (allows graceful skip if DB unavailable)
+     */
+    static async ensureIndexes(isTest = false) {
+        try {
+            const db = database.getDb();
+            if (!db) {
+                if (isTest) {
+                    // In test mode, gracefully skip if database is not available
+                    return;
+                }
+                // In production, database is required
+                throw new Error('Database connection not available');
+            }
+
+            const collection = db.collection('users');
+
+            // One-time backfill: lowercase any pre-existing mixed-case email values
+            const mixedCase = await collection.find(
+                { email: { $regex: '[A-Z]' } },
+                { projection: { email: 1 } }
+            ).toArray();
+            for (const doc of mixedCase) {
+                await collection.updateOne({ _id: doc._id }, { $set: { email: doc.email.toLowerCase() } });
+            }
+            if (mixedCase.length > 0) {
+                global.LogController?.logInfo(null, 'user.ensureIndexes',
+                    `info: backfilled ${mixedCase.length} user document(s) with mixed-case email to lowercase (W-198)`);
+            }
+
+            // Create unique indexes on email and username, skipping (not crashing) when
+            // pre-existing duplicates are found
+            for (const field of ['email', 'username']) {
+                const duplicates = await collection.aggregate([
+                    { $group: { _id: `$${field}`, count: { $sum: 1 } } },
+                    { $match: { count: { $gt: 1 } } },
+                    { $limit: 5 }
+                ]).toArray();
+
+                if (duplicates.length > 0) {
+                    const sample = duplicates.map(d => d._id).join(', ');
+                    global.LogController?.logWarning(null, 'user.ensureIndexes',
+                        `warning: found duplicate users.${field} value(s) (e.g. ${sample}) - ` +
+                        `skipping unique index on users.${field} until an admin resolves the ` +
+                        `duplicates (see W-198)`);
+                    continue;
+                }
+
+                await collection.createIndex({ [field]: 1 }, { unique: true });
+            }
+        } catch (error) {
+            throw new Error(`Failed to create user indexes: ${error.message}`);
+        }
+    }
+
+    /**
      * Update user by ID
      * W-105: Enhanced with plugin hooks for data transformation
      * @param {string} id - User ID
@@ -900,6 +1007,12 @@ class UserModel {
             if (global.HookManager) {
                 saveContext = await global.HookManager.execute('onUserBeforeSave', saveContext);
                 data = saveContext.userData;
+            }
+
+            // W-198: normalize email to lowercase (mirrors create()/findByEmail()) so an
+            // admin-driven email change stays consistent with the unique index
+            if (data.email !== undefined && typeof data.email === 'string') {
+                data.email = data.email.trim().toLowerCase();
             }
 
             // Validate data for update

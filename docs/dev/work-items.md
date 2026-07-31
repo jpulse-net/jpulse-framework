@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.5
+# jPulse Docs / Dev / Work Items v1.7.6
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -6720,20 +6720,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   field needs server-side processing before persistence, and gives plugin authors a documented,
   supported way to do that instead of each one having to invent its own fully separate save path
 
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-201, v1.7.5, 2026-07-30: auth: fix auth login controller checking account status against non-existing enum locked/disabled
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bugfix
 - objective: replace `webapp/controller/auth.js`'s dead `user.status === 'locked'` / `'disabled'`
   checks with a single controller-layer status gate against `UserModel`'s actual status enum,
@@ -6877,6 +6865,215 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-198, v1.7.6, 2026-07-31: users: email/username uniqueness is not DB-enforced (email also case-sensitive and unverified) - enables duplicate accounts and an OAuth pre-linking account-takeover
+- status: 🚧 IN_PROGRESS
+- type: Bugfix (security)
+- objectives:
+  - close two related gaps in `UserModel`'s uniqueness/email handling - (a) neither `email` nor
+    `username` uniqueness is enforced at the database level (only a non-atomic app-level
+    check-then-insert), which is a real, empirically-confirmed race, not just theoretical, plus
+    email has an additional, independent case-sensitivity gap on top of that shared race, and (b)
+    neither signup nor profile email-change verifies actual ownership of the address, which
+    combined with the auth-oauth plugin's (W-197) `link-by-email`/`jit-create` strategies enables a
+    pre-authentication account-takeover attack
+  - root cause (a) - uniqueness is not DB-enforced for EITHER field, confirmed as a real, live race
+    (not just email):
+    - `UserModel.create()` (`webapp/model/user.js`) does a plain, non-atomic check-then-insert for
+      both fields - `findByUsername()`, then `findByEmail()`, then `insertOne()` - with no MongoDB
+      transaction and no unique index backing either one
+    - no MongoDB unique index exists on `users.email` OR `users.username` at all - confirmed no
+      `createIndex()` call anywhere for the `users` collection (contrast `plugins.name`, which does
+      get one) - the schema's `unique: true` is declarative only, enforced solely by the app-level
+      pre-checks above
+    - `findByEmail()` additionally does an exact case-sensitive match (`{ email: email }`) with no
+      `.toLowerCase()` normalization, unlike `findByUsername()`, which normalizes to lowercase both
+      client-side (signup form's `oninput` handler) and server-side - so email has both the shared
+      race gap AND this second, independent case-sensitivity gap; username only has the first
+    - **empirical confirmation (this session, W-201 manual testing):** found two live `users`
+      documents with identical `username: 'ptester8'` AND identical `email` in a dev database -
+      `createdAt` timestamps exactly 1ms apart (`2025-09-04T06:38:46.974Z` /
+      `...975Z`), confirming two near-simultaneous `create()` calls both passed the "not found"
+      check before either `insertOne()` landed - not a manual double-entry, a real race; the two
+      resulting documents also picked up different schema-extension state (one has the auth-mfa
+      plugin's `mfa` block, the other doesn't), consistent with two independent code paths through
+      `applyDefaults()`/`prepareSaveData()` at the same instant
+    - net effect: `peter@thoeny.org` and `Peter@Thoeny.org` can coexist as two separate accounts
+      (email-only, case gap); and - now confirmed live, not just theoretical - a race can create
+      two accounts with the identical `username` and/or identical `email` string (both fields,
+      shared gap)
+  - root cause (b) - email is never verified, at signup or on change - the more serious one:
+    - grepped the entire `webapp/` tree for `emailVerified`/`verifyEmail`/`confirmEmail` - the only
+      hit is a single comment in `webapp/controller/user.js` ("W-105: Enhanced with plugin hooks
+      for email confirmation...") describing a hook extension *point*, not an actual
+      implementation; no verification email is ever sent, no confirmation token/flow exists
+      anywhere
+    - `UserModel.create()` (signup) only checks "does any other account already hold this exact
+      email string" - it never checks or requires any proof that the requester actually controls
+      that inbox
+    - **correction (found during this session's effort-scoping, before the exploit chain below was
+      corrected):** the exploit chain originally described here had the attacker "change their own
+      account's email via the standard profile-update endpoint" - that step doesn't actually work
+      as written. `webapp/controller/user.js`'s `update()` puts `email` in its admin-only field
+      list (`adminFields`, ~line 674) - a non-admin's own update request never has
+      `filteredData.email` populated at all (the `else` branch only allows
+      `profile`/`preferences`/userCard-visible extension blocks). So a regular attacker cannot
+      self-service change their own email today. The exploit chain below is corrected to the
+      actually-exploitable path, which needs no profile-update step and no elevated access at all
+    - exploit chain against W-197's auth-oauth plugin (corrected):
+      1. attacker signs up (`UserModel.create()`, an ordinary, unauthenticated, self-service
+         action) for a new local jPulse account using the victim's real email address directly as
+         their own signup email (e.g. `victim@thoeny.org`) - this succeeds as long as no other
+         local account currently holds that exact string, which is the common case for a victim
+         who has never signed up locally; no proof of inbox ownership is required at signup
+      2. when the real victim later does their first Google/OIDC SSO login (`link-by-email` or
+         `jit-create` strategy), `OauthAuthController._resolveUser()`'s email lookup
+         (`UserModel.find({ email: identity.email }, { limit: 2 })`) finds exactly one match - the
+         attacker's account - and links the victim's verified IdP identity to it (the
+         `emailMatches.length === 1` branch, `plugins/auth-oauth/webapp/controller/oauthAuth.js`
+         ~line 823)
+      3. the victim is transparently logged into the attacker-controlled account for that flow,
+         and every future SSO login from the victim's real Google identity lands on the same
+         attacker-controlled account, which the attacker can still also access via their own known
+         local password
+      4. `AMBIGUOUS_EMAIL_MATCH` (W-197's existing safeguard) does **not** catch this case, because
+         there's only ever one account holding that email string - the safeguard only fires on a
+         pre-existing exact duplicate, not on a single squatted email
+    - separate, lower-likelihood variant of the same root gap: since `email` IS admin-editable, an
+      admin (malicious, compromised, or simply mistaken) reassigning a user's email to someone
+      else's real address would hit the exact same unverified-linking exposure on that account's
+      next SSO login - not the primary attack scenario, but the same underlying "no ownership
+      check on email" gap, just via a different, privileged actor
+    - secondary, lower-severity abuse of the same gap (no OAuth involved): email squatting as
+      denial-of-service - anyone can pre-claim an arbitrary real email address on a dummy local
+      account at signup, permanently blocking the real owner of that inbox from ever signing up
+      locally, via `UserModel.create()`'s "Email address already registered" check
+    - root cause is framework-wide (a general `UserModel.create()`/signup gap, not specific to the
+      auth-oauth plugin), but the auth-oauth plugin's `link-by-email`/`jit-create` strategies are
+      what turn it from a data-hygiene nitpick into an account-takeover primitive, since they
+      implicitly trust "this local account's stored email == this IdP-verified email" as
+      sufficient proof of identity
+- rationale: discovered while manually testing W-197's auth-oauth plugin end-to-end against a live
+  Google IdP, then investigating whether duplicate-email accounts are possible in the framework at
+  all; broadened (this session) after manually testing W-201 surfaced a live duplicate-`username`
+  account in a dev database, empirically confirming the race described in root cause (a) actually
+  happens, not just theoretical
+- features:
+  - this work item ships only the DB-integrity fix (root cause a, fully closed) plus the minimal
+    `emailVerified` schema primitive needed for a future auth-oauth fix to fail closed - root cause
+    (b)'s account-takeover is closed by the mere existence of a default-`false` field, no email
+    ever needs to be sent from this item; the full verification *experience* (send a code, verify
+    it, resend, rate-limit, nag-vs-block login UX) is deferred to a new future work item - see
+    tech-debt below
+  - existing accounts: a **missing** `emailVerified` field is treated as implicitly
+    verified/grandfathered; only an **explicit** `false` (set by `applyDefaults()` for brand-new
+    signups going forward) means "not yet verified" - avoids a disruptive migration and avoids
+    breaking any site's already-working OAuth `link-by-email` linking for existing users
+  - email case normalization: lowercase-and-store `email` everywhere (mirrors the existing
+    `username` pattern) rather than a MongoDB collation-based index - simpler to reason about in
+    all future code touching `email`, at the cost of a one-time backfill of already-stored
+    mixed-case values (bundle with the pre-existing-duplicate detection below, since normalizing
+    old data may reveal new case-only collisions)
+  - add real MongoDB unique indexes on BOTH `users.email` (lowercased value) AND `users.username`,
+    as a backstop against the check-then-insert race for both fields, not just an app-level
+    pre-check - the empirically-confirmed duplicate found this session was a `username` collision,
+    so fixing only the `email` index would leave the exact same race open on the other field
+  - pre-existing-duplicate handling before adding the new unique indexes: follow the existing
+    `checkLocalAuthRestrictionSafety()` (W-195, `webapp/utils/bootstrap.js`) precedent - log a
+    loud, actionable warning and skip creating the index until an admin resolves the duplicates,
+    don't crash server startup
+  - admin manual override: add `emailVerified` to the existing admin-editable field list
+    (`webapp/controller/user.js` `adminFields`, ~line 674) now, so admins have an immediate lever
+    even before the future verification feature exists
+  - explicit repo boundary: the `plugins/auth-oauth/webapp/controller/oauthAuth.js` /
+    `oauth-error.shtml` deliverables below live in the separate
+    `github.com/jpulse-net/plugin-auth-oauth` repo (not present in this `jpulse-framework`
+    workspace); that fix only needs the `emailVerified` field to exist (this item) - it can ship
+    as soon as W-198 lands, independent of whether the full verification UX (tech-debt below) has
+    been built yet, since a permanently-`false` field already fails closed
+- deliverables:
+  - `webapp/model/user.js`:
+    - add `emailVerified` boolean field (default `false`) to `baseSchema`; only affects new
+      documents via `applyDefaults()` - existing documents intentionally left untouched (a missing
+      field means grandfathered/verified, see features above, no migration needed)
+    - lowercase-normalize email in `findByEmail()`, `create()`, and `updateById()` (mirrors the
+      existing `username` normalization)
+    - add `UserModel.ensureIndexes()` (mirrors `PluginModel.ensureIndexes()`,
+      `webapp/model/plugin.js`): one-time backfill lowercasing any already-stored mixed-case
+      `email` values (`username` needs none - `create()` has always normalized it), then creates
+      unique indexes on `email` and `username`; pre-check for existing duplicates (including new
+      case-only collisions surfaced by the backfill) and warn-and-skip (not crash) if found,
+      following `checkLocalAuthRestrictionSafety()` (W-195)'s non-throwing pattern
+    - catch MongoDB duplicate-key errors (E11000) in `create()` as the authoritative backstop
+      against the check-then-insert race, translated to the existing friendly `'Username already
+      exists'`/`'Email address already registered'` errors
+  - `webapp/utils/bootstrap.js`:
+    - call `UserModel.ensureIndexes()` at startup (mirrors the existing `PluginModel.ensureIndexes()`
+      call, ~line 128)
+  - `webapp/controller/user.js`:
+    - lowercase-normalize email in the admin-only email-change duplicate check in `update()`
+    - add `emailVerified` to the admin-editable field list (`adminFields`, ~line 674) so admins
+      have a manual override lever ahead of the future verification feature
+  - `webapp/app.conf`:
+    - add `controller.user.emailVerification: 'required'` config flag scaffold
+      (`'off' | 'nag' | 'required'`) - reserves the setting and its default; not yet wired to an
+      actual verification flow (that's the deferred future work item)
+  - `plugins/auth-oauth/webapp/controller/oauthAuth.js` (separate repo, future session):
+    - FIXME: require local `emailVerified === true` in `_resolveUser()`'s email-match branch
+      before linking; new `LOCAL_EMAIL_NOT_VERIFIED` reason code
+  - `plugins/auth-oauth/webapp/view/auth/oauth-error.shtml` (separate repo, future session):
+    - FIXME: friendly message for `LOCAL_EMAIL_NOT_VERIFIED`
+  - `docs/dev/design/W-197-auth-oauth-plugin.md`:
+    - correct the mistaken claim (~line 642) that a unique index on email/username already exists
+      and heals concurrent JIT races
+  - `docs/security-and-auth.md`:
+    - correct the "Unique constraint checking" claim (~362-377) to reflect real DB-level
+      enforcement (once implemented)
+- tech-debt (scope deferred to a future work item, replacing the vague backlog placeholder
+  "W-0: auth controller: email verification plugin" - use this as the starting point for that
+  item's design-doc pass, before implementation):
+  - build as **core** framework functionality, not a separate installable plugin - unlike
+    MFA/OAuth, "the signup email isn't fake/squatted" is a baseline correctness property of local
+    signup (itself core), not an optional enterprise integration; a plugin would default OFF for
+    most installs (opt-in package), leaving root cause (b)'s DoS/squatting variant open by default
+    for any site that doesn't install it
+  - gate behind a 3-way policy flag (not a boolean), e.g. `controller.user.emailVerification:
+    'off' | 'nag' | 'required'`, default `'required'` (secure by default; combined with the
+    grandfathering rule above, this only affects new signups going forward, no disruption to
+    already-live accounts)
+  - build on infrastructure that already exists rather than inventing new mechanisms:
+    - token/code storage+TTL: `RedisManager.cacheSetToken()`/`cacheGetToken()`
+      (`webapp/utils/redis-manager.js`), following the `crypto.randomBytes()` + bcrypt-hash pattern
+      already documented in `docs/dev/design/W-143-redis-based-cache-infrastructure.md` (~216-227)
+    - sending: `EmailController.sendEmailFromTemplate()` (`webapp/controller/email.js`)
+    - resend throttling: `RedisManager.cacheCheckRateLimit()`
+    - login integration: the multi-step login hooks already built for exactly this scenario in
+      W-109 (`onAuthGetSteps`, `onAuthValidateStep`, `onAuthGetWarnings`,
+      `webapp/controller/auth.js`) - Scenario 5 (blocking) and Scenario 6 (nag) in
+      `docs/dev/design/W-109-auth-multi-step-login.md` (~290-333) already spec the code-based (not
+      link-based) `{ step: "email-verify", code: "ABC123" }` shape to reuse
+    - client-side landing page: `webapp/view/auth/login.shtml` (~515-519) already has a `case
+      'email-verify':` stub pointing at `/auth/email-verify.shtml`, which doesn't exist yet -
+      create it there, not under a plugin's view tree
+  - still-open design questions for that future design doc to resolve (not yet decided):
+    - code format (numeric code vs token) and its length/TTL
+    - resend endpoint's exact rate-limit numbers
+    - whether an admin-driven email change (admin-only, see root cause (b) correction above)
+      should also reset `emailVerified` to `false` and re-trigger sending
+    - `'nag'` mode's exact dismissal behavior (once per login vs once per session vs until
+      verified)
+
+
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -6903,8 +7100,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-201, v1.7.5, 2026-07-30
-- update features & deliverables in W-201 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume W-198, v1.7.6, 2026-07-31
+- update features & deliverables in W-198 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - append to cursor_log.txt
@@ -6915,12 +7112,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.5 2026-07-30
+node bin/bump-version.js 1.7.6 2026-07-31
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.5; git push origin main --tags
+git tag v1.7.6; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff
@@ -6977,12 +7174,16 @@ npx jest webapp/tests/unit/controller/handlebar-logical-helpers.test.js
 template:
 ### W-1, v1.7., 2026-08-:
 - status: 🕑 PENDING
-- type: Feature
+- type: Feature     // Idea, Feature, Bugfix, Refactoring, Testing, Infrastructure, Documentation, Deployment
 - objectives:
+- prerequisits:     // optional
+- rationale:        // optional
 - features:
 - deliverables:
   - FIXME `path/file`:
     - FIXME summary
+- tests:            // optional
+- tech-debt:        // optional
 
 ### W-197, v1.0.0, 2026-07-28: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
 - status: 🚧 IN_PROGRESS
@@ -7079,80 +7280,6 @@ template:
     - 141 tests covering the controller (incl. JIT creation, Stage A/B profile completion, admin CRUD), both models, and all three utils modules - all framework/DB dependencies mocked, no live IdP calls
   - i18n: deferred (found during implementation: no plugin-level i18n mechanism exists in the framework yet - `webapp/translations/*.conf` only loads framework/site strings, see design doc §"UI Components"); all plugin-facing strings are English-only for v1.0.0
   - published to github.com/jpulse-net/plugin-auth-oauth as v1.0.0
-
-### W-198, v1.7.x, 2026-08-xx: security: email/username uniqueness is not DB-enforced (email also case-sensitive and unverified) - enables duplicate accounts and an OAuth pre-linking account-takeover
-- status: 🕑 PENDING
-- type: Bugfix (security)
-- objective: close two related gaps in `UserModel`'s uniqueness/email handling - (a) neither
-  `email` nor `username` uniqueness is enforced at the database level (only a non-atomic app-level
-  check-then-insert), which is a real, empirically-confirmed race, not just theoretical, plus email
-  has an additional, independent case-sensitivity gap on top of that shared race, and (b) neither
-  signup nor profile email-change verifies actual ownership of the address, which combined with the
-  auth-oauth plugin's (W-197) `link-by-email`/`jit-create` strategies enables a pre-authentication
-  account-takeover attack
-- discovered while: manually testing W-197's auth-oauth plugin end-to-end against a live Google
-  IdP, then investigating whether duplicate-email accounts are possible in the framework at all;
-  broadened (this session) after manually testing W-201 surfaced a live duplicate-`username`
-  account in a dev database, empirically confirming the race described below actually happens, not
-  just email
-- finding (a) - uniqueness is not DB-enforced for EITHER field, confirmed as a real, live race
-  (not just email):
-  - `UserModel.create()` (`webapp/model/user.js`) does a plain, non-atomic check-then-insert for
-    both fields - `findByUsername()`, then `findByEmail()`, then `insertOne()` - with no MongoDB
-    transaction and no unique index backing either one
-  - no MongoDB unique index exists on `users.email` OR `users.username` at all - confirmed no
-    `createIndex()` call anywhere for the `users` collection (contrast `plugins.name`, which does
-    get one) - the schema's `unique: true` is declarative only, enforced solely by the app-level
-    pre-checks above
-  - `findByEmail()` additionally does an exact case-sensitive match (`{ email: email }`) with no
-    `.toLowerCase()` normalization, unlike `findByUsername()`, which normalizes to lowercase both
-    client-side (signup form's `oninput` handler) and server-side - so email has both the shared
-    race gap AND this second, independent case-sensitivity gap; username only has the first
-  - **empirical confirmation (this session, W-201 manual testing):** found two live `users`
-    documents with identical `username: 'ptester8'` AND identical `email` in a dev database -
-    `createdAt` timestamps exactly 1ms apart (`2025-09-04T06:38:46.974Z` /
-    `...975Z`), confirming two near-simultaneous `create()` calls both passed the "not found"
-    check before either `insertOne()` landed - not a manual double-entry, a real race; the two
-    resulting documents also picked up different schema-extension state (one has the auth-mfa
-    plugin's `mfa` block, the other doesn't), consistent with two independent code paths through
-    `applyDefaults()`/`prepareSaveData()` at the same instant
-  - net effect: `peter@thoeny.org` and `Peter@Thoeny.org` can coexist as two separate accounts
-    (email-only, case gap); and - now confirmed live, not just theoretical - a race can create two
-    accounts with the identical `username` and/or identical `email` string (both fields, shared gap)
-- finding (b) - email is never verified, at signup or on change - the more serious one:
-  - grepped the entire `webapp/` tree for `emailVerified`/`verifyEmail`/`confirmEmail` - the only hit is a single comment in `webapp/controller/user.js` ("W-105: Enhanced with plugin hooks for email confirmation...") describing a hook extension *point*, not an actual implementation; no verification email is ever sent, no confirmation token/flow exists anywhere
-  - `UserModel.create()` and the profile-update path (`webapp/controller/user.js` `apiUpdate`, ~line 719-724) both only check "does any other account already hold this exact email string" - neither checks nor requires any proof that the requester actually controls that inbox
-  - exploit chain against W-197's auth-oauth plugin:
-    1. attacker creates (or already has) an ordinary local jPulse account
-    2. attacker changes their own account's email, via the standard profile-update endpoint, to the victim's real email (e.g. `victim@thoeny.org`) - this succeeds as long as no other local account currently holds that exact string, which is the common case for a victim who has never signed up locally
-    3. when the real victim later does their first Google/OIDC SSO login (`link-by-email` or `jit-create` strategy), `OauthAuthController._resolveUser()`'s email lookup (`UserModel.find({ email: identity.email }, { limit: 2 })`) finds exactly one match - the attacker's now-relabeled account - and links the victim's verified IdP identity to it (the `emailMatches.length === 1` branch, `plugins/auth-oauth/webapp/controller/oauthAuth.js` ~line 823)
-    4. the victim is transparently logged into the attacker-controlled account for that flow, and every future SSO login from the victim's real Google identity lands on the same attacker-controlled account, which the attacker can still also access via their own known local password
-    5. `AMBIGUOUS_EMAIL_MATCH` (W-197's existing safeguard) does **not** catch this case, because there's only ever one account holding that email string - the safeguard only fires on a pre-existing exact duplicate, not on a single squatted email
-  - secondary, lower-severity abuse of the same gap (no OAuth involved): email squatting as denial-of-service - anyone can pre-claim an arbitrary real email address on a dummy local account, permanently blocking the real owner of that inbox from ever signing up locally, via `UserModel.create()`'s "Email address already registered" check
-  - root cause is framework-wide (a general `UserModel`/profile-update gap, not specific to the auth-oauth plugin), but the auth-oauth plugin's `link-by-email`/`jit-create` strategies are what turn it from a data-hygiene nitpick into an account-takeover primitive, since they implicitly trust "this local account's stored email == this IdP-verified email" as sufficient proof of identity
-- proposed fix direction (none implemented yet - filed for future work):
-  - add a real `emailVerified` boolean to the user schema, defaulting to `false`; send a confirmation link on signup and on every email change; only flip to `true` once the link is clicked
-  - normalize email to lowercase everywhere it's read/written/compared (`findByEmail()`, `create()`, profile-update's duplicate check, signup), mirroring the existing `username` normalization, closing the case-sensitivity half of finding (a)
-  - add real MongoDB unique indexes on BOTH `users.email` (case-insensitive collation, or index the lowercased value) AND `users.username`, as a backstop against the check-then-insert race for both fields, not just an app-level pre-check - the empirically-confirmed duplicate found this session was a `username` collision, so fixing only the `email` index would leave the exact same race open on the other field
-  - consider a startup/migration check (or an admin utility) to detect and report any pre-existing duplicate `username`/`email` values in a live database before the new unique indexes are added, since `createIndex(..., { unique: true })` will fail outright if duplicates already exist - the `ptester8` case found this session is a live example of exactly that
-  - in auth-oauth's `link-by-email`/`jit-create` strategies specifically, require the matched local account's `emailVerified === true` in addition to the IdP's `email_verified` claim before auto-linking; if the local account's email isn't verified, fail closed with a new reason code (e.g. `LOCAL_EMAIL_NOT_VERIFIED`) instead of silently linking
-  - consider putting an account into a short-lived "pending re-verification" state on email change (old email still usable to log in / reverse the change) rather than trusting the new email immediately
-- deliverables:
-  - `webapp/model/user.js`:
-    - FIXME: add `emailVerified` field, lowercase-normalize email in `findByEmail()`/`create()`,
-      add DB-level unique indexes on both `email` and `username`
-  - `webapp/controller/user.js`:
-    - FIXME: send/require email confirmation on signup and on email change (ties into the existing W-105 hook comment)
-  - `plugins/auth-oauth/webapp/controller/oauthAuth.js`:
-    - FIXME: require local `emailVerified === true` in `_resolveUser()`'s email-match branch before linking; new `LOCAL_EMAIL_NOT_VERIFIED` reason code
-  - `plugins/auth-oauth/webapp/view/auth/oauth-error.shtml`:
-    - FIXME: friendly message for `LOCAL_EMAIL_NOT_VERIFIED`
-  - `docs/dev/design/W-197-auth-oauth-plugin.md`:
-    - FIXME: update the threat-model table with this finding and its fix once implemented
-- benefits: closes a pre-authentication account-takeover vector against the auth-oauth plugin's
-  email-based linking strategies, closes an email-squatting DoS vector, closes the same
-  empirically-confirmed race for `username` as well as `email`, and brings both fields' uniqueness
-  handling in line with real DB-level enforcement instead of an app-level-only pre-check
 
 ### W-202, v1.7.6, 2026-08-xx: auth: add locked status
 - status: 🕑 PENDING

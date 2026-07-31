@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.7.5
+# jPulse Docs / Plugins / Creating Plugins v1.7.6
 
 A step-by-step guide to creating your first jPulse plugin.
 

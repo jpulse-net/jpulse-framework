@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.7.5
- * @release         2026-07-30
+ * @version         1.7.6
+ * @release         2026-07-31
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -671,16 +671,23 @@ class UserController {
 
             // Filter allowed fields based on user role
             const filteredData = {};
-            const adminFields = ['email', 'roles', 'status'];
+            const adminFields = ['email', 'roles', 'status', 'emailVerified'];
             const regularFields = ['profile', 'preferences'];
 
             if (isAdmin) {
                 // Admins can update all fields
                 if (updateData.profile) filteredData.profile = updateData.profile;
                 if (updateData.preferences) filteredData.preferences = updateData.preferences;
-                if (updateData.email !== undefined) filteredData.email = updateData.email;
+                // W-198: normalize to lowercase before the duplicate check below and before
+                // persisting (UserModel.updateById() also normalizes; kept explicit here too so
+                // the comparison against currentUser.email is auditable at a glance)
+                if (updateData.email !== undefined) {
+                    filteredData.email = (typeof updateData.email === 'string' ? updateData.email : '').trim().toLowerCase();
+                }
                 if (updateData.roles !== undefined) filteredData.roles = updateData.roles;
                 if (updateData.status !== undefined) filteredData.status = updateData.status;
+                // W-198: manual override lever ahead of the future email-verification feature
+                if (updateData.emailVerified !== undefined) filteredData.emailVerified = Boolean(updateData.emailVerified);
                 // W-174: Admin can override another user's password (no current password required)
                 if (updateData.password) filteredData.password = updateData.password;
 

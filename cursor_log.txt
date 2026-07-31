@@ -19775,3 +19775,24 @@ Added a new `v1.7.5, W-201, 2026-07-30` bullet to the top of "Latest Release Hig
 
 
 ============================================================
+2026-07-30 22:59
+
+do release prep after fixing the two small items:
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-198, v1.7.6, 2026-07-31
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Fixed the two small deliverables gaps in W-198's `docs/dev/work-items.md` entry first (no status/section changes): the email-normalization bullet now mentions `updateById()` alongside `findByEmail()`/`create()`, and the `ensureIndexes()` bullet now explicitly describes the one-time mixed-case email backfill (username needs none, since `create()` already normalized it).
+
+Reviewed `tt-git-diff.txt` (freshly generated, `git diff` against origin/main, timestamped minutes before this prompt) against the live `docs/dev/work-items.md`/code: the diff's `webapp/model/user.js` (`emailVerified` field, `applyDefaults()` stamp, `findByEmail()`/`create()`/`updateById()` normalization, `E11000` handling, new `ensureIndexes()`), `webapp/utils/bootstrap.js` (startup call), `webapp/controller/user.js` (`adminFields` + lowercase normalization), `webapp/app.conf` (config scaffold), and both doc corrections (`W-197-auth-oauth-plugin.md`, `security-and-auth.md`) all matched exactly what's now documented in the work item - no gaps found. Noted (not changed, per the "don't touch W-201/status" rule) that the same diff also carries an already-uncommitted W-201 status flip to DONE and backlog cleanup from a prior session, sitting alongside this session's W-198 changes since neither release has actually been committed/tagged yet.
+
+Reran the full test suite for accurate release-doc counts: `npm run test:unit` (111 suites / 2828 tests) and `npm run test:integration` (11 suites / 108 tests), both 100% passing, confirming the new `user-uniqueness-db.test.js` and `user-email-verified-schema.test.js` files are picked up.
+
+Added a new `v1.7.6, W-198, 2026-07-31` bullet to the top of "Latest Release Highlights" in both `README.md` and `docs/README.md` (existing `v1.7.5` header/bullets left as-is, no version bump); bumped the `docs/CHANGELOG.md` title to v1.7.6 and added a full `## v1.7.6, W-198, 2026-07-31` section at the top following the established Commit/Objective/Summary/Key features/Files changed/Documentation/Release structure. Also updated `docs/api-reference.md`'s `PUT /api/1/user` section (admin field list gains `emailVerified`, request-body example, and two new Notes on email normalization/uniqueness and the `emailVerified` grandfathering rule) - the one "any other doc in docs/ as needed" addition found necessary. Rewrote `commit-message.txt` in the same format as the W-201 commit message (BUGFIX (security) paragraph, root-cause (a)/(b) narrative, the scope-split design decision and grandfathering rationale, Objectives, Key features, Code Changes per file, Documentation Updates, test counts, Work Item/Version/Release Date footer) - not committed, per instructions.
+
+Flagged one deliberate judgment call: the new Cursor rule from earlier this session (`no-work-item-numbers-in-user-docs.mdc`) says user-facing docs should omit or use version numbers instead of `W-xxx`, but `README.md`/`docs/README.md`'s "Latest Release Highlights" section already includes a `W-NNN` in the heading of all 30+ prior entries (functioning as a release-log identifier, same role as `docs/CHANGELOG.md`, which the rule already exempts) - kept `W-198` in the new bullet for consistency with that established pattern rather than creating a one-off inconsistent entry; did not silently amend the rule file itself.
+
+
+============================================================

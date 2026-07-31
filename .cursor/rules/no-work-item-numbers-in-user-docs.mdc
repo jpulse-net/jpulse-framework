@@ -1,0 +1,38 @@
+---
+description: Don't reference internal W-xxx work item numbers in user/admin-facing docs
+alwaysApply: true
+---
+
+# No W-xxx Work Item Numbers in User/Admin-Facing Docs
+
+`W-xxx` work item numbers (e.g. `W-198`) are internal tracking IDs, meaningless to a reader
+without access to `docs/dev/work-items.md`. Don't reference them in user/admin-facing docs.
+
+## Exempt (release-log content - W-xxx is expected/fine here)
+
+- `docs/dev/**` (work-items.md, design docs, etc.)
+- `docs/CHANGELOG.md`
+- The `## Latest Release Highlights` section in `README.md` and `docs/README.md` - each bullet is
+  a per-release changelog entry (`vX.Y.Z, W-NNN, DATE: ...`), the same role `docs/CHANGELOG.md`
+  plays; keep the established `W-NNN` convention there for consistency across entries.
+
+## Everywhere else (user/admin-facing docs)
+
+Examples: `docs/security-and-auth.md`, the rest of `docs/README.md`/`README.md` outside "Latest
+Release Highlights", `webapp/static/assets/jpulse-docs/**`, any other doc meant for framework
+users, site admins, or developers integrating with jPulse (not the framework's own internal dev
+tracking) - plus any UI-visible text (view templates, i18n strings, etc.).
+
+- **Omit the work item reference entirely** when it's not needed for the reader to understand the
+  content (most cases - just describe the current/correct behavior).
+- **If it's genuinely useful to flag when something changed** (e.g. a "corrected" callout), use
+  the jPulse **version number** instead (e.g. "as of v1.7.6", "corrected in v1.7.6") - never the
+  W-number.
+
+## Example
+
+```markdown
+❌ **Corrected (W-198):** email is now normalized to lowercase...
+✅ **Corrected (v1.7.6):** email is now normalized to lowercase...
+✅ Email is normalized to lowercase before every read/write/comparison...  (omitted, preferred when possible)
+```

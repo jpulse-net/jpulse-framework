@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.7.5
+# jPulse Docs / Security & Authentication v1.7.6
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -369,12 +369,14 @@ static schema = {
 
 `hasLocalPassword` marks whether a user has a real, usable local password — external-auth plugins set it to `false` when they JIT-create a user with a synthetic/unknown `passwordHash`. `UserController.changePassword()` skips the `currentPassword` check when it's `false` (the session already proves identity) and resets it to `true` on success; absent reads as `true`, so no migration is needed for existing local-signup users.
 
+`username`/`email` `unique: true` above is enforced at the database level: both fields are backed by real MongoDB unique indexes, created at startup with a pre-check that skips index creation (and logs a warning) rather than crashing if pre-existing duplicates are found, so an admin can resolve them first. `email` is additionally normalized to lowercase before every read/write/comparison (mirroring the pre-existing `username` normalization, including a one-time backfill of already-stored mixed-case values), so e.g. `peter@x.com` and `Peter@X.com` can't coexist as separate accounts.
+
 **Validation Features:**
 - Type checking (string, number, date, objectId, etc.)
 - Required field validation
 - Email format validation
 - Enum validation for roles and status
-- Unique constraint checking
+- Unique constraint checking (app-level pre-check plus DB-level unique indexes on `email`/`username`)
 
 ### Path Traversal Protection
 

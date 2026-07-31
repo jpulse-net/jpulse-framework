@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.7.5
+# jPulse Docs / REST API Reference v1.7.6
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -585,7 +585,7 @@ Update user profile information and preferences. Supports flexible user identifi
 
 **Authorization:**
 - Regular users can only update their own profile (profile and preferences fields)
-- Admins can update any user and all fields (including email, roles, status)
+- Admins can update any user and all fields (including email, roles, status, emailVerified)
 
 **Request Body:**
 ```json
@@ -601,9 +601,14 @@ Update user profile information and preferences. Supports flexible user identifi
     },
     "email": "newemail@example.com",
     "roles": ["user", "admin"],
-    "status": "active"
+    "status": "active",
+    "emailVerified": true
 }
 ```
+
+Notes:
+- `email` is normalized to lowercase before every read/write/comparison and is backed by a real database-level unique index (as is `username`); attempting to set it to an already-registered address returns a 409.
+- `emailVerified` is admin-only and defaults to `false` for new signups; a missing value on pre-existing accounts is treated as verified.
 
 **Response (200):**
 ```json

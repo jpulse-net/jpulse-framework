@@ -6662,6 +6662,20 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   benefit of a single unified Save button. Migrating it onto the new hook once it exists (to retire
   the W-197 stopgap warning banner and collapse the two Save buttons into one) is worth doing later,
   but is a separate, optional follow-up, not a prerequisite for this work item to be complete.
+  **✅ DONE, follow-up session:** `plugins/auth-oauth/webapp/controller/oauthAuth.js` (separate
+  repo) now registers `onPluginConfigBeforeSave`, which validates/sanitizes/encrypts every
+  provider in the submitted list the same way the dedicated endpoints do (both now share a new
+  `_prepareProviderEntry()` helper, so there's exactly one place secrets get encrypted), and cleans
+  up the encrypted secret for any provider deleted locally in the same save. An initial pass kept a
+  per-row "Apply" button, which the user correctly called out as just relocating the same
+  "two actions needed" complaint rather than removing it - the W-194 custom renderer
+  (`webapp/view/jpulse-common.js`) was redone once more so every field write, Add, and Delete are
+  all local `providers`-array edits with zero commit step (no Save/Apply, nothing to Cancel);
+  Delete on a never-saved row skips the confirm dialog, Delete on a previously-saved provider still
+  confirms. Test Connection is the one exception - it needs a real, already-encrypted server-side
+  secret, so it's still an immediate dedicated-endpoint call and is disabled in the UI until a
+  provider has actually been saved. The W-197 stopgap warning banner is removed; docs and design
+  doc updated to match. Full plugin suite re-run clean (161/161).
 - deliverables:
   - `webapp/utils/hook-manager.js`:
     - added `executeForPlugin(hookName, pluginName, context)` (single-plugin scope, propagates
@@ -6857,20 +6871,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   *correct* password sees a generic 500 Internal Server Error instead of a clear, actionable
   explanation
 
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-198, v1.7.6, 2026-07-31: users: email/username uniqueness is not DB-enforced (email also case-sensitive and unverified) - enables duplicate accounts and an OAuth pre-linking account-takeover
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bugfix (security)
 - objectives:
   - close two related gaps in `UserModel`'s uniqueness/email handling - (a) neither `email` nor
@@ -7021,11 +7023,32 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - add `controller.user.emailVerification: 'required'` config flag scaffold
       (`'off' | 'nag' | 'required'`) - reserves the setting and its default; not yet wired to an
       actual verification flow (that's the deferred future work item)
-  - `plugins/auth-oauth/webapp/controller/oauthAuth.js` (separate repo, future session):
-    - FIXME: require local `emailVerified === true` in `_resolveUser()`'s email-match branch
-      before linking; new `LOCAL_EMAIL_NOT_VERIFIED` reason code
-  - `plugins/auth-oauth/webapp/view/auth/oauth-error.shtml` (separate repo, future session):
-    - FIXME: friendly message for `LOCAL_EMAIL_NOT_VERIFIED`
+  - `plugins/auth-oauth/webapp/controller/oauthAuth.js` (separate repo - ✅ DONE, follow-up
+    session after v1.7.6 shipped):
+    - added a `normalizeEmail()` helper (trim+lowercase) and applied it to every direct
+      `UserModel.find({ email: ... })` query in `_resolveUser()` and `_createJitUser()`'s
+      race-retry path - these bypass `UserModel.findByEmail()` (need the array/`limit` shape for
+      ambiguous-match detection) and so don't get its normalization for free; without this fix, an
+      IdP-returned non-lowercase email could fail to match an already-normalized local account
+    - `_resolveUser()`'s email-match branch now rejects with the planned `LOCAL_EMAIL_NOT_VERIFIED`
+      reason code when the matched local account has `emailVerified === false` explicitly (a
+      **missing** field is treated as grandfathered/verified, matching `UserModel`'s own
+      convention for pre-W-198 accounts) - this is the actual account-takeover fix root cause (b)
+      was tracking
+    - `_createJitUser()` now explicitly stamps `emailVerified: true` on the new local account (the
+      caller already confirmed `identity.emailVerified === true` at the IdP before ever reaching
+      this method) - without this, `UserModel.applyDefaults()` would otherwise default every
+      brand-new document to `emailVerified: false`, which is correct for local signup but wrong
+      for an IdP-verified JIT account
+  - `plugins/auth-oauth/webapp/view/auth/oauth-error.shtml` (separate repo - ✅ DONE, same
+    follow-up session):
+    - added the friendly message for `LOCAL_EMAIL_NOT_VERIFIED`
+  - `plugins/auth-oauth/webapp/tests/unit/controller/oauth-auth.test.js` (separate repo - ✅ DONE,
+    same follow-up session):
+    - added coverage for mixed-case email normalization before the local lookup, the new
+      `LOCAL_EMAIL_NOT_VERIFIED` rejection, the pre-W-198 grandfathered (missing-field) pass-through,
+      and `emailVerified: true` on the `UserModel.create()` call in `jit-create` - full plugin
+      suite re-run clean (151/151)
   - `docs/dev/design/W-197-auth-oauth-plugin.md`:
     - correct the mistaken claim (~line 642) that a unique index on email/username already exists
       and heals concurrent JIT races
@@ -7074,6 +7097,167 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-197, v1.0.0, 2026-07-31: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objective: SSO plugin supporting two deployment scenarios — (1) public sites with consumer providers (Google, and later Apple/GitHub), (2) org-internal sites with enterprise providers (Okta, Auth0, Azure Entra, Keycloak, ADFS via generic OIDC)
+- repository: github.com/jpulse-net/plugin-auth-oauth (separate repo, independent versioning)
+- npm package: @jpulse-net/plugin-auth-oauth@1.0.0 (planned, GitHub Package Registry)
+- depends on: W-105 (plugin hooks), W-107 (data-driven user cards), W-109 (multi-step login), W-194 (custom renderer), W-195 (external auth helpers)
+- working doc: docs/dev/design/W-197-auth-oauth-plugin.md
+- scope v1.0.0:
+  - Google preset (public sites)
+  - generic OIDC preset (Okta, Auth0, Entra, Keycloak, ADFS via discovery URL)
+  - custom OAuth2 preset (manual URLs, non-OIDC providers)
+  - multiple providers active simultaneously; provider list stored via W-194 custom renderer
+  - out of scope for v1.0.0: Apple SSO (form_post + first-consent-only email), GitHub preset, token persistence, backchannel logout, SAML — deferred to v1.1+
+- features:
+  - Authorization Code flow with mandatory PKCE (S256), state (CSRF), nonce (OIDC)
+  - ID token signature verification via provider JWKS (cached by openid-client)
+  - three user linking strategies, per-provider configurable:
+    - `sub-only`: strict — admin must pre-provision users
+    - `link-by-email` (default): match existing local user by verified email, then use sub for subsequent logins
+    - `jit-create`: create new users on first login with default role and status; writes only fields already present in `UserModel.baseSchema` — no framework schema changes needed (synthetic random `passwordHash`, `hasLocalPassword: false`, guaranteed non-empty `profile.firstName`/`lastName` via fallback chain; see design doc §7, §10)
+  - `email_verified: true` (an IdP-provided claim, not a persisted user field) required for `link-by-email` and JIT (prevents account takeover via unverified email at IdP); stored for audit only inside `oauth.{provider}.emailVerified`, never on the base user document
+  - migration paths for existing internal-auth sites (see design doc §9):
+    - Path A: automatic email-link on first SSO login (zero admin work when local email = IdP email)
+    - Path B: self-service link from linked-accounts page (user logs in locally first, then connects SSO provider)
+    - Path C: admin bulk CSV import — deferred to v2.0
+  - profile field extraction & JIT completion (see design doc §10):
+    - Stage A: best-effort claim extraction with fallbacks (given_name / family_name / name-split heuristics / preferred_username / email local-part), always resolving to a non-empty value since `profile.firstName`/`lastName` are schema-required; tracks which fields only got a placeholder via `oauth._jit.placeholderFields`
+    - Stage B: interactive `oauth-profile-complete` step injected into the W-109 multi-step flow when Stage A only produced placeholders for a field in `profileRequiredFields` — JIT-created users only (gated by presence of `oauth._jit`), existing users never re-prompted
+    - `profileRequiredFields` config option (default `['firstName', 'lastName']`) controls which fields trigger Stage B
+    - `oauth._jit` sentinel (`{ createdAt, viaProvider, placeholderFields, profileCompletedAt }`) lives as a sibling of provider blocks under `user.oauth`, not nested inside any one provider's block — it's a property of the user, not of a specific provider link
+  - `status: 'pending'` (existing `UserModel` enum value, not a new one) supported for JIT: the plugin's callback handler checks it explicitly before calling `AuthController.completeExternalAuth()` — there is no implicit framework-side gate for this
+  - account lifecycle / local-password interplay (see design doc §11): unlink-last-method guard blocks removing a user's only sign-in method when `hasLocalPassword === false` (W-195 primitive), pointing them to the existing "Set Password" flow instead of building new password UI
+  - `allowedDomains` per-provider option for domain-restricted signup
+  - `jitDefaultRoles`/`jitRoles` never offer or accept `admin`/`root` — stripped in code as defense in depth, not just excluded from the config UI
+  - user schema extension: `user.oauth.{provider}` block with W-107 adminCard/userCard for link/unlink management
+  - no IdP session or token persistence — only `sub`, `email`, `emailVerified`, `name`, `picture`, `preferredUsername`, `iss`, `linkedAt`, `lastLoginAt`
+  - client_secret encrypted at rest in `authOauth_providers` collection using framework encryption utility (same pattern as auth-mfa TOTP secret)
+  - login page buttons injected via `onAuthGetLoginProviders` (from W-195), per-provider `icon` / `buttonColor` / `label` for branding
+  - computed, copyable redirect URI shown per provider in the config renderer (derived from `req.protocol`/`req.get('host')`, same pattern as `handlebar.js`'s `url.domain`) — admin never has to guess the callback URL to paste into the IdP console
+  - composes with auth-mfa: MFA step runs after successful OAuth identity resolution via existing W-109 flow
+  - user linked-accounts management page (`/jpulse-plugins/auth-oauth.shtml`) for connecting/disconnecting providers
+  - error page (`/auth/oauth-error.shtml`) with a client-side reason-code → friendly-message map (never leaks raw provider errors; no framework i18n yet, see below)
+  - rate limiting on init/callback endpoints
+  - documents existing `controller.user.disableSignup`/`view.auth.hideSignup` + `localAuthRestriction` (W-195) combinations per site mode in README (see design doc §12) — no new signup/login-visibility flags needed, framework already has what's required
+  - found during implementation, added beyond original spec:
+    - Microsoft Entra ID branded OIDC preset alongside Google (admin supplies the tenant-specific
+      discovery URL; `openid-client`'s built-in Entra issuer-template handling reused as-is); known
+      limitation documented (design doc Gap 5): Entra ID never emits `email_verified`, so only
+      `sub-only` linking works for this preset until a future release adds `xms_edov` support —
+      LinkedIn preset deferred to that same follow-up
+    - `allowedDomains` per-provider restriction actually enforced server-side (was config-only
+      through most of implementation)
+    - JIT role selectors (`jitDefaultRoles` global + per-provider `jitRoles` override) exclude this
+      site's admin-equivalent roles dynamically via `ConfigModel.getEffectiveAdminRoles()` (W-147),
+      not a hardcoded `admin`/`root` list, backed by a new admin-only `assignable-roles` endpoint so
+      the option is never shown-then-silently-stripped; both selectors render as the same `jpSelect`
+      checkbox widget (previously the per-provider one was a bare native shift-click multiselect)
+    - config save consolidated onto the framework's single page-level "Save Changes" button via the
+      `onPluginConfigBeforeSave` hook (W-200), which also encrypts a newly-entered Client Secret —
+      the custom provider-table renderer was rewritten for fully live, local add/edit/delete/reorder
+      with inline validation, eliminating a "two Save buttons" usability gap found during manual
+      testing (also fixed several renderer bugs found along the way: preset switching, stale
+      endpoint fields surviving a preset switch, blank label/icon overriding preset defaults,
+      `order: 0` coerced to `100`, stale index on delete, shallow-copied config object, inaccurate
+      live-update hint text)
+    - provider branding `icon` field accepts sanitized inline SVG in addition to a unicode/emoji
+      glyph, consistently sized across the login page, admin provider table, and the user's
+      Connected Accounts page
+    - account-status checks aligned with `UserModel`'s real enum (`pending`/`suspended`/
+      `terminated`/`inactive`), matching the centralized check added in W-201
+    - `emailVerified` integration (W-198, released mid-implementation): `link-by-email` rejects a
+      matched local account with `emailVerified: false`; every `jit-create`d account is stamped
+      `emailVerified: true` since the IdP already vouched for it; email lookups normalized to
+      lowercase to match `UserModel`'s new case-insensitive uniqueness
+    - `jpulseVersion` corrected to `>=1.7.6` (design doc Gap 6) to reflect the actual hard
+      dependency on the `onPluginConfigBeforeSave` hook (W-200) and `emailVerified`/unique-index
+      primitives (W-198); `profileRequiredFields`'s "Nickname" option removed (design doc Gap 2 —
+      selecting it produced an unresolvable validation error, since the profile-completion form
+      never treated it as required)
+- npm dependency: openid-client (~500KB with jose + oauth4webapi)
+- security posture:
+  - mandatory PKCE for all providers, even confidential clients
+  - state one-time-use, 5-minute expiry
+  - ID token: signature via JWKS, iss matches discovery, aud matches client_id, exp check, nonce match
+  - only authorization code flow — no implicit, no resource owner password credentials
+  - timing-safe compare for state/nonce
+  - never log tokens, codes, or secrets
+- deliverables:
+  - webapp/utils/crypto-secrets.js (new framework file, found during spec review - see design doc §8):
+    - generic secret-encryption helper (AES-256-GCM + `scrypt`), extracted from `auth-mfa`'s inline TOTP-encryption pattern so it's a genuinely shared primitive rather than duplicated a second time; `auth-mfa` itself left untouched (not retrofitted)
+  - plugins/auth-oauth/plugin.json:
+    - plugin manifest with globals (defaultLinkingStrategy, jitDefaultRoles, jitDefaultStatus)
+    - `type: "custom"` field for `providers` with renderer `authOauth.renderProviders` (uses W-194)
+  - plugins/auth-oauth/package.json:
+    - openid-client dependency
+  - plugins/auth-oauth/README.md, plugins/auth-oauth/docs/README.md:
+    - dev + user docs, includes provider setup guides for Google, Okta, Keycloak, Azure Entra
+  - plugins/auth-oauth/webapp/controller/oauthAuth.js:
+    - hooks: onAuthGetLoginProviders, onAuthGetSteps, onAuthValidateStep (found during implementation: the JIT profile-completion step integrates with W-109's multi-step login flow via these two hooks, not a bespoke onUserSyncProfile/onAuthAfterLogin pair as originally sketched - see design doc §10)
+    - api endpoints: providers, init, callback, user/providers, link, unlink, profile-draft, admin CRUD, test-connection
+  - plugins/auth-oauth/webapp/model/oauthAuth.js:
+    - `user.oauth` schema extension with W-107 adminCard/userCard metadata
+  - plugins/auth-oauth/webapp/model/oauthProvider.js:
+    - `authOauth_providers` collection CRUD
+    - client_secret encryption at rest
+  - plugins/auth-oauth/webapp/utils/providerRegistry.js:
+    - preset definitions (google, microsoft, oidc, oauth2) with discovery URLs, default scopes
+  - plugins/auth-oauth/webapp/utils/oauthClient.js:
+    - openid-client wrapper: discovery caching, PKCE, JWKS
+  - plugins/auth-oauth/webapp/utils/profileExtractor.js:
+    - Stage A best-effort claim → user field mapping with fallbacks (given_name → name-split → preferred_username → email local-part)
+  - plugins/auth-oauth/webapp/view/auth/oauth-profile-complete.shtml:
+    - Stage B form for filling in missing firstName / lastName / nickName after JIT signup
+  - plugins/auth-oauth/webapp/view/auth/oauth-error.shtml:
+    - error landing page with a client-side reason-code → friendly-message map (no framework i18n yet)
+  - plugins/auth-oauth/webapp/view/jpulse-plugins/auth-oauth.shtml:
+    - user linked-accounts management (connect, disconnect, view)
+  - plugins/auth-oauth/webapp/view/jpulse-common.js:
+    - `authOauth.renderProviders` custom renderer (provider CRUD table for W-194); rewritten during
+      implementation for fully live, local editing (add/edit/delete/reorder, inline validation)
+      deferring all persistence to the page's single Save Changes button; added the `microsoft`
+      preset entry, `jpSelect` widget integration for the per-provider role selector, an
+      `attrEscape()` helper for safe HTML-attribute interpolation, and a `restoreSvgAttributeCase()`
+      helper working around `sanitizeHtml()` lowercasing `viewBox`
+  - plugins/auth-oauth/webapp/view/jpulse-common.css:
+    - provider button styles, branding classes; SVG icon sizing/alignment across the login page,
+      admin provider table, and Connected Accounts page; warning-box styling
+  - plugins/auth-oauth/webapp/view/jpulse-navigation.js:
+    - link to /jpulse-plugins/auth-oauth.shtml from user menu
+  - plugins/auth-oauth/webapp/bump-version.conf:
+    - version management config
+  - plugins/auth-oauth/webapp/tests/unit/{controller,model,utils,view}/*.test.js:
+    - covers the controller (incl. JIT creation, Stage A/B profile completion, admin CRUD, status
+      enum, `allowedDomains`, `emailVerified` enforcement), both models, all utils modules
+      (including the new `microsoft` preset), and the rewritten custom renderer (`view/`, new) - all
+      framework/DB dependencies mocked, no live IdP calls
+  - new API endpoint: `GET /api/1/auth-oauth/admin/assignable-roles` - this site's roles with
+    admin-equivalent roles excluded, backs the JIT role selectors
+  - i18n: deferred (found during implementation: no plugin-level i18n mechanism exists in the framework yet - `webapp/translations/*.conf` only loads framework/site strings, see design doc §"UI Components"); all plugin-facing strings are English-only for v1.0.0
+  - published to github.com/jpulse-net/plugin-auth-oauth as v1.0.0
+  - v1.0.1, 2026-07-31 (found post-publish, see design doc Gap 7): `webapp/view/jpulse-navigation.js`
+    was never actually created despite being listed above - the linked-accounts page had no
+    navigation entry anywhere in the UI for the entire v1.0.0 release; fixed by adding it, matching
+    the `auth-mfa`/`hello-world` pattern (append a "Connected Accounts" entry to the user menu's
+    jPulse Plugins section)
+
+
+
+
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -7100,8 +7284,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-198, v1.7.6, 2026-07-31
-- update features & deliverables in W-198 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume W-197, v1.0.1, 2026-07-31
+- update features & deliverables in W-197 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - append to cursor_log.txt
@@ -7122,13 +7306,12 @@ git tag v1.7.6; git push origin main --tags
 === PLUGIN release & package build on github ===
 git diff
 git status
-node ../../bin/bump-version.js 1.0.5
+node ../../bin/bump-version.js 1.0.1 2026-07-31
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.5
-git push origin main --tags
+git tag v1.0.1; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 
@@ -7184,102 +7367,6 @@ template:
     - FIXME summary
 - tests:            // optional
 - tech-debt:        // optional
-
-### W-197, v1.0.0, 2026-07-28: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
-- status: 🚧 IN_PROGRESS
-- type: Feature
-- objective: SSO plugin supporting two deployment scenarios — (1) public sites with consumer providers (Google, and later Apple/GitHub), (2) org-internal sites with enterprise providers (Okta, Auth0, Azure Entra, Keycloak, ADFS via generic OIDC)
-- repository: github.com/jpulse-net/plugin-auth-oauth (separate repo, independent versioning)
-- npm package: @jpulse-net/plugin-auth-oauth@1.0.0 (planned, GitHub Package Registry)
-- depends on: W-105 (plugin hooks), W-107 (data-driven user cards), W-109 (multi-step login), W-194 (custom renderer), W-195 (external auth helpers)
-- working doc: docs/dev/design/W-197-auth-oauth-plugin.md
-- scope v1.0.0:
-  - Google preset (public sites)
-  - generic OIDC preset (Okta, Auth0, Entra, Keycloak, ADFS via discovery URL)
-  - custom OAuth2 preset (manual URLs, non-OIDC providers)
-  - multiple providers active simultaneously; provider list stored via W-194 custom renderer
-  - out of scope for v1.0.0: Apple SSO (form_post + first-consent-only email), GitHub preset, token persistence, backchannel logout, SAML — deferred to v1.1+
-- features:
-  - Authorization Code flow with mandatory PKCE (S256), state (CSRF), nonce (OIDC)
-  - ID token signature verification via provider JWKS (cached by openid-client)
-  - three user linking strategies, per-provider configurable:
-    - `sub-only`: strict — admin must pre-provision users
-    - `link-by-email` (default): match existing local user by verified email, then use sub for subsequent logins
-    - `jit-create`: create new users on first login with default role and status; writes only fields already present in `UserModel.baseSchema` — no framework schema changes needed (synthetic random `passwordHash`, `hasLocalPassword: false`, guaranteed non-empty `profile.firstName`/`lastName` via fallback chain; see design doc §7, §10)
-  - `email_verified: true` (an IdP-provided claim, not a persisted user field) required for `link-by-email` and JIT (prevents account takeover via unverified email at IdP); stored for audit only inside `oauth.{provider}.emailVerified`, never on the base user document
-  - migration paths for existing internal-auth sites (see design doc §9):
-    - Path A: automatic email-link on first SSO login (zero admin work when local email = IdP email)
-    - Path B: self-service link from linked-accounts page (user logs in locally first, then connects SSO provider)
-    - Path C: admin bulk CSV import — deferred to v2.0
-  - profile field extraction & JIT completion (see design doc §10):
-    - Stage A: best-effort claim extraction with fallbacks (given_name / family_name / name-split heuristics / preferred_username / email local-part), always resolving to a non-empty value since `profile.firstName`/`lastName` are schema-required; tracks which fields only got a placeholder via `oauth._jit.placeholderFields`
-    - Stage B: interactive `oauth-profile-complete` step injected into the W-109 multi-step flow when Stage A only produced placeholders for a field in `profileRequiredFields` — JIT-created users only (gated by presence of `oauth._jit`), existing users never re-prompted
-    - `profileRequiredFields` config option (default `['firstName', 'lastName']`) controls which fields trigger Stage B
-    - `oauth._jit` sentinel (`{ createdAt, viaProvider, placeholderFields, profileCompletedAt }`) lives as a sibling of provider blocks under `user.oauth`, not nested inside any one provider's block — it's a property of the user, not of a specific provider link
-  - `status: 'pending'` (existing `UserModel` enum value, not a new one) supported for JIT: the plugin's callback handler checks it explicitly before calling `AuthController.completeExternalAuth()` — there is no implicit framework-side gate for this
-  - account lifecycle / local-password interplay (see design doc §11): unlink-last-method guard blocks removing a user's only sign-in method when `hasLocalPassword === false` (W-195 primitive), pointing them to the existing "Set Password" flow instead of building new password UI
-  - `allowedDomains` per-provider option for domain-restricted signup
-  - `jitDefaultRoles`/`jitRoles` never offer or accept `admin`/`root` — stripped in code as defense in depth, not just excluded from the config UI
-  - user schema extension: `user.oauth.{provider}` block with W-107 adminCard/userCard for link/unlink management
-  - no IdP session or token persistence — only `sub`, `email`, `emailVerified`, `name`, `picture`, `preferredUsername`, `iss`, `linkedAt`, `lastLoginAt`
-  - client_secret encrypted at rest in `authOauth_providers` collection using framework encryption utility (same pattern as auth-mfa TOTP secret)
-  - login page buttons injected via `onAuthGetLoginProviders` (from W-195), per-provider `icon` / `buttonColor` / `label` for branding
-  - computed, copyable redirect URI shown per provider in the config renderer (derived from `req.protocol`/`req.get('host')`, same pattern as `handlebar.js`'s `url.domain`) — admin never has to guess the callback URL to paste into the IdP console
-  - composes with auth-mfa: MFA step runs after successful OAuth identity resolution via existing W-109 flow
-  - user linked-accounts management page (`/jpulse-plugins/auth-oauth.shtml`) for connecting/disconnecting providers
-  - error page (`/auth/oauth-error.shtml`) with a client-side reason-code → friendly-message map (never leaks raw provider errors; no framework i18n yet, see below)
-  - rate limiting on init/callback endpoints
-  - documents existing `controller.user.disableSignup`/`view.auth.hideSignup` + `localAuthRestriction` (W-195) combinations per site mode in README (see design doc §12) — no new signup/login-visibility flags needed, framework already has what's required
-- npm dependency: openid-client (~500KB with jose + oauth4webapi)
-- security posture:
-  - mandatory PKCE for all providers, even confidential clients
-  - state one-time-use, 5-minute expiry
-  - ID token: signature via JWKS, iss matches discovery, aud matches client_id, exp check, nonce match
-  - only authorization code flow — no implicit, no resource owner password credentials
-  - timing-safe compare for state/nonce
-  - never log tokens, codes, or secrets
-- deliverables:
-  - webapp/utils/crypto-secrets.js (new framework file, found during spec review - see design doc §8):
-    - generic secret-encryption helper (AES-256-GCM + `scrypt`), extracted from `auth-mfa`'s inline TOTP-encryption pattern so it's a genuinely shared primitive rather than duplicated a second time; `auth-mfa` itself left untouched (not retrofitted)
-  - plugins/auth-oauth/plugin.json:
-    - plugin manifest with globals (defaultLinkingStrategy, jitDefaultRoles, jitDefaultStatus)
-    - `type: "custom"` field for `providers` with renderer `authOauth.renderProviders` (uses W-194)
-  - plugins/auth-oauth/package.json:
-    - openid-client dependency
-  - plugins/auth-oauth/README.md, plugins/auth-oauth/docs/README.md:
-    - dev + user docs, includes provider setup guides for Google, Okta, Keycloak, Azure Entra
-  - plugins/auth-oauth/webapp/controller/oauthAuth.js:
-    - hooks: onAuthGetLoginProviders, onAuthGetSteps, onAuthValidateStep (found during implementation: the JIT profile-completion step integrates with W-109's multi-step login flow via these two hooks, not a bespoke onUserSyncProfile/onAuthAfterLogin pair as originally sketched - see design doc §10)
-    - api endpoints: providers, init, callback, user/providers, link, unlink, profile-draft, admin CRUD, test-connection
-  - plugins/auth-oauth/webapp/model/oauthAuth.js:
-    - `user.oauth` schema extension with W-107 adminCard/userCard metadata
-  - plugins/auth-oauth/webapp/model/oauthProvider.js:
-    - `authOauth_providers` collection CRUD
-    - client_secret encryption at rest
-  - plugins/auth-oauth/webapp/utils/providerRegistry.js:
-    - preset definitions (google, oidc, oauth2) with discovery URLs, default scopes
-  - plugins/auth-oauth/webapp/utils/oauthClient.js:
-    - openid-client wrapper: discovery caching, PKCE, JWKS
-  - plugins/auth-oauth/webapp/utils/profileExtractor.js:
-    - Stage A best-effort claim → user field mapping with fallbacks (given_name → name-split → preferred_username → email local-part)
-  - plugins/auth-oauth/webapp/view/auth/oauth-profile-complete.shtml:
-    - Stage B form for filling in missing firstName / lastName / nickName after JIT signup
-  - plugins/auth-oauth/webapp/view/auth/oauth-error.shtml:
-    - error landing page with a client-side reason-code → friendly-message map (no framework i18n yet)
-  - plugins/auth-oauth/webapp/view/jpulse-plugins/auth-oauth.shtml:
-    - user linked-accounts management (connect, disconnect, view)
-  - plugins/auth-oauth/webapp/view/jpulse-common.js:
-    - `authOauth.renderProviders` custom renderer (provider CRUD table for W-194)
-  - plugins/auth-oauth/webapp/view/jpulse-common.css:
-    - provider button styles, branding classes
-  - plugins/auth-oauth/webapp/view/jpulse-navigation.js:
-    - link to /jpulse-plugins/auth-oauth.shtml from user menu
-  - plugins/auth-oauth/webapp/bump-version.conf:
-    - version management config
-  - plugins/auth-oauth/webapp/tests/unit/{controller,model,utils}/*.test.js:
-    - 141 tests covering the controller (incl. JIT creation, Stage A/B profile completion, admin CRUD), both models, and all three utils modules - all framework/DB dependencies mocked, no live IdP calls
-  - i18n: deferred (found during implementation: no plugin-level i18n mechanism exists in the framework yet - `webapp/translations/*.conf` only loads framework/site strings, see design doc §"UI Components"); all plugin-facing strings are English-only for v1.0.0
-  - published to github.com/jpulse-net/plugin-auth-oauth as v1.0.0
 
 ### W-202, v1.7.6, 2026-08-xx: auth: add locked status
 - status: 🕑 PENDING

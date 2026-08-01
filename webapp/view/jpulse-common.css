@@ -2246,7 +2246,7 @@ body {
     text-align: center;
     margin: 25px 0;
     position: relative;
-    color: #666;
+    color: var(--jp-theme-text-secondary, #666);
 }
 
 .jp-divider::before {
@@ -2256,11 +2256,18 @@ body {
     left: 0;
     right: 0;
     height: 1px;
-    background: #dee2e6;
+    background: var(--jp-theme-border-color, #dee2e6);
 }
 
+/* `position: relative` (with the implied z-index: auto) makes this label a positioned
+ * element like ::before above, so per CSS painting order they're both painted in tree
+ * order - the label after (i.e. on top of) the line. Without it the label stays an
+ * in-flow inline box, which paints *before* any positioned descendant regardless of
+ * DOM order, so the absolutely-positioned line paints over the label's background and
+ * visibly cuts across the text like a strike-through. */
 .jp-divider span {
-    background: white;
+    position: relative;
+    background: var(--jp-theme-bg-primary, white);
     padding: 0 15px;
 }
 

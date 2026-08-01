@@ -1,7 +1,12 @@
 # W-197: plugins: auth-oauth plugin for OAuth 2.0 / OIDC single sign-on
 
 ## Status
-🕑 PENDING
+✅ DONE — v1.0.0 published to `github.com/jpulse-net/plugin-auth-oauth`, manually tested end-to-end
+against a live Google IdP (Internal Workspace audience): provider config → login button → Google
+consent → callback → JIT account creation → linked-accounts page. See `## Deliverables` below for
+the full completed checklist. Still open for a future version: i18n (no plugin-level i18n mechanism
+exists in the framework yet), a second live-IdP test pass (unlink, a second concurrent provider,
+MFA composition), and the framework follow-ups noted under `## Deliverables`.
 
 ## Objective
 
@@ -328,7 +333,7 @@ UserModel.extendSchema({
 - **No `_type: 'array'` for provider blocks** — each provider gets its own named sub-key so lookups by provider are O(1) and MongoDB queries can use dotted paths (`user.oauth.google.sub`).
 - **No tokens stored.** If a future integration needs API access, that's a separate opt-in.
 - **Detailed provider view** lives in `/jpulse-plugins/auth-oauth.shtml`. Card just shows "Manage Connections" button — the card UI is too cramped for a per-provider table.
-- **No base user-schema changes required.** `passwordHash`, `profile.firstName`, `profile.lastName` remain **required** on `webapp/model/user.js`'s `baseSchema` exactly as they are today — JIT creation always supplies schema-conformant values (see §10). There is no `emailVerified` or `authMethod` field on the base user document anywhere in this design; those concepts live inside `oauth.{provider}` (audit-only, per provider) and the ephemeral session/`pendingAuth` state (already how the framework tracks `authMethod` today), respectively.
+- **No base user-schema changes required.** `passwordHash`, `profile.firstName`, `profile.lastName` remain **required** on `webapp/model/user.js`'s `baseSchema` exactly as they are today — JIT creation always supplies schema-conformant values (see §10). **Corrected (W-198):** at the time this was written there was no base-schema `emailVerified` field, so this design only tracked a per-provider audit copy inside `oauth.{provider}`. W-198 later added a real base-schema `emailVerified` boolean (default `false` for new local signups; a **missing** field on pre-W-198 accounts is treated as grandfathered/verified), specifically so this plugin could close an account-takeover gap (see §7's `link-by-email` note and `docs/dev/work-items.md` W-198) — `authMethod` still lives only in the ephemeral session/`pendingAuth` state as originally designed, that part is unchanged.
 - **`hasLocalPassword` flag** — a small framework primitive proposed in W-195 (not built by this plugin), set to `false` at JIT-creation time. Drives the unlink-last-method guard and the "Set Password" vs "Change Password" UX described in §11.
 - **`_jit` sentinel lives at `user.oauth._jit`**, a sibling of provider blocks like `user.oauth.google` — not nested inside any single provider's block. This matters because a user can be JIT-created via one provider and later link a second provider; "was this user JIT-created" is a property of the user, not of any one provider link.
 
@@ -366,8 +371,14 @@ Per-provider config (in the provider record, not global). Admin picks one of thr
 **`link-by-email` — default recommended**
 - Try `sub` lookup first (fast path for repeat users)
 - If no match AND provider returned `email_verified: true` in ID token/userinfo:
-  - Look up local user by `email`
-  - If found → attach `oauth.{provider}` block to that user (store `sub`) — subsequent logins use fast path
+  - Look up local user by `email` (lowercase-normalized — see W-198 note below)
+  - **Added (W-198):** if the matched local account has `emailVerified === false` explicitly, fail
+    closed with `LOCAL_EMAIL_NOT_VERIFIED` instead of linking — a **missing** field (pre-W-198
+    accounts) is treated as grandfathered/verified. This closes the account-takeover chain W-198
+    documents: without it, an attacker who signs up locally using the victim's real email (nothing
+    in the framework verified ownership at signup) would have the victim's first legitimate SSO
+    login silently attach to the attacker's account
+  - If verified → attach `oauth.{provider}` block to that user (store `sub`) — subsequent logins use fast path
 - If no match AND `email_verified: false` → login fails with `EMAIL_NOT_VERIFIED_AT_PROVIDER` (never trust unverified emails for linking; risk of account takeover)
 - If no email match → falls through to JIT if enabled, else fails
 - Use case: org-internal with existing users provisioned by admin, then employees link via SSO on first login
@@ -378,6 +389,9 @@ Per-provider config (in the provider record, not global). Admin picks one of thr
 - If still no match → create a new user via `onUserBeforeSave`/`onUserAfterSave`, writing **only fields that already exist in `UserModel.baseSchema`** — no framework schema changes needed (see §10 for the exact, schema-conformant recipe):
   - `username`: derived from email local-part or `preferred_username` claim (with uniqueness suffix if needed)
   - `email`: from provider (requires `email_verified: true` at the provider)
+  - `emailVerified`: `true` — **added (W-198):** the IdP already vouched for this address, so the
+    new base-schema `emailVerified` field is stamped `true` at creation time rather than left at
+    its normal `false` default for local signups
   - `passwordHash`: bcrypt hash of a cryptographically random 32-byte value — nobody, including the plugin, retains the plaintext, so local login is impossible until the user explicitly sets a real password (never an empty string; a blank/empty password value is a known auth anti-pattern regardless of whether validation happens to permit it)
   - `hasLocalPassword`: `false` (framework primitive proposed in W-195 — signals "no user-known local password exists"; drives the unlink guard and Set-Password UX in §11)
   - `profile.firstName`, `profile.lastName`: from provider claims via best-effort extraction, with a fallback chain that is **always non-empty** (see §10 Stage A) — the required-field constraint is satisfied at creation time and refined moments later by Stage B if the extracted values were only placeholders
@@ -542,6 +556,16 @@ window.jPulse.plugins.authOauth.renderProviders = function(ctx) {
 }
 ```
 
+**Required fields are advisory, never blocking (decided 2026-07-31):** a provider needs `clientId`, a client secret, and its preset's endpoint fields (`discoveryUrl` for `oidc`; `authorizeUrl`/`tokenUrl`/`userinfoUrl` for `oauth2` — `google` supplies its own discovery URL) before it can complete a single login. None of these may become a hard save-time validation error, because configuring an IdP is inherently a two-sided, interleaved process: the admin creates the client in the IdP console, comes back to paste the id, copies the generated redirect URI out of *this* form, and only then gets a secret to paste. Refusing to save a half-filled provider would break exactly that workflow (and the redirect URI the admin needs is derived from `id`, so the row has to exist first).
+
+Instead, the config UI marks such a provider as having **pending issues** — a clear, per-provider indication of what's still missing, visible in the provider table and in the edit form, while the page's own Save Changes button continues to work. Hard, blocking validation stays limited to fields that are malformed rather than merely absent (id charset, unknown preset, `buttonColor` format, `label` characters, `allowedDomains` syntax — see `_validateProviderInput()`), since a malformed value can't be part of any legitimate in-progress state.
+
+Consequence for the login path: an incomplete provider that is nonetheless `enabled` currently renders a live login button that dead-ends on the generic `INTERNAL_ERROR` page. That failure needs its own reason code so it reads as "this provider isn't finished being set up" rather than "the server broke".
+
+**Decided (2026-07-31): an incomplete provider keeps its login button rather than being auto-suppressed** — `enabled` is the admin's explicit switch and the only thing that removes a button, so visibility never depends on a second, implicit rule the admin didn't set. The button should carry a visible marker that this provider's setup is unfinished, so the state is obvious from the page the admin is most likely to be looking at while configuring it, instead of only being discoverable by clicking through to an error.
+
+Implementation constraint for that marker: the login page template is framework-owned (`webapp/view/auth/login.shtml`) and renders exactly the fields `onAuthGetLoginProviders` supplies — `{{this.icon}}`, `{{this.label}}`, and `buttonColor` as an inline `border-color`. A plugin can therefore only express the marker *through those fields* (e.g. prefixing the label, substituting a warning icon), unless W-195's hook contract is extended with something like an `incomplete`/`badge` field and the framework template is updated to render it. Choosing between "plugin-side, within the existing contract" and "extend the W-195 contract" is part of implementing this; the former ships without a framework change, the latter is cleaner and reusable by any future external-auth plugin.
+
 **Redirect URI (computed, not stored):** each provider's redirect URI is derived, not entered by the admin — `{req.protocol}://{req.get('host')}/api/1/auth-oauth/callback/{provider.id}`, using the same `req.protocol` + `req.get('host')` pattern the framework already uses elsewhere (e.g., `handlebar.js`'s `url.domain`), which respects Express `trust proxy` / `X-Forwarded-Host` when configured. The `renderProviders` UI shows this computed value next to each provider row with a "Copy" button, so admins pasting it into the IdP's console never have to guess the exact hostname/path — "don't make me think."
 
 **Client secret storage:**
@@ -639,7 +663,8 @@ Once enough users have linked their SSO accounts (via A or B):
 | Admin wants to preview which users will migrate cleanly | Not in v1.0 — nice-to-have admin ops page (deferred to v1.1) |
 | Attacker pre-registers a local account using the victim's email *before* the victim ever tries SSO, then Path A auto-links the attacker's account to the victim's IdP identity | Residual risk whenever public local signup and Path A coexist. Not automatically blocked in v1.0 — no local-signup email-verification feature exists in the framework yet to gate on (tracked as a separate future work item). Mitigate operationally: don't enable public local signup alongside Path A on the same site, or restrict Path A to accounts older than a short grace window. Documented as an admin responsibility in the plugin README. |
 | Same IdP `sub` shows up under a *different* verified email (IdP-side account recycling), or an already-linked provider suddenly reports a different `sub` for the same email | Treated as a mismatch, not a silent re-link: rejected with `PROVIDER_IDENTITY_MISMATCH`, logged for admin review. Silently re-linking on IdP-side identity churn is a security smell (could mask account takeover), so v1.0 always fails closed here — no configurable override. |
-| Two JIT-eligible logins for a brand-new email arrive concurrently (double-click, retried request, etc.) | **Corrected (W-198):** at the time this was written, `email`/`username` uniqueness was assumed to be DB-enforced via `baseSchema`'s `unique: true` — it was not; that flag was declarative-only, with no real MongoDB index behind it, and the resulting race was confirmed live (an actual duplicate-`username` pair found in a dev database), not just theoretical. W-198 adds real DB-level unique indexes on both `users.email` and `users.username` (with a startup pre-check that skips index creation and warns instead of crashing if pre-existing duplicates are found). Once that index exists, the second `create()` fails with a duplicate-key error; the plugin should catch that specific error and retry as a `sub`/email lookup instead of surfacing a 500 — self-healing, no user-visible race. |
+| Two JIT-eligible logins for a brand-new email arrive concurrently (double-click, retried request, etc.) | **Corrected (W-198):** at the time this was written, `email`/`username` uniqueness was assumed to be DB-enforced via `baseSchema`'s `unique: true` — it was not; that flag was declarative-only, with no real MongoDB index behind it, and the resulting race was confirmed live (an actual duplicate-`username` pair found in a dev database), not just theoretical. W-198 adds real DB-level unique indexes on both `users.email` and `users.username` (with a startup pre-check that skips index creation and warns instead of crashing if pre-existing duplicates are found). Once that index exists, the second `create()` fails with a duplicate-key error; `_createJitUser()` already caught that specific error and retried as a `sub`/email lookup instead of surfacing a 500 (self-healing, no user-visible race) — this retry path was implemented from v1.0, it just didn't have a real unique index backing it to trigger against until W-198 shipped. |
+| An attacker signs up for a local account using the victim's real email address before the victim ever tries SSO (nothing at local signup verifies inbox ownership) | **Added (W-198):** `link-by-email`/`jit-create`'s email-match branch now requires the matched local account's `emailVerified` to not be explicitly `false` before linking (`LOCAL_EMAIL_NOT_VERIFIED` otherwise) — a brand-new local signup defaults to `emailVerified: false` (per W-198), so this squatting attack now fails closed at the victim's first SSO login instead of silently attaching to the attacker's account. Pre-W-198 accounts with no `emailVerified` field at all are grandfathered as verified. |
 
 ### 10. Profile Field Extraction & JIT Completion
 
@@ -1143,6 +1168,100 @@ Rendered inside the standard plugin config UI's "Providers" tab. Table of config
 - Row actions: Test Connection, Delete
 - Table action: Add Provider
 
+**Persistence model (corrected, W-200):** every field in the Add/Edit form writes straight into the
+renderer's in-memory `providers` array on every keystroke/change and reports it via `ctx.onChange()`
+- there is no per-row commit step at all (no Save/Apply button, nothing to Cancel). Add and Delete
+are local array operations too (a never-saved row's Delete skips the confirm dialog; a previously
+saved provider's Delete still confirms, since removing it has a real effect on existing linked
+users once the page is actually saved). The page's single generic Save button is the only thing
+that talks to the server; the framework's `onPluginConfigBeforeSave` hook (W-200) validates,
+sanitizes, and encrypts a submitted client secret server-side right before that save is written,
+and cleans up the encrypted secret for any provider deleted locally in the same save. Test
+Connection is the one exception - it needs a real, already-encrypted secret on the server to test
+against, so it stays a dedicated immediate endpoint call and is disabled in the UI for a provider
+that only exists locally (added this session, not yet saved). Two earlier implementations existed
+before landing here: the original had the Add/Edit form call dedicated admin endpoints directly
+with its own separate Save button (a documented "gotcha" - a provider edit was silently discarded
+if only the page's Save button was clicked); an intermediate one kept a single explicit "Apply"
+button per row, which turned out to just relocate the same "two actions needed" complaint rather
+than remove it.
+
+**Blank means "inherit the preset default".** `label`, `icon`, and `buttonColor` all have per-preset
+defaults in `utils/providerRegistry.js`. The renderer surfaces those as the form's placeholders (and
+as the color input's initial value), stores *no key at all* when the admin leaves the field blank,
+and shows the inherited value muted in the table. `_buildProviderButtons()` applies the same
+fallback server-side, so an entry that predates this - or one hand-edited in the database - still
+renders a labelled button rather than an empty one. Switching preset drops a color that still
+matches the outgoing preset's default (it was never deliberately chosen) and drops any endpoint
+field the incoming preset doesn't use, so a leftover `discoveryUrl` can't silently override the new
+preset's own.
+
+**Attribute escaping.** The renderer builds its markup as strings, and `jPulse.string.escapeHtml()`
+serializes a *text node* - which per the HTML spec leaves `"` untouched. That's correct for element
+content but wrong inside `value="..."`: an inline SVG icon (`<svg viewBox="0 0 24 24">`) terminates
+the attribute at its own first quote and reads back truncated, and a crafted label could inject an
+event-handler attribute into the admin page. The renderer therefore uses a local `attrEscape()` for
+every attribute interpolation and keeps `escapeHtml()` for element content only.
+
+**Icon preview.** The table's third column is "Icon & Label" and previews the icon as the admin
+types. The renderer only ever holds the *unsaved* value - `sanitizeIcon()` hasn't run on it yet - so
+a markup icon is previewed through an `<img>` data URL (`data:image/svg+xml`, with `xmlns` injected
+when the paste omits it, since SVG behind an `<img>` needs it) rather than being inserted into the
+admin page as live DOM. An `<img>`-loaded SVG can neither run script nor fetch anything, which
+avoids duplicating the server's allow-list in the browser where it could drift out of sync. Emoji
+icons - the common case - render as plain escaped text.
+
+**The panel's button is labelled "Close Editor", not "Done"** - it only collapses the per-provider
+panel; every edit is already applied and nothing there commits or discards.
+
+**The Google preset's default icon is Google's own 4-color "G" mark**, not an emoji placeholder -
+defined once in `utils/providerRegistry.js` (`GOOGLE_LOGO_SVG`, server-side source of truth for the
+login page) and mirrored in the renderer (`JPULSE_AUTH_OAUTH_GOOGLE_LOGO_SVG`, a plain browser
+script with no import mechanism to share the constant). Neither copy declares `width`/`height`/
+`x`/`y` - every surface that shows it (login button, admin table preview, Connected Accounts) sizes
+it purely via CSS, so there's one shape with no baked-in size to fight. Since it's framework-authored
+and never admin-editable, it's never run through `sanitizeIcon()` (that only guards
+admin-submitted values). A raw SVG string is unreadable as a text input's `placeholder` attribute,
+so the Icon field describes it instead (`(Google logo)`) rather than showing the markup itself.
+
+**Three SVG icon layout bugs.** The first two are a variant of the same cause; the third is unrelated
+and specific to the admin table's preview mechanism.
+- Login button (`webapp/view/auth/login.shtml`): an inline `<svg>` is a *replaced element*; the
+  surrounding text's `vertical-align: baseline` default leaves room below it for a descender that a
+  graphic doesn't have, visually pushing it up relative to a plain text glyph (an emoji) in the same
+  spot - flex `align-items: center` on the outer container does not fix this, because the gap exists
+  inside the icon's own inline box, one level down. Fixed with `vertical-align: middle` on
+  `.local-auth-method svg`.
+- Admin table ("Icon & Label" column), alignment: fixed by wrapping the icon + label in a
+  `.plg-oauth-label-cell` flex row instead of relying on a magic `vertical-align: -4px` offset (that
+  number only happened to work for one icon size); this also let the preview grow from a barely
+  visible 18px to 22px without needing yet another manually tuned offset.
+- Admin table ("Icon & Label" column), size, for an *admin-supplied* SVG only (the Google preset's
+  own icon was never affected - see below): `CommonUtils.sanitizeHtml()` lowercases every attribute
+  name it re-serializes, so a provider's icon comes back from `sanitizeIcon()` with `viewbox`, not
+  `viewBox`. That's invisible when the markup is parsed as HTML - the login button above, and the
+  Connected Accounts page's `innerHTML` assignment, both go through the HTML parser's own SVG
+  "foreign content" step, which silently restores a fixed list of attribute names to their correct
+  case, `viewbox` -> `viewBox` among them. The admin table's preview doesn't get that fix-up for
+  free: `iconPreviewHtml()` deliberately renders an admin-supplied icon through an `<img>` data URL
+  rather than as live HTML, specifically so a not-yet-saved, not-yet-sanitized draft can never become
+  real DOM in the admin's own page (see the XSS note above) - and SVG behind an `<img>` is parsed as
+  a standalone XML document, where casing is significant and there is no fix-up. Losing the viewBox
+  makes the browser fall back to the CSS-default replaced-element intrinsic size (300x150, a 2:1
+  non-square box) instead of deriving a square aspect ratio from the viewBox; combined with
+  `object-fit: contain` on `.plg-oauth-icon-preview`, that wrong, non-square intrinsic ratio is what
+  visually renders as "tiny and pushed toward the top-left" inside the icon's square 22px box - two
+  separate, compounding effects (browser bug per se) confirmed with a real Chromium render before
+  fixing. Fixed by restoring the one mixed-case attribute our allow-list actually uses
+  (`restoreSvgAttributeCase()` in `jpulse-common.js`, `viewbox` -> `viewBox`) before building the
+  preview's data URL - preview-only, so the editable form field still round-trips the exact stored
+  value untouched.
+
+**Test coverage:** `webapp/tests/unit/view/provider-renderer.test.js` drives the renderer in a
+hand-constructed JSDOM document with a stubbed `jPulse` global (`testEnvironment: jsdom` isn't
+installed; the `jsdom` package alone is), covering live binding, preset switching, blank-means-
+inherit, attribute escaping, local add/delete, and read-only mode.
+
 ### 4. OAuth Profile Complete Page (`/auth/oauth-profile-complete.shtml`)
 
 Rendered when the multi-step flow's next step is `oauth-profile-complete` (see §10). This only happens for JIT-created users whose IdP didn't provide all required profile fields.
@@ -1239,32 +1358,37 @@ Ships with `en` and `de` at minimum, mirroring auth-mfa.
 
 ## Deliverables
 
-- [ ] `webapp/utils/crypto-secrets.js` (new framework file, found during spec review — see §8): shared `encryptSecret()`/`decryptSecret()` primitive, since none existed before this plugin needed one
-- [ ] Plugin structure (`plugins/auth-oauth/`)
-- [ ] Plugin manifest (`plugin.json`) with W-194 custom renderer field and `profileRequiredFields` option
-- [ ] Controller with hooks + API endpoints (`webapp/controller/oauthAuth.js`)
-- [ ] Model with W-107 schema extension (`webapp/model/oauthAuth.js`)
-- [ ] Provider config model + secret encryption (`webapp/model/oauthProvider.js`)
-- [ ] Provider registry with Google + OIDC + OAuth2 presets (`webapp/utils/providerRegistry.js`)
-- [ ] openid-client wrapper (`webapp/utils/oauthClient.js`)
-- [ ] Profile field extractor with fallbacks (`webapp/utils/profileExtractor.js`) — §10 Stage A
-- [ ] Custom renderer for providers list (`webapp/view/jpulse-common.js`)
-- [ ] Provider button styles (`webapp/view/jpulse-common.css`)
-- [ ] User linked-accounts page (`webapp/view/jpulse-plugins/auth-oauth.shtml`)
-- [ ] OAuth profile complete page (`webapp/view/auth/oauth-profile-complete.shtml`) — §10 Stage B
-- [ ] OAuth error page (`webapp/view/auth/oauth-error.shtml`)
-- [ ] Version management (`webapp/bump-version.conf`)
-- [ ] Unlink-last-method guard consuming the W-195 `hasLocalPassword` flag (§11) — `DELETE /api/1/auth-oauth/link/:provider`
-- [ ] `status: 'pending'` check in the callback handler, before calling `AuthController.completeExternalAuth()` (§7)
-- [ ] Computed, copyable redirect URI shown per provider in the custom renderer (§8)
-- [ ] `static routes` declaration for all API endpoints (§6 — required for `:provider`/`:id` path params; auto-discovery does not apply)
-- [ ] Provider config caching (`getCachedConfig()`, §13) — short-TTL Redis cache in front of `PluginModel.getByName('auth-oauth')`, consumed by `onAuthGetLoginProviders`
-- [ ] User docs (`docs/README.md`) — includes provider setup guides (Google, Okta, Keycloak, Azure Entra), migration walkthrough (Paths A/B/C), and the site-mode config table (§12: `disableSignup`/`hideSignup`/`localAuthRestriction` combinations)
-- [ ] Developer docs (`README.md`)
-- [ ] i18n (en, de) — including plugin.authOauth.profileComplete.*, plugin.authOauth.error.lastMethodBlocked strings
-- [ ] Manual test pass on all 28 scenarios above
-- [ ] Unit tests for provider registry, linking strategies, profile extractor (name-split heuristics + placeholder tracking), secret encryption
-- [ ] Published to `github.com/jpulse-net/plugin-auth-oauth` as v1.0.0
+- [x] `webapp/utils/crypto-secrets.js` (new framework file, found during spec review — see §8): shared `encryptSecret()`/`decryptSecret()` primitive, since none existed before this plugin needed one
+- [x] Plugin structure (`plugins/auth-oauth/`)
+- [x] Plugin manifest (`plugin.json`) with W-194 custom renderer field and `profileRequiredFields` option
+- [x] Controller with hooks + API endpoints (`webapp/controller/oauthAuth.js`)
+- [x] Model with W-107 schema extension (`webapp/model/oauthAuth.js`)
+- [x] Provider config model + secret encryption (`webapp/model/oauthProvider.js`)
+- [x] Provider registry with Google + OIDC + OAuth2 presets (`webapp/utils/providerRegistry.js`)
+- [x] openid-client wrapper (`webapp/utils/oauthClient.js`)
+- [x] Profile field extractor with fallbacks (`webapp/utils/profileExtractor.js`) — §10 Stage A
+- [x] Custom renderer for providers list (`webapp/view/jpulse-common.js`)
+- [x] Provider button styles (`webapp/view/jpulse-common.css`)
+- [x] User linked-accounts page (`webapp/view/jpulse-plugins/auth-oauth.shtml`)
+- [x] OAuth profile complete page (`webapp/view/auth/oauth-profile-complete.shtml`) — §10 Stage B
+- [x] OAuth error page (`webapp/view/auth/oauth-error.shtml`)
+- [x] Version management (`webapp/bump-version.conf`) — including test-file patterns, a gap found during a pre-release review
+- [x] Unlink-last-method guard consuming the W-195 `hasLocalPassword` flag (§11) — `DELETE /api/1/auth-oauth/link/:provider`
+- [x] Account-status check in the callback handler, before calling `AuthController.completeExternalAuth()` (§7) — checks `UserModel`'s real status enum (`pending`/`suspended`/`terminated`/`inactive`), corrected during pre-release review after an earlier draft mistakenly mirrored `auth.js`'s stale `locked`/`disabled` dead code
+- [x] Computed, copyable redirect URI shown per provider in the custom renderer (§8)
+- [x] `static routes` declaration for all API endpoints (§6 — required for `:provider`/`:id` path params; auto-discovery does not apply)
+- [x] Provider config caching (`getCachedConfig()`, §13) — short-TTL Redis cache in front of `PluginModel.getByName('auth-oauth')`, consumed by `onAuthGetLoginProviders`
+- [x] `allowedDomains` per-provider allowlist, enforced in `_resolveUser()` ahead of every strategy branch (§8) — found unimplemented during pre-release review despite existing in the admin UI/docs
+- [x] `emailVerified` fail-closed check + lowercase email normalization in `_resolveUser()`/`_createJitUser()`, consuming the framework's W-198 release (§7, §"Design notes")
+- [x] `onPluginConfigBeforeSave` hook implementation, consuming the framework's W-200 release — collapses the provider table's Add/Edit flow onto the plugin config page's single generic Save button (§"UI Components" §3); the dedicated `admin/providers` create/update endpoints and their validation/encryption logic are refactored into a shared `_prepareProviderEntry()` helper used by both paths, so there's exactly one place secrets get encrypted
+- [x] User docs (`docs/README.md`) — includes provider setup guides (Google, Okta, Keycloak, Azure Entra), migration walkthrough (Paths A/B/C), and the site-mode config table (§12: `disableSignup`/`hideSignup`/`localAuthRestriction` combinations)
+- [x] Developer docs (`README.md`)
+- [ ] i18n (en, de) — **deferred:** no plugin-level i18n mechanism exists in the framework yet (`webapp/translations/*.conf` only loads framework/site strings); all plugin-facing strings are English-only until that framework gap is addressed
+- [x] Manual test pass against a live Google IdP (Internal Workspace audience) — provider config, login button, consent screen, callback, JIT account creation, linked-accounts page all verified end-to-end
+- [ ] Manual test pass on the remaining scenarios (unlink, a second concurrent provider/migration Path B, MFA composition) — unit-tested only so far, not yet exercised against a live IdP
+- [x] Renderer correctness pass after the W-200 migration, with the first browser-side test suite for the plugin (`webapp/tests/unit/view/provider-renderer.test.js`, JSDOM) — fixed three defects the migration had left behind or predated it: the Preset dropdown snapped back on change (`syncFormToEntry()` never read the preset field, so the form re-rendered from the old value and the preset was effectively unchangeable); attribute interpolation used the text-node escaper, truncating any inline SVG icon at its first `"` and leaving an attribute-injection vector on a crafted label; and blank `label`/`icon` were stored as `""`, overriding the preset defaults with nothing instead of inheriting them
+- [x] Unit tests for provider registry, linking strategies, profile extractor (name-split heuristics + placeholder tracking), secret encryption, `allowedDomains`, account-status enum, `emailVerified` fail-closed check, and the config renderer (187 tests total, all dependencies mocked, no live IdP calls)
+- [x] Published to `github.com/jpulse-net/plugin-auth-oauth` as v1.0.0
 
 ---
 
@@ -1312,6 +1436,7 @@ Higher than the initial "25-35h" and revised "48h" estimates because:
 
 - **v1.1.0** — Apple Sign-In preset (`form_post` response mode, one-time email quirk)
 - **v1.1.0** — GitHub preset (OAuth2-only, GitHub-specific userinfo mapping)
+- **v1.1.0** — Microsoft Entra ID `xms_edov` (Email Domain Owner Verification) optional-claim support, so `link-by-email`/`jit-create` work for Microsoft the same as every other OIDC preset (see Gap 5 above); until then, Microsoft providers are documented as `sub-only`-only
 - **v1.2.0** — Admin operations page (`/admin/plugins/auth-oauth-ops.shtml`) with usage stats, recent login audit, bulk unlink
 - **v1.3.0** — RP-Initiated Logout (backchannel logout via SLO)
 - **v1.4.0** — Optional token persistence (per-provider opt-in, encrypted at rest) for integrations that need to call provider APIs
@@ -1331,7 +1456,7 @@ Consumer providers (Google, Apple, GitHub) obviously cannot work air-gapped sinc
 
 ---
 
-**Last Updated:** 2026-07-24 (spec review pass #2, pre-implementation — see change note below)
+**Last Updated:** 2026-07-31 (settings completeness audit, pre-1.0.0 release; Gap 3 role controls fixed same day; Microsoft Entra ID preset added same day; Gap 5 — Microsoft `email_verified` limitation — documented same day, fix deferred to v1.1.0; Microsoft test-tenant setup guidance corrected twice same day, now pointing at Azure free account; Gap 6 — stale `jpulseVersion` — fixed same day during pre-release checklist pass; Gap 2 — broken Nickname option — fixed same day, same pass, by dropping the option — see change notes below; Gap 7 — missing `jpulse-navigation.js` found post-v1.0.0-publish, fixed same day as v1.0.1)
 
 ---
 
@@ -1356,3 +1481,100 @@ W-195 shipped and this doc was checked against the real code for drift. Everythi
 1. **`page` field is mandatory for custom plugin steps, not just browser-redirect flows.** `login.shtml`'s `handleNextStep()` only has hardcoded routing for the framework's own `'mfa'`/`'mfa-setup'`/`'email-verify'` step names — a plugin-defined step like `oauth-profile-complete` needs its own `page` even in the pure-AJAX `login()` flow, or the client has nowhere to redirect to. Added `page: '/auth/oauth-profile-complete.shtml'` to the §10 Stage B example and the composed-flow walkthrough.
 2. **Login page markup uses `.local-auth-methods`/`.local-auth-method`, not `.jp-auth-providers`/`.jp-auth-provider-btn`.** Updated the "UI Components" §1 example to match the real `webapp/view/auth/login.shtml` template.
 3. **`/user/profile.shtml` doesn't exist.** The real routes are `/user/me` (profile fields) and `/user/settings` (Security panel, `panel-security`) — there's also no `#security` hash deep-link support today. Updated all five references.
+
+---
+
+## Review Note (2026-07-31, settings completeness audit, pre-1.0.0 release)
+
+Every setting the plugin exposes — `plugin.json`'s `config.schema` (General/Providers/Security tabs) plus the per-provider fields in the W-194 custom renderer — was traced to the code that actually reads it, and cross-checked against the live dev deployment's stored `pluginConfigs.config`. **No code was changed as a result of this pass; the findings are recorded here first.**
+
+**Confirmed implemented end to end:** `defaultLinkingStrategy` (`_resolveUser()`); `jitDefaultStatus` and the per-provider `jitStatus` override (passed to `UserModel.create()`, gated in `_handleLoginCallback()` before `completeExternalAuth()`, with a matching `ACCOUNT_PENDING_APPROVAL` message on the error page, and covered by a unit test); `linkingStrategy` per-provider override; `allowedDomains` (validated on save, enforced ahead of every strategy branch); `scopes` (blank correctly inherits the preset default — `resolveProviderConfig()` tests `length > 0`, not mere truthiness, so a stored `[]` from the renderer still falls back); and all presentation fields (`label`/`icon`/`buttonColor`/`order`/`enabled`, blank-means-inherit via `_presentation()`). Every reason code `oauthAuth.js` can emit has a message on `oauth-error.shtml`.
+
+**Gap 1 — a provider can be saved, enabled, and shown on the login page while missing everything it needs to work.** `_validateProviderInput()` covers `id`, `preset`, `buttonColor`, `label`, and `allowedDomains`, but never `clientId`, the client secret, or the preset's endpoint fields. Observed on the dev deployment: one provider stored with `clientId: ""` and no `clientSecretRef`, another (`oidc` preset) with `discoveryUrl: ""` — both `enabled: true`, both rendering as login buttons, and both dead-ending at `/auth/oauth-error.shtml?reason=INTERNAL_ERROR`, which is indistinguishable from a genuine server fault. Every preset already declares `requiresClientSecret: true`; nothing reads it. Fix direction is recorded in §8 above ("Required fields are advisory, never blocking"): surface pending issues per provider without blocking Save, and give the login-time failure its own reason code. The button-visibility question raised here is now decided — the button stays, marked as incomplete, with `enabled` remaining the only thing that removes it; see §8 for the decision and for the constraint that the marker has to ride on the existing `onAuthGetLoginProviders` fields unless the W-195 hook contract is extended.
+
+**Gap 2 — FIXED (2026-07-31, pre-release checklist pass) — `profileRequiredFields`' "Nickname" option could never do anything, and was actively contradictory when combined with the others.** Stage B fires on `oauth._jit.placeholderFields`, and `extractProfile()` only ever records `firstName`/`lastName` there — never `nickName`, even when it resolves to `null` (verified against the real function across four claim shapes, including "no name claims at all", which yields `placeholderFields: ["firstName","lastName"]`, `nickName: null`). So selecting Nickname alone meant the completion step never appeared — a silently inert configuration. Selecting it *alongside* firstName/lastName was worse and genuinely user-facing: `onAuthGetSteps()` still computed `missingFields` without it (so the step's own data never mentioned it), while `onAuthValidateStep()` rejected the submission unless `stepData.nickName` was non-empty — against a field the Stage B page labels "Nickname (optional)", with a generic "Please fill in all required fields" error that didn't say which field was at fault. A JIT user could get stuck unable to complete signup with no way to tell why, if an admin ever picked this combination.
+
+Two fixes were possible: make nickName trackable as a real placeholder field (the fuller fix), or drop the option since nothing could act on it correctly today. Decided: dropped — `plugin.json`'s `profileRequiredFields` options now list only `firstName`/`lastName`. The Nickname field itself is untouched and still shown as a normal optional field on the Stage B page (`oauth-profile-complete.shtml` always displays it regardless of `missingFields`, per its own `field === 'nickName'` check) — only the ability to force it "required" through this broken mechanism is gone. Revisit as the fuller fix if a real need for a mandatory-nickname JIT flow ever comes up.
+
+*This is entirely plugin-side; no framework change is involved.* All four moving parts belong to this plugin: `profileExtractor.js` decides what lands in `placeholderFields`, `oauthAuth.js`'s `onAuthGetSteps()`/`onAuthValidateStep()` decide what counts as missing and what is rejected, and `oauth-profile-complete.shtml` is a plugin view that owns the "(optional)" label and the generic error text. The framework's role is limited to calling the hooks and rendering whatever step data the plugin returns. The multiselect option list also comes from the plugin's own `plugin.json`, so dropping the option is a one-line change there.
+
+**Gap 3 — FIXED (2026-07-31) — the role controls offered a hardcoded option list that ignored site-defined roles.** *(Revised after review: the original finding called both controls "decorative and removable". That was wrong about the cause. They were inert, but the fix was to make the list dynamic, not to drop the selectors — implemented below.)*
+
+`jitDefaultRoles` hardcodes a single option (`{ value: "user" }`) in `plugin.json`, and an empty selection falls back to `['user']` in `sanitizeJitRoles()` — so today no selection the admin can make changes the outcome. But roles are *not* a fixed set: W-147 made them site-configurable via `data.general.roles` (Admin UI → General tab), exposed server-side as `ConfigModel.getEffectiveRoles()` and over the wire as `GET /api/1/user/enums?fields=roles`, which is exactly how `webapp/view/admin/users.shtml` populates its own role dropdown. A site that defines, say, `editor` has a genuinely useful JIT choice to make, and the plugin currently cannot offer it. Keep the selector; source its options at render time.
+
+Feasibility of that fix was verified against the framework rather than assumed, and it needs no framework change:
+
+- `plugin.json` field defs reach the renderer through `_normalizePluginFieldDef()`, which starts from `Object.assign({}, field)` — unrecognized keys such as `loadOptions` pass straight through to the field def the form consumes.
+- `loadOptions` is honored only when `fieldEl.tagName === 'SELECT'`. A `multiselect` is rewritten by `_resolveInputType()` to `jpSelect` + `multiple`, and jpSelect enhances a real `<select multiple>` element, so the guard passes.
+- `PluginModel.validateConfig()` has cases for `text`/`password`/`number`/`boolean`/`select`/`custom` but **none for `multiselect`** — so dynamically loaded values are not checked against the static `options` array in `plugin.json` and won't be rejected on save. (The `select` case *does* validate against `options`, so the same trick on a single-select field would need the server side revisited.)
+- The handler is resolved by registry name, the same mechanism the W-194 provider renderer already registers through, so the plugin has a place to put it.
+
+Related and more consequential than the UI itself: **`sanitizeJitRoles()` strips the literal strings `admin` and `root`, not whatever the site actually treats as privileged.** Since W-147 a site can define a custom role and add it to `data.general.adminRoles`; such a role would survive the filter and could be auto-assigned to a JIT-provisioned user. The check should consult `ConfigModel.getEffectiveAdminRoles()` instead of hardcoding two names. Nothing exploitable on the current deployments (both use the default `['admin','root']`), but the invariant §8 claims — "never auto-provision an administrator" — is only literally true for the default configuration.
+
+Note this is *not* the same as `auth-mfa`'s role multiselect, which legitimately offers the three defaults because it is selecting who MFA applies to, not who gets provisioned — though it inherits the same staleness against site-defined roles (out of scope here; not touched).
+
+The per-provider "JIT: Override Roles → Users only (instead of the global default)" checkbox was a separate, smaller problem: it wrote `['user']`, identical to the only value the global default could hold, so it was a no-op regardless of how the global list was sourced. Decided (2026-07-31): upgrade it to a real per-provider role selector rather than remove it, for the same reason the global one is worth keeping — a per-provider JIT role choice is genuinely useful once the option list is real.
+
+**Implementation, both parts, no framework change:**
+
+- `plugin.json`'s `jitDefaultRoles` field gained `"loadOptions": "authOauth.loadRoleOptions"` (static `options: [{ value: "user", label: "user" }]` kept only as the pre-load/on-error fallback the framework's `_applyLoadedOptions()` replaces once the handler resolves). `webapp/view/jpulse-common.js` registers that handler once at script load — `jPulse.schemaForm.register('authOauth.loadRoleOptions', () => window.jPulse.plugins.authOauth._fetchSiteRoles())` — where `_fetchSiteRoles()` calls the same `GET /api/1/user/enums?fields=roles` endpoint `admin/users.shtml` already uses, memoized per script load (a promise cached on the namespace object), and falls back to `[{ value: 'user', label: 'user' }]` on any failure.
+- The W-194 provider-config custom renderer is hand-rolled HTML (not routed through the framework's schema-form pipeline that `loadOptions` targets), so the per-provider "JIT: Override Roles" checkbox couldn't reuse that mechanism directly. It now calls the same `_fetchSiteRoles()` once per field mount, starts with the one-role fallback so the very first synchronous render has something to show, and re-renders the open form (if any) once the real list arrives — the checkbox was replaced by a `<select multiple>` populated from that list; selecting nothing stores `jitRoles: null` (inherit the global default, same semantics as before), selecting one or more stores exactly those role names. It picks up the framework's existing generic "every input/select/textarea syncs into `entry` on change" wiring for free — no bespoke event handling needed.
+- `sanitizeJitRoles()` (`controller/oauthAuth.js`) now filters against `ConfigModel.getEffectiveAdminRoles()` instead of the literal strings `'admin'`/`'root'`, closing the site-defined-admin-role gap described above. This is the one and only place JIT roles are actually enforced (`_createJitUser()`); nothing upstream of it (the config schema, the custom renderer, `validateConfig()`) gates what can be *stored* — consistent with §8's "advisory, never blocking" position elsewhere in this doc, and matching the existing "UI narrows, security boundary is server-side" pattern this same function already established for the literal-two-names version.
+- Tests: `oauth-auth.test.js` gained a `ConfigModel` mock and a case asserting a site-defined admin-equivalent role is stripped from JIT roles, not just the literal `admin`/`root`. `provider-renderer.test.js` gained a `jPulse.api.get`/`jPulse.schemaForm.register` stub (the renderer now calls both at mount) and a "JIT role override" suite covering: the selector renders this site's actual roles (not a hardcoded list), it falls back to a plain `user` option if the fetch fails, selecting nothing reports `jitRoles: null`, and selecting specific roles reports exactly those.
+
+**Follow-up (2026-07-31, same day) — don't show a role that would be silently rejected anyway.** The first pass above sourced the selectors from `GET /api/1/user/enums?fields=roles`, which returns every configured role including admin-equivalent ones (it's the same endpoint `admin/users.shtml` uses for its own, unrelated purpose of filtering the user list by role - a context where showing `admin` is exactly right). Screenshot review during manual testing showed the JIT selectors listing `admin`/`root` right alongside `user`/`geek`/`gofer` - checkable, but silently stripped by `sanitizeJitRoles()` the moment a JIT user actually gets created. That's the same "showable but rejected" shape as Gap 1's incomplete providers, and the fix follows the same principle: don't offer a choice the server always overrides.
+
+Since the plugin doesn't have a good way to filter admin-equivalent roles out of the generic user enums response *client-side* without duplicating `ConfigModel.getEffectiveAdminRoles()` in browser JS, the plugin gained its own endpoint instead:
+
+- New `GET /api/1/auth-oauth/admin/assignable-roles` (`auth: 'admin'`, added to `oauthAuth.js`'s `static routes`) returns `ConfigModel.getEffectiveRoles()` with `ConfigModel.getEffectiveAdminRoles()` already subtracted server-side - the exact set `sanitizeJitRoles()` would ever let through, computed the same way.
+- `_fetchSiteRoles()` now calls this endpoint instead of the generic user-enums one; no client-side filtering needed since the server response is already the assignable set.
+- Help text on both selectors changed from "administrators are never auto-provisioned" (true, but leaves an unexplained admin option sitting in the list) to explicitly saying admin-equivalent roles aren't shown here.
+- Tests: two new `apiAdminAssignableRoles` cases (plain admin/root subtraction, and a site-defined admin-equivalent role) plus a `getEffectiveRoles` addition to the existing `ConfigModel` mock; the renderer suite's fixtures were updated to reflect that the endpoint's response never contains an admin role in the first place (previously the test fixtures included `admin`/`root` in the option list, which no longer matches the real contract).
+
+**Second follow-up (2026-07-31, same day) — visual consistency between the two role selectors.** Screenshot comparison showed the General tab's "JIT: Default Roles" (routed through the framework's schema-form `multiselect` → jpSelect pipeline) rendering as the framework's own dropdown-with-checkboxes widget, while the Providers tab's "JIT: Override Roles" (hand-rolled by the W-194 custom renderer, which sits outside that pipeline) rendered as a bare native `<select multiple>` - functionally equivalent, visually inconsistent shift-click listbox next to the rest of the config page's styled controls.
+
+Fixed by having the custom renderer call the same underlying widget the framework's pipeline calls for it: `jPulse.UI.input.jpSelect.init(select)` on the `.plg-f-jitRoles` element, right after the generic per-field listener wiring (jpSelect relocates the existing `<select>` node into a wrapper rather than cloning it, so the listener keeps firing on every selection change - no separate wiring needed). The one complication: `jpSelect.init()` appends its dropdown to `document.body` as a portal, not as a descendant of the field it enhances, which is fine for the framework's own forms (rendered once) but not for this renderer, which rebuilds its form's HTML on nearly every open/close/row-switch/preset-change. Left alone, each such rebuild would abandon the previous dropdown `<div>` in `<body>` rather than removing it (`formEl.innerHTML = ...` only touches descendants of `formEl`, and the portal isn't one). Addressed with an explicit `destroyJitRolesWidget()` that the renderer calls at the top of both `render()` and `renderForm()` - i.e. every code path that's about to discard the current form's DOM - using a closure variable that captures the specific dropdown element the last `jpSelect.init()` call created (via `select.closest('[data-jpselect-wrapper]')._jpSelectDropdown`), not a broad `document.body` query. Tests: a case confirming `jPulse.UI.input.jpSelect.init` was actually called against `.plg-f-jitRoles` (proving the real widget is in use, not just present-looking markup) and one that opens/switches/closes several forms in sequence and asserts zero leftover dropdown portals in `<body>` afterward.
+
+**Gap 4 — `promptForConsent` is specified but never implemented.** It appears in the `google` preset here and in the registry code, but is never passed through `buildAuthorizationUrl()`, so no `prompt` parameter is ever sent to the IdP. This is the direct cause of the behavior observed during live Google testing: after a first successful sign-in, subsequent logins complete silently with no visible Google screen, leaving the admin unsure whether the redirect happened at all — and no way to force account selection when testing with multiple accounts. If implemented, it belongs as a per-provider setting (`prompt=select_account` being the useful value for multi-account testing and shared machines) rather than a preset-only constant.
+
+**Gap 5 — the new Microsoft preset's `link-by-email`/`jit-create` strategies are unusable: Microsoft Entra ID never emits `email_verified`.** Found by code review, not live testing (recorded here instead of only in the preset-addition note below, since it's a functional defect against the `_resolveUser()` linking logic, not a preset-configuration detail). `_resolveIdentity()` computes `emailVerified: claims.email_verified === true`; `_resolveUser()` then hard-rejects with `EMAIL_NOT_VERIFIED_AT_PROVIDER` whenever that's falsy, before any DB lookup, for both `link-by-email` and `jit-create`. Confirmed against Microsoft's own documentation and a direct statement from Microsoft's Lead PM for their auth libraries (Microsoft Q&A, `learn.microsoft.com/en-us/entra/identity-platform/optional-claims-reference`): Entra ID's ID tokens do not include a standard `email_verified` claim at all — by design, since the underlying `email` claim is admin-settable per user and Microsoft explicitly recommends never using it for authorization decisions. Microsoft's actual verification signal is a separate, non-default optional claim (`xms_edov`, "Email Domain Owner Verification") that requires explicit Token configuration in the app registration (`email` + `xms_pdl` optional claims, then `xms_edov`) — this plugin requests none of that today.
+
+Practical effect: every Microsoft Entra ID login computes `identity.emailVerified === false`, unconditionally. `sub-only` is unaffected (never reads this field). `link-by-email` and `jit-create` are both broken for Microsoft specifically — every login rejects with `EMAIL_NOT_VERIFIED_AT_PROVIDER`, including one that would otherwise match an existing local account by email, or would otherwise be eligible for JIT provisioning. This fails closed (no incorrect linking/provisioning happens), so it isn't a security hole, but it does mean the preset's advertised SSO capability silently doesn't work end-to-end except in `sub-only` mode. Decided (2026-07-31): document as a known v1.0.0 limitation (see `docs/README.md` Security notes and the Microsoft Entra ID setup guide) recommending `sub-only` for Microsoft providers, rather than fix now — supporting `xms_edov` needs its own optional-claim request/consent flow through `oauthClient.js` and setup-doc steps, real engineering rather than a registry tweak. Tracked in Future Enhancements below for v1.1.0.
+
+**Gap 6 — FIXED (2026-07-31) — `plugin.json`'s `jpulseVersion` understated the plugin's real minimum framework version.** Found during a pre-release checklist pass against `docs/plugins/publishing-plugins.md`'s "plugin.json is complete" item, not by live testing. It still read `>=1.7.1` (set early, before either dependency below existed), while the plugin has since grown two hard runtime dependencies on later framework versions: `static hooks.onPluginConfigBeforeSave` (W-200, shipped v1.7.4 — the entire single-Save-button provider flow depends on the framework actually calling this hook; on an older framework it silently wouldn't exist) and the `emailVerified` field plus DB-level unique email/username indexes (W-198, shipped v1.7.6 — the security guarantee behind `link-by-email`/`jit-create`'s fail-closed checks). Installing on a framework between 1.7.1 and 1.7.5 would silently break provider config saves; installing before 1.7.6 would silently reopen the exact pre-linking account-takeover W-198 was built to close, since the DB-level uniqueness/verification guarantees this plugin's linking logic assumes wouldn't exist yet. Fixed by bumping to `>=1.7.6` (also the version this plugin has actually been developed and tested against throughout this session). Also fixed in the same pass: the General tab's help text still named "Azure Entra" instead of "Microsoft Entra ID", inconsistent with the dedicated preset added earlier the same day.
+
+**Gap 7 — FIXED (v1.0.1, 2026-07-31) — the linked-accounts page had no navigation entry anywhere, since v1.0.0.** Found post-release, not during the pre-release audit above: after `v1.0.0` was tagged, pushed, and published to `npm`, a review of the published tarball's file list showed `webapp/view/jpulse-navigation.js` was missing — a standard file both sibling plugins (`auth-mfa`, `hello-world`) ship to append their own page(s) to the framework's user-menu navigation (`window.jPulseNavigation.site.jPulsePlugins.pages`). It had been listed as a deliverable in `docs/dev/work-items.md` ("link to `/jpulse-plugins/auth-oauth.shtml` from user menu") but was never actually created. A repo-wide search of `webapp/` confirmed nothing else linked to the page either — the entire linked-accounts management page (connect/disconnect SSO providers) was genuinely unreachable from the UI for the whole `v1.0.0` release; a user would have had to know the URL by heart. Fixed by adding `webapp/view/jpulse-navigation.js`, matching the sibling plugins' exact pattern, adding a "Connected Accounts" (🔑) entry. Shipped as `v1.0.1` rather than amending the already-published `v1.0.0` tag/npm package, since `npm` doesn't support republishing over an existing version.
+
+**Minor / no action needed:** `requiresClientSecret` and `docs` are declared on every preset and read by nothing — `requiresClientSecret` is precisely the flag Gap 1's advisory validation would consume, and `docs` would be a natural "setup guide" link in the provider edit form. `linkingStrategy` and `jitStatus` are not format-validated by `_validateProviderInput()`; an unrecognized value fails closed (falls through to `USER_NOT_PROVISIONED`) or is rejected by `UserModel`'s status enum, so this is a silence problem, not a safety one. The Security tab contains only a help block (break-glass guidance) and no settings — intentional, but worth knowing before someone goes looking for a setting there.
+
+**Resolved by code review — the framework's `multiselect` control does persist an empty selection**, which §8's spec relies on for `profileRequiredFields: []` ("skip the completion step entirely"). Traced end to end instead of test-saving over the live dev config:
+
+1. `getAllValues()` reads a multi-select as `Array.from(el.selectedOptions).map(o => o.value)`. With nothing selected, `selectedOptions` is empty, so the value is `[]` — not `undefined`, not an omitted key, which is where a control of this kind usually loses the distinction between "empty" and "untouched".
+2. `getFormData()` coerces only `number` and `boolean` and re-defaults only those; an array value passes through untouched. The `default` in the field def is applied in `pluginSchemaToBlocks()` at *render* time (when the key is absent from the stored config), never at read time, so an explicit `[]` is not silently replaced by `["firstName","lastName"]` on the way out.
+3. `PluginModel.validateConfig()` has no `multiselect` case at all — `[]` is neither rejected as "required" nor rewritten.
+4. Plugin side, `pluginDoc?.config?.profileRequiredFields ?? [...]` uses `??`, so a stored `[]` is preserved rather than treated as falsy and re-defaulted.
+
+The one caveat worth recording is the mirror image of point 3: because there is no `multiselect` validation case, a hand-crafted request can put arbitrary strings into any multiselect-backed config value. For `jitDefaultRoles` that is contained by `sanitizeJitRoles()` — which is the defense-in-depth §8 describes, and is exactly why that function's correctness (see Gap 3) matters more than the UI in front of it.
+
+---
+
+## Provider Preset Addition (2026-07-31, same day) — Microsoft Entra ID
+
+Considered adding presets beyond Google: Microsoft Entra ID, LinkedIn, Apple, GitHub. Apple and GitHub stay deferred to v1.1.0 as already scoped above (Apple's JWT-signed client-secret model and `form_post` callback, GitHub's non-OIDC manual-endpoints + userinfo mapping are each real feature work, not registry entries). LinkedIn was investigated and also deferred, for a reason specific to it (recorded here so it isn't re-investigated from scratch later): LinkedIn's `.well-known/openid-configuration` document is real and at a fixed global URL, but is spec-non-compliant — it reports `"issuer": "https://www.linkedin.com"` while being served from `https://www.linkedin.com/oauth/.well-known/openid-configuration`, i.e. the issuer doesn't match the path it's discovered from (a [known, still-open LinkedIn bug](https://stackoverflow.com/questions/76859957/oidc-discovery-url-does-not-match-issuer)). Checked directly against the installed `openid-client@6.8.4` (`node_modules/openid-client/build/index.js`): it has built-in per-host workarounds for exactly this class of problem (`handleEntraId()` for `login.microsoftonline.com`, `handleB2Clogin()` for `*.b2clogin.com`), but none for LinkedIn — so a naive LinkedIn preset using this plugin's existing `client.discovery()` call (`utils/oauthClient.js`) would fail every login with `discovered metadata issuer does not match the expected issuer`. Making it work would need a LinkedIn-specific override inside `oauthClient.js` mirroring `openid-client`'s own internal pattern — real, if small, engineering, not a registry-only addition like Microsoft below. Left for a future session if LinkedIn is actually needed.
+
+**Microsoft Entra ID was added as a full preset** (`microsoft` key, `webapp/utils/providerRegistry.js` and its client-side mirror in `webapp/view/jpulse-common.js`'s `_PRESETS`) — confirmed to need zero new engineering beyond the registry entry itself:
+
+- Entra ID's discovery document has the same kind of issuer-template quirk as the LinkedIn case above (the resolved tenant ID in the returned `issuer` doesn't literally match a `common`/`organizations`/domain-name request URL), but `openid-client`'s `handleEntraId()` already special-cases exactly this for any issuer whose origin is `https://login.microsoftonline.com` — confirmed by reading that function in the installed library, not assumed. This plugin's `oauthClient.js` calls `client.discovery()` in the way that triggers it, so it "just works".
+- Unlike Google, there's no single global discovery URL to hardcode — it's tenant-specific (`https://login.microsoftonline.com/<tenant-id>/v2.0/.well-known/openid-configuration`, `<tenant-id>` being a GUID, verified domain, or `common`/`organizations`/`consumers`). The admin supplies it, same as the generic `oidc` preset — the only difference from `oidc` is branding (Microsoft's own icon/color) and a tenant-shaped placeholder string in the Discovery URL field (`_PRESETS.microsoft.discoveryUrlPlaceholder`, client-only — it has no server-side runtime meaning) instead of the generic `oidc` preset's placeholder, so the admin sees the right shape to paste in without needing this doc.
+- `type: 'oidc'`, `scopes: ['openid', 'email', 'profile']`, `requiresClientSecret: true` — identical defaults to the generic `oidc` preset. `docs` points at Microsoft's own v2.0 OIDC protocol reference.
+- Icon: the classic Microsoft four-square mark (user-supplied SVG asset), following the same "no baked-in `width`/`height`/`x`/`y`, sized only via CSS" convention as the Google preset's icon, for the same reason (one shape, no size to fight with across the login button/admin table/Connected Accounts). `buttonColor: '#03a9f4'` reuses one of the mark's own four colors — the same design choice Google's preset already makes (`#4285F4` is one of the "G"'s own colors).
+- `docs/README.md` gained a "Microsoft Entra ID" setup guide (renamed from the "Azure Entra ID" section that previously pointed admins at the generic **OIDC Provider** preset) pointing at the new dedicated preset instead; `README.md` and `plugin.json`'s description/summary were updated to list Microsoft Entra ID alongside Google as a named preset rather than folding it into "generic OIDC (Okta, Auth0, Azure Entra, Keycloak, ADFS)".
+- Tests: `provider-registry.test.js` gained preset-shape and `resolveProviderConfig()` merge cases (mirroring the existing Google ones), plus an updated "registry exposes exactly N presets" count; `provider-renderer.test.js` gained a case confirming the Discovery URL field shows the tenant-specific placeholder when the `microsoft` preset is selected.
+- Deliberately not carried over from Google: `promptForConsent` — per Gap 4 above it's dead code today (nothing reads it), so adding it to a second preset would just double the number of places a future implementation has to update for no present benefit.
+- **Known limitation, found the same day by code review (see Gap 5 above):** `link-by-email`/`jit-create` do not work for this preset — Entra ID's ID tokens never carry `email_verified`, so `_resolveUser()` rejects every Microsoft login with `EMAIL_NOT_VERIFIED_AT_PROVIDER` under those two strategies. Documented as a v1.0.0 limitation (`docs/README.md`); `sub-only` is the only linking strategy that works for Microsoft until v1.1.0 adds `xms_edov` support.
+
+**Follow-up (2026-07-31, same day) — testing without an organizational Microsoft account.** First pass claimed a personal Microsoft account alone (no Azure subscription, no directory) is enough to register an app, based on older documentation describing pre-2024 behavior. **That claim was wrong and was corrected the same day after the user hit it live**: Microsoft deprecated "register an app outside any directory" for personal accounts in June 2024 (confirmed against `learn.microsoft.com/en-us/entra/identity-platform/reference-breaking-changes`, not assumed) — a fresh personal account with no directory now hits a hard stop in the Entra admin center's App registrations page ("The ability to create applications outside of a directory has been deprecated"), exactly what the user's screenshot showed.
+
+The corrected, verified free path (first version of this note): join the [Microsoft 365 Developer Program](https://developer.microsoft.com/microsoft-365/dev-program) and provision an **Instant sandbox**, which creates a real `<name>.onmicrosoft.com` directory with its own admin account in under a minute. **This too turned out to be wrong and was corrected again the same day, immediately after the user hit it live a second time**: the user's Developer Program dashboard showed no "Instant sandbox" option at all, only a "Register an application with the Microsoft identity platform" screen. Re-researched against `learn.microsoft.com/en-us/office/developer-program/microsoft-365-developer-program` and multiple Microsoft Q&A threads describing the identical symptom (not assumed): Microsoft now gates the free E5 developer sandbox behind one of three qualifications — an active Visual Studio Professional/Enterprise subscription (monthly VS plans don't count), membership in the ISV Success Program or an eligible Microsoft AI Cloud Partner Program tier, or a Premier/Unified Support contract. A plain new Microsoft account with none of those no longer qualifies, which is exactly the dead end the user hit; this is apparently a more recent restriction than what the original (pre-2024-breaking-change) research surfaced, and evidently changed again after the first correction above was written.
+
+The verified working alternative, requiring no special program membership: an **Azure free account** ([azure.microsoft.com/free](https://azure.microsoft.com/free)) provisions a Microsoft Entra ID Free tenant automatically as part of signup — confirmed against `learn.microsoft.com/en-us/azure/cost-management-billing/manage/microsoft-entra-id-free` ("When you create a free account, there's no other action required... Microsoft Entra ID Free is automatically added to your billing account"). It requires a phone number and a credit or debit card for identity-verification purposes only (a temporary ~$1 authorization hold, automatically reversed; Microsoft's own FAQ is explicit that the free tier itself is never charged) — a real friction point compared to the Developer Program's phone-only verification, but the Developer Program path is no longer available to fall back on for an unqualified account, so this is the actually-reliable option today. From there, app registration proceeds exactly like the organizational path (`Single tenant only` is fine, since it's now a real tenant the user owns). `docs/README.md`'s Microsoft Entra ID guide was rewritten a second time to lead with the Azure free account path, with the Developer Program mentioned only as a valid alternative for accounts that already qualify. The redirect-URI chicken-and-egg fix (leave it blank at registration, add it after the Client ID/Secret are in hand) from the first pass still stands and wasn't affected by either correction.

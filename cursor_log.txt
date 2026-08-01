@@ -19796,3 +19796,321 @@ Flagged one deliberate judgment call: the new Cursor rule from earlier this sess
 
 
 ============================================================
+
+2026-07-31 00:56
+
+opus: review the renderer code for accuracy and completeness
+
+Reviewed plugins/auth-oauth/webapp/view/jpulse-common.js (the W-194 provider-config custom renderer, just rewritten for the W-200 single-save migration). Found and fixed six defects, three of them functional breakage:
+
+1. Preset dropdown was unchangeable. syncFormToEntry() never read .plg-f-preset, so the change handler's renderForm() re-rendered from the stale entry.preset - the select snapped back to Google and preset-specific fields (Discovery URL, manual endpoints) never appeared. Confirmed by patching the fix back out.
+2. Attribute-context interpolation used jPulse.string.escapeHtml(), which serializes a text node and per the HTML spec leaves `"` intact (verified empirically in jsdom). An inline SVG icon read back truncated at `<svg viewBox="`, and a crafted label could inject an event-handler attribute into the admin page. Added a local attrEscape() for every value=/placeholder=/title= interpolation; escapeHtml() now only used for element content.
+3. Stale endpoint config survived a preset switch: an Okta discoveryUrl stayed on the entry after switching to the Google preset, silently overriding Google's own discovery URL. Endpoint reads/deletes are now gated on the incoming preset, not just DOM presence.
+4. Blank label/icon were stored as "" and, because resolveProviderConfig()/_buildProviderButtons() spread the stored entry over the preset, overrode the preset defaults with nothing (empty login button). Blank now stores no key at all, the form shows the preset value as placeholder, the table shows it muted, and _buildProviderButtons() applies the same fallback server-side so pre-existing data is fixed too. Same for the button colour, which previously lost Google's brand blue on any edit.
+5. Smaller: order 0 was coerced to 100 (both renderer and _buildProviderButtons); onDelete() spliced by a pre-await index instead of re-resolving by identity; ctx.value was shallow-copied so in-place edits aliased the config page's own object; the "updates the table immediately" hint was untrue (added a tbody-only repaint that preserves form focus); the form's Enabled checkbox disagreed with the table and the server on a missing enabled flag; a leftover blank-id draft blocked the whole page save with an anonymous "Provider '?'" error (now named by row position, plus an inline "Provider ID is required" hint and a red "(ID required)" table marker).
+
+Added the plugin's first browser-side test suite, webapp/tests/unit/view/provider-renderer.test.js (25 tests, hand-constructed JSDOM since jest-environment-jsdom isn't installed - only the jsdom package is), plus 2 controller tests for the preset fallback and the row-position error. Full plugin suite: 188 passing, 7 suites. Updated the W-197 design doc (persistence model section + deliverables) and the plugin README's security notes. No framework files touched; no @version/@release headers touched.
+
+
+============================================================
+
+2026-07-31 01:26
+
+review app start log: [v1.7.6 startup log] - why do we still have a [done] button? - test google SSO login in incognito mode: where is the button color supposed to show up? the idp logo is the default - I customized the google idp with a svg logo: where does it show up? it would be good to add to the idp table, maybe in Label column, and rename header to "Icon & Label"?
+
+Start log is clean - no warnings or errors, all 12 auth-oauth routes and the onPluginConfigBeforeSave hook registered, secrets masked in the config dump.
+
+[Done] button: renamed to "Close Editor". It only collapses the per-provider panel (correct - saving is the page's own Save Changes button, as verified); "Done" implied a commit action it never had.
+
+Where icon/buttonColor show up: buttonColor is the *border* colour of the provider's button on /auth/login.shtml (login.shtml line 283, `style="border-color: {{this.buttonColor}}"`) - deliberately border-only so the button keeps the theme background and stays readable in both modes. Easy to miss, so the field now has help text saying exactly that. The icon renders next to the label on the login button and on the Connected Accounts page. The reason both showed defaults: blank label/icon were being stored/served as-is rather than inheriting the preset - fixed earlier today for the login page, and now for apiUserProviders too via a single OauthAuthController._presentation() helper used by every surface (it previously had its own ad-hoc '🔑' / providerId fallbacks, so the two pages would have disagreed).
+
+Verified the pasted Google SVG survives sanitizeIcon() intact (only x="0px"/y="0px" stripped; all 4 <path> elements and xmlns/viewBox/width/height kept). Found and fixed: the Connected Accounts page had no svg sizing rule, so that logo's own width="100" height="100" would have rendered at 100x100 and broken the row layout (login.shtml already had a 20px rule). Added a 24px rule there.
+
+Added the icon to the admin table per the suggestion, with the header renamed to "Icon & Label". Markup icons preview through an <img> data URL rather than as live DOM - the renderer only holds the unsaved value, which the server hasn't sanitized yet, and an <img>-loaded SVG cannot run script or fetch anything; xmlns is injected when the paste omits it, since SVG behind an <img> requires it. Emoji render as escaped text. Verified end-to-end in jsdom with the real Google SVG.
+
+196 tests passing (7 suites). Updated docs/README.md with a "Branding a provider button" table explaining where each of Label/Icon/Button Color appears, and the W-197 design doc. No framework files touched; no @version/@release headers touched.
+
+
+============================================================
+
+2026-07-31 01:44
+
+svg logo in the idp table is tiny / svg logo in login button has proper size, but is too high (regular unicode icon is ok) / for google preset, it would be good to add the google svg logo
+
+Root cause for "too high": an inline SVG is a *replaced element*, and the default `vertical-align: baseline` on it leaves room below for a text descender that a graphic doesn't have - visually pushing it up relative to an emoji glyph in the same spot. The button's `align-items: center` on the outer flex container doesn't fix this because the gap is inside the icon's own inline box, one level down from what flex is centering. Fixed with `vertical-align: middle` on `.local-auth-method svg` in the login page.
+
+Table icon was tiny at 18px with a hand-tuned `vertical-align: -4px` offset (login.shtml's own SVG rule already correctly used 20px+the same misalignment bug the button had). Replaced the offset hack with a `.plg-oauth-label-cell` flex wrapper around icon+label (robust regardless of icon type/size) and bumped the icon to 22px.
+
+Added a proper default icon for the Google preset: the well-known 4-color "G" mark (same family of icon the user pasted earlier), defined once in `utils/providerRegistry.js` (`GOOGLE_LOGO_SVG`, the server-side source of truth actually used for login buttons) and duplicated in the renderer (`JPULSE_AUTH_OAUTH_GOOGLE_LOGO_SVG` - plain browser script, no import mechanism to share the constant); verified byte-for-byte identical between the two copies. Neither declares width/height/x/y - sized purely via CSS everywhere it renders. Since it's framework-authored and never admin-editable, it's never run through sanitizeIcon() (that only guards admin-submitted values).
+
+Side effect handled: a raw SVG string is unreadable as a text input's `placeholder` - the Icon field now shows "(Google logo)" instead of dumping the markup, while an emoji preset's icon (still used for OIDC 🔐/OAuth2 🔑) shows as-is.
+
+Updated tests accordingly (were pinned to the old '🇬' fallback for the google preset - a few of those were provider-supplied test fixtures unrelated to the preset default and left untouched; the ones that actually asserted the inherited default now import getPreset('google') and compare against it rather than hardcoding the icon twice). Full suite: 198 passing, 7 suites, all clean formatting. Updated docs/README.md and the W-197 design doc. No framework files touched; no @version/@release headers touched.
+
+
+============================================================
+2026-07-31 13:15
+
+show incomplete in login button row, and admin can remove with enabled flag
+- it would be good to have some indication on the button of incomplete setup
+
+nickname:
+- I am not clear. is this a framework issue, or something that can be fixed in the plugin?
+
+user roles:
+- an admin can define additional roles besides the default user, admin, root roles, i.e. it makes sense to keep the selector
+
+framework's `multiselect` control
+- please review code
+
+Answered all four; documented in docs/dev/design/W-197-auth-oauth-plugin.md. No code changed.
+
+1. Incomplete providers (§8 + Gap 1): recorded the decision - button stays visible, marked incomplete,
+   `enabled` remains the only removal switch. Recorded the implementation constraint: login.shtml is
+   framework-owned and renders only icon/label/buttonColor from onAuthGetLoginProviders, so the marker
+   must ride on those fields unless the W-195 hook contract is extended with a badge field.
+
+2. Nickname (Gap 2): purely plugin-side, no framework involvement. profileExtractor.js, oauthAuth.js's
+   onAuthGetSteps/onAuthValidateStep, oauth-profile-complete.shtml, and the plugin.json option list are
+   all plugin-owned; framework only calls the hooks and renders returned step data.
+
+3. User roles (Gap 3, rewritten): my earlier "decorative, removable" finding was wrong about the cause.
+   W-147 makes roles site-configurable (data.general.roles, ConfigModel.getEffectiveRoles(),
+   GET /api/1/user/enums?fields=roles - same source admin/users.shtml uses). Keep the selector, source
+   options dynamically. Verified feasible with no framework change: _normalizePluginFieldDef does
+   Object.assign so loadOptions passes through; multiselect becomes jpSelect+multiple on a real
+   <select multiple> so the tagName==='SELECT' guard passes; validateConfig has no multiselect case so
+   dynamic values are not rejected. New security finding: sanitizeJitRoles() strips literal 'admin'/'root'
+   instead of ConfigModel.getEffectiveAdminRoles(), so a site-defined admin-equivalent role could be
+   JIT-assigned - not exploitable on current deployments (both use defaults) but the §8 invariant is only
+   literally true for default config.
+
+4. multiselect review: empty selection does persist as []. getAllValues uses
+   Array.from(el.selectedOptions), getFormData coerces only number/boolean, defaults are applied at render
+   time in pluginSchemaToBlocks (not read time), validateConfig has no multiselect case, and the plugin's
+   ?? preserves []. Caveat recorded: no multiselect validation means arbitrary strings can be posted,
+   which is why sanitizeJitRoles' correctness matters more than the UI.
+
+
+============================================================
+2026-07-31 13:35
+
+I added two more user roles for testing
+
+implement as documented
+
+Implemented the Gap 3 fix from docs/dev/design/W-197-auth-oauth-plugin.md: JIT role controls now
+source options from this site's actual configured roles (W-147) instead of a hardcoded 'user'-only
+list. Asked one clarifying question first (per-provider checkbox: upgrade to real selector vs
+remove vs leave as-is) - user chose "upgrade to real selector".
+
+Server (plugins/auth-oauth/webapp/controller/oauthAuth.js):
+- Imported ConfigModel.
+- sanitizeJitRoles() now filters against ConfigModel.getEffectiveAdminRoles() instead of the
+  literal strings 'admin'/'root', so a site-defined admin-equivalent role (data.general.adminRoles)
+  can no longer slip through and be auto-assigned to a JIT-provisioned user.
+
+Config schema (plugins/auth-oauth/plugin.json):
+- jitDefaultRoles field gained loadOptions: "authOauth.loadRoleOptions" (static options kept only
+  as pre-load/on-error fallback).
+
+Client (plugins/auth-oauth/webapp/view/jpulse-common.js):
+- Added _fetchSiteRoles() on the authOauth namespace - calls the same GET
+  /api/1/user/enums?fields=roles endpoint admin/users.shtml already uses, memoized per script load,
+  falls back to a plain 'user' option on any failure.
+- Registered it once at file scope via jPulse.schemaForm.register('authOauth.loadRoleOptions', ...)
+  for the global "JIT: Default Roles" field.
+- The W-194 custom renderer (hand-rolled HTML, not on the schema-form pipeline loadOptions targets)
+  now calls the same _fetchSiteRoles() directly per field mount and re-renders the open form once
+  roles arrive. Replaced the old "JIT: Override Roles -> Users only" checkbox (previously a no-op:
+  it could only ever write ['user'], identical to the only value the global default could hold)
+  with a real <select multiple> - nothing selected means inherit the global default (jitRoles:
+  null), same semantics as before. Removed the now-unused .plg-oauth-inline-checkbox CSS rule.
+
+Tests: added a ConfigModel mock + a test asserting a site-defined admin-equivalent role is stripped
+(not just literal admin/root) to oauth-auth.test.js; added a "JIT role override" suite to
+provider-renderer.test.js (loads real site roles, falls back to 'user' on fetch failure, selecting
+nothing -> null, selecting specific roles -> exactly those) plus jPulse.api.get/schemaForm.register
+stubs the renderer now needs at mount. Full auth-oauth suite: 7 suites / 205 tests passing.
+
+Docs updated to drop the stale "admin/root" wording: plugins/auth-oauth/README.md,
+plugins/auth-oauth/docs/README.md, and the W-197 design doc's Gap 3 section marked FIXED with an
+implementation writeup. No framework files touched; no @version/@release headers touched.
+
+
+============================================================
+2026-07-31 13:38
+
+instead of showing admin and root, isn't it better to remove those, and change the help text
+indicating that admin and root roles are not shown/excluded?
+
+Agreed - screenshot showed "JIT: Default Roles" listing admin/geek/gofer/root/user, but
+admin/root would be silently stripped by sanitizeJitRoles() anyway at JIT-creation time. Same
+"showable but rejected" shape as Gap 1 (incomplete providers) - fixed by not offering the choice
+in the first place, rather than offering then ignoring it.
+
+Since the plugin has no clean way to filter admin-equivalent roles out of the generic
+/api/1/user/enums?fields=roles response client-side (would duplicate ConfigModel.
+getEffectiveAdminRoles() in browser JS), gave the plugin its own endpoint instead:
+
+- New GET /api/1/auth-oauth/admin/assignable-roles (auth: 'admin') in oauthAuth.js - returns
+  ConfigModel.getEffectiveRoles() minus ConfigModel.getEffectiveAdminRoles(), computed the same
+  way sanitizeJitRoles() computes the actual enforcement boundary.
+- _fetchSiteRoles() (jpulse-common.js) now calls this endpoint instead of the generic user-enums
+  one - no client-side filtering needed, server response is already the assignable set.
+- Help text on both "JIT: Default Roles" and "JIT: Override Roles" changed from "administrators
+  are never auto-provisioned" (true, but leaves an unexplained admin option sitting in the list)
+  to explicitly saying admin-equivalent roles aren't shown here.
+
+Tests: two new apiAdminAssignableRoles cases (plain admin/root subtraction, and a site-defined
+admin-equivalent role) + getEffectiveRoles added to the ConfigModel mock; renderer test fixtures
+updated since the endpoint's response never contains an admin role in the first place. Full
+auth-oauth suite: 7 suites / 207 tests passing, no lint errors.
+
+Docs updated: README.md's API Endpoints table (new row), design doc's Gap 3 section (follow-up
+note). No framework files touched; no @version/@release headers touched.
+
+
+============================================================
+2026-07-31 15:48
+
+- the general tab shows proper checkbox list
+- the providers tab shows a generic multiselect for shift-select
+  - possible to use the proper widget?
+
+Yes - the per-provider "JIT: Override Roles" select (W-194 custom renderer, hand-rolled HTML
+outside the framework's schema-form pipeline) now calls the same jPulse.UI.input.jpSelect.init()
+widget the General tab's "JIT: Default Roles" field gets automatically via that pipeline, so both
+now render as the same dropdown-with-checkboxes control instead of one being a bare native
+shift-click multiselect.
+
+One complication handled: jpSelect.init() appends its dropdown to document.body as a portal, not
+as a descendant of the field - fine for the framework's own forms (rendered once), but this
+renderer rebuilds its form HTML on nearly every open/close/row-switch/preset-change, and
+formEl.innerHTML replacement doesn't touch document.body. Added destroyJitRolesWidget(), called at
+the top of both render() and renderForm() (every path that's about to discard the current form's
+DOM), which removes the specific dropdown element captured from the last jpSelect.init() call -
+prevents leaking one abandoned dropdown <div> into <body> per form open over a session.
+
+Tests added: confirms jPulse.UI.input.jpSelect.init was actually called against .plg-f-jitRoles
+(not just present-looking markup), and one that opens/switches/closes several forms in sequence
+and asserts zero leftover dropdown portals in <body>. Added a jpSelect stub to the test's window.
+jPulse mock (wraps the select in [data-jpselect-wrapper], appends a dropdown stub to body) so the
+cleanup logic has something real to tear down in tests. Full auth-oauth suite: 7 suites / 209
+tests passing, no lint errors.
+
+Docs: added a "Second follow-up" note to the W-197 design doc's Gap 3 section. No framework files
+touched (jPulse.UI.input.jpSelect is an existing framework API, called from plugin code); no
+@version/@release headers touched.
+
+
+============================================================
+2026-07-31 22:13
+
+release prep:
+- run tests, and fix issues
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-197, v1.0.0, 2026-07-31
+- update features & deliverables in W-197 work-items to document work done if needed (don't change
+  status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights),
+  docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with
+  bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Added branded Microsoft Entra ID OIDC preset alongside Google (providerRegistry.js +
+jpulse-common.js), with an inline code comment and a docs/README.md callout flagging a known
+limitation: Entra ID never emits email_verified, so link-by-email/jit-create fail closed for that
+preset until a future xms_edov-based fix - recommended sub-only in the meantime. Corrected
+docs/README.md's/design doc's Microsoft tenant-provisioning guidance twice after live user
+feedback: the M365 Developer Program's "Instant sandbox" is no longer available to plain accounts
+(restricted to Visual Studio/Partner-program members since it was last documented) - replaced with
+the reliable Azure free account path, which provisions a real Entra ID tenant automatically.
+
+Reviewed tt-git-diff.txt (the working tree's outstanding, not-yet-committed diff) against the full
+session's actual changes for accuracy - confirmed it reflects only this session's final documentation
+pass (jpulseVersion bump, Nickname removal, Microsoft wording, icon/CSS fixes), with the larger
+Microsoft-preset/renderer/JIT-roles work from earlier in the session already committed separately.
+Fixed two remaining accuracy gaps found during review: plugin.json's jpulseVersion was stale
+(>=1.7.1, bumped to >=1.7.6 to reflect the plugin's real hard dependencies on W-200's
+onPluginConfigBeforeSave hook and W-198's emailVerified/unique-index primitives - documented as
+design doc Gap 6); and plugin.json's profileRequiredFields listed "Nickname" as a selectable
+required field even though the profile-completion form never actually enforced it, producing an
+unresolvable validation error if chosen - dropped the option (design doc Gap 2, now marked fixed).
+
+Updated docs/dev/work-items.md's W-197 entry (features/deliverables lists only, status left
+IN_PROGRESS, no other changes) to document everything built beyond the original spec: the Microsoft
+preset, server-side allowedDomains enforcement, dynamic admin-role exclusion from JIT role
+selectors (backed by a new GET /api/1/auth-oauth/admin/assignable-roles endpoint and a jpSelect
+widget for both role selectors), the onPluginConfigBeforeSave-based save-flow consolidation and
+renderer rewrite, SVG icon branding, the UserModel status-enum/emailVerified integration, and the
+jpulseVersion/Nickname fixes. Rewrote plugins/auth-oauth/README.md's "Plugin Releases" v1.0.0 entry
+and fixed its Requirements line (>=1.7.1 -> >=1.7.6) to match. Verified plugins/auth-oauth/docs/
+README.md is already complete and accurate (Microsoft section, security notes) from earlier this
+session - no changes needed there. Decided against adding a docs/CHANGELOG.md entry: that file is
+scoped exclusively to framework version releases (each entry keyed to a jPulse version bump); a
+precedent check confirmed auth-mfa's own plugin release never got an entry there either, so W-197's
+plugin release (independent versioning, no framework version bump) doesn't fit that file's pattern.
+Rewrote plugins/auth-oauth/commit-message.txt (still gitignored, not committed) to describe the
+complete v1.0.0 feature set instead of the stale initial-commit-only draft.
+
+
+============================================================
+2026-07-31 22:13
+
+sorry, plugin readmes:
+- plugins/auth-oauth/README.md
+- plugins/auth-oauth/docs/README.md
+- check other user facing docs as well
+
+Clarified that "README.md"/"docs/README.md" in the prior release-prep request meant the plugin's
+own files (plugins/auth-oauth/README.md, plugins/auth-oauth/docs/README.md), not the framework's
+top-level README.md/docs/README.md - which were left untouched. Confirmed (via auth-mfa precedent)
+that only README.md carries a "## Plugin Releases" section; docs/README.md is a pure how-to/FAQ
+guide with no release-notes section in this framework's convention, so no new section was added
+there, just a final read-through confirming it's already accurate and complete. Checked other
+plugin-facing docs: docs/installed-plugins/auth-oauth is a symlink to plugins/auth-oauth/docs (so
+already in sync automatically) and docs/installed-plugins/README.md's plugin list is a %DYNAMIC%
+macro (no static content to edit) - no further changes needed.
+
+
+============================================================
+2026-07-31 22:37
+
+let's do a proper release:
+- assume W-197, v1.0.1, 2026-07-31
+- add new release to plugins/auth-oauth/README.md
+- update plugins/auth-oauth/commit-message.txt
+- update any other docs if needed
+- I'll run the bump script
+- and new commit & build
+
+Found while sanity-checking the just-published v1.0.0 npm tarball's file list: it was missing
+webapp/view/jpulse-navigation.js - a file every other jPulse plugin (auth-mfa, hello-world) ships
+to append its own page(s) to the framework's user-menu navigation. A repo-wide search confirmed
+nothing else linked to /jpulse-plugins/auth-oauth.shtml either, so the entire linked-accounts
+(connect/disconnect SSO providers) page had been unreachable from the UI for the whole v1.0.0
+release - it was listed as a deliverable in work-items.md but never actually created. Fixed by
+adding webapp/view/jpulse-navigation.js, matching the sibling plugins' exact pattern (a "Connected
+Accounts" 🔑 entry in the jPulse Plugins user-menu section); confirmed bump-version.conf's
+webapp/view/*.js glob already covers the new file.
+
+Prepped a proper v1.0.1 bugfix release rather than amending the already-tagged/pushed/published
+v1.0.0 (npm doesn't support republishing over an existing version): added a "Version 1.0.1 -
+Bugfix" entry to plugins/auth-oauth/README.md's Plugin Releases section; rewrote
+plugins/auth-oauth/commit-message.txt for v1.0.1 (still gitignored, not committed); added Gap 7 to
+the W-197 design doc (found post-publish, fixed same day) and updated its Last Updated line; added
+a v1.0.1 bullet to work-items.md's W-197 deliverables list (status left IN_PROGRESS, no other
+changes to that file). Did not touch any @version/@release headers or plugin.json's version field -
+left for the user's own bump-version run.
+
+v1.0.1 released: bump-version run (headers/plugin.json correctly updated, including the new
+jpulse-navigation.js), committed, tagged, pushed to origin/main, and published to npm
+(@jpulse-net/plugin-auth-oauth@1.0.1, tarball now 24 files, confirmed jpulse-navigation.js
+present). Live-verified via screenshot on the dev server: "🔑 Connected Accounts" now shows up
+correctly under jPulse Plugins in the user menu, alongside auth-mfa's "MFA Settings" - the fix
+works end to end, not just by code-pattern inspection.
+
+
+============================================================

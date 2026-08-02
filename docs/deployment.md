@@ -1,4 +1,4 @@
-# jPulse Docs / Production Deployment Guide v1.7.7
+# jPulse Docs / Production Deployment Guide v1.7.8
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -271,6 +271,24 @@ ls -la site/webapp/static/
 # - Verify file ownership (should be readable by nginx)
 # - Clear browser cache
 # - If getting 429 Too Many Requests on /assets/, ensure the assets rate limit zone is configured
+```
+
+#### 6. Rate Limiting / 429 Too Many Requests
+
+**Symptoms**: Legitimate users get `429` on login, signup, or other API calls
+```bash
+# Check which zone is involved - look for the request path and limit_req_status in nginx logs
+sudo tail -f /var/log/nginx/access.log | grep ' 429 '
+
+# Common causes and fixes:
+# - Shared/NAT IP (office, campus) exceeding a zone's burst - raise burst/rate for that zone in
+#   nginx.prod.conf (login: 5r/m burst 5; api: 10r/s burst 20; general: 30r/s burst 50; assets:
+#   150r/s burst 200), or key the zone on something other than $binary_remote_addr for that site
+# - Login-specific 429 (RATE_LIMITED / retryAfter in the JSON body) can come from either layer:
+#   nginx's 'login' zone, or the app-level appConfig.controller.auth.loginRateLimit (Redis-backed,
+#   fails open if Redis is down) - see docs/security-and-auth.md#rate-limiting for both
+# - If nginx and the app-level limit disagree (e.g. nginx allows more than the app does), the
+#   stricter one always wins since both are enforced independently
 ```
 
 ### Validation and Recovery

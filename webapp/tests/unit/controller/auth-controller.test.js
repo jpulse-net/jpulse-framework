@@ -3,7 +3,7 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         1.7.7
+ * @version         1.7.8
  * @release         2026-08-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -988,6 +988,86 @@ describe('AuthController', () => {
             expect(mockRes.json).toHaveBeenCalledWith(
                 expect.objectContaining({ success: true })
             );
+        });
+    });
+
+    describe('W-204: login rate limiting', () => {
+        const activeUser = {
+            _id: 'user123',
+            username: 'testuser',
+            email: 'testuser@example.com',
+            profile: { firstName: 'Test', lastName: 'User' },
+            roles: ['user'],
+            status: 'active',
+            loginCount: 0
+        };
+
+        beforeEach(() => {
+            mockReq.body = { identifier: 'testuser', password: 'validpassword' };
+            mockReq.ip = '127.0.0.1';
+            global.i18n.translate = jest.fn((req, key) => {
+                if (key === 'controller.auth.rateLimited') return 'Too many login attempts.';
+                return key;
+            });
+            // By the time this describe runs, the 'W-109: Multi-step login helpers' block above
+            // has permanently replaced global.HookManager with a bare { execute } stub with no
+            // register()/clear() - reset it to a self-contained fresh stub for these tests.
+            global.HookManager = { execute: jest.fn().mockImplementation((name, ctx) => Promise.resolve(ctx)) };
+            global.RedisManager = {
+                cacheCheckRateLimit: jest.fn().mockResolvedValue({ allowed: true, count: 1, retryAfter: 0 })
+            };
+        });
+
+        afterEach(() => {
+            delete global.RedisManager;
+            delete global.appConfig.controller.auth.loginRateLimit;
+        });
+
+        test('allows login and checks the rate limit by client IP when under the limit', async () => {
+            UserModel.authenticate.mockResolvedValue(activeUser);
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(global.RedisManager.cacheCheckRateLimit).toHaveBeenCalledWith(
+                'controller:auth:rateLimit:login', '127.0.0.1',
+                expect.objectContaining({ limit: expect.any(Number), windowSeconds: expect.any(Number) })
+            );
+            expect(mockReq.session.user).toMatchObject({ username: 'testuser', isAuthenticated: true });
+        });
+
+        test('blocks login with 429, fires onAuthFailure, and never calls UserModel.authenticate() when rate limit exceeded', async () => {
+            global.RedisManager.cacheCheckRateLimit.mockResolvedValue({ allowed: false, count: 21, retryAfter: 45000 });
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(UserModel.authenticate).not.toHaveBeenCalled();
+            expect(global.CommonUtils.sendError).toHaveBeenCalledWith(
+                mockReq, mockRes, 429, 'Too many login attempts.', 'RATE_LIMITED', { retryAfter: 45 }
+            );
+            expect(global.HookManager.execute).toHaveBeenCalledWith('onAuthFailure',
+                expect.objectContaining({ reason: 'RATE_LIMITED', identifier: 'testuser' }));
+            expect(mockReq.session.user).toBeUndefined();
+        });
+
+        test('skips the rate limit check entirely when loginRateLimit.enabled is false', async () => {
+            global.appConfig.controller.auth.loginRateLimit = { enabled: false };
+            UserModel.authenticate.mockResolvedValue(activeUser);
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(global.RedisManager.cacheCheckRateLimit).not.toHaveBeenCalled();
+            expect(mockReq.session.user).toMatchObject({ username: 'testuser', isAuthenticated: true });
+        });
+
+        test('fails open (does not block login) when global.RedisManager is not initialized', async () => {
+            delete global.RedisManager;
+            UserModel.authenticate.mockResolvedValue(activeUser);
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(global.CommonUtils.sendError).not.toHaveBeenCalledWith(
+                expect.anything(), expect.anything(), 429, expect.anything(), 'RATE_LIMITED', expect.anything());
+            expect(mockReq.session.user).toMatchObject({ username: 'testuser', isAuthenticated: true });
         });
     });
 });

@@ -3,7 +3,7 @@
  * @tagline         Unit tests for HelloVue SPA demonstration controller
  * @description     Unit tests for HelloVue SPA demonstration controller
  * @file            webapp/tests/unit/site/hello-vue-controller.test.js
- * @version         1.7.7
+ * @version         1.7.8
  * @release         2026-08-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

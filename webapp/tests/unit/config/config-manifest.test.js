@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-137 manifest storage and defaults
  * @description     Tests for ConfigModel.ensureManifestDefaults() and related schema behavior
  * @file            webapp/tests/unit/config/config-manifest.test.js
- * @version         1.7.7
+ * @version         1.7.8
  * @release         2026-08-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

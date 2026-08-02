@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.7.7
+# jPulse Docs / REST API Reference v1.7.8
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -433,7 +433,8 @@ Authenticate user and create session.
 **Error Responses:**
 - **400**: Missing identifier or password (`MISSING_CREDENTIALS`)
 - **401**: Invalid credentials (`INVALID_CREDENTIALS`)
-- **403**: Login disabled (`LOGIN_DISABLED`), local auth restricted (`LOCAL_AUTH_RESTRICTED` — see [`controller.auth.localAuthRestriction`](security-and-auth.md#restricting-local-usernamepassword-login)), or account locked/disabled (`ACCOUNT_LOCKED` / `ACCOUNT_DISABLED`)
+- **403**: Login disabled (`LOGIN_DISABLED`), local auth restricted (`LOCAL_AUTH_RESTRICTED` — see [`controller.auth.localAuthRestriction`](security-and-auth.md#restricting-local-usernamepassword-login)), or account status blocks login (`ACCOUNT_PENDING_APPROVAL` / `ACCOUNT_SUSPENDED` / `ACCOUNT_TERMINATED` / `ACCOUNT_INACTIVE`)
+- **429**: Too many requests from this IP (`RATE_LIMITED` — see [`controller.auth.loginRateLimit`](security-and-auth.md#rate-limiting)); response includes `retryAfter` (seconds)
 - **500**: Internal server error
 
 > **External auth plugins** (OAuth, LDAP, SAML) that complete login via a browser redirect rather than this AJAX endpoint should call `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)` instead — see [Plugin Hooks](plugins/plugin-hooks.md) for details and for the `onAuthGetLoginProviders` hook used to add a provider button to the login page.

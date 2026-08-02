@@ -20297,3 +20297,137 @@ the user's exclusively to set - I add/update content only, never touch status or
 
 
 ============================================================
+2026-08-02 01:21
+
+next work item, one of:
+- verify email, in tech-debt of W-198: @work-items.md (7057-7091)
+- W-202, v1.7.6, 2026-08-xx: auth: add locked status
+
+- the first one is likely big; needs design discussion and design doc
+- what is the effort of the second one?
+
+Compared the two candidates. Confirmed email verification (W-198 tech-debt) is the bigger one,
+touching a new appConfig policy flag, Redis token/TTL, email sending+throttling, the W-109
+multi-step login hooks, and a new view page - recommended a real design-doc pass first. Assessed
+W-202 (locked status) as medium: the auth.js login() branch itself is trivial (mirrors W-201's
+established pattern exactly), but storage (Mongo vs Redis), IP-vs-identifier keying, and an admin
+unlock UI are still open design questions.
+
+User reframed priorities: jPulse targets enterprise/gated communities, so DoS/DDoS protection
+matters more than per-account lockout, and should come first. Investigated and found the real gap
+is broader than expected: (1) webapp/controller/auth.js's login() had zero rate limiting at any
+layer (confirmed via search - no rateLimit references anywhere, unlike the auth-oauth plugin's
+apiInit/apiCallback, which already use RedisManager.cacheCheckRateLimit()); (2) independently,
+templates/deploy/nginx.prod.conf's dedicated 'login' zone (5 req/min) never actually applied to
+the real credential-submission API calls at all - its location regex ^/(login|signup|auth)/ only
+matches page loads like /auth/login.shtml, never /api/1/auth/login or /api/1/user/signup, so those
+POSTs silently fell through to the much looser generic /api/ zone (10 req/**second**) - a
+previously undetected, ~100x-looser-than-documented gap in the framework's own reference nginx
+config.
+
+Implemented both fixes as a new work item (initially numbered W-203, but discovered mid-session
+that number was already used by an existing DONE item - trustProxy - so renamed to W-204
+everywhere: work-items.md heading/body, auth.js, app.conf, the test file's describe block, and the
+nginx template comment). App-level fix: new IP-keyed rate-limit check in auth.js's login()
+(applies to the whole multi-step flow, not just credential submission), using the same
+RedisManager.cacheCheckRateLimit() primitive and path-naming convention the oauth plugin already
+established; configurable via new appConfig.controller.auth.loginRateLimit
+(enabled/maxAttempts/windowSeconds, default true/20/300); fails open if global.RedisManager is
+absent or Redis is unreachable, never blocking login on a broken cache; fires onAuthFailure
+(reason: 'RATE_LIMITED') and returns 429 with a translated message + retryAfter via
+CommonUtils.sendError(), matching the disableLogin-style guard-clause pattern rather than W-201's
+raw res.json() branches, since this check sits before the step-specific logic, not inside it.
+nginx fix: expanded the login zone's regex to also match the two exact API paths. Added
+translations (en/de), fixed a second, unrelated stale doc bug found along the way in
+docs/api-reference.md (still listed W-201's removed ACCOUNT_LOCKED/ACCOUNT_DISABLED codes; also
+added the new 429/RATE_LIMITED response), and updated the illustrative nginx snippet in
+docs/security-and-auth.md to match.
+
+Added 4 new unit tests (allowed-under-limit with correct Redis key/args, blocked-over-limit with
+onAuthFailure+429+retryAfter, enabled:false skip, fail-open when RedisManager is absent) to
+webapp/tests/unit/controller/auth-controller.test.js - full suite passes 123 suites / 3013 tests
+(npx jest --runInBand), no regressions. Manually verified live via npm start against real local
+Redis: scripted 25 rapid POST /api/1/auth/login requests from the same IP - first 20 returned 401
+INVALID_CREDENTIALS, requests 21-25 correctly returned 429 RATE_LIMITED with retryAfter: 299;
+inspected the actual Redis key (...:controller:auth:rateLimit-login:--1, TTL ~277s, counter 25) and
+confirmed a fresh request succeeds again after clearing it; cleaned up the key and stopped the dev
+server afterward. Added the full W-204 entry to work-items.md under IN_PROGRESS (never touched
+W-202's or the existing W-203's entries, per the permanent site-safety rules on work-item
+sections/status). Did not touch any @version/@release headers and did not run any git commands.
+
+
+============================================================
+2026-08-02 14:47
+
+- fix location bug in conf & doc
+- check if docs can be improved so that a site admin gets a better picture on rate limit options & locations
+
+Started in Ask mode: confirmed the user's spotted bug was real and predated this session - the
+'login' zone's nginx regex ^/(login|signup|auth)/ had two dead alternatives. Verified via the
+framework's own view registry log line (only 'auth' is a top-level view directory - no 'login' or
+'signup') and a repo-wide route search that jPulse never serves anything under a top-level
+/login/ or /signup/ path; only /auth/login.shtml, /auth/signup.shtml, /auth/logout.shtml exist.
+Also answered the "overall rate limit" question: mapped out both layers (4 nginx zones -
+login/api/general/assets - vs. the only 3 app-level Redis-backed limiters that exist: W-204 login,
+auth-oauth plugin init/callback, and the unrelated per-connection WebSocket messageLimits),
+confirming most endpoints (signup, password change, search, config, etc.) have no app-level
+protection at all and rely solely on nginx's generic api zone when deployed behind the reference
+config.
+
+Switched to Agent mode and fixed the bug for real: simplified templates/deploy/nginx.prod.conf's
+location regex from ^(/(login|signup|auth)/|/api/1/auth/login$|/api/1/user/signup$) down to
+^(/auth/|/api/1/auth/login$|/api/1/user/signup$), removing the two never-matching alternatives;
+verified the new regex's behavior in Node against both the pages it should match and the
+/login//signup/ paths it correctly no longer needs to. Mirrored the same fix into the illustrative
+nginx snippet in docs/security-and-auth.md.
+
+Substantially expanded docs/security-and-auth.md's Rate Limiting section to actually give a site
+admin the full picture: added a two-layer framing (nginx vs. app-level, neither aware of the
+other), a table of all 4 nginx zones with what each actually covers, and a new "App-Level (Node)
+Rate Limiting" subsection documenting appConfig.controller.auth.loginRateLimit and the auth-oauth
+plugin's hardcoded init/callback limit side by side, explicitly calling out that both fail open and
+that every other core endpoint currently has zero app-level protection. Linked out to
+cache-infrastructure.md's Rate Limiting pattern for site/plugin authors who want to add their own,
+and to websockets.md for the separate per-connection messageLimits control. Along the way, fixed a
+second stale-doc bug in the same file (mirroring the one already caught in api-reference.md last
+session): the Login endpoint's error-response list still cited W-201's removed
+ACCOUNT_LOCKED/ACCOUNT_DISABLED codes - corrected to the real per-status codes and added the new
+429/RATE_LIMITED response. Updated the "Rate Limiting" bullet in the Security Features overview to
+stop implying nginx is the only layer. Added a new "Rate Limiting / 429 Too Many Requests"
+troubleshooting entry to docs/deployment.md, mirroring the existing assets-zone entry, covering
+both layers and how to tell them apart from nginx access logs / the JSON error body.
+
+Verified: manually re-tested the corrected regex logic in Node against all the real and
+hypothetical paths (auth pages match, /login//signup/ correctly no longer do, the two API paths
+still match, unrelated paths like /api/1/auth/logout still don't); checked all edited files for
+trailing whitespace/space-only lines (none); ran the full unit suite (123 suites / 3013 tests,
+unaffected since only nginx template + markdown docs changed, no application code). Did not touch
+work-items.md this turn (not explicitly asked to update W-204's entry) or any @version/@release
+headers, and did not run any git commands.
+
+
+============================================================
+
+2026-08-02 15:47
+
+change W-204 work item structure to match the template: @work-items.md (7549-7562)
+
+Restructured the W-204 entry in docs/dev/work-items.md to match the PENDING template field order: status, type, objectives, prerequisites, rationale, features, deliverables (path/file + summary bullets), tests, tech-debt. Folded the former free-form fields (discovered while, second gap, design decisions, benefits) into rationale; renamed "test / verify" to tests; added tech-debt for signup still lacking an app-level backstop and for missing generic /api/* app middleware. Updated deliverables to reflect the later nginx regex cleanup (^(/auth/|/api/1/auth/login$|/api/1/user/signup$)) and the expanded security-and-auth.md / deployment.md docs. Left status and section placement unchanged (still IN_PROGRESS under the IN_PROGRESS heading).
+
+
+============================================================
+2026-08-02 16:23
+
+release prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-204, v1.7.8, 2026-08-02
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Reviewed tt-git-diff.txt end to end against the W-204 work-items.md entry: confirmed every deliverable listed (auth.js rate-limit check, app.conf loginRateLimit, en/de translations, the corrected nginx login-zone regex, the security-and-auth.md/api-reference.md/deployment.md doc updates, and the 4 new auth-controller.test.js tests) is present and matches the diff exactly, with no stray/undocumented changes and no leftover version-header edits. Noted that the diff also carries earlier, already-released bookkeeping (W-197's version-string correction to v1.0.3 and W-203's status flip to DONE) plus a since-added W-0 stub for the SSO/MFA-warnings delivery gap under Pending Work Items - none of that is new from this turn, so left it untouched.
+
+Confirmed via bin/bump-version.conf that the "# jPulse Framework vX.Y.Z" / "# jPulse Docs ... vX.Y.Z" title lines in README.md, docs/README.md, and docs/CHANGELOG.md are auto-updated by the bump script itself (content rule keyed on the "# jPulse ... v" pattern) - left all three at v1.7.7, touching only the sections the script doesn't own. Added a new v1.7.8/W-204 entry to docs/CHANGELOG.md (Commit/Objective/Summary/Key features/Files changed/Documentation/Release, following the established per-version section format) directly above the existing v1.7.7/W-203 entry. Added a matching new top bullet to README.md's and docs/README.md's Latest Release Highlights, summarizing both the app-level rate-limit addition and the nginx regex fix plus the doc corrections, in the same one-paragraph-per-release style as the surrounding entries. Rewrote commit-message.txt from scratch (previous content was W-203's) in the same wrapped-plain-text format: title line, BUGFIX summary paragraphs covering both the app-layer gap and the independent nginx-zone gap, Objectives, Key features, Code Changes (per-file bullets), Documentation Updates, a Verified paragraph (unit suite + live Redis manual test), and the Work Item/Version/Release Date footer - left commit-message.txt.save1 untouched. Did not bump any @version/@release header, did not touch work-items.md, and did not run any git commands.
+
+
+============================================================

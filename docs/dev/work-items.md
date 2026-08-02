@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.7
+# jPulse Docs / Dev / Work Items v1.7.8
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -7089,7 +7089,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - `'nag'` mode's exact dismissal behavior (once per login vs once per session vs until
       verified)
 
-### W-197, v1.0.0, 2026-07-31: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
+### W-197, v1.0.3, 2026-08-02: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
 - status: ✅ DONE
 - type: Feature
 - objective: SSO plugin supporting two deployment scenarios — (1) public sites with consumer providers (Google, and later Apple/GitHub), (2) org-internal sites with enterprise providers (Okta, Auth0, Azure Entra, Keycloak, ADFS via generic OIDC)
@@ -7250,19 +7250,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     first, falling back to req.protocol, mirroring the existing `getClientIp()` pattern) used at
     both call sites; 3 new controller tests
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-203, v1.7.7, 2026-08-02: infrastructure: trustProxy is a documented app.conf setting with zero implementation - req.protocol/req.ip/req.secure are all unreliable behind a reverse proxy
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bugfix
 - objective: make Express's `trust proxy` setting actually work - `webapp/app.js` now calls
   `app.set('trust proxy', ...)` from a real config value - closing the gap between what the docs
@@ -7368,6 +7357,93 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-204, v1.7.8, 2026-08-02: auth: rate limit login endpoint (DoS/brute-force protection)
+- status: 🚧 IN_PROGRESS
+- type: Bugfix
+- objectives:
+  - give `/api/1/auth/login` real, working rate limiting - both a per-IP app-level control (new)
+    and a fix to the reference nginx config's existing, but silently non-functional, stricter zone
+    for this exact endpoint - closing a real DoS/credential-stuffing/brute-force gap ahead of
+    W-202 (per-account `locked` status), which needs IP-based limiting as a complementary control
+    anyway
+- prerequisites:
+  - Redis cache infrastructure (`RedisManager.cacheCheckRateLimit()`) - already shipped
+  - W-203 (`middleware.trustProxy`) - recommended so IP-keyed limiting sees the real client IP
+    behind a reverse proxy; not a hard dependency (fails open / still works on direct-exposed
+    servers)
+- rationale:
+  - discovered while scoping W-202: `auth.js`'s `login()` had zero rate limiting at the app layer
+    (unlike the auth-oauth plugin's `apiInit`/`apiCallback`, which already use
+    `RedisManager.cacheCheckRateLimit()`)
+  - second, independent gap: the reference nginx `login` zone's
+    `location ~ ^/(login|signup|auth)/` never matched `/api/1/auth/login` or `/api/1/user/signup`
+    (credential-submission POSTs fell through to the ~100x looser generic `/api/` zone), and the
+    `login|signup` alternatives never matched anything real either (framework pages live only under
+    `/auth/*`)
+  - design decisions (locked in):
+    - IP-keyed (endpoint/DoS protection), not identifier-keyed (account lockout is W-202)
+    - applies to the whole `login()` method (all W-109 multi-step posts), not just `'credentials'`
+    - reuses `RedisManager.cacheCheckRateLimit()` / path `controller:auth:rateLimit:login`
+    - fails open if Redis/RedisManager unavailable - never lock every user out on a broken cache
+    - configurable via `appConfig.controller.auth.loginRateLimit` (default `true`/20/300)
+    - nginx: single regex location covering `/auth/` pages + the two API paths (no third
+      duplicated `proxy_pass` block; dropped the dead `login|signup` alternatives)
+  - benefits: closes a previously-undetected gap on both the app layer and the documented
+    reference deployment; complementary to (not a substitute for) W-202's future per-account
+    `locked` status; directly relevant to jPulse's enterprise/gated-community focus
+- features:
+  - `POST /api/1/auth/login` returns `429` with a translated message, `RATE_LIMITED` code, and
+    `retryAfter` (seconds) once a single IP exceeds 20 requests / 5 minutes across the whole login
+    flow; fires `onAuthFailure` (`reason: 'RATE_LIMITED'`)
+  - reference nginx `login` zone (5 req/min, burst 5) now actually applies to real login/signup
+    credential submissions, not just page loads
+  - site-admin docs give a clear two-layer picture (nginx zones vs. app-level Redis limiters) of
+    what is and isn't protected
+- deliverables:
+  - `webapp/controller/auth.js`:
+    - `login()`: rate-limit check right after `logRequest()`, before the `disableLogin` check
+  - `webapp/app.conf`:
+    - new `controller.auth.loginRateLimit` (`enabled: true`, `maxAttempts: 20`,
+      `windowSeconds: 300`)
+  - `webapp/translations/en.conf`, `webapp/translations/de.conf`:
+    - new `controller.auth.rateLimited` string
+  - `templates/deploy/nginx.prod.conf`:
+    - `login` zone location regex:
+      `^(/auth/|/api/1/auth/login$|/api/1/user/signup$)` (covers auth pages + credential API
+      posts; dropped dead `login|signup` top-level alternatives)
+  - `docs/security-and-auth.md`:
+    - rewritten Rate Limiting section (two-layer framing, nginx zones table, app-level table);
+      fixed Login error-code list (pre-W-201 `ACCOUNT_LOCKED`/`ACCOUNT_DISABLED` → real
+      per-status codes + `429`/`RATE_LIMITED`)
+  - `docs/api-reference.md`:
+    - login endpoint error list: same W-201 correction + new `429`/`RATE_LIMITED`
+  - `docs/deployment.md`:
+    - new troubleshooting entry for rate-limiting / 429s (both layers)
+  - `webapp/tests/unit/controller/auth-controller.test.js`:
+    - `W-204: login rate limiting` block (4 tests: under-limit, over-limit + `onAuthFailure`,
+      `enabled: false` skip, fail-open when `RedisManager` absent)
+- tests:
+  - full unit suite passes: 123 suites / 3013 tests (`npx jest --runInBand`)
+  - manually verified live via `npm start` + real Redis: 25 rapid `POST /api/1/auth/login`
+    requests from the same IP → first 20 return `401 INVALID_CREDENTIALS`, requests 21-25 return
+    `429 RATE_LIMITED` with `retryAfter: 299`; confirmed Redis key TTL/counter and that a fresh
+    request succeeds again after clearing it
+- tech-debt:
+  - `/api/1/user/signup` is covered by the nginx `login` zone but still has no app-level
+    `cacheCheckRateLimit()` backstop (unlike login) - candidate for a small follow-up
+  - no generic app-level `/api/*` rate-limit middleware yet - most other endpoints rely solely on
+    nginx's `api` zone when deployed behind the reference config
+
+
+
+
+
+
+
+
 
 
 ### Pending
@@ -7397,7 +7473,7 @@ release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
 - assume W-197, v1.0.3, 2026-08-01
-- assume W-203, v1.7.7, 2026-08-02
+- assume W-204, v1.7.8, 2026-08-02
 - update features & deliverables in W-197 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -7409,17 +7485,17 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.7 2026-08-02
+node bin/bump-version.js 1.7.8 2026-08-02
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.7; git push origin main --tags
+git tag v1.7.8; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff
 git status
-node ../../bin/bump-version.js 1.0.3 2026-08-01
+node ../../bin/bump-version.js 1.0.3 2026-08-02
 git diff
 git status
 git add .
@@ -7544,6 +7620,31 @@ template:
 - benefits: gives legitimate users a clear, actionable, non-accusatory explanation when an
   automated security measure (not an admin decision) blocks their login, and gives the framework
   real brute-force protection on `/api/1/auth/login`, which has none today
+
+### W-0: auth: deliver login warnings (onAuthGetWarnings) after SSO/external-auth redirect
+- status: 🕑 PENDING
+- type: Bugfix
+- objectives:
+  - fix MFA "Enable 2FA" nag (and any other onAuthGetWarnings warning) not appearing after SSO/external-auth login
+  - completeExternalAuth() collects warnings via _completeLoginSession() but discards them before its bare 302; only the AJAX login() path returns them in JSON for login.shtml to queue via jPulse.url.redirect's toasts option
+- prerequisits:
+  - W-195, v1.7.1, 2026-07-26: auth: jPulse enhancements for external auth plugins - introduced completeExternalAuth()/_completeLoginSession() split
+  - W-109, v1.3.10, 2025-12-08: auth: multi-step login flow - onAuthGetWarnings hook
+  - W-110, v1.3.11, 2025-12-08: view: jPulse.url.redirect with toast messages queue - client-side delivery mechanism to extend across the 302 boundary
+
+### W-0: auth-oauth plugin: support Apple IdP
+- status: 🕑 PENDING
+- type: Feature
+- objectives: ability to authenticate with any Apple account
+- prerequisits:
+  - W-197, v1.0.3, 2026-08-02: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
+
+### W-0: auth-oauth plugin: support GitHub IdP
+- status: 🕑 PENDING
+- type: Feature
+- objectives: ability to authenticate with a GitHub account
+- prerequisits:
+  - W-197, v1.0.3, 2026-08-02: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
 
 
 
@@ -7716,12 +7817,6 @@ template:
 - type: Feature
 - possibly implement as plugin
 - make it optional with a appConfig setting
-
-### W-0: auth controller: authentication with OAuth2
-- status: 🕑 PENDING
-- type: Feature
-- implement as plugin
-- strategy to push OAuth fields into user doc
 
 ### W-0: auth controller: authentication with LDAP
 - status: 🕑 PENDING

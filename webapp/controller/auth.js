@@ -3,7 +3,7 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         1.7.7
+ * @version         1.7.8
  * @release         2026-08-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -387,6 +387,38 @@ class AuthController {
                 step,
                 identifier: stepData.identifier || stepData.username || '(n/a)'
             }));
+
+            // W-204: IP-based rate limit on the whole endpoint (every step, not just
+            // 'credentials' - the multi-step flow posts MFA/other step data here too),
+            // defense-in-depth alongside nginx's 'login' zone (templates/deploy/nginx.prod.conf)
+            // for deployments without that reference config in front of the app (local dev,
+            // containers, a customized reverse proxy, etc.). Fails open (no RedisManager, or
+            // Redis itself unreachable per cacheCheckRateLimit()) rather than blocking login.
+            const loginRateLimit = global.appConfig?.controller?.auth?.loginRateLimit;
+            if (loginRateLimit?.enabled !== false && global.RedisManager) {
+                const clientIp = global.CommonUtils.getLogContext(req).ip;
+                const rateLimit = await global.RedisManager.cacheCheckRateLimit(
+                    'controller:auth:rateLimit:login', clientIp,
+                    {
+                        limit: loginRateLimit?.maxAttempts || 20,
+                        windowSeconds: loginRateLimit?.windowSeconds || 300
+                    });
+
+                if (!rateLimit.allowed) {
+                    await global.HookManager.execute('onAuthFailure', {
+                        req,
+                        identifier: stepData.identifier || stepData.username || null,
+                        reason: 'RATE_LIMITED',
+                        authMethod: 'internal'
+                    });
+
+                    global.LogController.logError(req, 'auth.login',
+                        `error: rate limit exceeded for IP: ${clientIp}`);
+                    const message = global.i18n.translate(req, 'controller.auth.rateLimited');
+                    return global.CommonUtils.sendError(req, res, 429, message, 'RATE_LIMITED',
+                        { retryAfter: Math.ceil(rateLimit.retryAfter / 1000) });
+                }
+            }
 
             // Bail out if login is disabled
             if (global.appConfig.controller.auth.disableLogin) {

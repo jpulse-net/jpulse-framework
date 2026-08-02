@@ -1,6 +1,40 @@
-# jPulse Docs / Version History v1.7.7
+# jPulse Docs / Version History v1.7.8
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.8, W-204, 2026-08-02
+
+**Commit:** `W-204, v1.7.8: auth: rate limit login endpoint (DoS/brute-force protection)`
+
+**Objective**: Give `/api/1/auth/login` real, working rate limiting — both a new per-IP app-level control and a fix to the reference nginx config's existing, but silently non-functional, stricter zone for this exact endpoint — closing a DoS/credential-stuffing/brute-force gap ahead of W-202 (per-account `locked` status), which will need IP-based limiting as a complementary control anyway.
+
+**Summary**: Discovered while scoping W-202: `auth.js`'s `login()` had zero rate limiting at the app layer, unlike the `auth-oauth` plugin's `apiInit`/`apiCallback`, which already use `RedisManager.cacheCheckRateLimit()`. A second, independent gap surfaced alongside it: the reference nginx `login` zone's `location ~ ^/(login|signup|auth)/` never matched `/api/1/auth/login` or `/api/1/user/signup` — those credential-submission POSTs silently fell through to the ~100x looser generic `/api/` zone — and the `login|signup` alternatives never matched anything real either, since framework pages only ever live under `/auth/*`. Fixed both: `login()` now runs a new IP-keyed rate-limit check (via `RedisManager.cacheCheckRateLimit()`, path `controller:auth:rateLimit:login`) right after logging the request and before the `disableLogin` check, covering the whole multi-step login flow (not just `'credentials'`, since W-109's multi-step posts land on the same endpoint); configurable via new `appConfig.controller.auth.loginRateLimit` (`enabled`/`maxAttempts`/`windowSeconds`, default `true`/20/300), fails open if Redis/`RedisManager` is unavailable so a broken cache never locks every user out, and fires the `onAuthFailure` hook (`reason: 'RATE_LIMITED'`) before returning `429` with a translated message and `retryAfter` (seconds). The nginx `login` zone's `location` regex was simplified to `^(/auth/|/api/1/auth/login$|/api/1/user/signup$)`, matching the real auth view pages plus the two credential-submission API paths, and dropping the dead `login|signup` alternatives — no third, duplicated `proxy_pass` block needed. Along the way, corrected a second, unrelated stale-doc bug found in both `docs/api-reference.md` and `docs/security-and-auth.md`: the Login endpoint's error-response list still cited W-201's removed `ACCOUNT_LOCKED`/`ACCOUNT_DISABLED` codes instead of the real per-status codes W-201 actually shipped. `docs/security-and-auth.md`'s Rate Limiting section was substantially rewritten to give site admins a full two-layer picture (nginx zones vs. app-level Redis limiters), including a table of all 4 nginx zones and a new "App-Level (Node) Rate Limiting" table, and `docs/deployment.md` gained a matching 429 troubleshooting entry. Verified via the full unit suite (123 suites / 3013 tests via `npx jest --runInBand`) plus a live manual test against real Redis: 25 rapid `POST /api/1/auth/login` requests from the same IP returned `401 INVALID_CREDENTIALS` for the first 20 and `429 RATE_LIMITED` (with `retryAfter: 299`) for the remaining 5, confirmed via the Redis key's TTL/counter, with a fresh request succeeding again once the key was cleared.
+
+**Key features**:
+- `POST /api/1/auth/login` returns `429` (translated message, `RATE_LIMITED` code, `retryAfter` seconds) once a single IP exceeds 20 requests / 5 minutes across the whole login flow; fires `onAuthFailure` (`reason: 'RATE_LIMITED'`)
+- Reference nginx `login` zone (5 req/min, burst 5) now actually applies to real login/signup credential submissions, not just page loads
+- `docs/security-and-auth.md`'s Rate Limiting section gives site admins a clear two-layer picture (nginx zones vs. app-level Redis limiters) of what is and isn't protected
+
+**Files changed**:
+- `webapp/controller/auth.js`: `login()` — new IP-keyed rate-limit check right after `logRequest()`, before the `disableLogin` check
+- `webapp/app.conf`: new `controller.auth.loginRateLimit` (`enabled: true`, `maxAttempts: 20`, `windowSeconds: 300`)
+- `webapp/translations/en.conf`, `webapp/translations/de.conf`: new `controller.auth.rateLimited` string
+- `templates/deploy/nginx.prod.conf`: `login` zone `location` regex simplified to `^(/auth/|/api/1/auth/login$|/api/1/user/signup$)`, dropping the dead `login|signup` top-level alternatives
+- `webapp/tests/unit/controller/auth-controller.test.js`: new `W-204: login rate limiting` block (4 tests — under-limit, over-limit + `onAuthFailure`, `enabled: false` skip, fail-open when `RedisManager` is absent)
+
+**Documentation**:
+- `docs/security-and-auth.md`: rewritten Rate Limiting section (two-layer framing, nginx zones table, app-level table); fixed Login error-code list (pre-W-201 `ACCOUNT_LOCKED`/`ACCOUNT_DISABLED` → real per-status codes + `429`/`RATE_LIMITED`)
+- `docs/api-reference.md`: login endpoint error list — same W-201 correction + new `429`/`RATE_LIMITED`
+- `docs/deployment.md`: new troubleshooting entry for rate-limiting / 429s (both layers)
+- `docs/dev/work-items.md` — W-204 objectives/prerequisites/rationale/features/deliverables/tests/tech-debt
+- `README.md`, `docs/README.md` — Latest Release Highlights — v1.7.8 / W-204
+- `docs/CHANGELOG.md` — this section
+
+**Release**:
+- Work Item: W-204
+- Version: v1.7.8
+- Release Date: 2026-08-02
 
 ________________________________________________
 ## v1.7.7, W-203, 2026-08-02

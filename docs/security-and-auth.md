@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.7.7
+# jPulse Docs / Security & Authentication v1.7.8
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -13,7 +13,7 @@ The jPulse Framework implements enterprise-grade security features including ses
 - **Password Security**: bcrypt hashing with 12 salt rounds
 - **Security Headers**: Comprehensive HTTP security headers via nginx and Express
 - **Content Security Policy**: Configurable CSP with violation reporting
-- **Rate Limiting**: nginx-based rate limiting for API and authentication endpoints
+- **Rate Limiting**: nginx-based rate limiting for all endpoints, plus app-level (Redis-backed) rate limiting on login and select other endpoints — see [Rate Limiting](#rate-limiting)
 - **SSL/TLS**: Production-ready SSL configuration
 - **Input Validation**: Schema-based validation for all user inputs
 
@@ -128,7 +128,8 @@ Content-Type: application/json
 - **401**: Invalid credentials (`INVALID_CREDENTIALS`)
 - **403**: Login disabled (`LOGIN_DISABLED`, `appConfig.controller.auth.disableLogin`)
 - **403**: Local auth restricted (`LOCAL_AUTH_RESTRICTED`, `appConfig.controller.auth.localAuthRestriction`, internal auth only — see below)
-- **403**: Account locked/disabled (`ACCOUNT_LOCKED` / `ACCOUNT_DISABLED`)
+- **403**: Account status blocks login (`ACCOUNT_PENDING_APPROVAL` / `ACCOUNT_SUSPENDED` / `ACCOUNT_TERMINATED` / `ACCOUNT_INACTIVE`)
+- **429**: Too many requests from this IP (`RATE_LIMITED`, `appConfig.controller.auth.loginRateLimit` — see [Rate Limiting](#rate-limiting)); response includes `retryAfter` (seconds)
 
 #### Restricting Local (Username/Password) Login
 
@@ -301,7 +302,30 @@ middleware: {
 
 ### Rate Limiting
 
-nginx provides rate limiting for different endpoint types:
+jPulse rate-limits requests at two independent layers - they don't know about each other, and
+neither depends on the other being present:
+
+- **nginx** (reverse proxy, per IP) - the framework's reference production config
+  (`templates/deploy/nginx.prod.conf`), a baseline that covers *every* endpoint but only applies
+  if a site actually deploys behind that config (or an equivalent). It never runs in local dev
+  (`npm start`) and won't exist behind a different reverse proxy, a container/k8s ingress, or a
+  customized nginx config that dropped these zones.
+- **App-level** (Node/Express, per IP, Redis-backed) - opt-in per endpoint via
+  `RedisManager.cacheCheckRateLimit()` (see [Cache Infrastructure](cache-infrastructure.md#rate-limiting)
+  for the reusable pattern). Only a few endpoints use it today (below) - it's the layer that still
+  protects those specific endpoints even without nginx in front, but it is **not** a blanket
+  replacement for the nginx zones, since most endpoints don't opt in.
+
+#### nginx Zones
+
+Four zones, each scoped to a `location` block:
+
+| Zone | Rate | Covers |
+|---|---|---|
+| `login` | 5 requests/minute (burst 5) | `/auth/*` view pages (`login.shtml`, `signup.shtml`, `logout.shtml`, etc.) **and** the credential-submission API calls (`/api/1/auth/login`, `/api/1/user/signup`) |
+| `api` | 10 requests/second (burst 20) | every other `/api/*` endpoint (generic - not tuned per endpoint) |
+| `assets` | 150 requests/second (burst 200) | `/assets/` static files (kept high to avoid 429s on legitimate heavy page loads) |
+| `general` | 30 requests/second (burst 50) | every other page request |
 
 ```nginx
 # Rate limiting zones
@@ -310,14 +334,16 @@ limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
 limit_req_zone $binary_remote_addr zone=general:10m rate=30r/s;
 limit_req_zone $binary_remote_addr zone=assets:10m rate=150r/s;
 
+# Authentication endpoints: 5 requests/minute (burst: 5)
+# Matches the auth view pages AND their credential-submission API calls - framework pages are
+# never served under a top-level /login/ or /signup/ path, only /auth/*.
+location ~ ^(/auth/|/api/1/auth/login$|/api/1/user/signup$) {
+    limit_req zone=login burst=5 nodelay;
+}
+
 # API endpoints: 10 requests/second (burst: 20)
 location /api/ {
     limit_req zone=api burst=20 nodelay;
-}
-
-# Authentication endpoints: 5 requests/minute (burst: 5)
-location ~ ^/(login|signup|auth)/ {
-    limit_req zone=login burst=5 nodelay;
 }
 
 # Assets endpoints: 150 requests/second (burst: 200)
@@ -332,7 +358,33 @@ location / {
 }
 ```
 
-Canonical numbers and the exact `location` mapping can be found in `templates/deploy/nginx.prod.conf`.
+Canonical numbers and the exact `location` mapping can be found in
+`templates/deploy/nginx.prod.conf`. Note that nginx always checks a regex `location` (like
+`login` above) against every request, even one that also matches a plain prefix `location` (like
+`/api/`) declared elsewhere in the file - so `/api/1/auth/login` correctly gets the stricter
+`login` zone instead of the generic `api` zone, regardless of which block appears first.
+
+#### App-Level (Node) Rate Limiting
+
+| Endpoint | Config | Default | Notes |
+|---|---|---|---|
+| `POST /api/1/auth/login` (all steps, not just credentials) | `appConfig.controller.auth.loginRateLimit` (`enabled`/`maxAttempts`/`windowSeconds`) | `true` / 20 / 300s | Returns `429 RATE_LIMITED` with `retryAfter` (seconds); fires the `onAuthFailure` hook |
+| `auth-oauth` plugin's `GET /api/1/auth-oauth/init/:provider` and `.../callback/:provider` | hardcoded in the plugin, not site-configurable | 60 requests / 60s | See the plugin's own docs |
+
+Both fail open: if `global.RedisManager` isn't initialized, or Redis itself is unreachable, the
+request proceeds normally rather than being blocked — a broken/absent cache must never be able to
+lock every user out. No other core endpoint (signup, password change, profile updates, search,
+config saves, log queries, etc.) has app-level rate limiting today; they rely entirely on the
+nginx `api` zone above when deployed behind it, and have no protection at all otherwise.
+
+WebSocket connections have a related but separate control -
+`appConfig.controller.websocket.messageLimits` (max message size + messages/interval **per
+connection**, not per IP) - see [websockets.md](websockets.md#public-access-demo--non-admin).
+
+To add app-level rate limiting to your own site/plugin endpoints, reuse
+`RedisManager.cacheCheckRateLimit()` directly - see
+[Cache Infrastructure — Rate Limiting](cache-infrastructure.md#rate-limiting) for the pattern and
+example code.
 
 ### SSL/TLS Configuration
 
@@ -527,6 +579,7 @@ The following security features are planned or recommended for future implementa
 
 - **[REST API Reference](api-reference.md)** - Complete API endpoint documentation including authentication requirements
 - **[Deployment Guide](deployment.md)** - Production deployment with security considerations
+- **[Cache Infrastructure](cache-infrastructure.md#rate-limiting)** - `RedisManager.cacheCheckRateLimit()` pattern for adding app-level rate limiting to your own endpoints
 - **[Getting Started](getting-started.md)** - Quick start guide including initial admin setup
 
 ---

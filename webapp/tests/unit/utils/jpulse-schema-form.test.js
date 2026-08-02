@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for jPulse.schemaForm namespace (W-189)
  * @description     Registry, showWhen evaluator + setup pass, helper API
  * @file            webapp/tests/unit/utils/jpulse-schema-form.test.js
- * @version         1.7.7
+ * @version         1.7.8
  * @release         2026-08-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

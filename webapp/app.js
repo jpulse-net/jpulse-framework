@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         1.7.6
- * @release         2026-07-31
+ * @version         1.7.7
+ * @release         2026-08-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -275,6 +275,11 @@ async function startApp() {
 
     // Create Express application
     const app = express();
+
+    // W-203: honor middleware.trustProxy so req.protocol/req.ip/req.secure are reliable behind a
+    // reverse proxy - set before any middleware/route that might read those properties (session
+    // cookie logic below keys off deployment.mode instead, so it's unaffected either way).
+    app.set('trust proxy', appConfig.middleware.trustProxy);
 
     // Disable JSON escaping of HTML entities (< > & etc.)
     // By default, Express escapes <, >, and & for XSS protection when embedding JSON in HTML

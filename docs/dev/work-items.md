@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.6
+# jPulse Docs / Dev / Work Items v1.7.7
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -7089,20 +7089,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - `'nag'` mode's exact dismissal behavior (once per login vs once per session vs until
       verified)
 
-
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-197, v1.0.0, 2026-07-31: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objective: SSO plugin supporting two deployment scenarios — (1) public sites with consumer providers (Google, and later Apple/GitHub), (2) org-internal sites with enterprise providers (Okta, Auth0, Azure Entra, Keycloak, ADFS via generic OIDC)
 - repository: github.com/jpulse-net/plugin-auth-oauth (separate repo, independent versioning)
@@ -7247,6 +7235,130 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     navigation entry anywhere in the UI for the entire v1.0.0 release; fixed by adding it, matching
     the `auth-mfa`/`hello-world` pattern (append a "Connected Accounts" entry to the user menu's
     jPulse Plugins section)
+  - v1.0.2, 2026-08-01 (found live during bubblemap.net production config, see design doc Gap 8):
+    the provider config form's "JIT: Override Roles"/"JIT: Status" fields rendered unconditionally,
+    with no effect unless that provider's effective Linking Strategy is `jit-create` - fixed by
+    gating both fields' visibility on the effective strategy, live as Linking Strategy is switched;
+    5 new renderer tests, 5 pre-existing ones updated for the new gating
+  - v1.0.3, 2026-08-01 (found live on bubblemap.net's first real Google login attempt, see design
+    doc Gap 9): `computeRedirectUri()` and `apiCallback()`'s `currentUrl` both used `req.protocol`
+    directly, which the framework never makes reliable behind a reverse proxy (`app.set('trust
+    proxy', ...)` is never called, despite `trustProxy: true` being documented in
+    `docs/deployment.md`/`templates/deploy/README.md` - a framework-level gap in its own right,
+    filed separately as `W-203`, not fixed here) - caused a live `redirect_uri_mismatch` at
+    Google's consent screen. Fixed by adding a `getRequestProtocol()` helper (X-Forwarded-Proto
+    first, falling back to req.protocol, mirroring the existing `getClientIp()` pattern) used at
+    both call sites; 3 new controller tests
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-203, v1.7.7, 2026-08-02: infrastructure: trustProxy is a documented app.conf setting with zero implementation - req.protocol/req.ip/req.secure are all unreliable behind a reverse proxy
+- status: 🚧 IN_PROGRESS
+- type: Bugfix
+- objective: make Express's `trust proxy` setting actually work - `webapp/app.js` now calls
+  `app.set('trust proxy', ...)` from a real config value - closing the gap between what the docs
+  promised and what the code did
+- discovered while: fixing W-197 Gap 9 (`plugins/auth-oauth`'s `computeRedirectUri()` sent Google
+  an `http://` redirect_uri on `bubblemap.net`'s first live login attempt, a `req.protocol`
+  behind-reverse-proxy bug) - traced one level further per this session's "root cause before
+  fixes" debugging rule, since the plugin's own bug looked like it might be a symptom of a
+  framework-level gap rather than a plugin-only mistake, which it was
+- current gap (confirmed by repo-wide search, not assumption):
+  - `docs/deployment.md` (line 135) and `templates/deploy/README.md` (line 89) both instructed
+    site admins to set `trustProxy: true` in `site/webapp/app.conf` for reverse-proxy deployments,
+    using an `app.trustProxy`/`app.port` example that didn't even match `app.conf`'s real structure
+    (`port` actually lives under `system.port`, computed by `app.js`, not hand-set under `app`)
+  - `webapp/app.js` never called `app.set('trust proxy', ...)` anywhere - confirmed via
+    `rg -ni "proxy" webapp/app.js` returning zero matches
+  - `trustProxy` wasn't defined in any config schema either (`bin/config-registry.js`,
+    `webapp/model/config.js`) - not validated, not surfaced in the admin Config UI, and setting it
+    in `app.conf` did precisely nothing
+  - net effect on any deployment behind a TLS-terminating reverse proxy (the framework's own
+    reference `templates/deploy/nginx.prod.conf`, which does correctly set `X-Forwarded-Proto` on
+    every location block, and is the *standard* `npx jpulse setup` path, not a rare one): Express's
+    `req.protocol` always resolved to `http`, `req.secure` was always `false`, and `req.ip` returned
+    the proxy's own address rather than the real client's - all silently, with no error or warning
+    anywhere
+  - `webapp/utils/common.js` (lines ~1424-1433) already works around the `req.ip` half of this by
+    reading `X-Forwarded-For`/`X-Real-IP` directly instead of trusting `req.ip` - so the framework
+    has an established, working pattern for IP, just never extended it (or real `trust proxy`
+    support) to protocol/secure. `plugins/auth-oauth`'s `getClientIp()` independently mirrors that
+    same `common.js` IP pattern; its sibling `getRequestProtocol()` (new in W-197 v1.0.3) is the
+    same idea applied to protocol, but scoped to that one plugin's two call sites, not
+    framework-wide
+  - no other `req.protocol`/`req.secure` usage exists anywhere in `webapp/` core today (confirmed
+    via search) - this hadn't visibly broken anything in the framework itself yet, only in
+    auth-oauth's new code, precisely because nothing in core currently computes an absolute URL or
+    makes a security decision from request-derived scheme; the risk was latent, for the next
+    feature that does either
+- design decisions (locked in):
+  - config key is `middleware.trustProxy`, not the previously-documented `app.trustProxy` - `app`
+    is reserved for jPulse/site branding metadata (see its own "DO NOT CHANGE" comments in
+    `webapp/app.conf`); `middleware` already holds every other Express-level setting (`cors`,
+    `session`, `bodyParser`, `setHeaders`), so this is the architecturally consistent home. Nothing
+    could have relied on the old `app.trustProxy` location's behavior, since it never did anything.
+  - value is passed straight through to `app.set('trust proxy', ...)` unmodified, so it supports
+    every value type Express itself accepts (boolean, hop count, trusted IP/CIDR string or array) -
+    not just a boolean - for admins who need to trust only their own edge proxy rather than any
+    `X-Forwarded-*` header blindly - a bare header-reading helper (the plugin's stopgap) can't offer
+    that same protection
+  - default value is split by layer, decided with the user: `webapp/app.conf` (framework core
+    default, ships with every install) stays `false` - matching Express's own default and the
+    previous de facto behavior, since the framework itself doesn't know how a given site will be
+    deployed and must not silently start trusting client-supplied headers on a directly-exposed
+    server. `templates/webapp/app.conf.tmpl` (used by `npx jpulse configure` for every new site) and
+    `site/webapp/app.conf.tmpl` (the manual-copy starter template) both default to `true` instead,
+    since the framework's standard, documented deployment path always terminates TLS at nginx
+    (`docs/deployment.md`'s "Deployment Architecture") - so every newly configured site gets a
+    correct, working default with zero extra steps, while the framework package itself remains
+    safe-by-default for the unknown case
+  - `plugins/auth-oauth`'s own `getRequestProtocol()` (W-197 v1.0.3) is deliberately left in place
+    rather than simplified to bare `req.protocol` - the plugin's `jpulseVersion` floor (`>=1.7.6`)
+    predates this fix, so older-but-still-compatible framework installs (or any site admin who
+    hasn't set `middleware.trustProxy`) still need the plugin's own header-reading fallback;
+    complementary defense-in-depth, not redundant - a follow-up cleanup once this is broadly
+    deployed is possible but not bundled into this item
+- deliverables:
+  - `webapp/app.conf`: added `middleware.trustProxy: false` (framework default) with an inline
+    comment explaining the setting and its accepted value types
+  - `webapp/app.js`: `app.set('trust proxy', appConfig.middleware.trustProxy)`, called immediately
+    after `express()` creation, before any middleware/route that might read those properties
+  - `templates/webapp/app.conf.tmpl`, `site/webapp/app.conf.tmpl`, `site/webapp/app.conf` (this
+    repo's own dogfooding site, which also runs `jpulse-net-prod` behind nginx): all three set
+    `middleware.trustProxy: true` with an explanatory comment
+  - `docs/deployment.md`: fixed the broken `app.trustProxy`/`app.port` example in "Custom Web
+    Server Setup" to the correct `middleware.trustProxy: true`; added a callout in "Deployment
+    Architecture" explaining why the standard nginx path needs this and that
+    `npx jpulse configure` sets it by default
+  - `templates/deploy/README.md`: corrected the config key/path in "Custom Deployment Scenarios"
+- test / verify:
+  - all 4 edited config files verified to parse correctly (`node -e` with `new Function(...)`,
+    matching the framework's own config-loading mechanism), confirming
+    `webapp/app.conf`→`middleware.trustProxy === false` and the 3 site-facing
+    templates/config→`middleware.trustProxy === true`
+  - full unit/integration suite passes: 123 suites / 3009 tests via `npx jest --runInBand` (a
+    plain parallel `npx jest` run shows spurious cross-test failures unrelated to this change - a
+    pre-existing test-isolation artifact of this repo's suite, not a regression); user independently
+    confirmed via `bin/test-all.js`: 3038 passed, 0 failed, 0 skipped across CLI/unit/integration
+  - no dedicated unit test added for the `app.set('trust proxy', ...)` call itself - `webapp/app.js`
+    is a top-level script with no existing test harness that boots it end-to-end (confirmed no test
+    anywhere imports it directly), and the 1-line change delegates entirely to Express's own,
+    already-well-tested API with no custom logic of ours to exercise
+- benefits: closes a documented-but-nonfunctional config option; removes a latent trap for any
+  future framework feature that computes an absolute URL, does IP-based rate limiting/logging, or
+  makes an HTTPS-only security decision from the request object, on any reverse-proxied deployment
+  (i.e. most production deployments, per the framework's own nginx templates); fixed the real
+  `redirect_uri_mismatch` bug class at its root, one layer below the auth-oauth plugin's own W-197
+  v1.0.3 stopgap fix
 
 
 
@@ -7284,7 +7396,8 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-197, v1.0.1, 2026-07-31
+- assume W-197, v1.0.3, 2026-08-01
+- assume W-203, v1.7.7, 2026-08-02
 - update features & deliverables in W-197 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -7296,22 +7409,22 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.6 2026-07-31
+node bin/bump-version.js 1.7.7 2026-08-02
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.6; git push origin main --tags
+git tag v1.7.7; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff
 git status
-node ../../bin/bump-version.js 1.0.1 2026-07-31
+node ../../bin/bump-version.js 1.0.3 2026-08-01
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.1; git push origin main --tags
+git tag v1.0.3; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

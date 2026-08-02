@@ -5,8 +5,8 @@
  *                  both dev and prod deployment sections, and a dev-safe session secret;
  *                  secrets and deployment mode are in site/webapp/app-secret.conf
  * @file            site/webapp/app.conf
- * @version         1.7.6
- * @release         2026-07-31
+ * @version         1.7.7
+ * @release         2026-08-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Site Administrator
  * @copyright       2025 Site Administrator
@@ -48,6 +48,12 @@
 
     // Dev-safe session secret — overridden by real secret in app-secret.conf for production
     middleware: {
+        // W-203: npx jpulse setup's standard production deployment always terminates TLS at
+        // nginx (templates/deploy/nginx.prod.conf) and forwards plain HTTP, so req.protocol/
+        // req.ip/req.secure need this to read the real client-facing values from nginx's
+        // X-Forwarded-* headers instead. Safe for dev too, since a local npm start instance
+        // isn't normally exposed directly to untrusted clients - set to false here if yours is.
+        trustProxy: true,
         session: {
             secret: 'dev-only-insecure-do-not-use-in-production'
         }

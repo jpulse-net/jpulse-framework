@@ -1,4 +1,4 @@
-# jPulse Framework v1.7.6 Deployment Guide for %SITE_NAME%
+# jPulse Framework v1.7.7 Deployment Guide for %SITE_NAME%
 
 **Site Generated**: %GENERATION_DATE%
 **Deployment Type**: %DEPLOYMENT_TYPE%
@@ -86,7 +86,8 @@ JPULSE_DOMAIN_NAME=%DOMAIN_NAME%
 **Existing Reverse Proxy (e.g., Apache httpd)**:
 1. Skip nginx installation during `sudo npx jpulse setup`
 2. Configure your proxy to forward to `http://localhost:%PORT%/`
-3. Set `trustProxy: true` in `site/webapp/app.conf`
+3. Confirm `middleware.trustProxy: true` in `site/webapp/app.conf` (already set by default -
+   only relevant here if you changed or removed it)
 
 **External Database**:
 1. Skip `npx jpulse mongodb-setup`
@@ -284,7 +285,7 @@ See the [Configuration Files](#configuration-files) table below and [Installatio
  * @site            %SITE_NAME%
  * @generated       %GENERATION_DATE%
  * @file            templates/deploy/README.md
- * @release         2026-07-31
+ * @release         2026-08-02
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

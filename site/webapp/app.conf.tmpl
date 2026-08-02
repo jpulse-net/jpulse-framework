@@ -6,8 +6,8 @@
  *                  For secrets (session secret, DB passwords, Redis passwords) and
  *                  deployment mode, see site/webapp/app-secret.conf.tmpl
  * @file            site/webapp/app.conf.tmpl
- * @version         1.7.6
- * @release         2026-07-31
+ * @version         1.7.7
+ * @release         2026-08-02
  * @author          Site Administrator
  * @copyright       2025 Site Administrator
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
@@ -58,6 +58,12 @@
     // Dev-safe session secret — overridden in app-secret.conf for production
     // This placeholder allows npm start to work in dev without any extra setup
     middleware: {
+        // W-203: a standard production deployment terminates TLS at nginx and forwards plain
+        // HTTP, so req.protocol/req.ip/req.secure need this to read the real client-facing
+        // values from nginx's X-Forwarded-* headers instead. Safe for dev too, since a local
+        // npm start instance isn't normally exposed directly to untrusted clients - set to
+        // false here if yours is.
+        trustProxy: true,
         session: {
             secret:     'dev-only-insecure-do-not-use-in-production',
             touchAfter: 3600    // session touch interval in seconds

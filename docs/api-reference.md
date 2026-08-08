@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.7.8
+# jPulse Docs / REST API Reference v1.7.9
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -68,11 +68,14 @@ AuthController.userIsAuthorized(user, roleOrRoles) // roleOrRoles: string or arr
 - `POST /api/1/auth/login` - User login
 - `GET /api/1/auth/status` - Session authentication status (zero DB queries)
 - `GET /api/1/health/status` - System health check
+- `GET /api/1/user/email-verify/confirm` - Email verification link (token proves identity on its own)
 
 #### Authenticated Endpoints (Login Required)
 - `GET /api/1/user/profile` - User profile access
 - `PUT /api/1/user/profile` - Profile updates
 - `PUT /api/1/user/password` - Password changes
+- `POST /api/1/user/email-verify` - Verify email with code
+- `POST /api/1/user/email-verify/send` - Resend email verification
 - `POST /api/1/auth/logout` - User logout
 
 #### Admin Endpoints (Admin/Root Roles Required)
@@ -484,7 +487,44 @@ Designed as a lightweight polling endpoint (e.g. to detect session expiry after 
 }
 ```
 
-> **Note:** Always returns HTTP 200. Use `data.authenticated` to determine session state, not the HTTP status code.
+#### Pending Auth Status
+Poll a mid-login `pendingAuth` session for "has the current step completed elsewhere" — e.g. an
+email-verify link clicked on another device/tab while this one waits. Deliberately a separate
+endpoint from `POST /api/1/auth/login`: a poll guesses no secret, so it shouldn't share that
+endpoint's per-IP credential-guessing rate limit or nginx's stricter `login` zone (see
+[Rate Limiting](security-and-auth.md#rate-limiting)) with real login attempts.
+
+**Route:** `GET /api/1/auth/pending-status`
+**Middleware:** None (public endpoint)
+**Authentication:** Not required
+
+**Response — already authenticated (200):** `{ "success": true, "nextStep": null, "warnings": [] }`.
+Checked first, before `req.session.pendingAuth` — covers a same-session second tab/window (shares
+the session cookie) whose login was already completed elsewhere, e.g. by clicking the confirm link
+there. Without this check the poll would otherwise see no `pendingAuth` (already consumed by the
+other tab) and misreport `NO_PENDING_AUTH`. `warnings` (e.g. an MFA-not-enabled nag) is drained
+from `session.pendingWarnings` — this tab's own request never ran the login-completing code that
+produced them, so this session-side stash is the only way it can learn about them at all.
+
+**Response — still waiting (200):**
+```json
+{
+    "success": true,
+    "nextStep": "email-verify",
+    "page": "/auth/email-verify.shtml",
+    "email": "ja***@example.com"
+}
+```
+
+**Response — step completed, another step follows (200):** same `{ nextStep, page, ...data }`
+shape as `POST /api/1/auth/login`'s step-advance response.
+
+**Response — all steps complete (200):** same shape as a completed `POST /api/1/auth/login` (login
+finishes: session created, `nextStep` absent).
+
+**Error Responses:**
+- **400**: No pending auth in this session (`NO_PENDING_AUTH`), or the pendingAuth window expired (`AUTH_EXPIRED` — see [Email Verification](security-and-auth.md#email-verification))
+- **500**: Internal server error
 
 ### User Profile Management
 
@@ -609,7 +649,7 @@ Update user profile information and preferences. Supports flexible user identifi
 
 Notes:
 - `email` is normalized to lowercase before every read/write/comparison and is backed by a real database-level unique index (as is `username`); attempting to set it to an already-registered address returns a 409.
-- `emailVerified` is admin-only and defaults to `false` for new signups; a missing value on pre-existing accounts is treated as verified.
+- `emailVerified`/`emailVerifiedAt` are admin-only; `emailVerified` defaults to `false` for new signups (accounts predating this field are backfilled once to `true`/`emailVerifiedAt: null`, i.e. grandfathered — see [Security & Authentication — Email Verification](security-and-auth.md#email-verification)). If an admin changes `email` without also explicitly sending `emailVerified: true` in the same request, both fields are reset (`false`/`null`) and the response includes `emailVerifiedReset: true` — see that same section for the full behavior and the notices sent.
 
 **Response (200):**
 ```json
@@ -754,6 +794,107 @@ Create new user account with validation.
 - **400**: Missing required fields, password mismatch, or terms not accepted
 - **409**: Username or email already exists
 - **422**: Validation errors (weak password, invalid email format)
+
+**Email verification:** depending on `appConfig.controller.user.emailVerification` (`'off'` /
+`'nag'` / `'required'`), a new signup may be auto-sent a verification email right after account
+creation — see [Security & Authentication — Email Verification](security-and-auth.md#email-verification)
+and the endpoints below.
+
+### Email Verification
+
+See [Security & Authentication — Email Verification](security-and-auth.md#email-verification) for
+the policy modes (`'off'` / `'nag'` / `'required'`), the SMTP degrade safety valve, grandfathered
+accounts, and the admin email-change reset behavior these endpoints support.
+
+#### Confirm via Link
+Completes verification from the link mailed to the user. Never returns JSON — always redirects.
+
+**Route:** `GET /api/1/user/email-verify/confirm?token=...`
+**Middleware:** None (public endpoint — the token itself proves identity)
+**Authentication:** Not required
+
+**Redirect behavior:**
+- Invalid or already-consumed token → `/auth/email-verify.shtml?status=invalid`
+- Expired token → `/auth/email-verify.shtml?status=expired`
+- Valid token, but no matching `email-verify` step waiting in *this* browser's session (e.g.
+  opened on another device, or the user already has an active session) → `/auth/email-verify.shtml?status=verified`
+- Valid token, and this browser has a matching login in progress waiting on the `email-verify`
+  step → advances that login: redirects to the next required step's page, or — if verification was
+  the last remaining step — completes the session and redirects to the original destination
+  (`session.pendingAuth.redirect`, or `/` if none)
+
+If the link is opened on a *different* device/tab than the one waiting mid-login, the waiting tab
+learns of the completed verification via its own background poll — see
+[Pending Auth Status](#pending-auth-status) above. If it's opened in a *different tab/window that
+shares the same session cookie* (e.g. two tabs of the same browser profile), that same poll picks
+up the completed login too, via the "already authenticated" check described above.
+
+Any post-login warnings (e.g. an MFA-not-enabled nag) are carried across the final redirect as a
+base64-encoded `toasts` query param via `CommonUtils.appendToastsToUrl()` — a plain `302` has no
+JSON body for the client to read them from the way `POST /api/1/auth/login`'s response does. The
+`toasts` param is decoded, shown, and stripped from the address bar automatically on page load.
+
+#### Verify with Code
+Self-service verification by 6-digit code (e.g. `'nag'` mode, or a session that outlived an
+admin-driven reset). For the blocking login-flow step, use the existing multi-step
+`POST /api/1/auth/login` endpoint's `{ step: 'email-verify', code }` payload instead — this
+endpoint is for an already-authenticated session with no `pendingAuth` to ride.
+
+**Route:** `POST /api/1/user/email-verify`
+**Middleware:** `AuthController.requireAuthentication`
+**Authentication:** Required
+
+**Request Body:**
+```json
+{
+    "code": "123456"
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Email address verified successfully",
+    "elapsed": 12
+}
+```
+
+**Error Responses:**
+- **400**: Missing code (`MISSING_CODE`), wrong or malformed code (`EMAIL_VERIFY_INVALID_CODE`),
+  or expired code (`EMAIL_VERIFY_EXPIRED`)
+- **429**: Too many attempts (`EMAIL_VERIFY_RATE_LIMITED` — see [Rate Limiting](security-and-auth.md#rate-limiting)); response includes `retryAfter` (seconds)
+
+#### Resend Verification Email
+Resends the verification email (self-service). Also the underlying primitive used to auto-issue
+the very first email at signup and at the login-flow `email-verify` step.
+
+**Route:** `POST /api/1/user/email-verify/send`
+**Middleware:** `AuthController.requireAuthentication`
+**Authentication:** Required
+
+**Success Response (200) — email sent:**
+```json
+{
+    "success": true,
+    "message": "Verification email sent",
+    "email": "ja***@example.com",
+    "elapsed": 8
+}
+```
+
+**Success Response (200) — already verified (no email sent):**
+```json
+{
+    "success": true,
+    "alreadyVerified": true,
+    "message": "This email address is already verified"
+}
+```
+
+**Error Responses:**
+- **404**: User not found (`USER_NOT_FOUND`)
+- **429**: Too many resend requests (`EMAIL_VERIFY_RATE_LIMITED` — see [Rate Limiting](security-and-auth.md#rate-limiting)); response includes `retryAfter` (seconds)
 
 ### Administrative User Management
 

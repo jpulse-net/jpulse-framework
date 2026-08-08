@@ -3,13 +3,13 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.14, Claude Sonnet 5
  */
 
 import UserModel from '../model/user.js';
@@ -87,7 +87,11 @@ class UserController {
                 },
                 roles: ['user'], // Default role for new users
                 preferences: {
-                    language: 'en',
+                    // W-205: was hardcoded to 'en' - on a non-English site this stamped every
+                    // signup English, which then drove their verification email, nag toasts,
+                    // and whole UI until they changed it by hand (theme, just below, already
+                    // read from config correctly)
+                    language: global.appConfig?.utils?.i18n?.default || 'en',
                     theme: (() => {
                         const raw = String(global.appConfig?.utils?.theme?.default || 'light');
                         return /^[a-zA-Z0-9_-]+$/.test(raw) ? raw : 'light';
@@ -108,6 +112,17 @@ class UserController {
                 wasCreate: true,
                 wasSignup: true
             });
+
+            // W-205: 'off' mode offers no verification path anywhere, signup included (see the
+            // Policy Semantics table) - only 'nag' and 'required' send. On-demand, not
+            // speculative (see issueEmailVerification()'s own doc comment): the user just acted
+            // and is expecting mail, so on-demand and immediate coincide here. Never fails
+            // signup: issueEmailVerification() already logs and swallows send errors internally,
+            // and the verify step self-heals on next arrival if this attempt failed.
+            const emailVerifyPolicy = UserModel.getEmailVerificationPolicy();
+            if (emailVerifyPolicy !== 'off') {
+                await UserModel.issueEmailVerification(req, newUser);
+            }
 
             const message = global.i18n.translate(req, 'controller.user.signup.accountCreated');
             res.status(201).json({
@@ -226,6 +241,190 @@ class UserController {
                 return global.CommonUtils.sendError(req, res, 400, message, 'PASSWORD_POLICY_ERROR', error.message);
             }
             const message = global.i18n.translate(req, 'controller.user.password.internalError', { details: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
+     * Confirm email verification via link token (no session required - W-205 call site 2)
+     * GET /api/1/user/email-verify/confirm?token=...
+     *
+     * Always redirects, never returns JSON - a mail client/scanner following this link expects
+     * a page, not an API response, and redirecting also lets us strip the single-use token from
+     * the URL immediately (it must never survive into browser history/Referer beyond this hit).
+     *
+     * If this request's session carries a `pendingAuth` for the SAME user, mid-'email-verify'
+     * step (i.e. this is the same browser that started the login), completes that step and
+     * continues/finishes the login with a 302 straight to `pending.redirect` - one click, fully
+     * logged in. Otherwise (another device, an already-authenticated session, or the link
+     * arrived outside any active login attempt) just flips the flag and lands on the shared
+     * verify page's status display - `pendingAuth`, if any, belongs to a *different* user in
+     * that case and must not be touched.
+     *
+     * Any post-login warnings (e.g. the MFA nag) from _completeLoginSession() are carried
+     * across this 302 via CommonUtils.appendToastsToUrl() - this is a plain redirect, not the
+     * AJAX login() response the client normally reads warnings/toasts from.
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async confirmEmailVerify(req, res) {
+        const startTime = Date.now();
+        try {
+            LogController.logRequest(req, 'user.confirmEmailVerify', '');
+
+            const verifyResult = await UserModel.verifyEmailByToken(req, req.query.token);
+
+            if (!verifyResult.success) {
+                LogController.logError(req, 'user.confirmEmailVerify', `error: ${verifyResult.errorCode}`);
+                const status = verifyResult.errorCode === 'EMAIL_VERIFY_EXPIRED' ? 'expired' : 'invalid';
+                return res.redirect(`/auth/email-verify.shtml?status=${status}`);
+            }
+
+            const pending = req.session.pendingAuth;
+            const verifiedUserId = verifyResult.user._id.toString();
+            const remainingSteps = pending
+                ? pending.requiredSteps?.filter(s => !pending.completedSteps.includes(s))
+                : [];
+
+            if (pending && pending.userId === verifiedUserId && remainingSteps[0] === 'email-verify') {
+                pending.completedSteps.push('email-verify');
+
+                const requiredSteps = await AuthController._getRequiredSteps(req, verifyResult.user, pending.completedSteps);
+                if (requiredSteps.length > 0) {
+                    const nextStep = requiredSteps[0];
+                    pending.requiredSteps = [...pending.completedSteps, ...requiredSteps.map(s => s.step)];
+                    req.session.pendingAuth = pending;
+
+                    LogController.logInfo(req, 'user.confirmEmailVerify',
+                        `success: email verified via link for ${pending.username}, next step: ${nextStep.step}`);
+
+                    const nextPage = nextStep.page || '/auth/login.shtml';
+                    const redirectParam = pending.redirect ? `?redirect=${encodeURIComponent(pending.redirect)}` : '';
+                    return res.redirect(`${nextPage}${redirectParam}`);
+                }
+
+                // All steps complete - finish login and land on the original destination.
+                // Re-validated defensively even though it was already validated once when
+                // written into pending.redirect (login()'s credentials step) - cheap, and
+                // pending is server-side session state an attacker cannot directly edit, but
+                // there is no reason for this, the one place that actually issues the 302, to
+                // rely solely on a check made a step earlier.
+                const { warnings } = await AuthController._completeLoginSession(
+                    req, verifyResult.user, pending.authMethod, startTime
+                );
+                const destination = global.CommonUtils.isSafeRedirectUrl(req, pending.redirect) ? pending.redirect : '/';
+
+                LogController.logInfo(req, 'user.confirmEmailVerify',
+                    `success: email verified via link, login completed for ${verifyResult.user.username}`);
+                return res.redirect(global.CommonUtils.appendToastsToUrl(destination, warnings));
+            }
+
+            // No matching in-progress login in this browser - land on the shared verify page,
+            // which shows a "you're verified, you can continue" state for this case
+            LogController.logInfo(req, 'user.confirmEmailVerify',
+                `success: email verified via link for ${verifyResult.user.username} (no matching pendingAuth)`);
+            return res.redirect('/auth/email-verify.shtml?status=verified');
+
+        } catch (error) {
+            LogController.logError(req, 'user.confirmEmailVerify', `error: ${error.message}`);
+            return res.redirect('/auth/email-verify.shtml?status=invalid');
+        }
+    }
+
+    /**
+     * Verify email via 6-digit code (authenticated self-service - W-205 call site 3)
+     * POST /api/1/user/email-verify   { code }
+     * For 'nag' mode (login already succeeded, unverified) or a session that outlived an
+     * admin-driven reset - a logged-in user has no `pendingAuth` to ride, unlike the
+     * blocking-step path in AuthController.login().
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async emailVerify(req, res) {
+        const startTime = Date.now();
+        try {
+            LogController.logRequest(req, 'user.emailVerify', '');
+
+            const { code } = req.body;
+            if (!code) {
+                LogController.logError(req, 'user.emailVerify', 'error: code is required');
+                const message = global.i18n.translate(req, 'controller.user.emailVerify.codeRequired');
+                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_CODE');
+            }
+
+            const verifyResult = await UserModel.verifyEmailByCode(req, req.session.user.id, code);
+            if (!verifyResult.success) {
+                LogController.logError(req, 'user.emailVerify', `error: ${verifyResult.errorCode}`);
+                const messageKey = verifyResult.errorCode === 'EMAIL_VERIFY_RATE_LIMITED' ? 'controller.auth.emailVerifyRateLimited'
+                    : verifyResult.errorCode === 'EMAIL_VERIFY_EXPIRED' ? 'controller.auth.emailVerifyExpired'
+                        : 'controller.auth.emailVerifyInvalidCode';
+                const status = verifyResult.errorCode === 'EMAIL_VERIFY_RATE_LIMITED' ? 429 : 400;
+                return res.status(status).json({
+                    success: false,
+                    error: global.i18n.translate(req, messageKey),
+                    code: verifyResult.errorCode,
+                    retryAfter: verifyResult.retryAfter
+                });
+            }
+
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'user.emailVerify',
+                `success: ${req.session.user.username}, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.user.emailVerify.success');
+            return res.json({ success: true, message, elapsed });
+
+        } catch (error) {
+            LogController.logError(req, 'user.emailVerify', `error: ${error.message}`);
+            const message = global.i18n.translate(req, 'controller.user.emailVerify.internalError', { details: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
+     * Send/resend email verification (authenticated self-service - W-205 call site 3)
+     * POST /api/1/user/email-verify/send
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async emailVerifySend(req, res) {
+        const startTime = Date.now();
+        try {
+            LogController.logRequest(req, 'user.emailVerifySend', '');
+
+            const user = await UserModel.findById(req.session.user.id);
+            if (!user) {
+                LogController.logError(req, 'user.emailVerifySend', `error: user not found for session ID: ${req.session.user.id}`);
+                const message = global.i18n.translate(req, 'controller.user.password.userNotFound');
+                return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
+            }
+
+            // Nothing to do if a since-elsewhere verification (or an admin ticking the
+            // checkbox) already resolved this - avoid sending mail that would only confuse
+            if (user.emailVerified !== false) {
+                LogController.logInfo(req, 'user.emailVerifySend', `success: ${user.username} already verified, no email sent`);
+                const message = global.i18n.translate(req, 'controller.user.emailVerify.alreadyVerified');
+                return res.json({ success: true, alreadyVerified: true, message });
+            }
+
+            const issueResult = await UserModel.issueEmailVerification(req, user);
+            if (!issueResult.success) {
+                LogController.logError(req, 'user.emailVerifySend', `error: ${issueResult.errorCode}`);
+                return res.status(429).json({
+                    success: false,
+                    error: global.i18n.translate(req, 'controller.auth.emailVerifyRateLimited'),
+                    code: issueResult.errorCode,
+                    retryAfter: issueResult.retryAfter
+                });
+            }
+
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'user.emailVerifySend', `success: ${user.username}, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.user.emailVerify.sendSuccess');
+            return res.json({ success: true, message, email: global.CommonUtils.maskEmail(user.email), elapsed });
+
+        } catch (error) {
+            LogController.logError(req, 'user.emailVerifySend', `error: ${error.message}`);
+            const message = global.i18n.translate(req, 'controller.user.emailVerify.internalError', { details: error.message });
             return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
@@ -721,6 +920,11 @@ class UserController {
                 return global.CommonUtils.sendError(req, res, 400, message, 'NO_UPDATE_DATA');
             }
 
+            // W-205: set below when an admin's email change resets emailVerified, so the
+            // post-update block knows to send the two notices (declared here, outside the
+            // isAdmin block, since it's read again after UserModel.updateById() succeeds)
+            let emailChangeReset = false;
+
             // Admin-only validations
             if (isAdmin) {
                 // Check if email is being changed and validate uniqueness
@@ -730,6 +934,20 @@ class UserController {
                         LogController.logError(req, 'user.update', `error: email already exists: ${filteredData.email}`);
                         const message = global.i18n.translate(req, 'controller.user.update.emailExists');
                         return global.CommonUtils.sendError(req, res, 409, message, 'EMAIL_EXISTS');
+                    }
+
+                    // W-205: an admin typing an address supplies a belief, never proof of inbox
+                    // ownership - reset unless this same request explicitly asserts emailVerified
+                    // === true. The admin user-profile page always submits the checkbox's current
+                    // state (not just when touched), so gating on "!== true" - rather than
+                    // "undefined" - covers both that UI (checkbox left/set checked = explicit
+                    // override) and direct API callers that omit the field entirely (also resets,
+                    // preserving prior behavior there). "Trust the admin" stays available, but as
+                    // a conscious, logged act rather than an invisible default.
+                    if (updateData.emailVerified !== true) {
+                        filteredData.emailVerified = false;
+                        filteredData.emailVerifiedAt = null;
+                        emailChangeReset = true;
                     }
                 }
 
@@ -789,6 +1007,18 @@ class UserController {
             // Log the update
             await LogController.logChange(req, 'user', 'update', req.session.user.username, currentUser, updatedUser);
 
+            // W-205: notify both addresses when this save reset emailVerified above - informative-
+            // only to the new address (no credential; the real one is issued on demand at the
+            // verify step), security alert to the old address so the legitimate owner has a
+            // signal if the change was malicious rather than clerical. Skipped entirely when the
+            // admin explicitly kept/set emailVerified in the same save (trusted, logged override).
+            if (emailChangeReset) {
+                await UserModel.sendEmailChangedNotice(req, updatedUser);
+                await UserModel.sendEmailChangedAlert(req, updatedUser, currentUser.email);
+                LogController.logInfo(req, 'user.update',
+                    `email changed for ${updatedUser.username} by admin ${req.session.user.username}: emailVerified reset, notices sent to new and old address`);
+            }
+
             // Update session data if updating self
             if (isUpdatingSelf) {
                 AuthController.updateUserSession(req, updatedUser);
@@ -804,6 +1034,7 @@ class UserController {
                 success: true,
                 data: userProfile,
                 message: message,
+                emailVerifiedReset: emailChangeReset, // W-205: lets the admin UI toast an explanation
                 elapsed
             });
 

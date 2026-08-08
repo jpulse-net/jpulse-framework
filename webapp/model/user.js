@@ -3,17 +3,18 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.14, Claude Sonnet 5
  */
 
 import database from '../database.js';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import { ObjectId } from 'mongodb';
 import CommonUtils from '../utils/common.js';
 
@@ -57,14 +58,18 @@ class UserModel {
         // synthetic/unknown passwordHash; changePassword() resets it to true on success.
         // Default true + absent-reads-as-true means no migration/backfill is needed.
         hasLocalPassword: { type: 'boolean', default: true },
-        // W-198: has this user's email address actually been verified? Absent (every account
-        // that existed before this field was introduced) reads as verified/grandfathered - only
-        // an explicit `false` (set by applyDefaults() below for every brand-new signup going
-        // forward) means "not yet verified". No migration/backfill needed. A future work item
-        // will add the actual send/verify flow that can flip this to true; until then it's a
-        // secure-by-default primitive that closes the auth-oauth pre-linking account-takeover
-        // (see W-198) by the mere existence of this field.
+        // W-198/W-205: has this user's email address actually been verified? false for every
+        // brand-new signup going forward (stamped by applyDefaults() below). Accounts that
+        // predate this field are backfilled once, at startup, from absent to true (see
+        // ensureIndexes()) rather than left absent - emailVerifiedAt (below) is what
+        // distinguishes that grandfathered true from a genuinely proven one.
         emailVerified: { type: 'boolean', default: false },
+        // W-205: when emailVerified was actually PROVEN true, vs. merely defaulted/backfilled
+        // to true. null for every account that has never completed issueEmailVerification()'s
+        // verify step - including grandfathered accounts backfilled by ensureIndexes() below.
+        // Stamped only by _completeEmailVerification() on real proof of inbox ownership, so
+        // `emailVerified: true, emailVerifiedAt: null` unambiguously means grandfathered.
+        emailVerifiedAt: { type: 'date', default: null },
         lastLogin: { type: 'date', default: null },
         loginCount: { type: 'number', default: 0 },
         createdAt: { type: 'date', auto: true },
@@ -455,8 +460,9 @@ class UserModel {
 
         // W-198: applyDefaults() is only called from create() (new documents), so this
         // explicitly stamps every brand-new signup with emailVerified: false - pre-existing
-        // documents are never touched by this method and stay absent/grandfathered (see
-        // baseSchema comment above)
+        // documents predating this field are left untouched here; they're backfilled once,
+        // at startup, to emailVerified: true/emailVerifiedAt: null instead (see ensureIndexes(),
+        // W-205)
         if (result.emailVerified === undefined) result.emailVerified = false;
 
         return result;
@@ -968,6 +974,22 @@ class UserModel {
                     `info: backfilled ${mixedCase.length} user document(s) with mixed-case email to lowercase (W-198)`);
             }
 
+            // W-205: one-time, one-directional backfill - normalize the "absent" emailVerified
+            // state (which meant verified/grandfathered per W-198's convention) into an explicit
+            // true, with emailVerifiedAt: null preserving that this was grandfathered rather
+            // than actually proven. Safe on every startup: matches only documents where the
+            // field does not exist at all, so after the first pass nothing matches and
+            // re-running is a no-op. The opposite direction (explicit false -> true/absent) is
+            // deliberately never done here - see W-205 design doc for why that would be unsafe.
+            const emailVerifiedBackfill = await collection.updateMany(
+                { emailVerified: { $exists: false } },
+                { $set: { emailVerified: true, emailVerifiedAt: null } }
+            );
+            if (emailVerifiedBackfill.modifiedCount > 0) {
+                global.LogController?.logInfo(null, 'user.ensureIndexes',
+                    `info: backfilled ${emailVerifiedBackfill.modifiedCount} user document(s) with absent emailVerified to true/grandfathered (W-205)`);
+            }
+
             // Create unique indexes on email and username, skipping (not crashing) when
             // pre-existing duplicates are found
             for (const field of ['email', 'username']) {
@@ -1056,6 +1078,296 @@ class UserModel {
         } catch (error) {
             throw new Error(`Failed to update user: ${error.message}`);
         }
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // W-205: Email verification primitives. One place that knows how the link token and the
+    // 6-digit code work; the auth controller (blocking login step) and the user controller
+    // (link click, authenticated self-service, signup) all call these rather than duplicating
+    // token/code handling. See docs/dev/design/W-205-auth-email-confirmation.md.
+    // ---------------------------------------------------------------------------------------
+
+    // Verification secrets are hashed for storage-convention consistency (not for brute-force
+    // resistance - that comes from the rate limiters below), so a lower cost than password
+    // hashing (12) is fine and keeps interactive verify-code checks fast.
+    static EMAIL_VERIFY_BCRYPT_ROUNDS = 10;
+
+    /**
+     * The effective controller.user.emailVerification policy - live-degraded from 'required' to
+     * 'nag' whenever EmailController isn't actually able to send mail, so a site can never lock
+     * every new signup out of their own account just because 'required' was configured before
+     * SMTP was set up (or SMTP later breaks). Evaluated fresh on every call, not frozen at
+     * bootstrap, so fixing SMTP resumes 'required' enforcement immediately, with no restart -
+     * see the loud (but non-mutating) startup warning this pairs with,
+     * checkEmailVerificationSafety() in webapp/utils/bootstrap.js. All three call sites that
+     * gate on this policy (webapp/controller/auth.js x2, webapp/controller/user.js's signup) use
+     * this instead of reading global.appConfig directly, so there is exactly one place the
+     * degrade rule lives.
+     * @returns {'off'|'nag'|'required'} The effective policy
+     */
+    static getEmailVerificationPolicy() {
+        const configured = global.appConfig?.controller?.user?.emailVerification || 'required';
+        if (configured === 'required' && !global.EmailController?.isConfigured()) {
+            return 'nag';
+        }
+        return configured;
+    }
+
+    /**
+     * Whether a currently-valid (unexpired) verification credential - link token or code -
+     * already exists for this user. Callers deciding whether to auto-issue on arrival at the
+     * verify step (rather than on an explicit signup/resend) should check this first, so a user
+     * who merely reloads or polls the verify page doesn't get a fresh email on every visit.
+     * @param {string|ObjectId} userId - User ID
+     * @returns {Promise<boolean>} True if a link and/or code is still valid
+     */
+    static async hasValidEmailVerification(userId) {
+        const id = userId.toString();
+        const [linkHash, codeHash] = await Promise.all([
+            global.RedisManager.cacheGetToken('controller:user:emailVerifyLink', id),
+            global.RedisManager.cacheGetToken('controller:user:emailVerifyCode', id)
+        ]);
+        return !!(linkHash || codeHash);
+    }
+
+    /**
+     * Issue a fresh verification link token + 6-digit code, store both (bcrypt-hashed) in
+     * Redis with their respective TTLs, and email them to the user. Always issues and sends,
+     * subject only to the send rate limit - callers wanting the "only if none is currently
+     * valid" behavior (auto-issue on arrival at the verify step) must check
+     * hasValidEmailVerification() themselves before calling this.
+     *
+     * The link token embeds the user ID (`<userId>.<secret>`) because the confirm route
+     * (`GET /api/1/user/email-verify/confirm?token=`) has no session and no other way to know
+     * which account a bare secret belongs to; only the secret half is ever hashed/stored.
+     *
+     * A send failure (no SMTP, transport error) is logged but does NOT throw - the stored
+     * credential is still valid and the user can retry via resend, or the send self-heals the
+     * next time issueEmailVerification() runs for this account.
+     *
+     * @param {object} req - Express request object (for building the verify URL, and for
+     *   template/i18n expansion context)
+     * @param {object} user - User document (must include _id, email; profile/preferences used
+     *   for personalization and recipient-language selection)
+     * @returns {Promise<object>} { success, errorCode, retryAfter } - errorCode/retryAfter set only on failure
+     */
+    static async issueEmailVerification(req, user) {
+        const userId = user._id.toString();
+
+        // Sends (signup, resend, auto-issue): 3 per 10 minutes per account
+        const rateLimit = await global.RedisManager.cacheCheckRateLimit(
+            'controller:user:emailVerifySend', userId, { limit: 3, windowSeconds: 600 }
+        );
+        if (!rateLimit.allowed) {
+            return { success: false, errorCode: 'EMAIL_VERIFY_RATE_LIMITED', retryAfter: rateLimit.retryAfter };
+        }
+
+        // Link: 32 random bytes, base64url, 24h TTL. Code: 6 digits, 30m TTL. Either satisfies
+        // verification; the first successful use invalidates both (_completeEmailVerification()).
+        const secret = crypto.randomBytes(32).toString('base64url');
+        const linkToken = `${userId}.${secret}`;
+        const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+
+        const [secretHash, codeHash] = await Promise.all([
+            bcrypt.hash(secret, this.EMAIL_VERIFY_BCRYPT_ROUNDS),
+            bcrypt.hash(code, this.EMAIL_VERIFY_BCRYPT_ROUNDS)
+        ]);
+        await Promise.all([
+            global.RedisManager.cacheSetToken('controller:user:emailVerifyLink', userId, secretHash, 86400),
+            global.RedisManager.cacheSetToken('controller:user:emailVerifyCode', userId, codeHash, 1800)
+        ]);
+
+        try {
+            const verifyUrl = `${req.protocol}://${req.get('host')}/api/1/user/email-verify/confirm` +
+                `?token=${encodeURIComponent(linkToken)}`;
+
+            // Dynamic import avoids a static circular import: email.js -> handlebar.js ->
+            // auth.js -> this file. By the time this method runs (well after bootstrap), all
+            // modules are already loaded, so this resolves immediately.
+            const { default: EmailController } = await import('../controller/email.js');
+            const sendResult = await EmailController.sendEmailFromTranslation(req, {
+                user,
+                key: 'model.user.emailVerify',
+                context: { firstName: user.profile?.firstName || '', verifyUrl, code }
+            });
+
+            if (!sendResult.success) {
+                global.LogController?.logError(req, 'user.issueEmailVerification',
+                    `error: failed to send verification email to ${CommonUtils.maskEmail(user.email)}: ${sendResult.error}`);
+            }
+        } catch (error) {
+            global.LogController?.logError(req, 'user.issueEmailVerification',
+                `error: failed to send verification email: ${error.message}`);
+        }
+
+        return { success: true, errorCode: null };
+    }
+
+    /**
+     * W-205: Informative-only notice to the NEW address after an admin's email change reset
+     * emailVerified (see UserController.update()). Carries no credential and nothing that can
+     * expire - the real verification credential is issued on demand the next time this account
+     * reaches the verify step (see issueEmailVerification()'s doc comment on "issue on demand").
+     * A send failure is logged but never throws - this is a courtesy notice, not a blocking
+     * security control, unlike the verification email itself.
+     * @param {object} req - Express request object (for i18n/template expansion context)
+     * @param {object} user - User document with the NEW email already saved
+     * @returns {Promise<void>}
+     */
+    static async sendEmailChangedNotice(req, user) {
+        try {
+            const { default: EmailController } = await import('../controller/email.js');
+            const sendResult = await EmailController.sendEmailFromTranslation(req, {
+                user,
+                key: 'model.user.emailChangedNotice',
+                context: { firstName: user.profile?.firstName || '' }
+            });
+
+            if (!sendResult.success) {
+                global.LogController?.logError(req, 'user.sendEmailChangedNotice',
+                    `error: failed to send to ${CommonUtils.maskEmail(user.email)}: ${sendResult.error}`);
+            }
+        } catch (error) {
+            global.LogController?.logError(req, 'user.sendEmailChangedNotice', `error: ${error.message}`);
+        }
+    }
+
+    /**
+     * W-205: Security alert to the OLD address after an admin changes a user's email - the only
+     * channel that reaches the legitimate owner if the change was malicious rather than clerical
+     * (a typo onto an unrelated real mailbox is harmless: that stranger gets only this heads-up,
+     * and can't verify an address they don't control). Carries no credential. Never throws.
+     * @param {object} req - Express request object
+     * @param {object} user - User document with the NEW email already saved (masked for the alert)
+     * @param {string} oldEmail - The address being notified (no longer on the user document)
+     * @returns {Promise<void>}
+     */
+    static async sendEmailChangedAlert(req, user, oldEmail) {
+        try {
+            const { default: EmailController } = await import('../controller/email.js');
+            const sendResult = await EmailController.sendEmailFromTranslation(req, {
+                user,
+                to: oldEmail, // W-205: recipient is the OLD address, but language still follows the account
+                key: 'model.user.emailChangedAlert',
+                context: {
+                    firstName: user.profile?.firstName || '',
+                    maskedNewEmail: CommonUtils.maskEmail(user.email)
+                }
+            });
+
+            if (!sendResult.success) {
+                global.LogController?.logError(req, 'user.sendEmailChangedAlert',
+                    `error: failed to send to ${CommonUtils.maskEmail(oldEmail)}: ${sendResult.error}`);
+            }
+        } catch (error) {
+            global.LogController?.logError(req, 'user.sendEmailChangedAlert', `error: ${error.message}`);
+        }
+    }
+
+    /**
+     * Verify by link token (no session required - the click may happen on any device).
+     * @param {object} req - Express request object (for logging)
+     * @param {string} token - Token from the confirm link, format `<userId>.<secret>`
+     * @returns {Promise<object>} { success, errorCode, user } - user (without passwordHash) set only on success
+     */
+    static async verifyEmailByToken(req, token) {
+        if (typeof token !== 'string' || !token.includes('.')) {
+            return { success: false, errorCode: 'EMAIL_VERIFY_INVALID_TOKEN', user: null };
+        }
+
+        const dotIndex = token.indexOf('.');
+        const userId = token.slice(0, dotIndex);
+        const secret = token.slice(dotIndex + 1);
+
+        if (!ObjectId.isValid(userId) || !secret) {
+            return { success: false, errorCode: 'EMAIL_VERIFY_INVALID_TOKEN', user: null };
+        }
+
+        const storedHash = await global.RedisManager.cacheGetToken('controller:user:emailVerifyLink', userId);
+        if (!storedHash) {
+            return { success: false, errorCode: 'EMAIL_VERIFY_EXPIRED', user: null };
+        }
+
+        const isValid = await bcrypt.compare(secret, storedHash);
+        if (!isValid) {
+            return { success: false, errorCode: 'EMAIL_VERIFY_INVALID_TOKEN', user: null };
+        }
+
+        return await this._completeEmailVerification(req, userId);
+    }
+
+    /**
+     * Verify by 6-digit code (authenticated self-service, or the waiting tab mid-login).
+     * @param {object} req - Express request object (for logging)
+     * @param {string|ObjectId} userId - User ID the code was issued to
+     * @param {string} code - 6-digit code as entered by the user
+     * @returns {Promise<object>} { success, errorCode, retryAfter, user } - user (without passwordHash) set only on success
+     */
+    static async verifyEmailByCode(req, userId, code) {
+        const id = userId.toString();
+
+        // Wrong-code attempts: 5 per 15 minutes per account. Checked (and incremented) before
+        // the comparison, so it bounds guesses regardless of outcome - brute-force resistance
+        // comes from this limiter, not from the code's 10^6 keyspace or the bcrypt hash.
+        const rateLimit = await global.RedisManager.cacheCheckRateLimit(
+            'controller:user:emailVerifyAttempt', id, { limit: 5, windowSeconds: 900 }
+        );
+        if (!rateLimit.allowed) {
+            return { success: false, errorCode: 'EMAIL_VERIFY_RATE_LIMITED', retryAfter: rateLimit.retryAfter, user: null };
+        }
+
+        const storedHash = await global.RedisManager.cacheGetToken('controller:user:emailVerifyCode', id);
+        if (!storedHash) {
+            return { success: false, errorCode: 'EMAIL_VERIFY_EXPIRED', user: null };
+        }
+
+        const isValid = await bcrypt.compare(String(code), storedHash);
+        if (!isValid) {
+            return { success: false, errorCode: 'EMAIL_VERIFY_INVALID_CODE', user: null };
+        }
+
+        return await this._completeEmailVerification(req, id);
+    }
+
+    /**
+     * Shared completion for both verify paths: flip emailVerified, stamp emailVerifiedAt with
+     * proof (never grandfathered-null once this runs), and invalidate both secrets so neither
+     * a leaked code nor a leaked link stays usable after either one succeeds.
+     * @param {object} req - Express request object (for logging)
+     * @param {string|ObjectId} userId - User ID
+     * @returns {Promise<object>} { success, errorCode, user }
+     * @private
+     */
+    static async _completeEmailVerification(req, userId) {
+        const user = await this.findById(userId);
+        if (!user) {
+            return { success: false, errorCode: 'EMAIL_VERIFY_INVALID_TOKEN', user: null };
+        }
+
+        const updatedUser = await this.updateById(userId, { emailVerified: true, emailVerifiedAt: new Date() });
+        await this._invalidateEmailVerification(userId);
+
+        global.LogController?.logInfo(req, 'user._completeEmailVerification',
+            `success: email verified for user ${user.username}`);
+
+        const { passwordHash, ...userWithoutPassword } = updatedUser;
+        return { success: true, errorCode: null, user: userWithoutPassword };
+    }
+
+    /**
+     * Delete both verification secrets (link + code) for a user - called on successful
+     * verification, so neither the just-used credential nor the other, unused one remains
+     * valid. Not called on expiry; TTLs handle that on their own.
+     * @param {string|ObjectId} userId - User ID
+     * @returns {Promise<void>}
+     * @private
+     */
+    static async _invalidateEmailVerification(userId) {
+        const id = userId.toString();
+        await Promise.all([
+            global.RedisManager.cacheDelToken('controller:user:emailVerifyLink', id),
+            global.RedisManager.cacheDelToken('controller:user:emailVerifyCode', id)
+        ]);
     }
 
     /**

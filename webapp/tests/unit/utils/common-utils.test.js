@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for CommonUtils
  * @description     Tests for common utility functions
  * @file            webapp/tests/unit/utils/common-utils.test.js
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -702,6 +702,42 @@ describe('CommonUtils', () => {
             expect(CommonUtils.slugifyString('你好世界')).toBe('');  // Chinese characters removed
             expect(CommonUtils.slugifyString('Привет')).toBe('');   // Cyrillic removed
             expect(CommonUtils.slugifyString('Hello 世界')).toBe('hello');  // Mixed: keep ASCII only
+        });
+    });
+
+    describe('appendToastsToUrl (W-205)', () => {
+        // Decode the way jpulse-common.js's dom.ready() bootstrap does, to prove round-tripping
+        const decodeToastsParam = (url) => {
+            const encoded = new URL(url, 'https://example.com').searchParams.get('toasts');
+            const binary = atob(encoded);
+            const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+            return JSON.parse(new TextDecoder().decode(bytes));
+        };
+
+        test('returns the url unchanged when there are no warnings', () => {
+            expect(CommonUtils.appendToastsToUrl('/dashboard', [])).toBe('/dashboard');
+            expect(CommonUtils.appendToastsToUrl('/dashboard', undefined)).toBe('/dashboard');
+            expect(CommonUtils.appendToastsToUrl('/dashboard', null)).toBe('/dashboard');
+        });
+
+        test('appends a toasts= query param that round-trips the warnings, including non-ASCII text', () => {
+            const warnings = [
+                { type: 'email-verify-nag', toastType: 'error', message: 'Bitte bestätigen Sie Ihre E-Mail-Adresse.', link: '/auth/email-verify.shtml', linkText: 'Jetzt bestätigen' }
+            ];
+
+            const result = CommonUtils.appendToastsToUrl('/dashboard', warnings);
+
+            expect(result).toMatch(/^\/dashboard\?toasts=/);
+            expect(decodeToastsParam(result)).toEqual(warnings);
+        });
+
+        test('uses "&" to append when the url already has a query string', () => {
+            const result = CommonUtils.appendToastsToUrl(
+                '/auth/mfa-verify.shtml?redirect=%2Fdashboard',
+                [{ toastType: 'info', message: 'hi' }]
+            );
+
+            expect(result).toMatch(/^\/auth\/mfa-verify\.shtml\?redirect=%2Fdashboard&toasts=/);
         });
     });
 });

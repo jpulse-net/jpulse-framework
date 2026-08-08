@@ -3,13 +3,13 @@
  * @tagline         Unit tests for Markdown Controller
  * @description     Tests for markdown controller functions
  * @file            webapp/tests/unit/controller/markdown.test.js
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 3.14, Claude Sonnet 5
  */
 
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
@@ -225,7 +225,7 @@ describe('MarkdownController', () => {
                 mockReq,
                 mockRes,
                 404,
-                'The namespace {{namespace}} of the Markdown documents does not exist',
+                'The namespace nonexistent of the Markdown documents does not exist',
                 'NAMESPACE_NOT_FOUND'
             );
         });

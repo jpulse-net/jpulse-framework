@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.7.8
+# jPulse Docs / Security & Authentication v1.7.9
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -143,6 +143,48 @@ A bootstrap safety check downgrades `'disabled'` to `'admins-only'` automaticall
 
 External auth plugins (OAuth, LDAP, SAML) finish a browser-redirect login via `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)`, and inject "Sign in with ..." buttons onto the login page via the `onAuthGetLoginProviders` hook — see [Plugin Hooks](plugins/plugin-hooks.md) for both.
 
+#### Email Verification
+
+`appConfig.controller.user.emailVerification` controls whether a new signup must prove they
+actually control the email address they registered with, before treating that address as
+trustworthy elsewhere in the framework (e.g. an SSO login later matching by email — see
+`link-by-email` in the auth-oauth plugin's docs):
+
+- **`'off'`**: no verification at all — `emailVerified` is still tracked on the user document, but
+  never enforced or nagged
+- **`'nag'`**: unverified users can sign in and use the app normally; they see a dismissible toast
+  with a link to resend the verification email until they verify
+- **`'required'`** (default): a fresh signup is auto-sent a verification email and must complete
+  it as an additional login step (the login response's `nextStep: 'email-verify'`) before the
+  session completes; an already-authenticated user whose email later becomes unverified (see
+  below) is nagged rather than forced out, since the framework never terminates an active session
+  mid-use
+
+**SMTP safety valve:** if `emailVerification` is `'required'` but no SMTP server is configured
+(`EmailController.isConfigured()` returns `false`), enforcement transparently degrades to
+`'nag'` at runtime — checked live on every request via `UserModel.getEmailVerificationPolicy()`,
+not decided once at startup — so a not-yet-configured mail server can never lock every new signup
+out. A loud warning is still logged once at startup so the gap doesn't go unnoticed; once SMTP is
+configured, full `'required'` enforcement resumes immediately, without a restart.
+
+**Grandfathered accounts:** `emailVerified`/`emailVerifiedAt` are absent on accounts created
+before this feature existed. A one-time, idempotent startup backfill normalizes any account with
+an absent `emailVerified` to `true` with `emailVerifiedAt: null` — the `null` timestamp is what
+distinguishes a grandfathered account from one that actually completed verification (which stamps
+a real `emailVerifiedAt`).
+
+**Admin changing a user's email:** `email` is admin-only (see [Input
+Validation](#input-validation) below) — a regular user has no self-service way to change their
+own address. When an admin retargets a user's `email` to a new value, `PUT /api/1/user*` resets
+`emailVerified: false` (clearing `emailVerifiedAt`) by default, since the admin is only asserting
+a belief about the new address, not proof of ownership — an informational email (with a verify
+link) goes to the new address and a security alert goes to the old one, and the user is
+nagged/blocked per the policy above until they re-verify. An admin who already knows the new
+address is good (e.g. fixing a typo) can pass `emailVerified: true` explicitly in that same
+request to skip the reset — a conscious, logged override rather than an invisible default.
+
+**Endpoints:** see [REST API Reference — Email Verification](api-reference.md#email-verification).
+
 #### Logout
 
 ```http
@@ -232,13 +274,17 @@ if (AuthController.isAuthorized(req, '_public')) {
 
 - `POST /api/1/auth/login` - User login
 - `GET /api/1/auth/status` - Session authentication status (zero DB queries)
+- `GET /api/1/auth/pending-status` - Poll a mid-login `pendingAuth` for cross-device email-verify completion
 - `GET /api/1/health/status` - System health check
+- `GET /api/1/user/email-verify/confirm` - Email verification link (token proves identity on its own)
 
 #### Authenticated Endpoints (Login Required)
 
 - `GET /api/1/user/profile` - User profile access
 - `PUT /api/1/user/profile` - Profile updates
 - `PUT /api/1/user/password` - Password changes
+- `POST /api/1/user/email-verify` - Verify email with code
+- `POST /api/1/user/email-verify/send` - Resend email verification
 - `POST /api/1/auth/logout` - User logout
 
 #### Admin Endpoints (Admin/Root Roles Required)
@@ -369,6 +415,8 @@ Canonical numbers and the exact `location` mapping can be found in
 | Endpoint | Config | Default | Notes |
 |---|---|---|---|
 | `POST /api/1/auth/login` (all steps, not just credentials) | `appConfig.controller.auth.loginRateLimit` (`enabled`/`maxAttempts`/`windowSeconds`) | `true` / 20 / 300s | Returns `429 RATE_LIMITED` with `retryAfter` (seconds); fires the `onAuthFailure` hook |
+| `POST /api/1/user/email-verify` (code attempts, incl. the login-flow `email-verify` step) | hardcoded, not site-configurable | 5 attempts / 15 min per account | Returns `429 EMAIL_VERIFY_RATE_LIMITED` with `retryAfter` |
+| `POST /api/1/user/email-verify/send` (resend, incl. auto-issue at signup/login) | hardcoded, not site-configurable | 3 sends / 10 min per account | Returns `429 EMAIL_VERIFY_RATE_LIMITED` with `retryAfter` |
 | `auth-oauth` plugin's `GET /api/1/auth-oauth/init/:provider` and `.../callback/:provider` | hardcoded in the plugin, not site-configurable | 60 requests / 60s | See the plugin's own docs |
 
 Both fail open: if `global.RedisManager` isn't initialized, or Redis itself is unreachable, the

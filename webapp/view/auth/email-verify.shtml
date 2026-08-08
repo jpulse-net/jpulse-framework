@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / WebApp / View / Email Verify
+ * @tagline         Email verification page (link + code)
+ * @description     W-205: Single page serving both callers - a mid-login pendingAuth session
+ *                  (blocked by the email-verify step) and an authenticated 'nag'-mode session -
+ *                  plus the ?status=verified|expired|invalid landing states for the confirm link.
+ * @file            webapp/view/auth/email-verify.shtml
+ * @version         1.7.9
+ * @release         2026-08-07
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           85%, Cursor 3.14, Claude Sonnet 5
+-->
+<html {{appConfig.system.htmlAttrs}}>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{i18n.view.auth.emailVerify.title}} - {{app.site.shortName}}</title>
+
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        /* Page-specific email-verify styles only */
+        .local-verify-container {
+            margin: 60px auto;
+        }
+
+        .local-verify-card {
+            padding: 40px;
+            border-top: 4px solid var(--jp-theme-color-primary, #007acc);
+            text-align: center;
+        }
+
+        .local-verify-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .local-verify-card h1 {
+            margin: 0 0 8px;
+            color: var(--jp-theme-text-primary, #333);
+            font-size: 1.5em;
+        }
+
+        .local-verify-card p {
+            color: var(--jp-theme-text-secondary, #666);
+            margin: 0 0 20px;
+        }
+
+        .local-verify-email {
+            font-weight: 600;
+            color: var(--jp-theme-text-primary, #333);
+        }
+
+        .local-code-input {
+            text-align: center;
+            font-size: 1.8rem;
+            letter-spacing: 8px;
+            font-family: monospace;
+        }
+
+        .local-resend-row {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .local-resend-row a {
+            color: var(--jp-theme-color-primary, #007acc);
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .local-resend-row a:hover {
+            text-decoration: underline;
+        }
+
+        .local-resend-row a.local-disabled {
+            color: var(--jp-theme-text-muted, #999);
+            cursor: default;
+            pointer-events: none;
+            text-decoration: none;
+        }
+
+        .local-waiting-hint {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--jp-theme-border-color, #dee2e6);
+            color: var(--jp-theme-text-secondary, #666);
+            font-size: 0.9em;
+        }
+
+        .local-waiting-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--jp-theme-border-color, #dee2e6);
+            border-top-color: var(--jp-theme-color-primary, #007acc);
+            border-radius: 50%;
+            animation: local-spin 0.8s linear infinite;
+        }
+
+        @keyframes local-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .local-hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        <div class="jp-container-400 local-verify-container">
+            <div class="jp-card local-verify-card">
+
+                <!-- Code entry state (mid-login pendingAuth, or authenticated 'nag' self-service) -->
+                <div id="codeFormState" class="local-hidden">
+                    <div class="local-verify-icon">📧</div>
+                    <h1>{{i18n.view.auth.emailVerify.title}}</h1>
+                    <p>{{i18n.view.auth.emailVerify.subtitle}}<br>
+                        <span class="local-verify-email" id="verifyEmailAddress"></span>
+                    </p>
+                    <form id="codeForm" class="jp-form">
+                        <div class="jp-form-group">
+                            <input type="text" id="verifyCode" class="jp-form-input local-code-input"
+                                placeholder="{{i18n.view.auth.emailVerify.codePlaceholder}}" maxlength="6"
+                                pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" autofocus required>
+                        </div>
+                        <button type="submit" class="jp-btn jp-btn-primary jp-btn-submit" id="verifyCodeBtn" style="width: 100%;">
+                            {{i18n.view.auth.emailVerify.verifyButton}}
+                        </button>
+                    </form>
+                    <div class="local-resend-row">
+                        <span id="resendIdleText">{{i18n.view.auth.emailVerify.didNotGetEmail}} <a id="resendLink">{{i18n.view.auth.emailVerify.resendButton}}</a></span>
+                        <span id="resendCooldownText" class="local-hidden"></span>
+                    </div>
+
+                    <!-- Cross-device auto-advance: shown only for the mid-login (pendingAuth) case -->
+                    <div id="waitingHint" class="local-waiting-hint local-hidden">
+                        <span class="local-waiting-spinner"></span>
+                        <span>{{i18n.view.auth.emailVerify.waitingHint}}</span>
+                    </div>
+                    <div id="continueRow" class="local-hidden" style="margin-top: 12px;">
+                        <button type="button" class="jp-btn jp-btn-secondary jp-btn-sm" id="continueBtn" style="width: 100%;">
+                            {{i18n.view.auth.emailVerify.continueButton}}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Verified state: ?status=verified, self-service already-verified, or successful code submit -->
+                <div id="verifiedState" class="local-hidden">
+                    <div class="local-verify-icon">✅</div>
+                    <h1>{{i18n.view.auth.emailVerify.verifiedTitle}}</h1>
+                    <p id="verifiedMessage">{{i18n.view.auth.emailVerify.verifiedMessage}}</p>
+                    <a href="#" id="verifiedContinueLink" class="jp-btn jp-btn-primary" style="width: 100%;">
+                        {{i18n.view.auth.emailVerify.continueToApp}}
+                    </a>
+                </div>
+
+                <!-- Expired/invalid link state (?status=expired|invalid) -->
+                <div id="expiredInvalidState" class="local-hidden">
+                    <div class="local-verify-icon">⚠️</div>
+                    <h1 id="expiredInvalidTitle"></h1>
+                    <p id="expiredInvalidMessage"></p>
+                    <div id="expiredInvalidResendRow" class="local-hidden">
+                        <button type="button" class="jp-btn jp-btn-primary" id="expiredInvalidResendBtn" style="width: 100%;">
+                            {{i18n.view.auth.emailVerify.resendButton}}
+                        </button>
+                    </div>
+                    <p style="margin-top: 16px;">
+                        <a href="/auth/login.shtml">{{i18n.view.auth.emailVerify.backToLogin}}</a>
+                    </p>
+                </div>
+
+                <!-- No active verification context at all (no session, no pendingAuth) -->
+                <div id="deadEndState" class="local-hidden">
+                    <div class="local-verify-icon">🔒</div>
+                    <h1>{{i18n.view.auth.emailVerify.deadEndTitle}}</h1>
+                    <p>{{i18n.view.auth.emailVerify.deadEndMessage}}</p>
+                    <a href="/auth/login.shtml" class="jp-btn jp-btn-primary" style="width: 100%;">
+                        {{i18n.view.auth.emailVerify.backToLogin}}
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // W-205: single page serving pendingAuth mid-login, authenticated self-service ('nag'
+        // mode), and the confirm route's ?status= landing states - see design doc "UI" section.
+        const isAuthenticated = {{#if user.isAuthenticated}}true{{else}}false{{/if}};
+        const statusParam = jPulse.url.getParam('status');
+        const redirectParam = jPulse.url.getParam('redirect') || '/';
+
+        const POLL_INTERVAL_MS = 8000;   // W-205: 6-10s range, avoids the old 4s endpoint-sharing issue
+        const MAX_POLL_FAILURES = 3;     // stop auto-polling after this many consecutive failures
+
+        let isSelfService = false;      // true once we know this is the authenticated ('nag') flow
+        let pollTimer = null;
+        let pollInFlight = false;
+        let pollFailureCount = 0;
+        let resendCooldownTimer = null;
+
+        jPulse.dom.ready(async () => {
+            document.getElementById('codeForm').addEventListener('submit', onCodeSubmit);
+            document.getElementById('resendLink').addEventListener('click', onResendClick);
+            document.getElementById('continueBtn').addEventListener('click', onContinueClick);
+            document.getElementById('expiredInvalidResendBtn').addEventListener('click', onResendClick);
+            document.getElementById('verifyCode').addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                if (e.target.value.length === 6) {
+                    document.getElementById('codeForm').requestSubmit();
+                }
+            });
+
+            if (statusParam === 'verified') {
+                showVerifiedState();
+                return;
+            }
+            if (statusParam === 'expired' || statusParam === 'invalid') {
+                await initExpiredInvalid(statusParam);
+                return;
+            }
+            await initNormalFlow();
+        });
+
+        window.addEventListener('beforeunload', stopPolling);
+
+        // ------------------------------------------------------------------
+        // Context discovery
+        // ------------------------------------------------------------------
+
+        async function initNormalFlow() {
+            if (isAuthenticated) {
+                await initSelfServiceFlow();
+            } else {
+                const result = await pollPendingAuth();
+                if (result && result.success) {
+                    handleStepResult(result, { startPolling: true });
+                } else {
+                    showDeadEndState();
+                }
+            }
+        }
+
+        async function initSelfServiceFlow() {
+            isSelfService = true;
+            try {
+                const result = await jPulse.api.get('/api/1/user');
+                if (!result.success || !result.data) {
+                    showDeadEndState();
+                    return;
+                }
+                if (result.data.emailVerified !== false) {
+                    showVerifiedState({ message: `{{i18n.view.auth.emailVerify.alreadyVerifiedMessage}}` });
+                    return;
+                }
+                showCodeFormState(result.data.email, { midLogin: false });
+            } catch (error) {
+                showDeadEndState();
+            }
+        }
+
+        // W-205: cross-device "am I verified yet" poll - its own GET endpoint (not
+        // /api/1/auth/login) so it falls outside both the login rate limiter and nginx's
+        // stricter 'login' zone; a poll guesses no secret and shouldn't share either budget
+        // with real login attempts (see AuthController.pendingStatus()).
+        async function pollPendingAuth() {
+            try {
+                return await jPulse.api.get('/api/1/auth/pending-status');
+            } catch (error) {
+                return null;
+            }
+        }
+
+        // Shared handler for poll / code-submit / manual-continue responses - all three return
+        // the exact same { success, nextStep, page, email, ... } contract.
+        function handleStepResult(result, options = {}) {
+            if (!result.nextStep) {
+                // All steps complete - fully logged in
+                stopPolling();
+                const toasts = [{ toastType: 'success', message: `{{i18n.view.auth.login.loginSuccess}}` }, ...(result.warnings || [])];
+                jPulse.url.redirect(redirectParam, { toasts });
+                return;
+            }
+            if (result.nextStep === 'email-verify') {
+                showCodeFormState(result.email, { midLogin: true });
+                if (options.startPolling) startPolling();
+                else if (options.manual) {
+                    jPulse.UI.toast.info(`{{i18n.view.auth.emailVerify.notYetVerified}}`);
+                }
+                return;
+            }
+            // Verified, but a different step (e.g. MFA) is next
+            stopPolling();
+            const returnParam = encodeURIComponent(redirectParam);
+            window.location.href = result.page
+                ? `${result.page}?redirect=${returnParam}`
+                : `/auth/login.shtml?redirect=${returnParam}`;
+        }
+
+        function startPolling() {
+            if (pollTimer) return;
+            document.getElementById('waitingHint').classList.remove('local-hidden');
+            document.getElementById('continueRow').classList.remove('local-hidden');
+            pollFailureCount = 0;
+            pollTimer = setInterval(async () => {
+                if (pollInFlight) return;
+                pollInFlight = true;
+                const result = await pollPendingAuth();
+                pollInFlight = false;
+                if (result && result.success) {
+                    pollFailureCount = 0;
+                    handleStepResult(result);
+                    return;
+                }
+                if (result && (result.code === 'NO_PENDING_AUTH' || result.code === 'AUTH_EXPIRED')) {
+                    // Session expired while waiting - stop polling, let the user sign in again
+                    stopPolling();
+                    showDeadEndState();
+                    return;
+                }
+                // Transient failure (network hiccup, rate limit, server error, etc.) - after a
+                // few in a row, stop auto-polling rather than retrying forever in the
+                // background; the "Check now" button (already visible) remains available.
+                pollFailureCount += 1;
+                if (pollFailureCount >= MAX_POLL_FAILURES) {
+                    stopPolling();
+                    jPulse.UI.toast.error(`{{i18n.view.auth.emailVerify.pollingStopped}}`);
+                }
+            }, POLL_INTERVAL_MS);
+        }
+
+        function stopPolling() {
+            if (pollTimer) {
+                clearInterval(pollTimer);
+                pollTimer = null;
+            }
+        }
+
+        // Manual re-check button - the "no-JS-wait" fallback for the auto-polling above
+        async function onContinueClick() {
+            const btn = document.getElementById('continueBtn');
+            jPulse.form.setLoadingState(btn, true, `{{i18n.view.auth.emailVerify.checking}}`);
+            const result = await pollPendingAuth();
+            jPulse.form.setLoadingState(btn, false);
+            if (result && result.success) {
+                handleStepResult(result, { manual: true });
+            } else {
+                jPulse.UI.toast.error(result?.error || `{{i18n.view.auth.emailVerify.networkError}}`);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // ?status=expired|invalid landing states (from the confirm link)
+        // ------------------------------------------------------------------
+
+        async function initExpiredInvalid(status) {
+            const title = status === 'expired'
+                ? `{{i18n.view.auth.emailVerify.expiredTitle}}`
+                : `{{i18n.view.auth.emailVerify.invalidTitle}}`;
+            const message = status === 'expired'
+                ? `{{i18n.view.auth.emailVerify.expiredMessage}}`
+                : `{{i18n.view.auth.emailVerify.invalidMessage}}`;
+            document.getElementById('expiredInvalidTitle').textContent = title;
+            document.getElementById('expiredInvalidMessage').textContent = message;
+            showState('expiredInvalidState');
+
+            // Offer an inline resend only when we can identify an account context
+            if (isAuthenticated) {
+                isSelfService = true;
+                try {
+                    const result = await jPulse.api.get('/api/1/user');
+                    if (result.success && result.data && result.data.emailVerified === false) {
+                        document.getElementById('expiredInvalidResendRow').classList.remove('local-hidden');
+                    }
+                } catch (error) {
+                    // no resend offered - login link still works
+                }
+            } else {
+                const result = await pollPendingAuth();
+                if (result && result.success && result.nextStep === 'email-verify') {
+                    document.getElementById('expiredInvalidResendRow').classList.remove('local-hidden');
+                }
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Code submit
+        // ------------------------------------------------------------------
+
+        async function onCodeSubmit(event) {
+            event.preventDefault();
+            const code = document.getElementById('verifyCode').value.trim();
+            if (code.length !== 6) {
+                jPulse.UI.toast.error(`{{i18n.view.auth.emailVerify.codeRequired}}`);
+                return;
+            }
+
+            const btn = document.getElementById('verifyCodeBtn');
+            jPulse.form.setLoadingState(btn, true, `{{i18n.view.auth.emailVerify.verifying}}`);
+
+            try {
+                if (isSelfService) {
+                    const result = await jPulse.api.post('/api/1/user/email-verify', { code });
+                    if (result.success) {
+                        stopPolling();
+                        showVerifiedState({ message: result.message });
+                    } else {
+                        jPulse.UI.toast.error(result.error || `{{i18n.view.auth.emailVerify.networkError}}`);
+                        document.getElementById('verifyCode').value = '';
+                        document.getElementById('verifyCode').focus();
+                    }
+                } else {
+                    const result = await jPulse.api.post('/api/1/auth/login', { step: 'email-verify', code });
+                    if (result.success) {
+                        handleStepResult(result);
+                    } else {
+                        jPulse.UI.toast.error(result.error || `{{i18n.view.auth.emailVerify.networkError}}`);
+                        document.getElementById('verifyCode').value = '';
+                        document.getElementById('verifyCode').focus();
+                    }
+                }
+            } catch (error) {
+                jPulse.UI.toast.error(`{{i18n.view.auth.emailVerify.networkError}}`);
+            } finally {
+                jPulse.form.setLoadingState(btn, false);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Resend
+        // ------------------------------------------------------------------
+
+        async function onResendClick(event) {
+            event.preventDefault();
+            if (event.currentTarget.classList.contains('local-disabled')) return;
+
+            try {
+                let result;
+                if (isSelfService) {
+                    result = await jPulse.api.post('/api/1/user/email-verify/send', {});
+                } else {
+                    result = await jPulse.api.post('/api/1/auth/login', { step: 'email-verify', resend: true });
+                }
+
+                if (result.success) {
+                    if (result.alreadyVerified) {
+                        showVerifiedState({ message: result.message });
+                        return;
+                    }
+                    jPulse.UI.toast.success(result.message || `{{i18n.view.auth.emailVerify.resendSuccess}}`);
+                    if (result.email) {
+                        document.getElementById('verifyEmailAddress').textContent = result.email;
+                    }
+                    startResendCooldown(60);
+                } else {
+                    jPulse.UI.toast.error(result.error || `{{i18n.view.auth.emailVerify.networkError}}`);
+                    if (result.retryAfter) startResendCooldown(result.retryAfter);
+                }
+            } catch (error) {
+                jPulse.UI.toast.error(`{{i18n.view.auth.emailVerify.networkError}}`);
+            }
+        }
+
+        function startResendCooldown(seconds) {
+            const idle = document.getElementById('resendIdleText');
+            const cooldown = document.getElementById('resendCooldownText');
+            const links = [document.getElementById('resendLink'), document.getElementById('expiredInvalidResendBtn')];
+            links.forEach(el => el && el.classList.add('local-disabled'));
+            if (document.getElementById('expiredInvalidResendBtn')) {
+                document.getElementById('expiredInvalidResendBtn').disabled = true;
+            }
+
+            idle.classList.add('local-hidden');
+            cooldown.classList.remove('local-hidden');
+
+            let remaining = Math.max(1, Math.round(seconds));
+            const tick = () => {
+                cooldown.textContent = `{{i18n.view.auth.emailVerify.resendCooldown}}`.replace('%SECONDS%', remaining);
+                remaining -= 1;
+                if (remaining < 0) {
+                    clearInterval(resendCooldownTimer);
+                    resendCooldownTimer = null;
+                    idle.classList.remove('local-hidden');
+                    cooldown.classList.add('local-hidden');
+                    links.forEach(el => el && el.classList.remove('local-disabled'));
+                    if (document.getElementById('expiredInvalidResendBtn')) {
+                        document.getElementById('expiredInvalidResendBtn').disabled = false;
+                    }
+                }
+            };
+            if (resendCooldownTimer) clearInterval(resendCooldownTimer);
+            tick();
+            resendCooldownTimer = setInterval(tick, 1000);
+        }
+
+        // ------------------------------------------------------------------
+        // State display helpers
+        // ------------------------------------------------------------------
+
+        function showState(id) {
+            ['codeFormState', 'verifiedState', 'expiredInvalidState', 'deadEndState'].forEach(stateId => {
+                document.getElementById(stateId).classList.toggle('local-hidden', stateId !== id);
+            });
+        }
+
+        function showCodeFormState(email, { midLogin }) {
+            showState('codeFormState');
+            document.getElementById('verifyEmailAddress').textContent = email || '';
+            document.getElementById('waitingHint').classList.toggle('local-hidden', !midLogin);
+            document.getElementById('continueRow').classList.toggle('local-hidden', !midLogin);
+        }
+
+        function showVerifiedState(options = {}) {
+            showState('verifiedState');
+            if (options.message) {
+                document.getElementById('verifiedMessage').textContent = options.message;
+            }
+            const link = document.getElementById('verifiedContinueLink');
+            link.href = isSelfService ? '/user/me' : redirectParam;
+        }
+
+        function showDeadEndState() {
+            showState('deadEndState');
+        }
+    </script>
+
+    {{file.include "jpulse-footer.tmpl"}}
+</body>
+</html>

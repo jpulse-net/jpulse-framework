@@ -3,13 +3,13 @@
  * @tagline         Unit tests for Email Controller
  * @description     Minimal unit tests for EmailController basic functionality
  * @file            webapp/tests/unit/controller/email-controller.test.js
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.14, Claude Sonnet 5
  */
 
 import { describe, test, expect, beforeAll, beforeEach, jest } from '@jest/globals';
@@ -95,6 +95,75 @@ describe('EmailController', () => {
 
     // W-112: getHealthStatus() removed - replaced by getMetrics() for metrics API
     // The /api/1/health/status endpoint (for load balancers) doesn't use getHealthStatus()
+
+    describe('sendEmail()', () => {
+        let mockTransporter;
+
+        beforeEach(() => {
+            EmailController.initialized = true;
+            EmailController.config = { adminEmail: 'admin@example.com', adminName: 'jPulse Admin' };
+            mockTransporter = { sendMail: jest.fn().mockResolvedValue({ messageId: 'test-message-id-123' }) };
+            EmailController.transporter = mockTransporter;
+        });
+
+        test('passes cc/bcc through to nodemailer when given', async () => {
+            await EmailController.sendEmail({
+                to: 'user@example.com',
+                cc: 'cc@example.com',
+                bcc: 'bcc@example.com',
+                subject: 'Hello',
+                text: 'Body'
+            });
+
+            const mailOptions = mockTransporter.sendMail.mock.calls[0][0];
+            expect(mailOptions.cc).toBe('cc@example.com');
+            expect(mailOptions.bcc).toBe('bcc@example.com');
+        });
+
+        test('leaves cc/bcc undefined when not given', async () => {
+            await EmailController.sendEmail({ to: 'user@example.com', subject: 'Hello', text: 'Body' });
+
+            const mailOptions = mockTransporter.sendMail.mock.calls[0][0];
+            expect(mailOptions.cc).toBeUndefined();
+            expect(mailOptions.bcc).toBeUndefined();
+        });
+
+        test('passes a raw string "from" through as-is instead of building it from adminName/adminEmail', async () => {
+            await EmailController.sendEmail({
+                to: 'user@example.com',
+                from: '"Custom Sender" <custom@example.com>',
+                subject: 'Hello',
+                text: 'Body'
+            });
+
+            const mailOptions = mockTransporter.sendMail.mock.calls[0][0];
+            expect(mailOptions.from).toBe('"Custom Sender" <custom@example.com>');
+        });
+
+        test('builds "name" <email> from a { email, name } object "from" (regression)', async () => {
+            await EmailController.sendEmail({
+                to: 'user@example.com',
+                from: { email: 'custom@example.com', name: 'Custom Sender' },
+                subject: 'Hello',
+                text: 'Body'
+            });
+
+            const mailOptions = mockTransporter.sendMail.mock.calls[0][0];
+            expect(mailOptions.from).toBe('"Custom Sender" <custom@example.com>');
+        });
+
+        test('defaults replyTo to the config adminEmail when "from" is a raw string', async () => {
+            await EmailController.sendEmail({
+                to: 'user@example.com',
+                from: '"Custom Sender" <custom@example.com>',
+                subject: 'Hello',
+                text: 'Body'
+            });
+
+            const mailOptions = mockTransporter.sendMail.mock.calls[0][0];
+            expect(mailOptions.replyTo).toBe('admin@example.com');
+        });
+    });
 
     describe('_getI18nKey()', () => {
         test('should map error codes to i18n keys', () => {

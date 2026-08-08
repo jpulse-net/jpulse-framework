@@ -4,13 +4,13 @@
  * @tagline         User SPA - Dashboard, Profiles, and Settings
  * @description     Single Page Application for user profiles, dashboard, and settings with config-driven behavior
  * @file            webapp/view/user/index.shtml
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.14, Claude Sonnet 5
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -188,6 +188,38 @@
 
         .local-error-box {
             padding: 15px 20px;
+        }
+
+        /* W-205: Email verification status box, appended after the Profile panel's schema-
+           rendered card by renderEmailVerifyStatus() in settings.tmpl (see comment there) */
+        .local-email-verify-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            font-size: 0.9em;
+            box-shadow: none;
+        }
+
+        .local-email-verify-status a {
+            color: var(--jp-theme-color-primary, #007acc);
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .local-email-verify-status a:hover {
+            text-decoration: underline;
+        }
+
+        .local-email-verify-status.local-email-verify-unverified {
+            background: var(--jp-theme-color-warning-bg, #fff3cd);
+            color: var(--jp-theme-color-warning-text, #856404);
+            border: 1px solid var(--jp-theme-color-warning, #ffc107);
+        }
+
+        .local-email-verify-status.local-email-verify-verified {
+            background: transparent;
+            color: var(--jp-theme-text-secondary, #666);
         }
 
         /* W-171: Settings page header info (right side of jp-page-header) */

@@ -4,13 +4,13 @@
  * @tagline         Admin user profile management with view and edit capabilities
  * @description     Admin user profile management (always-edit, aligned with /user/settings)
  * @file            webapp/view/admin/user-profile.shtml
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.14, Claude Sonnet 5
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -79,6 +79,12 @@
         .local-admin-section .jp-read-only-field {
             background: var(--jp-theme-color-warning-bg, #fff3cd);
             color: var(--jp-theme-color-warning-text, #856404);
+        }
+
+        /* W-205: read-only "verified on" line under the emailVerified checkbox */
+        .local-email-verified-at {
+            margin: 6px 0 0;
+            font-size: 0.85em;
         }
 
         /* W-174: header right block (avatar + name + status) */
@@ -228,6 +234,17 @@
                                 <div class="jp-form-group">
                                     <label for="email" class="jp-form-label">{{i18n.view.admin.userProfile.email}}</label>
                                     <input type="email" id="email" name="email" class="jp-form-input">
+                                </div>
+                                <!-- W-205: checkbox is the explicit override an admin ticks/keeps checked to
+                                     skip the automatic emailVerified reset when they also change the email
+                                     above in the same save (see saveUser()/UserController.update()) -->
+                                <div class="jp-form-group">
+                                    <label class="jp-form-label">{{i18n.view.admin.userProfile.emailVerified}}</label>
+                                    <div class="jp-checkbox-group">
+                                        <input type="checkbox" id="emailVerified" name="emailVerified" class="jp-form-input">
+                                        <label for="emailVerified">{{i18n.view.admin.userProfile.emailVerifiedCheckboxLabel}}</label>
+                                    </div>
+                                    <p class="jp-text-muted local-email-verified-at" id="emailVerifiedAtLine">-</p>
                                 </div>
                             </div>
                             <div class="jp-form-group">
@@ -986,6 +1003,10 @@
             document.getElementById('email').value = user.email || '';
             document.getElementById('status').value = user.status || 'active';
 
+            // W-205: absent/true reads as verified - same three-state rule used everywhere else
+            document.getElementById('emailVerified').checked = user.emailVerified !== false;
+            updateEmailVerifiedAtLine(user);
+
             // W-174: Set roles select (options already populated by loadRoles)
             const rolesSelect = document.getElementById('roles');
             if (rolesSelect) {
@@ -1016,6 +1037,21 @@
             }
 
             document.getElementById('userContent').classList.remove('jp-hidden');
+        }
+
+        // W-205: read-only "verified on" line, distinguishing three states an admin can't tell
+        // apart from the checkbox alone - actually proved (a date), grandfathered (checked, but
+        // emailVerifiedAt never stamped), and unverified.
+        function updateEmailVerifiedAtLine(user) {
+            const line = document.getElementById('emailVerifiedAtLine');
+            if (!line) return;
+            if (user.emailVerified === false) {
+                line.textContent = `{{i18n.view.admin.userProfile.emailNotVerified}}`;
+            } else if (user.emailVerifiedAt) {
+                line.textContent = `{{i18n.view.admin.userProfile.emailVerifiedOn}}`.replace('%DATE%', jPulse.date.formatLocalDateAndTime(user.emailVerifiedAt));
+            } else {
+                line.textContent = `{{i18n.view.admin.userProfile.emailVerifiedGrandfathered}}`;
+            }
         }
 
         function updateAdminActionButtons() {
@@ -1155,6 +1191,10 @@
             if (originalValues.status !== undefined) {
                 document.getElementById('status').value = originalValues.status;
             }
+            if (originalValues.emailVerified !== undefined) {
+                document.getElementById('emailVerified').checked = originalValues.emailVerified;
+                updateEmailVerifiedAtLine({ emailVerified: originalValues.emailVerified, emailVerifiedAt: currentUserData.emailVerifiedAt });
+            }
             const rolesSelect = document.getElementById('roles');
             if (rolesSelect && Array.isArray(originalValues.roles)) {
                 rolesSelect.querySelectorAll('option').forEach(opt => {
@@ -1189,6 +1229,7 @@
                 email: document.getElementById('email').value,
                 status: document.getElementById('status').value,
                 roles: getRolesFromSelect(),
+                emailVerified: document.getElementById('emailVerified').checked, // W-205
                 profile: profileRaw.profile || {},
                 preferences: prefRaw.preferences || {}
             };
@@ -1216,6 +1257,10 @@
                     email: document.getElementById('email').value,
                     status: document.getElementById('status').value,
                     roles: getRolesFromSelect(),
+                    // W-205: always submitted (not just when touched) - a checked box left
+                    // checked is exactly the "explicit override" that skips the automatic reset
+                    // when the email above also changed in this same save (see UserController.update())
+                    emailVerified: document.getElementById('emailVerified').checked,
                     profile: profileRaw.profile || {},
                     preferences: prefRaw.preferences || {}
                 };
@@ -1231,6 +1276,12 @@
 
                 if (result.success) {
                     jPulse.UI.toast.success(`{{i18n.view.admin.userProfile.userUpdatedSuccess}}`);
+                    // W-205: the email change just reset emailVerified server-side - explain the
+                    // flip rather than leaving the admin to wonder why the checkbox they left
+                    // checked came back unchecked after loadUser() below refreshes the form.
+                    if (result.emailVerifiedReset) {
+                        jPulse.UI.toast.warning(`{{i18n.view.admin.userProfile.emailVerifiedResetNotice}}`, { duration: 8000 });
+                    }
                     originalValues = JSON.parse(JSON.stringify(getCurrentFormValues()));
                     updateAdminActionButtons();
                     await loadUser();

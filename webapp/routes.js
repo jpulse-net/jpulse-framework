@@ -3,13 +3,13 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.14, Claude Sonnet 5
  */
 
 import path from 'path';
@@ -82,6 +82,7 @@ router.post('/api/1/plugin/:name/install-dependencies', AuthController.requireAd
 router.post('/api/1/auth/login', AuthController.login);
 router.post('/api/1/auth/logout', AuthController.logout);
 router.get('/api/1/auth/status', AuthController.getStatus);
+router.get('/api/1/auth/pending-status', AuthController.pendingStatus);
 router.get('/api/1/auth/languages', AuthController.getLanguages);
 
 // Markdown API routes
@@ -101,6 +102,11 @@ router.get('/api/1/cache/stats', CacheController.getStats);
 // IMPORTANT: Specific routes must come before parameterized routes (:id)
 router.post('/api/1/user/signup', UserController.signup);
 router.put('/api/1/user/password', AuthController.requireAuthentication, UserController.changePassword);
+// W-205: email verification - confirm route needs no auth (token proves identity on its own);
+// the other two ride an existing session (self-service resend/verify, e.g. 'nag' mode)
+router.get('/api/1/user/email-verify/confirm', UserController.confirmEmailVerify);
+router.post('/api/1/user/email-verify', AuthController.requireAuthentication, UserController.emailVerify);
+router.post('/api/1/user/email-verify/send', AuthController.requireAuthentication, UserController.emailVerifySend);
 // W-134: Changed from admin-only to profile access policy (access control in controller)
 router.get('/api/1/user/search', UserController.search);
 // W-134: Changed from admin-only to authenticated users (for /user/ dashboard stats)
@@ -143,7 +149,11 @@ router.get(global.ViewController.getViewRouteRE(), (req, res) => ViewController.
 // Also handle non-existing view directories ending with / so view controller can render proper 404
 router.get(/^\/[a-zA-Z][a-zA-Z0-9-]*\/$/, (req, res) => ViewController.load(req, res));
 router.get('/', (req, res) => {
-    res.redirect('/home/');
+    // W-205: preserve the query string (e.g. a CommonUtils.appendToastsToUrl() `toasts` param
+    // riding a redirect to '/') - req.url for this route is just '/' or '/?...', never a full path
+    const queryIndex = req.url.indexOf('?');
+    const query = queryIndex === -1 ? '' : req.url.slice(queryIndex);
+    res.redirect(`/home/${query}`);
 });
 
 // Anything else will fall through to Express static middleware (.txt, .ico, .png, .json, etc.)

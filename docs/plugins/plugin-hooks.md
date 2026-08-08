@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Hooks v1.7.8
+# jPulse Docs / Plugins / Plugin Hooks v1.7.9
 
 Extend jPulse Framework behavior by hooking into authentication, user management, and other framework events.
 
@@ -318,6 +318,10 @@ static async apiCallback(req, res) {
 `completeExternalAuth()` does not re-check `user.status` or `localAuthRestriction` (the latter
 only governs the local username/password path) - your callback handler is responsible for
 rejecting e.g. `status: 'pending'` users before calling it.
+
+Any `onAuthGetWarnings` toasts (e.g. an MFA-not-enabled nag) are carried across the final `302`
+via `CommonUtils.appendToastsToUrl()` and shown automatically once the destination page loads -
+you don't need to do anything extra for this in your callback handler.
 
 ### Local Auth Restriction & `hasLocalPassword`
 

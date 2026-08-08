@@ -3,13 +3,13 @@
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/utils/i18n.js
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 3.14, Claude Sonnet 5
  */
 
 // Load required modules for path resolution and file system operations
@@ -317,9 +317,29 @@ class I18n {
         // Subtree (object/array) results are returned as-is so callers like _expandI18nExpression
         // can embed them as JSON for client-side consumers.
         if (context && typeof result === 'string') {
-            result = result.replace(/{{(.*?)}}/g, (match, p1) => context[p1] || match);
+            result = this.substitute(result, context);
         }
         return result;
+    }
+
+    /**
+     * Substitute {{name}} tokens in a string from a flat context object (single-level key/value
+     * pairs, no dotted paths). Shared by _translate() and by callers (e.g.
+     * EmailController.sendEmailFromTranslation()) that need to substitute into a translation
+     * string themselves - e.g. to apply substitution separately to parts of a resolved string
+     * (see model.user.emailVerify's unix-mail-style Subject/body format).
+     * W-205: uses `p1 in context` rather than `context[p1] ||`, so a legitimately falsy or empty
+     * substitution value (e.g. an empty firstName) is substituted, not left as the literal
+     * "{{firstName}}" placeholder.
+     * @param {string} text - Text containing {{name}} tokens
+     * @param {object} context - Flat key/value pairs; unknown tokens are left as-is
+     * @returns {string} Text with known tokens substituted
+     */
+    substitute(text, context = {}) {
+        if (typeof text !== 'string') {
+            return text;
+        }
+        return text.replace(/{{(.*?)}}/g, (match, p1) => (p1 in context ? context[p1] : match));
     }
 
     /**
@@ -331,8 +351,25 @@ class I18n {
      * @returns {string|object} Translation string, or a nested object/array when keyPath resolves to a subtree (W-185)
      */
     translate(req, keyPath, context = {}, fallbackLang = this.default) {
-        // Extract user's preferred language from request session
-        const userLang = req?.session?.user?.preferences?.language || this.default;
+        // Delegate to translateForUser() - the acting request's session user is just the most
+        // common case of "whose language should this resolve in"
+        return this.translateForUser(req?.session?.user, keyPath, context, fallbackLang);
+    }
+
+    /**
+     * Get translation using an explicit recipient user's language preference, independent of
+     * any request/session. W-205: use this (never translate()) for outbound
+     * email/notifications, where the recipient may differ from the acting user - e.g. an
+     * admin's email-change notice must reach the affected user in THEIR language, not the
+     * admin's, and a signup confirmation has no session user at all yet to read from.
+     * @param {object} user - Recipient user document (or user-shaped object) with preferences.language
+     * @param {string} keyPath - Dot-separated key path
+     * @param {object} context - Context object (single level key/value pairs)
+     * @param {string} fallbackLang - Fallback language code (optional)
+     * @returns {string|object} Translation string, or a nested object/array when keyPath resolves to a subtree (W-185)
+     */
+    translateForUser(user, keyPath, context = {}, fallbackLang = this.default) {
+        const userLang = user?.preferences?.language || this.default;
 
         // Try user's preferred language first
         let result = this._translate(userLang, keyPath, context);

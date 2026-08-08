@@ -1,4 +1,4 @@
-# jPulse Docs / Sending Email v1.7.8
+# jPulse Docs / Sending Email v1.7.9
 
 Complete guide to configuring and sending emails from jPulse Framework applications using the standardized email sending strategy.
 
@@ -247,6 +247,50 @@ Click here to reset your password: {{resetLink}}
 
 This link expires in 1 hour.
 ```
+
+### Email from a Translation Key
+
+Use `sendEmailFromTranslation()` for framework/model code that needs the email copy itself to be
+translated into the recipient's language (rather than a static, single-language template file).
+The translation key resolves to a whole message in a unix-mail-style envelope: one or more
+`Name: value` header lines (`Subject:`, `To:`, `Cc:`, `Bcc:`, `Reply-To:`, `From:` - see
+`EmailController.ALLOWED_EMAIL_HEADERS`), a blank line, then the plain-text body. `Subject:` is
+required; the rest are optional and, when present, only act as *defaults* - each has a matching
+option that overrides it (see below):
+
+```javascript
+// webapp/translations/en.conf
+model: {
+  user: {
+    welcome: `Subject: Welcome to {{siteName}}
+
+Hi {{firstName}},
+
+Thanks for signing up!`,
+  },
+},
+```
+
+```javascript
+const result = await EmailController.sendEmailFromTranslation(req, {
+    user,                                  // recipient user doc - supplies language + default `to`
+    key: 'model.user.welcome',
+    context: { siteName: 'My Site', firstName: user.profile?.firstName || '' }
+});
+```
+
+- `user` is optional if `to` is given, or the translation's own `To:` header resolves to a
+  recipient. Precedence for the recipient is `options.to` > the translation's `To:` header >
+  `options.user.email` - at least one of the three is required.
+- `context` is a flat key/value map - substitution happens separately into each parsed header
+  (with CR/LF stripped, so a token value can never inject an extra header line) and the body
+  (substituted freely), never into the raw envelope text before parsing.
+- `options.cc` / `options.bcc` / `options.replyTo` / `options.from` override the translation's
+  `Cc:` / `Bcc:` / `Reply-To:` / `From:` headers when given (and `from` also falls back to the
+  config default when neither is present, as usual).
+- The whole email (subject + body + any routing headers) lives in one translation key so it can
+  eventually be overridden per-site/per-plugin once site/plugin-specific translation overrides
+  are supported.
 
 ### Single-File Email Templates (Subject + Text + HTML)
 

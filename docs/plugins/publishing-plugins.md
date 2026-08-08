@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Publishing Plugins v1.7.8
+# jPulse Docs / Plugins / Publishing Plugins v1.7.9
 
 Guide to packaging and publishing jPulse plugins for distribution.
 

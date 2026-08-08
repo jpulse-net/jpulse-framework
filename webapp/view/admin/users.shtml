@@ -4,13 +4,13 @@
  * @tagline         Admin user management interface
  * @description     User management dashboard for site administrators
  * @file            webapp/view/admin/users.shtml
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.14, Claude Sonnet 5
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -49,6 +49,11 @@
         /* Status-specific font size adjustment for table */
         .local-users-table .jp-status-badge {
             font-size: 11px;
+        }
+
+        /* W-205: verified/unverified badge next to the Email cell */
+        .local-email-verify-badge {
+            cursor: help;
         }
 
         /* Results info display */
@@ -225,6 +230,12 @@
         let userSchema = null;
         let pageSize = 50;
 
+        // W-205: hide the verified/unverified badge entirely when the site has turned
+        // verification off - a permanently-unfixable warning icon on every row would be pure
+        // clutter with no admin action available. Needs the app.conf alwaysAllow entry, since
+        // appConfig.controller.* is otherwise stripped from every page's context.
+        const emailVerifyPolicy = `{{appConfig.controller.user.emailVerification}}` || 'required';
+
         // Enhanced user management using jPulse utilities
         jPulse.dom.ready(() => {
             // Initialize admin functionality directly (route-level auth handles access)
@@ -356,9 +367,20 @@
             `;
             tr.appendChild(userCell);
 
-            // Email
+            // Email + W-205 verified/unverified badge (absent/true reads as verified - the
+            // same three-state rule used everywhere else this field is read)
             const emailCell = document.createElement('td');
-            emailCell.textContent = user.email;
+            const emailText = jPulse.string.escapeHtml(user.email || '');
+            if (emailVerifyPolicy === 'off') {
+                emailCell.innerHTML = emailText;
+            } else {
+                const isVerified = user.emailVerified !== false;
+                const badgeIcon = isVerified ? '✅' : '⚠️';
+                const badgeTitle = isVerified
+                    ? `{{i18n.view.admin.users.emailVerifiedTooltip}}`
+                    : `{{i18n.view.admin.users.emailUnverifiedTooltip}}`;
+                emailCell.innerHTML = `${emailText} <span class="local-email-verify-badge" title="${jPulse.string.escapeHtml(badgeTitle)}">${badgeIcon}</span>`;
+            }
             tr.appendChild(emailCell);
 
             // Roles

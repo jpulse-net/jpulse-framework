@@ -3,13 +3,13 @@
  * @tagline         Email Controller for jPulse Framework
  * @description     Provides email sending capability and API endpoint for jPulse Framework
  * @file            webapp/controller/email.js
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.14, Claude Sonnet 5
  */
 
 import nodemailer from 'nodemailer';
@@ -260,9 +260,11 @@ class EmailController {
      * Send email
      * @param {object} options - Email options
      * @param {string} options.to - Recipient email address
-     * @param {object} options.from - Sender (optional, uses config default)
-     * @param {string} options.from.email - From email address
-     * @param {string} options.from.name - From name
+     * @param {string} options.cc - Cc address(es) (optional)
+     * @param {string} options.bcc - Bcc address(es) (optional)
+     * @param {string|object} options.from - Sender (optional, uses config default). Either a
+     *   raw address string (e.g. `'"Support" <support@example.com>'`, passed through as-is) or
+     *   `{ email, name }`
      * @param {string} options.subject - Email subject
      * @param {string} options.text - Plain text body (required)
      * @param {string} options.html - HTML body (optional)
@@ -289,23 +291,30 @@ class EmailController {
         }
 
         try {
-            // Build from address
-            const fromEmail = options.from?.email || this.config.adminEmail;
-            const fromName = options.from?.name || this.config.adminName || 'jPulse';
-            const from = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
+            // Build from address - a raw string (e.g. from an envelope's From: header) is passed
+            // through as-is; an { email, name } object is built into "name" <email> as before
+            let from, fromEmail;
+            if (typeof options.from === 'string') {
+                from = options.from;
+                fromEmail = this.config.adminEmail;
+            } else {
+                fromEmail = options.from?.email || this.config.adminEmail;
+                const fromName = options.from?.name || this.config.adminName || 'jPulse';
+                from = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
+            }
 
             // W-045-TD-18: Sanitize HTML content to prevent XSS attacks in emails
-            const sanitizedHtml = options.html
-                ? CommonUtils.sanitizeHtml(options.html)
-                : options.text.replace(/\n/g, '<br/>');
-
-            // Build mail options
+            // W-205: an html part is only sent when the caller explicitly provides one - no
+            // longer auto-derived from text, since a derived HTML part is low-value and it
+            // prevented ever sending a genuinely text-only email
             const mailOptions = {
                 from: from,
                 to: options.to,
+                cc: options.cc || undefined,
+                bcc: options.bcc || undefined,
                 subject: options.subject,
                 text: options.text,
-                html: sanitizedHtml,
+                html: options.html ? CommonUtils.sanitizeHtml(options.html) : undefined,
                 replyTo: options.replyTo || fromEmail
             };
 
@@ -381,18 +390,182 @@ class EmailController {
             const context = options.context || {};
             const processed = await HandlebarController.expandHandlebars(req, template, context);
 
-            // Send email
+            // Send email as text-only; templates wanting an HTML part must render one
+            // explicitly into options.context and reference it, sendEmail() no longer derives one
             return await this.sendEmail({
                 to: options.to,
                 subject: options.subject,
                 text: processed,
-                html: processed.replace(/\n/g, '<br>'),
                 from: options.from
             });
 
         } catch (error) {
             LogController.logError(null, 'email.sendEmailFromTemplate',
                 `error: Failed to send email from template: ${error.message}`);
+
+            return {
+                success: false,
+                messageId: null,
+                errorCode: 'TEMPLATE_ERROR',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Header names allowed in the unix-mail-style envelope parsed by _parseEmailMessage() -
+     * the common headers a mail message needs, matched case-insensitively and normalized to
+     * this casing. W-205 only ever sets Subject; the rest exist so a translation can define
+     * default routing/sender headers for a future use case (e.g. a digest mailed Cc: to a
+     * second address by default) without a parser change - every one of them is individually
+     * overridable by sendEmailFromTranslation()'s own options (see its doc comment), so a
+     * translation-supplied header is always a *default*, never something a caller is stuck with.
+     */
+    static ALLOWED_EMAIL_HEADERS = ['Subject', 'To', 'Cc', 'Bcc', 'Reply-To', 'From'];
+
+    /**
+     * Parse a unix-mail-style message: one or more "Name: value" header lines, a blank line,
+     * then the body. W-205: this is the format email translation strings use (see
+     * model.user.emailVerify in translations/en.conf) - a single translation key holds the
+     * whole message so a site/plugin can eventually override the entire email (subject + body
+     * + routing headers) in one place, once W-0 (i18n overlay) lands.
+     * @param {string} message - Raw message: "Subject: ...\n\n<body>"
+     * @returns {{ headers: object, body: string }} `headers` keys are the canonical names in
+     *   ALLOWED_EMAIL_HEADERS that were actually present (e.g. `headers.Subject`,
+     *   `headers['Reply-To']`); absent headers are simply not present as keys
+     * @throws {Error} If the blank-line separator is missing, a header line is malformed, an
+     *   unsupported header is present, or the required Subject header is missing
+     * @private
+     */
+    static _parseEmailMessage(message) {
+        const match = String(message).match(/^([\s\S]*?)\r?\n\r?\n([\s\S]*)$/);
+        if (!match) {
+            throw new Error('Email message is missing the blank line between headers and body');
+        }
+
+        const [, headerBlock, body] = match;
+        const headers = {};
+        for (const line of headerBlock.split(/\r?\n/)) {
+            if (!line.trim()) {
+                continue;
+            }
+            const headerMatch = line.match(/^([A-Za-z-]+):\s*(.*)$/);
+            if (!headerMatch) {
+                throw new Error(`Invalid email header line: "${line}"`);
+            }
+            const [, name, value] = headerMatch;
+            const canonical = this.ALLOWED_EMAIL_HEADERS.find(
+                (allowed) => allowed.toLowerCase() === name.toLowerCase()
+            );
+            if (!canonical) {
+                throw new Error(`Unsupported email header: "${name}"`);
+            }
+            headers[canonical] = value.trim();
+        }
+
+        if (!headers.Subject) {
+            throw new Error('Email message is missing the required Subject header');
+        }
+
+        return { headers, body };
+    }
+
+    /**
+     * Substitute {{token}} context into a header value and strip any \r/\n it may contain, so
+     * a token value can never inject an extra header line into the envelope (e.g. a firstName
+     * containing "\n\nBcc: attacker@example.com").
+     * @param {string} value - Raw (unsubstituted) header value
+     * @param {object} context - Substitution context, as passed to sendEmailFromTranslation()
+     * @returns {string} Substituted, single-line header value
+     * @private
+     */
+    static _substituteHeaderValue(value, context) {
+        return global.i18n.substitute(value, context).replace(/[\r\n]+/g, ' ').trim();
+    }
+
+    /**
+     * Send email from a translation key (convenience method)
+     * The translation resolves to a unix-mail-style message ("Subject: ...\n\n<body>", optionally
+     * with To:/Cc:/Bcc:/Reply-To:/From: header lines too - see ALLOWED_EMAIL_HEADERS), which is
+     * parsed and then has {{token}} substitution applied from context - separately for each
+     * header (with CR/LF stripped, so a token value can't inject extra header lines) and the
+     * body (substituted freely). W-205: this is the primary way framework/model code sends
+     * templated emails - see model.user.js for callers (email verification, admin email-change
+     * notices).
+     *
+     * Every envelope header the translation defines is only a *default*: the matching option
+     * below, when given, always wins. `options.to` beats a `To:` header beats `options.user.email`
+     * (so `options.user` alone is enough for the common case; a translation only needs a `To:`
+     * header for a message with a fixed/different recipient than whoever's language it borrows).
+     * @param {object} req - Express request object (currently unused, kept for parity with
+     *   sendEmailFromTemplate() and to allow future per-request context)
+     * @param {object} options - Options
+     * @param {object} [options.user] - Recipient user document; supplies language and default
+     *   `to` (options.user.email). Optional if options.to or the translation's own `To:` header
+     *   resolves to a recipient.
+     * @param {string} options.key - i18n key path resolving to the message (e.g.
+     *   'model.user.emailVerify')
+     * @param {object} [options.context] - Flat key/value substitution tokens (no dotted paths)
+     * @param {string} [options.to] - Recipient email address; overrides the translation's `To:`
+     *   header and options.user.email
+     * @param {string} [options.cc] - Overrides the translation's `Cc:` header
+     * @param {string} [options.bcc] - Overrides the translation's `Bcc:` header
+     * @param {string} [options.replyTo] - Overrides the translation's `Reply-To:` header
+     * @param {string|object} [options.from] - Overrides the translation's `From:` header and the
+     *   config default (string or `{ email, name }`, see sendEmail())
+     * @returns {Promise<object>} { success, messageId, errorCode, error }
+     */
+    static async sendEmailFromTranslation(req, options = {}) {
+        const { user, key, context = {}, to, cc, bcc, replyTo, from } = options;
+
+        if (!key) {
+            return {
+                success: false,
+                messageId: null,
+                errorCode: 'MISSING_FIELDS',
+                error: 'Missing required field: key'
+            };
+        }
+
+        try {
+            // Resolve with an empty context so {{token}} placeholders stay literal - they're
+            // substituted below, after parsing, so a token value can't inject a fake header
+            // into the envelope
+            const rawMessage = global.i18n.translateForUser(user, key, {});
+            if (rawMessage === key) {
+                throw new Error(`Translation not found: ${key}`);
+            }
+
+            const parsed = this._parseEmailMessage(rawMessage);
+            const headers = {};
+            for (const [name, value] of Object.entries(parsed.headers)) {
+                headers[name] = this._substituteHeaderValue(value, context);
+            }
+            const text = global.i18n.substitute(parsed.body, context);
+
+            const recipient = to || headers.To || user?.email;
+            if (!recipient) {
+                return {
+                    success: false,
+                    messageId: null,
+                    errorCode: 'MISSING_FIELDS',
+                    error: 'Missing required field: to (no options.to, translation To: header, or user with an email address)'
+                };
+            }
+
+            return await this.sendEmail({
+                to: recipient,
+                cc: cc || headers.Cc,
+                bcc: bcc || headers.Bcc,
+                replyTo: replyTo || headers['Reply-To'],
+                from: from || headers.From,
+                subject: headers.Subject,
+                text
+            });
+
+        } catch (error) {
+            LogController.logError(null, 'email.sendEmailFromTranslation',
+                `error: Failed to send email from translation key '${key}': ${error.message}`);
 
             return {
                 success: false,
@@ -424,7 +597,7 @@ class EmailController {
             to: this.config.adminEmail,
             subject: subject,
             text: text,
-            html: html || text.replace(/\n/g, '<br>')
+            html: html || undefined
         });
     }
 
@@ -562,16 +735,15 @@ class EmailController {
                 const from = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
 
                 // W-045-TD-18: Sanitize HTML content to prevent XSS attacks in emails
-                const sanitizedHtml = html
-                    ? CommonUtils.sanitizeHtml(html)
-                    : message.replace(/\n/g, '<br>');
-
+                // W-205: html is only sent when the caller explicitly supplies one, matching
+                // sendEmail() - this endpoint sends directly via transporterToUse (to support
+                // the test-mode transporter swap above) rather than through sendEmail()
                 const mailOptions = {
                     from: from,
                     to: to,
                     subject: subject,
                     text: message,
-                    html: sanitizedHtml,
+                    html: html ? CommonUtils.sanitizeHtml(html) : undefined,
                     replyTo: fromEmail
                 };
 

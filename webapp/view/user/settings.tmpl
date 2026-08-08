@@ -5,13 +5,13 @@
  * @description     W-134: Settings template of user profile SPA. W-161: Single mode (always edit).
  *                  W-171: Tabs interface replacing vertical card stack.
  * @file            webapp/view/user/settings.tmpl
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           65%, Cursor 2.5, Claude Sonnet 4.6
+ * @genai           65%, Cursor 3.14, Claude Sonnet 5
 --}}
 {{#component "userSpa.settingsHtml"}}
 {{#if user.isAuthenticated}}
@@ -29,6 +29,9 @@
         <!-- W-171: Built-in tab panels (moved into .jp-tabs-panels by tabs.register()) -->
 
         <!-- W-175: Panel: Profile (content built by renderCoreSchemaBlock()) -->
+        <!-- W-205: emailVerifyStatus appended by JS after the profile card (see renderEmailVerifyStatus()) -
+             deliberately not wired into renderCoreSchemaBlock() itself, which supports fields only
+             (no actions/links) - see design doc "UI" section -->
         <div id="panel-profile" class="jp-panel"></div>
 
         <!-- W-175: Panel: Preferences (content built by renderCoreSchemaBlock(); selects populated by load*()) -->
@@ -475,6 +478,7 @@
                     // profile: blockData=user.profile, rootData=user (for username/email dataPath fields)
                     renderCoreSchemaBlock('profile', coreSchema.profile, user.profile || {}, 'user', user);
                     renderCoreSchemaBlock('preferences', coreSchema.preferences, user.preferences || {}, 'user');
+                    renderEmailVerifyStatus(user); // W-205: see function doc comment
                 } else {
                     // Re-nav: panels inside .jp-tabs-panels — repopulate via per-panel setAllValues.
                     // profile panel: include username/email (readonly, dataPath fields) to preserve display.
@@ -490,6 +494,7 @@
                     if (prefPanel) {
                         jPulse.UI.input.setAllValues(prefPanel, { preferences: user.preferences || {} });
                     }
+                    renderEmailVerifyStatus(user); // W-205: see function doc comment
                 }
 
                 // W-171: Update page header user info (name, avatar initials, status badge)
@@ -597,6 +602,40 @@
         flushGrid();
 
         panel.innerHTML = '<div class="jp-card jp-schema-section">' + bodyHtml + '</div>';
+    }
+
+    // W-205: Email verification status line, appended after the Profile panel's schema-
+    // rendered card rather than wired into renderCoreSchemaBlock() itself - that hand-written
+    // function (W-175) supports fields only, no actions/links, and stays generic on purpose
+    // (see design doc "UI" section). Idempotent: creates the box once, then only updates it on
+    // every subsequent call (first init and re-nav/save alike). Hidden entirely when the site
+    // has turned verification 'off' - showing a permanently-unfixable warning would be exactly
+    // the kind of clutter the "don't make me think" paradigm is trying to avoid.
+    function renderEmailVerifyStatus(user) {
+        const policy = `{{appConfig.controller.user.emailVerification}}` || 'required';
+        const panel = document.getElementById('panel-profile');
+        if (!panel) return;
+
+        let box = document.getElementById('emailVerifyStatus');
+        if (policy === 'off') {
+            if (box) box.remove();
+            return;
+        }
+        if (!box) {
+            box = document.createElement('div');
+            box.id = 'emailVerifyStatus';
+            box.className = 'jp-card local-email-verify-status';
+            panel.appendChild(box);
+        }
+
+        if (user.emailVerified === false) {
+            box.className = 'jp-card local-email-verify-status local-email-verify-unverified';
+            box.innerHTML = `⚠️ ${jPulse.string.escapeHtml('{{i18n.view.user.settings.emailNotVerified}}')} ` +
+                `<a href="/auth/email-verify.shtml">{{i18n.view.user.settings.emailVerifyNow}}</a>`;
+        } else {
+            box.className = 'jp-card local-email-verify-status local-email-verify-verified';
+            box.innerHTML = `✅ ${jPulse.string.escapeHtml('{{i18n.view.user.settings.emailVerified}}')}`;
+        }
     }
 
     // W-171/W-175: Build tabs registration config and call tabs.register().

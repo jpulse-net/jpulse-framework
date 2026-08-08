@@ -3,13 +3,13 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.14, Claude Sonnet 5
  */
 
 import UserModel from '../model/user.js';
@@ -21,9 +21,40 @@ import ConfigModel from '../model/config.js';
  */
 class AuthController {
 
+    // W-109: default pendingAuth window; W-205 extends this to 30 min while 'email-verify' is
+    // the current expected step (see _pendingAuthTimeoutMs() below) - long enough to receive
+    // and act on mail, while a password-validated-but-not-yet-MFA-complete state still can't
+    // linger indefinitely.
+    static PENDING_AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
     // ============================================================================
     // HELPER FUNCTIONS
     // ============================================================================
+
+    /**
+     * Which step is still outstanding for a pendingAuth - the first required step not yet
+     * in completedSteps. Shared by login() and pendingStatus() (W-205) so both apply the
+     * identical rule.
+     * @param {object} pending - req.session.pendingAuth
+     * @returns {string|undefined} The expected step name, or undefined if none remain
+     */
+    static _getExpectedStep(pending) {
+        const remainingSteps = pending.requiredSteps.filter(
+            s => !pending.completedSteps.includes(s)
+        );
+        return remainingSteps[0];
+    }
+
+    /**
+     * W-205: 30-minute pendingAuth window while 'email-verify' is the current step (long
+     * enough to receive and act on mail), PENDING_AUTH_TIMEOUT_MS (5 min) for every other
+     * step - shared by login() and pendingStatus() so both apply the identical rule.
+     * @param {string} expectedStep - Current expected step (see _getExpectedStep())
+     * @returns {number} Timeout in milliseconds
+     */
+    static _pendingAuthTimeoutMs(expectedStep) {
+        return expectedStep === 'email-verify' ? 30 * 60 * 1000 : AuthController.PENDING_AUTH_TIMEOUT_MS;
+    }
 
     /**
      * Get user's preferred language from session with fallback to default
@@ -219,6 +250,34 @@ class AuthController {
             completedSteps,
             requiredSteps: []
         };
+
+        // W-205: core step, pushed ahead of the hook so a plugin inspecting
+        // context.requiredSteps in onAuthGetSteps already sees it (final ordering below is by
+        // priority regardless - 50 puts it ahead of MFA's 100). Serves login() and
+        // completeExternalAuth() alike since both call this one method, so SSO logins are
+        // covered with no extra code. Only 'required' reaches this branch: 'nag' never blocks
+        // login (it surfaces via the warning pushed in _completeLoginSession() instead), and
+        // 'off' offers no verification path anywhere. getEmailVerificationPolicy() degrades
+        // 'required' to 'nag' at runtime when EmailController.isConfigured() is false, so
+        // unconfigured SMTP can't lock out signups (W-205 Phase 6).
+        const emailVerifyPolicy = UserModel.getEmailVerificationPolicy();
+        if (emailVerifyPolicy === 'required' && user.emailVerified === false) {
+            context.requiredSteps.push({
+                step: 'email-verify',
+                priority: 50,
+                page: '/auth/email-verify.shtml',
+                data: { email: global.CommonUtils.maskEmail(user.email) }
+            });
+
+            // Issue on arrival, never speculatively: skip if a still-valid credential already
+            // exists, so a login retry (page reload, wrong MFA code, etc.) doesn't resend on
+            // every attempt while this step is pending.
+            const hasValid = await UserModel.hasValidEmailVerification(user._id);
+            if (!hasValid) {
+                await UserModel.issueEmailVerification(req, user);
+            }
+        }
+
         const result = await global.HookManager.execute('onAuthGetSteps', context);
 
         // Sort by priority (lower = first), filter already completed
@@ -266,8 +325,40 @@ class AuthController {
         // Hook: get non-blocking warnings
         const warningContext = { req, user, warnings: [] };
         const warningResult = await global.HookManager.execute('onAuthGetWarnings', warningContext);
+
+        // W-205: 'nag' mode surfaces a toast every login until verified - no snooze/dismissal
+        // state, so no new schema field. 'required' mode blocks earlier in _getRequiredSteps()
+        // and never reaches here unverified; 'off' intentionally skips this branch even though
+        // emailVerified may itself still be false (its schema default) - 'off' means no
+        // verification path is offered anywhere, nag included. Uses translateForUser() (not
+        // translate(req, ...)) because req.session.user isn't set yet at this point in the
+        // flow - it would fall back to the site default language rather than this user's own.
+        // getEmailVerificationPolicy() may itself report 'nag' here even though 'required' is
+        // configured, if SMTP isn't set up (W-205 Phase 6) - same degrade as _getRequiredSteps().
+        const emailVerifyPolicy = UserModel.getEmailVerificationPolicy();
+        if (emailVerifyPolicy === 'nag' && user.emailVerified === false) {
+            warningResult.warnings.push({
+                type: 'email-verify-nag',
+                toastType: 'error',
+                message: global.i18n.translateForUser(user, 'controller.auth.emailVerifyNag'),
+                link: '/auth/email-verify.shtml',
+                linkText: global.i18n.translateForUser(user, 'controller.auth.emailVerifyNagLinkText')
+            });
+        }
+
         global.LogController.logInfo(req, 'auth._completeLoginSession',
             `Warnings hook result: ${warningResult.warnings?.length || 0} warning(s)`);
+
+        // W-205: also stash on the session (self-cleaning - always overwritten/cleared here,
+        // never accumulates across logins) so a DIFFERENT same-session tab's pendingStatus()
+        // poll can still deliver these once it notices login already completed elsewhere -
+        // that tab never sees this function's own return value, which only reaches whichever
+        // request actually called it (the confirm-link click, not the waiting tab's poll).
+        if (warningResult.warnings?.length > 0) {
+            req.session.pendingWarnings = warningResult.warnings;
+        } else {
+            delete req.session.pendingWarnings;
+        }
 
         // Create session
         req.session.user = sessionContext.sessionData;
@@ -327,13 +418,17 @@ class AuthController {
      */
     static async completeExternalAuth(req, res, user, authMethod, redirectUrl) {
         const startTime = Date.now();
-        const finalRedirect = redirectUrl || '/';
+        const finalRedirect = global.CommonUtils.isSafeRedirectUrl(req, redirectUrl) ? redirectUrl : '/';
 
+        // W-205: stashed the same way as login()'s credentials step, so a mail-link click on
+        // /api/1/user/email-verify/confirm (a plain GET, outside this browser-redirect chain)
+        // can still land on the right destination once verification completes.
         const pending = {
             userId: user._id.toString(),
             username: user.username,
             authMethod,
             completedSteps: ['credentials'],
+            redirect: finalRedirect,
             createdAt: Date.now()
         };
 
@@ -358,8 +453,8 @@ class AuthController {
             return res.redirect(`${nextPage}?redirect=${encodeURIComponent(finalRedirect)}`);
         }
 
-        await AuthController._completeLoginSession(req, user, authMethod, startTime);
-        return res.redirect(finalRedirect);
+        const { warnings } = await AuthController._completeLoginSession(req, user, authMethod, startTime);
+        return res.redirect(global.CommonUtils.appendToastsToUrl(finalRedirect, warnings));
     }
 
     /**
@@ -377,7 +472,6 @@ class AuthController {
      */
     static async login(req, res) {
         const startTime = Date.now();
-        const PENDING_AUTH_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
         try {
             // W-109: Parse step from request, default to 'credentials' for backward compatibility
@@ -589,11 +683,19 @@ class AuthController {
                 }
 
                 // W-109: Initialize pending auth
+                // W-205: stash the client's intended post-login destination now, while it's
+                // still known - the client-side redirect param (login.shtml's own ?redirect=)
+                // never reaches the server again once the multi-step flow moves the user to a
+                // different page (e.g. a mail-link click on /api/1/user/email-verify/confirm).
+                // Validated once here (write time) - the value is trusted from then on wherever
+                // pending.redirect is read.
+                const safeRedirect = global.CommonUtils.isSafeRedirectUrl(req, stepData.redirect) ? stepData.redirect : null;
                 pending = {
                     userId: user._id.toString(),
                     username: user.username,
                     authMethod: beforeLoginContext.authMethod,
                     completedSteps: ['credentials'],
+                    redirect: safeRedirect,
                     createdAt: Date.now()
                 };
 
@@ -635,8 +737,13 @@ class AuthController {
                 });
             }
 
-            // Check timeout (5 minutes)
-            if (Date.now() - pending.createdAt > PENDING_AUTH_TIMEOUT_MS) {
+            // Validate step is expected (computed before the timeout check below, since
+            // W-205's extended email-verify window depends on which step is current)
+            const expectedStep = AuthController._getExpectedStep(pending);
+            const pendingAuthTimeoutMs = AuthController._pendingAuthTimeoutMs(expectedStep);
+
+            // Check timeout
+            if (Date.now() - pending.createdAt > pendingAuthTimeoutMs) {
                 delete req.session.pendingAuth;
                 global.LogController.logError(req, 'auth.login',
                     `error: Pending auth expired for user: ${pending.username}`);
@@ -647,11 +754,6 @@ class AuthController {
                 });
             }
 
-            // Validate step is expected
-            const remainingSteps = pending.requiredSteps.filter(
-                s => !pending.completedSteps.includes(s)
-            );
-            const expectedStep = remainingSteps[0];
             // Allow alternative steps (e.g., 'mfa-backup' as alternative to 'mfa')
             const isValidStep = step === expectedStep ||
                 (expectedStep === 'mfa' && step === 'mfa-backup');
@@ -668,17 +770,73 @@ class AuthController {
             // Load user for hook context (plugins need full user object)
             let user = await UserModel.findById(pending.userId);
 
-            // W-109: Execute step via hook
-            const stepContext = {
-                req,
-                step,
-                stepData,
-                pending,
-                user,       // Full user object for plugins
-                valid: false,
-                error: null
-            };
-            const result = await global.HookManager.execute('onAuthValidateStep', stepContext);
+            // W-205: resend is not a step validation attempt - it never completes the step -
+            // so it's handled as a self-contained early return, ahead of both the core
+            // validation branch and the onAuthValidateStep hook below.
+            if (step === 'email-verify' && stepData.resend) {
+                const issueResult = await UserModel.issueEmailVerification(req, user);
+                if (!issueResult.success) {
+                    global.LogController.logError(req, 'auth.login',
+                        `error: email-verify resend failed for ${pending.username}: ${issueResult.errorCode}`);
+                    return res.status(429).json({
+                        success: false,
+                        error: global.i18n.translate(req, 'controller.auth.emailVerifyRateLimited'),
+                        code: issueResult.errorCode,
+                        retryAfter: issueResult.retryAfter
+                    });
+                }
+                global.LogController.logInfo(req, 'auth.login',
+                    `email-verify resend for ${pending.username}`);
+                return res.json({
+                    success: true,
+                    nextStep: 'email-verify',
+                    page: '/auth/email-verify.shtml',
+                    email: global.CommonUtils.maskEmail(user.email)
+                });
+            }
+
+            // W-205: cross-device "am I verified yet" poll moved off this endpoint entirely -
+            // see AuthController.pendingStatus() / GET /api/1/auth/pending-status. Sharing this
+            // URL meant a poll (which guesses no secret) consumed the same per-IP
+            // credential-guessing budget above, AND fell inside nginx's stricter 'login' zone -
+            // both scoped to real login attempts, not benign status checks.
+
+            // W-205: core step - no plugin claims 'email-verify', so validate it here, ahead of
+            // the onAuthValidateStep hook (mirrors the inline mfa-backup special-case above),
+            // producing the same { valid, error } shape the hook would so the shared
+            // completion logic below stays uniform for both hook- and core-validated steps.
+            let result;
+            if (step === 'email-verify') {
+                // user is reloaded from DB below regardless of outcome, so verifyResult.user
+                // (already reflects the flip) isn't needed here.
+                const verifyResult = await UserModel.verifyEmailByCode(req, pending.userId, stepData.code);
+                if (verifyResult.success) {
+                    result = { valid: true, error: null };
+                } else {
+                    const messageKey = verifyResult.errorCode === 'EMAIL_VERIFY_RATE_LIMITED'
+                        ? 'controller.auth.emailVerifyRateLimited'
+                        : verifyResult.errorCode === 'EMAIL_VERIFY_EXPIRED'
+                            ? 'controller.auth.emailVerifyExpired'
+                            : 'controller.auth.emailVerifyInvalidCode';
+                    result = {
+                        valid: false,
+                        error: global.i18n.translate(req, messageKey),
+                        retryAfter: verifyResult.retryAfter
+                    };
+                }
+            } else {
+                // W-109: Execute step via hook
+                const stepContext = {
+                    req,
+                    step,
+                    stepData,
+                    pending,
+                    user,       // Full user object for plugins
+                    valid: false,
+                    error: null
+                };
+                result = await global.HookManager.execute('onAuthValidateStep', stepContext);
+            }
 
             if (!result.valid) {
                 global.LogController.logError(req, 'auth.login',
@@ -686,7 +844,8 @@ class AuthController {
                 return res.status(400).json({
                     success: false,
                     error: result.error || global.i18n.translate(req, 'controller.auth.stepFailed'),
-                    code: 'STEP_FAILED'
+                    code: 'STEP_FAILED',
+                    retryAfter: result.retryAfter
                 });
             }
 
@@ -719,6 +878,127 @@ class AuthController {
         } catch (error) {
             global.LogController.logError(req, 'auth.login', `error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.auth.loginInternalError', { error: error.message });
+            res.status(500).json({
+                success: false,
+                error: message,
+                code: 'INTERNAL_ERROR',
+                details: error.message
+            });
+        }
+    }
+
+    /**
+     * Poll a pendingAuth for "has the current step completed elsewhere" - e.g. an
+     * email-verify link clicked on another device/tab while this one waits.
+     * GET /api/1/auth/pending-status
+     * W-205: split out of login()'s old `step: 'email-verify', poll: true` branch onto its
+     * own GET endpoint/URL specifically so a poll - which guesses no secret - falls outside
+     * both nginx's stricter 'login' rate-limit zone and the Node-level per-IP
+     * credential-guessing limiter in login() above; neither budget belongs to a status check.
+     * No app-level rate limiting by design here either - relies on nginx's generic 'api' zone.
+     * Deliberately unauthenticated (mirrors getStatus()) since a mid-login session only has
+     * req.session.pendingAuth, never req.session.user - except for the "already authenticated"
+     * shortcut below, which by definition only fires once req.session.user exists. No logging
+     * on the routine "still waiting" path either, matching getStatus() - only real transitions
+     * and errors are logged, so 6-10s polling doesn't spam the log.
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async pendingStatus(req, res) {
+        const startTime = Date.now();
+        try {
+            // Same-session completion via another tab/window (e.g. the confirm link opened
+            // in a second window that shares this session's cookie) already finished the
+            // login server-side - _completeLoginSession() sets session.user and deletes
+            // pendingAuth together, so by the time this poll runs there is nothing left to
+            // find there. Report success (not NO_PENDING_AUTH) so the waiting tab redirects
+            // to its destination instead of showing a misleading "please sign in again".
+            // Also drains session.pendingWarnings (e.g. the MFA nag) - this tab's own request
+            // never ran _completeLoginSession() itself, so its return value never reached here;
+            // the session stash is the only channel this tab has to learn about it at all.
+            if (req.session.user?.isAuthenticated) {
+                const warnings = req.session.pendingWarnings || [];
+                delete req.session.pendingWarnings;
+                return res.json({ success: true, nextStep: null, warnings });
+            }
+
+            const pending = req.session.pendingAuth;
+            if (!pending) {
+                return res.status(400).json({
+                    success: false,
+                    error: global.i18n.translate(req, 'controller.auth.noPendingAuth'),
+                    code: 'NO_PENDING_AUTH'
+                });
+            }
+
+            const expectedStep = AuthController._getExpectedStep(pending);
+            const pendingAuthTimeoutMs = AuthController._pendingAuthTimeoutMs(expectedStep);
+
+            if (Date.now() - pending.createdAt > pendingAuthTimeoutMs) {
+                delete req.session.pendingAuth;
+                global.LogController.logError(req, 'auth.pendingStatus',
+                    `error: Pending auth expired for user: ${pending.username}`);
+                return res.status(400).json({
+                    success: false,
+                    error: global.i18n.translate(req, 'controller.auth.authExpired'),
+                    code: 'AUTH_EXPIRED'
+                });
+            }
+
+            // Only 'email-verify' has a cross-device "verify elsewhere" story today (mfa etc.
+            // are entered on the same device) - echo any other expected step back unchanged,
+            // no side effects, no DB read.
+            if (expectedStep !== 'email-verify') {
+                return res.json({ success: true, nextStep: expectedStep, page: null });
+            }
+
+            const user = await UserModel.findById(pending.userId);
+            if (!user) {
+                delete req.session.pendingAuth;
+                global.LogController.logError(req, 'auth.pendingStatus',
+                    `error: User ${pending.userId} not found for pending auth`);
+                return res.status(400).json({
+                    success: false,
+                    error: global.i18n.translate(req, 'controller.auth.noPendingAuth'),
+                    code: 'NO_PENDING_AUTH'
+                });
+            }
+
+            if (user.emailVerified === false) {
+                return res.json({
+                    success: true,
+                    nextStep: 'email-verify',
+                    page: '/auth/email-verify.shtml',
+                    email: global.CommonUtils.maskEmail(user.email)
+                });
+            }
+
+            pending.completedSteps.push('email-verify');
+            const requiredSteps = await AuthController._getRequiredSteps(req, user, pending.completedSteps);
+
+            if (requiredSteps.length > 0) {
+                const nextStep = requiredSteps[0];
+                pending.requiredSteps = [...pending.completedSteps, ...requiredSteps.map(s => s.step)];
+                req.session.pendingAuth = pending;
+
+                global.LogController.logInfo(req, 'auth.pendingStatus',
+                    `email-verify completed via poll (verified elsewhere) for ${pending.username}, next step: ${nextStep.step}`);
+
+                return res.json({
+                    success: true,
+                    nextStep: nextStep.step,
+                    page: nextStep.page,
+                    ...nextStep.data
+                });
+            }
+
+            global.LogController.logInfo(req, 'auth.pendingStatus',
+                `email-verify completed via poll (verified elsewhere) for ${pending.username}, login complete`);
+            return await AuthController._completeLogin(req, res, user, pending.authMethod, startTime);
+
+        } catch (error) {
+            global.LogController.logError(req, 'auth.pendingStatus', `error: ${error.message}`);
+            const message = global.i18n.translate(req, 'controller.auth.pendingStatusInternalError', { error: error.message });
             res.status(500).json({
                 success: false,
                 error: message,

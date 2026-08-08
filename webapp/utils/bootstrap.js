@@ -3,13 +3,13 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.14, Claude Sonnet 5
  */
 
 import CommonUtils from './common.js';
@@ -38,6 +38,27 @@ export function checkLocalAuthRestrictionSafety(appConfig, hookManager, log = bo
         log(`⚠️  localAuthRestriction: 'disabled' with no external auth plugin enabled - ` +
             `downgraded to 'admins-only' to prevent self-lockout (see docs/deployment.md, ` +
             `Break-Glass Account Runbook)`, 'warn');
+    }
+}
+
+/**
+ * W-205: Warn at startup if 'required' email verification policy is configured but SMTP isn't,
+ * so no verification mail could ever be sent and every new signup would otherwise be unable to
+ * log in. Unlike checkLocalAuthRestrictionSafety() above, this does NOT mutate appConfig - the
+ * actual degrade from 'required' to 'nag' is evaluated live, on every read, by
+ * UserModel.getEmailVerificationPolicy() (webapp/model/user.js), so an admin who fixes SMTP
+ * after startup gets 'required' enforcement back with no restart. This check exists purely to
+ * surface the degraded state in the startup log, following the same non-throwing pattern as
+ * checkLocalAuthRestrictionSafety() (W-195).
+ * @param {object} appConfig - global.appConfig (read-only, never mutated here)
+ * @param {object} emailController - EmailController module (needs isConfigured())
+ * @param {function} log - Logging function (message, level)
+ */
+export function checkEmailVerificationSafety(appConfig, emailController, log = bootstrapLog) {
+    if (appConfig?.controller?.user?.emailVerification === 'required' && !emailController.isConfigured()) {
+        log(`⚠️  emailVerification: 'required' with SMTP not configured - verification mail ` +
+            `cannot be sent, so enforcement is degraded to 'nag' at runtime until SMTP is ` +
+            `configured`, 'warn');
     }
 }
 
@@ -290,6 +311,7 @@ export async function bootstrap(options = {}) {
         } else {
             bootstrapLog('⚠️  EmailController: Not configured (email sending disabled)');
         }
+        checkEmailVerificationSafety(global.appConfig, EmailControllerModule.default, bootstrapLog);
 
         // Step 23: Initialize UserController (W-112 - register metrics provider)
         const UserControllerModule = await import('../controller/user.js');

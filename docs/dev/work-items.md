@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.8
+# jPulse Docs / Dev / Work Items v1.7.9
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -7349,19 +7349,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   `redirect_uri_mismatch` bug class at its root, one layer below the auth-oauth plugin's own W-197
   v1.0.3 stopgap fix
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-204, v1.7.8, 2026-08-02: auth: rate limit login endpoint (DoS/brute-force protection)
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bugfix
 - objectives:
   - give `/api/1/auth/login` real, working rate limiting - both a per-IP app-level control (new)
@@ -7445,6 +7434,212 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-205, v1.7.9, 2026-08-07: auth: signup with email confirmation
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - confirm valid email address, needed to prevent account takover with auth-oauth SSO
+  - make it optional with an appConfig setting
+- prerequisits:
+  - W-109, v1.3.10, 2025-12-08: auth: multi-step login flow - onAuthGetWarnings hook
+  - W-195, v1.7.1, 2026-07-26: auth: jPulse enhancements for external auth plugins - introduced completeExternalAuth()/_completeLoginSession() split
+  - W-197, v1.0.3, 2026-08-02: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
+- working doc: docs/dev/design/W-205-auth-email-confirmation.md
+- features:
+  - `appConfig.controller.user.emailVerification`: `'off'` | `'nag'` | `'required'` (default). Read
+    live on every request via `UserModel.getEmailVerificationPolicy()`, never cached/baked in at
+    startup, so a config change (or the SMTP safety valve below) takes effect immediately, no
+    restart
+  - `'required'` injects `email-verify` as a blocking step into the existing W-109 multi-step login
+    flow (`AuthController._getRequiredSteps()`) - a fresh signup is auto-sent a verification email
+    and must complete it (code entry or the mailed link) before the session completes; `'nag'`
+    lets login complete and shows a dismissible toast with a resend link instead
+  - dual verification path, one shared token pair per pending verification: a 6-digit code (typed
+    in-flow) and a mailed link (`GET /api/1/user/email-verify/confirm?token=...`, no auth
+    required, redirect-only). The link can finish a login started in a different browser/device -
+    the originating tab detects this via `GET /api/1/auth/pending-status` polling (own endpoint,
+    deliberately outside both the login rate limiter and nginx's `login` zone, since a poll
+    guesses no secret), which shares the exact `nextStep`/`page` contract as a code submission
+  - resend with app-level rate limiting (Redis-backed, fail-open): 3 sends / 10 min and 5 verify
+    attempts / 15 min, per account - independent of the nginx `login` zone
+  - `emailVerified` (boolean) + `emailVerifiedAt` (date, nullable) on the base user schema.
+    `emailVerifiedAt: null` alongside `emailVerified: true` unambiguously means grandfathered
+    (backfilled) rather than actually proven - only `_completeEmailVerification()` stamps a real
+    date, on genuine proof of inbox ownership
+  - one-time, idempotent startup backfill (`UserModel.ensureIndexes()`): any pre-existing account
+    with an absent `emailVerified` is set to `true`/`emailVerifiedAt: null`, replacing W-198's
+    original "absent reads as verified" convention with an explicit, queryable state
+  - SMTP safety valve: `'required'` transparently degrades to `'nag'` at runtime whenever
+    `EmailController.isConfigured()` is false, so a not-yet-configured mail server can never lock
+    signups out; a loud one-time warning is still logged at startup
+    (`checkEmailVerificationSafety()`, `webapp/utils/bootstrap.js`) so the gap isn't silent;
+    resumes full enforcement immediately once SMTP is configured
+  - admin controls: verified/unverified badge in `admin/users.shtml`'s email cell; `emailVerified`
+    checkbox + read-only "verified on" line in `admin/user-profile.shtml`; both hidden entirely
+    when the policy is `'off'`. Admin changing a user's `email` resets `emailVerified`/
+    `emailVerifiedAt` by default (an admin-typed address is a belief, not proof) unless the same
+    request explicitly asserts `emailVerified: true` - sends an informational email (with a verify
+    link) to the new address and a security alert to the old one; response includes
+    `emailVerifiedReset` so the admin UI can explain a checkbox that came back unchecked
+  - user-facing: verification status line in Settings (hidden when policy is `'off'`); new shared
+    `/auth/email-verify.shtml` page serving three contexts with one URL - mid-login (`pendingAuth`),
+    authenticated self-service (`'nag'` mode), and the confirm link's own
+    `?status=verified|expired|invalid` landing
+  - found during implementation, folded in beyond original spec:
+    - fixed the hardcoded `preferences.language: 'en'` at signup (unrelated pre-existing bug found
+      while wiring recipient-language email delivery) - signup now honors the browser-negotiated
+      language like every other new-session default
+    - new `EmailController.sendEmailFromTranslation(req, { user, key, context, to, cc, bcc,
+      replyTo, from })`: the whole email (envelope headers + body) lives in one translation key,
+      unix-mail style (`Subject: ...` header line(s), blank line, body) - sent in the recipient's
+      language via `i18n.translateForUser()`. Superseded an earlier, file-based
+      `webapp/static/assets/email/*.tmpl` approach (Phase 5) that turned out broken twice over:
+      `webapp/static/` is served raw by nginx in production with no `.tmpl` filtering (framework
+      template files would have been readable in prod), and the `templatePath` values passed to
+      `PathResolver.resolveAsset()` were missing the required `assets/` prefix, so all three sends
+      were silently failing (`TEMPLATE_ERROR`)
+    - `EmailController.ALLOWED_EMAIL_HEADERS` broadened from `Subject`-only to the common envelope
+      headers (`Subject`/`To`/`Cc`/`Bcc`/`Reply-To`/`From`, case-insensitive), each individually
+      overridable via a matching `sendEmailFromTranslation()` option - a translation-supplied
+      header is always just a default; none of this item's three emails need more than `Subject:`
+      today, added for future flexibility. Header values are still substituted then stripped of
+      `\r`/`\n` before use, so a `{{token}}` context value can never inject a fake header
+    - removed `EmailController`'s auto-derived-HTML branch (escape → linkify → `<br/>`) entirely,
+      at both call sites (`sendEmail()`/`apiSend()`) - emails are text-only unless explicit HTML is
+      supplied, simpler and more predictable than auto-derived HTML
+    - fixed a latent `i18n.js` bug: `_translate()`'s substitution fell back to the literal
+      `{{token}}` placeholder for legitimately falsy values (e.g. an empty `firstName`); extracted
+      a new `i18n.substitute()` helper with the corrected `p1 in context ? context[p1] : match`
+      logic, reused by `sendEmailFromTranslation()`
+    - new `CommonUtils.isSafeRedirectUrl(req, url)` (server-side counterpart to
+      `jPulse.url.isInternal()`, which never had one since no server code previously acted on a
+      redirect value) and `CommonUtils.maskEmail(email)` (`jane@example.com` →
+      `ja***@example.com`) for the toast/resend UI
+    - the mailed confirm link carries no `redirect` param at all - the eventual destination rides
+      `session.pendingAuth.redirect`, captured once (and validated with `isSafeRedirectUrl()`) at
+      the credentials step or SSO callback, re-validated again immediately before the confirm
+      route's redirect
+    - found during manual testing: the original cross-device poll shared `POST /api/1/auth/login`
+      with real credential submissions, so it silently inherited both the Node-level per-IP
+      `loginRateLimit` and (in production) nginx's 5-req/min `login` zone - a few minutes of a
+      waiting tab's background polling was enough to trip `RATE_LIMITED`, with no client-side
+      handling of that error (indefinite silent re-polling). Fixed by moving the poll to its own
+      `GET /api/1/auth/pending-status` endpoint (no app-level rate limit; relies on nginx's
+      generic `api` zone only, since a status poll guesses no secret) and adding client-side
+      backoff (stop auto-polling after 3 consecutive failures, fall back to the manual button)
+    - found during manual testing: a same-session second tab/window (e.g. two tabs of the same
+      incognito profile) that completed login via the confirm link left the first tab's poll
+      seeing no `pendingAuth` (already consumed) and reporting a misleading `NO_PENDING_AUTH`
+      "please sign in again", even though that browser's shared session was already
+      authenticated. Fixed: `pendingStatus()` now checks `req.session.user?.isAuthenticated`
+      first and reports login-complete immediately if so
+    - found during manual testing: the MFA-not-enabled nag (and any other `onAuthGetWarnings`
+      toast) never reached the user when login completed via a plain server redirect -
+      `confirmEmailVerify()` and the pre-existing `completeExternalAuth()` (OAuth/LDAP/SAML)
+      both discarded `_completeLoginSession()`'s `warnings`, and the client's only toast queue
+      (`jPulse.url.redirect(url, {toasts})`) is `sessionStorage`-based, unreachable from a
+      server-issued `302`. Fixed generically with new `CommonUtils.appendToastsToUrl(url,
+      warnings)` (base64-encoded `toasts` query param, no-op when empty), consumed by
+      `jpulse-common.js`'s `dom.ready()` bootstrap alongside the existing `sessionStorage` queue
+      and stripped from the address bar via `history.replaceState` right after showing
+    - found during manual testing: the fix above still didn't surface the nag in either window -
+      two more bugs, one per prior fix: (a) `confirmEmailVerify()`'s destination often defaults
+      to `/`, and `webapp/routes.js`'s `GET /` handler issues its own hard-coded
+      `res.redirect('/home/')`, discarding the `toasts` query string along with everything else;
+      now forwards its incoming query string onto `/home/`. (b) the *waiting* tab's
+      `pendingStatus()` poll is a separate HTTP request from the confirm-link tab's
+      `_completeLoginSession()` call, so it never saw that call's `warnings` return value at all;
+      `_completeLoginSession()` now also stashes non-empty warnings onto
+      `req.session.pendingWarnings` (self-cleaning - set or deleted on every call, never
+      accumulates), which the already-authenticated shortcut in `pendingStatus()` drains and
+      returns as `warnings` in its JSON response
+- deliverables:
+  - `webapp/model/user.js`:
+    - `emailVerified`/`emailVerifiedAt` schema fields; `issueEmailVerification()`,
+      `verifyEmailByToken()`, `verifyEmailByCode()`, `_completeEmailVerification()`,
+      `sendEmailChangedNotice()`/`sendEmailChangedAlert()`, `getEmailVerificationPolicy()`;
+      `ensureIndexes()` absent-field backfill
+  - `webapp/controller/auth.js`:
+    - `_getRequiredSteps()` email-verify step injection (priority-ordered); `login()` handling for
+      `{ step: 'email-verify', code }` and `{ resend: true }`; nag toast in
+      `_completeLoginSession()` (also stashes non-empty warnings onto
+      `req.session.pendingWarnings`, self-cleaning); `pendingStatus()` (cross-device poll, its own
+      endpoint - split out of `login()` after the shared endpoint was found to hit the login rate
+      limiter/nginx zone during manual testing; checks `req.session.user?.isAuthenticated` first
+      for a same-session second tab that already completed login elsewhere, draining
+      `session.pendingWarnings` into the response in that case) plus shared
+      `_getExpectedStep()`/`_pendingAuthTimeoutMs()` helpers; `completeExternalAuth()` now routes
+      its final redirect through `CommonUtils.appendToastsToUrl()`
+  - `webapp/controller/user.js`:
+    - `confirmEmailVerify()` (now also routes its final redirect through
+      `CommonUtils.appendToastsToUrl()`), `emailVerify()`, `emailVerifySend()`; `signup()`
+      auto-send; `update()` admin email-change reset (+ `emailVerifiedReset` response flag)
+  - `webapp/controller/email.js`:
+    - `sendEmailFromTranslation()`, broadened `ALLOWED_EMAIL_HEADERS`, `_parseEmailMessage()`
+      header parsing, header-injection guard; derived-HTML branch removed
+  - `webapp/controller/markdown.js`:
+    - unrelated pre-existing bug surfaced by the `i18n.substitute()` fix (was passing `baseDir`
+      instead of the actual `namespace` variable into its own error message) - corrected while
+      updating the now-accurately-substituted test expectation
+  - `webapp/utils/bootstrap.js`:
+    - `checkEmailVerificationSafety()` (non-mutating startup warning)
+  - `webapp/utils/common.js`:
+    - `isSafeRedirectUrl()`, `maskEmail()`, `appendToastsToUrl()` (post-login warnings carried
+      across a plain server redirect - `sessionStorage`-based toast queue is unreachable from Node)
+  - `webapp/utils/i18n.js`:
+    - `substitute()` (extracted, falsy-value bug fixed); `translateForUser()` used for
+      recipient-language email delivery
+  - `webapp/routes.js`:
+    - `GET /api/1/user/email-verify/confirm` (public), `POST /api/1/user/email-verify` and
+      `POST /api/1/user/email-verify/send` (authenticated), `GET /api/1/auth/pending-status`
+      (public); `GET /`'s hard-coded `res.redirect('/home/')` now forwards its incoming query
+      string, so a `CommonUtils.appendToastsToUrl()` `toasts` param survives this second redirect
+  - `webapp/app.conf`:
+    - `controller.user.emailVerification` (default `'required'`);
+      `controller.user.emailVerification` added to `handlebar.contextFilter.alwaysAllow`
+  - `webapp/translations/en.conf`, `webapp/translations/de.conf`:
+    - `model.user.emailVerify`/`emailChangedNotice`/`emailChangedAlert` (full unix-mail-style
+      messages); `controller.auth.emailVerify*`/`controller.user.emailVerify.*` UI/error strings
+  - `webapp/view/auth/email-verify.shtml` (new):
+    - shared page for mid-login, self-service nag, and confirm-link landings; cross-device polling
+      (8s interval against `GET /api/1/auth/pending-status`, stops after 3 consecutive failures
+      and falls back to the manual "Check now" button)
+  - `webapp/view/auth/login.shtml`:
+    - `nextStep === 'email-verify'` redirect case
+  - `webapp/view/jpulse-common.js`:
+    - `dom.ready()` bootstrap now also decodes/shows/strips a `toasts` URL query param (the
+      `CommonUtils.appendToastsToUrl()` counterpart to the existing `sessionStorage` toast queue),
+      via a shared `showQueuedToasts()` helper used by both delivery mechanisms
+  - `webapp/view/user/settings.tmpl`, `webapp/view/user/index.shtml`:
+    - verification status line + styles (hidden when policy is `'off'`)
+  - `webapp/view/admin/users.shtml`:
+    - verified/unverified badge in the email cell
+  - `webapp/view/admin/user-profile.shtml`:
+    - `emailVerified` checkbox + read-only "verified on" line
+  - `webapp/tests/unit/model/user-email-verification.test.js`,
+    `webapp/tests/unit/model/user-email-verification-policy.test.js`,
+    `webapp/tests/unit/controller/email-from-translation.test.js`,
+    `webapp/tests/unit/controller/user-email-verify-endpoints.test.js` (all new), plus extended
+    `auth-controller.test.js`, `email-controller.test.js`, `bootstrap.test.js`,
+    `user-uniqueness-db.test.js`, `markdown.test.js`, `email-api.test.js`,
+    `common-utils.test.js`:
+    - full unit coverage for the above (rate limiting, TTLs, policy degradation, backfill
+      idempotency, admin reset flow, header parsing/overrides, cross-device polling, same-session
+      poll shortcut + `pendingWarnings` stash/drain, `appendToastsToUrl()` round-trip incl.
+      non-ASCII text); manual end-to-end send/verify/resend/expiry, and the `GET /` query-string
+      passthrough, left to manual testing
+  - `docs/security-and-auth.md`, `docs/api-reference.md`:
+    - "Email Verification" sections (policy modes, SMTP safety valve, grandfathering, admin
+      email-change reset, endpoints, rate limits)
+
+
+
+
+
+
 
 ### Pending
 
@@ -7458,9 +7653,7 @@ old pending:
 ### Potential next items:
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
 - W-0: deployment: docker strategy
-- W-0: auth controller: authentication with OAuth2 (see W-109 for flow design)
 - W-0: auth controller: authentication with LDAP (see W-109 for flow design)
-- W-0: auth controller: email verification plugin (see W-109 for flow design)
 
 ### Chat instructions
 
@@ -7473,8 +7666,8 @@ release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
 - assume W-197, v1.0.3, 2026-08-01
-- assume W-204, v1.7.8, 2026-08-02
-- update features & deliverables in W-197 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume W-205, v1.7.9, 2026-08-07
+- update features & deliverables in W-205 work-items to document work done if needed (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - append to cursor_log.txt
@@ -7485,12 +7678,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.8 2026-08-02
+node bin/bump-version.js 1.7.9 2026-08-07
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.8; git push origin main --tags
+git tag v1.7.9; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff
@@ -7646,11 +7839,18 @@ template:
 - prerequisits:
   - W-197, v1.0.3, 2026-08-02: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
 
+### W-0: users: reset password
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - ability for user to reset password by email in case forgotten
 
-
-
-
-
+### W-0: plugins: list available plugins in github.com/jpulse-net/plugin-* packages
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - the existing `npx jpulse plugin list` shows installed plugins
+  - we need an equivalent to list plugins available in the github repository
 
 ### W-055: deployment: load balancer and multi-server setup
 - status: 🕑 PENDING
@@ -7811,12 +8011,6 @@ template:
 - status: 🕑 PENDING
 - type: Idea
 - objective: separate admin tasks for larger orgs, such as an admin for Sales, another for Engineering, or separate by divisions
-
-### W-0: auth controller: signup with email confirmation
-- status: 🕑 PENDING
-- type: Feature
-- possibly implement as plugin
-- make it optional with a appConfig setting
 
 ### W-0: auth controller: authentication with LDAP
 - status: 🕑 PENDING

@@ -3,13 +3,13 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.14, Claude Sonnet 5
  */
 
 // Import Jest globals and test utilities first
@@ -699,6 +699,25 @@ describe('AuthController', () => {
                 expect.stringContaining("step 'mfa' has no 'page'")
             );
         });
+
+        test('carries onAuthGetWarnings warnings across the final redirect (no AJAX response to read them from)', async () => {
+            global.HookManager.register('onAuthGetWarnings', 'test-plugin', (context) => {
+                context.warnings.push({ type: 'mfa-not-enabled', toastType: 'info', message: 'Consider enabling MFA' });
+                return context;
+            });
+
+            await AuthController.completeExternalAuth(mockReq, mockRes, mockUser, 'oauth', '/dashboard');
+
+            expect(mockRes.redirect).toHaveBeenCalledTimes(1);
+            const redirectedUrl = mockRes.redirect.mock.calls[0][0];
+            expect(redirectedUrl).toMatch(/^\/dashboard\?toasts=/);
+
+            const encoded = new URL(redirectedUrl, 'https://example.com').searchParams.get('toasts');
+            const decoded = JSON.parse(Buffer.from(encoded, 'base64').toString('utf8'));
+            expect(decoded).toEqual([
+                { type: 'mfa-not-enabled', toastType: 'info', message: 'Consider enabling MFA' }
+            ]);
+        });
     });
 
     // W-195: localAuthRestriction enforcement in the credentials step
@@ -904,6 +923,402 @@ describe('AuthController', () => {
 
             // Should call authenticate with username/password
             expect(UserModelMock.authenticate).toHaveBeenCalledWith('testuser', 'testpass');
+        });
+    });
+
+    // Minimal self-contained HookManager fake for the two W-205 describes below - an earlier
+    // test in this file ("login should accept step parameter...") replaces global.HookManager
+    // with a stub lacking register()/clear() and never restores it, so these describes must not
+    // depend on whatever global.HookManager happens to be left over from prior tests/file order.
+    function createFakeHookManager() {
+        const handlers = {};
+        return {
+            register: (hookName, pluginName, handler) => {
+                (handlers[hookName] = handlers[hookName] || []).push(handler);
+            },
+            execute: async (hookName, context) => {
+                let ctx = context;
+                for (const handler of (handlers[hookName] || [])) {
+                    ctx = (await handler(ctx)) || ctx;
+                }
+                return ctx;
+            },
+            clear: () => {
+                for (const key of Object.keys(handlers)) {
+                    delete handlers[key];
+                }
+            }
+        };
+    }
+
+    // W-205: email verification step, across all three controller.user.emailVerification policies
+    describe('W-205: email verification step (_getRequiredSteps)', () => {
+        const mockUser = {
+            _id: 'user-ev-1',
+            username: 'evuser',
+            email: 'evuser@example.com',
+            profile: { firstName: 'Ev' },
+            emailVerified: false
+        };
+
+        beforeEach(() => {
+            global.HookManager = createFakeHookManager();
+            UserModel.hasValidEmailVerification.mockResolvedValue(false);
+            UserModel.issueEmailVerification.mockResolvedValue({ success: true, errorCode: null });
+        });
+
+        test("pushes the email-verify step (priority 50) when policy is 'required' and the user is unverified", async () => {
+            UserModel.getEmailVerificationPolicy.mockReturnValue('required');
+
+            const steps = await AuthController._getRequiredSteps(mockReq, mockUser, []);
+
+            expect(steps).toEqual([
+                expect.objectContaining({ step: 'email-verify', priority: 50, page: '/auth/email-verify.shtml' })
+            ]);
+        });
+
+        test('auto-issues a fresh credential when none is currently valid', async () => {
+            UserModel.getEmailVerificationPolicy.mockReturnValue('required');
+            UserModel.hasValidEmailVerification.mockResolvedValue(false);
+
+            await AuthController._getRequiredSteps(mockReq, mockUser, []);
+
+            expect(UserModel.issueEmailVerification).toHaveBeenCalledWith(mockReq, mockUser);
+        });
+
+        test('does not re-issue when a valid credential already exists (repeated arrivals do not re-send)', async () => {
+            UserModel.getEmailVerificationPolicy.mockReturnValue('required');
+            UserModel.hasValidEmailVerification.mockResolvedValue(true);
+
+            await AuthController._getRequiredSteps(mockReq, mockUser, []);
+
+            expect(UserModel.issueEmailVerification).not.toHaveBeenCalled();
+        });
+
+        test("does not push a step when policy is 'required' but the user is already verified", async () => {
+            UserModel.getEmailVerificationPolicy.mockReturnValue('required');
+
+            const steps = await AuthController._getRequiredSteps(mockReq, { ...mockUser, emailVerified: true }, []);
+
+            expect(steps).toEqual([]);
+            expect(UserModel.issueEmailVerification).not.toHaveBeenCalled();
+        });
+
+        test("does not push a blocking step when policy is 'nag' (surfaces later as a warning instead)", async () => {
+            UserModel.getEmailVerificationPolicy.mockReturnValue('nag');
+
+            const steps = await AuthController._getRequiredSteps(mockReq, mockUser, []);
+
+            expect(steps).toEqual([]);
+            expect(UserModel.issueEmailVerification).not.toHaveBeenCalled();
+        });
+
+        test("does not push a step when policy is 'off'", async () => {
+            UserModel.getEmailVerificationPolicy.mockReturnValue('off');
+
+            const steps = await AuthController._getRequiredSteps(mockReq, mockUser, []);
+
+            expect(steps).toEqual([]);
+        });
+
+        test('email-verify (priority 50) sorts ahead of a plugin mfa step (priority 100)', async () => {
+            UserModel.getEmailVerificationPolicy.mockReturnValue('required');
+            global.HookManager.register('onAuthGetSteps', 'test-mfa-plugin', (context) => {
+                context.requiredSteps.push({ step: 'mfa', priority: 100, page: '/auth/mfa-verify.shtml' });
+                return context;
+            });
+
+            const steps = await AuthController._getRequiredSteps(mockReq, mockUser, []);
+
+            expect(steps.map((s) => s.step)).toEqual(['email-verify', 'mfa']);
+        });
+
+        test("masks the email address in the step's data (never the raw address)", async () => {
+            UserModel.getEmailVerificationPolicy.mockReturnValue('required');
+
+            const steps = await AuthController._getRequiredSteps(mockReq, mockUser, []);
+
+            expect(steps[0].data.email).toBe(global.CommonUtils.maskEmail(mockUser.email));
+            expect(steps[0].data.email).not.toBe(mockUser.email);
+        });
+    });
+
+    // W-205: the 'nag' toast is pushed here (not as a blocking step), only when unverified and 'nag'
+    describe('W-205: email verification nag warning (_completeLoginSession)', () => {
+        const mockUser = {
+            _id: 'user-nag-1',
+            username: 'naguser',
+            email: 'naguser@example.com',
+            profile: { firstName: 'Nag' },
+            roles: ['user'],
+            loginCount: 0,
+            emailVerified: false
+        };
+
+        beforeEach(() => {
+            UserModel.updateById.mockResolvedValue({});
+            global.HookManager = createFakeHookManager();
+            global.i18n.translateForUser = jest.fn((user, key) => key);
+        });
+
+        test("pushes an email-verify-nag warning when policy is 'nag' and the user is unverified", async () => {
+            UserModel.getEmailVerificationPolicy.mockReturnValue('nag');
+
+            const { warnings } = await AuthController._completeLoginSession(mockReq, mockUser, 'password', Date.now());
+
+            expect(warnings).toEqual(expect.arrayContaining([
+                expect.objectContaining({
+                    type: 'email-verify-nag',
+                    toastType: 'error',
+                    link: '/auth/email-verify.shtml'
+                })
+            ]));
+        });
+
+        test("does not warn when policy is 'nag' but the user is already verified", async () => {
+            UserModel.getEmailVerificationPolicy.mockReturnValue('nag');
+
+            const { warnings } = await AuthController._completeLoginSession(
+                mockReq, { ...mockUser, emailVerified: true }, 'password', Date.now()
+            );
+
+            expect(warnings.find((w) => w.type === 'email-verify-nag')).toBeUndefined();
+        });
+
+        test("does not warn when policy is 'off', even though emailVerified is still false", async () => {
+            UserModel.getEmailVerificationPolicy.mockReturnValue('off');
+
+            const { warnings } = await AuthController._completeLoginSession(mockReq, mockUser, 'password', Date.now());
+
+            expect(warnings.find((w) => w.type === 'email-verify-nag')).toBeUndefined();
+        });
+
+        test("does not warn when policy is 'required' (blocked earlier in _getRequiredSteps, never reaches here unverified)", async () => {
+            UserModel.getEmailVerificationPolicy.mockReturnValue('required');
+
+            const { warnings } = await AuthController._completeLoginSession(mockReq, mockUser, 'password', Date.now());
+
+            expect(warnings.find((w) => w.type === 'email-verify-nag')).toBeUndefined();
+        });
+
+        test('stashes non-empty warnings on session.pendingWarnings so a same-session pendingStatus() poll can still deliver them', async () => {
+            UserModel.getEmailVerificationPolicy.mockReturnValue('nag');
+
+            await AuthController._completeLoginSession(mockReq, mockUser, 'password', Date.now());
+
+            expect(mockReq.session.pendingWarnings).toEqual(expect.arrayContaining([
+                expect.objectContaining({ type: 'email-verify-nag' })
+            ]));
+        });
+
+        test('clears a stale session.pendingWarnings when this login produces no warnings (self-cleaning, never accumulates)', async () => {
+            mockReq.session.pendingWarnings = [{ type: 'stale-from-a-previous-login', toastType: 'info', message: 'old' }];
+            UserModel.getEmailVerificationPolicy.mockReturnValue('off');
+
+            await AuthController._completeLoginSession(mockReq, mockUser, 'password', Date.now());
+
+            expect(mockReq.session.pendingWarnings).toBeUndefined();
+        });
+    });
+
+    // W-205: cross-device "am I verified yet" poll - its own endpoint, split out of login()
+    // after the shared endpoint was found (in manual testing) to inherit login()'s per-IP rate
+    // limiter / nginx's stricter 'login' zone, neither of which a status poll should share.
+    describe('W-205: pendingStatus (GET /api/1/auth/pending-status)', () => {
+        const mockUser = {
+            _id: 'user-poll-1',
+            username: 'polluser',
+            email: 'polluser@example.com',
+            profile: { firstName: 'Poll' },
+            roles: ['user'],
+            loginCount: 0,
+            emailVerified: false
+        };
+
+        function makePending(overrides = {}) {
+            return {
+                userId: 'user-poll-1',
+                username: 'polluser',
+                authMethod: 'internal',
+                requiredSteps: ['credentials', 'email-verify'],
+                completedSteps: ['credentials'],
+                redirect: '/',
+                createdAt: Date.now(),
+                ...overrides
+            };
+        }
+
+        beforeEach(() => {
+            global.HookManager = createFakeHookManager();
+            UserModel.updateById.mockResolvedValue({});
+            UserModel.findById.mockResolvedValue(mockUser);
+        });
+
+        test('reports login complete (not NO_PENDING_AUTH) when another tab/window already completed this same session', async () => {
+            // e.g. the confirm link opened in a second window sharing this session's cookie -
+            // _completeLoginSession() already set session.user and deleted pendingAuth together
+            mockReq.session.user = { isAuthenticated: true, username: 'polluser' };
+            mockReq.session.pendingAuth = undefined;
+
+            await AuthController.pendingStatus(mockReq, mockRes);
+
+            expect(mockRes.json).toHaveBeenCalledWith({ success: true, nextStep: null, warnings: [] });
+            expect(mockRes.status).not.toHaveBeenCalled();
+            expect(UserModel.findById).not.toHaveBeenCalled();
+        });
+
+        test('drains session.pendingWarnings (e.g. the MFA nag) stashed by the OTHER tab\'s _completeLoginSession() call', async () => {
+            const stashedWarnings = [{ type: 'mfa-not-enabled', toastType: 'info', message: 'Consider enabling MFA' }];
+            mockReq.session.user = { isAuthenticated: true, username: 'polluser' };
+            mockReq.session.pendingAuth = undefined;
+            mockReq.session.pendingWarnings = stashedWarnings;
+
+            await AuthController.pendingStatus(mockReq, mockRes);
+
+            expect(mockRes.json).toHaveBeenCalledWith({ success: true, nextStep: null, warnings: stashedWarnings });
+            expect(mockReq.session.pendingWarnings).toBeUndefined();
+        });
+
+        test('returns NO_PENDING_AUTH (400) when there is no pending auth in this session', async () => {
+            mockReq.session.pendingAuth = undefined;
+
+            await AuthController.pendingStatus(mockReq, mockRes);
+
+            expect(mockRes.status).toHaveBeenCalledWith(400);
+            expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+                success: false,
+                code: 'NO_PENDING_AUTH'
+            }));
+            expect(UserModel.findById).not.toHaveBeenCalled();
+        });
+
+        test('returns AUTH_EXPIRED (400) once the extended 30-minute email-verify window has passed', async () => {
+            mockReq.session.pendingAuth = makePending({ createdAt: Date.now() - (31 * 60 * 1000) });
+
+            await AuthController.pendingStatus(mockReq, mockRes);
+
+            expect(mockRes.status).toHaveBeenCalledWith(400);
+            expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+                success: false,
+                code: 'AUTH_EXPIRED'
+            }));
+            expect(mockReq.session.pendingAuth).toBeUndefined();
+        });
+
+        test("does not expire a fresh pending auth still within the 30-minute email-verify window", async () => {
+            mockReq.session.pendingAuth = makePending({ createdAt: Date.now() - (10 * 60 * 1000) });
+
+            await AuthController.pendingStatus(mockReq, mockRes);
+
+            expect(mockRes.json).not.toHaveBeenCalledWith(expect.objectContaining({ code: 'AUTH_EXPIRED' }));
+        });
+
+        test("applies the shorter 5-minute default window (not 30) when the expected step isn't email-verify", async () => {
+            mockReq.session.pendingAuth = makePending({
+                requiredSteps: ['credentials', 'mfa'],
+                createdAt: Date.now() - (6 * 60 * 1000)
+            });
+
+            await AuthController.pendingStatus(mockReq, mockRes);
+
+            expect(mockRes.status).toHaveBeenCalledWith(400);
+            expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'AUTH_EXPIRED' }));
+        });
+
+        test('echoes a non-email-verify expected step back unchanged, with no DB read (no cross-device story for it)', async () => {
+            mockReq.session.pendingAuth = makePending({ requiredSteps: ['credentials', 'mfa'] });
+
+            await AuthController.pendingStatus(mockReq, mockRes);
+
+            expect(mockRes.json).toHaveBeenCalledWith({ success: true, nextStep: 'mfa', page: null });
+            expect(UserModel.findById).not.toHaveBeenCalled();
+        });
+
+        test('reports nextStep: email-verify (with masked email) while the user is still unverified', async () => {
+            mockReq.session.pendingAuth = makePending();
+
+            await AuthController.pendingStatus(mockReq, mockRes);
+
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: true,
+                nextStep: 'email-verify',
+                page: '/auth/email-verify.shtml',
+                email: global.CommonUtils.maskEmail(mockUser.email)
+            });
+            expect(mockReq.session.pendingAuth.completedSteps).toEqual(['credentials']);
+        });
+
+        test('advances to the next step and updates session pendingAuth once verified elsewhere, when another step follows', async () => {
+            mockReq.session.pendingAuth = makePending();
+            UserModel.findById.mockResolvedValue({ ...mockUser, emailVerified: true });
+            global.HookManager.register('onAuthGetSteps', 'test-mfa-plugin', (context) => {
+                context.requiredSteps.push({ step: 'mfa', priority: 100, page: '/auth/mfa-verify.shtml' });
+                return context;
+            });
+
+            await AuthController.pendingStatus(mockReq, mockRes);
+
+            expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+                success: true,
+                nextStep: 'mfa',
+                page: '/auth/mfa-verify.shtml'
+            }));
+            expect(mockReq.session.pendingAuth).toMatchObject({
+                completedSteps: ['credentials', 'email-verify'],
+                requiredSteps: ['credentials', 'email-verify', 'mfa']
+            });
+            expect(global.LogController.logInfo).toHaveBeenCalledWith(
+                mockReq, 'auth.pendingStatus', expect.stringContaining('verified elsewhere')
+            );
+        });
+
+        test('completes the login when verified elsewhere and no further steps remain', async () => {
+            mockReq.session.pendingAuth = makePending();
+            UserModel.findById.mockResolvedValue({ ...mockUser, emailVerified: true });
+
+            await AuthController.pendingStatus(mockReq, mockRes);
+
+            expect(mockReq.session.user).toMatchObject({ isAuthenticated: true, username: 'polluser' });
+            expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+                success: true,
+                nextStep: null
+            }));
+        });
+
+        test('returns NO_PENDING_AUTH (400) and clears the session when the user no longer exists', async () => {
+            mockReq.session.pendingAuth = makePending();
+            UserModel.findById.mockResolvedValue(null);
+
+            await AuthController.pendingStatus(mockReq, mockRes);
+
+            expect(mockRes.status).toHaveBeenCalledWith(400);
+            expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+                success: false,
+                code: 'NO_PENDING_AUTH'
+            }));
+            expect(mockReq.session.pendingAuth).toBeUndefined();
+        });
+
+        test('returns INTERNAL_ERROR (500) when an unexpected error is thrown', async () => {
+            mockReq.session.pendingAuth = makePending();
+            UserModel.findById.mockRejectedValue(new Error('DB unavailable'));
+
+            await AuthController.pendingStatus(mockReq, mockRes);
+
+            expect(mockRes.status).toHaveBeenCalledWith(500);
+            expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+                success: false,
+                code: 'INTERNAL_ERROR'
+            }));
+        });
+
+        test('never resends a verification email or consumes an attempt while merely polling', async () => {
+            mockReq.session.pendingAuth = makePending();
+
+            await AuthController.pendingStatus(mockReq, mockRes);
+
+            expect(UserModel.issueEmailVerification).not.toHaveBeenCalled();
+            expect(UserModel.verifyEmailByCode).not.toHaveBeenCalled();
         });
     });
 

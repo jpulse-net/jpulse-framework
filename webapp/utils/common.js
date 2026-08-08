@@ -3,13 +3,13 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.13, Claude Sonnet 5
+ * @genai           60%, Cursor 3.14, Claude Sonnet 5
  */
 
 import fs from 'fs';
@@ -1158,6 +1158,89 @@ class CommonUtils {
     }
 
     /**
+     * Mask an email address for display (e.g. in login/verification UI), showing only enough
+     * of the local part to let the owner recognize their own address without exposing it in
+     * full to anyone glancing at a screen or a masked-recipient log line.
+     *
+     * @param {string} email - Email address to mask
+     * @returns {string} Masked email (e.g. 'ja***@example.com'), or '' if not a valid-looking email
+     *
+     * @example
+     * CommonUtils.maskEmail('jane@example.com');  // Returns: 'ja***@example.com'
+     * CommonUtils.maskEmail('jo@example.com');     // Returns: 'j***@example.com'
+     */
+    static maskEmail(email) {
+        if (typeof email !== 'string' || !email.includes('@')) return '';
+
+        const [localPart, domain] = email.split('@');
+        if (!localPart || !domain) return '';
+
+        const visibleChars = localPart.length <= 2 ? 1 : 2;
+        return `${localPart.slice(0, visibleChars)}***@${domain}`;
+    }
+
+    /**
+     * W-205: Validate a client-supplied redirect target before trusting it as a same-origin
+     * 302 destination - the server-side counterpart to jPulse.url.isInternal() (W-110), which
+     * has no server-side equivalent since no server-side code has ever needed to act on a
+     * redirect value before. Unlike the client-side check, this explicitly rejects
+     * protocol-relative URLs ("//host/path") - those resolve to a different host in a browser
+     * even though they start with a single "/", so treating them as safe would be an open
+     * redirect. Use wherever a redirect value that originated from request input (not the
+     * framework's own state) needs to be trusted for a Location header.
+     *
+     * @param {object} req - Express request object (for same-origin host comparison)
+     * @param {string} url - Candidate redirect URL
+     * @returns {boolean} True if url is safe to use as a same-origin redirect target
+     *
+     * @example
+     * CommonUtils.isSafeRedirectUrl(req, '/dashboard/');             // true (relative)
+     * CommonUtils.isSafeRedirectUrl(req, 'https://SAME-HOST/page');  // true (same origin)
+     * CommonUtils.isSafeRedirectUrl(req, '//evil.example.com/');     // false (protocol-relative)
+     * CommonUtils.isSafeRedirectUrl(req, 'https://evil.example.com'); // false (cross-origin)
+     */
+    static isSafeRedirectUrl(req, url) {
+        if (typeof url !== 'string' || !url) return false;
+        if (url.startsWith('//')) return false;
+        if (url.startsWith('/') || url.startsWith('#') || url.startsWith('?')) return true;
+
+        try {
+            const parsed = new URL(url);
+            return parsed.host === req.get('host');
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * W-205: Append post-login warnings (e.g. the email-verify/MFA nag toasts from
+     * AuthController._completeLoginSession()) to a redirect URL as a base64-encoded `toasts`
+     * query param, so a plain server-issued 302 (e.g. an email confirm-link click, or an
+     * OAuth/LDAP/SAML callback via completeExternalAuth()) can still surface them on arrival.
+     * jPulse.url.redirect(url, {toasts}) (W-110) can't be reused here - it queues toasts via
+     * sessionStorage, a browser API this server-side redirect has no access to. Consumed once
+     * by jpulse-common.js's dom.ready() bootstrap, which shows the toasts and immediately
+     * strips the param from the address bar via history.replaceState.
+     *
+     * No-op (returns url unchanged) when there are no warnings, so a plain redirect stays plain.
+     *
+     * @param {string} url - Destination URL (may already carry query params)
+     * @param {Array<object>} warnings - Toast-shaped objects: {toastType, message, link?, linkText?}
+     * @returns {string} url, or url with an appended `toasts` query param
+     *
+     * @example
+     * CommonUtils.appendToastsToUrl('/dashboard', [{ toastType: 'error', message: 'Please verify your email.' }]);
+     * // Returns: '/dashboard?toasts=<base64>'
+     */
+    static appendToastsToUrl(url, warnings) {
+        if (!Array.isArray(warnings) || warnings.length === 0) return url;
+
+        const encoded = encodeURIComponent(Buffer.from(JSON.stringify(warnings), 'utf8').toString('base64'));
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}toasts=${encoded}`;
+    }
+
+    /**
      * Sanitize string for safe usage
      *
      * Removes potentially dangerous characters from strings.
@@ -2047,6 +2130,7 @@ export const {
     formatValue,
     generateUuid,
     isValidEmail,
+    maskEmail,
     sanitizeString,
     slugifyString,
     sanitizeHtml,

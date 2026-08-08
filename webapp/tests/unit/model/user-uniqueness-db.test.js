@@ -10,13 +10,13 @@
  *                   indexes on email/username, skipping (not crashing) when pre-existing
  *                   duplicates are found.
  * @file            webapp/tests/unit/model/user-uniqueness-db.test.js
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.13, Claude Sonnet 5
+ * @genai           80%, Cursor 3.14, Claude Sonnet 5
  */
 
 import { describe, test, expect, beforeAll, beforeEach } from '@jest/globals';
@@ -28,6 +28,7 @@ const mockCollection = {
     findOne: jest.fn(),
     insertOne: jest.fn(),
     updateOne: jest.fn(),
+    updateMany: jest.fn(),
     find: jest.fn(),
     aggregate: jest.fn(),
     createIndex: jest.fn()
@@ -189,6 +190,9 @@ describe('UserModel DB-level uniqueness (W-198)', () => {
             mockCollection.aggregate.mockReturnValue({ toArray: jest.fn().mockResolvedValue([]) });
             mockCollection.createIndex.mockResolvedValue(true);
             mockCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+            // W-205: emailVerified/emailVerifiedAt absent-field backfill, alongside the
+            // email/username uniqueness work this suite otherwise covers
+            mockCollection.updateMany.mockResolvedValue({ modifiedCount: 0 });
         });
 
         test('creates unique indexes on both email and username when there are no duplicates', async () => {
@@ -242,6 +246,59 @@ describe('UserModel DB-level uniqueness (W-198)', () => {
             expect(mockCollection.createIndex).toHaveBeenCalledWith({ email: 1 }, { unique: true });
             expect(mockCollection.createIndex).not.toHaveBeenCalledWith({ username: 1 }, { unique: true });
             expect(global.LogController.logWarning).toHaveBeenCalled();
+        });
+
+        // W-205: absent-field emailVerified/emailVerifiedAt backfill (one-time, one-directional)
+        test('backfills documents with an absent emailVerified field to true/grandfathered', async () => {
+            mockCollection.updateMany.mockResolvedValue({ modifiedCount: 3 });
+
+            await UserModel.ensureIndexes(false);
+
+            expect(mockCollection.updateMany).toHaveBeenCalledWith(
+                { emailVerified: { $exists: false } },
+                { $set: { emailVerified: true, emailVerifiedAt: null } }
+            );
+            expect(global.LogController.logInfo).toHaveBeenCalledWith(
+                null, 'user.ensureIndexes',
+                expect.stringContaining('backfilled 3 user document(s)')
+            );
+        });
+
+        test('logs nothing for the backfill when no document matches (already normalized)', async () => {
+            mockCollection.updateMany.mockResolvedValue({ modifiedCount: 0 });
+
+            await UserModel.ensureIndexes(false);
+
+            expect(global.LogController.logInfo).not.toHaveBeenCalledWith(
+                null, 'user.ensureIndexes', expect.stringContaining('emailVerified')
+            );
+        });
+
+        test('running the backfill twice is a no-op the second time (idempotent, filter matches nothing left)', async () => {
+            // First run: some documents still have an absent field
+            mockCollection.updateMany.mockResolvedValueOnce({ modifiedCount: 2 });
+            await UserModel.ensureIndexes(false);
+            expect(global.LogController.logInfo).toHaveBeenCalledWith(
+                null, 'user.ensureIndexes', expect.stringContaining('backfilled 2 user document(s)')
+            );
+
+            // Second run: the same { $exists: false } filter now matches nothing
+            jest.clearAllMocks();
+            mockCollection.updateMany.mockResolvedValueOnce({ modifiedCount: 0 });
+            await UserModel.ensureIndexes(false);
+            expect(global.LogController.logInfo).not.toHaveBeenCalledWith(
+                null, 'user.ensureIndexes', expect.stringContaining('emailVerified')
+            );
+        });
+
+        test('never touches a document with an explicit emailVerified: false (only the absent case matches the filter)', async () => {
+            // The filter itself ({ $exists: false }) is what protects explicit false - this
+            // assertion pins that filter shape so a future edit can't accidentally widen it
+            await UserModel.ensureIndexes(false);
+
+            const emailVerifiedCall = mockCollection.updateMany.mock.calls
+                .find((call) => '$set' in call[1] && 'emailVerified' in call[1].$set);
+            expect(emailVerifiedCall[0]).toEqual({ emailVerified: { $exists: false } });
         });
 
         test('gracefully skips when the database is unavailable and isTest is true', async () => {

@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.7.8
- * @release         2026-08-02
+ * @version         1.7.9
+ * @release         2026-08-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -810,6 +810,10 @@ window.jPulse = {
 
         /**
          * Redirect to URL with optional toast messages and delay
+         * Client-driven redirect only - queues toasts via sessionStorage. For a redirect
+         * issued from Node (a plain res.redirect(), e.g. an email confirm-link or an
+         * OAuth/LDAP/SAML callback), use CommonUtils.appendToastsToUrl() server-side instead -
+         * this bootstrap's dom.ready() handler picks either delivery mechanism up on load.
          * @param {string} url - Target URL
          * @param {object} options - Optional settings
          *   - delay: ms to wait before redirect (default: 0)
@@ -11868,31 +11872,56 @@ jPulse.dom.ready(() => {
     jPulse.UI.sourceCode.initAll();
     jPulse.UI.tooltip.initAll(); // Auto-initialize tooltips (W-126)
 
-    // Process queued toast messages stored in sessionStorage
-    // Use case: show messages after page redirect (login warnings, confirmations, etc.)
+    // Show a batch of queued toast messages - shared by both delivery mechanisms below
     // Format: [{ toastType, message, link?, linkText?, duration? }, ...]
+    const showQueuedToasts = (messages) => {
+        messages.forEach(item => {
+            const message = item.message || 'Unknown message';
+            const toastType = item.toastType || 'info';
+            const options = {
+                link: item.link,
+                linkText: item.linkText
+            };
+            // Only set duration if explicitly specified (otherwise use toast defaults)
+            if (item.duration) {
+                options.duration = item.duration;
+            }
+            jPulse.UI.toast.show(message, toastType, options);
+        });
+    };
+
+    // Process queued toast messages stored in sessionStorage
+    // Use case: show messages after a client-driven redirect (login warnings, confirmations, etc.)
     // To queue: use jPulse.url.redirect(url, { toasts: [...] })
     const toastQueue = sessionStorage.getItem('jpulse_toast_queue');
     if (toastQueue) {
         try {
-            const messages = JSON.parse(toastQueue);
-            messages.forEach(item => {
-                const message = item.message || 'Unknown message';
-                const toastType = item.toastType || 'info';
-                const options = {
-                    link: item.link,
-                    linkText: item.linkText
-                };
-                // Only set duration if explicitly specified (otherwise use toast defaults)
-                if (item.duration) {
-                    options.duration = item.duration;
-                }
-                jPulse.UI.toast.show(message, toastType, options);
-            });
+            showQueuedToasts(JSON.parse(toastQueue));
         } catch (e) {
             console.error('- jPulse.UI.toast: Error parsing toast queue:', e);
         } finally {
             sessionStorage.removeItem('jpulse_toast_queue');
+        }
+    }
+
+    // W-205: Process toasts carried across a plain server-issued 302 (e.g. an email
+    // confirm-link click, or an OAuth/LDAP/SAML callback via completeExternalAuth()) via
+    // CommonUtils.appendToastsToUrl() - the sessionStorage queue above only works for
+    // client-driven navigations (jPulse.url.redirect), Node has no access to a browser's
+    // sessionStorage from a server-issued redirect. Stripped from the address bar immediately
+    // so a refresh/bookmark/back doesn't re-show or leak it.
+    const toastsParam = jPulse.url.getParam('toasts');
+    if (toastsParam) {
+        try {
+            const binary = atob(toastsParam);
+            const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+            showQueuedToasts(JSON.parse(new TextDecoder().decode(bytes)));
+        } catch (e) {
+            console.error('- jPulse.UI.toast: Error parsing toasts URL param:', e);
+        } finally {
+            const cleanUrl = new URL(window.location.href);
+            cleanUrl.searchParams.delete('toasts');
+            window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
         }
     }
 

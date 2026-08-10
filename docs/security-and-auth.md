@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.7.9
+# jPulse Docs / Security & Authentication v1.7.10
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -185,6 +185,77 @@ request to skip the reset — a conscious, logged override rather than an invisi
 
 **Endpoints:** see [REST API Reference — Email Verification](api-reference.md#email-verification).
 
+#### Password Reset
+
+A user who has forgotten their password requests a reset from the login page's "Forgot
+password?" link, receives a one-hour, single-use link by email, chooses a new password, and — if
+nothing else stands in the way — is signed in on the spot.
+
+**Availability.** The feature is offered only when both of these hold, checked live on every
+request (so configuring or clearing SMTP takes effect immediately, with no restart):
+
+- `appConfig.controller.user.disablePasswordReset` is `false` (the default)
+- email is configured (`EmailController.isConfigured()`) — both a non-empty `smtpServer` and
+  `adminEmail` are required; an empty server does **not** fall back to `localhost` (set
+  `localhost` explicitly for a local MTA)
+
+A fresh install has no mail server, so without the second condition the default experience would
+be a link that promises an email nobody will ever receive. When reset is unavailable the login
+page hides the link, the admin Security-panel send button is disabled, and all four endpoints
+refuse with `403 PASSWORD_RESET_UNAVAILABLE`.
+
+**One flag, not two.** Unlike the older `disableLogin`/`hideLogin` and
+`disableSignup`/`hideSignup` pairs, the single `disablePasswordReset` value is read by both the
+endpoints and the login page (it is on `controller.handlebar.contextFilter.alwaysAllow`, so the
+unauthenticated login page can see it), which removes any chance of the two layers drifting apart.
+`view.auth.hideLogin` deliberately has no effect here: it hides navigation entries while leaving
+the login page reachable by direct URL, and a site using it still wants the people who know that
+URL to be able to recover their password.
+
+**Who gets what.** The request endpoint's response is identical in every case below — an
+anonymous stranger must not be able to learn whether an account exists. Only the email differs,
+and only the person holding the inbox sees it:
+
+| Account situation | Emailed |
+|---|---|
+| No matching username or email | nothing |
+| No usable local password (provisioned by an external auth provider) | "you sign in with your provider" explainer, no link |
+| `localAuthRestriction` makes local login unusable for this account | same explainer — a password they could never sign in with is not worth resetting |
+| `status: 'suspended'` or `'terminated'` | nothing; the administrator owns that conversation |
+| `status: 'pending'` or `'inactive'` | reset link — they may be waiting on approval and still deserve working credentials |
+| `status: 'active'`, local password | reset link |
+
+**The link.** `<userId>.<secret>` with 32 random bytes of entropy, stored as a bcrypt hash in
+Redis and valid for **one hour** — much shorter than the 24-hour verification link above, because
+this one grants account takeover to whoever holds it. It is single-use, consumed only by a
+successful confirm, and additionally invalidated by any other password write for that account
+(self-service change, or an administrator setting a password). The link points at a page rather
+than an API route, so a mail scanner prefetching it cannot burn the token before the user sees
+the form, and the page strips the token from the address bar as soon as it reads it.
+
+**After the reset.** Setting the new password also marks the address verified — the user just
+opened a secret mailed to it, which is exactly the proof that flag asserts. The reset endpoint
+never creates a session itself; it hands off to the same machinery `login()` uses, so a required
+MFA step (or any plugin-provided step) still stands between the new password and a session.
+Account status and `localAuthRestriction` are re-checked before that hand-off, so a mailed link is
+never a way around either: a `pending` or `inactive` account gets its password fixed and is told,
+in the response, why it still cannot sign in.
+
+**Administrator-initiated reset.** Admin → Users → *(user)* → Security offers "Email password
+reset link" beside the existing Set Password override. For most support cases the mailed link is
+the better of the two — an administrator-set password is a password the administrator knows, has
+to communicate over some channel, and that stays valid until the user changes it, whereas a mailed
+link is never seen by the administrator, expires in an hour, and works only for whoever holds the
+mailbox. Set Password remains for the cases that need it: no SMTP, an unreachable mailbox, an
+urgent lockout; it also stamps `hasLocalPassword: true`, so an SSO-provisioned account that was
+given a real password is no longer treated as "no local password." Unlike the public endpoint, the
+mailed-link path answers honestly (the masked recipient address, a specific eligibility refusal, or
+a real SMTP failure), skips the per-account send budget so an administrator helping in real time is
+not blocked by a budget the user already spent, and logs every send with the acting administrator's
+username.
+
+**Endpoints:** see [REST API Reference — Password Reset](api-reference.md#password-reset).
+
 #### Logout
 
 ```http
@@ -277,6 +348,9 @@ if (AuthController.isAuthorized(req, '_public')) {
 - `GET /api/1/auth/pending-status` - Poll a mid-login `pendingAuth` for cross-device email-verify completion
 - `GET /api/1/health/status` - System health check
 - `GET /api/1/user/email-verify/confirm` - Email verification link (token proves identity on its own)
+- `POST /api/1/user/password-reset` - Request a password reset link
+- `GET /api/1/user/password-reset/verify` - Check whether a reset link is still usable
+- `POST /api/1/user/password-reset/confirm` - Set a new password (the mailed token is the credential)
 
 #### Authenticated Endpoints (Login Required)
 
@@ -417,9 +491,12 @@ Canonical numbers and the exact `location` mapping can be found in
 | `POST /api/1/auth/login` (all steps, not just credentials) | `appConfig.controller.auth.loginRateLimit` (`enabled`/`maxAttempts`/`windowSeconds`) | `true` / 20 / 300s | Returns `429 RATE_LIMITED` with `retryAfter` (seconds); fires the `onAuthFailure` hook |
 | `POST /api/1/user/email-verify` (code attempts, incl. the login-flow `email-verify` step) | hardcoded, not site-configurable | 5 attempts / 15 min per account | Returns `429 EMAIL_VERIFY_RATE_LIMITED` with `retryAfter` |
 | `POST /api/1/user/email-verify/send` (resend, incl. auto-issue at signup/login) | hardcoded, not site-configurable | 3 sends / 10 min per account | Returns `429 EMAIL_VERIFY_RATE_LIMITED` with `retryAfter` |
+| `POST /api/1/user/password-reset` (request a link) | `appConfig.controller.user.passwordResetRateLimit` (`enabled`/`maxAttempts`/`windowSeconds`) | `true` / 10 / 300s | Per IP — the only limiter that can bound enumeration of accounts that don't exist. Returns `429 RATE_LIMITED` with `retryAfter` (seconds) |
+| `POST /api/1/user/password-reset` (per account) | hardcoded, not site-configurable | 3 sends / 10 min per account | Never surfaced to the caller — the response stays generic. Bypassed for an administrator-initiated send |
+| `POST /api/1/user/password-reset/confirm` (token attempts) | hardcoded, not site-configurable | 5 attempts / 15 min per account | Returns `429 PASSWORD_RESET_RATE_LIMITED` with `retryAfter` (seconds) |
 | `auth-oauth` plugin's `GET /api/1/auth-oauth/init/:provider` and `.../callback/:provider` | hardcoded in the plugin, not site-configurable | 60 requests / 60s | See the plugin's own docs |
 
-Both fail open: if `global.RedisManager` isn't initialized, or Redis itself is unreachable, the
+All of these fail open: if `global.RedisManager` isn't initialized, or Redis itself is unreachable, the
 request proceeds normally rather than being blocked — a broken/absent cache must never be able to
 lock every user out. No other core endpoint (signup, password change, profile updates, search,
 config saves, log queries, etc.) has app-level rate limiting today; they rely entirely on the

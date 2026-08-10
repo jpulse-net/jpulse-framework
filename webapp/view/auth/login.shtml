@@ -4,8 +4,8 @@
  * @tagline         User authentication login page
  * @description     Login form for internal authentication with support for LDAP/OAuth2 planning
  * @file            webapp/view/auth/login.shtml
- * @version         1.7.9
- * @release         2026-08-07
+ * @version         1.7.10
+ * @release         2026-08-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -345,9 +345,11 @@
                               <input type="checkbox" id="rememberMe" name="rememberMe">
                               <span>{{i18n.view.auth.login.rememberMe}}</span>
                           </label>
-                          <a href="#" class="local-forgot-password" onclick="showForgotPassword()">
-                              {{i18n.view.auth.login.forgotPassword}}
-                          </a>
+                          {{#if passwordResetAvailable}}
+                            <a href="/auth/reset-password.shtml" class="local-forgot-password">
+                                {{i18n.view.auth.login.forgotPassword}}
+                            </a>
+                          {{/if}}
                       </div>
 
                       <button type="submit" class="jp-btn jp-btn-primary jp-btn-submit local-auth-submit" id="loginButton">
@@ -547,9 +549,6 @@
             jPulse.UI.toast.error(error);
         }
 
-        function showForgotPassword() {
-            jPulse.UI.toast.info(`{{i18n.view.auth.login.forgotPasswordMessage}}`);
-        }
       {{/unless}}
     </script>
 

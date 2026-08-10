@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.9
+# jPulse Docs / Dev / Work Items v1.7.10
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -7426,19 +7426,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - no generic app-level `/api/*` rate-limit middleware yet - most other endpoints rely solely on
     nginx's `api` zone when deployed behind the reference config
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-205, v1.7.9, 2026-08-07: auth: signup with email confirmation
-- status: 🕑 PENDING
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - confirm valid email address, needed to prevent account takover with auth-oauth SSO
@@ -7641,6 +7630,186 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-206, v1.7.10, 2026-08-09: user: reset password
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - ability for user to reset password by email in case forgotten
+- prerequisits:
+  - W-205, v1.7.9, 2026-08-07: auth: signup with email confirmation - every primitive reused here
+    (Redis-stored bcrypt-hashed token, `sendEmailFromTranslation()`, per-account limiter shape); its
+    "Out of Scope" section named password reset as the intended next consumer
+  - W-109, v1.3.10, 2025-12-08: auth: multi-step login flow - the `nextStep`/`page` contract the
+    reset page speaks, and the step injection that keeps MFA in front of the post-reset auto-login
+  - W-201, v1.7.5, 2026-07-30: auth: account-status enforcement centralized in `login()` - the
+    reason the confirm endpoint has to re-check status itself before any session is created
+  - W-195, v1.7.1, 2026-07-26: auth: jPulse enhancements for external auth plugins -
+    `hasLocalPassword`, `localAuthRestriction`, `completeExternalAuth()`/`_completeLoginSession()`
+- working doc: docs/dev/design/W-206-user-password-reset.md
+- features:
+  - turns the login page's placeholder "Forgot password?" into a real flow - request, mailed link,
+    new-password form, signed in - ending the framework's last "contact your administrator" dead end
+    in the local-auth story. New `/auth/reset-password.shtml`, one page with six states (`request`,
+    `sent`, `setPassword`, `expired`, `done`, plus server-rendered `unavailable` when the feature is
+    off or SMTP is unconfigured) following `email-verify.shtml`'s `showState()` structure, so there
+    is one page to build, translate, and learn - bookmarks and stale mailed links land somewhere
+    sensible instead of a half-broken form
+  - four endpoints on `UserController` under the `/api/1/user/password-reset*` namespace: request
+    (uniformly generic response), a read-only verify probe that never consumes, confirm (the token
+    *is* the credential), and an admin send
+  - three deliberate differences from W-205's email verification, each for a specific reason: (a) the
+    mailed URL points at a *page*, not an API route, so a mail-scanner prefetch (Outlook Safe Links
+    and friends) cannot burn a single-use token before the human sees the form - GET stays safe and
+    idempotent, the token is consumed only by the POST carrying a new password; (b) link only, no
+    6-digit code - a reset needs a form either way, so a code would just be a second route to the
+    same page; (c) 1-hour TTL instead of 24, since this link grants account takeover, not a flag flip
+  - auto-login after a successful reset (the "don't make me think" call), but routed through the
+    W-109 machinery rather than around it: the confirm endpoint rebuilds `pendingAuth` and runs
+    `_getRequiredSteps()`, so MFA and any plugin step still gate the session, and only
+    `status: 'active'` gets a session at all. Inbox access is not a second factor
+  - a successful reset proves inbox ownership, so it sets `emailVerified`/`emailVerifiedAt` -
+    otherwise W-205's `'required'` mode would immediately mail a second credential asking for proof
+    just collected
+  - policy in the controller, mechanism in the model, per W-201's rule as stated in
+    `UserModel.authenticate()`'s own doc comment: `localAuthRestriction`, `hasLocalPassword` and
+    `status` are read in exactly one place, `UserController._classifyPasswordReset()` →
+    `{ verdict, reason }` with verdict `'issue'` | `'ssoNotice'` | `'silent'` (`reason` names the
+    refusal for the admin path; site-wide `disableLogin` is checked in the endpoints before lookup,
+    matching `login()`). Both the public and the admin path call the classifier and differ only in
+    how they *report* its verdict, which is what keeps the two from drifting apart
+  - who can reset: SSO-provisioned accounts (`hasLocalPassword: false`) and accounts a
+    `localAuthRestriction` policy covers get an explainer email naming how they actually sign in,
+    never a link (consistent with W-197's in-session Set Password position); `suspended`/`terminated`
+    get nothing at all; `pending`/`inactive` can reset but get no session and are told exactly why
+    they still can't sign in
+  - enumeration protection on the public path: one generic response for every outcome including "no
+    such account", a detached send so response timing doesn't leak existence, and a "check your mail"
+    screen that echoes the identifier the user typed rather than any stored address
+  - rate limits, Redis-backed and fail-open: 3 sends / 10 min and 5 confirm attempts / 15 min per
+    account, plus a config-driven 10 requests / 5 min per IP - the only limiter that can bound
+    enumeration of accounts that don't exist, since there is no userId to key a per-account limit on.
+    `retryAfter` is normalized to seconds at the boundary (W-204's convention); the IP-limit toast
+    uses `controller.user.passwordReset.rateLimited`, not the login string
+  - `appConfig.controller.user.disablePasswordReset` - one flag plus a `contextFilter.alwaysAllow`
+    entry, following W-195/W-205 rather than the older `disableX`/`hideX` pair that lets the UI and
+    the server disagree - and a live `UserController.isPasswordResetAvailable()` that also refuses
+    when SMTP is unconfigured (the default state of a fresh install). Empty `smtpServer` is *not*
+    configured (no silent `localhost` fallback; both `smtpServer` and `adminEmail` required), and
+    `EmailController.reinitialize()` on config save makes clear/set take effect on the next call with
+    no restart. The login page hides the link, the reset page shows `unavailable`, and the admin
+    Security send button is disabled whenever the feature is unavailable
+  - every other password-write path invalidates an outstanding reset token: self-service
+    `changePassword()` and admin `update()`; admin Set Password also stamps `hasLocalPassword: true`,
+    so an SSO-JIT account given a real password is no longer misclassified as "no local password"
+  - admin-initiated send: `📧 Email password reset link` joins `🔑 Set Password` in
+    `admin/user-profile.shtml`'s Security panel, complementing W-174's override rather than replacing
+    it (the mailed link for a user who can read their mail, Set Password for an urgent lockout or an
+    unreachable mailbox). Honest responses, not the generic one - the masked recipient address, the
+    specific refusal reason, or a real SMTP failure (`awaitSend: true`, `503 EMAIL_SEND_FAILED`,
+    token discarded on failure); per-account send limiter bypassed; every send logged with the acting
+    admin's username; the button pre-disabled with an explanatory title for a user the classifier
+    would refuse *or* when the feature itself is unavailable, so the verdict shows before the click
+    rather than after
+  - folded in from a review of W-205's *implementation*, since this item would otherwise inherit or
+    copy both:
+    - `AuthController.beginAuthenticatedSession()` - a public entry point for finishing a login
+      started outside `login()`, with `_getRequiredSteps()`/`_completeLoginSession()` staying private
+      behind it. W-205 reasonably declined a wrapper at two callers; this item makes three, and the
+      pendingAuth-reconstruction rule it centralizes is precisely the MFA-bypass risk.
+      `UserController.confirmEmailVerify()` migrates onto it, removing a second module's reach for
+      underscore-prefixed methods; `login()`/`completeExternalAuth()` (same module) are untouched.
+      Also takes `startTime` and returns `data`, and stamps a fresh `pendingAuth.createdAt` so a mail
+      round-trip is no longer charged against the next step's window
+    - W-119's i18n usage audit extended to `webapp/model` and taught the `key:` form used by
+      `sendEmailFromTranslation()` plus `translateForUser()` - it previously scanned views and
+      controllers only and matched `global.i18n.translate(` calls, so every email body in the
+      framework was unchecked. Verified low-risk before adopting: `webapp/model/**` has no
+      `global.i18n.translate()` calls and its namespace-rooted `key:` references are present in
+      `en.conf`
+  - companion fix in the separate `auth-mfa` plugin (not part of this framework commit):
+    `onAuthGetSteps` now sets `page: '/auth/mfa-verify.shtml'` so OAuth/`completeExternalAuth()`
+    (and password-reset confirm) show the MFA UI instead of falling back to login with no MFA page
+- deliverables:
+  - `webapp/model/user.js`:
+    - `issuePasswordReset()`, `verifyPasswordResetToken()`, `resetPasswordByToken()`,
+      `sendPasswordResetSsoNotice()`, `sendPasswordChangedNotice()`, `invalidatePasswordReset()`,
+      both per-account limiters - mechanism only, no status/restriction/`hasLocalPassword`/
+      availability checks; placed beside the W-205 email-verification block whose shape they follow;
+      `issuePasswordReset()` supports `awaitSend` for the admin path
+  - `webapp/controller/user.js`:
+    - `_classifyPasswordReset()` → `{ verdict, reason }`, `isPasswordResetAvailable()`, and the four
+      endpoints; `invalidatePasswordReset()` calls added to `changePassword()` and `update()`;
+      admin Set Password / password writes stamp `hasLocalPassword: true`;
+      `confirmEmailVerify()` migrated onto `AuthController.beginAuthenticatedSession()`
+  - `webapp/controller/auth.js`:
+    - `beginAuthenticatedSession()` (public; `_getRequiredSteps()`/`_completeLoginSession()` become
+      private implementation behind it, no status gate of its own - same contract
+      `completeExternalAuth()` already documents)
+  - `webapp/controller/email.js`:
+    - empty `smtpServer` no longer falls back to `localhost`; `isConfigured()` requires both
+      `smtpServer` and `adminEmail`; `reinitialize()` + `controller:config:data:changed` subscription
+      so Admin → Site Configuration clear/set takes effect live
+  - `webapp/controller/handlebar.js`:
+    - `passwordResetAvailable` context value in `_buildInternalContext()` for
+      `/auth/login.shtml`, `/auth/reset-password.shtml`, and `/admin/user-profile.shtml`, so those
+      pages hide or disable the affordance without duplicating the server's availability logic
+  - `webapp/routes.js`:
+    - `POST /api/1/user/password-reset`, `GET /api/1/user/password-reset/verify`,
+      `POST /api/1/user/password-reset/confirm` (all public),
+      `POST /api/1/user/password-reset/send` (admin) - all registered ahead of `/api/1/user/:id`
+  - `webapp/app.conf`:
+    - `controller.user.disablePasswordReset` (default `false`), `controller.user.passwordResetRateLimit`
+      (mirroring W-204's block), plus `controller.user.disablePasswordReset` on
+      `handlebar.contextFilter.alwaysAllow`
+  - `webapp/translations/en.conf`, `webapp/translations/de.conf`:
+    - `model.user.passwordReset`/`passwordResetSso`/`passwordChanged` (full unix-mail-style
+      messages); one `controller.user.passwordReset.*` object for all four endpoints' strings
+      (including `unavailable` and `rateLimited`); `view.auth.resetPassword.*` (incl. unavailable
+      state); `view.admin.userProfile.*` button/guidance strings. Status and restriction refusals
+      reuse the existing `controller.auth.*` wording rather than being re-authored, so one situation
+      reads the same whichever page the user is on. Removes `view.auth.login.forgotPasswordMessage`
+      (the placeholder toast)
+  - `webapp/view/auth/reset-password.shtml` (new):
+    - the six-state page; success-with-session never renders a state, it redirects
+  - `webapp/view/auth/login.shtml`:
+    - `showForgotPassword()` placeholder and its toast replaced by a real link, wrapped in
+      `{{#if passwordResetAvailable}}`
+  - `webapp/view/admin/user-profile.shtml`:
+    - Security-panel button (disabled when the feature is unavailable or the classifier would
+      refuse), the guidance line explaining when to use it versus Set Password, a confirmation step
+      (it mails a real person), and outcome-specific toasts including SMTP failure
+  - `webapp/tests/unit/model/user-password-reset.test.js`,
+    `webapp/tests/unit/controller/user-password-reset-endpoints.test.js`,
+    `webapp/tests/unit/controller/auth-begin-session.test.js` (all new), plus extended
+    `webapp/tests/unit/controller/email-controller.test.js`,
+    `webapp/tests/unit/controller/user-email-verify-endpoints.test.js` (mocks retargeted onto
+    `beginAuthenticatedSession()` - behavior preserved, assertions updated for the facade),
+    `webapp/tests/unit/i18n/i18n-usage-audit.test.js` + `utils/key-extractor.js`:
+    - classifier, availability, enumeration, MFA-still-required, suspended-gets-no-session, admin
+      honesty/`awaitSend`/`EMAIL_SEND_FAILED`, empty-smtp/`reinitialize`, and the facade itself.
+      Deliverability/rendering in real mail clients, a Safe-Links-style prefetch followed by a real
+      click, and the cross-device round trip left to manual testing
+  - `docs/security-and-auth.md`, `docs/api-reference.md`, `docs/sending-email.md`:
+    - "Password Reset" section (flow, eligibility matrix, token TTL, availability rules), three rows
+      in the rate-limiting table, the four endpoints (incl. admin `503 EMAIL_SEND_FAILED`), and the
+      empty-`smtpServer` / live-reinitialize SMTP rules
+  - `docs/dev/design/W-206-user-password-reset.md` (new):
+    - full design doc, including As Built deviations and manual-testing findings
+
+
+
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -7666,8 +7835,8 @@ release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
 - assume W-197, v1.0.3, 2026-08-01
-- assume W-205, v1.7.9, 2026-08-07
-- update features & deliverables in W-205 work-items to document work done if needed (don't change status, don't make any other changes to this file)
+- assume W-206, v1.7.10, 2026-08-09
+- if needed, update features & deliverables in W-206 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - append to cursor_log.txt
@@ -7678,12 +7847,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.9 2026-08-07
+node bin/bump-version.js 1.7.10 2026-08-09
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.9; git push origin main --tags
+git tag v1.7.10; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff
@@ -7814,17 +7983,6 @@ template:
   automated security measure (not an admin decision) blocks their login, and gives the framework
   real brute-force protection on `/api/1/auth/login`, which has none today
 
-### W-0: auth: deliver login warnings (onAuthGetWarnings) after SSO/external-auth redirect
-- status: 🕑 PENDING
-- type: Bugfix
-- objectives:
-  - fix MFA "Enable 2FA" nag (and any other onAuthGetWarnings warning) not appearing after SSO/external-auth login
-  - completeExternalAuth() collects warnings via _completeLoginSession() but discards them before its bare 302; only the AJAX login() path returns them in JSON for login.shtml to queue via jPulse.url.redirect's toasts option
-- prerequisits:
-  - W-195, v1.7.1, 2026-07-26: auth: jPulse enhancements for external auth plugins - introduced completeExternalAuth()/_completeLoginSession() split
-  - W-109, v1.3.10, 2025-12-08: auth: multi-step login flow - onAuthGetWarnings hook
-  - W-110, v1.3.11, 2025-12-08: view: jPulse.url.redirect with toast messages queue - client-side delivery mechanism to extend across the 302 boundary
-
 ### W-0: auth-oauth plugin: support Apple IdP
 - status: 🕑 PENDING
 - type: Feature
@@ -7838,12 +7996,6 @@ template:
 - objectives: ability to authenticate with a GitHub account
 - prerequisits:
   - W-197, v1.0.3, 2026-08-02: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
-
-### W-0: users: reset password
-- status: 🕑 PENDING
-- type: Feature
-- objectives:
-  - ability for user to reset password by email in case forgotten
 
 ### W-0: plugins: list available plugins in github.com/jpulse-net/plugin-* packages
 - status: 🕑 PENDING

@@ -3,8 +3,8 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         1.7.9
- * @release         2026-08-07
+ * @version         1.7.10
+ * @release         2026-08-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -374,6 +374,81 @@ class AuthController {
             `success: ${user.username} logged in via ${authMethod}, completed in ${elapsed}ms`);
 
         return { warnings: warningResult.warnings, elapsed };
+    }
+
+    /**
+     * Finish a login that did NOT start in login() - the supported entry point for it.
+     * W-206: the caller has proved something about the user by some other means (a mailed
+     * password-reset link, a mailed verification link) and now wants the rest of login()'s
+     * post-credentials machinery: the remaining multi-step requirements, and session creation
+     * once none are left. Centralizing that is the point - rebuilding `pendingAuth` by hand at
+     * each call site is precisely how a mailed link turns into an MFA bypass, so
+     * _getRequiredSteps() and _completeLoginSession() stay private behind this.
+     *
+     * Deliberately does NOT gate on user.status or localAuthRestriction - the same contract
+     * completeExternalAuth() documents, and for the same reason: W-201 centralized status
+     * enforcement in login(), and each non-login caller knows its own policy (an OAuth plugin
+     * reports different reason codes than a reset endpoint). Callers must check before calling.
+     *
+     * Any pre-existing pendingAuth in this browser session is replaced, never merged - it
+     * belongs to an earlier, abandoned attempt and possibly to a different account. The fresh
+     * createdAt also restarts the step window, which matters when the caller is a mailed link:
+     * the minutes (or hours) the mail round trip took should not be charged against the window
+     * for whatever step comes next.
+     *
+     * @param {object} req - Express request object
+     * @param {object} user - User document (full, as loaded from the model)
+     * @param {string} authMethod - Authentication method that got us here (e.g. 'internal', 'oauth')
+     * @param {object} [options] - Options
+     * @param {array} [options.completedSteps=['credentials']] - What the caller has proved. The
+     *   caller owns this: a reset confirm starts fresh, a verify-link click continues an
+     *   existing pendingAuth's list.
+     * @param {string} [options.redirect=null] - Intended post-login destination; validated here
+     *   and echoed back in the result, so callers never have to re-validate.
+     * @param {number} [options.startTime=Date.now()] - Request start, for the elapsed figure in
+     *   the login log line.
+     * @returns {Promise<object>} { nextStep, page, data, warnings, redirect } - nextStep/page/data
+     *   set when a step remains (no session created); warnings set when the login completed.
+     */
+    static async beginAuthenticatedSession(req, user, authMethod, options = {}) {
+        const {
+            completedSteps = ['credentials'],
+            redirect = null,
+            startTime = Date.now()
+        } = options;
+
+        const safeRedirect = global.CommonUtils.isSafeRedirectUrl(req, redirect) ? redirect : null;
+
+        const pending = {
+            userId: user._id.toString(),
+            username: user.username,
+            authMethod,
+            completedSteps: [...completedSteps],
+            redirect: safeRedirect,
+            createdAt: Date.now()
+        };
+
+        const requiredSteps = await AuthController._getRequiredSteps(req, user, pending.completedSteps);
+
+        if (requiredSteps.length > 0) {
+            const nextStep = requiredSteps[0];
+            pending.requiredSteps = [...pending.completedSteps, ...requiredSteps.map(s => s.step)];
+            req.session.pendingAuth = pending;
+
+            global.LogController.logInfo(req, 'auth.beginAuthenticatedSession',
+                `${user.username} authenticated via ${authMethod}, next step: ${nextStep.step}`);
+
+            return {
+                nextStep: nextStep.step,
+                page: nextStep.page || null,
+                data: nextStep.data || null,
+                warnings: [],
+                redirect: safeRedirect
+            };
+        }
+
+        const { warnings } = await AuthController._completeLoginSession(req, user, authMethod, startTime);
+        return { nextStep: null, page: null, data: null, warnings, redirect: safeRedirect };
     }
 
     /**

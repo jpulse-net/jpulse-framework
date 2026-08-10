@@ -4,8 +4,8 @@
  * @description     Tests the live SMTP-aware degrade from 'required' to 'nag', so a site can never
  *                   configure itself into a signup lockout when SMTP isn't actually set up
  * @file            webapp/tests/unit/model/user-email-verification-policy.test.js
- * @version         1.7.9
- * @release         2026-08-07
+ * @version         1.7.10
+ * @release         2026-08-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

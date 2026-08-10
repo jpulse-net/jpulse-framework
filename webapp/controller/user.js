@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.7.9
- * @release         2026-08-07
+ * @version         1.7.10
+ * @release         2026-08-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -224,6 +224,11 @@ class UserController {
 
             await UserModel.updateById(req.session.user.id, updateData);
 
+            // W-206: an outstanding reset link is a live credential for an account whose
+            // password just changed for another reason - the user who just changed theirs has
+            // every reason to expect that older credential to be dead.
+            await UserModel.invalidatePasswordReset(req.session.user.id);
+
             const elapsed = Date.now() - startTime;
             LogController.logInfo(req, 'user.changePassword', `success: Password changed for user ${req.session.user.username} in ${elapsed}ms`);
 
@@ -287,36 +292,35 @@ class UserController {
                 : [];
 
             if (pending && pending.userId === verifiedUserId && remainingSteps[0] === 'email-verify') {
-                pending.completedSteps.push('email-verify');
+                // W-206: the pendingAuth rebuild and the choice between "next step" and "create
+                // the session" live in AuthController.beginAuthenticatedSession() - this call
+                // site and the password-reset confirm need identical behavior there, and one
+                // place to get it right is what keeps a mailed link from becoming an MFA bypass.
+                // The redirect it returns is already validated (a second time - it was checked
+                // once when login() wrote it into pending.redirect).
+                const session = await AuthController.beginAuthenticatedSession(
+                    req, verifyResult.user, pending.authMethod,
+                    {
+                        completedSteps: [...pending.completedSteps, 'email-verify'],
+                        redirect: pending.redirect,
+                        startTime
+                    }
+                );
 
-                const requiredSteps = await AuthController._getRequiredSteps(req, verifyResult.user, pending.completedSteps);
-                if (requiredSteps.length > 0) {
-                    const nextStep = requiredSteps[0];
-                    pending.requiredSteps = [...pending.completedSteps, ...requiredSteps.map(s => s.step)];
-                    req.session.pendingAuth = pending;
-
+                if (session.nextStep) {
                     LogController.logInfo(req, 'user.confirmEmailVerify',
-                        `success: email verified via link for ${pending.username}, next step: ${nextStep.step}`);
+                        `success: email verified via link for ${pending.username}, next step: ${session.nextStep}`);
 
-                    const nextPage = nextStep.page || '/auth/login.shtml';
-                    const redirectParam = pending.redirect ? `?redirect=${encodeURIComponent(pending.redirect)}` : '';
+                    const nextPage = session.page || '/auth/login.shtml';
+                    const redirectParam = session.redirect ? `?redirect=${encodeURIComponent(session.redirect)}` : '';
                     return res.redirect(`${nextPage}${redirectParam}`);
                 }
 
-                // All steps complete - finish login and land on the original destination.
-                // Re-validated defensively even though it was already validated once when
-                // written into pending.redirect (login()'s credentials step) - cheap, and
-                // pending is server-side session state an attacker cannot directly edit, but
-                // there is no reason for this, the one place that actually issues the 302, to
-                // rely solely on a check made a step earlier.
-                const { warnings } = await AuthController._completeLoginSession(
-                    req, verifyResult.user, pending.authMethod, startTime
-                );
-                const destination = global.CommonUtils.isSafeRedirectUrl(req, pending.redirect) ? pending.redirect : '/';
-
                 LogController.logInfo(req, 'user.confirmEmailVerify',
                     `success: email verified via link, login completed for ${verifyResult.user.username}`);
-                return res.redirect(global.CommonUtils.appendToastsToUrl(destination, warnings));
+                return res.redirect(
+                    global.CommonUtils.appendToastsToUrl(session.redirect || '/', session.warnings)
+                );
             }
 
             // No matching in-progress login in this browser - land on the shared verify page,
@@ -425,6 +429,512 @@ class UserController {
         } catch (error) {
             LogController.logError(req, 'user.emailVerifySend', `error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.user.emailVerify.internalError', { details: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // W-206: Password reset. Four endpoints (request, probe, confirm, admin send) over the
+    // UserModel primitives, plus the two policy helpers below - the model deliberately holds no
+    // opinion on eligibility. See docs/dev/design/W-206-user-password-reset.md.
+    // ---------------------------------------------------------------------------------------
+
+    /**
+     * Whether password reset is offered at all right now. Evaluated live on every call, never
+     * frozen at boot, so an admin who configures SMTP gets the feature immediately with no
+     * restart - the same rule UserModel.getEmailVerificationPolicy() applies, but living on the
+     * controller because it reads controller config and decides whether a feature is offered:
+     * policy, not mechanism.
+     *
+     * The SMTP half matters more than it looks. A brand-new install has no mail server, so
+     * without this check the default experience - not some edge case - would be a login page
+     * offering "Forgot password?", accepting an address, promising a link, and never sending
+     * anything. Worse than having no link at all.
+     * @returns {boolean} True if the endpoints work and the login page should show the link
+     */
+    static isPasswordResetAvailable() {
+        if (global.appConfig?.controller?.user?.disablePasswordReset) {
+            return false;
+        }
+        return !!global.EmailController?.isConfigured();
+    }
+
+    /**
+     * The one place per-account password-reset eligibility is decided. Both the public request
+     * endpoint and the admin send call this and differ only in how they *report* its verdict -
+     * which is what keeps the two paths from drifting apart into two different answers to the
+     * same question.
+     *
+     * Site-wide `disableLogin` is not decided here: it needs no user and must refuse before any
+     * lookup happens, so the endpoints check it up front, exactly as login() does.
+     *
+     * @param {object} user - User document
+     * @returns {object} { verdict, reason } - verdict is one of:
+     *   'issue'     - mail a real reset link
+     *   'ssoNotice' - mail the "you sign in with your provider" explainer instead; a local
+     *                 password they could never log in with is not worth resetting
+     *   'silent'    - do nothing at all; the admin owns that conversation, and the framework
+     *                 should not mail a disabled account a way back in
+     *   `reason` is null for 'issue', and otherwise names the specific situation, so the admin
+     *   send can say which one rather than failing generically.
+     */
+    static _classifyPasswordReset(user) {
+        if (user.status === 'suspended') {
+            return { verdict: 'silent', reason: 'accountSuspended' };
+        }
+        if (user.status === 'terminated') {
+            return { verdict: 'silent', reason: 'accountTerminated' };
+        }
+
+        // W-195: JIT-provisioned by an external-auth plugin, with a synthetic passwordHash they
+        // could never satisfy. W-197's position is that such a user adds a local password from
+        // an authenticated session, where the SSO login itself is the proof - not by mail.
+        if (user.hasLocalPassword === false) {
+            return { verdict: 'ssoNotice', reason: 'noLocalPassword' };
+        }
+
+        // Same expression login() enforces. Note an admin on an 'admins-only' site is NOT
+        // restricted, which is what preserves the ?localFallback=1 break-glass recovery path.
+        const localAuthRestriction = global.appConfig?.controller?.auth?.localAuthRestriction || 'none';
+        const isRestricted = localAuthRestriction === 'disabled' ||
+            (localAuthRestriction === 'admins-only' && !AuthController.userIsAdmin(user));
+        if (isRestricted) {
+            return { verdict: 'ssoNotice', reason: 'localAuthRestricted' };
+        }
+
+        return { verdict: 'issue', reason: null };
+    }
+
+    /**
+     * Request a password reset link
+     * POST /api/1/user/password-reset   { identifier }
+     *
+     * Every outcome below - unknown account, SSO account, suspended account, exhausted
+     * per-account budget, or a link actually sent - returns the identical response. An
+     * anonymous stranger must not be able to learn whether an account exists, and a response
+     * that varied by outcome would tell them. The mail differs; only whoever holds the inbox
+     * sees that.
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async passwordReset(req, res) {
+        const startTime = Date.now();
+        try {
+            LogController.logRequest(req, 'user.passwordReset', '');
+
+            if (!UserController.isPasswordResetAvailable()) {
+                LogController.logError(req, 'user.passwordReset', 'error: password reset is unavailable (disabled, or SMTP not configured)');
+                const message = global.i18n.translate(req, 'controller.user.passwordReset.unavailable');
+                return global.CommonUtils.sendError(req, res, 403, message, 'PASSWORD_RESET_UNAVAILABLE');
+            }
+
+            if (global.appConfig.controller.auth.disableLogin) {
+                LogController.logError(req, 'user.passwordReset', 'error: login is disabled');
+                const message = global.i18n.translate(req, 'controller.auth.loginDisabled');
+                return global.CommonUtils.sendError(req, res, 403, message, 'LOGIN_DISABLED');
+            }
+
+            // The only limiter that can bound enumeration of accounts that do NOT exist - a
+            // nonexistent account has no userId for the per-account budget to key on. Same
+            // shape and fail-open behavior as W-204's login limiter.
+            const resetRateLimit = global.appConfig?.controller?.user?.passwordResetRateLimit;
+            if (resetRateLimit?.enabled !== false && global.RedisManager) {
+                const clientIp = global.CommonUtils.getLogContext(req).ip;
+                const rateLimit = await global.RedisManager.cacheCheckRateLimit(
+                    'controller:user:rateLimit:passwordReset', clientIp,
+                    {
+                        limit: resetRateLimit?.maxAttempts || 10,
+                        windowSeconds: resetRateLimit?.windowSeconds || 300
+                    });
+
+                if (!rateLimit.allowed) {
+                    LogController.logError(req, 'user.passwordReset', `error: rate limit exceeded for IP: ${clientIp}`);
+                    return res.status(429).json({
+                        success: false,
+                        // Own wording - reusing controller.auth.rateLimited ("Too many login
+                        // attempts") is wrong on a page that is not the login form
+                        error: global.i18n.translate(req, 'controller.user.passwordReset.rateLimited'),
+                        code: 'RATE_LIMITED',
+                        // Seconds, not the milliseconds cacheCheckRateLimit() returns - converted
+                        // at the boundary, so every retryAfter this feature emits means the same
+                        // thing to the client
+                        retryAfter: Math.ceil(rateLimit.retryAfter / 1000)
+                    });
+                }
+            }
+
+            const identifier = (typeof req.body.identifier === 'string' ? req.body.identifier : '').trim();
+            const message = global.i18n.translate(req, 'controller.user.passwordReset.requestReceived');
+            const sendGenericResponse = () => res.json({
+                success: true,
+                message,
+                elapsed: Date.now() - startTime
+            });
+
+            if (!identifier) {
+                LogController.logInfo(req, 'user.passwordReset', 'no identifier submitted, nothing issued');
+                return sendGenericResponse();
+            }
+
+            let user = await UserModel.findByUsername(identifier);
+            if (!user) {
+                user = await UserModel.findByEmail(identifier);
+            }
+
+            if (!user) {
+                LogController.logInfo(req, 'user.passwordReset', 'no account matched, nothing issued');
+                return sendGenericResponse();
+            }
+
+            const { verdict, reason } = UserController._classifyPasswordReset(user);
+
+            if (verdict === 'silent') {
+                LogController.logInfo(req, 'user.passwordReset',
+                    `no link issued for ${user.username}: ${reason}`);
+                return sendGenericResponse();
+            }
+
+            if (verdict === 'ssoNotice') {
+                // Detached, like the reset mail itself - see issuePasswordReset()'s doc comment
+                // on why an existing account must not answer measurably slower than a
+                // nonexistent one. The helper swallows its own errors and never rejects.
+                UserModel.sendPasswordResetSsoNotice(req, user);
+                LogController.logInfo(req, 'user.passwordReset',
+                    `external-auth explainer sent to ${user.username}: ${reason}`);
+                return sendGenericResponse();
+            }
+
+            const issueResult = await UserModel.issuePasswordReset(req, user);
+            if (!issueResult.success) {
+                // Per-account send budget exhausted. Still the generic response: telling the
+                // caller they hit a per-account limit would confirm the account exists.
+                LogController.logError(req, 'user.passwordReset',
+                    `error: ${issueResult.errorCode} for ${user.username}, nothing issued`);
+                return sendGenericResponse();
+            }
+
+            LogController.logInfo(req, 'user.passwordReset',
+                `success: reset link issued for ${user.username}`);
+            return sendGenericResponse();
+
+        } catch (error) {
+            LogController.logError(req, 'user.passwordReset', `error: ${error.message}`);
+            const message = global.i18n.translate(req, 'controller.user.passwordReset.internalError', { details: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
+     * Probe a reset token's validity
+     * GET /api/1/user/password-reset/verify?token=...
+     *
+     * Read-only and safe to repeat - it never consumes the token. The reset page calls it on
+     * load to choose between the new-password form and the "this link has expired" state;
+     * consuming here would mean a page reload, or a mail scanner's prefetch, destroyed the
+     * user's only way back in.
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async passwordResetVerify(req, res) {
+        const startTime = Date.now();
+        try {
+            LogController.logRequest(req, 'user.passwordResetVerify', '');
+
+            if (!UserController.isPasswordResetAvailable()) {
+                LogController.logError(req, 'user.passwordResetVerify', 'error: password reset is unavailable');
+                const message = global.i18n.translate(req, 'controller.user.passwordReset.unavailable');
+                return global.CommonUtils.sendError(req, res, 403, message, 'PASSWORD_RESET_UNAVAILABLE');
+            }
+
+            const result = await UserModel.verifyPasswordResetToken(req, req.query.token);
+            if (!result.valid) {
+                LogController.logInfo(req, 'user.passwordResetVerify', `token not usable: ${result.errorCode}`);
+                const messageKey = result.errorCode === 'PASSWORD_RESET_EXPIRED'
+                    ? 'controller.user.passwordReset.expired'
+                    : 'controller.user.passwordReset.invalidToken';
+                return res.status(400).json({
+                    success: false,
+                    valid: false,
+                    error: global.i18n.translate(req, messageKey),
+                    code: result.errorCode
+                });
+            }
+
+            return res.json({ success: true, valid: true, elapsed: Date.now() - startTime });
+
+        } catch (error) {
+            LogController.logError(req, 'user.passwordResetVerify', `error: ${error.message}`);
+            const message = global.i18n.translate(req, 'controller.user.passwordReset.internalError', { details: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
+     * Set a new password from a reset link, and sign the user in if they may be signed in
+     * POST /api/1/user/password-reset/confirm   { token, newPassword }
+     *
+     * No session required - the token IS the credential. The order below is the security core
+     * of this feature: the password is written first (so a user whose account can't hold a
+     * session still gets their password fixed), and only then are the same gates login()
+     * applies re-checked, in the same order, before anything hands out a session. Inbox access
+     * is not a second factor, so the session itself is created by
+     * AuthController.beginAuthenticatedSession(), which still runs MFA and any plugin step.
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async passwordResetConfirm(req, res) {
+        const startTime = Date.now();
+        try {
+            LogController.logRequest(req, 'user.passwordResetConfirm', '');
+
+            if (!UserController.isPasswordResetAvailable()) {
+                LogController.logError(req, 'user.passwordResetConfirm', 'error: password reset is unavailable');
+                const message = global.i18n.translate(req, 'controller.user.passwordReset.unavailable');
+                return global.CommonUtils.sendError(req, res, 403, message, 'PASSWORD_RESET_UNAVAILABLE');
+            }
+
+            if (global.appConfig.controller.auth.disableLogin) {
+                LogController.logError(req, 'user.passwordResetConfirm', 'error: login is disabled');
+                const message = global.i18n.translate(req, 'controller.auth.loginDisabled');
+                return global.CommonUtils.sendError(req, res, 403, message, 'LOGIN_DISABLED');
+            }
+
+            const { token, newPassword } = req.body;
+            if (!newPassword) {
+                LogController.logError(req, 'user.passwordResetConfirm', 'error: new password is required');
+                const message = global.i18n.translate(req, 'controller.user.passwordReset.missingPassword');
+                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_PASSWORD');
+            }
+
+            const resetResult = await UserModel.resetPasswordByToken(req, token, newPassword);
+            if (!resetResult.success) {
+                LogController.logError(req, 'user.passwordResetConfirm', `error: ${resetResult.errorCode}`);
+                return UserController._sendPasswordResetFailure(req, res, resetResult);
+            }
+
+            const user = resetResult.user;
+
+            // Detached: the after-the-fact notice is what makes a compromised-inbox takeover
+            // noisy, but a mail transport problem must never fail a reset that already succeeded.
+            UserModel.sendPasswordChangedNotice(req, user);
+
+            // W-201: status is enforced outside _completeLoginSession(), so this endpoint has to
+            // re-check it - otherwise a mailed link would be the one door in the framework that
+            // skips the check. 'pending'/'inactive' still get their password fixed (they may be
+            // waiting on approval and deserve working credentials), they just get no session,
+            // and the response says exactly why rather than dumping them at a login form that
+            // will reject them for reasons they can't see.
+            if (user.status !== 'active') {
+                const statusKeys = {
+                    pending: 'controller.auth.accountPendingApproval',
+                    inactive: 'controller.auth.accountInactive',
+                    suspended: 'controller.auth.accountSuspended',
+                    terminated: 'controller.auth.accountTerminated'
+                };
+                LogController.logInfo(req, 'user.passwordResetConfirm',
+                    `success: password reset for ${user.username}, no session (status: ${user.status})`);
+                return res.json({
+                    success: true,
+                    passwordUpdated: true,
+                    accountStatus: user.status,
+                    accountMessage: statusKeys[user.status]
+                        ? global.i18n.translate(req, statusKeys[user.status])
+                        : null,
+                    message: global.i18n.translate(req, 'controller.user.passwordReset.changed'),
+                    elapsed: Date.now() - startTime
+                });
+            }
+
+            // W-195: same expression login() uses. An account this policy covers should never
+            // have been mailed a link in the first place (_classifyPasswordReset() sends the
+            // explainer instead), but the policy may have changed while the link was in flight.
+            const localAuthRestriction = global.appConfig?.controller?.auth?.localAuthRestriction || 'none';
+            const isRestricted = localAuthRestriction === 'disabled' ||
+                (localAuthRestriction === 'admins-only' && !AuthController.userIsAdmin(user));
+            if (isRestricted) {
+                LogController.logInfo(req, 'user.passwordResetConfirm',
+                    `success: password reset for ${user.username}, no session (local auth restricted: ${localAuthRestriction})`);
+                return res.json({
+                    success: true,
+                    passwordUpdated: true,
+                    accountMessage: global.i18n.translate(req, 'controller.auth.localAuthRestricted'),
+                    message: global.i18n.translate(req, 'controller.user.passwordReset.changed'),
+                    elapsed: Date.now() - startTime
+                });
+            }
+
+            const session = await AuthController.beginAuthenticatedSession(req, user, 'internal', { startTime });
+
+            if (session.nextStep) {
+                LogController.logInfo(req, 'user.passwordResetConfirm',
+                    `success: password reset for ${user.username}, next step: ${session.nextStep}`);
+                return res.json({
+                    success: true,
+                    passwordUpdated: true,
+                    nextStep: session.nextStep,
+                    page: session.page,
+                    ...(session.data || {}),
+                    message: global.i18n.translate(req, 'controller.user.passwordReset.changed'),
+                    elapsed: Date.now() - startTime
+                });
+            }
+
+            LogController.logInfo(req, 'user.passwordResetConfirm',
+                `success: password reset and login completed for ${user.username}`);
+            return res.json({
+                success: true,
+                passwordUpdated: true,
+                nextStep: null,
+                data: { user: req.session.user },
+                warnings: session.warnings,
+                message: global.i18n.translate(req, 'controller.user.passwordReset.changedAndSignedIn'),
+                elapsed: Date.now() - startTime
+            });
+
+        } catch (error) {
+            LogController.logError(req, 'user.passwordResetConfirm', `error: ${error.message}`);
+            const message = global.i18n.translate(req, 'controller.user.passwordReset.internalError', { details: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
+     * Map a failed resetPasswordByToken() result onto its HTTP response.
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     * @param {object} result - Failed { errorCode, error, retryAfter } from the model
+     * @private
+     */
+    static _sendPasswordResetFailure(req, res, result) {
+        if (result.errorCode === 'PASSWORD_RESET_RATE_LIMITED') {
+            return res.status(429).json({
+                success: false,
+                error: global.i18n.translate(req, 'controller.user.passwordReset.rateLimited'),
+                code: result.errorCode,
+                // Seconds, not the milliseconds cacheCheckRateLimit() returns - converted at the
+                // boundary so a client rendering a countdown reads the number it expects.
+                retryAfter: Math.ceil(result.retryAfter / 1000)
+            });
+        }
+
+        if (result.errorCode === 'PASSWORD_POLICY_ERROR') {
+            const message = global.i18n.translate(req, 'controller.user.passwordReset.policyError', { details: result.error });
+            return global.CommonUtils.sendError(req, res, 400, message, 'PASSWORD_POLICY_ERROR', result.error);
+        }
+
+        const messageKey = result.errorCode === 'PASSWORD_RESET_EXPIRED'
+            ? 'controller.user.passwordReset.expired'
+            : 'controller.user.passwordReset.invalidToken';
+        return res.status(400).json({
+            success: false,
+            error: global.i18n.translate(req, messageKey),
+            code: result.errorCode
+        });
+    }
+
+    /**
+     * Admin mails a user a password reset link
+     * POST /api/1/user/password-reset/send   { id | username }
+     *
+     * Complements W-174's Set Password override rather than replacing it, and for most support
+     * cases it is the better of the two: an admin-set password is a password the admin knows,
+     * has to communicate over some channel, and that stays valid until the user changes it. A
+     * mailed link is never seen by the admin, expires in an hour, and only works for whoever
+     * holds the mailbox.
+     *
+     * Answers honestly, unlike the public request endpoint: the enumeration protection there
+     * exists to stop a stranger learning whether an account exists, and an admin looking at
+     * that user's profile page already knows. Swallowing "this user signs in via SSO, a link
+     * won't help them" would just leave the admin waiting for mail that was never coming.
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async passwordResetSend(req, res) {
+        const startTime = Date.now();
+        try {
+            LogController.logRequest(req, 'user.passwordResetSend',
+                JSON.stringify({ id: req.body.id, username: req.body.username }));
+
+            if (!UserController.isPasswordResetAvailable()) {
+                LogController.logError(req, 'user.passwordResetSend', 'error: password reset is unavailable');
+                const message = global.i18n.translate(req, 'controller.user.passwordReset.unavailable');
+                return global.CommonUtils.sendError(req, res, 403, message, 'PASSWORD_RESET_UNAVAILABLE');
+            }
+
+            if (global.appConfig.controller.auth.disableLogin) {
+                LogController.logError(req, 'user.passwordResetSend', 'error: login is disabled');
+                const message = global.i18n.translate(req, 'controller.auth.loginDisabled');
+                return global.CommonUtils.sendError(req, res, 403, message, 'LOGIN_DISABLED');
+            }
+
+            const { id, username } = req.body;
+            let user = null;
+            if (id) {
+                user = await UserModel.findById(id);
+            } else if (username) {
+                user = await UserModel.findByUsername(username);
+            }
+
+            if (!user) {
+                LogController.logError(req, 'user.passwordResetSend', `error: user not found: ${id || username || '(none given)'}`);
+                const message = global.i18n.translate(req, 'controller.user.passwordReset.userNotFound');
+                return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
+            }
+
+            const { verdict, reason } = UserController._classifyPasswordReset(user);
+            if (verdict !== 'issue') {
+                // Refused, not worked around: for a suspended/terminated account the correct fix
+                // is to change the status first, and for an SSO/restricted one a local password
+                // is useless. The reason travels so the admin page can say which.
+                const reasonKeys = {
+                    accountSuspended: 'controller.user.passwordReset.notEligibleSuspended',
+                    accountTerminated: 'controller.user.passwordReset.notEligibleTerminated',
+                    noLocalPassword: 'controller.user.passwordReset.notEligibleNoLocalPassword',
+                    localAuthRestricted: 'controller.user.passwordReset.notEligibleRestricted'
+                };
+                LogController.logError(req, 'user.passwordResetSend',
+                    `error: ${user.username} is not eligible for a reset link: ${reason}`);
+                return res.status(409).json({
+                    success: false,
+                    error: global.i18n.translate(req, reasonKeys[reason]),
+                    code: 'PASSWORD_RESET_NOT_ELIGIBLE',
+                    reason
+                });
+            }
+
+            // The per-account send budget is the user's protection against a stranger
+            // mail-bombing them; an admin helping in real time ("did it arrive? no? let me send
+            // it again") must not be blocked by a budget the user may already have spent on
+            // their own - which is exactly what sends them to an admin in the first place.
+            // awaitSend: an admin already knows the account exists, so we wait for SMTP and
+            // report a real failure rather than promising a link that bounced off ECONNREFUSED.
+            const issueResult = await UserModel.issuePasswordReset(req, user, {
+                enforceSendLimit: false,
+                awaitSend: true
+            });
+
+            const maskedEmail = global.CommonUtils.maskEmail(user.email);
+            if (!issueResult.success) {
+                LogController.logError(req, 'user.passwordResetSend',
+                    `error: failed to send reset link to ${user.username} (${maskedEmail}): ${issueResult.errorCode} ${issueResult.error || ''}`);
+                const message = global.i18n.translate(req, 'controller.user.passwordReset.sendFailed', {
+                    details: issueResult.error || issueResult.errorCode
+                });
+                return res.status(503).json({
+                    success: false,
+                    error: message,
+                    code: issueResult.errorCode || 'EMAIL_SEND_FAILED'
+                });
+            }
+
+            LogController.logInfo(req, 'user.passwordResetSend',
+                `success: reset link sent to ${user.username} (${maskedEmail}) by admin ${req.session.user.username}`);
+            const message = global.i18n.translate(req, 'controller.user.passwordReset.adminSent', { email: maskedEmail });
+            return res.json({ success: true, email: maskedEmail, message, elapsed: Date.now() - startTime });
+
+        } catch (error) {
+            LogController.logError(req, 'user.passwordResetSend', `error: ${error.message}`);
+            const message = global.i18n.translate(req, 'controller.user.passwordReset.internalError', { details: error.message });
             return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
     }
@@ -887,8 +1397,16 @@ class UserController {
                 if (updateData.status !== undefined) filteredData.status = updateData.status;
                 // W-198: manual override lever ahead of the future email-verification feature
                 if (updateData.emailVerified !== undefined) filteredData.emailVerified = Boolean(updateData.emailVerified);
-                // W-174: Admin can override another user's password (no current password required)
-                if (updateData.password) filteredData.password = updateData.password;
+                // W-174: Admin can override another user's password (no current password required).
+                // W-206: also flip hasLocalPassword - without it, an SSO-JIT account that an admin
+                // just gave a real password stays classified as "no local password" forever, so
+                // password reset keeps mailing the SSO explainer even though localFallback login
+                // already works (authenticate() never reads the flag). Same stamp changePassword()
+                // and resetPasswordByToken() already apply.
+                if (updateData.password) {
+                    filteredData.password = updateData.password;
+                    filteredData.hasLocalPassword = true;
+                }
 
                 // W-107: Include plugin schema extension blocks (e.g., 'mfa')
                 const schemaExtensions = UserModel.getSchemaExtensionsMetadata();
@@ -1006,6 +1524,12 @@ class UserController {
 
             // Log the update
             await LogController.logChange(req, 'user', 'update', req.session.user.username, currentUser, updatedUser);
+
+            // W-206: same reasoning as changePassword() - the admin who just set a password
+            // expects any reset link still sitting in that user's mailbox to stop working.
+            if (filteredData.password) {
+                await UserModel.invalidatePasswordReset(userId);
+            }
 
             // W-205: notify both addresses when this save reset emailVerified above - informative-
             // only to the new address (no credential; the real one is issued on demand at the

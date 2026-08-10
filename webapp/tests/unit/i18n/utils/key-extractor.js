@@ -3,13 +3,13 @@
  * @tagline         Extract i18n keys from view and controller files
  * @description     Utility to extract translation keys from various source formats
  * @file            webapp/tests/unit/i18n/utils/key-extractor.js
- * @version         1.7.9
- * @release         2026-08-07
+ * @version         1.7.10
+ * @release         2026-08-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.15, Claude Sonnet 5
  */
 
 /**
@@ -91,7 +91,20 @@ export function extractViewKeys(content, filePath) {
 }
 
 /**
- * Extract i18n keys from controller files (global.i18n.translate() calls)
+ * Extract i18n keys from server-side files (controllers and models)
+ *
+ * Three reference forms are recognized:
+ *   - global.i18n.translate(req, 'key')
+ *   - global.i18n.translateForUser(user, 'key') - the recipient-language variant, used wherever
+ *     req.session.user isn't set yet (mid-login) or the text is for someone other than the caller
+ *   - key: 'model.user.emailVerify' - W-205's EmailController.sendEmailFromTranslation() option,
+ *     which is how every templated email names its translation. W-206 added it here because the
+ *     whole model.user.* email namespace was invisible to this audit until then: a renamed or
+ *     misspelled email key failed silently, at send time, in production.
+ *
+ * The `key:` form is anchored on a known namespace root rather than on the bare property name, so
+ * an unrelated `key: 'someId'` in a cache or map literal can't be mistaken for a translation.
+ *
  * @param {string} content - File content
  * @param {string} filePath - File path for reporting
  * @returns {Array} Array of objects with key, line, file, and dynamic flag
@@ -101,9 +114,9 @@ export function extractControllerKeys(content, filePath) {
     const results = [];
     const lines = content.split('\n');
 
-    // Regex pattern: global.i18n.translate(req, 'key') or global.i18n.translate(req, "key")
-    // Pattern: /global\.i18n\.translate\s*\(\s*[^,]+,\s*['"]([^'"]+)['"]/gm
-    const pattern = /global\.i18n\.translate\s*\(\s*[^,]+,\s*['"]([^'"]+)['"]/gm;
+    // Regex pattern: global.i18n.translate(req, 'key') or global.i18n.translate(req, "key"),
+    // and the translateForUser(user, 'key') variant
+    const pattern = /global\.i18n\.translate(?:ForUser)?\s*\(\s*[^,]+,\s*['"]([^'"]+)['"]/gm;
     let match;
 
     while ((match = pattern.exec(content)) !== null) {
@@ -180,6 +193,27 @@ export function extractControllerKeys(content, filePath) {
             dynamic: true,
             match: fullMatch.trim(),
             reason: 'string concatenation'
+        });
+    }
+
+    // Pattern 4: `key:` option of EmailController.sendEmailFromTranslation() - see the doc
+    // comment above on why this is anchored on a namespace root
+    const optionKeyPattern = /key:\s*['"]((?:model|controller|view|utils)\.[^'"]+)['"]/gm;
+    while ((match = optionKeyPattern.exec(content)) !== null) {
+        const matchIndex = match.index;
+        const lineNumber = content.substring(0, matchIndex).split('\n').length;
+        const lineContent = lines[lineNumber - 1] || '';
+
+        if (lineContent.match(/(\/\/|\/\*) *i18n-audit-ignore\b/)) {
+            continue;
+        }
+
+        results.push({
+            key: match[1].trim(),
+            line: lineNumber,
+            file: filePath,
+            dynamic: false,
+            match: match[0]
         });
     }
 

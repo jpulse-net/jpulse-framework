@@ -3,8 +3,8 @@
  * @tagline         Automated tests to audit i18n translation usage
  * @description     Tests to ensure translation key consistency and validate i18n references
  * @file            webapp/tests/unit/i18n/i18n-usage-audit.test.js
- * @version         1.7.9
- * @release         2026-08-07
+ * @version         1.7.10
+ * @release         2026-08-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -172,9 +172,16 @@ describe('I18N Usage Audit', () => {
 
     describe('Controller i18n Usage Validation', () => {
         test('should validate all global.i18n.translate() calls', () => {
-            // Discover all controller files
+            // Discover all controller and model files. W-206: models are scanned too - the
+            // model.user.* email namespace (W-205) is referenced only through
+            // sendEmailFromTranslation()'s `key:` option, so until this was added a renamed or
+            // misspelled email key failed silently, at send time, in production.
             const controllerDir = join(process.cwd(), 'webapp', 'controller');
-            const controllerFiles = findFiles(controllerDir, ['.js'], ['*.test.js']);
+            const modelDir = join(process.cwd(), 'webapp', 'model');
+            const controllerFiles = [
+                ...findFiles(controllerDir, ['.js'], ['*.test.js']),
+                ...findFiles(modelDir, ['.js'], ['*.test.js'])
+            ];
 
             const brokenReferences = [];
             const dynamicKeys = [];
@@ -217,7 +224,7 @@ describe('I18N Usage Audit', () => {
 
             // Report summary
             const uniqueKeys = [...new Set(allExtractedKeys)];
-            console.log(`\nController i18n Usage Summary:`);
+            console.log(`\nController/Model i18n Usage Summary:`);
             console.log(`  Total files scanned: ${controllerFiles.length}`);
             console.log(`  Total i18n references: ${allExtractedKeys.length}`);
             console.log(`  Unique keys referenced: ${uniqueKeys.length}`);

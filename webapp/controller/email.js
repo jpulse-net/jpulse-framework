@@ -3,8 +3,8 @@
  * @tagline         Email Controller for jPulse Framework
  * @description     Provides email sending capability and API endpoint for jPulse Framework
  * @file            webapp/controller/email.js
- * @version         1.7.9
- * @release         2026-08-07
+ * @version         1.7.10
+ * @release         2026-08-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -30,6 +30,9 @@ class EmailController {
     static transporter = null;
     static config = null;
     static initialized = false;
+    // W-206: config-change subscription is once-per-process; reinitialize() must not re-register
+    static configChangeSubscribed = false;
+    static metricsRegistered = false;
 
     // Time-based counters for metrics (W-112)
     static sentCounter = CounterManager.getCounter('email', 'sent');
@@ -54,24 +57,28 @@ class EmailController {
                 LogController.logInfo(null, 'email.initialize',
                     'Email configuration not found in MongoDB config document');
                 this.initialized = true;
+                this._subscribeConfigChanges();
                 return false;
             }
 
             const emailConfig = configDoc.data.email;
+            const smtpServer = (typeof emailConfig.smtpServer === 'string' ? emailConfig.smtpServer : '').trim();
+            const adminEmail = (typeof emailConfig.adminEmail === 'string' ? emailConfig.adminEmail : '').trim();
 
-            // Check if email is minimally configured
-            if (!emailConfig.smtpServer || emailConfig.smtpServer === 'localhost') {
-                // localhost is valid for development, but check if we have admin email
-                if (!emailConfig.adminEmail) {
-                    LogController.logInfo(null, 'email.initialize',
-                        'Email not configured: missing adminEmail');
-                    this.initialized = true;
-                    return false;
-                }
+            // Both are required. An empty smtpServer must NOT fall back to localhost - that made
+            // "I cleared the SMTP server in Admin → Site Configuration" still look configured
+            // (isConfigured() true, Forgot password? still offered) and then fail at send time
+            // with ECONNREFUSED 127.0.0.1. Explicit `localhost` remains valid for a local MTA.
+            if (!smtpServer || !adminEmail) {
+                LogController.logInfo(null, 'email.initialize',
+                    'Email not configured: missing smtpServer or adminEmail');
+                this.initialized = true;
+                this._subscribeConfigChanges();
+                return false;
             }
 
-            // Store config
-            this.config = emailConfig;
+            // Store config (normalized hosts/addresses so later readers see what we actually use)
+            this.config = { ...emailConfig, smtpServer, adminEmail };
 
             // Create transporter
             // Port 465 = SSL (secure: true)
@@ -83,7 +90,7 @@ class EmailController {
             const isPort587 = port === 587;
 
             const transporterConfig = {
-                host: emailConfig.smtpServer || 'localhost',
+                host: smtpServer,
                 port: port,
                 secure: useTls && isPort465, // Only port 465 uses direct SSL
                 auth: emailConfig.smtpUser && emailConfig.smtpPass ? {
@@ -127,25 +134,72 @@ class EmailController {
 
             this.initialized = true;
 
-            // Register metrics provider (W-112)
-            try {
-                const MetricsRegistry = (await import('../utils/metrics-registry.js')).default;
-                MetricsRegistry.register('email', () => EmailController.getMetrics(), {
-                    async: false,
-                    category: 'controller'
-                });
-            } catch (error) {
-                // MetricsRegistry might not be available yet
-                LogController.logWarning(null, 'email.initialize', `Failed to register metrics provider: ${error.message}`);
+            // Register metrics provider (W-112) - once; reinitialize() recreates the transporter
+            // but must not re-register the same metrics key
+            if (!this.metricsRegistered) {
+                try {
+                    const MetricsRegistry = (await import('../utils/metrics-registry.js')).default;
+                    MetricsRegistry.register('email', () => EmailController.getMetrics(), {
+                        async: false,
+                        category: 'controller'
+                    });
+                    this.metricsRegistered = true;
+                } catch (error) {
+                    // MetricsRegistry might not be available yet
+                    LogController.logWarning(null, 'email.initialize', `Failed to register metrics provider: ${error.message}`);
+                }
             }
 
+            this._subscribeConfigChanges();
             return true;
 
         } catch (error) {
             LogController.logError(null, 'email.initialize',
                 `error: Failed to initialize email controller: ${error.message}`);
             this.initialized = true;
+            this._subscribeConfigChanges();
             return false;
+        }
+    }
+
+    /**
+     * Tear down the in-memory transporter and rebuild from the current config document.
+     * W-206: without this, clearing SMTP in Admin → Site Configuration left isConfigured()
+     * true until a process restart - so "Forgot password?" stayed on the login page and
+     * password-reset endpoints kept promising mail nobody would send. Same live contract
+     * W-205's getEmailVerificationPolicy() already assumed.
+     * @returns {Promise<boolean>} True if email is configured after reload
+     */
+    static async reinitialize() {
+        this.initialized = false;
+        this.config = null;
+        this.transporter = null;
+        const configured = await this.initialize();
+        LogController.logInfo(null, 'email.reinitialize',
+            configured ? 'Email transporter reloaded from config' : 'Email is not configured after reload');
+        return configured;
+    }
+
+    /**
+     * Subscribe once to the generic config-change broadcast so a save of the default
+     * config document reloads SMTP without a restart. Same channel HandlebarController
+     * and HealthController already listen on (W-088).
+     * @private
+     */
+    static _subscribeConfigChanges() {
+        if (this.configChangeSubscribed) {
+            return;
+        }
+        try {
+            global.RedisManager?.registerBroadcastCallback('controller:config:data:changed', async (channel, data) => {
+                if (data && data.id === ConfigController.getDefaultDocName()) {
+                    await EmailController.reinitialize();
+                }
+            }, { omitSelf: false });
+            this.configChangeSubscribed = true;
+        } catch (error) {
+            LogController.logWarning(null, 'email._subscribeConfigChanges',
+                `Failed to subscribe to config changes: ${error.message}`);
         }
     }
 

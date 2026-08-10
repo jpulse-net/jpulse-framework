@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.7.9
+# jPulse Docs / REST API Reference v1.7.10
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -69,6 +69,9 @@ AuthController.userIsAuthorized(user, roleOrRoles) // roleOrRoles: string or arr
 - `GET /api/1/auth/status` - Session authentication status (zero DB queries)
 - `GET /api/1/health/status` - System health check
 - `GET /api/1/user/email-verify/confirm` - Email verification link (token proves identity on its own)
+- `POST /api/1/user/password-reset` - Request a password reset link
+- `GET /api/1/user/password-reset/verify` - Check whether a reset link is still usable
+- `POST /api/1/user/password-reset/confirm` - Set a new password (the mailed token is the credential)
 
 #### Authenticated Endpoints (Login Required)
 - `GET /api/1/user/profile` - User profile access
@@ -82,6 +85,7 @@ AuthController.userIsAuthorized(user, roleOrRoles) // roleOrRoles: string or arr
 Admin roles are defined in **site config** (Admin → Site Configuration → General tab) and read at runtime via `ConfigModel.getEffectiveAdminRoles()`. They are not read from app.conf.
 
 - `GET /api/1/user/search` - User management and search
+- `POST /api/1/user/password-reset/send` - Email a user a password reset link
 - `GET /api/1/config/*` - Configuration access
 - `POST /api/1/config` - Configuration creation
 - `PUT /api/1/config/:id` - Configuration updates
@@ -895,6 +899,176 @@ the very first email at signup and at the login-flow `email-verify` step.
 **Error Responses:**
 - **404**: User not found (`USER_NOT_FOUND`)
 - **429**: Too many resend requests (`EMAIL_VERIFY_RATE_LIMITED` — see [Rate Limiting](security-and-auth.md#rate-limiting)); response includes `retryAfter` (seconds)
+
+### Password Reset
+
+See [Security & Authentication — Password Reset](security-and-auth.md#password-reset) for the
+availability rules, who is eligible, the token's lifetime, and how the administrator-initiated
+send differs from the public request.
+
+All four endpoints refuse with **403** `PASSWORD_RESET_UNAVAILABLE` when password reset is
+disabled or no SMTP server is configured, and with **403** `LOGIN_DISABLED` when
+`appConfig.controller.auth.disableLogin` is set.
+
+#### Request a Reset Link
+Emails a reset link to the account matching the identifier.
+
+**Route:** `POST /api/1/user/password-reset`
+**Middleware:** None (public — whoever forgot their password has no session)
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+    "identifier": "jane"
+}
+```
+
+`identifier` is a username or an email address.
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "If an account matches what you entered, we have emailed a link to reset the password.",
+    "elapsed": 14
+}
+```
+
+This exact response is returned for **every** outcome — account found, account not found, account
+ineligible, per-account send budget exhausted — so the endpoint cannot be used to discover whether
+an account exists. The email send is detached rather than awaited for the same reason: an existing
+account must not answer measurably later than a nonexistent one.
+
+**Error Responses:**
+- **403**: `PASSWORD_RESET_UNAVAILABLE` or `LOGIN_DISABLED`
+- **429**: Too many requests from this IP (`RATE_LIMITED` — see [Rate Limiting](security-and-auth.md#rate-limiting)); response includes `retryAfter` (seconds)
+
+#### Check a Reset Link
+Read-only validity probe. Does **not** consume the token, so it is safe to repeat — the reset page
+calls it on load to choose between the new-password form and the "this link has expired" state.
+
+**Route:** `GET /api/1/user/password-reset/verify?token=...`
+**Middleware:** None (public)
+**Authentication:** Not required
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "valid": true,
+    "elapsed": 9
+}
+```
+
+**Error Responses:**
+- **400**: `PASSWORD_RESET_INVALID_TOKEN` (malformed, wrong, or already used) or
+  `PASSWORD_RESET_EXPIRED`; the response also carries `valid: false`
+- **403**: `PASSWORD_RESET_UNAVAILABLE`
+
+#### Confirm a Reset
+Sets the new password, consumes the token, and signs the user in when nothing stands in the way.
+
+**Route:** `POST /api/1/user/password-reset/confirm`
+**Middleware:** None (public — the mailed token is the credential)
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+    "token": "6890f...c21.Ux9k...",
+    "newPassword": "correct horse battery staple"
+}
+```
+
+**Success Response (200) — signed in:**
+```json
+{
+    "success": true,
+    "passwordUpdated": true,
+    "nextStep": null,
+    "data": { "user": { "id": "...", "username": "jane" } },
+    "warnings": [],
+    "message": "Your password has been updated. You are now signed in.",
+    "elapsed": 96
+}
+```
+
+**Success Response (200) — another login step is required (e.g. MFA):**
+```json
+{
+    "success": true,
+    "passwordUpdated": true,
+    "nextStep": "mfa",
+    "page": "/auth/mfa-verify.shtml",
+    "message": "Your password has been updated"
+}
+```
+
+Access to a mailbox is not a second factor, so a required step still gates the session. The client
+follows `page`.
+
+**Success Response (200) — password updated, but no session:**
+```json
+{
+    "success": true,
+    "passwordUpdated": true,
+    "accountStatus": "pending",
+    "accountMessage": "Your account is pending approval. Please check back later, or contact your administrator.",
+    "message": "Your password has been updated"
+}
+```
+
+Returned when the account's status (or `localAuthRestriction`) would make a sign-in fail anyway.
+`accountStatus` is absent for the restriction case; `accountMessage` explains either.
+
+**Error Responses:**
+- **400**: Missing new password (`MISSING_PASSWORD`), dead link (`PASSWORD_RESET_INVALID_TOKEN` /
+  `PASSWORD_RESET_EXPIRED`), or a password that fails the policy (`PASSWORD_POLICY_ERROR` — the
+  token is **not** consumed, so the same link can be used again)
+- **403**: `PASSWORD_RESET_UNAVAILABLE` or `LOGIN_DISABLED`
+- **429**: Too many attempts (`PASSWORD_RESET_RATE_LIMITED` — see [Rate Limiting](security-and-auth.md#rate-limiting)); response includes `retryAfter` (seconds)
+
+#### Email a User a Reset Link (Admin)
+Sends a user the same link they would have requested themselves. Unlike the public request
+endpoint, this one answers honestly — an administrator looking at that user's profile already
+knows the account exists.
+
+**Route:** `POST /api/1/user/password-reset/send`
+**Middleware:** `AuthController.requireAdminRole()`
+**Authentication:** Required (admin role)
+
+**Request Body:**
+```json
+{
+    "username": "jane"
+}
+```
+
+Accepts `username` or `id`.
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "email": "ja***@example.com",
+    "message": "Password reset link sent to ja***@example.com",
+    "elapsed": 21
+}
+```
+
+The per-account send budget is bypassed here, so an administrator helping a user in real time is
+not blocked by a budget the user already spent. Unlike the public request endpoint, this call
+**awaits SMTP** and only returns success after the message is accepted — a refused connection is
+not reported as "sent." Every send is logged with the acting administrator's username.
+
+**Error Responses:**
+- **403**: `PASSWORD_RESET_UNAVAILABLE` or `LOGIN_DISABLED`
+- **404**: User not found (`USER_NOT_FOUND`)
+- **409**: The account can't use a reset link (`PASSWORD_RESET_NOT_ELIGIBLE`); the response carries
+  a `reason` of `noLocalPassword`, `localAuthRestricted`, `accountSuspended`, or
+  `accountTerminated`, and `error` explains what to do instead
+- **503**: SMTP rejected the message (`EMAIL_SEND_FAILED`); the just-stored token is discarded
 
 ### Administrative User Management
 

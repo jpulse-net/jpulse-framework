@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.7.9
- * @release         2026-08-07
+ * @version         1.7.10
+ * @release         2026-08-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -748,6 +748,22 @@ class HandlebarController {
             }
         }
 
+        // W-206: whether to offer "Forgot password?" - config alone cannot express it, since the
+        // feature is also unavailable when SMTP is unconfigured (the default state of a fresh
+        // install, and a link that promises mail nobody will ever receive is worse than no link
+        // at all). Page-scoped like authProviders above, so every other page pays nothing.
+        // Admin user-profile is included so the Security-panel "Email password reset link"
+        // button can disable itself when SMTP is off, instead of staying clickable and only
+        // failing after the click.
+        const passwordResetPages = [
+            '/auth/login.shtml',
+            '/auth/reset-password.shtml',
+            '/admin/user-profile.shtml'
+        ];
+        const passwordResetAvailable = passwordResetPages.includes(req.path)
+            ? !!global.UserController?.isPasswordResetAvailable()
+            : false;
+
         const baseContext = {
             app: appConfig.app,
             user: {
@@ -794,6 +810,8 @@ class HandlebarController {
             vars: {},
             // W-195: External auth provider buttons for /auth/login.shtml (empty elsewhere)
             authProviders: authProviders,
+            // W-206: password reset offered? (login/reset/admin-profile pages only, false elsewhere)
+            passwordResetAvailable: passwordResetAvailable,
             // W-159: Per-page sidebar disable (set by ViewController from view's <body> before expand)
             pageDisableSidebars: !!req.pageDisableSidebars
         };

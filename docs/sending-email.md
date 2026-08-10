@@ -1,4 +1,4 @@
-# jPulse Docs / Sending Email v1.7.9
+# jPulse Docs / Sending Email v1.7.10
 
 Complete guide to configuring and sending emails from jPulse Framework applications using the standardized email sending strategy.
 
@@ -26,14 +26,19 @@ The jPulse Framework provides enterprise-grade email sending capabilities throug
 
 Email settings are stored in the MongoDB config document (ID from `ConfigController.getDefaultDocName()`, typically `'site'`). Configure via the admin UI at `/admin/config` or via the API.
 
+**Configured means both** a non-empty `smtpServer` and a non-empty `adminEmail`. Clearing the
+server does **not** fall back to `localhost` — set `localhost` explicitly for a local MTA.
+Saving the default config document reloads the transporter live (`EmailController.reinitialize()`
+on `controller:config:data:changed`); no process restart is required.
+
 **Schema:**
 ```javascript
 {
     data: {
         email: {
-            adminEmail: 'admin@example.com',    // Default sender email
+            adminEmail: 'admin@example.com',    // Default sender email (required)
             adminName: 'Site Administrator',   // Default sender name
-            smtpServer: 'smtp.gmail.com',       // SMTP server hostname
+            smtpServer: 'smtp.gmail.com',       // SMTP server hostname (required; use 'localhost' explicitly for local MTA)
             smtpPort: 587,                      // SMTP port (587 for STARTTLS, 465 for SSL)
             smtpUser: 'your-email@gmail.com',   // SMTP username (optional)
             smtpPass: 'app-password',          // SMTP password (optional)

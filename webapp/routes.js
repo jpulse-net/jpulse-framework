@@ -3,8 +3,8 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.7.9
- * @release         2026-08-07
+ * @version         1.7.10
+ * @release         2026-08-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -107,6 +107,13 @@ router.put('/api/1/user/password', AuthController.requireAuthentication, UserCon
 router.get('/api/1/user/email-verify/confirm', UserController.confirmEmailVerify);
 router.post('/api/1/user/email-verify', AuthController.requireAuthentication, UserController.emailVerify);
 router.post('/api/1/user/email-verify/send', AuthController.requireAuthentication, UserController.emailVerifySend);
+// W-206: password reset - the first three are public by necessity (whoever forgot their password
+// has no session; on confirm, the mailed token IS the credential). The fourth is an admin mailing
+// a user a link from the user-profile page, so it answers honestly instead of generically.
+router.post('/api/1/user/password-reset', UserController.passwordReset);
+router.get('/api/1/user/password-reset/verify', UserController.passwordResetVerify);
+router.post('/api/1/user/password-reset/confirm', UserController.passwordResetConfirm);
+router.post('/api/1/user/password-reset/send', AuthController.requireAdminRole(), UserController.passwordResetSend);
 // W-134: Changed from admin-only to profile access policy (access control in controller)
 router.get('/api/1/user/search', UserController.search);
 // W-134: Changed from admin-only to authenticated users (for /user/ dashboard stats)

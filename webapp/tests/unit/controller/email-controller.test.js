@@ -3,8 +3,8 @@
  * @tagline         Unit tests for Email Controller
  * @description     Minimal unit tests for EmailController basic functionality
  * @file            webapp/tests/unit/controller/email-controller.test.js
- * @version         1.7.9
- * @release         2026-08-07
+ * @version         1.7.10
+ * @release         2026-08-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -55,6 +55,8 @@ describe('EmailController', () => {
         EmailController.transporter = null;
         EmailController.config = null;
         EmailController.initialized = false;
+        EmailController.configChangeSubscribed = false;
+        EmailController.metricsRegistered = false;
     });
 
     describe('isConfigured()', () => {
@@ -90,6 +92,47 @@ describe('EmailController', () => {
             const result = EmailController.isConfigured();
             expect(typeof result).toBe('boolean');
             expect(result).toBe(true);
+        });
+    });
+
+    // W-206: clearing SMTP in Admin → Site Configuration must flip isConfigured() without a restart
+    describe('reinitialize()', () => {
+        test('clears a previously configured transporter when initialize finds no email config', async () => {
+            EmailController.initialized = true;
+            EmailController.config = { adminEmail: 'admin@example.com', smtpServer: 'smtp.example.com' };
+            EmailController.transporter = {};
+            expect(EmailController.isConfigured()).toBe(true);
+
+            const ConfigModel = (await import('../../../model/config.js')).default;
+            const ConfigController = (await import('../../../controller/config.js')).default;
+            jest.spyOn(ConfigController, 'getDefaultDocName').mockReturnValue('global');
+            jest.spyOn(ConfigModel, 'getEffectiveConfig').mockResolvedValue({ data: {} });
+
+            const result = await EmailController.reinitialize();
+
+            expect(result).toBe(false);
+            expect(EmailController.isConfigured()).toBe(false);
+            expect(EmailController.transporter).toBeNull();
+            expect(EmailController.config).toBeNull();
+        });
+
+        test('an empty smtpServer is not configured - no silent fallback to localhost', async () => {
+            EmailController.initialized = true;
+            EmailController.config = { adminEmail: 'admin@example.com', smtpServer: 'smtp.example.com' };
+            EmailController.transporter = {};
+
+            const ConfigModel = (await import('../../../model/config.js')).default;
+            const ConfigController = (await import('../../../controller/config.js')).default;
+            jest.spyOn(ConfigController, 'getDefaultDocName').mockReturnValue('global');
+            jest.spyOn(ConfigModel, 'getEffectiveConfig').mockResolvedValue({
+                data: { email: { adminEmail: 'admin@example.com', smtpServer: '', smtpPort: 587 } }
+            });
+
+            const result = await EmailController.reinitialize();
+
+            expect(result).toBe(false);
+            expect(EmailController.isConfigured()).toBe(false);
+            expect(EmailController.transporter).toBeNull();
         });
     });
 

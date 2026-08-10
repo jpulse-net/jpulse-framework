@@ -1,6 +1,51 @@
-# jPulse Docs / Version History v1.7.9
+# jPulse Docs / Version History v1.7.10
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.10, W-206, 2026-08-09
+
+**Commit:** `W-206, v1.7.10: user: reset password`
+
+**Objective**: Let a user who forgot their password regain access on their own by proving control of the email on their account — the last "contact your administrator" dead end in the local-auth story, and the next consumer W-205 explicitly handed off for its Redis-token / translated-email / rate-limiter primitives — with "don't make me think" as the guiding UX principle (one new password and they're in, MFA and account status still gating the session).
+
+**Summary**: Turns the login page's placeholder "Forgot password?" into a real flow: request → one-hour single-use mailed link → new-password form → signed in when nothing else stands in the way. New `/auth/reset-password.shtml` with six states (`request` / `sent` / `setPassword` / `expired` / `done`, plus server-rendered `unavailable` when the feature is off or SMTP is unconfigured). Four endpoints under `/api/1/user/password-reset*`: public request (uniformly generic response, detached send), read-only verify (never consumes — so mail-scanner prefetches cannot burn the token), confirm (the token *is* the credential; consumes only on successful password write), and admin send. Deliberate differences from W-205 email verification: page URL not API route, link-only (no 6-digit code), 1h TTL. Confirm rebuilds `pendingAuth` and hands off to new `AuthController.beginAuthenticatedSession()` so MFA / plugin steps still gate the session; only `status: 'active'` gets a session; a successful reset also stamps `emailVerified`/`emailVerifiedAt` so W-205 `'required'` does not immediately mail a second proof. Policy lives in `UserController._classifyPasswordReset()` → `{ verdict, reason }` (`issue` / `ssoNotice` / `silent`); mechanism-only methods on `UserModel`. SSO-provisioned / `localAuthRestriction` accounts get an explainer email, never a link; `suspended`/`terminated` get nothing; `pending`/`inactive` can reset but get no session and are told why. Rate limits (Redis, fail-open): 3 sends / 10 min and 5 confirm attempts / 15 min per account, plus config-driven 10 requests / 5 min per IP. Availability: `disablePasswordReset` plus live `UserController.isPasswordResetAvailable()` that also refuses when SMTP is unconfigured — empty `smtpServer` is not configured (no silent `localhost` fallback; both `smtpServer` and `adminEmail` required), and `EmailController.reinitialize()` on config save makes clear/set take effect with no restart. Login hides the link, reset page shows `unavailable`, admin Security send button disables when unavailable. Admin "Email password reset link" complements Set Password: honest responses, per-account send budget bypassed, `awaitSend: true` with `503 EMAIL_SEND_FAILED` and token discard on SMTP failure; admin Set Password now stamps `hasLocalPassword: true`. Outstanding reset tokens invalidated by self-service `changePassword()` and admin `update()`.
+
+Found and folded in beyond the original spec: **(1)** `beginAuthenticatedSession()` facade — public entry for finishing a login started outside `login()`; `confirmEmailVerify()` migrates onto it (W-205 suite retargeted to assert the hand-off); stamps fresh `pendingAuth.createdAt` so a mail round-trip is no longer charged against the next step's window. **(2)** i18n usage audit extended to `webapp/model` and taught `key:` / `translateForUser()` forms used by `sendEmailFromTranslation()`. **(3)** Manual testing: empty-`smtpServer` / live reinitialize; admin `awaitSend` honesty; Set Password → `hasLocalPassword`; admin button disable when feature off; IP rate-limit toast uses `controller.user.passwordReset.rateLimited`. **(4)** Companion fix in the separate `auth-mfa` plugin (not this framework commit): `onAuthGetSteps` sets `page: '/auth/mfa-verify.shtml'` so OAuth / password-reset confirm show the MFA UI.
+
+**Key features**:
+- Forgot-password flow: request → 1h single-use mailed link → set password → auto-login via W-109 multi-step machinery (MFA still gates)
+- Enumeration-safe public request; honest admin send with real SMTP failure reporting
+- One availability flag (`disablePasswordReset`) + SMTP-must-be-configured gate; empty `smtpServer` never silently becomes `localhost`
+- Classifier is the single place for per-account eligibility (`hasLocalPassword` / `localAuthRestriction` / `status`)
+- `AuthController.beginAuthenticatedSession()` facade shared by email-verify confirm and password-reset confirm
+
+**Files changed**:
+- `webapp/model/user.js`: password-reset mechanism (`issuePasswordReset()` / `verifyPasswordResetToken()` / `resetPasswordByToken()` / SSO + password-changed notices / `invalidatePasswordReset()` / per-account limiters)
+- `webapp/controller/user.js`: `_classifyPasswordReset()`, `isPasswordResetAvailable()`, four endpoints; invalidate on password writes; Set Password stamps `hasLocalPassword`; `confirmEmailVerify()` → `beginAuthenticatedSession()`
+- `webapp/controller/auth.js`: `beginAuthenticatedSession()`
+- `webapp/controller/email.js`: empty-`smtpServer` not configured; `reinitialize()` on config change
+- `webapp/controller/handlebar.js`: `passwordResetAvailable` for login / reset / admin user-profile pages
+- `webapp/routes.js`: four password-reset routes ahead of `/api/1/user/:id`
+- `webapp/app.conf`: `disablePasswordReset`, `passwordResetRateLimit`, `alwaysAllow` entry
+- `webapp/translations/en.conf`, `webapp/translations/de.conf`: mail + endpoint + view strings
+- `webapp/view/auth/reset-password.shtml` (new), `webapp/view/auth/login.shtml`, `webapp/view/admin/user-profile.shtml`
+- Tests: three new files (`user-password-reset`, `user-password-reset-endpoints`, `auth-begin-session`) plus extensions to email-controller, user-email-verify-endpoints, i18n usage audit / key-extractor
+
+**Documentation**:
+- `docs/security-and-auth.md`, `docs/api-reference.md`: Password Reset sections (eligibility, availability, endpoints, rate limits, admin `503 EMAIL_SEND_FAILED`)
+- `docs/sending-email.md`: empty-`smtpServer` / live `reinitialize()` rules
+- `docs/dev/design/W-206-user-password-reset.md` (new): full design doc + As Built / manual-testing notes
+- `docs/dev/work-items.md`: W-206 features/deliverables
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.7.10 / W-206
+- `docs/CHANGELOG.md`: this section
+
+Verified via the full unit/integration suite (124 suites / 3090 tests via `npx jest --runInBand`), no regressions; extensive manual end-to-end testing covering request/confirm, SSO explainer, unavailable/SMTP gates, admin send honesty, Set Password → `hasLocalPassword`, and MFA after reset (with the companion `auth-mfa` page fix).
+
+**Release**:
+- Work Item: W-206
+- Version: v1.7.10
+- Release Date: 2026-08-09
 
 ________________________________________________
 ## v1.7.9, W-205, 2026-08-07

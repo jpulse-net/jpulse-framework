@@ -4,13 +4,13 @@
  * @tagline         Admin user profile management with view and edit capabilities
  * @description     Admin user profile management (always-edit, aligned with /user/settings)
  * @file            webapp/view/admin/user-profile.shtml
- * @version         1.7.9
- * @release         2026-08-07
+ * @version         1.7.10
+ * @release         2026-08-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.14, Claude Sonnet 5
+ * @genai           60%, Cursor 3.15, Claude Sonnet 5
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -269,11 +269,28 @@
                 <!-- W-175: Panel: Preferences (content built by renderCoreSchemaBlock(); selects populated by load*()) -->
                 <div id="panel-preferences" class="jp-panel"></div>
 
-                <!-- Panel: Security (admin password override) -->
+                <!-- Panel: Security (admin password override, W-206 mailed reset link) -->
                 <div id="panel-security" class="jp-panel">
                     <div class="jp-card jp-schema-section">
                         <div class="jp-info-box">
+                            <p>{{i18n.view.admin.userProfile.resetLinkNote}}</p>
                             <p>{{i18n.view.admin.userProfile.securityNote}}</p>
+                        </div>
+                        <!-- W-206: mailing a link is the better default - the admin never learns
+                             the password, it expires in an hour, and only the mailbox holder can
+                             use it. Set Password below stays for the cases that need it. -->
+                        <div class="jp-btn-group" style="margin-bottom: 20px;">
+                            <!-- Wrapper carries the title when the button is disabled: browsers
+                                 do not fire hover on disabled controls, so a title on the button
+                                 itself never appears. -->
+                            <span id="sendResetLinkWrap" style="display: inline-block;"
+                                {{#unless passwordResetAvailable}}title="{{i18n.view.admin.userProfile.sendResetLinkUnavailable}}"{{/unless}}>
+                                <button class="jp-btn jp-btn-secondary" id="sendResetLinkBtn"
+                                    onclick="sendPasswordResetLink()"
+                                    {{#unless passwordResetAvailable}}disabled{{/unless}}>
+                                    📧 {{i18n.view.admin.userProfile.sendResetLink}}
+                                </button>
+                            </span>
                         </div>
                         <div class="jp-form-group">
                             <label for="newPassword" class="jp-form-label">
@@ -1006,6 +1023,7 @@
             // W-205: absent/true reads as verified - same three-state rule used everywhere else
             document.getElementById('emailVerified').checked = user.emailVerified !== false;
             updateEmailVerifiedAtLine(user);
+            updateSendResetLinkButton(user);
 
             // W-174: Set roles select (options already populated by loadRoles)
             const rolesSelect = document.getElementById('roles');
@@ -1051,6 +1069,63 @@
                 line.textContent = `{{i18n.view.admin.userProfile.emailVerifiedOn}}`.replace('%DATE%', jPulse.date.formatLocalDateAndTime(user.emailVerifiedAt));
             } else {
                 line.textContent = `{{i18n.view.admin.userProfile.emailVerifiedGrandfathered}}`;
+            }
+        }
+
+        // W-206: show the server's verdict before the click rather than after. Deliberately
+        // conservative - if a field the classifier uses isn't in this response, the button stays
+        // enabled and the server refuses with the specific reason, which is still a good answer.
+        // Title goes on the wrapper, not the button: disabled buttons do not receive hover events.
+        // passwordResetAvailable is server-rendered (SMTP + disablePasswordReset) - same live
+        // check the login page uses for "Forgot password?".
+        const PASSWORD_RESET_AVAILABLE = {{#if passwordResetAvailable}}true{{else}}false{{/if}};
+
+        function updateSendResetLinkButton(user) {
+            const btn = document.getElementById('sendResetLinkBtn');
+            const wrap = document.getElementById('sendResetLinkWrap');
+            if (!btn || !wrap) return;
+            let title = '';
+            if (!PASSWORD_RESET_AVAILABLE) {
+                title = `{{i18n.view.admin.userProfile.sendResetLinkUnavailable}}`;
+            } else if (user.status === 'suspended') {
+                title = `{{i18n.view.admin.userProfile.sendResetLinkBlockedSuspended}}`;
+            } else if (user.status === 'terminated') {
+                title = `{{i18n.view.admin.userProfile.sendResetLinkBlockedTerminated}}`;
+            } else if (user.hasLocalPassword === false) {
+                title = `{{i18n.view.admin.userProfile.sendResetLinkBlockedSso}}`;
+            }
+            btn.disabled = !!title;
+            wrap.title = title;
+        }
+
+        // W-206: mails the user the same link they would have requested themselves. Answers
+        // honestly, unlike the public endpoint - an admin on this page already knows the account
+        // exists, so a generic failure would just leave them waiting for mail that isn't coming.
+        async function sendPasswordResetLink() {
+            const btn = document.getElementById('sendResetLinkBtn');
+            if (!PASSWORD_RESET_AVAILABLE || btn?.disabled) return;
+
+            const confirmResult = await jPulse.UI.confirmDialog({
+                title: `{{i18n.view.admin.userProfile.sendResetLinkConfirmTitle}}`,
+                message: `{{i18n.view.admin.userProfile.sendResetLinkConfirmMessage}}`.replace('%USERNAME%', currentUsername),
+                buttons: [`{{i18n.view.admin.userProfile.cancel}}`, `{{i18n.view.admin.userProfile.sendResetLinkConfirmButton}}`]
+            });
+            if (confirmResult.button !== `{{i18n.view.admin.userProfile.sendResetLinkConfirmButton}}`) return;
+
+            jPulse.form.setLoadingState(btn, true, `{{i18n.view.admin.userProfile.sendingResetLink}}`);
+            try {
+                const result = await jPulse.api.post('/api/1/user/password-reset/send', { username: currentUsername });
+                if (result.success) {
+                    jPulse.UI.toast.success(result.message);
+                } else {
+                    jPulse.UI.toast.error(result.error, { duration: 8000 });
+                }
+            } catch (error) {
+                jPulse.UI.toast.error(`{{i18n.view.admin.userProfile.networkError}}`.replace('%ERROR%', error.message));
+            } finally {
+                jPulse.form.setLoadingState(btn, false);
+                // setLoadingState re-enables the control - put the site-wide veto back
+                if (!PASSWORD_RESET_AVAILABLE) btn.disabled = true;
             }
         }
 

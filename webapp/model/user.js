@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.7.9
- * @release         2026-08-07
+ * @version         1.7.10
+ * @release         2026-08-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1368,6 +1368,357 @@ class UserModel {
             global.RedisManager.cacheDelToken('controller:user:emailVerifyLink', id),
             global.RedisManager.cacheDelToken('controller:user:emailVerifyCode', id)
         ]);
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // W-206: Password reset primitives. Mechanism only - these know how the reset token is
+    // made, stored, checked and consumed, and hold no opinion on whether this particular
+    // account is allowed to reset. Status, hasLocalPassword, localAuthRestriction and
+    // disableLogin are read in exactly one place, UserController._classifyPasswordReset(), for
+    // the same reason authenticate() below refuses to gate on status: policy is a
+    // controller-layer concern (W-201). See docs/dev/design/W-206-user-password-reset.md.
+    // ---------------------------------------------------------------------------------------
+
+    // Same rationale as EMAIL_VERIFY_BCRYPT_ROUNDS above - the stored hash is a storage
+    // convention, not the brute-force defense (that is 32 bytes of entropy plus the attempt
+    // limiter), so a lower cost than password hashing (12) is right here.
+    static PASSWORD_RESET_BCRYPT_ROUNDS = 10;
+
+    // 1 hour, deliberately far shorter than the email-verification link's 24: this token grants
+    // account takeover to whoever holds it, so its value to someone who gains mailbox access
+    // later - a stale mailbox on a shared computer, a forwarded thread, a breached mail backup -
+    // is exactly what a short window cuts off. A real "I forgot my password" round trip takes
+    // minutes, and re-requesting is one click on a page the user is already looking at.
+    static PASSWORD_RESET_TTL_SECONDS = 3600;
+
+    /**
+     * Issue a fresh password reset link token, store it (bcrypt-hashed) in Redis with a 1h TTL,
+     * and mail it. The caller must already have decided this account is eligible - see
+     * UserController._classifyPasswordReset().
+     *
+     * The token embeds the user ID (`<userId>.<secret>`) because the confirm request carries no
+     * session and a bare secret would be unattributable; only the secret half is hashed/stored.
+     *
+     * The mail is sent DETACHED: this resolves as soon as the token is stored. Awaiting SMTP
+     * would make an existing account answer measurably slower than a nonexistent one, undoing
+     * the enumeration protection the request endpoint's uniformly generic response exists to
+     * provide. _sendPasswordResetMail() swallows and logs its own errors, so the detached
+     * promise can never reject unhandled.
+     *
+     * @param {object} req - Express request object (for the reset URL host, i18n context, logging)
+     * @param {object} user - User document (must include _id, email; profile/preferences used
+     *   for personalization and recipient-language selection)
+     * @param {object} [options] - Options
+     * @param {boolean} [options.enforceSendLimit=true] - Apply the per-account 3/10min send
+     *   budget. The admin-send endpoint passes false: that budget exists to stop a stranger
+     *   mail-bombing a user, and would otherwise block an admin helping in real time with a
+     *   budget the user may already have spent trying on their own - which is exactly the
+     *   situation that sends them to an admin.
+     * @param {boolean} [options.awaitSend=false] - Wait for SMTP and surface a send failure.
+     *   The public request endpoint must leave this false (enumeration: an existing account
+     *   must not answer measurably slower than a nonexistent one). The admin-send endpoint
+     *   passes true: an admin already knows the account exists, and "link sent" when SMTP
+     *   refused the connection is a lie.
+     * @returns {Promise<object>} { success, errorCode, retryAfter, error } - error fields set only on failure
+     */
+    static async issuePasswordReset(req, user, { enforceSendLimit = true, awaitSend = false } = {}) {
+        const userId = user._id.toString();
+
+        if (enforceSendLimit) {
+            const rateLimit = await global.RedisManager.cacheCheckRateLimit(
+                'controller:user:passwordResetSend', userId, { limit: 3, windowSeconds: 600 }
+            );
+            if (!rateLimit.allowed) {
+                return { success: false, errorCode: 'PASSWORD_RESET_RATE_LIMITED', retryAfter: rateLimit.retryAfter };
+            }
+        }
+
+        const secret = crypto.randomBytes(32).toString('base64url');
+        const resetToken = `${userId}.${secret}`;
+        const secretHash = await bcrypt.hash(secret, this.PASSWORD_RESET_BCRYPT_ROUNDS);
+        await global.RedisManager.cacheSetToken(
+            'controller:user:passwordResetLink', userId, secretHash, this.PASSWORD_RESET_TTL_SECONDS
+        );
+
+        // The link lands on a page, not an API route (unlike W-205's confirm link): a mail
+        // scanner prefetching it must not be able to burn a single-use token before the human
+        // ever sees the form, so only the POST carrying a new password consumes it.
+        const resetUrl = `${req.protocol}://${req.get('host')}/auth/reset-password.shtml` +
+            `?token=${encodeURIComponent(resetToken)}`;
+
+        if (!awaitSend) {
+            this._sendPasswordResetMail(req, user, resetUrl); // detached on purpose - see doc comment
+            return { success: true, errorCode: null };
+        }
+
+        const sendResult = await this._sendPasswordResetMail(req, user, resetUrl);
+        if (!sendResult.success) {
+            // Nobody received the link - do not leave a live credential sitting in Redis for an
+            // hour after telling the admin the send failed.
+            await this.invalidatePasswordReset(userId);
+            return {
+                success: false,
+                errorCode: 'EMAIL_SEND_FAILED',
+                error: sendResult.error || 'email send failed'
+            };
+        }
+
+        return { success: true, errorCode: null };
+    }
+
+    /**
+     * Mail the reset link. Never throws and never rejects - issuePasswordReset() may fire it
+     * without awaiting, so an unhandled rejection here would crash the process.
+     * @param {object} req - Express request object (for i18n/template expansion context)
+     * @param {object} user - User document
+     * @param {string} resetUrl - Fully-qualified reset page URL carrying the token
+     * @returns {Promise<object>} { success, error }
+     * @private
+     */
+    static async _sendPasswordResetMail(req, user, resetUrl) {
+        try {
+            // Dynamic import for the same reason as issueEmailVerification() above: it avoids a
+            // static circular import (email.js -> handlebar.js -> auth.js -> this file), and
+            // resolves immediately since everything is loaded long before this runs.
+            const { default: EmailController } = await import('../controller/email.js');
+            const sendResult = await EmailController.sendEmailFromTranslation(req, {
+                user,
+                key: 'model.user.passwordReset',
+                context: {
+                    firstName: user.profile?.firstName || '',
+                    siteName: global.appConfig?.app?.site?.name || '',
+                    resetUrl
+                }
+            });
+
+            if (!sendResult.success) {
+                global.LogController?.logError(req, 'user.issuePasswordReset',
+                    `error: failed to send password reset email to ${CommonUtils.maskEmail(user.email)}: ${sendResult.error}`);
+                return { success: false, error: sendResult.error || 'email send failed' };
+            }
+            return { success: true, error: null };
+        } catch (error) {
+            global.LogController?.logError(req, 'user.issuePasswordReset',
+                `error: failed to send password reset email: ${error.message}`);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * W-206: The "you sign in with an external provider" explainer, sent instead of a reset
+     * link to an account that has no usable local password (SSO-provisioned, or covered by a
+     * localAuthRestriction policy). Carries no credential and nothing that can expire - a local
+     * password they could never log in with is not worth resetting, so the mail tells them how
+     * they actually sign in. Deliberately does not name the provider: the provider list is
+     * assembled per-request for the login page only (HandlebarController._buildInternalContext()),
+     * and the login page answers that question with buttons anyway.
+     *
+     * Never throws, so callers can fire it detached alongside issuePasswordReset()'s own send.
+     * @param {object} req - Express request object (for i18n/template expansion context)
+     * @param {object} user - User document
+     * @returns {Promise<void>}
+     */
+    static async sendPasswordResetSsoNotice(req, user) {
+        try {
+            const { default: EmailController } = await import('../controller/email.js');
+            const sendResult = await EmailController.sendEmailFromTranslation(req, {
+                user,
+                key: 'model.user.passwordResetSso',
+                context: {
+                    firstName: user.profile?.firstName || '',
+                    siteName: global.appConfig?.app?.site?.name || '',
+                    loginUrl: `${req.protocol}://${req.get('host')}/auth/login.shtml`
+                }
+            });
+
+            if (!sendResult.success) {
+                global.LogController?.logError(req, 'user.sendPasswordResetSsoNotice',
+                    `error: failed to send to ${CommonUtils.maskEmail(user.email)}: ${sendResult.error}`);
+            }
+        } catch (error) {
+            global.LogController?.logError(req, 'user.sendPasswordResetSsoNotice', `error: ${error.message}`);
+        }
+    }
+
+    /**
+     * W-206: After-the-fact security notice that the account's password was reset. Carries no
+     * credential. This is what makes a compromised-inbox takeover noisy rather than silent -
+     * the only defense available while other active sessions cannot be revoked - so it is sent
+     * detached and never blocks or fails the reset itself. Never throws.
+     * @param {object} req - Express request object (for i18n/template expansion context)
+     * @param {object} user - User document (password already updated)
+     * @returns {Promise<void>}
+     */
+    static async sendPasswordChangedNotice(req, user) {
+        try {
+            const { default: EmailController } = await import('../controller/email.js');
+            const sendResult = await EmailController.sendEmailFromTranslation(req, {
+                user,
+                key: 'model.user.passwordChanged',
+                context: {
+                    firstName: user.profile?.firstName || '',
+                    siteName: global.appConfig?.app?.site?.name || ''
+                }
+            });
+
+            if (!sendResult.success) {
+                global.LogController?.logError(req, 'user.sendPasswordChangedNotice',
+                    `error: failed to send to ${CommonUtils.maskEmail(user.email)}: ${sendResult.error}`);
+            }
+        } catch (error) {
+            global.LogController?.logError(req, 'user.sendPasswordChangedNotice', `error: ${error.message}`);
+        }
+    }
+
+    /**
+     * Split `<userId>.<secret>` and sanity-check both halves, without touching Redis - so the
+     * confirm path can key its attempt limiter on the user ID before spending a bcrypt compare.
+     * @param {string} token - Raw token from the reset link
+     * @returns {object|null} { userId, secret }, or null if the token is not well-formed
+     * @private
+     */
+    static _parsePasswordResetToken(token) {
+        if (typeof token !== 'string' || !token.includes('.')) {
+            return null;
+        }
+
+        const dotIndex = token.indexOf('.');
+        const userId = token.slice(0, dotIndex);
+        const secret = token.slice(dotIndex + 1);
+
+        if (!ObjectId.isValid(userId) || !secret) {
+            return null;
+        }
+
+        return { userId, secret };
+    }
+
+    /**
+     * Compare a parsed token against the stored hash. Read-only - never consumes.
+     * @param {string} userId - User ID from the token
+     * @param {string} secret - Secret half of the token
+     * @returns {Promise<object>} { valid, errorCode }
+     * @private
+     */
+    static async _matchPasswordResetToken(userId, secret) {
+        const storedHash = await global.RedisManager.cacheGetToken('controller:user:passwordResetLink', userId);
+        if (!storedHash) {
+            return { valid: false, errorCode: 'PASSWORD_RESET_EXPIRED' };
+        }
+
+        const isValid = await bcrypt.compare(secret, storedHash);
+        if (!isValid) {
+            return { valid: false, errorCode: 'PASSWORD_RESET_INVALID_TOKEN' };
+        }
+
+        return { valid: true, errorCode: null };
+    }
+
+    /**
+     * Read-only validity probe for a reset token - safe to repeat, and deliberately does NOT
+     * consume. The reset page calls this on load to decide between showing the new-password
+     * form and the "this link has expired" state; consuming here would mean a mail scanner's
+     * prefetch, or a simple page reload, destroyed the user's only way in.
+     * @param {object} req - Express request object (unused today, kept for parity/logging)
+     * @param {string} token - Raw token from the reset link
+     * @returns {Promise<object>} { valid, errorCode }
+     */
+    static async verifyPasswordResetToken(req, token) {
+        const parsed = this._parsePasswordResetToken(token);
+        if (!parsed) {
+            return { valid: false, errorCode: 'PASSWORD_RESET_INVALID_TOKEN' };
+        }
+
+        return await this._matchPasswordResetToken(parsed.userId, parsed.secret);
+    }
+
+    /**
+     * Validate the token, set the new password, and consume the token. Mechanism only: it does
+     * NOT decide whether this account may then be given a session - the caller re-checks status
+     * and localAuthRestriction before completing any login (see UserController.passwordResetConfirm()).
+     *
+     * Also flips emailVerified: the user just opened a secret mailed to the address on the
+     * account, which is precisely the proof that flag asserts, collected by precisely the
+     * mechanism W-205 uses to collect it. Without this, a 'required' site would push an
+     * email-verify step and mail a *second* credential seconds later, asking the user to prove
+     * again what they proved ten seconds ago.
+     *
+     * @param {object} req - Express request object (for logging)
+     * @param {string} token - Raw token from the reset link
+     * @param {string} newPassword - New plain-text password (validated against passwordPolicy)
+     * @returns {Promise<object>} { success, errorCode, error, retryAfter, user } - user (without
+     *   passwordHash) set only on success
+     */
+    static async resetPasswordByToken(req, token, newPassword) {
+        const parsed = this._parsePasswordResetToken(token);
+        if (!parsed) {
+            return { success: false, errorCode: 'PASSWORD_RESET_INVALID_TOKEN', user: null };
+        }
+
+        // Checked (and incremented) before the comparison, like verifyEmailByCode() above, so it
+        // bounds guesses regardless of outcome - brute-force resistance comes from this limiter
+        // as much as from the secret's 32 bytes of entropy.
+        const rateLimit = await global.RedisManager.cacheCheckRateLimit(
+            'controller:user:passwordResetAttempt', parsed.userId, { limit: 5, windowSeconds: 900 }
+        );
+        if (!rateLimit.allowed) {
+            return {
+                success: false,
+                errorCode: 'PASSWORD_RESET_RATE_LIMITED',
+                retryAfter: rateLimit.retryAfter,
+                user: null
+            };
+        }
+
+        const match = await this._matchPasswordResetToken(parsed.userId, parsed.secret);
+        if (!match.valid) {
+            return { success: false, errorCode: match.errorCode, user: null };
+        }
+
+        // Password policy is checked before anything is written and before the token is
+        // consumed, so a user who typed too short a password can simply try again with the
+        // same link rather than being locked out by their own typo.
+        try {
+            this.validatePassword(newPassword);
+        } catch (error) {
+            return { success: false, errorCode: 'PASSWORD_POLICY_ERROR', error: error.message, user: null };
+        }
+
+        const user = await this.findById(parsed.userId);
+        if (!user) {
+            return { success: false, errorCode: 'PASSWORD_RESET_INVALID_TOKEN', user: null };
+        }
+
+        const updatedUser = await this.updateById(parsed.userId, {
+            password: newPassword,
+            // W-195: they now know a real, usable local password, whether or not they had one
+            hasLocalPassword: true,
+            emailVerified: true,
+            emailVerifiedAt: new Date(),
+            updatedBy: user.username
+        });
+
+        await this.invalidatePasswordReset(parsed.userId);
+
+        global.LogController?.logInfo(req, 'user.resetPasswordByToken',
+            `success: password reset for user ${user.username}`);
+
+        const { passwordHash, ...userWithoutPassword } = updatedUser;
+        return { success: true, errorCode: null, user: userWithoutPassword };
+    }
+
+    /**
+     * Drop any outstanding reset token for a user. Called on a successful reset, and by every
+     * other path that writes a password (self-service change, admin set) - an outstanding reset
+     * link is a live credential for an account whose password just changed for some other
+     * reason, and the person who made that change has every reason to expect the older
+     * credential to be dead. Public, unlike _invalidateEmailVerification() above, precisely
+     * because those cross-module callers exist.
+     * @param {string|ObjectId} userId - User ID
+     * @returns {Promise<void>}
+     */
+    static async invalidatePasswordReset(userId) {
+        await global.RedisManager.cacheDelToken('controller:user:passwordResetLink', userId.toString());
     }
 
     /**

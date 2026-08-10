@@ -6,13 +6,13 @@
  *                   mid-login completion, other-device/status-only landing, and the error/redirect
  *                   paths for expired/invalid tokens)
  * @file            webapp/tests/unit/controller/user-email-verify-endpoints.test.js
- * @version         1.7.9
- * @release         2026-08-07
+ * @version         1.7.10
+ * @release         2026-08-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.14, Claude Sonnet 5
+ * @genai           80%, Cursor 3.15, Claude Sonnet 5
  */
 
 import { describe, test, expect, beforeAll, beforeEach, jest } from '@jest/globals';
@@ -211,7 +211,7 @@ describe('UserController: W-205 email verification endpoints', () => {
             await UserController.confirmEmailVerify(mockReq, mockRes);
 
             expect(mockRes.redirect).toHaveBeenCalledWith('/auth/email-verify.shtml?status=verified');
-            expect(AuthController._completeLoginSession).not.toHaveBeenCalled();
+            expect(AuthController.beginAuthenticatedSession).not.toHaveBeenCalled();
         });
 
         test("does not touch pendingAuth belonging to a DIFFERENT user (link clicked while another account's login is pending in this browser)", async () => {
@@ -228,22 +228,33 @@ describe('UserController: W-205 email verification endpoints', () => {
             expect(mockReq.session.pendingAuth.completedSteps).toEqual(['credentials']);
         });
 
-        test('same-browser mid-login, more steps remain: advances pendingAuth and redirects to the next step page (carrying redirect)', async () => {
+        // W-206: the pendingAuth rebuild and the step-vs-session decision moved into
+        // AuthController.beginAuthenticatedSession(), so these assert the hand-off rather than
+        // the two private helpers this endpoint used to call directly.
+        test('same-browser mid-login, more steps remain: hands off with email-verify completed and redirects to the next step page (carrying redirect)', async () => {
             mockReq.query.token = 'user-1.goodsecret';
             mockReq.session.pendingAuth = {
                 userId: 'user-1', username: 'evuser', authMethod: 'password', redirect: '/dashboard',
                 requiredSteps: ['credentials', 'email-verify', 'mfa'], completedSteps: ['credentials']
             };
-            UserModel.verifyEmailByToken.mockResolvedValue({ success: true, user: { _id: 'user-1', username: 'evuser' } });
-            AuthController._getRequiredSteps.mockResolvedValue([{ step: 'mfa', priority: 100, page: '/auth/mfa-verify.shtml' }]);
+            const verifiedUser = { _id: 'user-1', username: 'evuser' };
+            UserModel.verifyEmailByToken.mockResolvedValue({ success: true, user: verifiedUser });
+            AuthController.beginAuthenticatedSession.mockResolvedValue({
+                nextStep: 'mfa', page: '/auth/mfa-verify.shtml', data: null, warnings: [], redirect: '/dashboard'
+            });
 
             await UserController.confirmEmailVerify(mockReq, mockRes);
 
-            expect(mockReq.session.pendingAuth.completedSteps).toEqual(['credentials', 'email-verify']);
+            expect(AuthController.beginAuthenticatedSession).toHaveBeenCalledWith(
+                mockReq, verifiedUser, 'password',
+                expect.objectContaining({
+                    completedSteps: ['credentials', 'email-verify'],
+                    redirect: '/dashboard'
+                })
+            );
             expect(mockRes.redirect).toHaveBeenCalledWith(
                 `/auth/mfa-verify.shtml?redirect=${encodeURIComponent('/dashboard')}`
             );
-            expect(AuthController._completeLoginSession).not.toHaveBeenCalled();
         });
 
         test('same-browser mid-login, no steps remain: completes the login session and redirects straight to the safe destination', async () => {
@@ -254,13 +265,15 @@ describe('UserController: W-205 email verification endpoints', () => {
             };
             const verifiedUser = { _id: 'user-1', username: 'evuser' };
             UserModel.verifyEmailByToken.mockResolvedValue({ success: true, user: verifiedUser });
-            AuthController._getRequiredSteps.mockResolvedValue([]);
-            AuthController._completeLoginSession.mockResolvedValue({ warnings: [], elapsed: 5 });
-            jest.spyOn(global.CommonUtils, 'isSafeRedirectUrl').mockReturnValue(true);
+            AuthController.beginAuthenticatedSession.mockResolvedValue({
+                nextStep: null, page: null, data: null, warnings: [], redirect: '/dashboard'
+            });
 
             await UserController.confirmEmailVerify(mockReq, mockRes);
 
-            expect(AuthController._completeLoginSession).toHaveBeenCalledWith(mockReq, verifiedUser, 'password', expect.any(Number));
+            expect(AuthController.beginAuthenticatedSession).toHaveBeenCalledWith(
+                mockReq, verifiedUser, 'password', expect.objectContaining({ redirect: '/dashboard' })
+            );
             expect(mockRes.redirect).toHaveBeenCalledWith('/dashboard');
         });
 
@@ -272,12 +285,13 @@ describe('UserController: W-205 email verification endpoints', () => {
             };
             const verifiedUser = { _id: 'user-1', username: 'evuser' };
             UserModel.verifyEmailByToken.mockResolvedValue({ success: true, user: verifiedUser });
-            AuthController._getRequiredSteps.mockResolvedValue([]);
-            AuthController._completeLoginSession.mockResolvedValue({
+            AuthController.beginAuthenticatedSession.mockResolvedValue({
+                nextStep: null,
+                page: null,
+                data: null,
                 warnings: [{ type: 'mfa-not-enabled', toastType: 'info', message: 'Consider enabling MFA' }],
-                elapsed: 5
+                redirect: '/dashboard'
             });
-            jest.spyOn(global.CommonUtils, 'isSafeRedirectUrl').mockReturnValue(true);
 
             await UserController.confirmEmailVerify(mockReq, mockRes);
 
@@ -292,16 +306,16 @@ describe('UserController: W-205 email verification endpoints', () => {
             ]);
         });
 
-        test('falls back to / when the stored pendingAuth.redirect is not a safe redirect (defense in depth)', async () => {
+        test('falls back to / when beginAuthenticatedSession() rejected the stored redirect as unsafe', async () => {
             mockReq.query.token = 'user-1.goodsecret';
             mockReq.session.pendingAuth = {
                 userId: 'user-1', username: 'evuser', authMethod: 'password', redirect: 'https://evil.example.com/',
                 requiredSteps: ['credentials', 'email-verify'], completedSteps: ['credentials']
             };
             UserModel.verifyEmailByToken.mockResolvedValue({ success: true, user: { _id: 'user-1', username: 'evuser' } });
-            AuthController._getRequiredSteps.mockResolvedValue([]);
-            AuthController._completeLoginSession.mockResolvedValue({ warnings: [], elapsed: 5 });
-            jest.spyOn(global.CommonUtils, 'isSafeRedirectUrl').mockReturnValue(false);
+            AuthController.beginAuthenticatedSession.mockResolvedValue({
+                nextStep: null, page: null, data: null, warnings: [], redirect: null
+            });
 
             await UserController.confirmEmailVerify(mockReq, mockRes);
 
@@ -315,7 +329,9 @@ describe('UserController: W-205 email verification endpoints', () => {
                 requiredSteps: ['credentials', 'email-verify', 'mfa'], completedSteps: ['credentials']
             };
             UserModel.verifyEmailByToken.mockResolvedValue({ success: true, user: { _id: 'user-1', username: 'evuser' } });
-            AuthController._getRequiredSteps.mockResolvedValue([{ step: 'mfa', priority: 100 }]);
+            AuthController.beginAuthenticatedSession.mockResolvedValue({
+                nextStep: 'mfa', page: null, data: null, warnings: [], redirect: '/dashboard'
+            });
 
             await UserController.confirmEmailVerify(mockReq, mockRes);
 

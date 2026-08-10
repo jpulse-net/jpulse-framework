@@ -134,7 +134,7 @@ class HandlebarController {
      */
     static async initialize() {
         // Initialize include cache
-        const includeCacheConfig = global.appConfig.controller.handlebar.cacheIncludes || { enabled: true };
+        const includeCacheConfig = global.appConfig?.controller?.handlebar?.cacheIncludes || { enabled: true };
 
         // In test mode, disable caching to prevent hanging
         if (process.env.NODE_ENV === 'test' || global.isTestEnvironment) {
@@ -1195,7 +1195,7 @@ class HandlebarController {
      */
     static async _expandHandlebars(req, template, additionalContext = {}, depth = 0) {
         // Prevent infinite recursion
-        const MAX_DEPTH = global.appConfig.controller.handlebar.maxIncludeDepth || 16;
+        const MAX_DEPTH = global.appConfig?.controller?.handlebar?.maxIncludeDepth || 16;
         if (depth > MAX_DEPTH) {
             LogController.logError(req, 'handlebar.expandHandlebars', `error: Maximum nesting depth (${MAX_DEPTH}) exceeded`);
             return template;
@@ -1970,7 +1970,7 @@ class HandlebarController {
          */
         async function _handleFileInclude(parsedArgs, currentContext) {
             // Check include depth to prevent infinite recursion
-            const maxDepth = global.appConfig.controller.handlebar.maxIncludeDepth || 16;
+            const maxDepth = global.appConfig?.controller?.handlebar?.maxIncludeDepth || 16;
             if (depth >= maxDepth) {
                 throw new Error(`Maximum include depth (${maxDepth}) exceeded`);
             }

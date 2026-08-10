@@ -38,7 +38,7 @@ class ViewController {
      */
     static async initialize() {
         // Initialize template cache
-        const templateCacheConfig = global.appConfig.controller.view.cacheTemplates || { enabled: true };
+        const templateCacheConfig = global.appConfig?.controller?.view?.cacheTemplates || { enabled: true };
 
         // In test mode, disable caching to prevent hanging
         if (process.env.NODE_ENV === 'test' || global.isTestEnvironment) {

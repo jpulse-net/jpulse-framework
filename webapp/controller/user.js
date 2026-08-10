@@ -37,7 +37,7 @@ class UserController {
             LogController.logRequest(req, 'user.signup', JSON.stringify({ username: req.body.username, email: req.body.email }));
 
             // Bail out if signup is disabled
-            if (global.appConfig.controller.user.disableSignup) {
+            if (global.appConfig?.controller?.user?.disableSignup) {
                 LogController.logError(req, 'user.signup', 'error: signup is disabled');
                 const message = global.i18n.translate(req, 'controller.user.signup.signupDisabled');
                 return global.CommonUtils.sendError(req, res, 403, message, 'SIGNUP_DISABLED');
@@ -528,7 +528,7 @@ class UserController {
                 return global.CommonUtils.sendError(req, res, 403, message, 'PASSWORD_RESET_UNAVAILABLE');
             }
 
-            if (global.appConfig.controller.auth.disableLogin) {
+            if (global.appConfig?.controller?.auth?.disableLogin) {
                 LogController.logError(req, 'user.passwordReset', 'error: login is disabled');
                 const message = global.i18n.translate(req, 'controller.auth.loginDisabled');
                 return global.CommonUtils.sendError(req, res, 403, message, 'LOGIN_DISABLED');
@@ -693,7 +693,7 @@ class UserController {
                 return global.CommonUtils.sendError(req, res, 403, message, 'PASSWORD_RESET_UNAVAILABLE');
             }
 
-            if (global.appConfig.controller.auth.disableLogin) {
+            if (global.appConfig?.controller?.auth?.disableLogin) {
                 LogController.logError(req, 'user.passwordResetConfirm', 'error: login is disabled');
                 const message = global.i18n.translate(req, 'controller.auth.loginDisabled');
                 return global.CommonUtils.sendError(req, res, 403, message, 'LOGIN_DISABLED');
@@ -861,7 +861,7 @@ class UserController {
                 return global.CommonUtils.sendError(req, res, 403, message, 'PASSWORD_RESET_UNAVAILABLE');
             }
 
-            if (global.appConfig.controller.auth.disableLogin) {
+            if (global.appConfig?.controller?.auth?.disableLogin) {
                 LogController.logError(req, 'user.passwordResetSend', 'error: login is disabled');
                 const message = global.i18n.translate(req, 'controller.auth.loginDisabled');
                 return global.CommonUtils.sendError(req, res, 403, message, 'LOGIN_DISABLED');

@@ -590,7 +590,7 @@ class AuthController {
             }
 
             // Bail out if login is disabled
-            if (global.appConfig.controller.auth.disableLogin) {
+            if (global.appConfig?.controller?.auth?.disableLogin) {
                 global.LogController.logError(req, 'auth.login', 'error: login is disabled');
                 const message = global.i18n.translate(req, 'controller.auth.loginDisabled');
                 return global.CommonUtils.sendError(req, res, 403, message, 'LOGIN_DISABLED');

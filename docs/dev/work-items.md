@@ -7636,7 +7636,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 ## 🚧 IN_PROGRESS Work Items
 
 ### W-206, v1.7.10, 2026-08-09: user: reset password
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - ability for user to reset password by email in case forgotten

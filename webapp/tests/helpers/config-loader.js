@@ -85,7 +85,16 @@ export function setupGlobalAppConfig() {
                     defaultDocName: 'global'
                 },
                 auth: {
-                    localAuthRestriction: 'none'
+                    localAuthRestriction: 'none',
+                    disableLogin: false
+                },
+                // W-206/CI: global-setup uses this fallback when .jpulse/app.json is absent;
+                // password-reset / signup / emailVerification reads expect controller.user to exist
+                user: {
+                    disableSignup: false,
+                    disablePasswordReset: false,
+                    emailVerification: 'required',
+                    passwordResetRateLimit: { enabled: true, maxAttempts: 10, windowSeconds: 300 }
                 },
                 handlebar: {
                     contextFilter: {
@@ -106,6 +115,14 @@ export function setupGlobalAppConfig() {
             utils: {
                 i18n: {
                     cache: { enabled: false }
+                }
+            },
+            // W-206: validatePassword() / password-reset tests need this; CI has no .jpulse/app.json
+            model: {
+                user: {
+                    passwordPolicy: {
+                        minLength: 8
+                    }
                 }
             }
         };

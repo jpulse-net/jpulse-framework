@@ -356,7 +356,10 @@ class UserModel {
      * @throws {Error} Validation error with details
      */
     static validatePassword(password) {
-        const minLength = appConfig.model.user.passwordPolicy.minLength || 8;
+        // Optional-chain: CI/test fallback appConfig has no model section, and a misconfigured
+        // site must still fall back to the documented default of 8 rather than throw TypeError
+        // (which resetPasswordByToken() would otherwise swallow as PASSWORD_POLICY_ERROR).
+        const minLength = global.appConfig?.model?.user?.passwordPolicy?.minLength || 8;
 
         if (!password || typeof password !== 'string') {
             throw new Error('Password is required and must be a string');

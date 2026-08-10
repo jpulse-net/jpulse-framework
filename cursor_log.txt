@@ -21884,3 +21884,34 @@ Shortened the v1.7.9 / W-205 Latest Release Highlights bullet in README.md and d
 
 
 ============================================================
+2026-08-09 21:18
+
+build on githib failed!!
+- npm test passes locally here
+
+[CI log for publish job on v1.7.10 - Unit Tests FAILED in user-password-reset.test.js resetPasswordByToken success cases]
+
+Root cause: CI has no .jpulse/app.json (gitignored), so test fallback appConfig lacked model.user.passwordPolicy. UserModel.validatePassword() read appConfig.model.user.passwordPolicy.minLength without optional chaining, threw TypeError, and resetPasswordByToken() swallowed it as PASSWORD_POLICY_ERROR — so 'short' still looked like a policy fail (green) but 'a-good-password' also failed (red). Local .jpulse/app.json masked it.
+
+Fix: defensive global.appConfig?.model?.user?.passwordPolicy?.minLength || 8 in validatePassword(); add passwordPolicy to config-loader.js and test-utils.js fallbacks; tighten success-path assertion to include errorCode. Verified in /tmp copy without .jpulse: 26/26 password-reset model tests pass under fallback config.
+
+
+============================================================
+2026-08-09 21:20
+
+review with other tests,
+- why did this surface just now?
+- is it really an init variable with default issue?
+
+Reviewed against other tests: not a missing default value — validatePassword already had `|| 8`, but bare `appConfig.model.user.passwordPolicy.minLength` throws before `||` runs when `model` is absent (CI fallback). Why now: W-206 is the first suite that calls the real UserModel.validatePassword via resetPasswordByToken under that fallback; controller tests mock the model; user-basic inlines a copy and seeds passwordPolicy itself; local .jpulse/app.json masked it. Extra amplifier: resetPasswordByToken catches any throw as PASSWORD_POLICY_ERROR, so the short-password test stayed green while success paths failed.
+
+
+============================================================
+2026-08-09 21:24
+
+check other places we might have missed
+
+Audited same-class unsafe appConfig deep reads. Same unreachable-||-default pattern in handlebar (cacheIncludes/maxIncludeDepth x3) and view (cacheTemplates); bare disableSignup/disableLogin reads without ?.. Hardened those with optional chaining. config-loader + test-utils fallbacks now include controller.user (+ auth.disableLogin). Note: TestUtils path loads full app.conf (can write .jpulse on CI) so endpoint tests were masked; model password-reset used sparse global-setup fallback only. user-basic still inlines the unsafe pattern in a simulated copy — docs/example debt, not a runtime caller.
+
+
+============================================================

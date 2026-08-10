@@ -265,7 +265,10 @@ describe('UserModel password reset primitives (W-206)', () => {
         test('writes the new password, sets hasLocalPassword, and flips emailVerified with a stamped date', async () => {
             const result = await UserModel.resetPasswordByToken(mockReq, validToken, 'a-good-password');
 
-            expect(result.success).toBe(true);
+            // Assert errorCode too: a missing passwordPolicy in appConfig used to throw TypeError
+            // inside validatePassword(), which this method swallowed as PASSWORD_POLICY_ERROR -
+            // success:false with no update, green locally (full .jpulse/app.json) and red on CI.
+            expect(result).toEqual(expect.objectContaining({ success: true, errorCode: null }));
             expect(UserModel.updateById).toHaveBeenCalledWith(USER_ID, expect.objectContaining({
                 password: 'a-good-password',
                 hasLocalPassword: true,

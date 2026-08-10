@@ -208,6 +208,17 @@ export class TestUtils {
                     config: {
                         defaultDocName: 'global'
                     },
+                    auth: {
+                        localAuthRestriction: 'none',
+                        disableLogin: false
+                    },
+                    // W-206/CI: catch-path fallback only; normal TestUtils loads full app.conf
+                    user: {
+                        disableSignup: false,
+                        disablePasswordReset: false,
+                        emailVerification: 'required',
+                        passwordResetRateLimit: { enabled: true, maxAttempts: 10, windowSeconds: 300 }
+                    },
                     handlebar: {
                         cacheIncludes: {
                             enabled: false  // Disabled for tests
@@ -219,6 +230,14 @@ export class TestUtils {
                         maxIncludeDepth: 10
                     },
                     view: { defaultTemplate: 'index.shtml' }
+                },
+                // W-206/CI: match config-loader.js fallback when .jpulse/app.json is absent
+                model: {
+                    user: {
+                        passwordPolicy: {
+                            minLength: 8
+                        }
+                    }
                 }
             };
         }

@@ -3,13 +3,13 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.7.10
- * @release         2026-08-09
+ * @version         1.7.11
+ * @release         2026-08-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.14, Claude Sonnet 5
+ * @genai           60%, Cursor 3.15, Claude Opus 5
  */
 
 import CommonUtils from './common.js';
@@ -248,7 +248,12 @@ export async function bootstrap(options = {}) {
             const registryStats = await SiteControllerRegistryModule.default.initialize();
             global.SiteControllerRegistry = SiteControllerRegistryModule.default;
             siteControllerRegistry = SiteControllerRegistryModule.default;
-            bootstrapLog(`✅ SiteControllerRegistry: ${registryStats.controllers} controllers, ${registryStats.apis} APIs`);
+            bootstrapLog(`✅ SiteControllerRegistry: ${registryStats.controllers} controllers, ${registryStats.apis} APIs, ${registryStats.initialized} initialized`);
+            // W-207: a failing initialize() does not abort bootstrap, so surface it here as well as in the log
+            const failedInitializers = registryStats.failedInitializers || [];
+            if (failedInitializers.length > 0) {
+                bootstrapLog(`⚠️  SiteControllerRegistry: ${failedInitializers.length} initializer(s) failed: ${failedInitializers.join(', ')} (see log for details)`, 'error');
+            }
         }
 
         // Step 15: Initialize context extensions (W-014)
@@ -261,11 +266,11 @@ export async function bootstrap(options = {}) {
         // Step 16: Initialize UserModel schema (W-045 - after plugins loaded, so they can extend schemas)
         // global.UserModel is already available from Step 12
         global.UserModel.initializeSchema();
-        bootstrapLog('✅ UserModel: Schema initialized with plugin extensions');
+        bootstrapLog('✅ UserModel: Schema initialized with extensions');
 
         // Step 17: Initialize ConfigModel schema (W-147 - after plugins loaded, so they can extend config schema)
         global.ConfigModel.initializeSchema();
-        bootstrapLog('✅ ConfigModel: Schema initialized with plugin extensions');
+        bootstrapLog('✅ ConfigModel: Schema initialized with extensions');
 
         // Step 18: Initialize ThemeManager and extend UserModel theme enum (W-129)
         try {

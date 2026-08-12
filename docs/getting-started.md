@@ -1,4 +1,4 @@
-# jPulse Docs / Getting Started with jPulse v1.7.10
+# jPulse Docs / Getting Started with jPulse v1.7.11
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the site override system.
 
@@ -197,7 +197,7 @@ export default class HelloController {
 - Discovers your controller on startup
 - Detects all `static async api*()` methods
 - Registers routes at `/api/1/{controllerName}`
-- Calls `static async initialize()` if present
+- Calls `static async initialize()` if present (for schema extensions, WebSockets, and other startup setup — see [Site Customization](site-customization.md#startup-code-static-async-initialize))
 - Logs all registrations for debugging
 
 No route registration, no imports in `routes.js`, no manual configuration needed!

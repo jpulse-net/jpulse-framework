@@ -3,13 +3,13 @@
  * @tagline         Site Controller Registry and Auto-Discovery
  * @description     Discovers and registers site controller APIs at startup (W-014)
  * @file            webapp/utils/site-controller-registry.js
- * @version         1.7.10
- * @release         2026-08-09
+ * @version         1.7.11
+ * @release         2026-08-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 3.15, Claude Opus 5
  */
 
 import fs from 'fs';
@@ -27,10 +27,18 @@ import UserModel from '../model/user.js';
  */
 class SiteControllerRegistry {
 
+    /**
+     * Default execution priority for a controller's initialize() (W-207)
+     * Lower runs earlier; a controller overrides it with `static initializePriority = <number>`
+     */
+    static DEFAULT_INITIALIZE_PRIORITY = 100;
+
     static registry = {
         controllers: new Map(),
         lastScan: null,
-        scanPath: null
+        scanPath: null,
+        initialized: 0,     // W-207: controllers whose initialize() ran successfully
+        initFailed: 0       // W-207: controllers whose load or initialize() threw
     };
 
     /**
@@ -68,25 +76,28 @@ class SiteControllerRegistry {
                 }
             }
 
-            // Initialize all discovered controllers
-            const initializedCount = await this._initializeControllers();
+            // Initialize all discovered controllers (W-207: deterministic order, isolated failures)
+            const initResult = await this._initializeControllers();
+            this.registry.initialized = initResult.initialized.length;
+            this.registry.initFailed = initResult.failed.length;
 
             const controllerCount = this.registry.controllers.size;
             const apiCount = Array.from(this.registry.controllers.values())
                 .reduce((sum, c) => sum + c.apiMethods.length, 0);
 
             LogController.logInfo(null, 'site-controller-registry',
-                `Discovered ${controllerCount} controller(s), ${initializedCount} initialized, ${apiCount} API method(s)`);
+                `Discovered ${controllerCount} controller(s), ${initResult.initialized.length} initialized, ${apiCount} API method(s)`);
 
             return {
                 controllers: controllerCount,
                 apis: apiCount,
-                initialized: initializedCount
+                initialized: initResult.initialized.length,
+                failedInitializers: initResult.failed
             };
 
         } catch (error) {
             LogController.logError(null, 'site-controller-registry', `Site controller registry initialization failed: ${error.message}`);
-            return { controllers: 0, apis: 0, initialized: 0, error: error.message };
+            return { controllers: 0, apis: 0, initialized: 0, failedInitializers: [], error: error.message };
         }
     }
 
@@ -272,28 +283,60 @@ class SiteControllerRegistry {
     }
 
     /**
-     * Initialize controllers that have initialize() method
-     * @returns {number} Count of initialized controllers
+     * Initialize controllers that have an initialize() method (W-207)
+     *
+     * Controllers are loaded first, then sorted, then called, so that each class can declare
+     * its own order via `static initializePriority` (lower runs earlier, default 100 - same
+     * convention as HookManager priorities). Ties are broken alphabetically by controller name,
+     * then by registry key, so the order is stable regardless of file system scan order.
+     *
+     * Each load and each call is isolated: a failing controller is logged and the rest still run.
+     *
+     * @returns {Object} { initialized, failed } - registry keys, initialized in execution order
      */
     static async _initializeControllers() {
-        let count = 0;
+        const initializers = [];
+        const failed = [];
 
-        for (const [name, controller] of this.registry.controllers) {
-            if (controller.hasInitialize) {
-                try {
-                    const ControllerClass = await this._loadController(name);
-                    if (typeof ControllerClass.initialize === 'function') {
-                        await ControllerClass.initialize();
-                        count++;
-                        LogController.logInfo(null, 'site-controller-registry', `Initialized controller: ${name}`);
-                    }
-                } catch (error) {
-                    LogController.logError(null, 'site-controller-registry', `Failed to initialize ${name}: ${error.message}`);
-                }
+        // Pass 1: load candidates and read their declared priority
+        for (const [registryKey, controller] of this.registry.controllers) {
+            if (!controller.hasInitialize) continue;
+            try {
+                const ControllerClass = await this._loadController(registryKey);
+                if (typeof ControllerClass.initialize !== 'function') continue;
+                const declared = Number(ControllerClass.initializePriority);
+                initializers.push({
+                    registryKey,
+                    name: controller.name,
+                    ControllerClass,
+                    priority: Number.isFinite(declared) ? declared : this.DEFAULT_INITIALIZE_PRIORITY
+                });
+            } catch (error) {
+                failed.push(registryKey);
+                LogController.logError(null, 'site-controller-registry', `Failed to load ${registryKey} for initialization: ${error.message}`);
             }
         }
 
-        return count;
+        // Pass 2: deterministic order - priority, then controller name, then registry key
+        initializers.sort((a, b) =>
+            a.priority - b.priority
+            || a.name.localeCompare(b.name)
+            || a.registryKey.localeCompare(b.registryKey));
+
+        const initialized = [];
+        for (const initializer of initializers) {
+            try {
+                await initializer.ControllerClass.initialize();
+                initialized.push(initializer.registryKey);
+                LogController.logInfo(null, 'site-controller-registry',
+                    `Initialized controller: ${initializer.registryKey} (priority: ${initializer.priority})`);
+            } catch (error) {
+                failed.push(initializer.registryKey);
+                LogController.logError(null, 'site-controller-registry', `Failed to initialize ${initializer.registryKey}: ${error.message}`);
+            }
+        }
+
+        return { initialized, failed };
     }
 
     /**
@@ -450,6 +493,8 @@ class SiteControllerRegistry {
                 totalControllers,
                 apiControllers,
                 totalApiMethods,
+                initializedControllers: this.registry.initialized,
+                failedInitializers: this.registry.initFailed,
                 lastScan: this.registry.lastScan,
                 scanPath: this.registry.scanPath,
                 controllers: this.getControllers().map(c => ({
@@ -470,6 +515,12 @@ class SiteControllerRegistry {
                         aggregate: 'first'
                     },
                     'totalApiMethods': {
+                        aggregate: 'first'
+                    },
+                    'initializedControllers': {
+                        aggregate: 'first'
+                    },
+                    'failedInitializers': {
                         aggregate: 'first'
                     },
                     'lastScan': {

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.10
+# jPulse Docs / Dev / Work Items v1.7.11
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -7624,17 +7624,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - "Email Verification" sections (policy modes, SMTP safety valve, grandfathering, admin
       email-change reset, endpoints, rate limits)
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-206, v1.7.10, 2026-08-09: user: reset password
 - status: ✅ DONE
 - type: Feature
@@ -7809,6 +7798,51 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-207, v1.7.11, 2026-08-11: bootstrap: site-level init hook
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - make the startup hook site code already has (`static async initialize()` on a discovered controller) deterministic, observable, and findable in the docs
+  - give `ConfigModel.extendSchema()` and `UserModel.extendSchema()` from site code one obvious place to live, the way the hello-world plugin already does it
+- context:
+  - the call site already exists: `SiteControllerRegistry._initializeControllers()` (from `initialize()`, bootstrap step 14) detects `static initialize(` by regex during the scan and awaits it on every discovered controller, site and plugin alike, inside a per-controller try/catch — the original premise of this item ("never calls a lifecycle method") was wrong
+  - `plugins/hello-world/webapp/controller/helloPlugin.js` uses exactly this to add its config tab, and `docs/getting-started.md` + `docs/api-reference.md` already teach `static async initialize()` — so no new hook name is warranted; a second one (`init()`) would split the mental model and orphan every existing example
+  - timing is already correct: `global.UserModel` and `global.ConfigModel` are published at steps 12–13, and `UserModel.initializeSchema()` (16) / `ConfigModel.initializeSchema()` (17) run after step 14, so an `extendSchema()` call from `initialize()` lands before either schema is computed
+  - what is actually missing: order across controllers is `Map` insertion order (readdir order, site dir then plugin dirs), the bootstrap banner reports controllers and APIs but not the `initialized` count the registry already returns, a failing initializer is only visible in the log, and `docs/site-customization.md` never mentions the hook at all
+  - step 14 is skipped when `isTest`; no new public entry point is needed, since the test suite already seeds `registry.controllers` and spies `_loadController`, so it can drive `_initializeControllers()` directly
+- features:
+  - keep `static async initialize()` — no new hook name, no migration, existing site/plugin controllers and docs stay correct
+  - deterministic order: optional `static initializePriority = <number>` (lower runs earlier, default 100, same convention as `HookManager` priorities), then alphabetical by controller name, then registry key as tie-breaker
+  - two sort keys only — site and plugin initializers share one ordered list rather than being grouped by source; a site controller that must run after a plugin sets `initializePriority` above 100, which is the documented escape hatch
+  - priority is read from the loaded class, not by regex: load every controller that has an `initialize`, sort, then call, so a class-level constant stays authoritative and the existing `hasInitialize` regex is the only source-text scan
+  - per-controller try/catch around both the load and the call — a failing initializer logs an error and bootstrap continues, matching how `HookManager.execute()` isolates a bad handler
+  - failures are visible in the startup banner, not just the log
+  - documented use cases: config and user schema extensions, custom Redis broadcast channels, in-process registries, cache warmup — plus what does not belong there (request handling, long blocking work)
+- deliverables:
+  - `webapp/utils/site-controller-registry.js`:
+    - `_initializeControllers()` becomes load-then-sort-then-call; `initializePriority` support with a finite-number guard (so `0` is honored rather than falling back to the default); load errors isolated like call errors; return `{ initialized, failed }` and surface both in `initialize()` stats and `getMetrics()`
+  - `webapp/utils/bootstrap.js`:
+    - step 14 banner reports the initialized count, plus a warning line naming failed initializers; placement between step 14 and step 16 (`UserModel.initializeSchema()`) confirmed unchanged
+  - `webapp/tests/unit/utils/site-controller-registry.test.js`:
+    - initialize called once per controller, priority and alphabetical ordering, a throwing initializer does not abort the rest, a failing load is isolated, controllers without an initialize are skipped, counts reported
+  - `docs/site-customization.md`, `docs/api-reference.md`:
+    - new startup-hook section: when it runs, what belongs in it, an `extendSchema()` example, and the `initializePriority` escape hatch; `api-reference.md` config-extension text points at `initialize()` instead of the vague "or site bootstrap"
+- notes:
+  - prerequisite for the BubbleMap AI Agent work (T-092), which needs a call site for its "AI Agent" config tab extension and its tool registry — that call site is `static async initialize()`; T-092's open question is answered by the docs deliverable here rather than by new machinery
+  - existing behavior is the compatibility gate: every controller that defines `initialize()` today still runs, only the order between them becomes defined
+
+
+
+
+
+
+
+
+
+
 
 ### Pending
 
@@ -7835,7 +7869,7 @@ release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
 - assume W-197, v1.0.3, 2026-08-01
-- assume W-206, v1.7.10, 2026-08-09
+- assume W-207, v1.7.11, 2026-08-11
 - if needed, update features & deliverables in W-206 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -7847,12 +7881,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.10 2026-08-09
+node bin/bump-version.js 1.7.11 2026-08-11
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.10; git push origin main --tags
+git tag v1.7.11; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff
@@ -7918,6 +7952,113 @@ template:
     - FIXME summary
 - tests:            // optional
 - tech-debt:        // optional
+
+### W-208, v1.7.12, 2026-08-12: websocket: per-namespace message limits; error reporting; request helper
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - let a namespace raise the inbound message size cap without raising it globally
+  - stop silently dropping messages: a client must learn that its message was rejected
+  - support request/response over WebSocket, so an application can send a message and await its reply
+- context:
+  - `WebSocketController._onMessage()` reads limits only from `global.appConfig.controller.websocket.messageLimits` (`maxSize ?? 65536`, `interval ?? 1000`, `maxMessages ?? 50`), while `createNamespace(path, options)` accepts only `{ requireAuth, requireRoles, onCreate }` — there is no per-namespace override
+  - both pre-handler rejections are silent: oversized and rate-limited messages `logInfo` and `return` with nothing sent back. By contrast a handler *throw* replies with `_formatMessage(false, null, error.message, 500)` and malformed JSON replies with a 400, so the error envelope already exists and only the drop paths bypass it
+  - the rate limit is tracked per client (`client.messageTimestamps`), so each namespace connection has its own budget; `maxSize` is the limit that actually needs to be adjustable
+  - `jPulse.ws` connection handles expose `send`, `onMessage`, `onStatusChange`, `getStatus`, `disconnect` with auto-reconnect and backoff — all fire-and-forget, with no correlation id anywhere in the envelope
+  - pattern namespaces copy `_onConnect` / `_onMessage` / `_onDisconnect` from the template when a literal namespace is created on first connect, so any new per-namespace option has to be copied there too
+- features:
+  - `createNamespace(path, { limits: { maxSize, interval, maxMessages } })`, stored on the `WebSocketNamespace` instance, falling back per-field to the global config; `_onMessage()` consults the namespace first
+  - pattern-namespace inheritance: limits carried from the template to the literal namespace alongside the handlers
+  - rejection replies instead of silent drops — a distinct code per cause (oversize, rate limit) with the observed value and the limit in the message, so a client can back off or resend smaller; logging stays as-is
+  - dropped-message counters in namespace stats, surfaced on the admin WebSocket status page
+  - `ws.request(data, { timeoutMs })` on the client handle: returns a promise, attaches a correlation id, resolves on the matching reply, rejects on timeout, on a closed socket (rather than hanging, since `send()` currently just returns `false`), and on reconnect with requests still outstanding
+  - server-side reply helper so a handler can answer a request without hand-rolling the correlation id (e.g. `conn.reply(data)` / `conn.replyError(message, code)`), echoing the id the client sent
+  - correlation id is optional — a message without one behaves exactly as today, so no existing namespace changes behavior
+- deliverables:
+  - `webapp/controller/websocket.js`:
+    - `WebSocketNamespace` accepts and stores `options.limits`; `_onMessage()` resolves limits per namespace with global fallback; oversize and rate-limit paths send a formatted rejection; `_completeUpgrade()` copies limits from a pattern template; drop counters in `stats`; reply helper on the `conn` object
+  - `webapp/view/jpulse-common.js`:
+    - `jPulse.ws` connection handle gains `request()`; pending-request map with timeout timers; resolution by correlation id in `onmessage`; rejection and cleanup on close, reconnect and `disconnect()`
+  - `webapp/view/admin/websocket-status.shtml`:
+    - show dropped-message counts per namespace (oversize vs rate limit)
+  - `webapp/tests/unit/controller/websocket.test.js`:
+    - per-namespace limits override and fall back correctly, pattern-template inheritance, oversize and rate-limit replies carry the right code, drop counters increment
+  - `webapp/tests/unit/utils/jpulse-websocket-simple.test.js`:
+    - `request()` resolves on a matching reply, rejects on timeout, rejects when the socket is closed, cleans up on disconnect, and ignores replies with unknown ids
+  - `docs/websockets.md`, `docs/api-reference.md`:
+    - per-namespace limits, the rejection codes a client can receive, and the request/response pattern with both client and server sides
+- notes:
+  - prerequisite for the BubbleMap AI Agent work (T-092): tool calls are dispatched to the browser over WebSocket and their results can exceed 64 KB, and a silently dropped reply would hang a turn until its timeout instead of failing loudly
+  - the three features are independent enough to land as separate commits (limits, rejection replies, request helper) but share the same envelope and test file, hence one work item
+
+### W-209, v1.7.12, 2026-08-12: plugins: extensibe hook registry
+- status: 🕑 PENDING
+- type: Feature
+- design doc: docs/dev/design/W-209-extensible-hooks.md
+- objectives:
+  - let plugins and site code define their own hooks, so the framework never carries a domain-specific hook vocabulary
+  - make the hook catalog machine-readable and queryable by name and property, instead of a hard-coded literal
+- context:
+  - `HookManager.getAvailableHooks()` is a fixed object literal holding the 15 hooks the framework fires, in four buckets — authentication (8), user lifecycle (5), plugin config (1, `onPluginConfigBeforeSave`), system/metrics (1, `onGetInstanceStats`) — with each entry carrying a description, a prose `context` string, and `canCancel`
+  - `isValidHook()` only *warns* on an unknown name and registers the handler anyway, so a third-party hook works today but is undocumented, unqueryable, and indistinguishable from a typo
+  - **no new execution machinery is needed**: `execute()`, `executeWithCancel()`, `executeFirst()` (first non-null wins) and `executeForPlugin()` (targeted, errors propagate to abort the caller, W-200) already cover the known cases, and `hasHandlers()` / `unregister()` / `getRegisteredHooks()` already exist. What is missing is only the declaration and introspection layer
+  - the design conflates two roles: the *producer* that owns a hook's contract and fires it, and the *consumer* that registers a handler. The framework being the only producer is exactly why the catalog can be a literal
+  - `onGetInstanceStats` already breaks the `onBucketAction` convention, so the naming rule has one pre-existing exception
+- features:
+  - `declareHook(name, spec)` and `declareHooks(map, owner)` — producer-side declaration from anywhere
+  - structured declaration: `owner` (plugin name / `site` / `framework`), `description`, `mode` (which of the four execute methods is the contract), `contextKeys` (machine-readable, replacing the prose string), `returns`, `canCancel`, `stability`, `since`, `deprecatedBy`
+  - `static providesHooks = { … }` on a plugin controller, auto-registered by `PluginManager` — symmetric with today's `static hooks` ("hooks I handle" versus "hooks I define"); site code declares in the W-207 init hook
+  - the framework's own 15 hooks migrate to declarations so the built-in catalog is seed data rather than a permanent special case; `getAvailableHooks()` becomes a view
+  - naming decision: keep `onBucketAction` camelCase for every owner (no namespaced alternative, no migration), with a required `owner` for collision detection — identical re-declaration idempotent, conflicting re-declaration keeps the first and records both, declaration never throws
+  - validation decision: registration never fails on an undeclared name, since a consumer may load before its producer. Unmatched registrations are recorded, a late declaration retro-validates them, and a single post-boot audit reports what remains (unmatched handlers, deprecated-hook handlers, declaration conflicts, advisory prefix mismatches)
+  - query API: `getHook(name)` merging declaration with live handlers, `findHooks({ owner, namePattern, stability, hasHandlers })`, `getAudit()`
+  - visibility: `GET /api/1/hook` for admins, a "who listens to what" admin view, and generated hook documentation so the catalog becomes the single source of truth
+  - lifecycle: declarations by a disabled plugin marked inactive rather than deleted, so consumer registrations still produce a useful audit message; deprecation via `stability` + `deprecatedBy`
+- deliverables:
+  - see the design doc §15 for the full table; primary files are `webapp/utils/hook-manager.js`, `webapp/utils/plugin-manager.js`, `webapp/utils/bootstrap.js` (audit), a new `webapp/controller/hook.js`, `webapp/view/admin/plugins.shtml`, `webapp/tests/unit/utils/hook-manager.test.js`, and `docs/api-reference.md`
+- notes:
+  - prerequisite for the BubbleMap AI Agent work (T-092), where each LLM backend is a plugin (`ai-anthropic` first, plus `ai-mock` for tests). With this item, `ai-core` declares `onAiProviderRegister` / `onAiComplete` itself and the framework never learns the word "AI" — see design doc §12 for the worked example
+  - depends on W-207: site code is a first-class producer in this design and needs a call site to declare from
+  - existing behavior is preserved throughout — the 15 hook names, the `static hooks` consumer syntax, and the current hook-manager test suite are the compatibility gate
+
+### W-210, v1.7.13, 2026-08-13: config: write-only field
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - a config field type for secrets that can be set but never read back through any API, including by admins
+  - the same guarantee for plugin config, where third-party API keys actually live
+- context:
+  - `ConfigModel._sanitizeForResponse()` obfuscates the paths listed in schema `_meta.contextFilter.withoutAuth` only when `!isAdmin`; internal callers use `findById(id, true)` for the full document. So an admin `GET /api/1/config` returns secrets in clear — `contextFilter` is an audience filter, not a write-only guarantee
+  - `_meta.contextFilter.withAuth` exists and is used for template context filtering in `HandlebarController._filterContext()`, but is not what config read paths enforce
+  - plugin config schemas support `type: 'password'` in `PluginModel` validation, but no masking or sanitization was found on the plugin config read path — worth auditing as part of this item
+  - `LogModel.logChange()` already sanitizes config documents through `contextFilter.withoutAuth` before diffing, so there is a precedent to extend rather than a new mechanism to invent
+- features:
+  - schema attribute (e.g. `writeOnly: true`) alongside `inputType: 'password'`, meaning: accepted on write, never present in any read response regardless of role
+  - reads return presence instead of value — a `configured: true|false` marker — so the admin UI can render "configured" with a Clear action rather than an empty box that looks unset
+  - write semantics: an empty submitted value leaves the stored secret unchanged, so a form round-trip cannot silently blank it; clearing requires an explicit action
+  - change logging: write-only values never reach `logChange` diffs, and never appear in validation error messages
+  - same handling on the plugin config path, so a plugin API key gets the identical guarantee
+  - documented as the mechanism for secrets, with `contextFilter` positioned as the audience filter it is
+- deliverables:
+  - `webapp/model/config.js`:
+    - honor `writeOnly` in the schema; strip write-only paths in every read path including `findById(id, true)` responses; preserve the stored value when an empty value is submitted; emit the `configured` marker
+  - `webapp/controller/config.js`:
+    - never echo a write-only value in responses or validation errors; explicit clear action
+  - `webapp/model/log.js`:
+    - extend the existing config sanitization in `logChange()` to write-only fields so neither the stored log nor the console can carry a secret
+  - `webapp/view/admin/config.shtml`:
+    - render write-only fields as "configured / not configured" with Set and Clear, instead of a value-bearing input
+  - `webapp/model/plugin.js`, `webapp/controller/plugin.js`, `webapp/view/admin/plugins.shtml`:
+    - audit the plugin config read path and apply the same write-only handling to `type: 'password'` fields
+  - `webapp/tests/unit/config/config-model.test.js`:
+    - write-only value absent from admin and non-admin reads, `configured` marker correct, empty submit preserves the stored value, explicit clear unsets it, `logChange` diff carries no secret
+  - `webapp/tests/unit/model/plugin.test.js`:
+    - same coverage for plugin config secrets
+  - `docs/api-reference.md`, `docs/security-and-auth.md`:
+    - write-only fields as the way to store secrets; how they differ from `contextFilter`
+- notes:
+  - prerequisite for the BubbleMap AI Agent work (T-092), whose provider plugins hold LLM API keys; its design assumed keys are unreadable even by admins, which is not what the framework does today — the design doc needs correcting either way
+  - worth checking whether `data.manifest.license.key` should become write-only in the same pass, since it is the field the current pattern was modeled on
 
 ### W-202, v1.7.6, 2026-08-xx: auth: add locked status
 - status: 🕑 PENDING

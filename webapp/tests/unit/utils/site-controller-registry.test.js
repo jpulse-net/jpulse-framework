@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-014 SiteControllerRegistry auto-discovery utility
  * @description     Tests site controller auto-discovery and API registration functionality
  * @file            webapp/tests/unit/utils/site-controller-registry.test.js
- * @version         1.7.10
- * @release         2026-08-09
+ * @version         1.7.11
+ * @release         2026-08-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -78,6 +78,8 @@ describe('SiteControllerRegistry (W-014)', () => {
         SiteControllerRegistry.registry.controllers.clear();
         SiteControllerRegistry.registry.scanPath = null;
         SiteControllerRegistry.registry.lastScan = null;
+        SiteControllerRegistry.registry.initialized = 0;
+        SiteControllerRegistry.registry.initFailed = 0;
     });
 
     afterEach(() => {
@@ -607,6 +609,177 @@ describe('SiteControllerRegistry (W-014)', () => {
                 'site-controller-registry',
                 'Discovered 1 controller(s), 0 initialized, 0 API method(s)'
             );
+        });
+    });
+
+    describe('Controller Initialization (W-207)', () => {
+        /**
+         * Seed a discovered controller and the class _loadController() should return for it
+         * @param {object} classes - Map of registry key to controller class
+         * @param {Array} withoutInitialize - Registry keys that have no initialize() method
+         */
+        const seedControllers = (classes, withoutInitialize = []) => {
+            for (const registryKey of Object.keys(classes)) {
+                SiteControllerRegistry.registry.controllers.set(registryKey, {
+                    name: registryKey.includes(':') ? registryKey.split(':')[1] : registryKey,
+                    path: path.join(mockProjectRoot, `site/webapp/controller/${registryKey}.js`),
+                    apiMethods: [],
+                    hasInitialize: !withoutInitialize.includes(registryKey),
+                    source: 'site'
+                });
+            }
+            jest.spyOn(SiteControllerRegistry, '_loadController')
+                .mockImplementation(async (registryKey) => classes[registryKey]);
+        };
+
+        test('should call initialize() once per controller that defines one', async () => {
+            seedControllers({
+                alpha: { initialize: jest.fn() },
+                beta: { initialize: jest.fn() }
+            });
+
+            const result = await SiteControllerRegistry._initializeControllers();
+
+            expect(SiteControllerRegistry.registry.controllers.get('alpha')).toBeDefined();
+            expect(result.initialized).toEqual(['alpha', 'beta']);
+            expect(result.failed).toEqual([]);
+        });
+
+        test('should skip controllers without an initialize() method', async () => {
+            seedControllers({
+                alpha: { initialize: jest.fn() },
+                beta: {},                                   // scanned as having one, but does not
+                gamma: { initialize: jest.fn() }
+            }, ['gamma']);                                  // not detected during the scan at all
+
+            const result = await SiteControllerRegistry._initializeControllers();
+
+            expect(result.initialized).toEqual(['alpha']);
+            expect(result.failed).toEqual([]);
+        });
+
+        test('should run initializers alphabetically by controller name', async () => {
+            const order = [];
+            seedControllers({
+                zulu: { initialize: jest.fn(() => { order.push('zulu'); }) },
+                alpha: { initialize: jest.fn(() => { order.push('alpha'); }) },
+                mike: { initialize: jest.fn(() => { order.push('mike'); }) }
+            });
+
+            await SiteControllerRegistry._initializeControllers();
+
+            expect(order).toEqual(['alpha', 'mike', 'zulu']);
+        });
+
+        test('should honor initializePriority, lower first, before alphabetical order', async () => {
+            const order = [];
+            seedControllers({
+                alpha: { initialize: jest.fn(() => { order.push('alpha'); }) },                              // default 100
+                beta: { initializePriority: 200, initialize: jest.fn(() => { order.push('beta'); }) },       // runs last
+                gamma: { initializePriority: 50, initialize: jest.fn(() => { order.push('gamma'); }) },
+                delta: { initializePriority: 0, initialize: jest.fn(() => { order.push('delta'); }) }        // 0 is a real priority
+            });
+
+            await SiteControllerRegistry._initializeControllers();
+
+            expect(order).toEqual(['delta', 'gamma', 'alpha', 'beta']);
+        });
+
+        test('should fall back to the default priority when the declared value is not a number', async () => {
+            const order = [];
+            seedControllers({
+                alpha: { initializePriority: 'soon', initialize: jest.fn(() => { order.push('alpha'); }) },
+                beta: { initializePriority: 10, initialize: jest.fn(() => { order.push('beta'); }) }
+            });
+
+            await SiteControllerRegistry._initializeControllers();
+
+            expect(SiteControllerRegistry.DEFAULT_INITIALIZE_PRIORITY).toBe(100);
+            expect(order).toEqual(['beta', 'alpha']);
+        });
+
+        test('should continue with remaining controllers when one initializer throws', async () => {
+            const order = [];
+            seedControllers({
+                alpha: { initialize: jest.fn(() => { order.push('alpha'); }) },
+                beta: { initialize: jest.fn(() => { throw new Error('boom'); }) },
+                gamma: { initialize: jest.fn(() => { order.push('gamma'); }) }
+            });
+
+            const result = await SiteControllerRegistry._initializeControllers();
+
+            expect(order).toEqual(['alpha', 'gamma']);
+            expect(result.initialized).toEqual(['alpha', 'gamma']);
+            expect(result.failed).toEqual(['beta']);
+            expect(LogController.logError).toHaveBeenCalledWith(
+                null,
+                'site-controller-registry',
+                'Failed to initialize beta: boom'
+            );
+        });
+
+        test('should isolate a controller that fails to load', async () => {
+            SiteControllerRegistry.registry.controllers.set('alpha', {
+                name: 'alpha',
+                path: path.join(mockProjectRoot, 'site/webapp/controller/alpha.js'),
+                apiMethods: [],
+                hasInitialize: true,
+                source: 'site'
+            });
+            SiteControllerRegistry.registry.controllers.set('broken', {
+                name: 'broken',
+                path: path.join(mockProjectRoot, 'site/webapp/controller/broken.js'),
+                apiMethods: [],
+                hasInitialize: true,
+                source: 'site'
+            });
+            const alphaInit = jest.fn();
+            jest.spyOn(SiteControllerRegistry, '_loadController').mockImplementation(async (registryKey) => {
+                if (registryKey === 'broken') {
+                    throw new Error('syntax error');
+                }
+                return { initialize: alphaInit };
+            });
+
+            const result = await SiteControllerRegistry._initializeControllers();
+
+            expect(alphaInit).toHaveBeenCalledTimes(1);
+            expect(result.initialized).toEqual(['alpha']);
+            expect(result.failed).toEqual(['broken']);
+            expect(LogController.logError).toHaveBeenCalledWith(
+                null,
+                'site-controller-registry',
+                'Failed to load broken for initialization: syntax error'
+            );
+        });
+
+        test('should report initializer counts in stats and metrics', async () => {
+            const controllerDir = path.join(mockProjectRoot, 'site/webapp/controller');
+
+            fs.existsSync.mockReturnValue(true);
+            fs.readdirSync.mockReturnValue(['alpha.js', 'beta.js']);
+            fs.readFileSync.mockImplementation((filePath) => {
+                if (filePath.includes('alpha.js')) {
+                    return 'class Alpha { static async initialize() {} static async api(req, res) {} }';
+                }
+                return 'class Beta { static async initialize() {} }';
+            });
+            jest.spyOn(SiteControllerRegistry, '_loadController').mockImplementation(async (registryKey) => {
+                if (registryKey === 'beta') {
+                    return { initialize: jest.fn(() => { throw new Error('boom'); }) };
+                }
+                return { initialize: jest.fn() };
+            });
+
+            const stats = await SiteControllerRegistry.initialize();
+
+            expect(fs.readdirSync).toHaveBeenCalledWith(controllerDir);
+            expect(stats.initialized).toBe(1);
+            expect(stats.failedInitializers).toEqual(['beta']);
+            expect(SiteControllerRegistry.getMetrics().stats).toMatchObject({
+                initializedControllers: 1,
+                failedInitializers: 1
+            });
         });
     });
 });

@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.7.10
+# jPulse Docs / REST API Reference v1.7.11
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -151,7 +151,7 @@ jPulse Framework automatically discovers and registers site-specific API endpoin
 2. **Pattern Matching**: Detects all `static async api*()` methods using regex
 3. **Method Inference**: Automatically determines HTTP method (GET/POST/PUT/DELETE) from method name
 4. **Route Registration**: Creates Express routes at `/api/1/{controllerName}`
-5. **Initialization**: Calls `static async initialize()` if present
+5. **Initialization**: Calls `static async initialize()` if present, in priority then alphabetical order
 
 ### Naming Conventions
 
@@ -340,7 +340,7 @@ export default class ProductController {
 On startup, you'll see logs like:
 
 ```
-- 2025-10-26 23:12:23  info  site-controller-registry  Initialized controller: product
+- 2025-10-26 23:12:23  info  site-controller-registry  Initialized controller: product (priority: 100)
 - 2025-10-26 23:12:23  info  site-controller-registry  Discovered 1 controller(s), 1 initialized, 6 API method(s)
 - 2025-10-26 23:12:23  info  site-controller-registry  Registered: GET /api/1/product → product.api
 - 2025-10-26 23:12:23  info  site-controller-registry  Registered: POST /api/1/product → product.apiCreate
@@ -356,7 +356,7 @@ On startup, you'll see logs like:
 1. **Consistent Naming**: Follow the naming conventions for automatic HTTP method inference
 2. **Error Handling**: Always wrap API logic in try-catch blocks
 3. **Standard Responses**: Use the standard `{ success, data/error }` format
-4. **Initialization**: Use `static async initialize()` for setup (WebSocket namespaces, cron jobs, etc.)
+4. **Initialization**: Use `static async initialize()` for startup setup — schema extensions, WebSocket namespaces, cron jobs. Initializers run in priority order (`static initializePriority`, default `100`, lower first), then alphabetically by controller name; a failing one is logged and skipped without stopping startup. See [Site Customization](site-customization.md#startup-code-static-async-initialize).
 5. **Type Safety**: Add JSDoc comments for better IDE support
 6. **Internal Methods**: Prefix helper methods with `_` to prevent route registration
 
@@ -1697,7 +1697,7 @@ These methods are used by controllers, models, and plugins on the server. They a
 
 #### Extending the config schema (tab scope)
 
-Plugins and site code can add new **config tabs** (blocks under `data.*`) without editing framework files. Call `ConfigModel.extendSchema(extension)` during initialization (e.g. in a plugin's `static async initialize()` or site bootstrap). Each key in `extension` becomes a new block under `data` and a new tab in Admin → Site Configuration. Avoid block keys that conflict with framework blocks: `general`, `email`, `broadcast`, `manifest`.
+Plugins and site code can add new **config tabs** (blocks under `data.*`) without editing framework files. Call `ConfigModel.extendSchema(extension)` from the controller's `static async initialize()` — the framework calls it at startup on every discovered plugin and site controller, before the config schema is computed. Each key in `extension` becomes a new block under `data` and a new tab in Admin → Site Configuration. Avoid block keys that conflict with framework blocks: `general`, `email`, `broadcast`, `manifest`.
 
 ```javascript
 // Example: plugin adds a "Hello" tab
@@ -1710,7 +1710,7 @@ ConfigModel.extendSchema({
 });
 ```
 
-- **When:** Call before `ConfigModel.initializeSchema()` runs (e.g. during plugin/site init, which runs before bootstrap finalizes the schema).
+- **When:** Call before `ConfigModel.initializeSchema()` runs — `static async initialize()` on a plugin or site controller satisfies this, since it runs before bootstrap finalizes the schema. See [Site Customization](site-customization.md#startup-code-static-async-initialize) for a site example.
 - **Scope:** Tab-level only; each extension key becomes one block in `data` and one tab in the admin config UI.
 
 #### Effective roles (cached, sync)

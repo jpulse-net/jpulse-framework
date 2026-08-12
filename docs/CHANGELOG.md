@@ -1,6 +1,37 @@
-# jPulse Docs / Version History v1.7.10
+# jPulse Docs / Version History v1.7.11
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.11, W-207, 2026-08-11
+
+**Commit:** `W-207, v1.7.11: bootstrap: site-level init hook`
+
+**Objective**: Give site and plugin controllers a clear, deterministic startup hook — `static async initialize()` — so site code has one obvious place for `ConfigModel.extendSchema()` / `UserModel.extendSchema()`, WebSocket namespaces, Redis channels, in-process registries, and cache warmup, with "don't make me think" as the guiding DX principle.
+
+**Summary**: `SiteControllerRegistry._initializeControllers()` (bootstrap step 14) calls `static async initialize()` on every discovered site and plugin controller that defines one, before `UserModel.initializeSchema()` / `ConfigModel.initializeSchema()`. Controllers run in a defined order: optional `static initializePriority` (lower runs earlier, default 100, same convention as `HookManager`; finite-number guard so `0` is honored), then alphabetical by controller name, then registry key as tie-breaker. Site and plugin controllers share one ordered list — a site controller that must run after a plugin sets priority above 100. Each load and each call is isolated in try/catch so a failing initializer does not abort bootstrap; the startup banner reports `N initialized` and, when any fail, a warning naming them. Schema-init banner lines say "extensions" (site and plugin). Docs: new startup-hook section in `site-customization.md` (what belongs / what does not, `extendSchema` example, priority escape hatch); `api-reference.md` config-extension text points at `initialize()`; `getting-started.md` links the auto-discovery bullet at the new section.
+
+**Key features**:
+- `static async initialize()` auto-called on discovered controllers at startup
+- Deterministic order: `initializePriority` (default 100) then alphabetical controller name
+- Failures isolated and visible in the startup banner
+- Documented call site for site-side schema extensions and other startup registrations
+
+**Files changed**:
+- `webapp/utils/site-controller-registry.js`: load-then-sort-then-call; `DEFAULT_INITIALIZE_PRIORITY`; `{ initialized, failed }` return; metrics for initialized/failed counts
+- `webapp/utils/bootstrap.js`: banner reports initialized count + failed names; schema log wording
+- `webapp/tests/unit/utils/site-controller-registry.test.js`: 8 new W-207 cases (ordering, priority including `0`, non-numeric fallback, throw/load isolation, skip-if-absent, stats/metrics)
+- `docs/site-customization.md`, `docs/api-reference.md`, `docs/getting-started.md`: startup-hook documentation
+- `docs/dev/work-items.md`: W-207 features/deliverables
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.7.11 / W-207
+- `docs/CHANGELOG.md`: this section
+
+Verified via `npx jest webapp/tests/unit/utils/site-controller-registry.test.js --runInBand` (22/22 pass) and a live `npm start` log showing 4 initializers in alphabetical name order at priority 100, with schemas after step 14 and no failure warning.
+
+**Release**:
+- Work Item: W-207
+- Version: v1.7.11
+- Release Date: 2026-08-11
 
 ________________________________________________
 ## v1.7.10, W-206, 2026-08-09

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v1.7.10
+# jPulse Docs / Site Customization Guide v1.7.11
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -288,7 +288,72 @@ jPulse automatically:
 - **Registers routes** based on filename and methods
 - **Creates API endpoints** from `api()` method
 - **Registers Handlebars helpers** from `handlebar*` methods
+- **Runs startup code** from the `initialize()` method
 - **No manual configuration** required
+
+### Startup Code: `static async initialize()`
+
+Add a `static async initialize()` method to any site controller and jPulse calls it once at
+startup, right after it discovers your controllers and before the user and config schemas are
+finalized. This is the one place for site-wide setup — no registration, no bootstrap file to edit.
+
+```javascript
+// site/webapp/controller/myCompany.js
+class MyCompanyController {
+
+    static async initialize() {
+        // Add a "My Company" tab to Admin → Site Configuration
+        global.ConfigModel.extendSchema({
+            myCompany: {
+                _meta: { tabLabel: 'My Company', order: 50, description: 'Company-wide settings.' },
+                supportEmail: { type: 'string', default: 'support@example.com', label: 'Support email' },
+                showBanner: { type: 'boolean', default: true, label: 'Show announcement banner' }
+            }
+        });
+
+        // Add a department field to every user document
+        global.UserModel.extendSchema({
+            myCompany: {
+                department: { type: 'string', default: '' }
+            }
+        });
+    }
+}
+
+export default MyCompanyController;
+```
+
+**What belongs here:**
+- Config and user schema extensions (`ConfigModel.extendSchema()`, `UserModel.extendSchema()`)
+- WebSocket namespace registration (see `site/webapp/controller/helloWebsocket.js`)
+- Custom Redis broadcast channels and subscriptions
+- In-process registries your own code reads later
+- Cache warmup
+
+**What does not belong here:** request handling (that is what `api*()` methods are for) and long
+blocking work — every initializer runs before the server accepts requests, so slow work here is
+slow startup.
+
+**Good to know:**
+- `global.ConfigModel` and `global.UserModel` are already available, and both schemas are computed
+  *after* all initializers run, so `extendSchema()` calls are picked up.
+- If your `initialize()` throws, the framework logs the error, prints a warning in the startup
+  banner, and keeps going — the rest of the site still starts.
+- Controllers initialize in a defined order: by priority, then alphabetically by controller name.
+  Plugin controllers are in the same ordered list as your site controllers.
+
+**Ordering (rarely needed):** if one controller must run after another, declare a priority. Lower
+runs earlier, the default is `100`:
+
+```javascript
+class MyCompanyController {
+    static initializePriority = 200;    // run after everything with the default priority
+
+    static async initialize() {
+        // e.g. adjust a config tab a plugin registered at priority 100
+    }
+}
+```
 
 ### Creating Custom Handlebars Helpers
 

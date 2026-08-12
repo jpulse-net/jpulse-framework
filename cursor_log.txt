@@ -21915,3 +21915,56 @@ Audited same-class unsafe appConfig deep reads. Same unreachable-||-default patt
 
 
 ============================================================
+2026-08-11 23:44
+
+next work item: W-207, v1.7.11, 2026-08-11: bootstrap: site-level init hook
+- @work-items.md (7803-7833)
+- review task, ask questions if unclear
+- suggest change of spec if any, goal is a good DX, good usability, good onboarding & learning experience for site admins and developers; use the "don't make me think" paradigm
+- plan how to implement (wait for my go ahead)
+
+Reviewed W-207 against code: SiteControllerRegistry already auto-calls static async initialize() at bootstrap step 14 (before schema init); hello-world already uses it for ConfigModel.extendSchema. Spec context is wrong. Recommended: keep initialize (no new init()), harden alphabetical+priority ordering, surface initialized count in bootstrap log, add tests + docs (esp. site-customization.md), reframe WI as harden/document existing lifecycle. Asked questions on priority syntax, sort key, scope A/B/C, test entry point. Plan ready; waiting for go-ahead.
+
+
+============================================================
+2026-08-11 23:58
+
+continue as grok
+
+Finished W-207 scope A: hardened existing static async initialize() (no new init hook). Registry load-sort-call with initializePriority (default 100) then alphabetical name; failed load/init isolated; bootstrap banner shows initialized count + failed names; 8 new unit tests (22/22 pass); docs in site-customization.md + api-reference.md; W-207 work-item body rewritten. Status/section placement left untouched.
+
+
+============================================================
+2026-08-12 00:04
+
+review startup log:
+[npm start bootstrap log pasted]
+
+Reviewed: W-207 working as designed. Banner shows "8 controllers, 32 APIs, 4 initialized"; init order is alphabetical by controller name at priority 100 (helloPlugin → helloWebsocket → mfaAuth → oauthAuth); schemas after step 14; no failure warning. Minor nits only: default priority always printed; schema log still says "plugin extensions".
+
+
+============================================================
+
+2026-08-12 00:13
+
+release prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-207, v1.7.11, 2026-08-11
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Diff matches W-207: registry load-sort-call + priority, bootstrap banner/failures, tests, site-customization + api-reference; W-209 design doc untracked and out of scope. Release docs updated (README, docs/README, CHANGELOG v1.7.11, getting-started link, commit-message.txt). Small polish: schema bootstrap log says "extensions". Status left IN_PROGRESS for release operator.
+
+
+============================================================
+
+2026-08-12 00:18
+
+change docs/CHANGELOG.md and commit-message.txt:
+- remove any reference of initial work item that was off/inaccurate, just state what the work item is about!
+
+Rewrote CHANGELOG v1.7.11 Objective/Summary and commit-message.txt as forward-looking descriptions of the initialize() startup hook (order, priority, isolation, docs). Removed premise-was-wrong / invent-init / rewritten-to-match-reality language.
+
+
+============================================================

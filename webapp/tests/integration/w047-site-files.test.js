@@ -3,8 +3,8 @@
  * @tagline         Integration tests for W-047 site-specific file loading (W-098 append mode)
  * @description     Tests jpulse-common.css/js append mode and site-specific templates
  * @file            webapp/tests/integration/w047-site-files.test.js
- * @version         1.7.10
- * @release         2026-08-09
+ * @version         1.7.11
+ * @release         2026-08-11
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

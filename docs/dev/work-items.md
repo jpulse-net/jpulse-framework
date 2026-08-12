@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.11
+# jPulse Docs / Dev / Work Items v1.7.12
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -7790,19 +7790,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/dev/design/W-206-user-password-reset.md` (new):
     - full design doc, including As Built deviations and manual-testing findings
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-207, v1.7.11, 2026-08-11: bootstrap: site-level init hook
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - make the startup hook site code already has (`static async initialize()` on a discovered controller) deterministic, observable, and findable in the docs
@@ -7842,6 +7831,65 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-208, v1.7.12, 2026-08-12: websocket: per-namespace message limits; error reporting; request helper
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - let a namespace raise the inbound message size cap without raising it globally
+  - stop silently dropping messages: a client must learn that its message was rejected
+  - support request/response over WebSocket in both directions, so either side can send a message and await its reply
+- context:
+  - `WebSocketController._onMessage()` reads limits only from `global.appConfig.controller.websocket.messageLimits` (`maxSize ?? 65536`, `interval ?? 1000`, `maxMessages ?? 50`), while `createNamespace(path, options)` accepts only `{ requireAuth, requireRoles, onCreate }` — there is no per-namespace override
+  - both pre-handler rejections are silent: oversized and rate-limited messages `logInfo` and `return` with nothing sent back. By contrast a handler *throw* replies with `_formatMessage(false, null, error.message, 500)` and malformed JSON replies with a 400, so the error envelope already exists and only the drop paths bypass it
+  - the rate limit is tracked per client (`client.messageTimestamps`), so each namespace connection has its own budget; `maxSize` is the limit that actually needs to be adjustable
+  - `jPulse.ws` connection handles expose `send`, `onMessage`, `onStatusChange`, `getStatus`, `disconnect` with auto-reconnect and backoff — all fire-and-forget, with no correlation id anywhere in the envelope
+  - pattern namespaces copy `_onConnect` / `_onMessage` / `_onDisconnect` from the template when a literal namespace is created on first connect, so any new per-namespace option has to be copied there too
+  - size check runs before `JSON.parse`, so an oversized message cannot be correlated by `requestId` unless the client knows the limit up front; `WSServer` also has no `maxPayload` (ws default 100 MB), so frames are fully buffered before the app-level check
+  - `jPulse.api.call()` always resolves with `{ success, data?, error?, code? }` and never rejects — `ws.request()` must match that convention
+  - T-092 dispatches tool calls *to the browser* and awaits results that can exceed 64 KB, so server→client request is required, not only client→server
+- features:
+  - `createNamespace(path, { messageLimits: { maxSize, interval, maxMessages } })` — same name as the config key; stored on the `WebSocketNamespace` instance, falling back per-field to the global config; `_onMessage()` consults the namespace first; code-only (no admin per-namespace override)
+  - pattern-namespace inheritance: `messageLimits` carried from the template to the literal namespace alongside the handlers
+  - effective limits advertised in the `connected` welcome message; client size pre-check so `send()`/`request()` fail fast with `MESSAGE_TOO_LARGE` instead of hanging on an uncorrelated rejection
+  - socket-level `maxPayload` from `controller.websocket.messageLimits.maxPayload` (global ceiling); client maps close code 1009
+  - rejection replies instead of silent drops — string codes `MESSAGE_TOO_LARGE`, `RATE_LIMIT_EXCEEDED` (leave existing numeric `400`/`500` alone); optional `details` on the envelope (`{ size, limit }` / `{ maxMessages, interval, retryAfterMs }`); one unsolicited rate-limit notice per window per client, always reply when the message carried a `requestId`
+  - `_onMessage` order: size → parse → rate limit → handler, so rate-limit rejections can echo `requestId`
+  - dropped-message counters `{ oversize, rateLimit, invalid }` in namespace stats, surfaced on the admin WebSocket status page next to the effective limits; rejections appear in the activity log with direction `rejected`
+  - bidirectional request/response via top-level `requestId` on the envelope (optional — messages without one behave exactly as today):
+    - client: `ws.request(data, { timeoutMs })` always resolves with `{ success, data?, error?, code?, details? }` (`REQUEST_TIMEOUT`, `NOT_CONNECTED`, `CONNECTION_LOST`, `MESSAGE_TOO_LARGE`); pending map with timeout timers; cleanup on close, reconnect, `disconnect()`; correlated replies consumed by the promise and not re-delivered to `onMessage`; `ws.reply(message, data)` / `ws.replyError(message, error, code)` for answering server-initiated requests; `ws.getLimits()` returns welcome limits
+    - server: `conn.reply(data)` / `conn.replyError(message, code)` on the handler `conn`; `WebSocketController.request(clientId, path, data, { timeoutMs })` for server→client; auto `NO_REPLY` when a handler finishes without answering a correlated message; handler-throw replies echo `requestId`
+- deliverables:
+  - `webapp/controller/websocket.js`:
+    - `WebSocketNamespace` accepts and stores `options.messageLimits`; `getEffectiveLimits()`; `_onMessage()` resolves limits per namespace with global fallback; oversize/rate-limit/invalid paths send formatted rejections with `details`; `_completeUpgrade()` copies `messageLimits` from a pattern template; drop counters in `stats`; `conn.reply` / `conn.replyError`; `WebSocketController.request()`; `maxPayload` on `WSServer`; limits in `connected` welcome; `totalDropped` in metrics
+  - `webapp/view/jpulse-common.js`:
+    - connection handle gains `request()`, `reply()`, `replyError()`, `getLimits()`; pending-request map with timeout timers; size pre-check from welcome limits; resolution by `requestId` in `onmessage`; resolve-with-error (never reject) and cleanup on close, reconnect, `disconnect()`; close code 1009 mapped
+  - `webapp/app.conf`:
+    - document per-namespace `messageLimits`; add `maxPayload` ceiling under `controller.websocket.messageLimits`
+  - `webapp/view/admin/websocket-status.shtml` + `webapp/translations/en.conf`, `de.conf`:
+    - show effective limits and dropped-message counts per namespace (oversize / rate limit / invalid)
+  - `webapp/tests/unit/controller/websocket.test.js`:
+    - per-namespace limits override and fall back correctly, pattern-template inheritance, oversize and rate-limit replies carry the right code and details, drop counters increment, notice suppressed within a window, `requestId` echoed, `WebSocketController.request()` resolves on client reply
+  - `webapp/tests/unit/utils/jpulse-websocket-request.test.js` (new; loads real `jpulse-common.js` via JSDOM+vm — do not extend the stub `jpulse-websocket-simple.test.js`):
+    - `request()` resolves on a matching reply, resolves with error on timeout / closed socket / reconnect, cleans up on disconnect, ignores unknown ids, size pre-check, `reply()` echoes `requestId`, `getLimits()` from welcome
+  - `site/webapp/` hello-websocket demo:
+    - `/api/1/ws/hello-request` namespace (`messageLimits.maxSize: 1024`); Request / Response tab (`#request-response`) with echo, ask-browser (server→client), and send-oversized buttons
+  - `docs/websockets.md`, `docs/api-reference.md`, `docs/security-and-auth.md`:
+    - per-namespace limits, rejection-code table, both request directions; rewrite Pattern 6; correct "Fire and Forget" and rate-limiting best-practice sections; security doc points at the limits section (not silent drops)
+- notes:
+  - prerequisite for the BubbleMap AI Agent work (T-092): tool calls are dispatched to the browser over WebSocket and their results can exceed 64 KB, and a silently dropped reply would hang a turn until its timeout instead of failing loudly — hence both directions and rejection replies
+  - the three features are independent enough to land as separate commits (limits + discoverability; rejection replies + counters + admin; request/response + docs + demo) but share the same envelope, hence one work item
+
+
+
+
+
+
+
+
+
 
 
 ### Pending
@@ -7869,7 +7917,7 @@ release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
 - assume W-197, v1.0.3, 2026-08-01
-- assume W-207, v1.7.11, 2026-08-11
+- assume W-208, v1.7.12, 2026-08-12
 - if needed, update features & deliverables in W-206 work-items to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -7881,12 +7929,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.11 2026-08-11
+node bin/bump-version.js 1.7.12 2026-08-12
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.11; git push origin main --tags
+git tag v1.7.12; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff
@@ -7952,44 +8000,6 @@ template:
     - FIXME summary
 - tests:            // optional
 - tech-debt:        // optional
-
-### W-208, v1.7.12, 2026-08-12: websocket: per-namespace message limits; error reporting; request helper
-- status: 🕑 PENDING
-- type: Feature
-- objectives:
-  - let a namespace raise the inbound message size cap without raising it globally
-  - stop silently dropping messages: a client must learn that its message was rejected
-  - support request/response over WebSocket, so an application can send a message and await its reply
-- context:
-  - `WebSocketController._onMessage()` reads limits only from `global.appConfig.controller.websocket.messageLimits` (`maxSize ?? 65536`, `interval ?? 1000`, `maxMessages ?? 50`), while `createNamespace(path, options)` accepts only `{ requireAuth, requireRoles, onCreate }` — there is no per-namespace override
-  - both pre-handler rejections are silent: oversized and rate-limited messages `logInfo` and `return` with nothing sent back. By contrast a handler *throw* replies with `_formatMessage(false, null, error.message, 500)` and malformed JSON replies with a 400, so the error envelope already exists and only the drop paths bypass it
-  - the rate limit is tracked per client (`client.messageTimestamps`), so each namespace connection has its own budget; `maxSize` is the limit that actually needs to be adjustable
-  - `jPulse.ws` connection handles expose `send`, `onMessage`, `onStatusChange`, `getStatus`, `disconnect` with auto-reconnect and backoff — all fire-and-forget, with no correlation id anywhere in the envelope
-  - pattern namespaces copy `_onConnect` / `_onMessage` / `_onDisconnect` from the template when a literal namespace is created on first connect, so any new per-namespace option has to be copied there too
-- features:
-  - `createNamespace(path, { limits: { maxSize, interval, maxMessages } })`, stored on the `WebSocketNamespace` instance, falling back per-field to the global config; `_onMessage()` consults the namespace first
-  - pattern-namespace inheritance: limits carried from the template to the literal namespace alongside the handlers
-  - rejection replies instead of silent drops — a distinct code per cause (oversize, rate limit) with the observed value and the limit in the message, so a client can back off or resend smaller; logging stays as-is
-  - dropped-message counters in namespace stats, surfaced on the admin WebSocket status page
-  - `ws.request(data, { timeoutMs })` on the client handle: returns a promise, attaches a correlation id, resolves on the matching reply, rejects on timeout, on a closed socket (rather than hanging, since `send()` currently just returns `false`), and on reconnect with requests still outstanding
-  - server-side reply helper so a handler can answer a request without hand-rolling the correlation id (e.g. `conn.reply(data)` / `conn.replyError(message, code)`), echoing the id the client sent
-  - correlation id is optional — a message without one behaves exactly as today, so no existing namespace changes behavior
-- deliverables:
-  - `webapp/controller/websocket.js`:
-    - `WebSocketNamespace` accepts and stores `options.limits`; `_onMessage()` resolves limits per namespace with global fallback; oversize and rate-limit paths send a formatted rejection; `_completeUpgrade()` copies limits from a pattern template; drop counters in `stats`; reply helper on the `conn` object
-  - `webapp/view/jpulse-common.js`:
-    - `jPulse.ws` connection handle gains `request()`; pending-request map with timeout timers; resolution by correlation id in `onmessage`; rejection and cleanup on close, reconnect and `disconnect()`
-  - `webapp/view/admin/websocket-status.shtml`:
-    - show dropped-message counts per namespace (oversize vs rate limit)
-  - `webapp/tests/unit/controller/websocket.test.js`:
-    - per-namespace limits override and fall back correctly, pattern-template inheritance, oversize and rate-limit replies carry the right code, drop counters increment
-  - `webapp/tests/unit/utils/jpulse-websocket-simple.test.js`:
-    - `request()` resolves on a matching reply, rejects on timeout, rejects when the socket is closed, cleans up on disconnect, and ignores replies with unknown ids
-  - `docs/websockets.md`, `docs/api-reference.md`:
-    - per-namespace limits, the rejection codes a client can receive, and the request/response pattern with both client and server sides
-- notes:
-  - prerequisite for the BubbleMap AI Agent work (T-092): tool calls are dispatched to the browser over WebSocket and their results can exceed 64 KB, and a silently dropped reply would hang a turn until its timeout instead of failing loudly
-  - the three features are independent enough to land as separate commits (limits, rejection replies, request helper) but share the same envelope and test file, hence one work item
 
 ### W-209, v1.7.12, 2026-08-12: plugins: extensibe hook registry
 - status: 🕑 PENDING

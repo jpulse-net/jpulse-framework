@@ -3,8 +3,8 @@
  * @tagline         Unit tests for WebSocket Controller
  * @description     Tests for WebSocket infrastructure, authentication, broadcasting, and lifecycle
  * @file            webapp/tests/unit/controller/websocket.test.js
- * @version         1.7.11
- * @release         2026-08-11
+ * @version         1.7.12
+ * @release         2026-08-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1186,6 +1186,13 @@ describe('WebSocketController - High Priority Tests', () => {
             await WebSocketController._onMessage(clientId, namespace, data);
 
             expect(onMessage).not.toHaveBeenCalled();
+            // W-208: rejection reply instead of silent drop
+            expect(mockWs.sentMessages.length).toBeGreaterThanOrEqual(1);
+            const sent = JSON.parse(mockWs.sentMessages[0]);
+            expect(sent.success).toBe(false);
+            expect(sent.code).toBe('MESSAGE_TOO_LARGE');
+            expect(sent.details.limit).toBe(10);
+            expect(namespace.stats.dropped.oversize).toBe(1);
         });
 
         test('drops message when rate limit exceeded (maxMessages per interval)', async () => {
@@ -1221,6 +1228,199 @@ describe('WebSocketController - High Priority Tests', () => {
             await WebSocketController._onMessage(clientId, namespace, Buffer.from(JSON.stringify({ type: '3' })));
 
             expect(onMessage).toHaveBeenCalledTimes(2);
+            const last = JSON.parse(mockWs.sentMessages[mockWs.sentMessages.length - 1]);
+            expect(last.code).toBe('RATE_LIMIT_EXCEEDED');
+            expect(namespace.stats.dropped.rateLimit).toBe(1);
+        });
+    });
+
+    // -------------------------------------------------------------------------
+    // W-208: per-namespace limits, rejection details, request/response
+    // -------------------------------------------------------------------------
+    describe('W-208: per-namespace limits and request helper', () => {
+        let savedWebsocketConfig;
+
+        beforeEach(() => {
+            savedWebsocketConfig = global.appConfig?.controller?.websocket;
+            global.appConfig = global.appConfig || {};
+            global.appConfig.controller = global.appConfig.controller || {};
+            global.appConfig.controller.websocket = {
+                messageLimits: { maxSize: 100, interval: 1000, maxMessages: 50 }
+            };
+            if (!global.CommonUtils) {
+                global.CommonUtils = { generateUuid: () => 'test-uuid-' + Math.random().toString(16).slice(2) };
+            }
+        });
+
+        afterEach(() => {
+            if (global.appConfig?.controller) {
+                global.appConfig.controller.websocket = savedWebsocketConfig;
+            }
+            WebSocketController.pendingRequests.clear();
+        });
+
+        function makeNs(overrides = {}) {
+            const mockWs = new WebSocketTestUtils.MockWebSocket();
+            const namespace = {
+                path: '/api/1/ws/w208',
+                messageLimits: null,
+                clients: new Map(),
+                stats: {
+                    totalMessages: 0,
+                    messagesPerHour: 0,
+                    lastActivity: Date.now(),
+                    messageTimestamps: [],
+                    dropped: { oversize: 0, rateLimit: 0, invalid: 0 }
+                },
+                _onMessage: null,
+                ...overrides
+            };
+            const clientId = 'c1';
+            namespace.clients.set(clientId, {
+                ws: mockWs,
+                ctx: { username: 'u', ip: '0.0.0.0', roles: [], firstName: '', lastName: '', initials: '', params: {} },
+                lastPing: Date.now(),
+                lastPong: Date.now(),
+                messageTimestamps: []
+            });
+            return { namespace, clientId, mockWs };
+        }
+
+        test('getEffectiveLimits falls back per-field to global config', () => {
+            const limits = WebSocketController.getEffectiveLimits({
+                messageLimits: { maxSize: 999 }
+            });
+            expect(limits.maxSize).toBe(999);
+            expect(limits.interval).toBe(1000);
+            expect(limits.maxMessages).toBe(50);
+        });
+
+        test('createNamespace stores messageLimits and pattern template inherits them', () => {
+            const template = WebSocketController.createNamespace('/api/1/ws/w208-rooms/:room', {
+                requireAuth: false,
+                messageLimits: { maxSize: 2048 }
+            });
+            expect(template.messageLimits.maxSize).toBe(2048);
+
+            const pattern = WebSocketController.patternNamespaces.find(p => p.pattern === '/api/1/ws/w208-rooms/:room');
+            expect(pattern.templateNsObject.messageLimits.maxSize).toBe(2048);
+        });
+
+        test('namespace maxSize override is used for oversize check', async () => {
+            const { namespace, clientId, mockWs } = makeNs({
+                messageLimits: { maxSize: 5 }
+            });
+            await WebSocketController._onMessage(clientId, namespace, Buffer.alloc(6));
+            const sent = JSON.parse(mockWs.sentMessages[0]);
+            expect(sent.code).toBe('MESSAGE_TOO_LARGE');
+            expect(sent.details.limit).toBe(5);
+        });
+
+        test('rate-limit rejection echoes requestId and includes retryAfterMs', async () => {
+            global.appConfig.controller.websocket = {
+                messageLimits: { maxSize: 65536, interval: 10000, maxMessages: 1 }
+            };
+            const { namespace, clientId, mockWs } = makeNs();
+            await WebSocketController._onMessage(clientId, namespace, Buffer.from(JSON.stringify({ type: 'a' })));
+            await WebSocketController._onMessage(clientId, namespace, Buffer.from(JSON.stringify({
+                type: 'b',
+                requestId: 'req-1'
+            })));
+            const sent = JSON.parse(mockWs.sentMessages[mockWs.sentMessages.length - 1]);
+            expect(sent.code).toBe('RATE_LIMIT_EXCEEDED');
+            expect(sent.requestId).toBe('req-1');
+            expect(typeof sent.details.retryAfterMs).toBe('number');
+        });
+
+        test('unsolicited rate-limit notice is sent only once per window', async () => {
+            global.appConfig.controller.websocket = {
+                messageLimits: { maxSize: 65536, interval: 10000, maxMessages: 1 }
+            };
+            const { namespace, clientId, mockWs } = makeNs();
+            await WebSocketController._onMessage(clientId, namespace, Buffer.from(JSON.stringify({ type: 'a' })));
+            await WebSocketController._onMessage(clientId, namespace, Buffer.from(JSON.stringify({ type: 'b' })));
+            await WebSocketController._onMessage(clientId, namespace, Buffer.from(JSON.stringify({ type: 'c' })));
+            const rateReplies = mockWs.sentMessages
+                .map(s => JSON.parse(s))
+                .filter(m => m.code === 'RATE_LIMIT_EXCEEDED');
+            expect(rateReplies).toHaveLength(1);
+            expect(namespace.stats.dropped.rateLimit).toBe(2);
+        });
+
+        test('conn.reply echoes requestId; handler throw echoes requestId', async () => {
+            const { namespace, clientId, mockWs } = makeNs({
+                _onMessage: (conn) => {
+                    conn.reply({ type: 'pong-data', data: { ok: true } });
+                }
+            });
+            await WebSocketController._onMessage(clientId, namespace, Buffer.from(JSON.stringify({
+                type: 'ping-data',
+                requestId: 'r-ok'
+            })));
+            const sent = JSON.parse(mockWs.sentMessages[0]);
+            expect(sent.success).toBe(true);
+            expect(sent.requestId).toBe('r-ok');
+            expect(sent.data.type).toBe('pong-data');
+
+            const { namespace: ns2, clientId: c2, mockWs: ws2 } = makeNs({
+                path: '/api/1/ws/w208-err',
+                _onMessage: () => { throw new Error('boom'); }
+            });
+            WebSocketController.namespaces.set(ns2.path, ns2);
+            await WebSocketController._onMessage(c2, ns2, Buffer.from(JSON.stringify({
+                type: 'x',
+                requestId: 'r-err'
+            })));
+            const errMsg = JSON.parse(ws2.sentMessages[0]);
+            expect(errMsg.success).toBe(false);
+            expect(errMsg.requestId).toBe('r-err');
+            expect(errMsg.error).toBe('boom');
+        });
+
+        test('auto NO_REPLY when handler does not answer a correlated request', async () => {
+            const { namespace, clientId, mockWs } = makeNs({
+                _onMessage: () => { /* no reply */ }
+            });
+            await WebSocketController._onMessage(clientId, namespace, Buffer.from(JSON.stringify({
+                type: 'need-reply',
+                requestId: 'r-none'
+            })));
+            const sent = JSON.parse(mockWs.sentMessages[0]);
+            expect(sent.code).toBe('NO_REPLY');
+            expect(sent.requestId).toBe('r-none');
+        });
+
+        test('WebSocketController.request resolves on client reply', async () => {
+            const { namespace, clientId, mockWs } = makeNs();
+            WebSocketController.namespaces.set(namespace.path, namespace);
+
+            const pending = WebSocketController.request(clientId, namespace.path, {
+                type: 'tool-call',
+                data: { name: 'x' }
+            }, { timeoutMs: 2000 });
+
+            expect(mockWs.sentMessages).toHaveLength(1);
+            const outbound = JSON.parse(mockWs.sentMessages[0]);
+            expect(outbound.requestId).toBeTruthy();
+            expect(outbound.data.type).toBe('tool-call');
+
+            // Simulate client reply arriving
+            const replyPromise = WebSocketController._onMessage(clientId, namespace, Buffer.from(JSON.stringify({
+                type: 'tool-result',
+                data: { value: 42 },
+                requestId: outbound.requestId
+            })));
+            const result = await pending;
+            await replyPromise;
+            expect(result.success).toBe(true);
+            expect(result.data.data.value).toBe(42);
+            expect(result.requestId).toBe(outbound.requestId);
+        });
+
+        test('WebSocketController.request resolves NOT_CONNECTED when client missing', async () => {
+            const result = await WebSocketController.request('missing', '/api/1/ws/none', { type: 'x' });
+            expect(result.success).toBe(false);
+            expect(result.code).toBe('NOT_CONNECTED');
         });
     });
 

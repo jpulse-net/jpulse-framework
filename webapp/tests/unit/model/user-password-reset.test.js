@@ -7,8 +7,8 @@
  *                   limiters, the detached send, and the mechanism-only contract (no status,
  *                   hasLocalPassword or restriction checks anywhere in this layer)
  * @file            webapp/tests/unit/model/user-password-reset.test.js
- * @version         1.7.11
- * @release         2026-08-11
+ * @version         1.7.12
+ * @release         2026-08-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

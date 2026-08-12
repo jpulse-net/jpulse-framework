@@ -21944,7 +21944,6 @@ Reviewed: W-207 working as designed. Banner shows "8 controllers, 32 APIs, 4 ini
 
 
 ============================================================
-
 2026-08-12 00:13
 
 release prep:
@@ -21958,13 +21957,58 @@ Diff matches W-207: registry load-sort-call + priority, bootstrap banner/failure
 
 
 ============================================================
-
 2026-08-12 00:18
 
 change docs/CHANGELOG.md and commit-message.txt:
 - remove any reference of initial work item that was off/inaccurate, just state what the work item is about!
 
 Rewrote CHANGELOG v1.7.11 Objective/Summary and commit-message.txt as forward-looking descriptions of the initialize() startup hook (order, priority, isolation, docs). Removed premise-was-wrong / invent-init / rewritten-to-match-reality language.
+
+
+============================================================
+2026-08-12 00:38
+
+next work item: W-208, v1.7.12, 2026-08-12: websocket: per-namespace message limits; error reporting; request helper
+- work-items.md (7836-7874)
+- review task, ask questions if unclear
+- suggest change of spec if any, goal is a good DX, good usability, good onboarding & learning experience for site admins and developers; use the "don't make me think" paradigm
+- plan how to implement (wait for my go ahead)
+
+Reviewed W-208 against websocket.js, jpulse-common.js, admin status page, tests and docs; all context claims verified. Findings: (1) oversize check runs before JSON.parse so an oversized request cannot be correlated -> fix by advertising effective limits in the 'connected' welcome message + client-side size pre-check, and by reordering _onMessage to size -> parse -> rate limit so rate-limit rejections echo requestId; (2) spec's "rejects on timeout" contradicts jPulse.api.call() which always resolves -> request() resolves with { success:false, error, code }; (3) spec covers only client->server, but the T-092 note describes the server awaiting a browser reply -> build symmetric (WebSocketController.request + client ws.reply); (4) unthrottled rejection replies amplify a flood -> one unsolicited rate-limit notice per window with retryAfterMs, always reply to correlated messages; (5) WSServer has no maxPayload (ws default 100 MB) -> add config ceiling and map close code 1009; (6) admin page needs effective limits next to drop counters + 'rejected' activity-log entries; (7) deliverable file jpulse-websocket-simple.test.js is a stub that re-implements jPulse.ws inline -> add new jpulse-websocket-request.test.js loading the real file via JSDOM+vm; (8) rename option limits -> messageLimits, add optional details slot to _formatMessage, string codes for new rejections, count invalid-JSON drops; (9) docs Pattern 6 (hand-rolled correlation), "Fire and Forget" and Best Practices 7 all need rewrites. Decisions confirmed by user: both request directions, resolve-always, code-only limits (no admin override), messageLimits naming, maxPayload included, hello-websocket demo included. Plan is three commits (limits+discoverability; rejection replies+counters+admin; request/response+docs+demo). Awaiting go-ahead; no code changed.
+
+
+============================================================
+2026-08-12 01:05
+
+- fix work item
+- start implementation
+
+Updated W-208 work-item features/deliverables to the agreed design (status left IN_PROGRESS). Implemented end-to-end: per-namespace messageLimits + welcome limits + maxPayload; rejection replies (MESSAGE_TOO_LARGE / RATE_LIMIT_EXCEEDED) with details + drop counters + admin UI; bidirectional request/response (ws.request/reply, conn.reply, WebSocketController.request, always-resolve); hello-websocket Request/Response demo; docs (websockets.md Pattern 6, api-reference). Tests: 57 controller + 9 client = 66 passing. Status not moved.
+
+
+============================================================
+2026-08-12 01:20
+
+review app start log:
+[npm start bootstrap log]
+see also screenshots
+
+Reviewed live verification: startup clean — maxPayload 1048576 in merged config, hello-request namespace registered, WS init OK, no W-208 errors. Screenshots confirm per-namespace limits (hello-request 1 KB vs others 64 KB), admin Limits/Verworfen rows, echo + ask-browser with requestId, MESSAGE_TOO_LARGE client pre-check (2085>1024) with details. Activity log shows correlated hello-request traffic; oversized not in Verworfen/rejected log because client blocked before send (expected). Verdict: W-208 working as designed.
+
+
+============================================================
+
+2026-08-12 13:27
+
+release prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-208, v1.7.12, 2026-08-12
+- if needed, update features & deliverables in W-206 work-items to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Diff matches W-208: websocket.js limits/rejections/request, jpulse-common request/reply, admin status, app.conf maxPayload, hello-request demo + tests (incl. untracked request-response-demo.tmpl and jpulse-websocket-request.test.js), websockets + api-reference docs. Polished W-208 features/deliverables (getLimits, totalDropped, demo path, security-and-auth); left status untouched. Release docs: README + docs/README highlights, CHANGELOG v1.7.12, security-and-auth limits note, commit-message.txt. No version bump, no commit.
 
 
 ============================================================

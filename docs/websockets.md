@@ -1,4 +1,4 @@
-# jPulse Docs / WebSocket Real-Time Communication v1.7.11
+# jPulse Docs / WebSocket Real-Time Communication v1.7.12
 
 > **Need multi-server broadcasting instead?** If you're running multiple server instances and need to synchronize state changes across all servers (like collaborative editing), see [Application Cluster Communication](application-cluster.md) which uses REST API + Redis broadcasts for simpler state synchronization.
 
@@ -146,20 +146,28 @@ ns.onConnect(fn).onMessage(fn).onDisconnect(fn)  // chainable; each returns the 
   - `requireAuth` (boolean): Require user authentication (default: `false`)
   - `requireRoles` (array): Required user roles (default: `[]`)
   - `onCreate` (function): For dynamic namespaces only — called when a namespace is created from a pattern; see [Dynamic Namespaces](#dynamic-namespaces-per-resource-rooms).
+  - `messageLimits` (object): Per-namespace overrides for `{ maxSize, interval, maxMessages }`. Each field falls back to `app.conf` → `controller.websocket.messageLimits`. Same name as the config key — one concept, one name.
 
 **Handlers** (set via chainable setters):
 
 - `onConnect(conn)`: Called when a client connects. **conn** = `{ clientId, ctx }`. **ctx** = `{ username, ip, roles, firstName, lastName, initials, params }` (identity and logging; `params` from path for dynamic namespaces).
-- `onMessage(conn)`: Called when a message is received. **conn** = `{ clientId, message, ctx }`.
+- `onMessage(conn)`: Called when a message is received. **conn** = `{ clientId, message, ctx, reply, replyError }`.
 - `onDisconnect(conn)`: Called when a client disconnects. **conn** = `{ clientId, ctx }`.
 
-**Async onMessage:** The `onMessage` handler may be async. If it returns a Promise, the framework awaits it. If the Promise rejects (or the handler throws), the framework sends an error message back to the client (`success: false`, `error`, `code`). This allows CRUD-over-WebSocket handlers to use async models (e.g. Redis, MongoDB) without wrapping in try/catch.
+**Async onMessage:** The `onMessage` handler may be async. If it returns a Promise, the framework awaits it. If the Promise rejects (or the handler throws), the framework sends an error message back to the client (`success: false`, `error`, `code`), echoing `requestId` when present. If the inbound message carried a `requestId` and the handler finishes without calling `conn.reply` / `conn.replyError`, the framework sends `NO_REPLY` so the client does not hang until timeout.
 
-**Namespace methods:**
+**Reply helpers on conn (request/response):**
+
+- `conn.reply(data)`: Answer a client request; echoes `message.requestId` on the wire envelope.
+- `conn.replyError(error, code?)`: Answer with `{ success: false, error, code }`, also echoing `requestId`.
+
+**Namespace / controller methods:**
 
 - `broadcast(data, ctx)`: Send to all connected clients. **ctx** (optional) is used for logging and Redis relay; pass `conn.ctx` from handlers or `null` when broadcasting from REST (no connection).
 - `sendToClient(clientId, data, ctx)`: Send to a specific client. Pass `conn.ctx` (or `null`).
-- `getStats()`: Get namespace statistics (e.g. `clientCount`).
+- `getStats()`: Get namespace statistics (e.g. `clientCount`, `dropped`, `limits`).
+- `WebSocketController.request(clientId, path, data, { timeoutMs?, ctx? })`: Server→client request; always resolves with `{ success, data?, error?, code?, requestId? }` (never rejects).
+- `WebSocketController.getEffectiveLimits(namespace)`: Resolved `{ maxSize, interval, maxMessages }` for a namespace.
 
 **Example:**
 
@@ -267,9 +275,15 @@ ns.sendToClient(clientId, {
 {
     success: false,
     error: 'Error message',
-    code: 500
+    code: 500,                    // legacy handler-throw / invalid-JSON use 500 / 400
+    details: { ... },             // optional machine-readable context (W-208 rejections)
+    requestId: '...'              // present when answering a correlated request
 }
 ```
+
+**Rejection codes (string, W-208):** `MESSAGE_TOO_LARGE`, `RATE_LIMIT_EXCEEDED`, `NO_REPLY`, plus client-side `REQUEST_TIMEOUT`, `NOT_CONNECTED`, `CONNECTION_LOST`. Legacy `400` / `500` numeric codes are unchanged.
+
+**Correlation:** Optional top-level `requestId` on the envelope. Messages without one behave as fire-and-forget (unchanged). See [Pattern 6: Request/Response](#pattern-6-requestresponse).
 
 **Server payload convention:** When you call `broadcast(data, ctx)` or `sendToClient(clientId, data, ctx)`, the framework builds the app payload as `{ type, data, ctx }`. Your **data** object should have `type` and `data` (event body); **ctx** is added by the framework from the argument you pass (default `{ username: '', ip: '0.0.0.0' }` if null). This ensures consistent logging and Redis relay across all namespaces.
 
@@ -383,11 +397,45 @@ if (ws.isConnected()) {
 
 #### disconnect()
 
-Disconnect and prevent auto-reconnection.
+Disconnect and prevent auto-reconnection. Outstanding `request()` promises resolve with `CONNECTION_LOST`.
 
 ```javascript
 ws.disconnect();
 ```
+
+#### request(data, options?)
+
+Send a correlated request and await the reply. **Always resolves** (never rejects) — same convention as `jPulse.api.call()`:
+
+```javascript
+const res = await ws.request({ type: 'get-data', data: { id: 42 } }, { timeoutMs: 10000 });
+if (res.success) {
+    use(res.data);
+} else {
+    console.warn(res.code, res.error, res.details); // REQUEST_TIMEOUT | NOT_CONNECTED | CONNECTION_LOST | MESSAGE_TOO_LARGE | ...
+}
+```
+
+- Attaches a top-level `requestId` automatically.
+- Matching replies are consumed by the promise and **not** re-delivered to `onMessage`.
+- Size is pre-checked against limits from the welcome message when known.
+
+#### reply(message, data) / replyError(message, error, code?)
+
+Answer a **server-initiated** request (the inbound wire message carried `requestId`):
+
+```javascript
+ws.onMessage((msg) => {
+    if (msg.requestId && msg.data?.type === 'tool-call') {
+        ws.reply(msg, { type: 'tool-result', data: runTool(msg.data.data) });
+        // or: ws.replyError(msg, 'Unknown tool', 'NOT_FOUND');
+    }
+});
+```
+
+#### getLimits()
+
+Effective `{ maxSize, interval, maxMessages }` from the server welcome message, or `null` before connect.
 
 ---
 
@@ -537,11 +585,22 @@ When a client connects via public access (path whitelisted and `enabled`), the s
 
 **Config** (`app.conf` → `controller.websocket.messageLimits`):
 
-- `maxSize` (number): Max size in bytes for a single incoming message (default 65536 = 64 KB). Larger messages are dropped.
+- `maxSize` (number): Default max size in bytes for a single incoming message (default 65536 = 64 KB).
+- `maxPayload` (number): Socket-level ceiling for the WebSocket server (default 1048576 = 1 MB). Must be ≥ any namespace `maxSize`. Frames over this close with code **1009**.
 - `interval` (number): Time window in milliseconds for rate limiting (default 1000).
-- `maxMessages` (number): Max messages per client per `interval` (default 50). Excess messages in the window are dropped.
+- `maxMessages` (number): Max messages per client per `interval` (default 50).
 
-Limits apply per connection. Dropped messages are not processed and are logged at info level.
+**Per-namespace override** (code-only):
+
+```javascript
+WebSocketController.createNamespace('/api/1/ws/agent', {
+    messageLimits: { maxSize: 1048576 }  // raise size for this namespace only
+});
+```
+
+Each field falls back to the global config. Effective limits are sent in the `connected` welcome message so the client can pre-check before sending.
+
+**Rejections are not silent.** Oversized and rate-limited messages receive `{ success: false, code, error, details? }` (`MESSAGE_TOO_LARGE` / `RATE_LIMIT_EXCEEDED`). Rate-limit notices are throttled to one unsolicited notice per window per client; a message that carried `requestId` always gets a correlated reply. Counters (`oversize`, `rateLimit`, `invalid`) appear on the admin WebSocket status page next to the effective limits.
 
 ### Accessing User and Context
 
@@ -770,33 +829,50 @@ ws.onMessage((message) => {
 
 ### Pattern 6: Request/Response
 
+Use the built-in helpers — do not hand-roll correlation ids.
+
+**Client → server:**
+
 ```javascript
-// Client: Send request with ID
-const requestId = Date.now();
-ws.send({
-    type: 'get-data',
-    requestId: requestId,
-    query: { foo: 'bar' }
-});
+// Client
+const res = await ws.request({ type: 'get-data', data: { foo: 'bar' } });
+if (res.success) {
+    console.log('Response:', res.data);
+} else {
+    console.warn(res.code, res.error);
+}
 
-ws.onMessage((message) => {
-    if (message.success && message.data?.type === 'response') {
-        const d = message.data.data ?? {};
-        if (d.requestId === requestId) console.log('Response received:', d.result);
-    }
-});
-
-// Server: Send response with matching ID
-ns.onMessage(({ clientId, message: data, ctx }) => {
-    if (data.type === 'get-data') {
-        const result = processQuery(data.query);
-        ns.sendToClient(clientId, {
-            type: 'response',
-            data: { requestId: data.requestId, result }
-        }, ctx);
+// Server
+ns.onMessage((conn) => {
+    if (conn.message.type === 'get-data') {
+        const result = processQuery(conn.message.data);
+        conn.reply({ type: 'response', data: { result } });
+        // or: conn.replyError('Not found', 'NOT_FOUND');
     }
 });
 ```
+
+**Server → client** (e.g. tool calls into the browser):
+
+```javascript
+// Server
+const res = await WebSocketController.request(clientId, '/api/1/ws/my-app', {
+    type: 'tool-call',
+    data: { name: 'readSelection' }
+}, { timeoutMs: 30000, ctx: conn.ctx });
+if (res.success) {
+    use(res.data); // client's reply payload
+}
+
+// Client
+ws.onMessage((msg) => {
+    if (msg.requestId && msg.data?.type === 'tool-call') {
+        ws.reply(msg, { type: 'tool-result', data: runTool(msg.data.data) });
+    }
+});
+```
+
+Try it live: `/hello-websocket/#request-response`.
 
 ---
 
@@ -991,7 +1067,7 @@ ws.onMessage((message) => {
 
 ### 7. Rate Limiting
 
-Don't flood the server with messages:
+The server enforces per-client rate limits (`messageLimits.maxMessages` / `interval`) and replies with `RATE_LIMIT_EXCEEDED` (including `details.retryAfterMs`) instead of dropping silently. Still, prefer client-side pacing for high-frequency events (e.g. cursor moves):
 
 ```javascript
 let lastSent = 0;
@@ -1017,21 +1093,13 @@ Create separate namespaces for different purposes:
 
 Don't mix unrelated functionality in one namespace.
 
-### 9. Message Delivery is "Fire and Forget"
+### 9. Message Delivery: Fire-and-Forget vs Request/Response
 
-**Important:** The WebSocket framework does **not** automatically retry failed messages or track message delivery.
+**Default (`ws.send` / `broadcast` / `sendToClient`):** fire-and-forget — no automatic retry, no delivery queue. Use for ephemeral events (cursor moves, presence, notifications).
 
-- Messages are sent once
-- No automatic acknowledgment or retry mechanism
-- No queue for failed messages
-- Application is responsible for implementing delivery guarantees if needed
+**When you need an answer:** use `ws.request()` / `conn.reply()` (or `WebSocketController.request()` the other way). That gives you correlation, timeout, and a resolved error envelope — not at-most-once retry across reconnects. Outstanding requests are settled with `CONNECTION_LOST` on disconnect/reconnect; re-issue them yourself if needed.
 
-**Why?**
-- Keeps framework simple and performant
-- Different applications have different reliability requirements
-- Gives you full control over retry logic
-
-**If you need guaranteed delivery:**
+**If you need durable guaranteed delivery beyond a single request:**
 
 ```javascript
 // Client-side: Implement acknowledgment system
@@ -1198,10 +1266,13 @@ ns.onConnect((conn) => {}).onMessage((conn) => {}).onDisconnect((conn) => {})
 ns.broadcast(data, ctx)
 ns.sendToClient(clientId, data, ctx)
 ns.getStats()
+conn.reply(data) / conn.replyError(error, code?)
+WebSocketController.request(clientId, path, data, options?)
+WebSocketController.getEffectiveLimits(namespace)
 WebSocketController.getStats()
 ```
 
-- **conn**: `{ clientId, ctx }` (onMessage also has `message`). **ctx** = `{ username, ip, roles, firstName, lastName, initials, params }` for identity and logging; **params** for dynamic namespaces.
+- **conn**: `{ clientId, ctx }` (onMessage also has `message`, `reply`, `replyError`). **ctx** = `{ username, ip, roles, firstName, lastName, initials, params }` for identity and logging; **params** for dynamic namespaces.
 - **data**: Object with `type` and `data` (event body). Framework adds **ctx** to payload for wire/Redis.
 
 ### Client-Side
@@ -1209,7 +1280,10 @@ WebSocketController.getStats()
 ```javascript
 jPulse.ws.connect(path, options)
 ws.send(data)
-ws.onMessage((message) => {})   // message.success, message.data, message.error
+ws.request(data, { timeoutMs? })   // always resolves { success, data?, error?, code? }
+ws.reply(message, data) / ws.replyError(message, error, code?)
+ws.getLimits()
+ws.onMessage((message) => {})   // message.success, message.data, message.error, message.requestId?
 ws.onStatusChange(callback)
 ws.getStatus()
 ws.isConnected()

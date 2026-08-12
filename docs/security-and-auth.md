@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.7.11
+# jPulse Docs / Security & Authentication v1.7.12
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -504,7 +504,10 @@ nginx `api` zone above when deployed behind it, and have no protection at all ot
 
 WebSocket connections have a related but separate control -
 `appConfig.controller.websocket.messageLimits` (max message size + messages/interval **per
-connection**, not per IP) - see [websockets.md](websockets.md#public-access-demo--non-admin).
+connection**, not per IP), with optional per-namespace overrides via
+`createNamespace({ messageLimits })`. Oversized and rate-limited messages are rejected with
+an error envelope (`MESSAGE_TOO_LARGE` / `RATE_LIMIT_EXCEEDED`), not dropped silently —
+see [websockets.md — Message Limits](websockets.md#message-limits-dos-protection).
 
 To add app-level rate limiting to your own site/plugin endpoints, reuse
 `RedisManager.cacheCheckRateLimit()` directly - see

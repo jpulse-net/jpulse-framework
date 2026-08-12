@@ -1,0 +1,125 @@
+// Request/response demo page component, site/webapp/view/hello-websocket/templates/request-response-demo.tmpl
+/**
+ * @name            jPulse Framework / Site / WebApp / View / Hello WebSocket / Templates / Request Response Demo
+ * @tagline         Request/response and message-limits demo (W-208)
+ * @description     Shows ws.request, server→client request, and MESSAGE_TOO_LARGE pre-check
+ * @file            site/webapp/view/hello-websocket/templates/request-response-demo.tmpl
+ * @version         1.7.12
+ * @release         2026-08-12
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 3.15, Grok 4.5
+ */
+
+window.helloWebSocketViews = window.helloWebSocketViews || {};
+
+window.helloWebSocketViews.RequestResponseDemo = {
+    template: `
+<div class="jp-card">
+    <h2>🔁 Request / Response</h2>
+
+    <div class="jp-info-box">
+        <p>
+            <code>ws.request()</code> and <code>conn.reply()</code> give you correlated
+            request/response over WebSocket — same envelope shape as <code>jPulse.api</code>
+            (<code>{ success, data?, error?, code? }</code>), never throws.
+            This namespace advertises a <strong>1 KB</strong> max message size so you can
+            see the oversize path without huge payloads.
+        </p>
+    </div>
+
+    <div class="jp-mb-15">
+        <span class="local-connection-status" :class="status">
+            <span class="local-status-dot" :class="status"></span>
+            {{ status }}
+        </span>
+        <span v-if="limits" class="jp-ml-15 jp-info-text">
+            Limits: {{ limits.maxSize }} bytes · {{ limits.maxMessages }} / {{ limits.interval }} ms
+        </span>
+    </div>
+
+    <div class="jp-form-group">
+        <label class="jp-form-label" for="echoText">Echo text (client → server request)</label>
+        <input id="echoText" class="jp-form-input" v-model="echoText" placeholder="Type something to echo" />
+    </div>
+    <div class="jp-btn-group jp-mb-20">
+        <button class="jp-btn jp-btn-primary" @click="doEcho" :disabled="status !== 'connected'">Echo</button>
+        <button class="jp-btn jp-btn-secondary" @click="doAskBrowser" :disabled="status !== 'connected'">Ask browser (server → client)</button>
+        <button class="jp-btn jp-btn-warning" @click="doOversized" :disabled="status !== 'connected'">Send oversized</button>
+    </div>
+
+    <h3>Result</h3>
+    <pre class="jp-code-block">{{ resultText }}</pre>
+</div>
+`,
+    data() {
+        return {
+            status: 'disconnected',
+            ws: null,
+            limits: null,
+            echoText: 'Hello request/response',
+            resultText: '(connect, then try a button)'
+        };
+    },
+    mounted() {
+        this.connect();
+    },
+    beforeUnmount() {
+        if (this.ws) {
+            this.ws.disconnect();
+            this.ws = null;
+        }
+    },
+    methods: {
+        connect() {
+            this.ws = jPulse.ws.connect('/api/1/ws/hello-request')
+                .onStatusChange((status) => {
+                    this.status = status;
+                    if (status === 'connected') {
+                        this.limits = this.ws.getLimits();
+                    }
+                })
+                .onMessage((msg) => {
+                    // Answer server→client requests
+                    if (msg.requestId && msg.data?.type === 'get-browser-info') {
+                        this.ws.reply(msg, {
+                            type: 'browser-info',
+                            data: {
+                                userAgent: navigator.userAgent,
+                                language: navigator.language,
+                                href: location.href
+                            }
+                        });
+                        return;
+                    }
+                    // Unsolicited errors (e.g. rate limit) — show them
+                    if (!msg.success) {
+                        this.resultText = JSON.stringify(msg, null, 2);
+                    }
+                });
+            this.status = this.ws.getStatus();
+        },
+        async doEcho() {
+            const res = await this.ws.request({
+                type: 'echo',
+                data: { text: this.echoText }
+            });
+            this.resultText = JSON.stringify(res, null, 2);
+            this.limits = this.ws.getLimits();
+        },
+        async doAskBrowser() {
+            const res = await this.ws.request({ type: 'ask-browser', data: {} });
+            this.resultText = JSON.stringify(res, null, 2);
+        },
+        async doOversized() {
+            const padding = 'x'.repeat(2000);
+            const res = await this.ws.request({
+                type: 'echo',
+                data: { text: padding }
+            });
+            this.resultText = JSON.stringify(res, null, 2);
+        }
+    }
+};

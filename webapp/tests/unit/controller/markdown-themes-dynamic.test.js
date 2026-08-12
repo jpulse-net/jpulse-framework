@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-129: themes dynamic markdown generators
  * @description     Tests for themes-default, themes-count, themes-list, and themes-list-table generators
  * @file            webapp/tests/unit/controller/markdown-themes-dynamic.test.js
- * @version         1.7.11
- * @release         2026-08-11
+ * @version         1.7.12
+ * @release         2026-08-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

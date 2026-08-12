@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-128: String helpers (concat, default, replace, substring, padLeft, padRight, startsWith, endsWith, contains)
  * @description     Tests for string helpers with variadic support and error handling
  * @file            webapp/tests/unit/controller/handlebar-string-helpers.test.js
- * @version         1.7.11
- * @release         2026-08-11
+ * @version         1.7.12
+ * @release         2026-08-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

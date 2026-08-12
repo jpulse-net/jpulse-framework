@@ -3,8 +3,8 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         1.7.11
- * @release         2026-08-11
+ * @version         1.7.12
+ * @release         2026-08-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -37,6 +37,8 @@ class WebSocketNamespace {
         this.requireAuth = options.requireAuth || false;
         this.requireRoles = options.requireRoles || [];
         this.onCreate = options.onCreate || null; // W-155: onCreate hook for dynamic namespaces
+        // W-208: per-namespace message limits (per-field fallback to global config)
+        this.messageLimits = options.messageLimits || null;
         this._onConnect = null;
         this._onMessage = null;
         this._onDisconnect = null;
@@ -45,7 +47,8 @@ class WebSocketNamespace {
             totalMessages: 0,
             messagesPerHour: 0,
             lastActivity: Date.now(),
-            messageTimestamps: []
+            messageTimestamps: [],
+            dropped: { oversize: 0, rateLimit: 0, invalid: 0 }
         };
     }
 
@@ -141,6 +144,9 @@ class WebSocketController {
         activityLog: [] // Last 100 messages
     };
 
+    // W-208: pending server→client requests (requestId → { resolve, timer, clientId, namespacePath })
+    static pendingRequests = new Map();
+
     // Ping/pong configuration
     static websocketConf = global.appConfig?.controller?.websocket || {};
     static {
@@ -162,7 +168,9 @@ class WebSocketController {
             this.sessionMiddleware = sessionMiddleware;
 
             // Create WebSocket server attached to HTTP server
-            this.wss = new WSServer({ noServer: true });
+            // W-208: maxPayload is the socket-level ceiling (must be >= any namespace maxSize)
+            const maxPayload = global.appConfig?.controller?.websocket?.messageLimits?.maxPayload ?? 1048576;
+            this.wss = new WSServer({ noServer: true, maxPayload });
 
             // Handle upgrade requests (HTTP to WebSocket)
             httpServer.on('upgrade', (req, socket, head) => {
@@ -215,7 +223,7 @@ class WebSocketController {
      * Set options.onCreate = (req, ctx) => ctx | null | number for per-connect authz and ctx amendment.
      *
      * @param {string} path - Namespace path (must start with /api/1/ws/). May include :param placeholders for dynamic namespaces.
-     * @param {Object} options - { requireAuth?, requireRoles?, onCreate? }
+     * @param {Object} options - { requireAuth?, requireRoles?, onCreate?, messageLimits? }
      * @returns {WebSocketNamespace}
      */
     static createNamespace(path, options = {}) {
@@ -405,6 +413,7 @@ class WebSocketController {
         // Convert to seconds for consistency
         const uptime = Math.floor((Date.now() - this.stats.startTime) / 1000);
         let totalConnections = 0;
+        let totalDropped = 0;
         const namespaceStats = [];
 
         this.namespaces.forEach((namespace, path) => {
@@ -433,6 +442,8 @@ class WebSocketController {
                 }
             });
 
+            const dropped = namespace.stats.dropped || { oversize: 0, rateLimit: 0, invalid: 0 };
+            const limits = this.getEffectiveLimits(namespace);
             namespaceStats.push({
                 path,
                 status,
@@ -441,8 +452,11 @@ class WebSocketController {
                 lastActivity: new Date(namespace.stats.lastActivity).toISOString(),
                 // Additional fields for admin status page (visualize: false)
                 activeUsers: activeUsers.size,
-                messagesPerMin: this._calculateMessagesPerMinute(namespace)
+                messagesPerMin: this._calculateMessagesPerMinute(namespace),
+                dropped,
+                limits
             });
+            totalDropped += (dropped.oversize || 0) + (dropped.rateLimit || 0) + (dropped.invalid || 0);
         });
 
         // Determine overall status based on namespaces
@@ -463,6 +477,7 @@ class WebSocketController {
                 uptime,
                 totalConnections,
                 totalMessages: this.stats.totalMessages,
+                totalDropped,
                 totalNamespaces: this.namespaces.size,
                 namespaces: namespaceStats,
                 // Additional field for admin status page (visualize: false)
@@ -480,6 +495,9 @@ class WebSocketController {
                     },
                     'totalMessages': {
                         aggregate: 'sum'  // Sum messages across instances
+                    },
+                    'totalDropped': {
+                        aggregate: 'sum'
                     },
                     'totalNamespaces': {
                         aggregate: 'first'  // Same across instances
@@ -642,7 +660,8 @@ class WebSocketController {
                     const literalNs = new WebSocketNamespace(pathname, {
                         requireAuth: template.requireAuth,
                         requireRoles: template.requireRoles,
-                        onCreate: template.onCreate
+                        onCreate: template.onCreate,
+                        messageLimits: template.messageLimits
                     });
                     // Copy handlers from template
                     literalNs._onConnect = template._onConnect;
@@ -752,11 +771,13 @@ class WebSocketController {
 
         LogController.logInfo(ctx, 'websocket._onConnection', `Client ${clientId} (${ctx.username}) connected to ${namespace.path}`);
 
-        // Send welcome message with sanitized ctx
+        // Send welcome message with sanitized ctx + effective limits (W-208)
+        const limits = this.getEffectiveLimits(namespace);
         ws.send(JSON.stringify(this._formatMessage(true, {
             type: 'connected',
             clientId,
             namespace: namespace.path,
+            limits,
             ctx: {
                 username: ctx.username,
                 roles: ctx.roles,
@@ -799,81 +820,218 @@ class WebSocketController {
     }
 
     /**
+     * Resolve effective message limits for a namespace (W-208).
+     * Per-field: namespace.messageLimits → global config → defaults.
+     * @param {WebSocketNamespace|Object} namespace
+     * @returns {{ maxSize: number, interval: number, maxMessages: number }}
+     */
+    static getEffectiveLimits(namespace) {
+        const globalLimits = global.appConfig?.controller?.websocket?.messageLimits || {};
+        const nsLimits = namespace?.messageLimits || {};
+        return {
+            maxSize: nsLimits.maxSize ?? globalLimits.maxSize ?? 65536,
+            interval: nsLimits.interval ?? globalLimits.interval ?? 1000,
+            maxMessages: nsLimits.maxMessages ?? globalLimits.maxMessages ?? 50
+        };
+    }
+
+    /**
+     * Ensure namespace.stats.dropped exists (tests may construct bare namespace objects).
+     * @private
+     */
+    static _ensureDroppedStats(namespace) {
+        if (!namespace.stats) {
+            namespace.stats = { totalMessages: 0, lastActivity: Date.now(), messageTimestamps: [] };
+        }
+        if (!namespace.stats.dropped) {
+            namespace.stats.dropped = { oversize: 0, rateLimit: 0, invalid: 0 };
+        }
+        return namespace.stats.dropped;
+    }
+
+    /**
+     * Send a rejection envelope to a client (W-208).
+     * @private
+     */
+    static _sendRejection(client, error, code, details = null, requestId = null) {
+        if (!client || client.ws?.readyState !== 1) return;
+        const errorMsg = this._formatMessage(false, null, error, code, details);
+        errorMsg.username = '';
+        if (requestId) errorMsg.requestId = requestId;
+        client.ws.send(JSON.stringify(errorMsg));
+    }
+
+    /**
      * Handle incoming message
      * W-155: ctx-only (no user/username params)
      * Supports sync and async onMessage handlers; async rejections are sent to client like sync throws.
+     * W-208: order is size → parse → rate limit → handler; rejections are replied (not silent);
+     *        messages with requestId matching a server pending request resolve that promise.
      * @private
      */
     static async _onMessage(clientId, namespace, data) {
         const client = namespace.clients.get(clientId);
         const ctx = client?.ctx || null;
+        const limits = this.getEffectiveLimits(namespace);
+        const { maxSize, interval, maxMessages } = limits;
+        const dropped = this._ensureDroppedStats(namespace);
 
-        // W-158: Message size limit
-        const limits = global.appConfig?.controller?.websocket?.messageLimits;
-        const maxSize = limits?.maxSize ?? 65536;
+        // W-208: size check before parse (cannot correlate oversized frames)
         const rawLength = Buffer.isBuffer(data) ? data.length : (typeof data === 'string' ? Buffer.byteLength(data, 'utf8') : 0);
         if (rawLength > maxSize) {
+            dropped.oversize++;
             LogController.logInfo(ctx, 'websocket._onMessage', `Dropped oversized message: ${rawLength} > ${maxSize}`);
+            this._sendRejection(client, `Message too large: ${rawLength} > ${maxSize}`, 'MESSAGE_TOO_LARGE', {
+                size: rawLength,
+                limit: maxSize
+            });
+            this._addActivityLog(namespace.path, 'rejected', {
+                code: 'MESSAGE_TOO_LARGE',
+                size: rawLength,
+                limit: maxSize
+            });
             return;
         }
 
-        // W-158: Per-client rate limit
-        const interval = limits?.interval ?? 1000;
-        const maxMessages = limits?.maxMessages ?? 50;
+        let message;
+        try {
+            message = JSON.parse(data.toString());
+        } catch (error) {
+            dropped.invalid++;
+            LogController.logError(ctx, 'websocket._onMessage', `error: ${error.message}`);
+            this._sendRejection(client, 'Invalid message format', 400);
+            this._addActivityLog(namespace.path, 'rejected', { code: 400, error: 'Invalid message format' });
+            return;
+        }
+
+        // W-208: reply to a server→client request — resolve pending, do not call app handler
+        if (message.requestId && this.pendingRequests.has(message.requestId)) {
+            const pending = this.pendingRequests.get(message.requestId);
+            this.pendingRequests.delete(message.requestId);
+            clearTimeout(pending.timer);
+            message.username = ctx?.username || '';
+            if (message.type !== 'ping' && message.type !== 'pong') {
+                this._addActivityLog(namespace.path, 'received', message);
+            }
+            this._recordMessage(namespace);
+            if (message.success === false) {
+                pending.resolve({
+                    success: false,
+                    error: message.error || 'Error',
+                    code: message.code,
+                    details: message.details,
+                    requestId: message.requestId
+                });
+            } else {
+                pending.resolve({
+                    success: true,
+                    data: message,
+                    requestId: message.requestId
+                });
+            }
+            return;
+        }
+
+        // W-208: per-client rate limit (after parse so requestId can be echoed)
         const now = Date.now();
         const timestamps = client?.messageTimestamps || [];
         const windowStart = now - interval;
         const recent = timestamps.filter(t => t > windowStart);
+        if (recent.length === 0 && client) {
+            client.rateLimitNotified = false;
+        }
         if (recent.length >= maxMessages) {
+            dropped.rateLimit++;
             LogController.logInfo(ctx, 'websocket._onMessage', `Rate limit exceeded: ${recent.length} in ${interval}ms`);
+            const requestId = message.requestId || null;
+            const shouldNotify = !!requestId || !client?.rateLimitNotified;
+            if (shouldNotify) {
+                if (!requestId && client) client.rateLimitNotified = true;
+                const oldest = recent[0] || now;
+                const retryAfterMs = Math.max(0, interval - (now - oldest));
+                this._sendRejection(client,
+                    `Rate limit exceeded: ${maxMessages} messages per ${interval}ms`,
+                    'RATE_LIMIT_EXCEEDED',
+                    { maxMessages, interval, retryAfterMs },
+                    requestId
+                );
+                this._addActivityLog(namespace.path, 'rejected', {
+                    code: 'RATE_LIMIT_EXCEEDED',
+                    maxMessages,
+                    interval,
+                    requestId
+                });
+            }
             return;
         }
         recent.push(now);
         if (client) client.messageTimestamps = recent;
 
-        try {
-            const message = JSON.parse(data.toString());
+        // Add username to incoming message
+        message.username = ctx?.username || '';
 
-            // Add username to incoming message
-            message.username = ctx?.username || '';
+        // Log activity (skip ping/pong)
+        if (message.type !== 'ping' && message.type !== 'pong') {
+            this._addActivityLog(namespace.path, 'received', message);
+        }
 
-            // Log activity (skip ping/pong)
-            if (message.type !== 'ping' && message.type !== 'pong') {
-                this._addActivityLog(namespace.path, 'received', message);
-            }
+        // Update stats
+        this._recordMessage(namespace);
 
-            // Update stats
-            this._recordMessage(namespace);
-
-            // Call onMessage handler (W-155: conn = { clientId, message, ctx })
-            if (namespace._onMessage) {
-                try {
-                    const conn = { clientId, message, ctx };
-                    const result = namespace._onMessage(conn);
-                    if (result != null && typeof result.then === 'function') {
-                        await result;
+        // Call onMessage handler (W-155: conn = { clientId, message, ctx }; W-208: + reply helpers)
+        if (namespace._onMessage) {
+            const conn = {
+                clientId,
+                message,
+                ctx,
+                _replied: false,
+                reply: (replyData) => {
+                    if (conn._replied) return false;
+                    const c = namespace.clients.get(clientId);
+                    if (!c || c.ws.readyState !== 1) return false;
+                    conn._replied = true;
+                    const out = this._formatMessage(true, replyData);
+                    if (message.requestId) out.requestId = message.requestId;
+                    c.ws.send(JSON.stringify(out));
+                    this._recordMessage(namespace);
+                    return true;
+                },
+                replyError: (error, code = 500) => {
+                    if (conn._replied) return false;
+                    const c = namespace.clients.get(clientId);
+                    if (!c || c.ws.readyState !== 1) return false;
+                    conn._replied = true;
+                    const out = this._formatMessage(false, null, error, code);
+                    if (message.requestId) out.requestId = message.requestId;
+                    c.ws.send(JSON.stringify(out));
+                    return true;
+                }
+            };
+            try {
+                const result = namespace._onMessage(conn);
+                if (result != null && typeof result.then === 'function') {
+                    await result;
+                }
+                // W-208: fail fast if a correlated request was not answered
+                if (message.requestId && !conn._replied) {
+                    conn.replyError('No reply from handler', 'NO_REPLY');
+                }
+            } catch (error) {
+                LogController.logError(ctx, 'websocket._onMessage', `onMessage error: ${error.message}`);
+                if (!conn._replied) {
+                    const errorMsg = this._formatMessage(false, null, error.message, 500);
+                    errorMsg.username = '';
+                    if (message.requestId) errorMsg.requestId = message.requestId;
+                    const c = namespace.clients.get(clientId);
+                    if (c && c.ws.readyState === 1) {
+                        c.ws.send(JSON.stringify(errorMsg));
                     }
-                } catch (error) {
-                    LogController.logError(ctx, 'websocket._onMessage', `onMessage error: ${error.message}`);
-                    // Send error back to client
-                    const client = namespace.clients.get(clientId);
-                    if (client) {
-                        const errorMsg = this._formatMessage(false, null, error.message, 500);
-                        errorMsg.username = ''; // System message
-                        client.ws.send(JSON.stringify(errorMsg));
-                    }
+                    conn._replied = true;
                 }
             }
-
-        } catch (error) {
-            LogController.logError(ctx, 'websocket._onMessage', `error: ${error.message}`);
-            // Send error back to client
-            const clientForSend = namespace.clients.get(clientId);
-            if (clientForSend) {
-                const errorMsg = this._formatMessage(false, null, 'Invalid message format', 400);
-                errorMsg.username = ''; // System message
-                clientForSend.ws.send(JSON.stringify(errorMsg));
-            }
+        } else if (message.requestId) {
+            // No handler registered — still answer correlated requests
+            this._sendRejection(client, 'No reply from handler', 'NO_REPLY', null, message.requestId);
         }
     }
 
@@ -885,6 +1043,20 @@ class WebSocketController {
     static _onDisconnect(clientId, namespace) {
         const client = namespace.clients.get(clientId);
         const ctx = client?.ctx || null;
+
+        // W-208: resolve any server→client requests still waiting on this client
+        for (const [requestId, pending] of this.pendingRequests) {
+            if (pending.clientId === clientId && pending.namespacePath === namespace.path) {
+                clearTimeout(pending.timer);
+                this.pendingRequests.delete(requestId);
+                pending.resolve({
+                    success: false,
+                    error: 'Connection lost',
+                    code: 'CONNECTION_LOST',
+                    requestId
+                });
+            }
+        }
 
         // Remove client first so onDisconnect handler sees correct client count (e.g. for user-left broadcast)
         namespace.clients.delete(clientId);
@@ -898,6 +1070,66 @@ class WebSocketController {
                 LogController.logError(ctx, 'websocket._onDisconnect', `onDisconnect error: ${error.message}`);
             }
         }
+    }
+
+    /**
+     * Send a request to a specific client and await its reply (W-208, server→client).
+     * Always resolves (never rejects) with `{ success, data?, error?, code?, requestId? }`.
+     *
+     * @param {string} clientId
+     * @param {string} namespacePath
+     * @param {Object} data - App payload ({ type, data } convention)
+     * @param {Object} [options] - { timeoutMs?, ctx? }
+     * @returns {Promise<{ success: boolean, data?: Object, error?: string, code?: string, requestId?: string }>}
+     */
+    static request(clientId, namespacePath, data, options = {}) {
+        const timeoutMs = options.timeoutMs ?? 30000;
+        const namespace = this.namespaces.get(namespacePath);
+        const client = namespace?.clients?.get(clientId);
+        if (!client || client.ws?.readyState !== 1) {
+            return Promise.resolve({
+                success: false,
+                error: 'Client not connected',
+                code: 'NOT_CONNECTED'
+            });
+        }
+
+        const requestId = global.CommonUtils.generateUuid();
+        return new Promise((resolve) => {
+            const timer = setTimeout(() => {
+                this.pendingRequests.delete(requestId);
+                resolve({
+                    success: false,
+                    error: 'Request timed out',
+                    code: 'REQUEST_TIMEOUT',
+                    requestId
+                });
+            }, timeoutMs);
+
+            this.pendingRequests.set(requestId, {
+                resolve,
+                timer,
+                clientId,
+                namespacePath
+            });
+
+            const payload = { ...data, ctx: options.ctx ?? DEFAULT_CTX };
+            const message = this._formatMessage(true, payload);
+            message.requestId = requestId;
+            try {
+                client.ws.send(JSON.stringify(message));
+                this._recordMessage(namespace);
+            } catch (error) {
+                clearTimeout(timer);
+                this.pendingRequests.delete(requestId);
+                resolve({
+                    success: false,
+                    error: error.message,
+                    code: 'NOT_CONNECTED',
+                    requestId
+                });
+            }
+        });
     }
 
     /**
@@ -1207,20 +1439,25 @@ class WebSocketController {
 
     /**
      * Format message in standard API format
+     * W-208: optional details for machine-readable rejection context
      * @private
      */
-    static _formatMessage(success, data, error = null, code = null) {
+    static _formatMessage(success, data, error = null, code = null, details = null) {
         if (success) {
             return {
                 success: true,
                 data
             };
         } else {
-            return {
+            const msg = {
                 success: false,
                 error,
                 code
             };
+            if (details != null) {
+                msg.details = details;
+            }
+            return msg;
         }
     }
 
@@ -1295,12 +1532,15 @@ class WebSocketController {
         const namespace = this.namespaces.get(path);
         if (!namespace) return null;
 
+        const dropped = namespace.stats.dropped || { oversize: 0, rateLimit: 0, invalid: 0 };
         return {
             path,
             clientCount: namespace.clients.size,
             totalMessages: namespace.stats.totalMessages,
             messagesPerMin: this._calculateMessagesPerMinute(namespace),
-            lastActivity: new Date(namespace.stats.lastActivity).toISOString()
+            lastActivity: new Date(namespace.stats.lastActivity).toISOString(),
+            dropped,
+            limits: this.getEffectiveLimits(namespace)
         };
     }
 }

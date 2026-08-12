@@ -4,8 +4,8 @@
  * @tagline         Routing and Vue.js Logic for WebSocket Demo SPA
  * @description     This file defines the Vue.js application logic for the WebSocket demo
  * @file            site/webapp/view/hello-websocket/templates/routing.tmpl
- * @version         1.7.11
- * @release         2026-08-11
+ * @version         1.7.12
+ * @release         2026-08-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -27,6 +27,7 @@
 {{file.include "hello-websocket/templates/todo-demo.tmpl"}}
 {{file.include "hello-websocket/templates/sticky-notes-demo.tmpl"}}
 {{file.include "hello-websocket/templates/dynamic-rooms.tmpl"}}
+{{file.include "hello-websocket/templates/request-response-demo.tmpl"}}
 {{file.include "hello-websocket/templates/code-examples.tmpl"}}
 {{file.include "hello-websocket/templates/architecture.tmpl"}}
 
@@ -70,6 +71,13 @@ window.helloWebSocketRoutes = [
         description: 'Dynamic namespaces per room'
     },
     {
+        hash: 'request-response',
+        component: 'RequestResponseDemo',
+        title: 'Request / Response',
+        icon: '🔁',
+        description: 'ws.request, conn.reply, message limits'
+    },
+    {
         hash: 'code',
         component: 'CodeExamples',
         title: 'Code Examples',
@@ -92,6 +100,7 @@ const HelloWebSocketApp = {
         'todoView': window.helloWebSocketViews.TodoDemo,
         'stickyNotesView': window.helloWebSocketViews.StickyNotesDemo,
         'dynamicRoomsView': window.helloWebSocketViews.DynamicRooms,
+        'requestResponseView': window.helloWebSocketViews.RequestResponseDemo,
         'codeView': window.helloWebSocketViews.CodeExamples,
         'architectureView': window.helloWebSocketViews.Architecture
     },
@@ -147,6 +156,7 @@ const HelloWebSocketApp = {
                 <todoView v-if="currentView === 'todo'"></todoView>
                 <stickyNotesView v-if="currentView === 'sticky-notes'"></stickyNotesView>
                 <dynamicRoomsView v-if="currentView === 'dynamic-rooms'"></dynamicRoomsView>
+                <requestResponseView v-if="currentView === 'request-response'"></requestResponseView>
                 <codeView v-if="currentView === 'code'"></codeView>
                 <architectureView v-if="currentView === 'architecture'"></architectureView>
             </div>

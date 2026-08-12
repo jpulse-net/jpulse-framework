@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.7.11
+# jPulse Docs / REST API Reference v1.7.12
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -383,20 +383,27 @@ export default class ProductController {
 
 > **📖 Full guide:** [WebSocket Real-Time Communication](websockets.md) — setup, patterns, client API, dynamic namespaces (path patterns, onCreate, removeNamespace), conn = { clientId, ctx }, public access (whitelist), message limits, reconnect/missed-updates handling, and [session re-validation for write handlers](websockets.md#session-security-server-side) (`WebSocketController.revalidateClientSession`).
 
-Server-side WebSocket namespaces are created with `WebSocketController.createNamespace(path, options?)`. Handlers receive **conn** = `{ clientId, ctx }` (onMessage adds `message`); pass **ctx** to `broadcast()` and `sendToClient()` for logging and Redis relay.
+Server-side WebSocket namespaces are created with `WebSocketController.createNamespace(path, options?)`. Handlers receive **conn** = `{ clientId, ctx }` (onMessage adds `message`, `reply`, `replyError`); pass **ctx** to `broadcast()` and `sendToClient()` for logging and Redis relay.
 
 **Create namespace (chainable):**
 ```javascript
-const ns = WebSocketController.createNamespace('/api/1/ws/my-app', { requireAuth: false, requireRoles: [] });
+const ns = WebSocketController.createNamespace('/api/1/ws/my-app', {
+    requireAuth: false,
+    requireRoles: [],
+    messageLimits: { maxSize: 1048576 }   // optional per-namespace override
+});
 ns.onConnect((conn) => {}).onMessage((conn) => {}).onDisconnect((conn) => {});
 ```
 
-- **conn**: `{ clientId, ctx }` (onMessage also has `message`). **ctx** = `{ username?, ip?, roles?, firstName?, lastName?, initials?, params?, isPublic? }` for identity and logging; **isPublic** is set when the client connected via public access (whitelisted namespace and `controller.websocket.publicAccess.enabled`).
+- **conn**: `{ clientId, ctx }` (onMessage also has `message`, `reply`, `replyError`). **ctx** = `{ username?, ip?, roles?, firstName?, lastName?, initials?, params?, isPublic? }` for identity and logging; **isPublic** is set when the client connected via public access (whitelisted namespace and `controller.websocket.publicAccess.enabled`).
 - **ns.broadcast(data, ctx)**: Send to all clients. **ctx** = `conn.ctx` in handlers or `null` when broadcasting from REST.
 - **ns.sendToClient(clientId, data, ctx)**: Send to one client.
-- **ns.getStats()**: Namespace statistics (e.g. `clientCount`).
-- **Payload**: App payload is `{ type, data, ctx }`; framework adds ctx to wire and Redis.
-- **Config** (`app.conf` → `controller.websocket`): **publicAccess** (`enabled`, `whitelisted`) for non-admin access to whitelisted namespaces with filtered stats; **messageLimits** (`maxSize`, `interval`, `maxMessages`) for DoS protection. See [websockets.md](websockets.md#public-access-demo--non-admin).
+- **ns.getStats()**: Namespace statistics (e.g. `clientCount`, `dropped`, `limits`).
+- **conn.reply(data) / conn.replyError(error, code?)**: Answer a client `ws.request()`; echoes top-level `requestId`.
+- **WebSocketController.request(clientId, path, data, { timeoutMs?, ctx? })**: Server→client request; always resolves `{ success, data?, error?, code?, requestId? }`.
+- **Payload**: App payload is `{ type, data, ctx }`; framework adds ctx to wire and Redis. Optional top-level `requestId` for request/response.
+- **Config** (`app.conf` → `controller.websocket`): **publicAccess** (`enabled`, `whitelisted`) for non-admin access to whitelisted namespaces with filtered stats; **messageLimits** (`maxSize`, `maxPayload`, `interval`, `maxMessages`) for DoS protection — per-namespace overrides via `createNamespace({ messageLimits })`. Rejections use codes `MESSAGE_TOO_LARGE` / `RATE_LIMIT_EXCEEDED` (not silent). See [websockets.md](websockets.md#message-limits-dos-protection).
+- **Client:** `ws.request(data, { timeoutMs? })` always resolves (never rejects); `ws.reply` / `ws.replyError` answer server-initiated requests; `ws.getLimits()` returns welcome limits. See [websockets.md — Pattern 6](websockets.md#pattern-6-requestresponse).
 - **Session re-validation:** `WebSocketController.revalidateClientSession(namespacePath, clientId)` returns `Promise<boolean>` — re-reads the session store from the client’s cookie (same pattern as the internal health check). Optional **before write operations** in `onMessage` when you need immediate consistency after logout in another tab; see [websockets.md — Session security](websockets.md#session-security-server-side).
 
 **Log context:** `CommonUtils.getLogContext(reqOrContext)` returns `{ username?, ip? }` for Express `req` or plain context; use for LogController when request is not available. Redis broadcast context: `RedisManager.getBroadcastContext(req)` for server-side broadcasts from REST handlers.

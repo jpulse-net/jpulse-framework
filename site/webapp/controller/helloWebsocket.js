@@ -3,8 +3,8 @@
  * @tagline         WebSocket Demo Controller for Real-Time Communication Examples
  * @description     Demonstrates WebSocket patterns: emoji cursor tracking and collaborative todo
  * @file            site/webapp/controller/helloWebsocket.js
- * @version         1.7.11
- * @release         2026-08-11
+ * @version         1.7.12
+ * @release         2026-08-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -39,7 +39,8 @@ class HelloWebsocketController {
         emoji: null,
         todo: null,
         notes: null,
-        rooms: null  // W-155: Dynamic rooms (pattern namespace)
+        rooms: null,  // W-155: Dynamic rooms (pattern namespace)
+        request: null // W-208: request/response demo
     };
 
     // Redis cache path for sticky notes (jPulse assumes Redis)
@@ -65,7 +66,87 @@ class HelloWebsocketController {
         // W-155: Register dynamic rooms namespace (pattern-based)
         this._registerRoomsNamespace();
 
+        // W-208: Register request/response demo namespace
+        this._registerRequestNamespace();
+
         LogController.logInfo(null, 'helloWebsocket.initialize', 'WebSocket namespaces registered successfully');
+    }
+
+    /**
+     * Register /api/1/ws/hello-request namespace for request/response + limits demo (W-208)
+     * Raised maxSize is intentional so the oversized button can still show client pre-check
+     * against the advertised limit (1 KB) without needing a huge payload.
+     * @private
+     */
+    static _registerRequestNamespace() {
+        const ns = WebSocketController.createNamespace('/api/1/ws/hello-request', {
+            requireAuth: false,
+            requireRoles: [],
+            messageLimits: { maxSize: 1024 }
+        });
+        this.wsHandles.request = ns;
+
+        ns.onConnect(({ clientId, ctx }) => {
+            LogController.logInfo(ctx, 'helloWebsocket.request.onConnect',
+                `Client ${clientId} connected to request/response demo`);
+        });
+
+        ns.onMessage(async (conn) => {
+            const { clientId, message, ctx } = conn;
+            const username = ctx?.username || 'guest';
+
+            if (message.type === 'echo') {
+                LogController.logInfo(ctx, 'helloWebsocket.request.onMessage',
+                    `${username} echo request`);
+                conn.reply({
+                    type: 'echo-result',
+                    data: {
+                        text: message.data?.text ?? '',
+                        echoedAt: new Date().toISOString(),
+                        clientId
+                    }
+                });
+                return;
+            }
+
+            if (message.type === 'ask-browser') {
+                // Server→client request: ask the browser, then answer the original client→server request
+                LogController.logInfo(ctx, 'helloWebsocket.request.onMessage',
+                    `${username} ask-browser (server will request client)`);
+                const browserRes = await WebSocketController.request(
+                    clientId,
+                    '/api/1/ws/hello-request',
+                    { type: 'get-browser-info', data: {} },
+                    { timeoutMs: 5000, ctx }
+                );
+                if (browserRes.success) {
+                    conn.reply({
+                        type: 'ask-browser-result',
+                        data: {
+                            browser: browserRes.data?.data || browserRes.data,
+                            serverSawAt: new Date().toISOString()
+                        }
+                    });
+                } else {
+                    conn.replyError(
+                        browserRes.error || 'Browser did not reply',
+                        browserRes.code || 'ERROR'
+                    );
+                }
+                return;
+            }
+
+            // Unknown type with requestId → NO_REPLY is automatic; without id, ignore
+            if (!message.requestId) {
+                LogController.logInfo(ctx, 'helloWebsocket.request.onMessage',
+                    `${username} unknown type: ${message.type}`);
+            }
+        });
+
+        ns.onDisconnect(({ clientId, ctx }) => {
+            LogController.logInfo(ctx, 'helloWebsocket.request.onDisconnect',
+                `Client ${clientId} disconnected from request/response demo`);
+        });
     }
 
     /**

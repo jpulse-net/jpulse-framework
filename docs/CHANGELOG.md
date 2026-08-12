@@ -1,6 +1,40 @@
-# jPulse Docs / Version History v1.7.11
+# jPulse Docs / Version History v1.7.12
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.12, W-208, 2026-08-12
+
+**Commit:** `W-208, v1.7.12: websocket: per-namespace message limits; error reporting; request helper`
+
+**Objective**: Let a namespace raise the inbound message size cap without raising it globally; stop silently dropping oversized or rate-limited messages so the client learns why; and support request/response over WebSocket in both directions so either side can send a message and await its reply — with "don't make me think" as the guiding DX principle (same envelope as `jPulse.api`, always resolve, one name `messageLimits` for config and `createNamespace`).
+
+**Summary**: `createNamespace(path, { messageLimits })` stores per-namespace `{ maxSize, interval, maxMessages }` with per-field fallback to `app.conf` → `controller.websocket.messageLimits`; pattern templates carry `messageLimits` to literal namespaces. Effective limits are advertised in the `connected` welcome message so the client can pre-check size before send. Socket-level `maxPayload` (default 1 MB) caps the `ws` server; close code 1009 is mapped on the client. `_onMessage` order is size → parse → rate limit → handler; oversize / rate-limit / invalid-JSON paths reply with `{ success: false, code, error, details? }` (`MESSAGE_TOO_LARGE` / `RATE_LIMIT_EXCEEDED` / legacy `400`) instead of silent `return`; rate-limit notices are one unsolicited notice per window (always reply when `requestId` is present). Drop counters `{ oversize, rateLimit, invalid }` and effective limits appear on the admin WebSocket status page; rejections log with direction `rejected`. Bidirectional request/response uses optional top-level `requestId`: client `ws.request()` / `ws.reply()` / `ws.replyError()` / `ws.getLimits()` (always resolves, never rejects — codes include `REQUEST_TIMEOUT`, `NOT_CONNECTED`, `CONNECTION_LOST`, `MESSAGE_TOO_LARGE`); server `conn.reply` / `conn.replyError` and `WebSocketController.request()`; auto `NO_REPLY` when a handler finishes without answering a correlated message. Hello-websocket demo: `/api/1/ws/hello-request` (1 KB cap) and `#request-response` tab (echo, ask-browser, send-oversized).
+
+**Key features**:
+- Per-namespace `messageLimits` with global per-field fallback; limits in welcome + client size pre-check; `maxPayload` socket ceiling
+- Rejection replies (`MESSAGE_TOO_LARGE` / `RATE_LIMIT_EXCEEDED`) with machine-readable `details`; drop counters on admin status
+- Bidirectional request/response (`ws.request` / `conn.reply` / `WebSocketController.request`) — always resolves like `jPulse.api`
+
+**Files changed**:
+- `webapp/controller/websocket.js`: `messageLimits`, `getEffectiveLimits()`, rejection replies, drop stats, `conn.reply` / `replyError`, `WebSocketController.request()`, `maxPayload`, welcome `limits`
+- `webapp/view/jpulse-common.js`: `request()`, `reply()`, `replyError()`, `getLimits()`, pending-request map, size pre-check, close 1009
+- `webapp/app.conf`: `messageLimits.maxPayload`; comments for per-namespace overrides
+- `webapp/view/admin/websocket-status.shtml` + `webapp/translations/en.conf`, `de.conf`: Limits / Dropped rows
+- `webapp/tests/unit/controller/websocket.test.js`: W-208 cases (limits, rejections, request helper)
+- `webapp/tests/unit/utils/jpulse-websocket-request.test.js` (new): client request/reply suite
+- `site/webapp/controller/helloWebsocket.js` + `hello-websocket` templates: `#request-response` demo namespace/tab
+- `docs/websockets.md`, `docs/api-reference.md`, `docs/security-and-auth.md`: limits, rejection codes, Pattern 6 rewrite
+- `docs/dev/work-items.md`: W-208 features/deliverables
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.7.12 / W-208
+- `docs/CHANGELOG.md`: this section
+
+Verified via `npx jest webapp/tests/unit/controller/websocket.test.js webapp/tests/unit/utils/jpulse-websocket-request.test.js` (66/66 pass) and live manual testing on `/hello-websocket/#request-response` plus `/admin/websocket-status.shtml` (per-namespace 1 KB vs 64 KB limits, echo, ask-browser, `MESSAGE_TOO_LARGE` pre-check).
+
+**Release**:
+- Work Item: W-208
+- Version: v1.7.12
+- Release Date: 2026-08-12
 
 ________________________________________________
 ## v1.7.11, W-207, 2026-08-11

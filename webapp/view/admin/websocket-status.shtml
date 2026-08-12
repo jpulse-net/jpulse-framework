@@ -4,8 +4,8 @@
  * @tagline         Real-time WebSocket server monitoring and status
  * @description     Admin-only page showing live WebSocket namespace status
  * @file            webapp/view/admin/websocket-status.shtml
- * @version         1.7.11
- * @release         2026-08-11
+ * @version         1.7.12
+ * @release         2026-08-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -230,8 +230,23 @@
             messagesPerMin: `{{i18n.view.admin.websocketStatus.messagesPerMin}}`,
             totalMessages: `{{i18n.view.admin.websocketStatus.totalMessagesLabel}}`,
             lastActivity: `{{i18n.view.admin.websocketStatus.lastActivity}}`,
-            noActiveNamespaces: `{{i18n.view.admin.websocketStatus.noActiveNamespaces}}`
+            noActiveNamespaces: `{{i18n.view.admin.websocketStatus.noActiveNamespaces}}`,
+            limits: `{{i18n.view.admin.websocketStatus.limits}}`,
+            dropped: `{{i18n.view.admin.websocketStatus.dropped}}`
         };
+
+        function formatLimits(limits) {
+            if (!limits) return '—';
+            const kb = Math.round((limits.maxSize || 0) / 1024);
+            return `${kb} KB · ${limits.maxMessages} / ${limits.interval} ms`;
+        }
+
+        function formatDropped(dropped) {
+            if (!dropped) return '0';
+            const total = (dropped.oversize || 0) + (dropped.rateLimit || 0) + (dropped.invalid || 0);
+            if (total === 0) return '0';
+            return `${total} (${dropped.oversize || 0} oversize, ${dropped.rateLimit || 0} rate, ${dropped.invalid || 0} invalid)`;
+        }
 
         // Update overview statistics
         function updateOverviewStats(stats) {
@@ -275,6 +290,14 @@
                         <span class="jp-metric-value">${ns.totalMessages.toLocaleString()}</span>
                     </div>
                     <div class="jp-metric-row">
+                        <span class="jp-metric-label">${i18n.limits}</span>
+                        <span class="jp-metric-value">${formatLimits(ns.limits)}</span>
+                    </div>
+                    <div class="jp-metric-row">
+                        <span class="jp-metric-label">${i18n.dropped}</span>
+                        <span class="jp-metric-value">${formatDropped(ns.dropped)}</span>
+                    </div>
+                    <div class="jp-metric-row">
                         <span class="jp-metric-label">${i18n.lastActivity}</span>
                         <span class="jp-metric-value">${jPulse.date.formatLocalTime(ns.lastActivity)}</span>
                     </div>
@@ -295,6 +318,9 @@
 
         // Determine activity type from message content
         function getActivityType(message, direction) {
+            if (direction === 'rejected') {
+                return 'error';
+            }
             const msg = message.toLowerCase();
 
             // Error indicators

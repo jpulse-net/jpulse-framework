@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.7.11
- * @release         2026-08-11
+ * @version         1.7.12
+ * @release         2026-08-12
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -10877,6 +10877,9 @@ window.jPulse = {
      *     .onMessage((msg) => { if (msg.success) console.log(msg.data); })
      *     .onStatusChange(status => console.log(status));
      *   ws.send({ type: 'action', data: {...} });
+     *   // Request/response (W-208) — always resolves, never throws:
+     *   const res = await ws.request({ type: 'get-data', data: { id: 1 } });
+     *   if (res.success) { use(res.data); }
      */
     ws: {
         // Active connections registry
@@ -10889,7 +10892,8 @@ window.jPulse = {
             maxReconnectAttempts: 10,
             reconnectInterval: 5000,
             pingInterval: 30000,          // 30 seconds
-            uuidStorage: 'session'        // 'session' | 'local' | 'memory'
+            uuidStorage: 'session',       // 'session' | 'local' | 'memory'
+            requestTimeoutMs: 30000       // W-208: default for ws.request()
         },
 
         // Memory storage for 'memory' mode
@@ -11001,12 +11005,44 @@ window.jPulse = {
                 reconnectTimer: null,
                 pingTimer: null,
                 shouldReconnect: true,
-                uuid: clientUUID // Store UUID directly on connection object
+                uuid: clientUUID, // Store UUID directly on connection object
+                // W-208: effective limits from server welcome; pending client→server requests
+                limits: null,
+                pendingRequests: new Map()
             };
 
             // Add getConnection method to the connection object
             connection.getConnection = function() {
                 return { uuid: this.uuid };
+            };
+
+            /**
+             * Resolve all outstanding requests with an error envelope (W-208).
+             * @private
+             */
+            const settlePending = (error, code) => {
+                connection.pendingRequests.forEach((pending, requestId) => {
+                    clearTimeout(pending.timer);
+                    pending.resolve({
+                        success: false,
+                        error,
+                        code,
+                        requestId
+                    });
+                });
+                connection.pendingRequests.clear();
+            };
+
+            /**
+             * Byte length of a payload about to be sent (W-208 size pre-check).
+             * @private
+             */
+            const payloadByteLength = (data) => {
+                try {
+                    return new TextEncoder().encode(JSON.stringify(data)).length;
+                } catch (e) {
+                    return 0;
+                }
             };
 
             // Create connection handle (public API)
@@ -11017,13 +11053,119 @@ window.jPulse = {
                  * @returns {boolean} True if sent successfully
                  */
                 send: (data) => {
-                    if (connection.ws && connection.ws.readyState === WebSocket.OPEN) {
-                        connection.ws.send(JSON.stringify(data));
-                        return true;
+                    if (!connection.ws || connection.ws.readyState !== WebSocket.OPEN) {
+                        console.warn('- jPulse.ws: Cannot send, connection not open');
+                        return false;
                     }
-                    console.warn('- jPulse.ws: Cannot send, connection not open');
-                    return false;
+                    // W-208: client-side size pre-check when limits are known
+                    const maxSize = connection.limits?.maxSize;
+                    if (typeof maxSize === 'number') {
+                        const size = payloadByteLength(data);
+                        if (size > maxSize) {
+                            console.warn(`- jPulse.ws: Message too large: ${size} > ${maxSize}`);
+                            return false;
+                        }
+                    }
+                    connection.ws.send(JSON.stringify(data));
+                    return true;
                 },
+
+                /**
+                 * Send a request and await the matching reply (W-208).
+                 * Always resolves (never rejects) with `{ success, data?, error?, code?, details?, requestId? }`.
+                 * @param {Object} data - Payload to send (requestId is attached automatically)
+                 * @param {Object} [options] - { timeoutMs? }
+                 * @returns {Promise<Object>}
+                 */
+                request: (data, options = {}) => {
+                    const timeoutMs = options.timeoutMs ?? connection.config.requestTimeoutMs ?? 30000;
+                    if (!connection.ws || connection.ws.readyState !== WebSocket.OPEN) {
+                        return Promise.resolve({
+                            success: false,
+                            error: 'Connection not open',
+                            code: 'NOT_CONNECTED'
+                        });
+                    }
+                    const requestId = jPulse.ws._generateUUID();
+                    const payload = { ...data, requestId };
+                    const maxSize = connection.limits?.maxSize;
+                    if (typeof maxSize === 'number') {
+                        const size = payloadByteLength(payload);
+                        if (size > maxSize) {
+                            return Promise.resolve({
+                                success: false,
+                                error: `Message too large: ${size} > ${maxSize}`,
+                                code: 'MESSAGE_TOO_LARGE',
+                                details: { size, limit: maxSize },
+                                requestId
+                            });
+                        }
+                    }
+                    return new Promise((resolve) => {
+                        const timer = setTimeout(() => {
+                            connection.pendingRequests.delete(requestId);
+                            resolve({
+                                success: false,
+                                error: 'Request timed out',
+                                code: 'REQUEST_TIMEOUT',
+                                requestId
+                            });
+                        }, timeoutMs);
+                        connection.pendingRequests.set(requestId, { resolve, timer });
+                        try {
+                            connection.ws.send(JSON.stringify(payload));
+                        } catch (err) {
+                            clearTimeout(timer);
+                            connection.pendingRequests.delete(requestId);
+                            resolve({
+                                success: false,
+                                error: err.message || 'Send failed',
+                                code: 'NOT_CONNECTED',
+                                requestId
+                            });
+                        }
+                    });
+                },
+
+                /**
+                 * Reply to a server-initiated request (W-208).
+                 * @param {Object} message - The inbound wire message that carried requestId
+                 * @param {Object} data - Reply payload
+                 * @returns {boolean}
+                 */
+                reply: (message, data) => {
+                    if (!message?.requestId) {
+                        console.warn('- jPulse.ws: reply() requires message.requestId');
+                        return false;
+                    }
+                    return connection.handle.send({ ...data, requestId: message.requestId });
+                },
+
+                /**
+                 * Reply with an error to a server-initiated request (W-208).
+                 * @param {Object} message - The inbound wire message that carried requestId
+                 * @param {string} error - Error message
+                 * @param {string|number} [code='ERROR']
+                 * @returns {boolean}
+                 */
+                replyError: (message, error, code = 'ERROR') => {
+                    if (!message?.requestId) {
+                        console.warn('- jPulse.ws: replyError() requires message.requestId');
+                        return false;
+                    }
+                    return connection.handle.send({
+                        success: false,
+                        error,
+                        code,
+                        requestId: message.requestId
+                    });
+                },
+
+                /**
+                 * Effective message limits from the server welcome (W-208), or null before connect.
+                 * @returns {{ maxSize: number, interval: number, maxMessages: number }|null}
+                 */
+                getLimits: () => connection.limits,
 
                 /**
                  * Register message handler
@@ -11064,6 +11206,7 @@ window.jPulse = {
                     if (connection.pingTimer) {
                         clearInterval(connection.pingTimer);
                     }
+                    settlePending('Connection closed', 'CONNECTION_LOST');
                     if (connection.ws) {
                         connection.ws.close();
                     }
@@ -11078,6 +11221,9 @@ window.jPulse = {
                     return connection.status === 'connected';
                 }
             };
+
+            // Expose settle helper for reconnect/close paths
+            connection._settlePending = settlePending;
 
             // Store connection
             this._connections.set(path, connection);
@@ -11128,7 +11274,21 @@ window.jPulse = {
                             return; // Handled by onclose with code 4401
                         }
 
-                        // Call message handlers with single param: full wire message { success, data?, error?, code? }
+                        // W-208: capture effective limits from welcome
+                        if (message.success && message.data?.type === 'connected' && message.data.limits) {
+                            connection.limits = message.data.limits;
+                        }
+
+                        // W-208: correlated reply to a client→server request — consume, do not re-deliver
+                        if (message.requestId && connection.pendingRequests.has(message.requestId)) {
+                            const pending = connection.pendingRequests.get(message.requestId);
+                            connection.pendingRequests.delete(message.requestId);
+                            clearTimeout(pending.timer);
+                            pending.resolve(message);
+                            return;
+                        }
+
+                        // Call message handlers with single param: full wire message { success, data?, error?, code?, requestId? }
                         connection.messageCallbacks.forEach(callback => {
                             try {
                                 callback(message);
@@ -11151,6 +11311,12 @@ window.jPulse = {
                         connection.pingTimer = null;
                     }
 
+                    // W-208: outstanding requests cannot survive a socket change
+                    if (typeof connection._settlePending === 'function') {
+                        connection._settlePending('Connection lost', 'CONNECTION_LOST');
+                    }
+                    connection.limits = null;
+
                     // Auth-terminal close codes — surface as 'auth-required' and suppress auto-reconnect.
                     // 4401 = session expired, 4403 = access denied. Retrying on the same socket with
                     // the same identity cannot succeed, so the app should redirect to login / show
@@ -11163,6 +11329,11 @@ window.jPulse = {
                         jPulse.ws._connections.delete(connection.path);
                         this._updateStatus(connection, 'auth-required');
                         return;
+                    }
+
+                    // W-208: 1009 = message too big at the socket layer (maxPayload)
+                    if (event.code === 1009) {
+                        console.warn(`- jPulse.ws: Message too large (close 1009) on ${connection.path}`);
                     }
 
                     // Attempt reconnection if appropriate

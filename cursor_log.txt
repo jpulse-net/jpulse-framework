@@ -21997,7 +21997,6 @@ Reviewed live verification: startup clean — maxPayload 1048576 in merged confi
 
 
 ============================================================
-
 2026-08-12 13:27
 
 release prep:
@@ -22009,6 +22008,40 @@ release prep:
 - append to cursor_log.txt
 
 Diff matches W-208: websocket.js limits/rejections/request, jpulse-common request/reply, admin status, app.conf maxPayload, hello-request demo + tests (incl. untracked request-response-demo.tmpl and jpulse-websocket-request.test.js), websockets + api-reference docs. Polished W-208 features/deliverables (getLimits, totalDropped, demo path, security-and-auth); left status untouched. Release docs: README + docs/README highlights, CHANGELOG v1.7.12, security-and-auth limits note, commit-message.txt. No version bump, no commit.
+
+
+============================================================
+2026-08-12 14:16
+
+next work item: W-209, v1.7.13, 2026-08-13: plugins: extensibe hook registry
+- review design doc, review work item, ask questions if unclear
+- suggest change of spec if any, goal is good DX/usability/onboarding, "don't make me think"
+- plan how to implement (wait for go ahead)
+- review design doc for consistency: prefer long term maintainability over backward compatibility; ok to change existing implementation; should onPluginConfigBeforeSave be changed? is GET /api/1/hook the proper namespace, or fold under /api/1/plugins?
+- update design doc, update work item; wait with implementation; list changed functions that might break existing site/plugin code
+
+Reviewed W-209 design doc against the actual code and found the draft wrong on several points, then settled the spec with the user and rewrote both docs (no implementation).
+
+Code review findings: hook docs are ALREADY generated (W-105 %DYNAMIC{plugins-hooks-list-table}% in markdown.js -> docs/plugins/plugin-hooks.md; api-reference.md has no hook table), so `context`/`canModify` are load-bearing and cannot be replaced by contextKeys/returns; framework definitions must live in one eagerly-loaded seed module or the no-bootstrap test suite sees an empty catalog; the return-false cancellation contract does NOT work (execute() assigns false into the context, user.js then reads .userData off false); executeWithCancel() and executeFirst() have zero production callers; onUserBeforeDelete/onUserAfterDelete/onUserSyncProfile are never fired (no UserModel.delete() exists); execute() hard-codes `hookName === 'onGetInstanceStats'`; only PluginManager reads `static hooks` so site code cannot auto-register handlers; and /api/1/plugin/dependencies is unreachable in routes.js (registered after /api/1/plugin/:name).
+
+Decisions taken: vocabulary is define (producer) / register+handle (consumer) -> defineHook()/defineHooks() + `static hookDefinitions`, `static hooks` unchanged (matches T-092 §10.1); only `description` required, everything else defaults/derives; cancellation unified on throw-to-abort with declared `onError: continue|abort` (defaults reproduce today's per-mode behavior), executeWithCancel() and return-false deleted, onUserBeforeSave becomes a real veto point, onPluginConfigBeforeSave stops being an exception; onGetInstanceStats -> onSystemGetStats; the three unfired hooks marked `stability: 'planned'` plus a CI scan test that every non-planned framework definition has a fire site; site controllers gain `static hooks` auto-registration via HookManager.registerFromClass(); audit gains edit-distance did-you-mean and runs after bootstrap step 14; GET /api/1/hook stays top-level and singular (nesting under /api/1/plugin would be a lie for framework/site hooks and shadowed by :name), with the routes.js reorder folded in.
+
+Rewrote docs/dev/design/W-209-extensible-hooks.md (18 sections: added §4.2 review findings, §9 planned-hook policy, §10 cancellation/error policy, §12 compatibility + breaking-change table, §16 five-commit plan) and updated the W-209 work item's objectives/context/features/deliverables/notes in docs/dev/work-items.md - status and section placement left untouched. Implementation deferred pending go-ahead; reported the five breaking changes (executeWithCancel removal, return-false removal, onUserBeforeSave abort, hook rename, clear() narrowing) for site/plugin review.
+
+
+============================================================
+2026-08-12 15:38
+
+here is the usage on framework plugins, bubblemap.net, and jpuse.net:
+[egrep output for onUserBeforeSave|executeWithCancel|onGetInstanceStats|HookManager.clear across all three deployments]
+
+The scan disproved my "executeWithCancel has zero production callers" claim - that came from searching the framework repo alone, where .gitignore excludes plugins/* apart from hello-world, so auth-mfa and auth-oauth were on disk but invisible to my search, and the site repos were out of scope entirely.
+
+Real finding: BubbleMap already ships a site-defined hook, onBubbleWidgetConfigBeforeSave, guarding Custom Script authorization - the first real third-party hook in the ecosystem, currently undefined in any catalog. Read both sides: BubbleController._checkWidgetConfigSaveHook() passes a `message` field INTO the context so a vetoing handler has somewhere to put its reason (a hand-rolled channel for what a thrown Error carries natively), and widget-chart-core wraps its handler in a try/catch whose comment says executeWithCancel "would otherwise swallow a thrown error and fail OPEN ... which is the wrong default for a security gate". So the one place the framework's cancellation story was used in earnest had to hand-build both halves of what W-209's onError policy provides - evidence that strengthens the design rather than undermining it. User confirmed: still delete executeWithCancel, migrate BubbleMap.
+
+Full ecosystem handler inventory (--no-ignore + both site checkouts): auth-oauth (onAuthGetLoginProviders, onAuthGetSteps, onAuthValidateStep, onPluginConfigBeforeSave), auth-mfa (onAuthGetSteps, onAuthValidateStep, onAuthGetWarnings, onGetInstanceStats), hello-world (onAuthAfterLogin, onAuthBeforeSession), widget-chart-core (onBubbleWidgetConfigBeforeSave). Nothing registers onUserBeforeSave, so that breaking change has no real consumer; nothing registers the three `planned` hooks either.
+
+Updated docs/dev/design/W-209-extensible-hooks.md: corrected §4.2 (executeFirst has no caller, executeWithCancel has one, plus the gitignore blind spot), corrected the §10.1 bullet and the header decision list, added §10.4 on the one existing consumer and what its migration deletes, added §12.1 ecosystem inventory and §12.2 migration table (~15 lines across 3 bubblemap files + auth-mfa in three deployments, net negative), and added a paragraph to §1 noting the need is already real. Mirrored all of it into the W-209 work item's context/features/notes; status and section placement untouched. Still no implementation.
 
 
 ============================================================

@@ -7823,19 +7823,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - prerequisite for the BubbleMap AI Agent work (T-092), which needs a call site for its "AI Agent" config tab extension and its tool registry — that call site is `static async initialize()`; T-092's open question is answered by the docs deliverable here rather than by new machinery
   - existing behavior is the compatibility gate: every controller that defines `initialize()` today still runs, only the order between them becomes defined
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-208, v1.7.12, 2026-08-12: websocket: per-namespace message limits; error reporting; request helper
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - let a namespace raise the inbound message size cap without raising it globally
@@ -7890,6 +7879,86 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-209, v1.7.13, 2026-08-13: plugins: extensibe hook registry
+- status: 🕑 PENDING
+- type: Feature
+- design doc: docs/dev/design/W-209-extensible-hooks.md
+- objectives:
+  - let plugins and site code define their own hooks, so the framework never carries a domain-specific hook vocabulary
+  - make the hook catalog machine-readable and queryable by name and property, instead of a hard-coded literal
+  - make the catalog *honest*: today it advertises cancellation that does not work and hooks that never fire
+- context:
+  - `HookManager.getAvailableHooks()` is a fixed object literal holding the 15 hooks the framework fires, in four buckets — authentication (8), user lifecycle (5), plugin config (1, `onPluginConfigBeforeSave`), system/metrics (1, `onGetInstanceStats`) — with each entry carrying a description, a prose `context` string, `canModify`, and `canCancel`
+  - `isValidHook()` only *warns* on an unknown name and registers the handler anyway, so a third-party hook works today but is undocumented, unqueryable, and indistinguishable from a typo
+  - **almost no new execution machinery is needed**, and one mode is *removed*: `execute()`, `executeFirst()` (first non-null wins) and `executeForPlugin()` (targeted, errors propagate to abort the caller, W-200) cover the known cases, and `hasHandlers()` / `unregister()` / `getRegisteredHooks()` already exist. What is missing is only the definition and introspection layer
+  - the design conflates two roles: the *producer* that owns a hook's contract and fires it, and the *consumer* that registers a handler. The framework being the only producer is exactly why the catalog can be a literal
+  - review findings that corrected the first draft of the design (see design doc §4.2 for the full list):
+    - hook documentation is **already generated** — `docs/plugins/plugin-hooks.md` renders the catalog through W-105's `%DYNAMIC{plugins-hooks-list-table}%` generators in `webapp/controller/markdown.js`; `docs/api-reference.md` has no hook table at all, only a prose link. So `context` and `canModify` are load-bearing fields that a "declaration" replacing them with `contextKeys` / `returns` would render as `undefined`
+    - framework definitions cannot be scattered across the modules that fire them: the hook-manager test suite imports `HookManager` with no bootstrap and expects a populated catalog, so they need one eagerly-loaded seed module
+    - the return-`false` cancellation contract **does not work**: `onUserBeforeSave` is documented `canCancel: true` but every fire site uses `execute()`, which assigns the `false` into the context — `webapp/model/user.js` then reads `.userData` off `false` and the save crashes obscurely instead of cancelling. W-200 already recorded this as "aspirational/inaccurate"; `webapp/controller/user.js` even carries a comment documenting the broken contract
+    - `executeFirst()` has **no production caller** anywhere — only its own unit tests and design docs; kept regardless as the natural dispatch mode T-092 wants
+    - `executeWithCancel()` has **exactly one production caller, and it is a security gate**: BubbleMap's site-defined `onBubbleWidgetConfigBeforeSave`, guarding whether a user may add or change a Custom Script stage. An earlier draft claimed it had none — that came from searching the framework repo alone, where `.gitignore` excludes `plugins/*` apart from `hello-world`, so even the locally installed plugins were invisible; the real inventory (design doc §12.1) was taken with `--no-ignore` plus a scan of both site checkouts
+    - that one consumer independently hand-built **both** halves of this item's replacement (design doc §10.4): the producer passes a `message` field into the context so a vetoing handler has somewhere to put its reason (a hand-rolled channel for what a thrown `Error` carries natively), and the handler wraps itself in a `try`/`catch` whose comment states that `executeWithCancel` "would otherwise swallow a thrown error and fail OPEN ... which is the wrong default for a security gate". Both are deleted rather than ported
+    - `onUserBeforeDelete`, `onUserAfterDelete`, `onUserSyncProfile` are **never fired**; there is no `UserModel.delete()` in the framework, so a plugin can register a handler and wait forever with no indication
+    - `execute()` contains a hook-specific special case (`hookName === 'onGetInstanceStats'`) to attach per-handler elapsed timing — a domain name hard-coded inside the generic executor
+    - only `PluginManager` reads `static hooks`, so site code cannot auto-register a handler at all and must hand-write `HookManager.register(...)` in `initialize()` — a site is a second-class consumer even though this item makes it a first-class producer
+    - unrelated bug found while checking route conventions: `/api/1/plugin/dependencies` is registered *after* `/api/1/plugin/:name` in `webapp/routes.js`, so `PluginController.getDependencies()` is unreachable (the request 404s as an unknown plugin named "dependencies"); nothing calls it, which is why it went unnoticed
+  - `onGetInstanceStats` is the only hook breaking the `onBucketAction` convention
+- features:
+  - `defineHook(name, spec)` and `defineHooks(map, owner)` — producer-side definition from anywhere
+  - vocabulary decision: **define** (producer) / **register** and **handle** (consumer) / **fire** and **execute** (runtime). "Declare" already means the consumer side in the existing docs (`plugin-hooks.md` §"Declare Hooks in Your Controller" is about `static hooks`), so a producer API named `declareHook()` would make one word mean both roles; those headings are re-worded by this item
+  - definition fields: `description` (the **only** required one), `owner` (stamped from `defineHooks()` or the defining class), `mode`, `contextKeys` + optional `contextNote`, `onError`, `canModify`, `returns`, `stability`, `since`, `deprecatedBy` — everything but `description` defaults or derives from `mode`, because defining is voluntary (registration never fails on an undefined name) and every required field is a tax on the behavior this item wants to encourage; an incomplete definition is an info-level audit nudge, not a gate
+  - `static hookDefinitions = { … }` on a plugin *or site* controller, auto-defined by `PluginManager` / `SiteControllerRegistry`; `static hooks` (consumer side) keeps its name and syntax unchanged — `providesHooks` reads as a near-synonym of `hooks`, and T-092 §10.1 already specifies `static hooks` for its provider plugins
+  - site controllers also gain **auto-registration of `static hooks`**, closing the asymmetry where a site could define a hook in one line but needed a manual `HookManager.register()` call to handle one; the registration loop moves out of `PluginManager._registerControllerHooks()` into `HookManager.registerFromClass(owner, Controller)` and both registries call it
+  - the framework's own hooks migrate to definitions in one eagerly-loaded seed module (`webapp/utils/hook-definitions.js`) so the built-in catalog is seed data rather than a permanent special case; `getAvailableHooks()` becomes a view that keeps rendering `description` / `context` / `canModify` / `canCancel`, with the prose `context` string synthesized from `contextKeys` so the W-105 doc generators keep working untouched
+  - naming decision: keep `onBucketAction` camelCase for every owner (no namespaced alternative, no migration), with `owner` for collision detection — identical re-definition idempotent, conflicting re-definition keeps the first and records both, defining never throws
+  - `onGetInstanceStats` → `onSystemGetStats`: the last convention exception is removed rather than preserved, since keeping it inside the item that makes the convention machine-checkable is the wrong trade (one fire site, one catalog entry)
+  - **cancellation unified on throw-to-abort** — the one deliberately breaking change:
+    - `executeWithCancel()` and the "handler returns `false` to cancel" convention are deleted (one production caller, which migrates; the convention is what corrupts the context today)
+    - `execute()` stops assigning a non-object return into the context, removing the corruption path
+    - cancelling is always "throw an `Error` whose message is safe to show the user" — the only mechanism that carries a *reason*, which the framework already surfaces where cancellation works today (`CONFIG_SAVE_REJECTED`, a 400 with the handler's message)
+    - whether a throw aborts the producer is the declared `onError: 'continue' | 'abort'`, defaulting per mode to exactly today's behavior (`execute` / `executeFirst` → continue, `executeForPlugin` → abort), so an undefined hook and an unmigrated caller both keep working; documented rule of thumb: "Before hooks may veto, After hooks may not"
+    - `onUserBeforeSave` is defined `onError: 'abort'`, becoming the veto point it has always claimed to be; `onPluginConfigBeforeSave` is unchanged in behavior and stops being an exception, so its five-line "cancel here means throw" paragraph disappears from the catalog and the docs
+    - T-092 is the case proving per-hook policy beats per-method: `onAiProviderRegister` must not let one broken provider plugin kill the provider list (continue), while `onAiComplete` must fail the turn on a provider error (abort) — same owner, same release, opposite policies. It also gives defining a hook its first payoff beyond documentation
+  - validation decision: registration never fails on an undefined name, since a consumer may load before its producer — and per the boot order always does when a plugin consumes a site-defined hook (plugins register at step 7.4, site definitions land at step 14). Unmatched registrations are recorded, a late definition retro-validates them, and a single post-boot audit reports what remains
+  - audit findings: unmatched handler **with an edit-distance did-you-mean suggestion** (warning), handler on a disabled producer's hook (warning), deprecated-hook handler (warning), `planned`-hook handler (warning), definition conflict (error), incomplete definition (info), advisory prefix mismatch (info); computed in `getAudit()` and merely logged by bootstrap after step 14, so `HealthController` can re-run it
+  - catalog honesty: `onUserBeforeDelete` / `onUserAfterDelete` / `onUserSyncProfile` are marked `stability: 'planned'` rather than removed — they are the seam T-092's username-keyed collections and `auth-oauth` profile sync will want — plus a **scan test** asserting every non-`planned` framework definition has a matching `execute*('<name>'` call site, so a future defined-but-unwired hook fails CI
+  - query API: `getHook(name)` merging definition with live handlers (also T-092's provider-availability probe), `findHooks({ owner, namePattern, stability, hasHandlers })`, `getAudit()`; `getHooksByNamespace()` retained over `findHooks()`
+  - visibility: `GET /api/1/hook` and `GET /api/1/hook/:name` for admins — top-level and singular per every existing route, deliberately *not* nested under `/api/1/plugin` (a lie for framework- and site-owned hooks, and shadowed by `/api/1/plugin/:name`) — a hooks panel on the admin plugins page, and an `owner` filter plus Owner / Mode columns on the existing doc generators
+  - lifecycle: definitions by a disabled plugin marked inactive rather than deleted, so consumer registrations still produce a useful audit message; deprecation via `stability` + `deprecatedBy`
+  - folded in: the one-line `webapp/routes.js` reorder that makes `/api/1/plugin/dependencies` reachable again, since the hook routes land in the same block
+- deliverables:
+  - see the design doc §17 for the full table; primary files are a new `webapp/utils/hook-definitions.js` (framework catalog as seed data), `webapp/utils/hook-manager.js`, `webapp/utils/plugin-manager.js`, `webapp/utils/site-controller-registry.js`, `webapp/utils/bootstrap.js` (audit), `webapp/model/user.js` + `webapp/controller/user.js` (the `onUserBeforeSave` abort path), `webapp/controller/health.js` (hook rename), a new `webapp/controller/hook.js` + `webapp/routes.js`, `webapp/controller/markdown.js` (generator columns/filter), `webapp/view/admin/plugins.shtml` + translations, `plugins/hello-world/webapp/controller/helloPlugin.js` (reference example), the hook-manager / plugin-manager / site-controller-registry test suites plus a new `hook-definitions.test.js`, and `docs/plugins/plugin-hooks.md` + `docs/site-customization.md` + `docs/api-reference.md`
+  - five commits (design doc §16): registry core and seed; one cancellation model; query + audit + retro-validation; producer and consumer surfaces; visibility and docs
+- notes:
+  - prerequisite for the BubbleMap AI Agent work (T-092), where each LLM backend is a plugin (`ai-anthropic` first, plus `ai-mock` for tests). With this item, `ai-core` defines `onAiProviderRegister` / `onAiComplete` itself and the framework never learns the word "AI" — see design doc §13 for the worked example
+  - depends on W-207: site code is a first-class producer in this design and needs a call site to define from
+  - **long-term maintainability is preferred over backward compatibility here** (both existing site deployments are under the same ownership and can be updated alongside), so unlike most items this one has a breaking-change list — design doc §12:
+    - `executeWithCancel()` removed — one production caller migrates (below)
+    - return-`false` cancellation removed — a handler returning `false` is now ignored instead of corrupting the context, so this direction is strictly safer
+    - `onUserBeforeSave` becomes `onError: 'abort'` — a handler that *throws* now aborts the user save with a 400 carrying its message, where it was previously logged and ignored; **no consumer registers this hook anywhere today**, so the real-world risk is nil
+    - `onGetInstanceStats` → `onSystemGetStats` — a plugin still registering the old name silently never fires, and the audit reports it with a did-you-mean
+    - `HookManager.clear()` narrowed to handlers only; `clearDefinitions()` added for tests
+  - ecosystem migration (scanned 2026-08-12 across the framework, its installed plugins, and both deployed sites; full tables in design doc §12.1–§12.2) — about fifteen lines, net negative once the two workarounds are removed:
+    - bubblemap-app `site/webapp/controller/bubble.js`: `executeWithCancel` → `execute` in a try/catch mapping `error.message` onto the existing 403 `WIDGET_CONFIG_SAVE_DENIED`, drop the `message` context field, add `static hookDefinitions` for `onBubbleWidgetConfigBeforeSave` with `onError: 'abort'`
+    - bubblemap-app `plugins/widget-chart-core/webapp/controller/widgetChartCore.js`: two `return false` sites become `throw new Error(...)`; the fail-closed catch workaround is deleted
+    - bubblemap-app `site/webapp/tests/unit/controller/bubble.test.js`: five assertions on the `{ cancelled, cancelledBy }` envelope move to the thrown-error path
+    - `auth-mfa` in all three deployments: `onGetInstanceStats` → `onSystemGetStats` in `static hooks` and the handler method name, plus one README line
+    - complete handler inventory, for the record: `auth-oauth` (`onAuthGetLoginProviders`, `onAuthGetSteps`, `onAuthValidateStep`, `onPluginConfigBeforeSave`), `auth-mfa` (`onAuthGetSteps`, `onAuthValidateStep`, `onAuthGetWarnings`, `onGetInstanceStats`), `hello-world` (`onAuthAfterLogin`, `onAuthBeforeSession`), `widget-chart-core` (`onBubbleWidgetConfigBeforeSave`). Nothing registers the three `planned` hooks
+  - everything else is preserved: the remaining hook names, the `static hooks` consumer syntax, and the catalog entry shape the W-105 doc generators depend on. The existing hook-manager test suite is the compatibility gate through commit 1; commit 2 deliberately rewrites its `executeWithCancel` block and `canCancel` assertions
+  - framework user deletion (a `UserModel.delete()` and its cascade) is a separate work item — T-092's username-keyed `aiAgentThreads` / `aiAgentTurns` / `aiAgentUsage` collections will want it, and `onUserBeforeDelete` / `onUserAfterDelete` are the seam it plugs into
+
+
+
+
+
+
+
+
+
 
 
 ### Pending
@@ -7917,8 +7986,8 @@ release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
 - assume W-197, v1.0.3, 2026-08-01
-- assume W-208, v1.7.12, 2026-08-12
-- if needed, update features & deliverables in W-206 work-items to document work done (don't change status, don't make any other changes to this file)
+- assume W-209, v1.7.13, 2026-08-13
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - append to cursor_log.txt
@@ -7929,12 +7998,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.12 2026-08-12
+node bin/bump-version.js 1.7.13 2026-08-13
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.12; git push origin main --tags
+git tag v1.7.13; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 git diff
@@ -8000,36 +8069,6 @@ template:
     - FIXME summary
 - tests:            // optional
 - tech-debt:        // optional
-
-### W-209, v1.7.12, 2026-08-12: plugins: extensibe hook registry
-- status: 🕑 PENDING
-- type: Feature
-- design doc: docs/dev/design/W-209-extensible-hooks.md
-- objectives:
-  - let plugins and site code define their own hooks, so the framework never carries a domain-specific hook vocabulary
-  - make the hook catalog machine-readable and queryable by name and property, instead of a hard-coded literal
-- context:
-  - `HookManager.getAvailableHooks()` is a fixed object literal holding the 15 hooks the framework fires, in four buckets — authentication (8), user lifecycle (5), plugin config (1, `onPluginConfigBeforeSave`), system/metrics (1, `onGetInstanceStats`) — with each entry carrying a description, a prose `context` string, and `canCancel`
-  - `isValidHook()` only *warns* on an unknown name and registers the handler anyway, so a third-party hook works today but is undocumented, unqueryable, and indistinguishable from a typo
-  - **no new execution machinery is needed**: `execute()`, `executeWithCancel()`, `executeFirst()` (first non-null wins) and `executeForPlugin()` (targeted, errors propagate to abort the caller, W-200) already cover the known cases, and `hasHandlers()` / `unregister()` / `getRegisteredHooks()` already exist. What is missing is only the declaration and introspection layer
-  - the design conflates two roles: the *producer* that owns a hook's contract and fires it, and the *consumer* that registers a handler. The framework being the only producer is exactly why the catalog can be a literal
-  - `onGetInstanceStats` already breaks the `onBucketAction` convention, so the naming rule has one pre-existing exception
-- features:
-  - `declareHook(name, spec)` and `declareHooks(map, owner)` — producer-side declaration from anywhere
-  - structured declaration: `owner` (plugin name / `site` / `framework`), `description`, `mode` (which of the four execute methods is the contract), `contextKeys` (machine-readable, replacing the prose string), `returns`, `canCancel`, `stability`, `since`, `deprecatedBy`
-  - `static providesHooks = { … }` on a plugin controller, auto-registered by `PluginManager` — symmetric with today's `static hooks` ("hooks I handle" versus "hooks I define"); site code declares in the W-207 init hook
-  - the framework's own 15 hooks migrate to declarations so the built-in catalog is seed data rather than a permanent special case; `getAvailableHooks()` becomes a view
-  - naming decision: keep `onBucketAction` camelCase for every owner (no namespaced alternative, no migration), with a required `owner` for collision detection — identical re-declaration idempotent, conflicting re-declaration keeps the first and records both, declaration never throws
-  - validation decision: registration never fails on an undeclared name, since a consumer may load before its producer. Unmatched registrations are recorded, a late declaration retro-validates them, and a single post-boot audit reports what remains (unmatched handlers, deprecated-hook handlers, declaration conflicts, advisory prefix mismatches)
-  - query API: `getHook(name)` merging declaration with live handlers, `findHooks({ owner, namePattern, stability, hasHandlers })`, `getAudit()`
-  - visibility: `GET /api/1/hook` for admins, a "who listens to what" admin view, and generated hook documentation so the catalog becomes the single source of truth
-  - lifecycle: declarations by a disabled plugin marked inactive rather than deleted, so consumer registrations still produce a useful audit message; deprecation via `stability` + `deprecatedBy`
-- deliverables:
-  - see the design doc §15 for the full table; primary files are `webapp/utils/hook-manager.js`, `webapp/utils/plugin-manager.js`, `webapp/utils/bootstrap.js` (audit), a new `webapp/controller/hook.js`, `webapp/view/admin/plugins.shtml`, `webapp/tests/unit/utils/hook-manager.test.js`, and `docs/api-reference.md`
-- notes:
-  - prerequisite for the BubbleMap AI Agent work (T-092), where each LLM backend is a plugin (`ai-anthropic` first, plus `ai-mock` for tests). With this item, `ai-core` declares `onAiProviderRegister` / `onAiComplete` itself and the framework never learns the word "AI" — see design doc §12 for the worked example
-  - depends on W-207: site code is a first-class producer in this design and needs a call site to declare from
-  - existing behavior is preserved throughout — the 15 hook names, the `static hooks` consumer syntax, and the current hook-manager test suite are the compatibility gate
 
 ### W-210, v1.7.13, 2026-08-13: config: write-only field
 - status: 🕑 PENDING

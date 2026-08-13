@@ -7871,19 +7871,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - prerequisite for the BubbleMap AI Agent work (T-092): tool calls are dispatched to the browser over WebSocket and their results can exceed 64 KB, and a silently dropped reply would hang a turn until its timeout instead of failing loudly — hence both directions and rejection replies
   - the three features are independent enough to land as separate commits (limits + discoverability; rejection replies + counters + admin; request/response + docs + demo) but share the same envelope, hence one work item
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-209, v1.7.13, 2026-08-13: plugins: extensibe hook registry
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - design doc: docs/dev/design/W-209-extensible-hooks.md
 - objectives:
@@ -7966,6 +7955,52 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-211, v1.0.6, 2026-08-13: auth-mfa plugin: hook rename for jPulse Framework v1.7.13+
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - keep MFA stats on System Status after W-209 renamed the framework stats hook
+  - clear the boot-audit warning for an undefined `onGetInstanceStats` handler
+- prerequisites:
+  - W-209, v1.7.13, 2026-08-13: plugins: extensibe hook registry
+- context:
+  - W-209 renamed `onGetInstanceStats` → `onSystemGetStats` so the last `onBucketAction` exception is gone; `HealthController` fires only the new name
+  - a plugin still registering the old name is still registered, but the handler never runs, and the post-boot audit reports `UNDEFINED_HOOK` (`no definition for hook 'onGetInstanceStats' (registered by auth-mfa)`)
+  - edit-distance did-you-mean does not suggest `onSystemGetStats` for this rename (distance 9, threshold 6), so the log line is the warning only
+  - `auth-mfa` is the only in-tree consumer of the old name; it lives in its own repo (`@jpulse-net/plugin-auth-mfa`) and is gitignored from the framework except as an installed plugin — this item is that plugin's migration, not a framework commit
+  - same one-line rename is needed in every deployment that vendors the plugin (framework dogfood, jpulse.net, bubblemap)
+- features:
+  - `static hooks` key and handler method `onGetInstanceStats` → `onSystemGetStats` (method name must match the hook name; `handler:` override not used)
+  - log tag `auth-mfa.onSystemGetStats` so a stats-collection failure is searchable under the new name
+  - README release note; historical 1.0.2 W-112 entry that introduced the old name stays as written
+  - folded in (W-206 companion, not a framework file): `onAuthGetSteps` MFA step sets `page: '/auth/mfa-verify.shtml'` so OAuth `completeExternalAuth()` and password-reset `beginAuthenticatedSession()` show the MFA UI instead of falling back to `/auth/login.shtml`
+  - `webapp/bump-version.conf` includes `webapp/tests/**` so the bump script rewrites test-file headers
+- deliverables:
+  - `plugins/auth-mfa/webapp/controller/mfaAuth.js`:
+    - `static hooks.onSystemGetStats`; `static async onSystemGetStats(context)`; error log `'auth-mfa.onSystemGetStats'`
+    - `onAuthGetSteps` MFA step `page: '/auth/mfa-verify.shtml'`
+  - `plugins/auth-mfa/README.md`:
+    - release note for the rename, the MFA `page` field, and the v1.7.13+ framework requirement
+    - Requirements `>= 1.7.13`; Hooks Used table uses current `onAuth*` / `onSystemGetStats` names
+  - `plugins/auth-mfa/plugin.json`: `jpulseVersion` `>=1.7.13` (plugin `version` left for the bump script)
+  - `plugins/auth-mfa/webapp/bump-version.conf`: `webapp/tests/**` globs
+  - apply the same controller rename in the jpulse.net and bubblemap `auth-mfa` copies
+  - verify: restart, boot audit has no `onGetInstanceStats` warning; Admin → System Status still shows Auth-MFA stats; Admin → Plugins hooks panel lists `onSystemGetStats` with handler `auth-mfa`
+- notes:
+  - the dogfood copy under `plugins/auth-mfa/` already has the controller rename and README note; plugin `version` in `plugin.json` is still 1.0.5 until the plugin release bump
+  - no framework files; no work-item status change on W-209
+
+
+
+
+
+
+
+
+
 
 
 ### Pending
@@ -7992,7 +8027,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-197, v1.0.3, 2026-08-01
+- assume W-211, v1.0.6, 2026-08-13
 - assume W-209, v1.7.13, 2026-08-13
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
@@ -8013,14 +8048,15 @@ git commit -F commit-message.txt
 git tag v1.7.13; git push origin main --tags
 
 === PLUGIN release & package build on github ===
+cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.3 2026-08-02
+node ../../bin/bump-version.js 1.0.6 2026-08-13
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.3; git push origin main --tags
+git tag v1.0.6; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 
@@ -8115,35 +8151,6 @@ template:
 - notes:
   - prerequisite for the BubbleMap AI Agent work (T-092), whose provider plugins hold LLM API keys; its design assumed keys are unreadable even by admins, which is not what the framework does today — the design doc needs correcting either way
   - worth checking whether `data.manifest.license.key` should become write-only in the same pass, since it is the field the current pattern was modeled on
-
-### W-211, v1.0.6, 2026-08-13: auth-mfa plugin: hook rename for jPulse Framework v1.7.13+
-- status: 🕑 PENDING
-- type: Feature
-- objectives:
-  - keep MFA stats on System Status after W-209 renamed the framework stats hook
-  - clear the boot-audit warning for an undefined `onGetInstanceStats` handler
-- prerequisites:
-  - W-209, v1.7.13, 2026-08-13: plugins: extensibe hook registry
-- context:
-  - W-209 renamed `onGetInstanceStats` → `onSystemGetStats` so the last `onBucketAction` exception is gone; `HealthController` fires only the new name
-  - a plugin still registering the old name is still registered, but the handler never runs, and the post-boot audit reports `UNDEFINED_HOOK` (`no definition for hook 'onGetInstanceStats' (registered by auth-mfa)`)
-  - edit-distance did-you-mean does not suggest `onSystemGetStats` for this rename (distance 9, threshold 6), so the log line is the warning only
-  - `auth-mfa` is the only in-tree consumer of the old name; it lives in its own repo (`@jpulse-net/plugin-auth-mfa`) and is gitignored from the framework except as an installed plugin — this item is that plugin's migration, not a framework commit
-  - same one-line rename is needed in every deployment that vendors the plugin (framework dogfood, jpulse.net, bubblemap)
-- features:
-  - `static hooks` key and handler method `onGetInstanceStats` → `onSystemGetStats` (method name must match the hook name; `handler:` override not used)
-  - log tag `auth-mfa.onSystemGetStats` so a stats-collection failure is searchable under the new name
-  - README release note; historical 1.0.2 W-112 entry that introduced the old name stays as written
-- deliverables:
-  - `plugins/auth-mfa/webapp/controller/mfaAuth.js`:
-    - `static hooks.onSystemGetStats`; `static async onSystemGetStats(context)`; error log `'auth-mfa.onSystemGetStats'`
-  - `plugins/auth-mfa/README.md`:
-    - release note for the rename and the v1.7.13+ framework requirement
-  - apply the same controller rename in the jpulse.net and bubblemap `auth-mfa` copies
-  - verify: restart, boot audit has no `onGetInstanceStats` warning; Admin → System Status still shows Auth-MFA stats; Admin → Plugins hooks panel lists `onSystemGetStats` with handler `auth-mfa`
-- notes:
-  - the dogfood copy under `plugins/auth-mfa/` already has the controller rename and README note; plugin `version` in `plugin.json` is still 1.0.5 until the plugin release bump
-  - no framework files; no work-item status change on W-209
 
 ### W-202, v1.7.6, 2026-08-xx: auth: add locked status
 - status: 🕑 PENDING

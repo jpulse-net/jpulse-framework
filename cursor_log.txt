@@ -22258,3 +22258,46 @@ Acknowledged the non-admin GET /api/1/hook 403. Reviewed tt-git-diff.txt against
 
 
 ============================================================
+2026-08-13 13:31
+
+jpulse release done
+
+release prep for auth-mfa plugin:
+- review plugins/auth-mfa/tt-git-diff.txt
+- assume W-211, v1.0.6, 2026-08-13
+- update features & deliverables in work item (don't change status)
+- update plugins/auth-mfa/README.md and other docs as needed
+- update commit-message.txt (don't commit)
+- append to cursor_log.txt
+
+Reviewed plugins/auth-mfa/tt-git-diff.txt against W-211. Diff is the hook rename (static hooks, handler, log tag) plus two extras now documented: W-206 companion page: '/auth/mfa-verify.shtml' on the MFA step, and bump-version.conf webapp/tests/** globs. Updated W-211 features/deliverables only (status untouched). Plugin README: 1.0.6 note expanded, Requirements >= 1.7.13, Hooks Used table current names. plugin.json jpulseVersion >=1.7.13 (version field left 1.0.5 for the bump script). plugins/auth-mfa/commit-message.txt rewritten for W-211 v1.0.6 2026-08-13. Remaining after publish: same controller rename in jpulse.net and bubblemap auth-mfa copies.
+
+
+============================================================
+2026-08-13 13:35
+
+release looks ok
+
+[auth-mfa git add, commit -F commit-message.txt, tag v1.0.6, push origin main --tags, npm publish @jpulse-net/plugin-auth-mfa@1.0.6]
+
+Acknowledged. Plugin release landed: commit ddff7f1, tag v1.0.6, published @jpulse-net/plugin-auth-mfa@1.0.6 to GitHub Packages. The extra files in the 15-file commit are the bump-script header rewrites. npm's repository.url normalize warning is cosmetic. Work-item status left untouched. Remaining: same controller rename in jpulse.net and bubblemap auth-mfa copies; BubbleMap executeWithCancel migration.
+
+
+============================================================
+2026-08-13 13:37
+
+review plugins/auth-oauth if anything needs to be fixed for latest jpulse
+
+Reviewed plugins/auth-oauth against jPulse v1.7.13 / W-209. No functional fix needed: it does not register onGetInstanceStats, does not call executeWithCancel, does not use return-false cancellation. static hooks are onAuthGetLoginProviders, onAuthGetSteps, onAuthValidateStep, onPluginConfigBeforeSave — all still in the framework catalog. onAuthGetSteps already sets page for oauth-profile-complete. onPluginConfigBeforeSave already throws to abort (correct for executeForPlugin). jpulseVersion stays >=1.7.6. One stale comment in onPluginConfigBeforeSave still says throw-vs-return-false is unique to that hook; optional comment-only cleanup, not required for 1.7.13.
+
+
+============================================================
+2026-08-13 13:39
+
+fix the comment,
+I'll defer the change to an upcoming release
+
+Updated the onPluginConfigBeforeSave JSDoc in plugins/auth-oauth/webapp/controller/oauthAuth.js: throw still aborts with 400 CONFIG_SAVE_REJECTED, and as of jPulse v1.7.13 throw-to-abort is the cancellation model for every hook. Comment-only; no commit, no version bump — owner will ship it in an upcoming auth-oauth release.
+
+
+============================================================

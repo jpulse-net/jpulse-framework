@@ -3,8 +3,8 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.7.12
- * @release         2026-08-12
+ * @version         1.7.13
+ * @release         2026-08-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -27,6 +27,7 @@ import MarkdownController from './controller/markdown.js';
 import UserController from './controller/user.js';
 import ConfigController from './controller/config.js';
 import PluginController from './controller/plugin.js';  // W-045
+import HookController from './controller/hook.js';
 import WebSocketController from './controller/websocket.js';
 import logController from './controller/log.js';
 import ViewController from './controller/view.js';
@@ -67,16 +68,20 @@ router.delete('/api/1/config/:id', AuthController.requireAdminRole(), ConfigCont
 router.get('/api/1/plugin/:name/info', PluginController.getInfo);
 // All other plugin routes require admin role
 router.get('/api/1/plugin', AuthController.requireAdminRole(), PluginController.list);
+router.get('/api/1/plugin/dependencies', AuthController.requireAdminRole(), PluginController.getDependencies);
 router.get('/api/1/plugin/:name', AuthController.requireAdminRole(), PluginController.get);
 router.get('/api/1/plugin/:name/status', AuthController.requireAdminRole(), PluginController.getStatus);
 router.post('/api/1/plugin/:name/enable', AuthController.requireAdminRole(), PluginController.enable);
 router.post('/api/1/plugin/:name/disable', AuthController.requireAdminRole(), PluginController.disable);
 router.get('/api/1/plugin/:name/config', AuthController.requireAdminRole(), PluginController.getConfig);
 router.put('/api/1/plugin/:name/config', AuthController.requireAdminRole(), PluginController.updateConfig);
-router.get('/api/1/plugin/dependencies', AuthController.requireAdminRole(), PluginController.getDependencies);
 router.get('/api/1/plugin/:name/dependencies', AuthController.requireAdminRole(), PluginController.getPluginDependencies);
 router.post('/api/1/plugin/scan', AuthController.requireAdminRole(), PluginController.scan);
 router.post('/api/1/plugin/:name/install-dependencies', AuthController.requireAdminRole(), PluginController.installDependencies);
+
+// Hook catalog (admin-only) - top-level because framework and site own hooks too
+router.get('/api/1/hook', AuthController.requireAdminRole(), HookController.list);
+router.get('/api/1/hook/:name', AuthController.requireAdminRole(), HookController.get);
 
 // Auth API routes
 router.post('/api/1/auth/login', AuthController.login);

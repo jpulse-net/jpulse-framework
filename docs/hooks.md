@@ -1,15 +1,16 @@
-# jPulse Docs / Plugins / Plugin Hooks v1.7.12
+# jPulse Docs / Hooks v1.7.13
 
-Extend jPulse Framework behavior by hooking into authentication, user management, and other framework events.
+Named extension points that the framework, a site, or a plugin can **define**, and that any plugin or site controller can **handle**. Use them to intercept, modify, react to, or veto operations without patching framework code.
 
 ## Overview
 
-Plugin hooks allow your plugin to:
-- **Intercept** framework operations (login, signup, user save)
-- **Modify** data before it's processed or saved
-- **React** to events (after login success, after user creation)
-- **Cancel** operations based on custom validation
-- **Integrate** external systems (LDAP, OAuth2, MFA providers)
+Three roles, kept apart on purpose:
+
+- A **producer** owns a hook: its name, when it fires, what the context carries, and what a thrown error does. The framework, a site controller, and a plugin are equal producers.
+- A **consumer** registers a handler with `static hooks = { … }` on a controller. That syntax is unchanged.
+- At runtime the producer **fires** the hook with `HookManager.execute()`, `executeFirst()`, or `executeForPlugin()`.
+
+The framework ships authentication, user-lifecycle, plugin-config, and system-stats hooks. A site or plugin adds its own the same way — the framework never needs to learn a domain vocabulary.
 
 ## Naming Convention
 
@@ -22,7 +23,7 @@ Hooks follow the simplified `onBucketAction` pattern:
 
 ## Quick Start
 
-### 1. Declare Hooks in Your Controller
+### 1. Handle Hooks in Your Controller
 
 ```javascript
 class MyPluginController {
@@ -52,11 +53,47 @@ class MyPluginController {
 ### 2. Auto-Registration
 
 That's it! The framework automatically:
-1. Discovers your `static hooks` declaration during bootstrap
+1. Discovers your `static hooks` declaration during bootstrap (plugins *and* site controllers)
 2. Registers each hook with the HookManager
 3. Calls your handlers at the appropriate points
 
 No manual registration required.
+
+## Define Your Own Hooks
+
+A site or plugin that fires an extension point **defines** it, so others can find it, the admin view can list it, and a thrown error can abort the producer when you say so.
+
+```javascript
+class AiCoreController {
+
+    // hooks this controller DEFINES - the contract, for others to handle
+    static hookDefinitions = {
+        onAiProviderRegister: {
+            description: 'Contribute a provider descriptor',
+            contextKeys: ['providers'],
+            canModify: true
+        },
+        onAiComplete: {
+            description: 'Run one completion; return usage',
+            mode: 'executeForPlugin',
+            contextKeys: ['threadId', 'model', 'messages', 'tools'],
+            onError: 'abort',
+            canModify: true
+        }
+    };
+}
+```
+
+Only `description` is required. `mode` defaults to `execute`; `onError` defaults to `continue` for `execute` / `executeFirst` and `abort` for `executeForPlugin`. Owner is stamped from the plugin name, or `'site'` for a site controller.
+
+Then fire it:
+
+```javascript
+await global.HookManager.execute('onAiProviderRegister', { providers: [] });
+await global.HookManager.executeForPlugin('onAiComplete', selectedProvider, ctx);
+```
+
+A handler registered before the definition exists is still registered; unmatched names show up once in the boot audit (with a did-you-mean) rather than as a warning per registration.
 
 ## Hook Declaration Format
 
@@ -100,14 +137,18 @@ static async onAuthBeforeSession(context) {
 
 ### Cancel Operation
 
+Throw an `Error` whose message is safe to show the user. Whether that abort the producer is declared on the hook as `onError: 'abort'` (Before hooks may veto; After hooks may not).
+
 ```javascript
 static async onUserBeforeSave(context) {
     if (context.userData.email?.endsWith('@blocked.com')) {
-        return false;  // Cancel user save
+        throw new Error('That email domain is not allowed');
     }
     return context;
 }
 ```
+
+Returning `false` does **not** cancel. A non-object return is ignored so it cannot overwrite the context.
 
 ### React to Events (No Modification)
 
@@ -193,11 +234,7 @@ Total: %DYNAMIC{plugins-hooks-count namespace="onPluginConfig"}% hooks
 | `onPluginConfigBeforeSave` | `{ req, pluginName, configData, oldConfig }` | ✅ | ✅ | Before a plugin config save is persisted - transform/encrypt values |
 -->
 
-**Important - this hook's "Can Cancel" works differently than every other hook above:** for
-every other `canCancel` hook, cancelling means the handler *returns* `false`. For
-`onPluginConfigBeforeSave`, cancelling means the handler *throws* - the error propagates and
-aborts the save (400 response), instead of being logged and the save proceeding anyway. See
-"Encrypting a Plugin Config Secret" below.
+`onPluginConfigBeforeSave` uses `mode: 'executeForPlugin'`, so a thrown error aborts the save with a 400 and the handler's message. That is the same throw-to-abort rule as every other `onError: 'abort'` hook, not a special case.
 
 ## Hook Execution
 
@@ -227,10 +264,7 @@ Final context returned to framework
 
 ### Error Handling
 
-If a hook handler throws an error:
-- The error is logged
-- Execution continues with the next handler
-- The framework operation proceeds with the last successful context
+Each hook declares `onError`: `'continue'` (log and run the next handler — the default for `execute` / `executeFirst`) or `'abort'` (propagate to the producer — the default for `executeForPlugin`). A definition may override the default; `onUserBeforeSave` is `'abort'` so a handler can veto a user save.
 
 ```javascript
 static async onAuthAfterLogin(context) {
@@ -466,7 +500,7 @@ static async onAuthFailure(context) {
 ### Encrypting a Plugin Config Secret
 
 Use `onPluginConfigBeforeSave` in plugins with a `type: "custom"` config field (see
-[Plugin API Reference](plugin-api-reference.md) "`type: "custom"`") whose value contains
+[Plugin API Reference](plugins/plugin-api-reference.md) "`type: "custom"`") whose value contains
 something that must never be persisted as-is - most commonly a secret. It runs once, right
 before the framework's generic "Save Changes" button persists a plugin's config, so a custom
 renderer no longer needs its own separate save path just to get a chance to transform its value
@@ -494,7 +528,6 @@ static async onPluginConfigBeforeSave(context) {
             // Encrypt and store the secret, keep only a reference in configData.
             provider.clientSecretRef = await SecretStore.encrypt(provider.clientSecret);
         } catch (error) {
-            // Throwing (not returning false) is what aborts the save for THIS hook - see below.
             throw new Error('Failed to encrypt client secret');
         }
         delete provider.clientSecret;
@@ -503,12 +536,7 @@ static async onPluginConfigBeforeSave(context) {
 }
 ```
 
-**This hook's cancel contract is different from every other hook on this page.** Elsewhere,
-`canCancel: true` means "return `false`". Here, it means "throw" - a thrown error propagates
-straight to `PluginController.updateConfig()`, which aborts the whole save with a 400
-`CONFIG_SAVE_REJECTED` response (the admin sees your thrown message verbatim, so throw a
-user-facing, non-sensitive message, never a raw crypto/library error). Returning `false` from
-this hook has no special meaning and does not cancel the save.
+**Throw to abort.** A thrown error propagates to `PluginController.updateConfig()`, which aborts the save with a 400 `CONFIG_SAVE_REJECTED` response (the admin sees your message verbatim, so throw a user-facing, non-sensitive message). That is the same `onError: 'abort'` contract as `onUserBeforeSave` and any other veto hook.
 
 `oldConfig` (the plugin's current, already-persisted config document, or `null` if none exists
 yet) is what makes the common "leave the field blank to keep the existing secret" pattern
@@ -520,15 +548,18 @@ from "admin wants to clear it".
 ### Check Registered Hooks
 
 ```javascript
-// In your plugin or via API
-const stats = global.HookManager.getStats();
-console.log(stats);
-// { available: 12, registered: 5, hooksWithHandlers: 3 }
+const hook = global.HookManager.getHook('onAiComplete');
+// { name, defined, active, definition, handlers, unverified }
 
-const registered = global.HookManager.getRegisteredHooks();
-console.log(registered);
-// { onAuthBeforeLogin: [{ plugin: 'my-plugin', priority: 50 }], ... }
+const audit = global.HookManager.getAudit();
+// { defined, handlers, findings: [{ level, code, hookName, message, suggestion? }] }
+
+const metrics = global.HookManager.getMetrics();
+console.log(metrics.stats);
+// { available, registered, hooksWithHandlers }
 ```
+
+Admin UI: **Admin → Plugins** has a Hooks panel. API: `GET /api/1/hook` and `GET /api/1/hook/:name` (admin-only).
 
 ### Dynamic Content for Documentation
 
@@ -540,19 +571,20 @@ Use these in your markdown documentation:
 | `%DYNAMIC{plugins-hooks-list}%` | Bullet list of hooks |
 | `%DYNAMIC{plugins-hooks-list-table}%` | Table with all hook details |
 | `%DYNAMIC{plugins-hooks-list-table namespace="onAuth"}%` | Table filtered by namespace |
+| `%DYNAMIC{plugins-hooks-list-table owner="framework"}%` | Table filtered by owner |
 
 ## Best Practices
 
-1. **Always return context** - Even if you don't modify it
-2. **Use try/catch** - Don't break framework operations with uncaught errors
+1. **Return a context object** - or mutate in place; non-object returns are ignored
+2. **Throw to veto** - on an `onError: 'abort'` hook; on `'continue'` hooks, catch your own errors so one plugin cannot take down the rest
 3. **Log appropriately** - Use `LogController` with `context.req` for request context
 4. **Choose priorities wisely** - Leave room for other plugins (use 50, 100, 150, not 1, 2, 3)
 5. **Keep handlers fast** - Use `setImmediate()` for non-blocking async work
-6. **Document your hooks** - Tell users which hooks your plugin implements
+6. **Define hooks you fire** - a one-line `static hookDefinitions` is enough for the catalog, the admin view, and the audit
 
 ## See Also
 
-- [Creating Plugins](creating-plugins.md) - Build your first plugin
-- [Plugin Architecture](plugin-architecture.md) - How the plugin system works
-- [Hello World Plugin](../installed-plugins/hello-world/README.md) - Working example with hooks
-- [Deployment Guide](../deployment.md) - Break-Glass Account Runbook for `localAuthRestriction`
+- [Creating Plugins](plugins/creating-plugins.md) - Build your first plugin
+- [Plugin Architecture](plugins/plugin-architecture.md) - How the plugin system works
+- [Hello World Plugin](installed-plugins/hello-world/README.md) - Working example with hooks
+- [Deployment Guide](deployment.md) - Break-Glass Account Runbook for `localAuthRestriction`

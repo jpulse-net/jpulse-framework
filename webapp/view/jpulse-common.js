@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.7.12
- * @release         2026-08-12
+ * @version         1.7.13
+ * @release         2026-08-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -6980,6 +6980,15 @@ window.jPulse = {
                     // No custom renderer needed - just call Prism.highlightAll() after rendering
                     const html = marked.parse(content);
                     viewer._contentEl.innerHTML = html;
+                    viewer._contentEl.querySelectorAll('table').forEach(table => {
+                        if (table.parentElement?.classList.contains('jp-markdown-table-wrap')) {
+                            return;
+                        }
+                        const wrap = document.createElement('div');
+                        wrap.className = 'jp-markdown-table-wrap';
+                        table.parentNode.insertBefore(wrap, table);
+                        wrap.appendChild(table);
+                    });
 
                     // W-130: Apply Prism syntax highlighting to all code blocks
                     if (typeof Prism !== 'undefined') {

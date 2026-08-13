@@ -3,8 +3,8 @@
  * @tagline         Plugin Discovery and Lifecycle Management
  * @description     Manages plugin discovery, validation, dependencies, and lifecycle
  * @file            webapp/utils/plugin-manager.js
- * @version         1.7.12
- * @release         2026-08-12
+ * @version         1.7.13
+ * @release         2026-08-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -483,6 +483,11 @@ class PluginManager {
         // Save registry
         this.saveRegistry();
 
+        if (global.HookManager) {
+            global.HookManager.setDefinitionsActive(name, true);
+            await this._registerOnePluginHooks(name);
+        }
+
         return { success: true, message: 'Plugin enabled. Restart required to take effect.' };
     }
 
@@ -532,6 +537,8 @@ class PluginManager {
 
         // Save registry
         this.saveRegistry();
+
+        this.unregisterPluginHooks(name);
 
         return { success: true, message: 'Plugin disabled. Restart required to take effect.' };
     }
@@ -667,33 +674,7 @@ class PluginManager {
         const pluginsWithHooks = [];
 
         for (const plugin of activePlugins) {
-            const pluginControllerDir = path.join(plugin.path, 'webapp', 'controller');
-
-            if (!fs.existsSync(pluginControllerDir)) {
-                continue;
-            }
-
-            // Scan controller files in plugin
-            const files = fs.readdirSync(pluginControllerDir)
-                .filter(file => file.endsWith('.js'));
-
-            let pluginHookCount = 0;
-
-            for (const file of files) {
-                const controllerPath = path.join(pluginControllerDir, file);
-                try {
-                    // Dynamic import of controller module
-                    const { default: Controller } = await import(`file://${controllerPath}`);
-
-                    if (Controller && Controller.hooks) {
-                        const registered = this._registerControllerHooks(plugin.name, Controller);
-                        pluginHookCount += registered;
-                    }
-                } catch (error) {
-                    global.LogController?.logError(null, `plugin.${plugin.name}`,
-                        `Failed to load controller ${file}: ${error.message}`);
-                }
-            }
+            const pluginHookCount = await this._registerOnePluginHooks(plugin.name);
 
             if (pluginHookCount > 0) {
                 totalRegistered += pluginHookCount;
@@ -711,6 +692,39 @@ class PluginManager {
     }
 
     /**
+     * Define and register hooks from one plugin's controllers
+     * @param {string} pluginName - Plugin name
+     * @returns {number} Handlers registered
+     */
+    static async _registerOnePluginHooks(pluginName) {
+        const plugin = this.discovered.get(pluginName);
+        if (!plugin || !global.HookManager) {
+            return 0;
+        }
+
+        const pluginControllerDir = path.join(plugin.path, 'webapp', 'controller');
+        if (!fs.existsSync(pluginControllerDir)) {
+            return 0;
+        }
+
+        let count = 0;
+        const files = fs.readdirSync(pluginControllerDir).filter(file => file.endsWith('.js'));
+        for (const file of files) {
+            const controllerPath = path.join(pluginControllerDir, file);
+            try {
+                const { default: Controller } = await import(`file://${controllerPath}`);
+                if (Controller) {
+                    count += this._registerControllerHooks(pluginName, Controller);
+                }
+            } catch (error) {
+                global.LogController?.logError(null, `plugin.${pluginName}`,
+                    `Failed to load controller ${file}: ${error.message}`);
+            }
+        }
+        return count;
+    }
+
+    /**
      * Register hooks from a single controller (W-105)
      * Called by registerPluginHooks() for each controller with hooks
      * @param {string} pluginName - Plugin name
@@ -718,38 +732,22 @@ class PluginManager {
      * @returns {number} Number of hooks registered
      */
     static _registerControllerHooks(pluginName, Controller) {
-        if (!Controller.hooks || typeof Controller.hooks !== 'object') {
+        if (!global.HookManager) {
             return 0;
         }
-
-        let count = 0;
-
-        for (const [hookName, config] of Object.entries(Controller.hooks)) {
-            // Default: method name = hook name, priority = 100
-            const handlerMethodName = config?.handler || hookName;
-            const priority = config?.priority || 100;
-            const method = Controller[handlerMethodName];
-
-            if (typeof method === 'function') {
-                global.HookManager.register(hookName, pluginName, method.bind(Controller), priority);
-                count++;
-            } else {
-                global.LogController?.logError(null, `plugin.${pluginName}`,
-                    `Hook handler '${handlerMethodName}' not found for hook '${hookName}'`);
-            }
-        }
-
-        return count;
+        const result = global.HookManager.registerFromClass(pluginName, Controller);
+        return result.registered;
     }
 
     /**
-     * Unregister all hooks for a plugin (W-105)
+     * Unregister all hooks for a plugin and mark its definitions inactive
      * Called when disabling a plugin
      * @param {string} pluginName - Plugin name
      */
     static unregisterPluginHooks(pluginName) {
         if (global.HookManager) {
             global.HookManager.unregister(pluginName);
+            global.HookManager.setDefinitionsActive(pluginName, false);
         }
     }
 }

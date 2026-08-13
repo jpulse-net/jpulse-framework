@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Architecture v1.7.12
+# jPulse Docs / Plugins / Plugin Architecture v1.7.13
 
 Understanding how the jPulse plugin system works under the hood.
 
@@ -299,6 +299,6 @@ For in-depth technical information, see:
 ## See Also
 
 - [Creating Plugins](creating-plugins.md) - Step-by-step guide
-- [Plugin Hooks](plugin-hooks.md) - Extend framework behavior with hooks
+- [Hooks](../hooks.md) - Extend framework behavior with hooks
 - [API Reference](plugin-api-reference.md) - Complete API documentation
 - [Hello World Plugin](../installed-plugins/hello-world/README.md) - Complete example

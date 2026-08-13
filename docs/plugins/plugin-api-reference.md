@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.7.12
+# jPulse Docs / Plugins / Plugins API Reference v1.7.13
 
 Complete API reference for jPulse plugin developers.
 
@@ -129,7 +129,7 @@ window.jPulse.plugins.myPlugin.renderMyWidget = function(ctx) {
 
 The framework treats the value as opaque JSON: it is JSON-stringified into a hidden field for `getFormData` / save, and JSON-parsed back into `ctx.value` on the next render. Validation, layout, and interaction inside `ctx.container` are entirely the renderer's responsibility. See `plugins/hello-world/plugin.json` (`quickLinks`) for a full working example.
 
-If your renderer's value contains something that must never be persisted as-is (most commonly a secret), `ctx.onChange(v)` alone isn't enough — it has no way to transform or encrypt the value server-side before it's saved. Use the `onPluginConfigBeforeSave` hook for that: see [Plugin Hooks](plugin-hooks.md#plugin-config-hooks) ("Encrypting a Plugin Config Secret").
+If your renderer's value contains something that must never be persisted as-is (most commonly a secret), `ctx.onChange(v)` alone isn't enough — it has no way to transform or encrypt the value server-side before it's saved. Use the `onPluginConfigBeforeSave` hook for that: see [Hooks](../hooks.md#plugin-config-hooks) ("Encrypting a Plugin Config Secret").
 
 ## Controller Auto-Discovery
 
@@ -623,7 +623,7 @@ try {
 ## See Also
 
 - [Creating Plugins](creating-plugins.md) - Step-by-step guide
-- [Plugin Hooks](plugin-hooks.md) - Extend framework behavior with hooks
+- [Hooks](../hooks.md) - Extend framework behavior with hooks
 - [Plugin Architecture](plugin-architecture.md) - How it works
 - [Managing Plugins](managing-plugins.md) - Admin guide
 - [Hello World Plugin](../installed-plugins/hello-world/README.md) - Complete example

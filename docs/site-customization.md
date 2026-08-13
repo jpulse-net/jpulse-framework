@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v1.7.12
+# jPulse Docs / Site Customization Guide v1.7.13
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -352,6 +352,26 @@ class MyCompanyController {
     static async initialize() {
         // e.g. adjust a config tab a plugin registered at priority 100
     }
+}
+```
+
+### Hooks: define and handle
+
+Site controllers are first-class on both sides of a hook. Put `static hookDefinitions` on the
+controller that **fires** a hook, and `static hooks` on the controller that **handles** one —
+the same syntax plugins use. Registration runs after `initialize()`, so a handler can use state
+that `initialize()` set up. See [Hooks](hooks.md).
+
+```javascript
+class BubbleController {
+    static hookDefinitions = {
+        onBubbleWidgetConfigBeforeSave: {
+            description: 'Veto a widget config save',
+            onError: 'abort',
+            contextKeys: ['req', 'widgetConfig'],
+            canModify: true
+        }
+    };
 }
 ```
 

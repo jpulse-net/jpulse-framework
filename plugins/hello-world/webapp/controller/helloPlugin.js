@@ -3,7 +3,7 @@
  * @tagline         Hello Plugin Controller
  * @description     Simple API controller demonstrating plugin structure
  * @file            plugins/hello-world/webapp/controller/helloPlugin.js
- * @version         1.7.12
+ * @version         1.7.13
  * @author          jPulse Team, https://jpulse.net
  * @license         BSL 1.1
  * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
@@ -21,10 +21,16 @@ import AuthController from '../../../../webapp/controller/auth.js';
 class HelloPluginController {
 
     // ========================================================================
-    // Plugin Hooks Declaration
-    // Hooks are auto-registered by PluginManager during bootstrap
-    // Format: { hookName: { handler?, priority? } }
+    // Plugin Hooks - this plugin DEFINES onHelloWorldGreet and HANDLES two auth hooks
     // ========================================================================
+    static hookDefinitions = {
+        onHelloWorldGreet: {
+            description: 'Fired when hello-world serves its API; handlers may append a greeting',
+            contextKeys: ['req', 'messages'],
+            canModify: true
+        }
+    };
+
     static hooks = {
         // Example: Log after successful login (priority 100 = default)
         onAuthAfterLogin: {},
@@ -114,6 +120,11 @@ class HelloPluginController {
             // Get sample data from model
             const data = await HelloPluginModel.getData();
 
+            const greetContext = { req, messages: [] };
+            if (global.HookManager) {
+                await global.HookManager.execute('onHelloWorldGreet', greetContext);
+            }
+
             const elapsed = Date.now() - startTime;
             LogController.logInfo(req, 'helloPlugin.api', `success: completed in ${elapsed}ms`);
 
@@ -124,7 +135,8 @@ class HelloPluginController {
                     version: '1.0.0',
                     config: config,
                     helloWorldConfig: helloWorldConfig,
-                    sampleData: data
+                    sampleData: data,
+                    greetings: greetContext.messages
                 },
                 message: 'Hello plugin data retrieved successfully',
                 elapsed

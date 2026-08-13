@@ -3,8 +3,8 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.7.12
- * @release         2026-08-12
+ * @version         1.7.13
+ * @release         2026-08-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -255,6 +255,9 @@ export async function bootstrap(options = {}) {
                 bootstrapLog(`⚠️  SiteControllerRegistry: ${failedInitializers.length} initializer(s) failed: ${failedInitializers.join(', ')} (see log for details)`, 'error');
             }
         }
+
+        // Hook audit after site controllers have defined/registered (step 14 is skipped in tests)
+        HookManagerModule.default.logAudit(bootstrapLog);
 
         // Step 15: Initialize context extensions (W-014)
         // Extends template context with site-specific data

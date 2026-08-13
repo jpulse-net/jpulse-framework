@@ -4,8 +4,8 @@
  * @tagline         Plugin Management Dashboard
  * @description     Admin interface for managing installed plugins
  * @file            webapp/view/admin/plugins.shtml
- * @version         1.7.12
- * @release         2026-08-12
+ * @version         1.7.13
+ * @release         2026-08-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -72,6 +72,24 @@
         padding: 40px;
         color: var(--jp-color-text-secondary);
     }
+
+    .local-hook-audit {
+        margin: 12px 0 20px;
+        padding-left: 20px;
+    }
+
+    .local-hook-audit-error {
+        color: var(--jp-color-text-primary);
+        font-weight: 600;
+    }
+
+    .local-hook-audit-warning {
+        color: var(--jp-color-text-secondary);
+    }
+
+    .local-hook-inactive td {
+        color: var(--jp-theme-text-muted);
+    }
     </style>
 </head>
 <body>
@@ -131,6 +149,16 @@
                 </div>
             </div>
 
+            <!-- Hook catalog -->
+            <div class="jp-card" style="margin-top: 30px;">
+                <h2>{{i18n.view.admin.hooks.title}}</h2>
+                <p class="jp-subtitle">{{i18n.view.admin.hooks.subtitle}}</p>
+                <div id="hookAudit"></div>
+                <div id="hooksList">
+                    <p class="local-empty-state">{{i18n.view.admin.hooks.loading}}</p>
+                </div>
+            </div>
+
           {{else}}
             <div class="jp-error-box">
               <p>{{i18n.view.admin.accessDenied}}</p>
@@ -154,6 +182,7 @@
      */
     async function initializePluginManagement() {
         await loadPlugins();
+        await loadHooks();
 
         // Attach event listeners
         document.getElementById('btnRescan').addEventListener('click', rescanPlugins);
@@ -263,6 +292,84 @@
     }
 
     /**
+     * Load the hook catalog and audit
+     */
+    async function loadHooks() {
+        try {
+            const response = await jPulse.api.get('/api/1/hook');
+            if (response.success) {
+                renderHookAudit(response.data.audit);
+                renderHooksList(response.data.hooks);
+            } else {
+                jPulse.UI.toast.error('{{i18n.view.admin.hooks.loadFailed}}');
+            }
+        } catch (error) {
+            console.error('- jPulse: Error loading hooks:', error);
+            jPulse.UI.toast.error('{{i18n.view.admin.hooks.loadFailed}}');
+        }
+    }
+
+    function renderHookAudit(audit) {
+        const container = document.getElementById('hookAudit');
+        if (!audit || !audit.findings || audit.findings.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+        let html = '<ul class="local-hook-audit">';
+        audit.findings.forEach(finding => {
+            const suggestion = finding.suggestion
+                ? ' — ' + '{{i18n.view.admin.hooks.didYouMean}}'.replace(
+                    '%SUGGESTION%',
+                    `<code>${jPulse.string.escapeHtml(finding.suggestion)}</code>`
+                )
+                : '';
+            html += `<li class="local-hook-audit-${jPulse.string.escapeHtml(finding.level)}">` +
+                `<strong>${jPulse.string.escapeHtml(finding.level)}</strong>: ` +
+                `${jPulse.string.escapeHtml(finding.message)}${suggestion}</li>`;
+        });
+        html += '</ul>';
+        container.innerHTML = html;
+    }
+
+    function renderHooksList(hooks) {
+        const container = document.getElementById('hooksList');
+        if (!hooks || hooks.length === 0) {
+            container.innerHTML = '<p class="local-empty-state">{{i18n.view.admin.hooks.none}}</p>';
+            return;
+        }
+        let html = '<table class="jp-table local-hooks-table">';
+        html += '<thead><tr>';
+        html += '<th>{{i18n.view.admin.hooks.hook}}</th>';
+        html += '<th>{{i18n.view.admin.hooks.owner}}</th>';
+        html += '<th>{{i18n.view.admin.hooks.mode}}</th>';
+        html += '<th>{{i18n.view.admin.hooks.stability}}</th>';
+        html += '<th>{{i18n.view.admin.hooks.handlers}}</th>';
+        html += '</tr></thead><tbody>';
+        hooks.forEach(hook => {
+            const owner = hook.definition ? hook.definition.owner : '—';
+            const mode = hook.definition ? hook.definition.mode : '—';
+            const stability = hook.definition ? hook.definition.stability : 'unverified';
+            const listeners = (hook.handlers || [])
+                .map(h => `${h.plugin} (${h.priority})`)
+                .join(', ') || '—';
+            const inactive = hook.active === false;
+            html += inactive ? '<tr class="local-hook-inactive">' : '<tr>';
+            html += `<td><code>${jPulse.string.escapeHtml(hook.name)}</code>`;
+            if (inactive) {
+                html += ` <span class="jp-status-badge jp-status-disabled">{{i18n.view.admin.hooks.inactive}}</span>`;
+            }
+            html += '</td>';
+            html += `<td>${jPulse.string.escapeHtml(owner)}</td>`;
+            html += `<td><code>${jPulse.string.escapeHtml(mode)}</code></td>`;
+            html += `<td>${jPulse.string.escapeHtml(stability)}</td>`;
+            html += `<td>${jPulse.string.escapeHtml(listeners)}</td>`;
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    /**
      * Toggle plugin enabled/disabled state
      */
     async function togglePlugin(pluginName, enable) {
@@ -272,8 +379,9 @@
 
             if (response.success) {
                 const message = enable ? `{{i18n.view.admin.plugins.enableSuccess}}` : `{{i18n.view.admin.plugins.disableSuccess}}`;
-                jPulse.UI.toast.success(message.replace(`{{name}}`, pluginName));
+                jPulse.UI.toast.success(message.replace('%NAME%', pluginName));
                 await loadPlugins();
+                await loadHooks();
             } else {
                 const message = enable ? `{{i18n.view.admin.plugins.enableFailed}}` : `{{i18n.view.admin.plugins.disableFailed}}`;
                 jPulse.UI.toast.error(response.error || message.replace(`{{message}}`, response.error || ''));
@@ -298,6 +406,7 @@
             if (response.success) {
                 jPulse.UI.toast.success(response.message || `Scan complete: ${response.data.discovered || 0} plugins found`);
                 await loadPlugins();
+                await loadHooks();
             } else {
                 jPulse.UI.toast.error(response.error || 'Scan failed');
             }

@@ -68,6 +68,7 @@ sidebar-components.md
 
 # Backend & API
 api-reference.md
+hooks.md
 websockets.md
 sending-email.md
 
@@ -85,7 +86,6 @@ plugins/creating-themes.md
 plugins/managing-plugins.md
 plugins/plugin-architecture.md
 plugins/plugin-api-reference.md
-plugins/plugin-hooks.md
 plugins/publishing-plugins.md
 
 installed-plugins/README.md

@@ -1,6 +1,6 @@
 # W-209 plugins: extensibe hook registry
 
-**Status:** Spec reviewed and settled. Implementation not started.
+**Status:** Implementation complete in the working tree (commits 1–5). Work-item status is left for the owner to flip.
 
 **Decisions taken** (review session, 2026-08-12):
 
@@ -28,6 +28,17 @@
 - Three hooks that are declared but never fired are marked
   `stability: 'planned'` rather than removed, and a scan test prevents any new
   ones (§9).
+- The hook guide **moves from `docs/plugins/plugin-hooks.md` to `docs/hooks.md`**:
+  once framework, site, and plugin are equal producers, a site developer has no
+  reason to look under `docs/plugins/` (§17).
+- `owner` stays the flat three-value vocabulary — a plugin name, `'site'`, or
+  `'framework'` — for both definitions and handler registrations, rather than
+  qualifying site entries by controller (§7).
+- New files carry the **current** `@version` / `@release` (1.7.12 / 2026-08-12);
+  the release bump rewrites them along with everything else.
+- The bubblemap-app and `auth-mfa` migrations (§12.2) are **not** part of this
+  work item's commits — they live in other repositories and are applied by their
+  owner after the framework change lands.
 
 Long-term maintainability is preferred over backward compatibility throughout;
 the two existing site deployments are under the same ownership and can be
@@ -804,9 +815,11 @@ translations; generator `owner` filter and new columns; all documentation.
 | `webapp/tests/unit/utils/plugin-manager.test.js` | `hookDefinitions` auto-definition, inactive-on-disable |
 | `webapp/tests/unit/utils/site-controller-registry.test.js` | Site `static hooks` auto-registration; plugin controllers not double-registered |
 | `webapp/tests/unit/model/user-*.test.js`, `webapp/tests/unit/controller/user-*.test.js` | `onUserBeforeSave` abort path |
-| `docs/plugins/plugin-hooks.md` | "Define your own hooks" section; rewritten cancellation section; the `onPluginConfigBeforeSave` exception paragraph removed; "Declare Hooks in Your Controller" re-worded to "Handle Hooks" |
+| `docs/hooks.md` | **Moved** from `docs/plugins/plugin-hooks.md` and re-framed around the three producer roles: "Define your own hooks" section, rewritten cancellation section, the `onPluginConfigBeforeSave` exception paragraph removed, "Declare Hooks in Your Controller" re-worded to "Handle Hooks" |
+| `docs/plugins/README.md`, `docs/sidebars.md`, `docs/README.md` | Navigation entries repointed at `docs/hooks.md` |
+| `docs/plugins/creating-plugins.md`, `docs/plugins/plugin-api-reference.md`, `docs/security-and-auth.md`, `docs/deployment.md` | Cross-links repointed (grep `plugin-hooks.md`; the `docs/README.md` release-highlight entries are historical and stay as written) |
 | `docs/site-customization.md` | Site code as hook producer and consumer, from `initialize()` |
-| `docs/api-reference.md` | `/api/1/hook` endpoints; pointer to `plugin-hooks.md` for the definition API |
+| `docs/api-reference.md` | `/api/1/hook` endpoints; pointer to `hooks.md` for the definition API |
 | `docs/CHANGELOG.md`, `README.md`, `docs/README.md` | Release entry and highlight, including the breaking-change list (§12) |
 | `docs/dev/design/W-209-extensible-hooks.md` | This document |
 
@@ -815,10 +828,10 @@ translations; generator `owner` filter and new columns; all documentation.
 
 ## 18. Open Questions
 
-- [ ] Should `contextKeys` support nested paths (`req.user.username`) or stay
-      flat top-level keys? Leaning flat, with an optional
-      `{ key, type, description }` object form per entry for the docs, since the
-      only mechanical use is "does the context carry these keys".
+- [x] **Settled:** `contextKeys` stays flat top-level keys, with an optional
+      `{ key, type, description }` object form per entry for the docs. Nested
+      paths would invite a mini-language, and the only mechanical use is "does
+      the context carry these keys".
 - [ ] Should the per-handler elapsed timing in `execute()` be generalized so the
       `onSystemGetStats` special case disappears (§4.2)? Deferred by decision;
       about two lines whenever the loop is next touched.
@@ -826,5 +839,5 @@ translations; generator `owner` filter and new columns; all documentation.
       so two registrations become an audit finding? Deferred — `executeForPlugin`
       already scopes by plugin, so the only case it catches is one plugin
       registering twice.
-- [ ] Is `test-site-temp/webapp/utils/hook-manager.js` generated or tracked? If
-      tracked, it needs the same treatment as the real file.
+
+Nothing else is open. Implementation may start at §16 commit 1.

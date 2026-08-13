@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-014 SiteControllerRegistry auto-discovery utility
  * @description     Tests site controller auto-discovery and API registration functionality
  * @file            webapp/tests/unit/utils/site-controller-registry.test.js
- * @version         1.7.12
- * @release         2026-08-12
+ * @version         1.7.13
+ * @release         2026-08-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -780,6 +780,37 @@ describe('SiteControllerRegistry (W-014)', () => {
                 initializedControllers: 1,
                 failedInitializers: 1
             });
+        });
+    });
+
+    describe('_registerSiteHooks', () => {
+        test('registers site controllers only, not plugin controllers', async () => {
+            const registerFromClass = jest.fn().mockReturnValue({ defined: 1, registered: 1 });
+            global.HookManager = { registerFromClass };
+
+            const siteController = { name: 'bubble' };
+            const pluginController = { name: 'helloPlugin' };
+            SiteControllerRegistry._loadController = jest.fn(async (key) => {
+                return key === 'bubble' ? siteController : pluginController;
+            });
+
+            SiteControllerRegistry.registry.controllers.set('bubble', {
+                name: 'bubble',
+                source: 'site',
+                path: '/tmp/bubble.js',
+                apiMethods: []
+            });
+            SiteControllerRegistry.registry.controllers.set('hello-world:helloPlugin', {
+                name: 'helloPlugin',
+                source: 'plugin:hello-world',
+                path: '/tmp/helloPlugin.js',
+                apiMethods: []
+            });
+
+            await SiteControllerRegistry._registerSiteHooks();
+
+            expect(registerFromClass).toHaveBeenCalledTimes(1);
+            expect(registerFromClass).toHaveBeenCalledWith('site', siteController);
         });
     });
 });

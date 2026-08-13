@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.7.12
+# jPulse Docs / Site Administrator & Developer Documentation v1.7.13
 
 **For Site Administrators & Site Developers**
 
@@ -150,6 +150,7 @@ my-jpulse-site/
 - **[Application Cluster Communication](application-cluster.md)** - Multi-server broadcasting for state synchronization
 - **[WebSocket Real-Time Communication](websockets.md)** - Bi-directional real-time interactions
 - **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation
+- **[Hooks](hooks.md)** - Define and handle extension points (framework, site, or plugin)
 - **[Handlebars Reference](handlebars.md)** - Complete Handlebars syntax guide (variables, conditionals, loops)
 - **[Template Reference](template-reference.md)** - Template development guide (file structure, security, patterns)
 - **[Sidebars Guide](sidebars.md)** - Left/right sidebars with component-based architecture (desktop & mobile)
@@ -163,6 +164,12 @@ my-jpulse-site/
 - **[Managing Plugins](plugins/managing-plugins.md)** - Installing, configuring, and maintaining plugins
 - **[Publishing Plugins](plugins/publishing-plugins.md)** - Distribution and versioning best practices
 - **[Plugin API Reference](plugins/plugin-api-reference.md)** - Complete plugin development API
+- **[Hooks](hooks.md)** - Define and handle extension points (framework, site, or plugin)
+
+### 🎨 **Theming & UI**
+- **[Themes](themes.md)** - Theme system, CSS variables, and creating themes
+- **[Creating Themes](plugins/creating-themes.md)** - Package a theme as a plugin
+- **[jPulse UI Reference](jpulse-ui-reference.md)** - Client-side UI widgets
 
 ### 🚀 **Deployment**
 - **[Deployment Guide](deployment.md)** - Production deployment strategies and best practices
@@ -228,6 +235,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v1.7.13, W-209, 2026-08-13: Plugins: extensible hook registry**: Framework, site, and plugin producers define hooks (`defineHook()` / `static hookDefinitions`); consumers keep `static hooks`. Cancellation is throw-to-abort with a declared `onError` policy. **Breaking:** `executeWithCancel()` removed; `return false` no longer cancels; `onUserBeforeSave` throws abort the save (400 `USER_SAVE_REJECTED`); `onGetInstanceStats` → `onSystemGetStats`; `HookManager.clear()` clears handlers only (`clearDefinitions()` for the catalog). Also: boot audit with did-you-mean, `GET /api/1/hook`, Admin → Plugins hooks panel (refreshes on enable/disable; inactive badge), hook guide at `docs/hooks.md` (sidebar after API Reference; tables wrap then scroll).
 - **v1.7.12, W-208, 2026-08-12: WebSocket: per-namespace message limits; error reporting; request helper**: Namespaces can raise inbound `maxSize` (and optionally rate limits) via `createNamespace({ messageLimits })` without changing the global default; oversized / rate-limited messages get a real error envelope (`MESSAGE_TOO_LARGE` / `RATE_LIMIT_EXCEEDED` with `details`) instead of a silent drop; and `ws.request()` / `conn.reply()` (plus `WebSocketController.request()` the other way) give correlated request/response that always resolves like `jPulse.api` — prerequisite for browser-side tool calls that can exceed 64 KB. Also: limits in the `connected` welcome + client size pre-check, socket-level `maxPayload`, drop counters on the admin WebSocket status page, and a `/hello-websocket/#request-response` demo.
 - **v1.7.11, W-207, 2026-08-11: Bootstrap: site-level init hook**: Hardens the startup hook site and plugin controllers already have — `static async initialize()` — so order is deterministic (`static initializePriority`, default 100, lower first, then alphabetical by controller name), failures stay isolated but show in the bootstrap banner, and site docs finally spell out the one place for `ConfigModel.extendSchema()` / `UserModel.extendSchema()`, WebSocket namespaces, Redis channels, and cache warmup.
 - **v1.7.10, W-206, 2026-08-09: User: reset password**: Real forgot-password flow — one-hour single-use mailed link, set a new password, auto-login with MFA/account status still gating. Enumeration-safe public request, honest admin send, offered only when SMTP is configured (`disablePasswordReset` + live check; empty `smtpServer` is not a silent `localhost`). New `/auth/reset-password.shtml` and `AuthController.beginAuthenticatedSession()` facade (shared with email-verify confirm). Companion `auth-mfa` page fix ships separately.

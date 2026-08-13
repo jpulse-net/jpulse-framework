@@ -3,8 +3,8 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         1.7.12
- * @release         2026-08-12
+ * @version         1.7.13
+ * @release         2026-08-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -45,7 +45,12 @@ class UserController {
 
             // Hook: onUserBeforeSave - can modify userData or add fields (isCreate=true, isSignup=true)
             let signupContext = { req, userData: { ...req.body }, isCreate: true, isSignup: true };
-            signupContext = await global.HookManager.execute('onUserBeforeSave', signupContext);
+            try {
+                signupContext = await global.HookManager.execute('onUserBeforeSave', signupContext);
+            } catch (hookError) {
+                LogController.logError(req, 'user.signup', `error: ${hookError.message}`);
+                return global.CommonUtils.sendError(req, res, 400, hookError.message, 'USER_SAVE_REJECTED');
+            }
 
             const { firstName, lastName, username: usernameRaw, email, password, confirmPassword, acceptTerms } = signupContext.userData;
             const username = (typeof usernameRaw === 'string' ? usernameRaw : '').toLowerCase().trim();
@@ -70,9 +75,6 @@ class UserController {
                 const message = global.i18n.translate(req, 'controller.user.signup.termsNotAccepted');
                 return global.CommonUtils.sendError(req, res, 400, message, 'TERMS_NOT_ACCEPTED');
             }
-
-            // Note: Signup validation cancellation now handled by onUserBeforeSave returning false
-            // The executeWithCancel pattern is deprecated in Phase 8
 
             // Prepare user data
             let userData = {
@@ -162,6 +164,10 @@ class UserController {
                 return global.CommonUtils.sendError(req, res, 400, message, 'VALIDATION_ERROR', error.message);
             }
 
+            if (error.hookName === 'onUserBeforeSave') {
+                return global.CommonUtils.sendError(req, res, 400, error.message, 'USER_SAVE_REJECTED');
+            }
+
             const message = global.i18n.translate(req, 'controller.user.signup.internalError', { details: error.message });
             return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
         }
@@ -244,6 +250,9 @@ class UserController {
             if (error.message.includes('Password must be at least')) {
                 const message = global.i18n.translate(req, 'controller.user.password.policyError', { details: error.message });
                 return global.CommonUtils.sendError(req, res, 400, message, 'PASSWORD_POLICY_ERROR', error.message);
+            }
+            if (error.hookName === 'onUserBeforeSave') {
+                return global.CommonUtils.sendError(req, res, 400, error.message, 'USER_SAVE_REJECTED');
             }
             const message = global.i18n.translate(req, 'controller.user.password.internalError', { details: error.message });
             return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
@@ -1567,6 +1576,9 @@ class UserController {
             if (error.message.includes('Validation failed')) {
                 const message = global.i18n.translate(req, 'controller.user.update.validationFailed', { details: error.message });
                 return global.CommonUtils.sendError(req, res, 400, message, 'VALIDATION_ERROR', error.message);
+            }
+            if (error.hookName === 'onUserBeforeSave') {
+                return global.CommonUtils.sendError(req, res, 400, error.message, 'USER_SAVE_REJECTED');
             }
             const message = global.i18n.translate(req, 'controller.user.update.updateInternalError', { details: error.message });
             return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);

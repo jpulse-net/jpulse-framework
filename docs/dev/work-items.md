@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.12
+# jPulse Docs / Dev / Work Items v1.7.13
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -7883,7 +7883,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 ## 🚧 IN_PROGRESS Work Items
 
 ### W-209, v1.7.13, 2026-08-13: plugins: extensibe hook registry
-- status: 🕑 PENDING
+- status: 🚧 IN_PROGRESS
 - type: Feature
 - design doc: docs/dev/design/W-209-extensible-hooks.md
 - objectives:
@@ -7930,9 +7930,16 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - visibility: `GET /api/1/hook` and `GET /api/1/hook/:name` for admins — top-level and singular per every existing route, deliberately *not* nested under `/api/1/plugin` (a lie for framework- and site-owned hooks, and shadowed by `/api/1/plugin/:name`) — a hooks panel on the admin plugins page, and an `owner` filter plus Owner / Mode columns on the existing doc generators
   - lifecycle: definitions by a disabled plugin marked inactive rather than deleted, so consumer registrations still produce a useful audit message; deprecation via `stability` + `deprecatedBy`
   - folded in: the one-line `webapp/routes.js` reorder that makes `/api/1/plugin/dependencies` reachable again, since the hook routes land in the same block
+  - admin hooks panel reloads after enable/disable/rescan; a disabled plugin's definitions stay listed with an Inactive badge
+  - plugin enable/disable toasts use `%NAME%` so Handlebars in the page script cannot eat `{{name}}`; audit did-you-mean uses `%SUGGESTION%`
+  - docs sidebar lists Hooks after API Reference (`docs/.markdown`); markdown tables wrap cell text and scroll only if they still overflow
 - deliverables:
-  - see the design doc §17 for the full table; primary files are a new `webapp/utils/hook-definitions.js` (framework catalog as seed data), `webapp/utils/hook-manager.js`, `webapp/utils/plugin-manager.js`, `webapp/utils/site-controller-registry.js`, `webapp/utils/bootstrap.js` (audit), `webapp/model/user.js` + `webapp/controller/user.js` (the `onUserBeforeSave` abort path), `webapp/controller/health.js` (hook rename), a new `webapp/controller/hook.js` + `webapp/routes.js`, `webapp/controller/markdown.js` (generator columns/filter), `webapp/view/admin/plugins.shtml` + translations, `plugins/hello-world/webapp/controller/helloPlugin.js` (reference example), the hook-manager / plugin-manager / site-controller-registry test suites plus a new `hook-definitions.test.js`, and `docs/plugins/plugin-hooks.md` + `docs/site-customization.md` + `docs/api-reference.md`
+  - see the design doc §17 for the full table; primary files are a new `webapp/utils/hook-definitions.js` (framework catalog as seed data), `webapp/utils/hook-manager.js`, `webapp/utils/plugin-manager.js`, `webapp/utils/site-controller-registry.js`, `webapp/utils/bootstrap.js` (audit), `webapp/model/user.js` + `webapp/controller/user.js` (the `onUserBeforeSave` abort path), `webapp/controller/health.js` (hook rename), a new `webapp/controller/hook.js` + `webapp/routes.js`, `webapp/controller/markdown.js` (generator columns/filter), `webapp/view/admin/plugins.shtml` + translations, `plugins/hello-world/webapp/controller/helloPlugin.js` (reference example), the hook-manager / plugin-manager / site-controller-registry test suites plus a new `hook-definitions.test.js`, and the docs: `docs/plugins/plugin-hooks.md` **moves to `docs/hooks.md`** and is re-framed around the three producer roles (framework / site / plugin), with nav and cross-links repointed (`docs/plugins/README.md`, `docs/.markdown` publish-list, `creating-plugins.md`, `plugin-api-reference.md`), plus `docs/site-customization.md` and `docs/api-reference.md`
   - five commits (design doc §16): registry core and seed; one cancellation model; query + audit + retro-validation; producer and consumer surfaces; visibility and docs
+  - pre-implementation decisions settled 2026-08-12: hook guide moves to `docs/hooks.md`; `owner` stays the flat plugin-name / `site` / `framework` vocabulary for both definitions and handler registrations; `contextKeys` stays flat top-level keys with an optional `{ key, type, description }` object form; new files carry the current `@version`/`@release` and are rewritten by the release bump; the bubblemap-app and `auth-mfa` migrations are applied by their owner in those repositories after the framework change lands, not by this item's commits
+  - extra tests: `hook-controller.test.js`, `user-before-save-abort.test.js` (model + controller)
+  - extra docs cross-links: `docs/deployment.md`, `docs/handlebars.md`, `docs/genai-instructions.md`, `docs/security-and-auth.md`, `docs/plugins/plugin-architecture.md`
+  - manual-test polish: `plugins.shtml` reloads the hooks table on toggle/rescan and shows inactive; translations `%NAME%` / `inactive` / `%SUGGESTION%`; `jpulse-common.js` wraps markdown tables; `jpulse-common.css` wrap-then-scroll (`min-width: 36rem`)
 - notes:
   - prerequisite for the BubbleMap AI Agent work (T-092), where each LLM backend is a plugin (`ai-anthropic` first, plus `ai-mock` for tests). With this item, `ai-core` defines `onAiProviderRegister` / `onAiComplete` itself and the framework never learns the word "AI" — see design doc §13 for the worked example
   - depends on W-207: site code is a first-class producer in this design and needs a call site to define from
@@ -8020,7 +8027,7 @@ npm publish
 === checkpoint commit ===
 npm test
 git add .
-git commit -m 'Checkpoint commit 1 for: W-069, v0.9.2: view: create site navigation pulldown and hamburger menu'
+git commit -m 'Checkpoint commit 1 for: W-209, v1.7.13, 2026-08-13: plugins: extensibe hook registry -- design doc update'
 git push
 
 === on failed package build on github ===
@@ -8108,6 +8115,35 @@ template:
 - notes:
   - prerequisite for the BubbleMap AI Agent work (T-092), whose provider plugins hold LLM API keys; its design assumed keys are unreadable even by admins, which is not what the framework does today — the design doc needs correcting either way
   - worth checking whether `data.manifest.license.key` should become write-only in the same pass, since it is the field the current pattern was modeled on
+
+### W-211, v1.0.6, 2026-08-13: auth-mfa plugin: hook rename for jPulse Framework v1.7.13+
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - keep MFA stats on System Status after W-209 renamed the framework stats hook
+  - clear the boot-audit warning for an undefined `onGetInstanceStats` handler
+- prerequisites:
+  - W-209, v1.7.13, 2026-08-13: plugins: extensibe hook registry
+- context:
+  - W-209 renamed `onGetInstanceStats` → `onSystemGetStats` so the last `onBucketAction` exception is gone; `HealthController` fires only the new name
+  - a plugin still registering the old name is still registered, but the handler never runs, and the post-boot audit reports `UNDEFINED_HOOK` (`no definition for hook 'onGetInstanceStats' (registered by auth-mfa)`)
+  - edit-distance did-you-mean does not suggest `onSystemGetStats` for this rename (distance 9, threshold 6), so the log line is the warning only
+  - `auth-mfa` is the only in-tree consumer of the old name; it lives in its own repo (`@jpulse-net/plugin-auth-mfa`) and is gitignored from the framework except as an installed plugin — this item is that plugin's migration, not a framework commit
+  - same one-line rename is needed in every deployment that vendors the plugin (framework dogfood, jpulse.net, bubblemap)
+- features:
+  - `static hooks` key and handler method `onGetInstanceStats` → `onSystemGetStats` (method name must match the hook name; `handler:` override not used)
+  - log tag `auth-mfa.onSystemGetStats` so a stats-collection failure is searchable under the new name
+  - README release note; historical 1.0.2 W-112 entry that introduced the old name stays as written
+- deliverables:
+  - `plugins/auth-mfa/webapp/controller/mfaAuth.js`:
+    - `static hooks.onSystemGetStats`; `static async onSystemGetStats(context)`; error log `'auth-mfa.onSystemGetStats'`
+  - `plugins/auth-mfa/README.md`:
+    - release note for the rename and the v1.7.13+ framework requirement
+  - apply the same controller rename in the jpulse.net and bubblemap `auth-mfa` copies
+  - verify: restart, boot audit has no `onGetInstanceStats` warning; Admin → System Status still shows Auth-MFA stats; Admin → Plugins hooks panel lists `onSystemGetStats` with handler `auth-mfa`
+- notes:
+  - the dogfood copy under `plugins/auth-mfa/` already has the controller rename and README note; plugin `version` in `plugin.json` is still 1.0.5 until the plugin release bump
+  - no framework files; no work-item status change on W-209
 
 ### W-202, v1.7.6, 2026-08-xx: auth: add locked status
 - status: 🕑 PENDING

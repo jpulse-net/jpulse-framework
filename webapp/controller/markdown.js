@@ -3,8 +3,8 @@
  * @tagline         Markdown controller for the jPulse Framework
  * @description     Markdown document serving with caching support, part of jPulse Framework
  * @file            webapp/controller/markdown.js
- * @version         1.7.12
- * @release         2026-08-12
+ * @version         1.7.13
+ * @release         2026-08-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -70,23 +70,21 @@ class MarkdownController {
         // W-105: Plugin hooks dynamic content generators
         'plugins-hooks-list': {
             description: 'Bullet list of available plugin hooks',
-            params: '`namespace`',
+            params: '`namespace`, `owner`',
             generator: async (params) => MarkdownController._generatePluginsHooksList(params),
         },
         'plugins-hooks-list-table': {
             description: 'Markdown table of available plugin hooks',
-            params: '`namespace`',
+            params: '`namespace`, `owner`',
             generator: async (params) => MarkdownController._generatePluginsHooksTable(params),
         },
         'plugins-hooks-count': {
             description: 'Count of available plugin hooks',
-            params: '`namespace`',
+            params: '`namespace`, `owner`',
             generator: async (params) => {
                 if (!global.HookManager) return '0';
-                const hooks = params.namespace
-                    ? global.HookManager.getHooksByNamespace(params.namespace)
-                    : global.HookManager.getAvailableHooks();
-                return `${Object.keys(hooks).length}`;
+                const hooks = MarkdownController._getHooksForDocs(params);
+                return `${hooks.length}`;
             },
         },
         // W-116: Handlebars helpers dynamic content generators
@@ -1197,10 +1195,32 @@ class MarkdownController {
     // ========================================================================
 
     /**
+     * Hooks for the documentation generators, filtered by namespace and owner
+     * @param {object} params - `namespace` prefix and/or `owner`
+     * @returns {object[]} getHook() results that have a definition
+     * @private
+     */
+    static _getHooksForDocs(params = {}) {
+        if (!global.HookManager) {
+            return [];
+        }
+        const filters = { active: true };
+        if (params.namespace) {
+            const escaped = String(params.namespace).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            filters.namePattern = new RegExp('^' + escaped);
+        }
+        if (params.owner) {
+            filters.owner = params.owner;
+        }
+        return global.HookManager.findHooks(filters).filter(hook => hook.defined);
+    }
+
+    /**
      * W-105: Generate markdown table of available plugin hooks
      * Used for dynamic content: %DYNAMIC{plugins-hooks-list-table}%
      * @param {object} params - Optional parameters
-     *   - namespace: filter by namespace prefix (e.g., "auth", "user")
+     *   - namespace: filter by namespace prefix (e.g., "onAuth", "onUser")
+     *   - owner: filter by owner (plugin name, "site", or "framework")
      * @returns {string} Markdown table
      * @private
      */
@@ -1209,24 +1229,21 @@ class MarkdownController {
             return '_HookManager not initialized._';
         }
 
-        const hooks = params.namespace
-            ? global.HookManager.getHooksByNamespace(params.namespace)
-            : global.HookManager.getAvailableHooks();
+        const hooks = MarkdownController._getHooksForDocs(params);
 
-        const hookNames = Object.keys(hooks).sort();
-
-        if (hookNames.length === 0) {
+        if (hooks.length === 0) {
             return '_No hooks match the criteria._';
         }
 
-        let md = '| Hook | Description | Context | Modify | Cancel |\n';
-        md += '|------|-------------|---------|--------|--------|\n';
+        let md = '| Hook | Owner | Mode | Description | Context | Modify | Cancel |\n';
+        md += '|------|-------|------|-------------|---------|--------|--------|\n';
 
-        for (const name of hookNames) {
-            const hook = hooks[name];
-            const canModify = hook.canModify ? '✅' : '❌';
-            const canCancel = hook.canCancel ? '✅' : '❌';
-            md += `| \`${name}\` | ${hook.description} | \`${hook.context}\` | ${canModify} | ${canCancel} |\n`;
+        for (const hook of hooks) {
+            const definition = hook.definition;
+            const canModify = definition.canModify ? '✅' : '❌';
+            const canCancel = definition.canCancel ? '✅' : '❌';
+            md += `| \`${hook.name}\` | ${definition.owner} | \`${definition.mode}\` | ` +
+                `${definition.description} | \`${definition.context}\` | ${canModify} | ${canCancel} |\n`;
         }
 
         return md;
@@ -1236,7 +1253,8 @@ class MarkdownController {
      * W-105: Generate markdown list of available plugin hooks
      * Used for dynamic content: %DYNAMIC{plugins-hooks-list}%
      * @param {object} params - Optional parameters
-     *   - namespace: filter by namespace prefix (e.g., "auth", "user")
+     *   - namespace: filter by namespace prefix (e.g., "onAuth", "onUser")
+     *   - owner: filter by owner (plugin name, "site", or "framework")
      * @returns {string} Markdown list
      * @private
      */
@@ -1245,24 +1263,21 @@ class MarkdownController {
             return '_HookManager not initialized._';
         }
 
-        const hooks = params.namespace
-            ? global.HookManager.getHooksByNamespace(params.namespace)
-            : global.HookManager.getAvailableHooks();
+        const hooks = MarkdownController._getHooksForDocs(params);
 
-        const hookNames = Object.keys(hooks).sort();
-
-        if (hookNames.length === 0) {
+        if (hooks.length === 0) {
             return '_No hooks match the criteria._';
         }
 
         let md = '';
-        for (const name of hookNames) {
-            const hook = hooks[name];
+        for (const hook of hooks) {
+            const definition = hook.definition;
             const badges = [];
-            if (hook.canModify) badges.push('modify');
-            if (hook.canCancel) badges.push('cancel');
+            if (definition.canModify) badges.push('modify');
+            if (definition.canCancel) badges.push('cancel');
             const badgeStr = badges.length > 0 ? ` _(${badges.join(', ')})_` : '';
-            md += `- **\`${name}\`**${badgeStr} - ${hook.description}\n`;
+            md += `- **\`${hook.name}\`** (${definition.owner}, \`${definition.mode}\`)` +
+                `${badgeStr} - ${definition.description}\n`;
         }
 
         return md;

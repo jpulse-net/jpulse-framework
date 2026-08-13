@@ -3,8 +3,8 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         1.7.12
- * @release         2026-08-12
+ * @version         1.7.13
+ * @release         2026-08-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -931,6 +931,9 @@ class UserModel {
 
             return userWithoutPassword;
         } catch (error) {
+            if (error.hookName) {
+                throw error;
+            }
             throw new Error(`Failed to create user: ${error.message}`);
         }
     }
@@ -1079,6 +1082,9 @@ class UserModel {
 
             return updatedUser;
         } catch (error) {
+            if (error.hookName) {
+                throw error;
+            }
             throw new Error(`Failed to update user: ${error.message}`);
         }
     }

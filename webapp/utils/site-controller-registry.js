@@ -3,8 +3,8 @@
  * @tagline         Site Controller Registry and Auto-Discovery
  * @description     Discovers and registers site controller APIs at startup (W-014)
  * @file            webapp/utils/site-controller-registry.js
- * @version         1.7.12
- * @release         2026-08-12
+ * @version         1.7.13
+ * @release         2026-08-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -80,6 +80,10 @@ class SiteControllerRegistry {
             const initResult = await this._initializeControllers();
             this.registry.initialized = initResult.initialized.length;
             this.registry.initFailed = initResult.failed.length;
+
+            // Site controllers may define and handle hooks; plugin controllers were already
+            // registered at bootstrap step 7.4, so only source === 'site' is processed here.
+            await this._registerSiteHooks();
 
             const controllerCount = this.registry.controllers.size;
             const apiCount = Array.from(this.registry.controllers.values())
@@ -337,6 +341,38 @@ class SiteControllerRegistry {
         }
 
         return { initialized, failed };
+    }
+
+    /**
+     * Auto-define static hookDefinitions and auto-register static hooks for site controllers
+     * Runs after initialize() so a handler can rely on state that initialize() set up.
+     * Plugin controllers (registry source prefixed `plugin:`) are skipped - their hooks
+     * were already registered by PluginManager.
+     */
+    static async _registerSiteHooks() {
+        if (!global.HookManager) {
+            return;
+        }
+
+        for (const [registryKey, controller] of this.registry.controllers) {
+            if (controller.source !== 'site') {
+                continue;
+            }
+            try {
+                const ControllerClass = await this._loadController(registryKey);
+                if (!ControllerClass) {
+                    continue;
+                }
+                const result = global.HookManager.registerFromClass('site', ControllerClass);
+                if (result.defined || result.registered) {
+                    LogController.logInfo(null, 'site-controller-registry',
+                        `Site hooks for ${registryKey}: ${result.defined} defined, ${result.registered} registered`);
+                }
+            } catch (error) {
+                LogController.logError(null, 'site-controller-registry',
+                    `Failed to register site hooks for ${registryKey}: ${error.message}`);
+            }
+        }
     }
 
     /**

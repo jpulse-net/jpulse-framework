@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Development Guide v1.7.12
+# jPulse Docs / Plugins / Plugin Development Guide v1.7.13
 
 Welcome to jPulse Framework's plugin development guide! This documentation will help you create, publish, and manage plugins for the jPulse Framework.
 
@@ -6,7 +6,7 @@ Welcome to jPulse Framework's plugin development guide! This documentation will 
 
 1. **[Creating Plugins](creating-plugins.md)** - Step-by-step guide to building your first plugin
 2. **[Plugin Architecture](plugin-architecture.md)** - Understanding how the plugin system works
-3. **[Plugin Hooks](plugin-hooks.md)** - Extend framework behavior with hooks
+3. **[Hooks](../hooks.md)** - Define and handle extension points (framework, site, or plugin)
 4. **[API Reference](plugin-api-reference.md)** - Complete API documentation
 5. **[Publishing Plugins](publishing-plugins.md)** - Package and publish your plugins
 6. **[Managing Plugins](managing-plugins.md)** - Install, configure, and manage plugins

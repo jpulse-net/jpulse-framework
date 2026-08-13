@@ -5,8 +5,8 @@
  *                  for non-admin users in the _sanitizeMetricsData() method!
  * @description     This is the health controller for the jPulse Framework WebApp
  * @file            webapp/controller/health.js
- * @version         1.7.12
- * @release         2026-08-12
+ * @version         1.7.13
+ * @release         2026-08-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -106,11 +106,11 @@ class HealthController {
         // HookManager.execute() already tracks elapsed time per plugin component
         try {
             let pluginContext = { stats: {}, instanceId: global.appConfig.system.instanceId };
-            pluginContext = await HookManager.execute('onGetInstanceStats', pluginContext);
+            pluginContext = await HookManager.execute('onSystemGetStats', pluginContext);
             Object.assign(components, pluginContext.stats);
         } catch (error) {
             LogController.logError(null, 'health._collectComponentStats',
-                `onGetInstanceStats hook failed: ${error.message}`);
+                `onSystemGetStats hook failed: ${error.message}`);
         }
 
         return components;

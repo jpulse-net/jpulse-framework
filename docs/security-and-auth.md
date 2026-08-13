@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.7.12
+# jPulse Docs / Security & Authentication v1.7.13
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -141,7 +141,7 @@ Content-Type: application/json
 
 A bootstrap safety check downgrades `'disabled'` to `'admins-only'` automatically if no plugin has registered the `onAuthGetLoginProviders` hook, preventing a config-only total lockout. `/auth/login.shtml?localFallback=1` reveals the local login form with a "Recovery mode" banner regardless of the restriction, as an ops convenience — the server-side restriction above is still enforced. If SSO is down and no local admin account is usable, see the **[Break-Glass Account Runbook](deployment.md#break-glass-account-runbook)**.
 
-External auth plugins (OAuth, LDAP, SAML) finish a browser-redirect login via `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)`, and inject "Sign in with ..." buttons onto the login page via the `onAuthGetLoginProviders` hook — see [Plugin Hooks](plugins/plugin-hooks.md) for both.
+External auth plugins (OAuth, LDAP, SAML) finish a browser-redirect login via `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)`, and inject "Sign in with ..." buttons onto the login page via the `onAuthGetLoginProviders` hook — see [Hooks](hooks.md) for both.
 
 #### Email Verification
 

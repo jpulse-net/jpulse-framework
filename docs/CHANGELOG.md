@@ -1,6 +1,48 @@
-# jPulse Docs / Version History v1.7.12
+# jPulse Docs / Version History v1.7.13
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.13, W-209, 2026-08-13
+
+**Commit:** `W-209, v1.7.13: plugins: extensible hook registry`
+
+**Objective**: Let a plugin or a site define its own hooks the same way the framework does, with one cancellation model, a queryable catalog, and a boot audit — so the framework never has to learn a domain vocabulary.
+
+**Summary**: `HookManager.getAvailableHooks()` is no longer a hard-coded literal. Producers call `defineHook()` / `defineHooks()` or declare `static hookDefinitions` on a controller; consumers keep `static hooks`. Cancellation is throw-to-abort with a declared `onError` policy (`continue` vs `abort`); `executeWithCancel()` and `return false` are gone. `onUserBeforeSave` is a real veto (400 `USER_SAVE_REJECTED`). `onGetInstanceStats` is renamed `onSystemGetStats`. Three unfired user hooks are marked `planned`. `GET /api/1/hook` and an Admin → Plugins hooks panel show who defines what and who listens. The hook guide moves to `docs/hooks.md`.
+
+**Breaking**:
+- `HookManager.executeWithCancel()` removed (one production caller: BubbleMap widget-config save)
+- `return false` no longer cancels
+- `onUserBeforeSave` throws now abort the save
+- `onGetInstanceStats` → `onSystemGetStats` (`auth-mfa` in all deployments)
+- `HookManager.clear()` clears handlers only; use `clearDefinitions()` for the catalog
+
+**Key features**:
+- Extensible catalog with owner, mode, `onError`, stability, `contextKeys`
+- Unified throw-to-abort cancellation; site controllers auto-register `static hooks`
+- Boot audit with did-you-mean; fire-site scan test for non-planned framework hooks
+- Admin API and hooks panel (refreshes on enable/disable/rescan; Inactive badge); doc tables gain Owner / Mode columns
+- Docs sidebar lists Hooks after API Reference; markdown tables wrap then scroll
+
+**Files changed**:
+- `webapp/utils/hook-definitions.js` (new), `webapp/utils/hook-manager.js`, `webapp/utils/plugin-manager.js`, `webapp/utils/site-controller-registry.js`, `webapp/utils/bootstrap.js`
+- `webapp/model/user.js`, `webapp/controller/user.js`, `webapp/controller/health.js`, `webapp/controller/hook.js` (new), `webapp/routes.js`, `webapp/controller/markdown.js`
+- `webapp/view/admin/plugins.shtml`, `webapp/view/jpulse-common.js`, `webapp/view/jpulse-common.css`, `webapp/translations/en.conf`, `de.conf`
+- `plugins/hello-world/webapp/controller/helloPlugin.js`
+- Tests: `hook-manager.test.js`, `hook-definitions.test.js` (new), `plugin-manager.test.js`, `site-controller-registry.test.js`, `hook-controller.test.js` (new), user-before-save-abort (model + controller, new)
+- Docs: `docs/hooks.md` (moved from `docs/plugins/plugin-hooks.md`), `docs/.markdown`, `docs/api-reference.md`, `docs/site-customization.md`, `docs/plugins/README.md`, `creating-plugins.md`, `plugin-api-reference.md`, `plugin-architecture.md`, `docs/deployment.md`, `docs/handlebars.md`, `docs/genai-instructions.md`, `docs/security-and-auth.md`
+- `docs/dev/work-items.md`: W-209 features/deliverables (status left for the release operator)
+- `docs/dev/design/W-209-extensible-hooks.md`
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.7.13 / W-209
+- `docs/CHANGELOG.md`: this section
+
+Verified via hook-related unit suites and live manual testing: boot audit, Admin → Plugins hooks panel (including enable/disable without restart), `GET /api/1/hook` (admin + non-admin 403), hello-world producer, `/jpulse-docs/hooks`, System Status MFA stats after `onSystemGetStats`, live `onUserBeforeSave` veto (400 `USER_SAVE_REJECTED`). BubbleMap `executeWithCancel` and remaining `auth-mfa` copies migrate after this release (W-211).
+
+**Release**:
+- Work Item: W-209
+- Version: v1.7.13
+- Release Date: 2026-08-13
 
 ________________________________________________
 ## v1.7.12, W-208, 2026-08-12

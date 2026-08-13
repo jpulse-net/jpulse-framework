@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.7.12
+# jPulse Docs / Plugins / Creating Plugins v1.7.13
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -241,7 +241,7 @@ export default class YourPluginController {
 - jPulse discovers your `static hooks` declaration during bootstrap
 - Registers each hook with the HookManager
 - Calls your handlers at the appropriate points
-- See details in [Plugin Hooks](plugin-hooks.md)
+- See details in [Hooks](../hooks.md)
 
 ## Step 3.5: Add Handlebars Helpers (Optional)
 
@@ -541,7 +541,7 @@ export default class YourPluginController {
 - **User (5):** `onUserBeforeSave`, `onUserAfterSave`, `onUserBeforeDelete`, `onUserAfterDelete`, `onUserSyncProfile`
 - **Plugin Config (1):** `onPluginConfigBeforeSave`
 
-📖 **Full Documentation:** [Plugin Hooks](plugin-hooks.md) for context specs, examples, and best practices.
+📖 **Full Documentation:** [Hooks](../hooks.md) for context specs, examples, and best practices.
 
 ## Step 6: Create Views (Optional)
 
@@ -801,7 +801,7 @@ The script auto-detects plugin context and uses `webapp/bump-version.conf`.
 
 - Review the [Hello World plugin](../installed-plugins/hello-world/README) for a complete working example
 - Read the [Plugin Architecture](plugin-architecture) guide to understand how plugins integrate
-- Use [Plugin Hooks](plugin-hooks) to extend authentication, user management, and more
+- Use [Hooks](../hooks.md) to extend authentication, user management, and more
 - Check the [API Reference](plugin-api-reference) for all available methods
 - Learn how to [publish your plugin](publishing-plugins) when ready
 

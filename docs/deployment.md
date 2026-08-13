@@ -1,4 +1,4 @@
-# jPulse Docs / Production Deployment Guide v1.7.12
+# jPulse Docs / Production Deployment Guide v1.7.13
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -445,7 +445,7 @@ The framework never lets a site lock itself out completely by configuration alon
   all times, even on SSO-first sites - this is the account you'll use in step 2 above. Avoid
   making every admin account SSO-only.
 - **MFA-protect the break-glass account** if your site uses an MFA plugin (see
-  `onAuthGetSteps` in [Plugin Hooks](plugins/plugin-hooks.md)) - a local password alone
+  `onAuthGetSteps` in [Hooks](hooks.md)) - a local password alone
   shouldn't be weaker protection than your normal SSO path.
 - **Test `?localFallback=1` during deployment**, not during an actual outage - confirm the
   break-glass admin account can sign in before you need it for real.
@@ -455,7 +455,7 @@ The framework never lets a site lock itself out completely by configuration alon
   auth plugin enabled - downgraded to 'admins-only'`) - it means your intended policy isn't
   actually in effect, usually because a plugin failed to load.
 
-See also: [Plugin Hooks](plugins/plugin-hooks.md) (`onAuthGetLoginProviders` section) for how
+See also: [Hooks](hooks.md) (`onAuthGetLoginProviders` section) for how
 external-auth plugins integrate with `localAuthRestriction`, and
 [Security & Authentication](security-and-auth.md) for the broader authentication model.
 

@@ -6,8 +6,8 @@
  *                   prevents one PM2 instance's stale in-memory registry from clobbering a peer
  *                   instance's more recent change
  * @file            webapp/tests/unit/utils/plugin-manager.test.js
- * @version         1.7.12
- * @release         2026-08-12
+ * @version         1.7.13
+ * @release         2026-08-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -207,6 +207,87 @@ describe('PluginManager (W-199 concurrency & persistence safety)', () => {
 
             expect(() => PluginManager._reloadRegistryFromDisk()).not.toThrow();
             expect(JSON.stringify(PluginManager.registry)).toBe(before);
+        });
+    });
+
+    describe('hookDefinitions lifecycle (W-209)', () => {
+        let originalHookManager;
+
+        beforeEach(() => {
+            originalHookManager = global.HookManager;
+            global.HookManager = {
+                registerFromClass: jest.fn().mockReturnValue({ defined: 1, registered: 1 }),
+                setDefinitionsActive: jest.fn(),
+                unregister: jest.fn()
+            };
+        });
+
+        afterEach(() => {
+            global.HookManager = originalHookManager;
+        });
+
+        test('_registerControllerHooks delegates to registerFromClass', () => {
+            class DemoController {
+                static hookDefinitions = {
+                    onDemoThing: { description: 'demo hook' }
+                };
+                static hooks = { onAuthAfterLogin: {} };
+            }
+
+            const count = PluginManager._registerControllerHooks('hello-world', DemoController);
+
+            expect(global.HookManager.registerFromClass).toHaveBeenCalledWith(
+                'hello-world',
+                DemoController
+            );
+            expect(count).toBe(1);
+        });
+
+        test('unregisterPluginHooks drops handlers and marks definitions inactive', () => {
+            PluginManager.unregisterPluginHooks('hello-world');
+
+            expect(global.HookManager.unregister).toHaveBeenCalledWith('hello-world');
+            expect(global.HookManager.setDefinitionsActive).toHaveBeenCalledWith(
+                'hello-world',
+                false
+            );
+        });
+
+        test('disablePlugin unregisters hooks and marks definitions inactive', async () => {
+            writePluginJson(pluginsDir, 'plugin-a', { autoEnable: true });
+            await PluginManager.initialize();
+
+            const result = await PluginManager.disablePlugin('plugin-a');
+
+            expect(result.success).toBe(true);
+            expect(global.HookManager.unregister).toHaveBeenCalledWith('plugin-a');
+            expect(global.HookManager.setDefinitionsActive).toHaveBeenCalledWith(
+                'plugin-a',
+                false
+            );
+        });
+
+        test('enablePlugin reactivates definitions and registers controller hooks', async () => {
+            const pluginDir = writePluginJson(pluginsDir, 'plugin-a', { autoEnable: false });
+            const controllerDir = path.join(pluginDir, 'webapp', 'controller');
+            fs.mkdirSync(controllerDir, { recursive: true });
+            fs.writeFileSync(path.join(controllerDir, 'demo.js'),
+                'export default class DemoController {\n' +
+                '    static hookDefinitions = { onDemoThing: { description: "demo" } };\n' +
+                '    static hooks = {};\n' +
+                '}\n'
+            );
+
+            await PluginManager.initialize();
+            const result = await PluginManager.enablePlugin('plugin-a');
+
+            expect(result.success).toBe(true);
+            expect(global.HookManager.setDefinitionsActive).toHaveBeenCalledWith(
+                'plugin-a',
+                true
+            );
+            expect(global.HookManager.registerFromClass).toHaveBeenCalled();
+            expect(global.HookManager.registerFromClass.mock.calls[0][0]).toBe('plugin-a');
         });
     });
 });

@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.7.12
+# jPulse Docs / REST API Reference v1.7.13
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -451,7 +451,7 @@ Authenticate user and create session.
 - **429**: Too many requests from this IP (`RATE_LIMITED` — see [`controller.auth.loginRateLimit`](security-and-auth.md#rate-limiting)); response includes `retryAfter` (seconds)
 - **500**: Internal server error
 
-> **External auth plugins** (OAuth, LDAP, SAML) that complete login via a browser redirect rather than this AJAX endpoint should call `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)` instead — see [Plugin Hooks](plugins/plugin-hooks.md) for details and for the `onAuthGetLoginProviders` hook used to add a provider button to the login page.
+> **External auth plugins** (OAuth, LDAP, SAML) that complete login via a browser redirect rather than this AJAX endpoint should call `AuthController.completeExternalAuth(req, res, user, authMethod, redirectUrl)` instead — see [Hooks](hooks.md) for details and for the `onAuthGetLoginProviders` hook used to add a provider button to the login page.
 
 #### User Logout
 End user session and clear authentication.
@@ -2645,6 +2645,43 @@ const result = await RedisManager.cacheCheckRateLimit(category, identifier, maxR
 - Full Redis key: `category:key` (e.g., `'controller:health:last_run'`)
 
 **See:** [Cache Infrastructure - Server-Side API](cache-infrastructure.md#redis-cache-api---server-side) for complete documentation and patterns.
+
+## 🪝 Hook Catalog API
+
+Read-only introspection of hook definitions, handlers, and the boot audit. Admin-only. See [Hooks](hooks.md) for the definition API (`static hookDefinitions`, `static hooks`).
+
+#### List hooks
+
+**Route:** `GET /api/1/hook`
+**Middleware:** `AuthController.requireAdminRole()`
+**Query:** `owner`, `stability`, `hasHandlers` (`true`/`false`)
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "data": {
+        "hooks": [
+            {
+                "name": "onAuthBeforeLogin",
+                "defined": true,
+                "active": true,
+                "definition": { "owner": "framework", "mode": "execute", "onError": "continue" },
+                "handlers": [{ "plugin": "auth-oauth", "priority": 100 }],
+                "unverified": false
+            }
+        ],
+        "audit": { "defined": 15, "handlers": 4, "findings": [] }
+    }
+}
+```
+
+#### Get one hook
+
+**Route:** `GET /api/1/hook/:name`
+**Middleware:** `AuthController.requireAdminRole()`
+
+Returns the same merged object as one element of the list. **404** `HOOK_NOT_FOUND` when the name has no definition and no handlers.
 
 ## 📝 Error Handling
 

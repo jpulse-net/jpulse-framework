@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for HookManager
  * @description     Tests for plugin hook registration and execution system
  * @file            webapp/tests/unit/utils/hook-manager.test.js
- * @version         1.7.12
- * @release         2026-08-12
+ * @version         1.7.13
+ * @release         2026-08-13
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -72,11 +72,170 @@ describe('HookManager', () => {
             expect(registered['onAuthBeforeLogin'][0].priority).toBe(100);
         });
 
-        test('should warn when registering unknown hook', () => {
+        test('should not warn when registering an unknown hook - the audit reports it later', () => {
             const handler = jest.fn();
             HookManager.register('unknownHook', 'test-plugin', handler);
 
-            expect(global.LogController.logWarning).toHaveBeenCalled();
+            expect(global.LogController.logWarning).not.toHaveBeenCalled();
+            expect(HookManager.hasHandlers('unknownHook')).toBe(true);
+            expect(HookManager.getHook('unknownHook').unverified).toBe(true);
+        });
+    });
+
+    describe('defineHook / defineHooks', () => {
+        afterEach(() => {
+            HookManager.clearDefinitions();
+            HookManager.seedFrameworkDefinitions();
+        });
+
+        test('description-only definition succeeds with defaults derived from mode', () => {
+            const definition = HookManager.defineHook('onAiComplete', {
+                description: 'Run one completion',
+                owner: 'ai-core'
+            });
+
+            expect(definition.mode).toBe('execute');
+            expect(definition.onError).toBe('continue');
+            expect(definition.returns).toBe('context');
+            expect(definition.stability).toBe('stable');
+            expect(definition.canModify).toBe(false);
+            expect(definition.owner).toBe('ai-core');
+            expect(definition.contextKeys).toEqual([]);
+            expect(definition.active).toBe(true);
+        });
+
+        test('defineHooks stamps owner on every entry', () => {
+            const result = HookManager.defineHooks({
+                onAiComplete: { description: 'Run one completion' },
+                onAiProviderRegister: { description: 'Contribute a provider', canModify: true }
+            }, 'ai-core');
+
+            expect(result.onAiComplete.owner).toBe('ai-core');
+            expect(result.onAiProviderRegister.owner).toBe('ai-core');
+            expect(result.onAiProviderRegister.canModify).toBe(true);
+        });
+
+        test('onError and returns derive from mode', () => {
+            const broadcast = HookManager.defineHook('onAiProviderRegister', {
+                description: 'Contribute a provider',
+                owner: 'ai-core',
+                mode: 'execute'
+            });
+            const first = HookManager.defineHook('onAiPickModel', {
+                description: 'Pick a model',
+                owner: 'ai-core',
+                mode: 'executeFirst'
+            });
+            const targeted = HookManager.defineHook('onAiComplete', {
+                description: 'Run one completion',
+                owner: 'ai-core',
+                mode: 'executeForPlugin'
+            });
+
+            expect(broadcast.onError).toBe('continue');
+            expect(broadcast.returns).toBe('context');
+            expect(first.onError).toBe('continue');
+            expect(first.returns).toBe('value');
+            expect(targeted.onError).toBe('abort');
+            expect(targeted.returns).toBe('context');
+        });
+
+        test('onError override on a broadcast hook is kept', () => {
+            const definition = HookManager.defineHook('onBubbleWidgetConfigBeforeSave', {
+                description: 'Veto a widget config save',
+                owner: 'site',
+                onError: 'abort',
+                canModify: true
+            });
+
+            expect(definition.mode).toBe('execute');
+            expect(definition.onError).toBe('abort');
+            expect(HookManager.getAvailableHooks().onBubbleWidgetConfigBeforeSave.canCancel).toBe(true);
+        });
+
+        test('identical re-definition is idempotent', () => {
+            const first = HookManager.defineHook('onAiComplete', {
+                description: 'Run one completion',
+                owner: 'ai-core',
+                mode: 'executeForPlugin'
+            });
+            const second = HookManager.defineHook('onAiComplete', {
+                description: 'Run one completion',
+                owner: 'ai-core',
+                mode: 'executeForPlugin'
+            });
+
+            expect(second).toBe(first);
+            expect(first.conflicts).toHaveLength(0);
+            expect(global.LogController.logError).not.toHaveBeenCalled();
+        });
+
+        test('conflicting re-definition keeps the first and records both', () => {
+            const kept = HookManager.defineHook('onAiComplete', {
+                description: 'Run one completion',
+                owner: 'ai-core'
+            });
+            const result = HookManager.defineHook('onAiComplete', {
+                description: 'A different contract',
+                owner: 'other-plugin'
+            });
+
+            expect(result).toBe(kept);
+            expect(kept.owner).toBe('ai-core');
+            expect(kept.description).toBe('Run one completion');
+            expect(kept.conflicts).toHaveLength(1);
+            expect(kept.conflicts[0].owner).toBe('other-plugin');
+            expect(global.LogController.logError).toHaveBeenCalled();
+        });
+
+        test('defining never throws, even on unusable input', () => {
+            expect(() => HookManager.defineHook(null)).not.toThrow();
+            expect(() => HookManager.defineHook('')).not.toThrow();
+            expect(() => HookManager.defineHook('onAiComplete', {
+                description: 'x',
+                owner: 'ai-core',
+                mode: 'not-a-mode',
+                onError: 'explode',
+                stability: 'maybe'
+            })).not.toThrow();
+
+            const repaired = HookManager.definitions.get('onAiComplete');
+            expect(repaired.mode).toBe('execute');
+            expect(repaired.onError).toBe('continue');
+            expect(repaired.stability).toBe('stable');
+        });
+
+        test('getAvailableHooks synthesizes context from contextKeys, including object-form entries', () => {
+            HookManager.defineHook('onAiComplete', {
+                description: 'Run one completion',
+                owner: 'ai-core',
+                contextKeys: ['threadId', { key: 'model', type: 'string' }, 'messages'],
+                canModify: true
+            });
+
+            const view = HookManager.getAvailableHooks().onAiComplete;
+            expect(view.context).toBe('{ threadId, model, messages }');
+            expect(view.canModify).toBe(true);
+            expect(view.canCancel).toBe(false);
+        });
+
+        test('contextNote overrides the synthesized context string', () => {
+            expect(HookManager.getAvailableHooks().onSystemGetStats.context)
+                .toBe('{ stats: {}, instanceId: string }');
+        });
+
+        test('clear() leaves definitions in place; clearDefinitions() empties the catalog', () => {
+            expect(HookManager.isValidHook('onAuthBeforeLogin')).toBe(true);
+
+            HookManager.register('onAuthBeforeLogin', 'test-plugin', jest.fn());
+            HookManager.clear();
+
+            expect(HookManager.hasHandlers('onAuthBeforeLogin')).toBe(false);
+            expect(HookManager.isValidHook('onAuthBeforeLogin')).toBe(true);
+
+            HookManager.clearDefinitions();
+            expect(HookManager.isValidHook('onAuthBeforeLogin')).toBe(false);
+            expect(Object.keys(HookManager.getAvailableHooks())).toHaveLength(0);
         });
     });
 
@@ -150,39 +309,79 @@ describe('HookManager', () => {
 
             expect(result).toEqual(context);
         });
-    });
 
-    describe('executeWithCancel', () => {
-        test('should allow handlers to cancel operation', async () => {
+        test('should ignore a non-object return instead of overwriting the context', async () => {
             const handler = jest.fn().mockReturnValue(false);
-            HookManager.register('onUserBeforeDelete', 'test-plugin', handler);
+            HookManager.register('onAuthBeforeLogin', 'test-plugin', handler);
 
-            const result = await HookManager.executeWithCancel('onUserBeforeDelete', {});
+            const context = { user: 'test' };
+            const result = await HookManager.execute('onAuthBeforeLogin', context);
 
-            expect(result.cancelled).toBe(true);
-            expect(result.cancelledBy).toBe('test-plugin');
+            expect(result).toEqual(context);
+            expect(result.user).toBe('test');
         });
 
-        test('should stop execution after cancellation', async () => {
-            const handler1 = jest.fn().mockReturnValue(false);
+        test('should abort and name the plugin when onError is abort', async () => {
+            const handler1 = jest.fn().mockImplementation(() => { throw new Error('Not allowed'); });
             const handler2 = jest.fn();
 
-            HookManager.register('onUserBeforeDelete', 'plugin1', handler1, 50);
-            HookManager.register('onUserBeforeDelete', 'plugin2', handler2, 100);
+            HookManager.register('onUserBeforeSave', 'gate-plugin', handler1, 50);
+            HookManager.register('onUserBeforeSave', 'later-plugin', handler2, 100);
 
-            await HookManager.executeWithCancel('onUserBeforeDelete', {});
+            await expect(HookManager.execute('onUserBeforeSave', { userData: {} }))
+                .rejects.toMatchObject({
+                    message: 'Not allowed',
+                    hookName: 'onUserBeforeSave',
+                    pluginName: 'gate-plugin'
+                });
 
-            expect(handler1).toHaveBeenCalled();
             expect(handler2).not.toHaveBeenCalled();
+            expect(global.LogController.logError).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('onError policy', () => {
+        test('execute continues after a throw on a continue hook', async () => {
+            const handler1 = jest.fn().mockImplementation(() => { throw new Error('broken'); });
+            const handler2 = jest.fn().mockImplementation((ctx) => ({ ...ctx, ok: true }));
+
+            HookManager.register('onAuthAfterLogin', 'plugin1', handler1, 50);
+            HookManager.register('onAuthAfterLogin', 'plugin2', handler2, 100);
+
+            const result = await HookManager.execute('onAuthAfterLogin', {});
+
+            expect(result.ok).toBe(true);
+            expect(global.LogController.logError).toHaveBeenCalled();
         });
 
-        test('should return cancelled=false if no handler cancels', async () => {
-            const handler = jest.fn().mockReturnValue(undefined);
-            HookManager.register('onUserBeforeDelete', 'test-plugin', handler);
+        test('executeFirst continues to the next handler after a throw', async () => {
+            const handler1 = jest.fn().mockImplementation(() => { throw new Error('broken'); });
+            const handler2 = jest.fn().mockReturnValue('ldap');
 
-            const result = await HookManager.executeWithCancel('onUserBeforeDelete', {});
+            HookManager.register('onAuthBeforeLogin', 'plugin1', handler1, 50);
+            HookManager.register('onAuthBeforeLogin', 'plugin2', handler2, 100);
 
-            expect(result.cancelled).toBe(false);
+            const result = await HookManager.executeFirst('onAuthBeforeLogin', {});
+
+            expect(result).toBe('ldap');
+        });
+
+        test('an abort override on a broadcast hook propagates', async () => {
+            HookManager.defineHook('onBubbleWidgetConfigBeforeSave', {
+                description: 'Veto a widget config save',
+                owner: 'site',
+                onError: 'abort'
+            });
+            const handler = jest.fn().mockImplementation(() => {
+                throw new Error('You are not allowed to add a Custom Script');
+            });
+            HookManager.register('onBubbleWidgetConfigBeforeSave', 'widget-chart-core', handler);
+
+            await expect(HookManager.execute('onBubbleWidgetConfigBeforeSave', {}))
+                .rejects.toThrow('You are not allowed to add a Custom Script');
+
+            HookManager.clearDefinitions();
+            HookManager.seedFrameworkDefinitions();
         });
     });
 
@@ -250,7 +449,7 @@ describe('HookManager', () => {
                 HookManager.executeForPlugin('onPluginConfigBeforeSave', 'test-plugin', {})
             ).rejects.toThrow('Encryption failed');
 
-            // Unlike execute()/executeWithCancel()/executeFirst(), the error is NOT logged and
+            // Unlike execute()/executeFirst() on a continue hook, the error is NOT logged and
             // swallowed here - it's the caller's job to catch it (e.g. to abort a save with a 400).
             expect(global.LogController.logError).not.toHaveBeenCalled();
         });
@@ -328,6 +527,20 @@ describe('HookManager', () => {
             expect(hooks.onAuthBeforeLogin.context).toBeDefined();
             expect(hooks.onAuthBeforeLogin.canModify).toBeDefined();
             expect(hooks.onAuthBeforeLogin.canCancel).toBeDefined();
+        });
+
+        test('should expose onSystemGetStats rather than the old onGetInstanceStats name', () => {
+            const hooks = HookManager.getAvailableHooks();
+            expect(hooks.onSystemGetStats).toBeDefined();
+            expect(hooks.onGetInstanceStats).toBeUndefined();
+            expect(HookManager.isValidHook('onSystemGetStats')).toBe(true);
+            expect(HookManager.isValidHook('onGetInstanceStats')).toBe(false);
+        });
+
+        test('unfired user hooks are marked planned', () => {
+            expect(HookManager.definitions.get('onUserBeforeDelete').stability).toBe('planned');
+            expect(HookManager.definitions.get('onUserAfterDelete').stability).toBe('planned');
+            expect(HookManager.definitions.get('onUserSyncProfile').stability).toBe('planned');
         });
     });
 
@@ -457,6 +670,25 @@ describe('HookManager', () => {
         });
     });
 
+    describe('onSystemGetStats elapsed timing', () => {
+        test('attaches per-plugin elapsed when the handler writes stats[pluginName]', async () => {
+            const handler = jest.fn().mockImplementation((context) => {
+                context.stats['auth-mfa'] = { status: 'ok' };
+                return context;
+            });
+            HookManager.register('onSystemGetStats', 'auth-mfa', handler);
+
+            const result = await HookManager.execute('onSystemGetStats', {
+                stats: {},
+                instanceId: 'test'
+            });
+
+            expect(result.stats['auth-mfa'].status).toBe('ok');
+            expect(typeof result.stats['auth-mfa'].elapsed).toBe('number');
+            expect(result.stats['auth-mfa'].elapsed).toBeGreaterThanOrEqual(0);
+        });
+    });
+
     // W-195: External auth login provider buttons
     describe('W-195: onAuthGetLoginProviders', () => {
         test('onAuthGetLoginProviders should be available', () => {
@@ -493,6 +725,189 @@ describe('HookManager', () => {
             HookManager.register('onAuthGetLoginProviders', 'oauth-plugin', jest.fn());
 
             expect(HookManager.hasHandlers('onAuthGetLoginProviders')).toBe(true);
+        });
+    });
+
+    describe('getHook / findHooks', () => {
+        test('getHook merges definition and handlers', () => {
+            HookManager.register('onAuthAfterLogin', 'hello-world', jest.fn(), 50);
+
+            const hook = HookManager.getHook('onAuthAfterLogin');
+            expect(hook.defined).toBe(true);
+            expect(hook.active).toBe(true);
+            expect(hook.unverified).toBe(false);
+            expect(hook.definition.owner).toBe('framework');
+            expect(hook.definition.mode).toBe('execute');
+            expect(hook.handlers).toEqual([{ plugin: 'hello-world', priority: 50 }]);
+        });
+
+        test('getHook returns a well-formed undefined result for an unknown name', () => {
+            const hook = HookManager.getHook('onAiComplete');
+            expect(hook).toEqual({
+                name: 'onAiComplete',
+                defined: false,
+                active: false,
+                definition: null,
+                handlers: [],
+                unverified: false
+            });
+        });
+
+        test('findHooks filters by owner, namePattern, stability, and hasHandlers', () => {
+            HookManager.register('onAuthAfterLogin', 'hello-world', jest.fn());
+
+            const auth = HookManager.findHooks({ namePattern: /^onAuth/ });
+            expect(auth.every(hook => hook.name.startsWith('onAuth'))).toBe(true);
+            expect(auth.length).toBeGreaterThan(0);
+
+            const framework = HookManager.findHooks({ owner: 'framework' });
+            expect(framework.every(hook => hook.definition?.owner === 'framework')).toBe(true);
+
+            const planned = HookManager.findHooks({ stability: 'planned' });
+            expect(planned.map(hook => hook.name).sort()).toEqual([
+                'onUserAfterDelete',
+                'onUserBeforeDelete',
+                'onUserSyncProfile'
+            ]);
+
+            const listening = HookManager.findHooks({ hasHandlers: true });
+            expect(listening.map(hook => hook.name)).toEqual(['onAuthAfterLogin']);
+        });
+    });
+
+    describe('getAudit', () => {
+        afterEach(() => {
+            HookManager.clearDefinitions();
+            HookManager.seedFrameworkDefinitions();
+        });
+
+        test('unmatched registration is reported once with a did-you-mean', () => {
+            HookManager.register('onUserAfterSav', 'typo-plugin', jest.fn());
+
+            const audit = HookManager.getAudit();
+            const finding = audit.findings.find(item => item.code === 'UNDEFINED_HOOK');
+            expect(finding).toMatchObject({
+                level: 'warning',
+                hookName: 'onUserAfterSav',
+                suggestion: 'onUserAfterSave'
+            });
+            expect(finding.message).toContain('typo-plugin');
+        });
+
+        test('a late definition retro-validates and clears the unmatched finding', () => {
+            HookManager.register('onAiComplete', 'ai-anthropic', jest.fn());
+            expect(HookManager.getAudit().findings.some(item =>
+                item.code === 'UNDEFINED_HOOK' && item.hookName === 'onAiComplete')).toBe(true);
+
+            HookManager.defineHook('onAiComplete', {
+                description: 'Run one completion',
+                owner: 'ai-core',
+                mode: 'executeForPlugin'
+            });
+
+            expect(HookManager.getHook('onAiComplete').unverified).toBe(false);
+            expect(HookManager.getAudit().findings.some(item =>
+                item.code === 'UNDEFINED_HOOK' && item.hookName === 'onAiComplete')).toBe(false);
+        });
+
+        test('deprecated, planned, and disabled-owner findings', () => {
+            HookManager.defineHook('onLegacyThing', {
+                description: 'Old hook',
+                owner: 'ai-core',
+                stability: 'deprecated',
+                deprecatedBy: 'onNewThing'
+            });
+            HookManager.register('onLegacyThing', 'consumer', jest.fn());
+            HookManager.register('onUserBeforeDelete', 'consumer', jest.fn());
+
+            HookManager.defineHook('onAiComplete', {
+                description: 'Run one completion',
+                owner: 'ai-core'
+            });
+            HookManager.register('onAiComplete', 'ai-anthropic', jest.fn());
+            HookManager.setDefinitionsActive('ai-core', false);
+
+            const codes = HookManager.getAudit().findings.map(item => item.code);
+            expect(codes).toContain('DEPRECATED_HOOK');
+            expect(codes).toContain('PLANNED_HOOK');
+            expect(codes).toContain('DISABLED_OWNER');
+        });
+
+        test('prefix mismatch is info only; getAudit is callable at runtime', () => {
+            HookManager.defineHook('onCompletelyUnrelated', {
+                description: 'Does not match owner prefix',
+                owner: 'ai-core',
+                contextKeys: ['x']
+            });
+
+            const finding = HookManager.getAudit().findings.find(item =>
+                item.code === 'PREFIX_MISMATCH' && item.hookName === 'onCompletelyUnrelated');
+            expect(finding.level).toBe('info');
+            expect(finding.message).toContain('onAiCore');
+        });
+
+        test('conflicting definition is an error finding', () => {
+            HookManager.defineHook('onAiComplete', {
+                description: 'First',
+                owner: 'ai-core'
+            });
+            HookManager.defineHook('onAiComplete', {
+                description: 'Second',
+                owner: 'other'
+            });
+
+            const finding = HookManager.getAudit().findings.find(item =>
+                item.code === 'CONFLICTING_DEFINITION');
+            expect(finding.level).toBe('error');
+            expect(finding.owner).toBe('ai-core');
+        });
+    });
+
+    describe('registerFromClass', () => {
+        afterEach(() => {
+            HookManager.clearDefinitions();
+            HookManager.seedFrameworkDefinitions();
+        });
+
+        test('defines static hookDefinitions and registers static hooks', () => {
+            class DemoController {
+                static hookDefinitions = {
+                    onAiComplete: {
+                        description: 'Run one completion',
+                        mode: 'executeForPlugin',
+                        contextKeys: ['threadId']
+                    }
+                };
+                static hooks = {
+                    onUserAfterSave: { priority: 50 }
+                };
+                static async onUserAfterSave(context) {
+                    return context;
+                }
+            }
+
+            const result = HookManager.registerFromClass('ai-core', DemoController);
+            expect(result).toEqual({ defined: 1, registered: 1 });
+            expect(HookManager.getHook('onAiComplete').definition.owner).toBe('ai-core');
+            expect(HookManager.getRegisteredHooks().onUserAfterSave[0]).toEqual({
+                plugin: 'ai-core',
+                priority: 50
+            });
+        });
+
+        test('setDefinitionsActive hides a definition from getAvailableHooks', () => {
+            HookManager.defineHook('onAiComplete', {
+                description: 'Run one completion',
+                owner: 'ai-core'
+            });
+            expect(HookManager.isValidHook('onAiComplete')).toBe(true);
+
+            HookManager.setDefinitionsActive('ai-core', false);
+            expect(HookManager.isValidHook('onAiComplete')).toBe(false);
+            expect(HookManager.getAvailableHooks().onAiComplete).toBeUndefined();
+
+            HookManager.setDefinitionsActive('ai-core', true);
+            expect(HookManager.isValidHook('onAiComplete')).toBe(true);
         });
     });
 });

@@ -3,13 +3,13 @@
  * @tagline         Unit tests for W-137 manifest storage and defaults
  * @description     Tests for ConfigModel.ensureManifestDefaults() and related schema behavior
  * @file            webapp/tests/unit/config/config-manifest.test.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.15, Grok 4.6
  */
 
 import { jest } from '@jest/globals';
@@ -36,6 +36,8 @@ describe('ConfigModel W-137 manifest', () => {
 
         expect(withoutAuth).toContain('data.manifest.license.key');
         expect(withAuth).toContain('data.manifest.license.key');
+        expect(schema.data.manifest.license.key.sensitive).toBe(true);
+        expect(ConfigModel.getSensitivePaths()).toContain('data.manifest.license.key');
     });
 
     test('ensureManifestDefaults merges schema defaults and preserves existing values', async () => {

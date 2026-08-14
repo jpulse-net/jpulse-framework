@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.7.13
+# jPulse Docs / REST API Reference v1.7.14
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -86,7 +86,8 @@ Admin roles are defined in **site config** (Admin → Site Configuration → Gen
 
 - `GET /api/1/user/search` - User management and search
 - `POST /api/1/user/password-reset/send` - Email a user a password reset link
-- `GET /api/1/config/*` - Configuration access
+- `GET /api/1/config/*` - Configuration access (bulk reads mask secrets; see [Sensitive fields](#sensitive-fields))
+- `GET /api/1/config/:id/secret` - Reveal one stored secret (audited)
 - `POST /api/1/config` - Configuration creation
 - `PUT /api/1/config/:id` - Configuration updates
 - `DELETE /api/1/config/:id` - Configuration deletion
@@ -1554,7 +1555,7 @@ GET /api/1/config/global?includeSchema=1
                 "adminName": "Site Administrator",
                 "smtpServer": "localhost",
                 "smtpUser": "",
-                "smtpPass": "",
+                "smtpPass": "********",
                 "useTls": false
             },
             "messages": {
@@ -1604,7 +1605,60 @@ GET /api/1/config/global?includeSchema=1
 }
 ```
 
-**Sanitization:** For non-admin callers, sensitive fields defined in `contextFilter.withoutAuth` (e.g. `data.email.smtp*`, `data.email.*pass`, `data.manifest.license.key`) are obfuscated with type preserved: strings → `********`, numbers → `9999`. The framework uses `CommonUtils.sanitizeObject()` for this; see [CommonUtils.sanitizeObject](#commonutilssanitizeobject) below for use in site/plugin code.
+**Sanitization:** Two layers apply.
+
+1. **Sensitive fields** (as of v1.7.14) — every caller, including admins. Schema fields marked `sensitive: true`, or with `inputType: 'password'` (escape hatch: `sensitive: false`), never appear in bulk responses. Unset is `""`; set is the mask `********`. `GET`, `GET …/effective`, `GET` list, `POST`, `PUT`, and upsert all go through this layer. See [Sensitive fields](#sensitive-fields).
+2. **`contextFilter`** — audience filter for non-secret fields (for example `smtpServer` for guests). For non-admin callers, paths in `contextFilter.withoutAuth` are still obfuscated with type preserved: strings → `********`, numbers → `9999`, via `CommonUtils.sanitizeObject()`. See [CommonUtils.sanitizeObject](#commonutilssanitizeobject) for use in site/plugin code.
+
+#### Sensitive fields
+
+Secrets in site config (`data.email.smtpPass`, `data.manifest.license.key`, and any `extendSchema()` field with `inputType: 'password'` or `sensitive: true`) follow one read/write contract for every API caller.
+
+**Read (bulk):** `""` means unset; `********` means a value is stored. The real value is never in `GET /api/1/config`, list, effective, or create/update responses.
+
+**Write (create / update / upsert):**
+
+| Submitted value | Stored result |
+|-----------------|---------------|
+| Field omitted | Unchanged |
+| `********` (the mask) | Treated as omitted — a form round-trip cannot overwrite the secret with the mask |
+| `""` | Cleared |
+| Any other string | Stored as submitted |
+
+A value that is literally `********` cannot be stored in a sensitive field; treat that as a reserved presence marker.
+
+**Internal reads:** Server code that must use a secret (SMTP, license checks) calls `ConfigModel.findById(id, true)` or `getEffectiveConfig(id, true)`. That raw document must never be sent to a client.
+
+#### Reveal a configuration secret
+Return one stored secret. Admin/root only. Writes a change-log entry with `action: "read"` (path only, never the value).
+
+**Route:** `GET /api/1/config/:id/secret?path=email.smtpPass`
+**Middleware:** `AuthController.requireAuthentication`, `AuthController.requireAdminRole()`
+**Authentication:** Required (Admin/Root roles only)
+
+**Query Parameters:**
+- `path` (required): Field path, `email.smtpPass` or `data.email.smtpPass`. Rejected unless the path is on the schema-derived sensitive list (`MISSING_PATH` / `INVALID_SECRET_PATH`).
+
+**Examples:**
+```bash
+GET /api/1/config/_default/secret?path=email.smtpPass
+GET /api/1/config/global/secret?path=data.manifest.license.key
+```
+
+**Response (200):**
+```json
+{
+    "success": true,
+    "data": {
+        "path": "email.smtpPass",
+        "value": "the-stored-password"
+    },
+    "message": "Secret retrieved",
+    "elapsed": 8
+}
+```
+
+The response is sent with `Cache-Control: no-store`. Application logs record the id and path only.
 
 #### Create Configuration
 Create a new configuration document.
@@ -1668,6 +1722,8 @@ Update an existing configuration document or default configuration.
 }
 ```
 
+Sensitive fields follow the [write rules](#sensitive-fields): omit the field or send the mask to leave the stored secret unchanged; send `""` to clear it.
+
 **Response (200):**
 ```json
 {
@@ -1712,6 +1768,7 @@ ConfigModel.extendSchema({
     helloWorldConfig: {
         _meta: { order: 5, tabLabel: 'Hello', description: 'Site-wide Hello settings.' },
         greetingMessage: { type: 'string', default: 'Hello!' },
+        apiKey: { type: 'string', inputType: 'password', default: '' },
         showBadge: { type: 'boolean', default: true }
     }
 });
@@ -1719,6 +1776,7 @@ ConfigModel.extendSchema({
 
 - **When:** Call before `ConfigModel.initializeSchema()` runs — `static async initialize()` on a plugin or site controller satisfies this, since it runs before bootstrap finalizes the schema. See [Site Customization](site-customization.md#startup-code-static-async-initialize) for a site example.
 - **Scope:** Tab-level only; each extension key becomes one block in `data` and one tab in the admin config UI.
+- **Secrets:** Mark a field `inputType: 'password'` or `sensitive: true`. It is masked in every bulk API response, stripped from `siteConfig` in templates, and revealable only through `GET /api/1/config/:id/secret`. Server code that needs the stored value uses `ConfigModel.findById(id, true)` — never send that document to a client.
 
 #### Effective roles (cached, sync)
 
@@ -1748,7 +1806,7 @@ Search and filter log entries with advanced query capabilities.
 - `message` (string): Text search with [Advanced Search Syntax](#advanced-search-syntax) support
 - `createdAt` (string): Date range filter (YYYY, YYYY-MM, YYYY-MM-DD)
 - `docType` (string): Document type filter (`config`, `user`, `log`)
-- `action` (string): Action filter (`create`, `update`, `delete`)
+- `action` (string): Action filter (`create`, `update`, `delete`, `read`)
 - `createdBy` (string): User ID filter
 - `limit` (number): Maximum results to return (default: 50, max: 1000)
 - `sort` (string): Sort field with optional `-` prefix for descending (default: `-createdAt`)
@@ -2117,7 +2175,7 @@ Send email from client-side code. Requires authentication.
 }
 ```
 
-**Note:** `emailConfig` is optional and only used for testing. If provided, it overrides the saved configuration temporarily.
+**Note:** `emailConfig` is optional and only used for testing. If provided, it overrides the saved configuration temporarily. If `smtpPass` is omitted, empty, or the sensitive-field mask (`********`), the send uses the stored SMTP password.
 
 **Response (Success - 200):**
 ```json
@@ -2935,7 +2993,7 @@ curl "http://localhost:8080/api/1/log/search?docType=config&action=update" \
     data: {             // Additional log data
         docId: String|ObjectId,  // Related document ID
         docType: String,         // 'config', 'user', 'log'
-        action: String,          // 'create', 'update', 'delete'
+        action: String,          // 'create', 'update', 'delete', 'read'
         changes: String          // Description of changes made
     },
     createdAt: Date,    // Auto-generated timestamp

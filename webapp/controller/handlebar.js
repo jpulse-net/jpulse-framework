@@ -3,13 +3,13 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.15, Grok 4.6
  */
 
 import path from 'path';
@@ -921,6 +921,19 @@ class HandlebarController {
                         : filterPath;
                     this._removePath(filtered.siteConfig, adjustedPath);
                 }
+            }
+        }
+
+        // W-210: strip schema-derived secrets from siteConfig in both auth states.
+        // A field added via extendSchema() is not in the hand-maintained contextFilter lists.
+        // Tolerate a partial ConfigModel mock (same pattern as getEffectiveAdminRoles above).
+        if (filtered.siteConfig && typeof configModel.getSensitivePaths === 'function') {
+            const sensitivePaths = configModel.getSensitivePaths();
+            for (const filterPath of sensitivePaths) {
+                const adjustedPath = filterPath.startsWith('data.')
+                    ? filterPath.substring(5)
+                    : filterPath;
+                this._removePath(filtered.siteConfig, adjustedPath);
             }
         }
 

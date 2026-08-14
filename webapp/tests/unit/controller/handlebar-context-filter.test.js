@@ -3,13 +3,13 @@
  * @tagline         Unit tests for W-115: siteConfig context filtering
  * @description     Tests for siteConfig filtering using schema metadata
  * @file            webapp/tests/unit/controller/handlebar-context-filter.test.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.2, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.15, Grok 4.6
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
@@ -92,6 +92,43 @@ describe('W-115: Handlebars Context Filter - siteConfig filtering', () => {
 
         // Should contain non-sensitive fields (may be empty if not set, but should not error)
         expect(result).toBeDefined();
+    });
+
+    test('strips an extendSchema secret from siteConfig for authenticated users', async () => {
+        const ConfigModel = global.ConfigModel;
+        const savedExtensions = ConfigModel.schemaExtensions.slice();
+        const savedSchema = ConfigModel.schema;
+        const savedPaths = ConfigModel._sensitivePaths;
+        const savedGlobal = HandlebarController.globalConfig;
+        try {
+            ConfigModel.extendSchema({
+                ai: {
+                    apiKey: { type: 'string', inputType: 'password', default: '' }
+                }
+            });
+            ConfigModel.initializeSchema();
+            HandlebarController.globalConfig = {
+                ...(savedGlobal || {}),
+                data: {
+                    ...(savedGlobal?.data || {}),
+                    ai: { apiKey: 'extend-schema-secret' }
+                }
+            };
+            mockReq.session.user = { id: 'user123', roles: ['user'] };
+            const result = await HandlebarController.expandHandlebars(
+                mockReq,
+                '{{siteConfig.ai.apiKey}}',
+                {}
+            );
+            expect(result).not.toContain('extend-schema-secret');
+            expect(result.trim()).toBe('');
+        } finally {
+            ConfigModel.schemaExtensions.length = 0;
+            savedExtensions.forEach((ext) => ConfigModel.schemaExtensions.push(ext));
+            ConfigModel.schema = savedSchema;
+            ConfigModel._sensitivePaths = savedPaths;
+            HandlebarController.globalConfig = savedGlobal;
+        }
     });
 });
 

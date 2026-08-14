@@ -3,13 +3,13 @@
  * @tagline         Plugin Controller for jPulse Framework WebApp
  * @description     Plugin management controller for the jPulse Framework WebApp
  * @file            webapp/controller/plugin.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.15, Grok 4.6
  */
 
 import PluginManager from '../utils/plugin-manager.js';
@@ -377,7 +377,7 @@ class PluginController {
 
             const configSchema = plugin.metadata.config?.schema || [];
             const dbConfig = await PluginModel.getByName(name);
-            const configValues = dbConfig?.config || {};
+            const configValues = PluginModel.maskSensitive(dbConfig?.config || {}, configSchema);
 
             const response = {
                 schema: configSchema,
@@ -425,8 +425,13 @@ class PluginController {
                 return CommonUtils.sendError(req, res, 404, message, 'PLUGIN_NOT_FOUND');
             }
 
-            // Validate config against schema
+            // Resolve absent / mask / clear / set before validate and the before-save hook
+            // so the hook sees the effective value (keep existing, not the mask).
             const configSchema = plugin.metadata.config?.schema;
+            const oldConfig = await PluginModel.getByName(name);
+            PluginModel.applySensitiveWrites(configData, oldConfig?.config, configSchema);
+
+            // Validate config against schema
             if (configSchema) {
                 const validation = PluginModel.validateConfig(name, configData, configSchema);
                 if (!validation.valid) {
@@ -435,9 +440,6 @@ class PluginController {
                     return CommonUtils.sendError(req, res, 400, message, 'VALIDATION_ERROR');
                 }
             }
-
-            // Get current config for change logging
-            const oldConfig = await PluginModel.getByName(name);
 
             // W-200: let the plugin transform/encrypt configData in place before it's persisted
             // (e.g. encrypting a secret submitted through a `type: "custom"` field). Unlike other
@@ -476,6 +478,66 @@ class PluginController {
             }
             const message = global.i18n.translate(req, 'controller.plugin.updateConfig.failed');
             return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
+     * Reveal one sensitive plugin config field. Admin-only.
+     * GET /api/1/plugin/:name/config/secret?field=apiKey
+     * Returns the stored value and writes a change-log entry (field id only, never the value).
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async getSecret(req, res) {
+        const startTime = Date.now();
+        let name = '';
+        const rawField = typeof req.query.field === 'string' ? req.query.field.trim() : '';
+        try {
+            name = PluginController._validatePluginName(req.params.name, req);
+            const fieldId = rawField.includes('.') ? rawField.split('.').pop() : rawField;
+            LogController.logRequest(req, 'plugin.getSecret', `${name}, field=${fieldId}`);
+            const plugin = PluginManager.getPlugin(name);
+
+            if (!plugin) {
+                LogController.logError(req, 'plugin.getSecret', `error: plugin not found: ${name}`);
+                const message = global.i18n.translate(req, 'controller.plugin.getSecret.notFound', { name });
+                return CommonUtils.sendError(req, res, 404, message, 'PLUGIN_NOT_FOUND');
+            }
+
+            if (!fieldId) {
+                LogController.logError(req, 'plugin.getSecret', 'error: field is required');
+                const message = global.i18n.translate(req, 'controller.plugin.getSecret.fieldRequired');
+                return CommonUtils.sendError(req, res, 400, message, 'MISSING_FIELD');
+            }
+
+            const configSchema = plugin.metadata.config?.schema || [];
+            if (!PluginModel.getSensitiveFieldIds(configSchema).includes(fieldId)) {
+                LogController.logError(req, 'plugin.getSecret', `error: field is not a sensitive field: ${fieldId}`);
+                const message = global.i18n.translate(req, 'controller.plugin.getSecret.fieldInvalid');
+                return CommonUtils.sendError(req, res, 400, message, 'INVALID_SECRET_FIELD');
+            }
+
+            const value = await PluginModel.getSecret(name, fieldId);
+            await LogController.logReveal(req, 'plugin', name, fieldId);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'plugin.getSecret',
+                `success: secret revealed for ${name}, field: ${fieldId}, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.plugin.getSecret.success', { field: fieldId });
+            res.set('Cache-Control', 'no-store');
+            res.json({
+                success: true,
+                data: { field: fieldId, value },
+                message,
+                elapsed
+            });
+        } catch (error) {
+            LogController.logError(req, 'plugin.getSecret', `error: ${error.message}`);
+            const isValidationError = error.message.includes('Invalid plugin name') || error.message.includes('required');
+            if (isValidationError) {
+                return CommonUtils.sendError(req, res, 400, error.message, 'INVALID_PLUGIN_NAME');
+            }
+            const message = global.i18n.translate(req, 'controller.plugin.getSecret.failed');
+            return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR');
         }
     }
 

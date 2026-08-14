@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.7.13
+# jPulse Docs / Plugins / Plugins API Reference v1.7.14
 
 Complete API reference for jPulse plugin developers.
 
@@ -15,11 +15,16 @@ Response: { success: true, data: [...] }
 GET /api/1/plugin/:name
 Response: { success: true, data: {...} }
 
-// Get plugin configuration
+// Get plugin configuration (sensitive values are masked)
 GET /api/1/plugin/:name/config
 Response: { success: true, data: { schema: [...], values: {...} } }
 
+// Reveal one stored secret (admin only; audited; field must be sensitive)
+GET /api/1/plugin/:name/config/secret?field=apiKey
+Response: { success: true, data: { field: 'apiKey', value: '...' } }
+
 // Update plugin configuration
+// Omit a secret or send ******** to leave it unchanged; "" clears it
 PUT /api/1/plugin/:name/config
 Body: { field1: value1, field2: value2, ... }
 Response: { success: true, message: '...', restartRequired: false }
@@ -82,7 +87,8 @@ Response: { success: true, data: {...} }
 {
     "id": "fieldName",
     "label": "Field Label",
-    "type": "text|textarea|number|boolean|select|help|custom",
+    "type": "text|password|textarea|number|boolean|select|help|custom",
+    "sensitive": true,
     "default": "default value",
     "required": true,
     "placeholder": "placeholder text",
@@ -108,6 +114,8 @@ Response: { success: true, data: {...} }
     "renderer": "myPlugin.renderMyWidget"
 }
 ```
+
+`type: "password"` implies `sensitive: true`. Bulk `GET` config returns `""` (unset) or `********` (set). `sensitive: false` on a password field keeps the old-style widget and returns the value. Server-side, read a stored secret with `PluginModel.getSecret(name, fieldId)` (returns `""` when unset). Pair every secret with a Test button so an admin can verify the key without revealing it.
 
 Plugin config blocks can use the same schema shape and flow as framework config (tabs/panels from schema, layout with `maxColumns` / `startNewRow` / `fullWidth`, virtual buttons). See [Schema-driven config forms](../front-end-development.md#-schema-driven-config-forms) in the Front-End Development Guide.
 
@@ -166,6 +174,19 @@ export default class YourPluginController {
 - Method: `apiGetCustom` → `GET /api/1/yourPlugin/custom`
 
 ## Model API
+
+### Reading a plugin secret
+
+`GET /api/1/plugin/:name/config` never returns a stored secret. On the server, read one field with:
+
+```javascript
+import PluginModel from '../../model/plugin.js';
+
+const apiKey = await PluginModel.getSecret('my-plugin', 'apiKey');
+// '' when unset; otherwise the stored value
+```
+
+Do not send that value in a client response. Pair the field with a Test button so an admin can verify the key without revealing it. The shipped hello-world plugin does this with `demoApiKey` and `GET /api/1/helloPlugin/verify-demo-api-key`.
 
 ### Creating Plugin Models
 

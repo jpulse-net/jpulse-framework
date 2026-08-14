@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.7.13
+# jPulse Docs / Security & Authentication v1.7.14
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -16,6 +16,7 @@ The jPulse Framework implements enterprise-grade security features including ses
 - **Rate Limiting**: nginx-based rate limiting for all endpoints, plus app-level (Redis-backed) rate limiting on login and select other endpoints — see [Rate Limiting](#rate-limiting)
 - **SSL/TLS**: Production-ready SSL configuration
 - **Input Validation**: Schema-based validation for all user inputs
+- **Configuration secrets**: Sensitive fields are masked in bulk reads, page context, and logs; an admin can reveal one field at a time, and that reveal is recorded — see [Secrets in Configuration](#secrets-in-configuration)
 
 ---
 
@@ -364,11 +365,43 @@ if (AuthController.isAuthorized(req, '_public')) {
 #### Admin Endpoints (Admin/Root Roles Required)
 
 - `GET /api/1/user/search` - User management and search
-- `GET /api/1/config/*` - Configuration access
+- `GET /api/1/config/*` - Configuration access (secrets masked in bulk reads)
+- `GET /api/1/config/:id/secret` - Reveal one stored secret (audited)
 - `POST /api/1/config` - Configuration creation
 - `PUT /api/1/config/:id` - Configuration updates
 - `DELETE /api/1/config/:id` - Configuration deletion
 - `GET /api/1/log/search` - System log access
+
+---
+
+## Secrets in Configuration
+
+Site config and plugin config treat a field as a secret when it is marked `sensitive: true`, or when it is a password input (`inputType: 'password'` on the config schema, `type: 'password'` in `plugin.json`). `sensitive: false` is the escape hatch if a password widget should not be treated as a secret.
+
+### What is guaranteed
+
+- No secret appears in bulk API reads (`GET /api/1/config`, list, effective, create/update responses, `GET /api/1/plugin/:name/config`), including for admins. Unset is `""`; set is the mask `********`.
+- No secret is rendered into Handlebars `siteConfig`, for guests or authenticated users. Paths come from the schema, so an `extendSchema()` secret is stripped even if it is missing from `contextFilter`.
+- Request-body application logs and change-log diffs mask secrets for both `config` and `plugin` documents.
+- Reveal is a single-field GET. The path or field id must be on the sensitive list; the change-log entry records who revealed which field (`action: "read"`), never the value.
+
+### What is not guaranteed
+
+An admin can read a secret through the reveal endpoint, and that read is recorded. Typical deployments also give operators shell and Mongo access. Masking stops bulk exfiltration through a hijacked admin session, screenshots of API responses, proxy logs, and bug reports — it does not make the value unreadable to an administrator.
+
+### `contextFilter` vs `sensitive`
+
+`contextFilter` is the **audience filter** for non-secret fields (for example hiding `smtpServer` from guests). Its secret globs remain as belt-and-braces. `sensitive` is the mechanism that hides secrets from every caller.
+
+### Internal reads
+
+Server code that must use a secret calls `ConfigModel.findById(id, true)` or `PluginModel.getSecret(name, fieldId)`. The raw document must never be returned to a client. Masking is a response-layer job.
+
+### Escalation: `writeOnly`
+
+If a deployment needs non-retrievability (hosted sites where support staff hold admin, or a shared platform key), a future `writeOnly: true` flag can add “no reveal for this path” plus an explicit Clear control. That is not implemented; the current contract is masked reads with audited reveal.
+
+See [REST API Reference — Sensitive fields](api-reference.md#sensitive-fields) and [Site Administration — Manifest](site-administration.md#manifest-license-compliance-monitoring).
 
 ---
 
@@ -705,6 +738,7 @@ The following security features are planned or recommended for future implementa
 
 ## 📚 Related Documentation
 
+- **[REST API Reference](api-reference.md#sensitive-fields)** - Masked config reads, write rules, and the reveal endpoint
 - **[REST API Reference](api-reference.md)** - Complete API endpoint documentation including authentication requirements
 - **[Deployment Guide](deployment.md)** - Production deployment with security considerations
 - **[Cache Infrastructure](cache-infrastructure.md#rate-limiting)** - `RedisManager.cacheCheckRateLimit()` pattern for adding app-level rate limiting to your own endpoints

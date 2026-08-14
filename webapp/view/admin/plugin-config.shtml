@@ -4,13 +4,13 @@
  * @tagline         Dynamic Plugin Configuration Interface
  * @description     Schema-driven dynamic form generator for plugin configuration
  * @file            webapp/view/admin/plugin-config.shtml
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.15, Grok 4.6
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -133,6 +133,20 @@
 
         document.getElementById('btnSave').addEventListener('click', saveConfiguration);
         document.getElementById('btnReset').addEventListener('click', resetToDefaults);
+
+        // Schema type:button fields (data-callback / data-action), same idea as config.shtml.
+        // Resolve dotted names so a plugin can set callback: "jPulse.plugins.myPlugin.verify".
+        document.getElementById('pluginConfigForm').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-callback], button[data-action]');
+            if (!btn) return;
+            const callbackName = btn.getAttribute('data-callback');
+            const actionName = btn.getAttribute('data-action');
+            const fn = (callbackName && jPulse.schemaForm.resolve(callbackName))
+                || (actionName && jPulse.schemaForm.resolve(actionName));
+            if (typeof fn === 'function') {
+                fn.call(btn, btn);
+            }
+        });
     }
 
     /**
@@ -203,6 +217,8 @@
 
         const { schema, data } = jPulse.schemaForm.pluginSchemaToBlocks(configSchema, currentConfig);
         activeBlockSchema = schema;
+        form.setAttribute('data-jp-secret-reveal',
+            '/api/1/plugin/' + encodeURIComponent(pluginName) + '/config/secret?field={field}');
         const blockKeys = Object.keys(schema.data);
 
         if (blockKeys.length === 1) {

@@ -3,8 +3,8 @@
  * @tagline         Unit tests for HookController admin API
  * @description     Covers GET /api/1/hook and GET /api/1/hook/:name
  * @file            webapp/tests/unit/controller/hook-controller.test.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

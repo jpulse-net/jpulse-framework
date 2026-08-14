@@ -1,7 +1,7 @@
 {
     "name": "hello-world",
     "npmPackage": "@jpulse-net/plugin-hello-world",
-    "version": "1.7.13",
+    "version": "1.7.14",
     "icon": "🔌",
     "summary": "Hello World demo plugin for jPulse Framework",
     "description": "<p>This demo plugin showcases the jPulse Framework plugin system with:</p><ul><li><strong>Dynamic Configuration:</strong> Tab-based settings with various field types</li><li><strong>MVC Components:</strong> Controller, Model, and View integration</li><li><strong>Append Mode:</strong> Extending framework CSS and JavaScript</li></ul><p>Use this as a reference when creating your own plugins.</p>",
@@ -35,6 +35,28 @@
                 "type": "boolean",
                 "default": true,
                 "help": "Display plugin statistics on the page",
+                "tab": "General"
+            },
+            {
+                "type": "help",
+                "content": "<p><strong>Demo API key:</strong> <code>type: \"password\"</code> marks a secret. Bulk reads return <code>********</code> when a value is stored. The server reads the real value with <code>PluginModel.getSecret()</code>. This key is not sent anywhere &mdash; it exists so plugin authors can copy the pattern.</p>",
+                "tab": "General"
+            },
+            {
+                "id": "demoApiKey",
+                "label": "Demo API Key",
+                "type": "password",
+                "default": "",
+                "placeholder": "Not sent anywhere",
+                "help": "Masked in GET config. Reveal on this form is audited. Verify reads the stored value on the server.",
+                "tab": "General"
+            },
+            {
+                "id": "verifyDemoApiKey",
+                "label": "Verify demo key",
+                "type": "button",
+                "callback": "jPulse.plugins.helloWorld.verifyDemoApiKey",
+                "help": "Asks the server whether a key is stored. The button never receives the value.",
                 "tab": "General"
             },
             {

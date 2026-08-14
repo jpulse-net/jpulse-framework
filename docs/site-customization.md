@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v1.7.13
+# jPulse Docs / Site Customization Guide v1.7.14
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -307,6 +307,7 @@ class MyCompanyController {
             myCompany: {
                 _meta: { tabLabel: 'My Company', order: 50, description: 'Company-wide settings.' },
                 supportEmail: { type: 'string', default: 'support@example.com', label: 'Support email' },
+                apiKey: { type: 'string', inputType: 'password', default: '', label: 'API key' },
                 showBanner: { type: 'boolean', default: true, label: 'Show announcement banner' }
             }
         });
@@ -324,7 +325,7 @@ export default MyCompanyController;
 ```
 
 **What belongs here:**
-- Config and user schema extensions (`ConfigModel.extendSchema()`, `UserModel.extendSchema()`)
+- Config and user schema extensions (`ConfigModel.extendSchema()`, `UserModel.extendSchema()`). A config field with `inputType: 'password'` (or `sensitive: true`) is masked in bulk reads and `siteConfig`; server code that needs the stored value uses `ConfigModel.findById(id, true)`.
 - WebSocket namespace registration (see `site/webapp/controller/helloWebsocket.js`)
 - Custom Redis broadcast channels and subscriptions
 - In-process registries your own code reads later

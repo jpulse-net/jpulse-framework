@@ -3,17 +3,18 @@
  * @tagline         Basic tests for Config Model and Controller
  * @description     Simple unit tests for Config Model validation and basic functionality
  * @file            webapp/tests/unit/config/config-basic.test.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.3, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.15, Grok 4.6
  */
 
 import { jest } from '@jest/globals';
 import TestUtils from '../../helpers/test-utils.js';
+import ConfigModel from '../../../model/config.js';
 
 describe('Config Model Basic Tests', () => {
     describe('Schema Validation Logic', () => {
@@ -334,6 +335,18 @@ describe('Config Model Basic Tests', () => {
             // Validate constraints
             expect(completeSchema.docVersion).toBeGreaterThanOrEqual(1);
             expect(completeSchema.saveCount).toBeGreaterThanOrEqual(1);
+        });
+    });
+
+    describe('sensitive field contract', () => {
+        test('maskSensitive is the client-facing shape; a raw doc still holds the secret', () => {
+            const raw = {
+                _id: 'global',
+                data: { email: { smtpPass: 'smtp_password', adminEmail: 'a@b.c' } }
+            };
+            const masked = ConfigModel.maskSensitive(raw);
+            expect(masked.data.email.smtpPass).toBe(ConfigModel.SENSITIVE_MASK);
+            expect(raw.data.email.smtpPass).toBe('smtp_password');
         });
     });
 });

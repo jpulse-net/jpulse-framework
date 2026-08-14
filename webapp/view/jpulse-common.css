@@ -3,13 +3,13 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.5, Claude Sonnet 4.6
+ * @genai           60%, Cursor 3.15, Grok 4.6
  */
 
 /* ========================================
@@ -1529,27 +1529,34 @@ body {
     font-weight: normal;
 }
 .jp-password-field {
-    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.jp-password-field > .jp-form-input {
+    flex: 1 1 auto;
+    min-width: 0;
 }
 .jp-password-toggle {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
+    flex: 0 0 auto;
     background: none;
     border: none;
     cursor: pointer;
     color: var(--jp-theme-text-secondary, #666);
     font-size: 14px;
-    padding: 0;
-    width: 20px;
-    height: 20px;
+    padding: 4px;
+    width: auto;
+    height: auto;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 .jp-password-toggle:hover {
     color: var(--jp-theme-color-primary, #007acc);
+}
+.jp-sensitive-reveal {
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 .jp-schema-section {
     margin-bottom: 30px;

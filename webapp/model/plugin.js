@@ -3,13 +3,13 @@
  * @tagline         Plugin Model for jPulse Framework WebApp
  * @description     Plugin configuration model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/plugin.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.15, Grok 4.6
  */
 
 import database from '../database.js';
@@ -322,6 +322,105 @@ class PluginModel {
         } catch (error) {
             throw new Error(`Failed to create plugin config indexes: ${error.message}`);
         }
+    }
+
+    /**
+     * Placeholder returned in place of a set sensitive value. Empty string means unset.
+     * Must match ConfigModel.SENSITIVE_MASK.
+     */
+    static SENSITIVE_MASK = '********';
+
+    /**
+     * Whether a plugin.json field definition is a secret.
+     * `sensitive: true` or `type`/`inputType` `'password'`; `sensitive: false` is the escape hatch.
+     * @param {object} fieldDef - Flat plugin schema field
+     * @returns {boolean}
+     */
+    static isSensitiveField(fieldDef) {
+        if (!fieldDef || typeof fieldDef !== 'object') return false;
+        if (fieldDef.sensitive === false) return false;
+        return fieldDef.sensitive === true
+            || fieldDef.type === 'password'
+            || fieldDef.inputType === 'password';
+    }
+
+    /**
+     * Field ids marked sensitive on a plugin.json config schema.
+     * @param {Array<object>} schema - Flat plugin.json schema array
+     * @returns {string[]}
+     */
+    static getSensitiveFieldIds(schema) {
+        if (!Array.isArray(schema)) return [];
+        return schema
+            .filter((field) => field && field.id && this.isSensitiveField(field))
+            .map((field) => field.id);
+    }
+
+    /**
+     * True when value is the sensitive-field mask (echoed read, must not be stored).
+     * @param {*} value
+     * @returns {boolean}
+     */
+    static isSensitiveMask(value) {
+        return value === this.SENSITIVE_MASK;
+    }
+
+    /**
+     * Clone a flat plugin config map and replace every non-empty sensitive string
+     * with SENSITIVE_MASK. Empty / missing values stay as they are.
+     * @param {object} values - Flat key/value config
+     * @param {Array<object>} schema - Plugin.json config schema
+     * @returns {object} Masked clone
+     */
+    static maskSensitive(values, schema) {
+        if (values == null || typeof values !== 'object') return values;
+        const clone = JSON.parse(JSON.stringify(values));
+        const mask = this.SENSITIVE_MASK;
+        for (const id of this.getSensitiveFieldIds(schema)) {
+            const value = clone[id];
+            if (typeof value === 'string' && value !== '') {
+                clone[id] = mask;
+            }
+        }
+        return clone;
+    }
+
+    /**
+     * Resolve absent / mask / clear / set on sensitive fields before validate and
+     * onPluginConfigBeforeSave. Mutates `submitted` in place.
+     * Absent or mask → keep stored value; empty string → clear; anything else → store.
+     * @param {object} submitted - Incoming flat config (the PUT body)
+     * @param {object} oldValues - Currently stored flat config
+     * @param {Array<object>} schema - Plugin.json config schema
+     * @returns {object} The same submitted object
+     */
+    static applySensitiveWrites(submitted, oldValues, schema) {
+        if (submitted == null || typeof submitted !== 'object') return submitted;
+        const old = (oldValues && typeof oldValues === 'object') ? oldValues : {};
+        for (const id of this.getSensitiveFieldIds(schema)) {
+            if (!Object.prototype.hasOwnProperty.call(submitted, id)
+                || this.isSensitiveMask(submitted[id])) {
+                if (Object.prototype.hasOwnProperty.call(old, id)) {
+                    submitted[id] = old[id];
+                } else {
+                    delete submitted[id];
+                }
+            }
+        }
+        return submitted;
+    }
+
+    /**
+     * Read one stored secret for a plugin. Server-side accessor — the HTTP reveal
+     * path validates the field id first. Returns '' when unset.
+     * @param {string} name - Plugin name
+     * @param {string} fieldId - Schema field id
+     * @returns {Promise<*>} Stored value, or ''
+     */
+    static async getSecret(name, fieldId) {
+        const doc = await this.getByName(name);
+        const value = doc?.config?.[fieldId];
+        return (value === undefined || value === null) ? '' : value;
     }
 }
 

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.13
+# jPulse Docs / Dev / Work Items v1.7.14
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -7947,19 +7947,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - everything else is preserved: the remaining hook names, the `static hooks` consumer syntax, and the catalog entry shape the W-105 doc generators depend on. The existing hook-manager test suite is the compatibility gate through commit 1; commit 2 deliberately rewrites its `executeWithCancel` block and `canCancel` assertions
   - framework user deletion (a `UserModel.delete()` and its cascade) is a separate work item — T-092's username-keyed `aiAgentThreads` / `aiAgentTurns` / `aiAgentUsage` collections will want it, and `onUserBeforeDelete` / `onUserAfterDelete` are the seam it plugs into
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-211, v1.0.6, 2026-08-13: auth-mfa plugin: hook rename for jPulse Framework v1.7.13+
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - keep MFA stats on System Status after W-209 renamed the framework stats hook
@@ -8001,6 +7990,97 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-210, v1.7.14, 2026-08-14: config: sensitive fields, masked reads with audited reveal
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - no secret in any bulk config read, page context, application log, or change-log diff — for admins too, not just non-admins
+  - one schema flag meaning "this is a secret", implied by password inputs, so a site or plugin author cannot leak by forgetting a second declaration
+  - admins keep read-back, through one deliberate single-field endpoint that records who asked
+  - the same guarantees on the plugin config path, where third-party API keys actually live
+- context:
+  - rescoped from the original "config: write-only field" spec after a threat-model pass; see notes for why write-only is not the mechanism
+  - `ConfigModel._sanitizeForResponse()` obfuscates the paths listed in schema `_meta.contextFilter.withoutAuth` only when `!isAdmin`; internal callers use `findById(id, true)` for the full document. So an admin `GET /api/1/config` returns `data.email.smtpPass` and `data.manifest.license.key` in clear — and so do the `create`/`update`/`upsert` responses, which echo the full document
+  - `findById(id, true)` is also how server code gets a real secret in order to use it: `EmailController.initialize()` reads `data.email.smtpPass` to build the SMTP transporter. Stripping secrets from that read (as the original spec's first deliverable said) would break authenticated SMTP — masking belongs in the response layer, not the model read
+  - `sensitive: true` already exists on `data.email.smtpPass` and nothing in the framework reads it; the only other mention is the W-148 design doc, which promises "value is not logged and may be masked in API responses". `data.manifest.license.key` does not even carry the flag, only hand-maintained `contextFilter` globs. Making the flag load-bearing is this item
+  - `_meta.contextFilter.withAuth` is used only by `HandlebarController._filterContext()` for `siteConfig`, keyed off `isAuthenticated`. A secret added through `ConfigModel.extendSchema()` is in neither hand-maintained list, so it renders into any page for any authenticated user
+  - `ConfigController.create/update/upsert` log the whole request body (`JSON.stringify(updateData)`), and `sanitizeMessage()` keeps the first three quarters of 256 chars, so a submitted secret routinely reaches the app log in clear
+  - `LogModel.logChange()` sanitizes `docType === 'config'` only, so a plugin API key submitted through a `type: 'password'` field lands in the change-log diff in clear; `auth-oauth` escapes this only because it encrypts client secrets in `onPluginConfigBeforeSave` before the diff sees them
+  - `CommonUtils.sanitizeObject()` obfuscate mode replaces any string including `''`, so masking must skip empty values — then the mask itself is the presence marker, and no `configured` marker or new payload shape is needed
+  - site config and plugin config render through one renderer (`jPulse.schemaForm`, plugin fields via `pluginSchemaToBlocks()`), so the widget is written once and serves both
+  - change-log `action` is a hard enum `['create', 'update', 'delete']` in `LogModel.schema` and `validate()`, mirrored in `webapp/view/admin/logs.shtml` (filter options, badge CSS, `displayChanges()` branches), so an admin-visible reveal entry needs a fourth value
+  - no other in-tree `plugin.json` used `type: 'password'` when this item started; hello-world ships with the framework, so it gains a teaching `type: 'password'` field in this item (auth-mfa / auth-oauth do not need a change)
+- features:
+  - `sensitive: true` schema attribute, implied by `inputType: 'password'` (config schema) and `type: 'password'` (plugin.json); explicit `sensitive: false` as the escape hatch
+  - read contract, every caller including admins, config and plugin alike: `''` when unset, the mask (`********`) when set; the real value never appears in a bulk read
+  - write contract: a field absent from the payload is unchanged; a submitted mask is treated as absent, so a form round-trip or an echoed read cannot overwrite a secret with the mask; anything else is stored verbatim, and empty string clears
+  - reveal: one admin-only endpoint per field, path validated against the sensitive-path list so it cannot become a read-anything hole, writing a change-log entry under a new `read` action so Admin → Logs shows who revealed which secret when
+  - template context: sensitive paths stripped from `siteConfig` in both auth states, derived from the schema rather than from `contextFilter`
+  - logs: request bodies sanitized before `logRequest()`; change-log diffs sanitized for both the `config` and `plugin` doc types
+  - `contextFilter` keeps its job as the audience filter for non-secret fields (`smtpServer`, `smtpPort`); its two secret entries stay as belt-and-braces, with a comment naming `sensitive` as the mechanism
+  - admin UI: a password field renders as configured / not configured with a reveal button that fetches the single value instead of unmasking the DOM; untouched sensitive fields are omitted from the save payload
+  - Test Email uses the stored `smtpPass` when the form posts the mask or omits the field; `apiSend` calls `_resolveTestSmtpPass` on the class because Express invokes the handler unbound
+  - change-log updates diff the raw documents, then mask secret values in the tuples, so a password change is recorded as `********` ==> `********` instead of disappearing
+  - documented as the mechanism for secrets, with `writeOnly` (no reveal, plus an explicit clear) described as the escalation available if a deployment ever needs non-retrievability
+  - hello-world (shipped with the framework) demonstrates the plugin-author contract: `type: 'password'`, a Verify button that uses `PluginModel.getSecret`, and no secret in the plugin's own public API
+- deliverables:
+  - phase 1 — server contract:
+    - `webapp/model/config.js`: sensitive-path list derived in `initializeSchema()` (explicit `sensitive: true`, implied by `inputType: 'password'`); mask constant; `maskSensitive(doc)` obfuscating non-empty values only; mask-echo guard in `updateById()`/`create()` (drop from the `$set` instead of storing the mask); `data.manifest.license.key` marked sensitive; `findById(id, isAdmin)` behavior unchanged, with its doc comment stating that the raw result must never reach a client
+    - `webapp/controller/config.js`: `maskSensitive()` applied to all six response payloads (`get`, `getEffective`, `list`, `create`, `update`, `upsert`); request body sanitized before `logRequest()`; validation errors carry paths, never values
+    - `webapp/controller/handlebar.js`: `_filterContext()` strips schema-derived sensitive paths from `siteConfig` in both auth states
+    - `webapp/controller/email.js`: `_resolveTestSmtpPass` falls back to in-memory / stored `smtpPass` when the submitted value is empty or the mask; `apiSend` calls it on the class (Express invokes the handler unbound)
+    - `webapp/model/log.js`: config change-log sanitization driven by the sensitive-path list; updates run `createFieldDiff` on the raw docs, then `_maskSensitiveChangeValues` (mask-before-diff dropped real password changes)
+  - phase 2 — reveal endpoint and audit action:
+    - `webapp/controller/config.js`, `webapp/routes.js`: `GET /api/1/config/:id/secret?path=email.smtpPass` behind `requireAdminRole()`, rejecting any path not marked sensitive, returning the single value and never logging it
+    - `webapp/model/log.js`: `action` enum and `validate()` accept `read`
+    - `webapp/controller/log.js`: helper writing a reveal audit entry (docType, docId, field path; no value)
+    - `webapp/view/admin/logs.shtml`: `read` filter option, `.local-action-read` badge, `displayChanges()` branch for an entry that carries no field changes; keep mask-to-mask rows so a secret change stays visible
+    - `webapp/translations/en.conf`, `webapp/translations/de.conf`: action label and reveal strings
+  - phase 3 — admin UI:
+    - `webapp/view/jpulse-common.js`: password field renders from the masked value (configured / not configured); reveal button fetches one value; a programmatic reveal does not mark the field dirty; `getFormData()` omits untouched sensitive fields
+    - `webapp/view/jpulse-common.css`: password field is a flex row so reveal sits beside the input
+    - `webapp/view/admin/config.shtml`: reveal wiring; `localGetDirtySnapshot()` must not treat a reveal as a change (exclude sensitive fields, or re-baseline after reveal), otherwise Save enables spuriously
+    - `webapp/view/admin/plugin-config.shtml`: reveal URL template; fields already render through the shared renderer; `data-callback` / `data-action` so plugin Test buttons run
+  - phase 4 — plugin parity and log sanitization:
+    - `webapp/controller/plugin.js`: `getConfig()` masks sensitive values; `updateConfig()` applies absent/mask/clear before `onPluginConfigBeforeSave` so the hook sees the effective value; `GET /api/1/plugin/:name/config/secret?field=apiKey`
+    - `webapp/model/plugin.js`: derive sensitive field ids from a plugin schema (`type: 'password'` or `sensitive: true`); accessor for a plugin to read its own secret server-side
+    - `webapp/model/log.js`: `docType === 'plugin'` branch, reaching the schema through `global.PluginManager.getPlugin(name).metadata.config.schema`
+  - phase 5 — tests:
+    - new: `config-masked-reads.test.js`, `config-secret.test.js`, `jpulse-ui-input-sensitive.test.js` — masked admin and non-admin reads, unset versus set, mask-echo ignored, empty clears, reveal authorization / path validation / audit, no secret in the request log
+    - update: `config-model.test.js`, `config-manifest.test.js`, `config-basic.test.js`, `log-basic.test.js` (masked smtpPass/apiKey diffs kept), `handlebar-context-filter.test.js`, `plugin-controller.test.js`, `plugin.test.js`, `email-controller.test.js` (unbound `apiSend`); `template-includes.test.js` and `view.test.js` mock `getSensitivePaths`
+  - phase 6 — docs:
+    - `docs/api-reference.md`: masked read contract, write rules, reveal endpoint
+    - `docs/security-and-auth.md`: secrets in configuration — what is guaranteed (no secret in bulk reads, page context, logs, diffs) and what is not (an admin can reveal, and it is recorded); `contextFilter` as the audience filter; internal reads through `findById(id, true)`; the `writeOnly` escalation
+    - `docs/jpulse-ui-reference.md`: password field behavior, reveal fetches the value
+    - `docs/plugins/plugin-api-reference.md`, `docs/plugins/creating-plugins.md`: `type: 'password'` implies sensitive; reading your own secret server-side; a Test button as the recommended companion for any secret
+    - `docs/site-customization.md`: `extendSchema()` example with a secret
+    - `docs/site-administration.md`: correct the "license key is filtered from server responses" claim, which is false for admin callers today; describe configured / reveal / audit
+  - phase 7 — hello-world teaching example (shipped with the framework):
+    - `plugins/hello-world/plugin.json`: `demoApiKey` (`type: 'password'`) and a Verify button
+    - `plugins/hello-world/webapp/controller/helloPlugin.js`: `GET /api/1/helloPlugin` masks secrets; `GET /api/1/helloPlugin/verify-demo-api-key` reads via `PluginModel.getSecret` and never returns the value
+    - `plugins/hello-world/webapp/view/jpulse-common.js`: Verify callback
+    - `webapp/view/admin/plugin-config.shtml`: wire `data-callback` / `data-action` so plugin Test buttons run (same gap the hello-world button would otherwise hit)
+    - hello-world README / docs: describe the demo key without a work-item number
+  - verify: reveal a secret and confirm the log entry names you; save the config without touching the password and confirm it survives; clear it deliberately; Test Email against an authenticating relay; admin config GET in devtools carries only the mask; grep the app log after a save; on hello-world, set the demo key, confirm GET `/api/1/helloPlugin` and GET plugin config show the mask, Verify succeeds, Reveal writes a `read` log entry
+- notes:
+  - why not write-only: it blocks bulk exfiltration through a hijacked admin session, but not the admin as a person — in a typical deployment that person has shell and Mongo access anyway — and it costs a four-state field widget plus a per-field verify action, forever, inherited by every plugin author (`auth-oauth` needed Test Connection, `smtpPass` needs Test Email). This design targets the same leak surface (bulk reads, screenshots, devtools, proxy logs, bug reports, app logs, change diffs) while keeping read-back, so clearing is ordinary text editing and verifying is reading the value back
+  - the plumbing here is a strict subset of write-only: if a deployment ever needs non-retrievability (hosted sites where support staff hold admin, or a shared platform key), `writeOnly: true` adds "no reveal for this path" plus a Clear affordance, and nothing built here is wasted
+  - folded in, same bug class, both pre-existing: request-body logging in `ConfigController.create/update/upsert`, and unsanitized plugin change-log diffs
+  - deliberate non-goals: no step-up (password or MFA re-prompt) on reveal, since no such mechanism exists in the framework and it deserves its own item; no at-rest encryption, though `webapp/utils/crypto-secrets.js` exists and `auth-oauth` uses it for client secrets — an envelope plus lazy migration plus a sessionSecret-rotation warning is a separate item; a config value literally equal to the mask becomes unstorable in a sensitive field, documented rather than engineered around
+  - T-092 (BubbleMap AI Agent) assumed provider LLM keys are unreadable even by admins; that is not what the framework will do, so correct that design doc to "masked in reads, revealable by an admin with an audit record" — or raise a `writeOnly` item if the hosted case demands it
+  - `data.manifest.license.key` becomes sensitive in this pass; nothing in `webapp/` reads it yet, so there is no internal consumer to migrate
+
+
+
+
+
+
+
+
+
 
 
 ### Pending
@@ -8020,7 +8100,8 @@ old pending:
 ### Chat instructions
 
 next work item: W-0...
-- review task, ask questions if unclear
+- review work item
+- ask questions if unclear
 - suggest change of spec if any, goal is a good DX, good usability, good onboarding & learning experience for site admins and developers; use the "don't make me think" paradigm
 - plan how to implement (wait for my go ahead)
 
@@ -8028,7 +8109,7 @@ release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
 - assume W-211, v1.0.6, 2026-08-13
-- assume W-209, v1.7.13, 2026-08-13
+- assume W-210, v1.7.14, 2026-08-14
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -8040,12 +8121,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.13 2026-08-13
+node bin/bump-version.js 1.7.14 2026-08-14
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.13; git push origin main --tags
+git tag v1.7.14; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa
@@ -8112,45 +8193,6 @@ template:
     - FIXME summary
 - tests:            // optional
 - tech-debt:        // optional
-
-### W-210, v1.7.13, 2026-08-13: config: write-only field
-- status: 🕑 PENDING
-- type: Feature
-- objectives:
-  - a config field type for secrets that can be set but never read back through any API, including by admins
-  - the same guarantee for plugin config, where third-party API keys actually live
-- context:
-  - `ConfigModel._sanitizeForResponse()` obfuscates the paths listed in schema `_meta.contextFilter.withoutAuth` only when `!isAdmin`; internal callers use `findById(id, true)` for the full document. So an admin `GET /api/1/config` returns secrets in clear — `contextFilter` is an audience filter, not a write-only guarantee
-  - `_meta.contextFilter.withAuth` exists and is used for template context filtering in `HandlebarController._filterContext()`, but is not what config read paths enforce
-  - plugin config schemas support `type: 'password'` in `PluginModel` validation, but no masking or sanitization was found on the plugin config read path — worth auditing as part of this item
-  - `LogModel.logChange()` already sanitizes config documents through `contextFilter.withoutAuth` before diffing, so there is a precedent to extend rather than a new mechanism to invent
-- features:
-  - schema attribute (e.g. `writeOnly: true`) alongside `inputType: 'password'`, meaning: accepted on write, never present in any read response regardless of role
-  - reads return presence instead of value — a `configured: true|false` marker — so the admin UI can render "configured" with a Clear action rather than an empty box that looks unset
-  - write semantics: an empty submitted value leaves the stored secret unchanged, so a form round-trip cannot silently blank it; clearing requires an explicit action
-  - change logging: write-only values never reach `logChange` diffs, and never appear in validation error messages
-  - same handling on the plugin config path, so a plugin API key gets the identical guarantee
-  - documented as the mechanism for secrets, with `contextFilter` positioned as the audience filter it is
-- deliverables:
-  - `webapp/model/config.js`:
-    - honor `writeOnly` in the schema; strip write-only paths in every read path including `findById(id, true)` responses; preserve the stored value when an empty value is submitted; emit the `configured` marker
-  - `webapp/controller/config.js`:
-    - never echo a write-only value in responses or validation errors; explicit clear action
-  - `webapp/model/log.js`:
-    - extend the existing config sanitization in `logChange()` to write-only fields so neither the stored log nor the console can carry a secret
-  - `webapp/view/admin/config.shtml`:
-    - render write-only fields as "configured / not configured" with Set and Clear, instead of a value-bearing input
-  - `webapp/model/plugin.js`, `webapp/controller/plugin.js`, `webapp/view/admin/plugins.shtml`:
-    - audit the plugin config read path and apply the same write-only handling to `type: 'password'` fields
-  - `webapp/tests/unit/config/config-model.test.js`:
-    - write-only value absent from admin and non-admin reads, `configured` marker correct, empty submit preserves the stored value, explicit clear unsets it, `logChange` diff carries no secret
-  - `webapp/tests/unit/model/plugin.test.js`:
-    - same coverage for plugin config secrets
-  - `docs/api-reference.md`, `docs/security-and-auth.md`:
-    - write-only fields as the way to store secrets; how they differ from `contextFilter`
-- notes:
-  - prerequisite for the BubbleMap AI Agent work (T-092), whose provider plugins hold LLM API keys; its design assumed keys are unreadable even by admins, which is not what the framework does today — the design doc needs correcting either way
-  - worth checking whether `data.manifest.license.key` should become write-only in the same pass, since it is the field the current pattern was modeled on
 
 ### W-202, v1.7.6, 2026-08-xx: auth: add locked status
 - status: 🕑 PENDING

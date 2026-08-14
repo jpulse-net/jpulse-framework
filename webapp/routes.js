@@ -3,13 +3,13 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.14, Claude Sonnet 5
+ * @genai           60%, Cursor 3.15, Grok 4.6
  */
 
 import path from 'path';
@@ -55,6 +55,8 @@ router.delete('/api/1/app-cluster/cache/:category/:key', AppClusterController.ca
 // Config API routes
 router.get('/api/1/config', ConfigController.list);
 router.get('/api/1/config/_default', ConfigController.get);  // Default config (reserved ID)
+router.get('/api/1/config/_default/secret', AuthController.requireAdminRole(), ConfigController.getSecret);
+router.get('/api/1/config/:id/secret', AuthController.requireAdminRole(), ConfigController.getSecret);
 router.get('/api/1/config/:id', ConfigController.get);
 router.get('/api/1/config/:id/effective', ConfigController.getEffective);
 router.post('/api/1/config', AuthController.requireAdminRole(), ConfigController.create);
@@ -73,6 +75,7 @@ router.get('/api/1/plugin/:name', AuthController.requireAdminRole(), PluginContr
 router.get('/api/1/plugin/:name/status', AuthController.requireAdminRole(), PluginController.getStatus);
 router.post('/api/1/plugin/:name/enable', AuthController.requireAdminRole(), PluginController.enable);
 router.post('/api/1/plugin/:name/disable', AuthController.requireAdminRole(), PluginController.disable);
+router.get('/api/1/plugin/:name/config/secret', AuthController.requireAdminRole(), PluginController.getSecret);
 router.get('/api/1/plugin/:name/config', AuthController.requireAdminRole(), PluginController.getConfig);
 router.put('/api/1/plugin/:name/config', AuthController.requireAdminRole(), PluginController.updateConfig);
 router.get('/api/1/plugin/:name/dependencies', AuthController.requireAdminRole(), PluginController.getPluginDependencies);

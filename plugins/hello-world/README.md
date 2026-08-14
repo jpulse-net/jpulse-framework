@@ -1,4 +1,4 @@
-# jPulse Framework / Plugins / Hello-World / README v1.7.13
+# jPulse Framework / Plugins / Hello-World / README v1.7.14
 
 A reference implementation plugin for the jPulse Framework that demonstrates the plugin infrastructure.
 
@@ -114,9 +114,10 @@ Plugins that require configuration should set `autoEnable: false`.
 
 ### Configuration
 
-The plugin defines a simple configuration schema in `plugin.json`:
+The plugin defines a configuration schema in `plugin.json`:
 - `message`: A customizable welcome message
-- `enabled`: Toggle to show/hide the message
+- `showStats`: Toggle statistics on the plugin page
+- `demoApiKey`: Teaching secret (`type: "password"`). Bulk GET returns `********` when set. Read it on the server with `PluginModel.getSecret('hello-world', 'demoApiKey')`. The Verify button calls `GET /api/1/helloPlugin/verify-demo-api-key` and never receives the value. Not sent to any external service.
 
 Configuration is stored in the `pluginConfigs` MongoDB collection and can be modified via the admin UI.
 

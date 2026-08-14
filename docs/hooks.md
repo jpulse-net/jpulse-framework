@@ -1,4 +1,4 @@
-# jPulse Docs / Hooks v1.7.13
+# jPulse Docs / Hooks v1.7.14
 
 Named extension points that the framework, a site, or a plugin can **define**, and that any plugin or site controller can **handle**. Use them to intercept, modify, react to, or veto operations without patching framework code.
 

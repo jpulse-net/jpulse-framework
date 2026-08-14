@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.7.13
+# jPulse Docs / Plugins / Creating Plugins v1.7.14
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -91,7 +91,7 @@ Configuration fields are automatically turned into an admin UI:
             {
                 "id": "apiKey",
                 "label": "API Key",
-                "type": "text",
+                "type": "password",
                 "required": true,
                 "placeholder": "Enter your API key",
                 "help": "Required for API authentication",
@@ -136,6 +136,7 @@ Configuration fields are automatically turned into an admin UI:
 ### Supported Field Types:
 - `help` - Informational text box (no input)
 - `text` - Single-line text input
+- `password` - Secret; implies `sensitive: true` (see below)
 - `textarea` - Multi-line text input (use `rows` for height)
 - `number` - Numeric input (supports `min`, `max`, `step`)
 - `boolean` - Checkbox
@@ -154,6 +155,15 @@ Configuration fields are automatically turned into an admin UI:
 - `min`, `max`, `step` - For number fields
 - `rows` - For textarea height
 - `options` - For select dropdown (array of `{value, label}`)
+- `sensitive` - Optional. `true` marks a non-password field as a secret; `false` on a password field is the escape hatch (plain password widget, value returned in `GET` config)
+
+### Secrets (`type: "password"`)
+
+`type: "password"` (or `sensitive: true`) is masked in `GET /api/1/plugin/:name/config`: `""` when unset, `********` when set. A save that omits the field or sends the mask leaves the stored value unchanged; `""` clears it. An admin can reveal one field with `GET /api/1/plugin/:name/config/secret?field=apiKey` (audited).
+
+**Read your own secret on the server** with `PluginModel.getSecret(name, fieldId)` — never put the raw config document on a client response.
+
+**Recommended companion:** add a Test / Verify button (`type: "button"`) next to any secret so an admin can prove the key works without revealing it. The Email tab's Test Email control is the pattern. The shipped hello-world plugin has a `demoApiKey` field and a Verify button that call `PluginModel.getSecret('hello-world', 'demoApiKey')`.
 
 ### Custom Field Renderers
 

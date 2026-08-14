@@ -4,13 +4,13 @@
  * @tagline         Admin logs viewer interface
  * @description     Log analysis and search interface for site administrators
  * @file            webapp/view/admin/logs.shtml
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.15, Grok 4.6
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -132,6 +132,11 @@
         .local-action-delete {
             background: var(--jp-theme-color-danger-bg, #f8d7da);
             color: var(--jp-theme-color-danger-text, #721c24);
+        }
+
+        .local-action-read {
+            background: var(--jp-theme-color-warning-bg, #fff3cd);
+            color: var(--jp-theme-color-warning-text, #856404);
         }
 
         .local-changes-cell {
@@ -281,6 +286,7 @@
                             <label for="searchAction" class="jp-form-label">{{i18n.view.admin.logs.searchAction}}</label>
                             <select id="searchAction" name="data.action" class="jp-form-select">
                                 <option value="">{{i18n.view.admin.logs.allActions}}</option>
+                                <option value="read">Read</option>
                                 <option value="create">Create</option>
                                 <option value="update">Update</option>
                                 <option value="delete">Delete</option>
@@ -374,6 +380,9 @@
             fieldsUpdated: `{{i18n.view.admin.logs.fieldsUpdated}}`,
             fieldsCreated: `{{i18n.view.admin.logs.fieldsCreated}}`,
             fieldsDeleted: `{{i18n.view.admin.logs.fieldsDeleted}}`,
+            fieldRevealed: `{{i18n.view.admin.logs.fieldRevealed}}`,
+            fieldsRevealed: `{{i18n.view.admin.logs.fieldsRevealed}}`,
+            revealed: `{{i18n.view.admin.logs.revealed}}`,
             documentAction: `{{i18n.view.admin.logs.documentAction}}`,
             created: `{{i18n.view.admin.logs.created}}`,
             deleted: `{{i18n.view.admin.logs.deleted}}`,
@@ -731,9 +740,19 @@
             } else if (action === 'delete') {
                 const fieldsText = changeCount === 1 ? i18nStrings.fieldsDeleted : i18nStrings.fieldsDeleted;
                 return `<span style="cursor: pointer;">▶ ${changeCount} ${fieldsText}</span>`;
+            } else if (action === 'read') {
+                const field = changes[0] && changes[0][0];
+                if (field) {
+                    return `<span style="cursor: pointer;">▶ ${i18nStrings.revealed} ${escapeHtml(String(field))}</span>`;
+                }
+                const fieldsText = changeCount === 1 ? i18nStrings.fieldRevealed : i18nStrings.fieldsRevealed;
+                return `<span style="cursor: pointer;">▶ ${changeCount} ${fieldsText}</span>`;
             } else if (action === 'update') {
-                // Filter out unchanged values for updates
+                // Filter out unchanged values for updates. Keep mask-to-mask: a
+                // secret change is stored as ******** ==> ******** on purpose.
+                const secretMask = (jPulse.UI.input && jPulse.UI.input.SENSITIVE_MASK) || '********';
                 const actualChanges = changes.filter(([field, oldVal, newVal]) => {
+                    if (oldVal === secretMask && newVal === secretMask) return true;
                     return JSON.stringify(oldVal) !== JSON.stringify(newVal);
                 });
 
@@ -756,7 +775,7 @@
             return String(val);
         }
 
-        function formatDetailedChanges(changes) {
+        function formatDetailedChanges(changes, action) {
             // Handle case where changes is a string (legacy format)
             if (typeof changes === 'string') {
                 return `<pre>${escapeHtml(changes)}</pre>`;
@@ -767,8 +786,21 @@
                 return `<div class="local-change-item">${i18nStrings.noChangesRecorded}</div>`;
             }
 
-            // Filter out unchanged values and action field (action is obvious from context)
+            if (action === 'read') {
+                const fields = changes.map((entry) => Array.isArray(entry) ? entry[0] : entry).filter(Boolean);
+                if (fields.length === 0) {
+                    return `<div class="local-change-item">${i18nStrings.noChangesRecorded}</div>`;
+                }
+                return fields.map((field) =>
+                    `<div class="local-change-item"><strong>${escapeHtml(String(field))}</strong>: ${i18nStrings.revealed}</div>`
+                ).join('');
+            }
+
+            // Filter out unchanged values and action field (action is obvious from context).
+            // Keep mask-to-mask so a secret change is still visible.
+            const secretMask = (jPulse.UI.input && jPulse.UI.input.SENSITIVE_MASK) || '********';
             const actualChanges = changes.filter(([field, oldVal, newVal]) => {
+                if (oldVal === secretMask && newVal === secretMask) return true;
                 return field !== 'action' && JSON.stringify(oldVal) !== JSON.stringify(newVal);
             });
 
@@ -841,7 +873,7 @@
                     }
 
                     // Update content
-                    content.innerHTML = formatDetailedChanges(changes);
+                    content.innerHTML = formatDetailedChanges(changes, summaryElement.getAttribute('data-action'));
 
                     // Store reference to target element for scroll tracking
                     dropdown.currentTarget = summaryElement;

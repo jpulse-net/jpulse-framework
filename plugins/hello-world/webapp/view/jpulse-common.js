@@ -3,13 +3,13 @@
  * @tagline         Common JavaScript of the Hello World Plugin
  * @description     Common JavaScript of the Hello World Plugin, appended to the framework common JavaScript
  * @file            plugins/hello-world/webapp/view/jpulse-common.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.1, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.15, Grok 4.6
  */
 
 /**
@@ -124,6 +124,37 @@ window.jPulse.plugins.helloWorld = {
         }
 
         render();
+    },
+
+    /**
+     * Plugin-config Verify button (`callback` on the demoApiKey companion).
+     * Calls the plugin API; the server reads PluginModel.getSecret and never
+     * returns the value.
+     * @param {HTMLButtonElement} [btn] - The schema button that was clicked
+     */
+    verifyDemoApiKey: async function(btn) {
+        try {
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('jp-btn-loading');
+            }
+            const response = await jPulse.api.get('/api/1/helloPlugin/verify-demo-api-key');
+            const data = response && response.data ? response.data : {};
+            if (data.configured && data.valid) {
+                jPulse.UI.toast.success(response.message || 'Demo API key is configured.');
+            } else if (data.configured) {
+                jPulse.UI.toast.warning(response.message || 'Demo API key is set but too short.');
+            } else {
+                jPulse.UI.toast.info(response.message || 'Demo API key is not configured.');
+            }
+        } catch (error) {
+            jPulse.UI.toast.error((error && error.message) || 'Verify failed');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('jp-btn-loading');
+            }
+        }
     },
 
     /**

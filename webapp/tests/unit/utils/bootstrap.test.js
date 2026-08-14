@@ -5,8 +5,8 @@
  *                   which has heavy side effects and is already exercised by the Jest global setup):
  *                   checkLocalAuthRestrictionSafety() (W-195) and checkEmailVerificationSafety() (W-205)
  * @file            webapp/tests/unit/utils/bootstrap.test.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

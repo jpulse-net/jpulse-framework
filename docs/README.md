@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.7.13
+# jPulse Docs / Site Administrator & Developer Documentation v1.7.14
 
 **For Site Administrators & Site Developers**
 
@@ -60,7 +60,7 @@ jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application f
 - Ships with `hello-world` demo plugin
 
 ### 🧪 **Testing & Quality**
-- 3100+ tests with 100% pass rate
+- 3200+ tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis
@@ -235,6 +235,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v1.7.14, W-210, 2026-08-14: Config: sensitive fields, masked reads with audited reveal**: One schema flag (`sensitive: true`, implied by password inputs) keeps secrets out of every bulk config and plugin read — including for admins. Unset is `""`; set is `********`. An admin-only single-field reveal (`GET /api/1/config/:id/secret`, `GET /api/1/plugin/:name/config/secret`) writes a `read` audit (path only). Writes treat omit/mask as unchanged and `""` as clear. Test Email and plugin Verify read the stored secret on the server. Hello-world ships a `demoApiKey` teaching field. **Behavior:** admin `GET /api/1/config` and plugin config no longer return SMTP passwords, license keys, or `type: "password"` values in clear.
 - **v1.7.13, W-209, 2026-08-13: Plugins: extensible hook registry**: Framework, site, and plugin producers define hooks (`defineHook()` / `static hookDefinitions`); consumers keep `static hooks`. Cancellation is throw-to-abort with a declared `onError` policy. **Breaking:** `executeWithCancel()` removed; `return false` no longer cancels; `onUserBeforeSave` throws abort the save (400 `USER_SAVE_REJECTED`); `onGetInstanceStats` → `onSystemGetStats`; `HookManager.clear()` clears handlers only (`clearDefinitions()` for the catalog). Also: boot audit with did-you-mean, `GET /api/1/hook`, Admin → Plugins hooks panel (refreshes on enable/disable; inactive badge), hook guide at `docs/hooks.md` (sidebar after API Reference; tables wrap then scroll).
 - **v1.7.12, W-208, 2026-08-12: WebSocket: per-namespace message limits; error reporting; request helper**: Namespaces can raise inbound `maxSize` (and optionally rate limits) via `createNamespace({ messageLimits })` without changing the global default; oversized / rate-limited messages get a real error envelope (`MESSAGE_TOO_LARGE` / `RATE_LIMIT_EXCEEDED` with `details`) instead of a silent drop; and `ws.request()` / `conn.reply()` (plus `WebSocketController.request()` the other way) give correlated request/response that always resolves like `jPulse.api` — prerequisite for browser-side tool calls that can exceed 64 KB. Also: limits in the `connected` welcome + client size pre-check, socket-level `maxPayload`, drop counters on the admin WebSocket status page, and a `/hello-websocket/#request-response` demo.
 - **v1.7.11, W-207, 2026-08-11: Bootstrap: site-level init hook**: Hardens the startup hook site and plugin controllers already have — `static async initialize()` — so order is deterministic (`static initializePriority`, default 100, lower first, then alphabetical by controller name), failures stay isolated but show in the bootstrap banner, and site docs finally spell out the one place for `ConfigModel.extendSchema()` / `UserModel.extendSchema()`, WebSocket namespaces, Redis channels, and cache warmup.

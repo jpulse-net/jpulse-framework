@@ -3,13 +3,13 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.6, Claude Sonnet 4.6
+ * @genai           60%, Cursor 3.15, Grok 4.6
  */
 
 window.jPulse = {
@@ -1319,6 +1319,237 @@ window.jPulse = {
                         });
                     } catch (_) {}
                 });
+                jPulse.UI.input.initSensitiveFields(root);
+            },
+
+            /**
+             * Placeholder returned by the server in place of a set sensitive value.
+             * Empty string means unset. Must match ConfigModel.SENSITIVE_MASK.
+             */
+            SENSITIVE_MASK: '********',
+
+            /**
+             * True when a schema field is a secret: `sensitive: true` or
+             * `inputType: 'password'`. `sensitive: false` is the escape hatch.
+             * @param {Object} fieldDef - Schema field definition
+             * @returns {boolean}
+             */
+            isSensitiveField: (fieldDef) => {
+                if (!fieldDef || typeof fieldDef !== 'object') return false;
+                if (fieldDef.sensitive === false) return false;
+                if (fieldDef.sensitive === true) return true;
+                const inputType = fieldDef.inputType
+                    || (jPulse.UI.tabs && jPulse.UI.tabs._resolveInputType
+                        ? jPulse.UI.tabs._resolveInputType(fieldDef).inputType
+                        : '');
+                return inputType === 'password';
+            },
+
+            /**
+             * True when value is the sensitive-field mask (echoed read, must not be stored).
+             * @param {*} value
+             * @returns {boolean}
+             */
+            isSensitiveMask: (value) => {
+                return value === jPulse.UI.input.SENSITIVE_MASK;
+            },
+
+            /**
+             * i18n label for the sensitive-field widget. Tokens resolve at page render;
+             * the English fallback is for tests that load this file raw.
+             * @param {string} key - configured | notConfigured | reveal | revealFailed | showPassword | hidePassword
+             * @returns {string}
+             */
+            _sensitiveLabel: (key) => {
+                const labels = {
+                    configured: '{{i18n.view.ui.input.sensitive.configured}}' || 'Configured',
+                    notConfigured: '{{i18n.view.ui.input.sensitive.notConfigured}}' || 'Not configured',
+                    reveal: '{{i18n.view.ui.input.sensitive.reveal}}' || 'Reveal',
+                    revealFailed: '{{i18n.view.ui.input.sensitive.revealFailed}}' || 'Could not reveal this value',
+                    showPassword: '{{i18n.view.ui.input.sensitive.showPassword}}' || 'Show password',
+                    hidePassword: '{{i18n.view.ui.input.sensitive.hidePassword}}' || 'Hide password'
+                };
+                return labels[key] || key;
+            },
+
+            /**
+             * Show or hide Reveal / eye buttons to match the field's current state.
+             * @param {HTMLInputElement} el
+             */
+            _syncSensitiveButtons: (el) => {
+                if (!el) return;
+                const wrap = el.closest('.jp-password-field');
+                if (!wrap) return;
+                const revealBtn = wrap.querySelector('.jp-sensitive-reveal');
+                const eyeBtn = wrap.querySelector('.jp-password-toggle');
+                const isSensitive = el.dataset.jpSensitive === '1';
+                const state = el.dataset.jpSensitiveState || '';
+                if (isSensitive && revealBtn) {
+                    if (state === 'masked') revealBtn.classList.remove('jp-hidden');
+                    else revealBtn.classList.add('jp-hidden');
+                }
+                if (eyeBtn) {
+                    if (isSensitive) {
+                        const showEye = state === 'plain' || state === 'revealed' || state === 'editing';
+                        if (showEye) eyeBtn.classList.remove('jp-hidden');
+                        else eyeBtn.classList.add('jp-hidden');
+                    }
+                    if (el.type === 'text') {
+                        eyeBtn.textContent = '🙈';
+                        eyeBtn.title = jPulse.UI.input._sensitiveLabel('hidePassword');
+                    } else {
+                        eyeBtn.textContent = '👁️';
+                        eyeBtn.title = jPulse.UI.input._sensitiveLabel('showPassword');
+                    }
+                }
+            },
+
+            /**
+             * Apply a loaded or revealed value to a sensitive input without marking it dirty.
+             * Mask → empty input + "Configured"; empty → "Not configured"; anything else → value.
+             * @param {HTMLInputElement} el
+             * @param {*} value
+             * @param {{ reset?: boolean, revealed?: boolean }} [options]
+             */
+            _applySensitiveValue: (el, value, options) => {
+                if (!el) return;
+                const reset = options && options.reset;
+                const revealed = options && options.revealed;
+                const str = value !== undefined && value !== null ? String(value) : '';
+                const isMask = jPulse.UI.input.isSensitiveMask(str);
+                if (reset) {
+                    el.dataset.jpSensitiveInitial = isMask ? jPulse.UI.input.SENSITIVE_MASK : str;
+                    el.dataset.jpSensitiveTouched = '';
+                }
+                if (isMask) {
+                    el.value = '';
+                    el.placeholder = jPulse.UI.input._sensitiveLabel('configured');
+                    el.dataset.jpSensitiveState = 'masked';
+                    el.type = 'password';
+                } else if (str === '') {
+                    el.value = '';
+                    el.placeholder = jPulse.UI.input._sensitiveLabel('notConfigured');
+                    el.dataset.jpSensitiveState = revealed ? 'revealed' : 'empty';
+                    el.type = revealed ? 'text' : 'password';
+                } else {
+                    el.value = str;
+                    el.placeholder = el.dataset.jpSensitivePlaceholder || '';
+                    el.dataset.jpSensitiveState = revealed ? 'revealed' : 'plain';
+                    el.type = revealed ? 'text' : 'password';
+                }
+                jPulse.UI.input._syncSensitiveButtons(el);
+            },
+
+            /**
+             * Wire reveal + show/hide for sensitive password fields in a container.
+             * Reveal fetches one value and does not mark the field touched (not dirty).
+             * A form may set `data-jp-secret-reveal` to a URL template with `{path}`
+             * (display path, e.g. email.smtpPass) and `{field}` (last path segment).
+             * @param {Element} root - Form or container
+             * @param {{ revealUrl?: function, revealUrlTemplate?: string }} [options]
+             */
+            initSensitiveFields: (root, options) => {
+                if (!root || !root.querySelectorAll) return;
+                const opts = options || {};
+                root.querySelectorAll('[data-jp-sensitive="1"]').forEach((el) => {
+                    const state = el.dataset.jpSensitiveState || '';
+                    if (el.dataset.jpSensitiveTouched === '1' || state === 'revealed' || state === 'editing') {
+                        jPulse.UI.input._syncSensitiveButtons(el);
+                        return;
+                    }
+                    const current = el.value;
+                    const initial = el.dataset.jpSensitiveInitial;
+                    const source = (current === '' && initial) ? initial : current;
+                    jPulse.UI.input._applySensitiveValue(el, source, { reset: true });
+                });
+                if (root.dataset.jpSensitiveInited === '1') return;
+                root.dataset.jpSensitiveInited = '1';
+
+                root.addEventListener('input', (e) => {
+                    const el = e.target && e.target.closest && e.target.closest('[data-jp-sensitive="1"]');
+                    if (!el || !root.contains(el)) return;
+                    el.dataset.jpSensitiveTouched = '1';
+                    el.dataset.jpSensitiveState = 'editing';
+                    el.placeholder = el.dataset.jpSensitivePlaceholder || '';
+                    jPulse.UI.input._syncSensitiveButtons(el);
+                });
+
+                root.addEventListener('click', (e) => {
+                    const from = (e.target && e.target.closest) ? e.target : (e.target && e.target.parentElement);
+                    if (!from || !from.closest) return;
+                    const eyeBtn = from.closest('.jp-password-toggle');
+                    if (eyeBtn && root.contains(eyeBtn)) {
+                        const inputId = eyeBtn.getAttribute('data-password-for');
+                        const field = inputId ? document.getElementById(inputId) : null;
+                        if (field) {
+                            if (field.type === 'password') {
+                                field.type = 'text';
+                            } else {
+                                field.type = 'password';
+                            }
+                            jPulse.UI.input._syncSensitiveButtons(field);
+                        }
+                        return;
+                    }
+                    const revealBtn = from.closest('.jp-sensitive-reveal');
+                    if (!revealBtn || !root.contains(revealBtn)) return;
+                    const inputId = revealBtn.getAttribute('data-password-for');
+                    const el = inputId ? document.getElementById(inputId) : null;
+                    if (!el || el.dataset.jpSensitive !== '1') return;
+                    e.preventDefault();
+                    jPulse.UI.input._revealSensitiveField(el, root, opts);
+                });
+            },
+
+            /**
+             * Fetch one sensitive value into the input. Does not set touched.
+             * @param {HTMLInputElement} el
+             * @param {Element} root
+             * @param {{ revealUrl?: function, revealUrlTemplate?: string }} options
+             */
+            _revealSensitiveField: async (el, root, options) => {
+                const path = (el.dataset.path || el.getAttribute('data-path') || '').trim();
+                const field = path.split('.').pop() || path;
+                const form = (el.closest && el.closest('form')) || root;
+                const template = (options && options.revealUrlTemplate)
+                    || (form && form.getAttribute && form.getAttribute('data-jp-secret-reveal'))
+                    || '/api/1/config/_default/secret?path={path}';
+                let url;
+                if (options && typeof options.revealUrl === 'function') {
+                    url = options.revealUrl(path, el);
+                } else {
+                    url = String(template)
+                        .replace(/\{path\}/g, encodeURIComponent(path))
+                        .replace(/\{field\}/g, encodeURIComponent(field));
+                }
+                if (!url) return;
+                const wrap = el.closest('.jp-password-field');
+                const revealBtn = wrap && wrap.querySelector('.jp-sensitive-reveal');
+                if (revealBtn) {
+                    revealBtn.disabled = true;
+                    revealBtn.classList.add('jp-btn-loading');
+                }
+                try {
+                    const result = await jPulse.api.get(url);
+                    if (result && result.success && result.data) {
+                        const value = result.data.value !== undefined && result.data.value !== null
+                            ? String(result.data.value)
+                            : '';
+                        jPulse.UI.input._applySensitiveValue(el, value, { revealed: true });
+                    } else {
+                        const message = (result && result.error) || jPulse.UI.input._sensitiveLabel('revealFailed');
+                        if (jPulse.UI.toast && jPulse.UI.toast.error) jPulse.UI.toast.error(message);
+                    }
+                } catch (err) {
+                    if (jPulse.UI.toast && jPulse.UI.toast.error) {
+                        jPulse.UI.toast.error(jPulse.UI.input._sensitiveLabel('revealFailed'));
+                    }
+                } finally {
+                    if (revealBtn) {
+                        revealBtn.disabled = false;
+                        revealBtn.classList.remove('jp-btn-loading');
+                    }
+                }
             },
 
             /**
@@ -1414,6 +1645,9 @@ window.jPulse = {
                         ? jPulse.UI.input.tagInput.formatValue(value)
                         : (value !== undefined && value !== null ? String(value) : '');
                     el.value = displayValue;
+                    if (el.dataset.jpSensitive === '1') {
+                        jPulse.UI.input._applySensitiveValue(el, displayValue, { reset: true });
+                    }
                     if (el.hasAttribute('data-slider') && typeof el._jpSliderSetValue === 'function') {
                         el._jpSliderSetValue(displayValue);
                     }
@@ -1547,6 +1781,16 @@ window.jPulse = {
                 const fields = jPulse.UI.input._walkSchemaFields(schema.data, '', 'data');
                 const result = {};
                 for (const { path, fieldDef } of fields) {
+                    if (jPulse.UI.input.isSensitiveField(fieldDef)) {
+                        const safe = path.replace(/"/g, '\\"');
+                        const el = form.querySelector('[data-path="' + safe + '"]');
+                        if (el && el.dataset.jpSensitive === '1' && el.dataset.jpSensitiveTouched !== '1') {
+                            const initial = el.dataset.jpSensitiveInitial || '';
+                            if (jPulse.UI.input.isSensitiveMask(initial) || initial === '') {
+                                continue;
+                            }
+                        }
+                    }
                     let value = jPulse.UI.input.getByPath(raw, path);
                     if (fieldDef.type === 'number') {
                         const n = parseInt(value, 10);
@@ -4804,14 +5048,46 @@ window.jPulse = {
                         const callbackAttr = (fieldDef.callback && typeof fieldDef.callback === 'string') ? ' data-callback="' + escape(fieldDef.callback) + '"' : '';
                         parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-form-group" style="margin:0;"><button type="button" class="jp-btn jp-btn-secondary"' + titleAttr + actionAttr + callbackAttr + '>' + escapedLabel + '</button></div>' + helpHtml + '</div>');
                     } else {
-                        const escapedValue = value !== undefined && value !== null ? escape(String(value)) : '';
-                        const htmlInputType = (inputType === 'password' || inputType === 'email' || inputType === 'url' || inputType === 'tel') ? inputType : 'text';
+                        const rawValue = value !== undefined && value !== null ? String(value) : '';
+                        const isSensitive = jPulse.UI.input.isSensitiveField(fieldDef)
+                            || (fieldDef.sensitive !== false && inputType === 'password');
+                        const htmlInputType = (isSensitive || inputType === 'password' || inputType === 'email' || inputType === 'url' || inputType === 'tel')
+                            ? (isSensitive ? 'password' : inputType)
+                            : 'text';
                         const typeAttr = ' type="' + htmlInputType + '"';
                         const readonlyAttr = fieldDef.readonly ? ' readonly' : '';
-                        const pwdWrapper = inputType === 'password'
-                            ? '<div class="jp-password-field"><input' + typeAttr + ' id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + requiredAttr + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' value="' + escapedValue + '" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true"' + readonlyAttr + '><button type="button" class="jp-password-toggle" data-password-for="' + inputId + '" title="Show/hide password">👁️</button></div>'
-                            : '<input' + typeAttr + ' id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + requiredAttr + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' value="' + escapedValue + '"' + readonlyAttr + '>';
-                        parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' + pwdWrapper + helpHtml + '</div></div>');
+                        if (isSensitive) {
+                            const isMask = jPulse.UI.input.isSensitiveMask(rawValue);
+                            const displayValue = isMask ? '' : escape(rawValue);
+                            const initialValue = isMask ? jPulse.UI.input.SENSITIVE_MASK : escape(rawValue);
+                            const state = isMask ? 'masked' : (rawValue === '' ? 'empty' : 'plain');
+                            const statusPlaceholder = isMask
+                                ? escape(jPulse.UI.input._sensitiveLabel('configured'))
+                                : (rawValue === ''
+                                    ? escape(jPulse.UI.input._sensitiveLabel('notConfigured'))
+                                    : placeholder);
+                            const fieldRequiredAttr = (isMask || rawValue !== '') ? '' : requiredAttr;
+                            const revealHidden = state === 'masked' ? '' : ' jp-hidden';
+                            const eyeHidden = state === 'plain' ? '' : ' jp-hidden';
+                            const revealLabel = escape(jPulse.UI.input._sensitiveLabel('reveal'));
+                            const showLabel = escape(jPulse.UI.input._sensitiveLabel('showPassword'));
+                            const pwdWrapper = '<div class="jp-password-field">' +
+                                '<input' + typeAttr + ' id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + fieldRequiredAttr +
+                                (statusPlaceholder ? ' placeholder="' + statusPlaceholder + '"' : '') +
+                                ' value="' + displayValue + '" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true"' + readonlyAttr +
+                                ' data-jp-sensitive="1" data-jp-sensitive-initial="' + initialValue + '" data-jp-sensitive-state="' + state + '"' +
+                                (placeholder ? ' data-jp-sensitive-placeholder="' + placeholder + '"' : '') + '>' +
+                                '<button type="button" class="jp-btn jp-btn-sm jp-btn-secondary jp-sensitive-reveal' + revealHidden + '" data-password-for="' + inputId + '">' + revealLabel + '</button>' +
+                                '<button type="button" class="jp-password-toggle' + eyeHidden + '" data-password-for="' + inputId + '" title="' + showLabel + '">👁️</button>' +
+                                '</div>';
+                            parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' + pwdWrapper + helpHtml + '</div></div>');
+                        } else {
+                            const escapedValue = escape(rawValue);
+                            const pwdWrapper = inputType === 'password'
+                                ? '<div class="jp-password-field"><input' + typeAttr + ' id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + requiredAttr + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' value="' + escapedValue + '" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true"' + readonlyAttr + '><button type="button" class="jp-password-toggle" data-password-for="' + inputId + '" title="Show/hide password">👁️</button></div>'
+                                : '<input' + typeAttr + ' id="' + inputId + '" name="' + name + '" class="jp-form-input jp-edit-field" ' + dataPathAttr + requiredAttr + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' value="' + escapedValue + '"' + readonlyAttr + '>';
+                            parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-form-group"><label for="' + inputId + '" class="jp-form-label">' + escapedLabel + '</label>' + pwdWrapper + helpHtml + '</div></div>');
+                        }
                     }
                 }
                 return parts.join('');

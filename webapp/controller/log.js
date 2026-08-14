@@ -3,13 +3,13 @@
  * @tagline         Log Controller for jPulse Framework WebApp
  * @description     This is the log controller for the jPulse Framework WebApp
  * @file            webapp/controller/log.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 3.15, Grok 4.6
  */
 
 import LogModel from '../model/log.js';
@@ -431,7 +431,7 @@ class LogController {
      * Log document changes to database
      * @param {object} req - Express request object
      * @param {string} docType - Document type ('config', 'user', etc.)
-     * @param {string} action - Action performed ('create', 'update', 'delete')
+     * @param {string} action - Action performed ('create', 'update', 'delete', 'read')
      * @param {*} docId - Document ID
      * @param {object} oldDoc - Original document (for updates/deletes)
      * @param {object} newDoc - New document (for creates/updates)
@@ -467,6 +467,29 @@ class LogController {
             return logEntry;
         } catch (error) {
             LogController.logError(req, 'log.change', `error: Failed to log change: ${error.message}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Log that a secret field was revealed. Records who asked and which path — never the value.
+     * @param {object} req - Express request object
+     * @param {string} docType - Document type ('config', 'plugin', …)
+     * @param {*} docId - Document ID
+     * @param {string} fieldPath - Display path (e.g. 'email.smtpPass')
+     * @returns {Promise<object>} Created log entry
+     */
+    static async logReveal(req, docType, docId, fieldPath) {
+        try {
+            const context = CommonUtils.getLogContext(req);
+            const createdBy = context.username;
+            const logEntry = await LogModel.logReveal(docType, docId, fieldPath, createdBy);
+            this.entriesCounter.increment();
+            await LogController.refreshDocTypesCache();
+            LogController.logInfo(req, 'log.reveal', `${docType} read: ${docId} (${fieldPath})`);
+            return logEntry;
+        } catch (error) {
+            LogController.logError(req, 'log.reveal', `error: Failed to log reveal: ${error.message}`);
             throw error;
         }
     }

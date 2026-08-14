@@ -3,10 +3,10 @@
  * @tagline         Hello Plugin Controller
  * @description     Simple API controller demonstrating plugin structure
  * @file            plugins/hello-world/webapp/controller/helloPlugin.js
- * @version         1.7.13
+ * @version         1.7.14
  * @author          jPulse Team, https://jpulse.net
  * @license         BSL 1.1
- * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.15, Grok 4.6
  */
 
 import HelloPluginModel from '../model/helloPlugin.js';
@@ -98,13 +98,19 @@ class HelloPluginController {
         try {
             LogController.logRequest(req, 'helloPlugin.api', '');
 
-            // Get plugin configuration
+            // Get plugin configuration. Never send a raw secret to the client —
+            // maskSensitive() is the same contract as GET /api/1/plugin/:name/config.
             const pluginConfig = await PluginModel.getByName('hello-world');
-
-            const config = pluginConfig?.config || {
+            const rawConfig = pluginConfig?.config || {
                 message: 'Hello from the plugin system!',
                 enabled: true
             };
+            const schema = global.PluginManager?.getPlugin?.('hello-world')?.metadata?.config?.schema || [];
+            const config = PluginModel.maskSensitive({ ...rawConfig }, schema);
+            if (typeof config.demoApiKey === 'string' && config.demoApiKey !== ''
+                && !PluginModel.isSensitiveMask(config.demoApiKey)) {
+                config.demoApiKey = PluginModel.SENSITIVE_MASK;
+            }
 
             // W-147: Get site config (Hello tab) for demo – use isAdmin so non-admins get sanitized config (educational pattern)
             let helloWorldConfig = { message: 'Hello from the plugin!', showBadge: true };
@@ -174,6 +180,45 @@ class HelloPluginController {
         } catch (error) {
             LogController.logError(req, 'helloPlugin.stats', `error: ${error.message}`);
             return global.CommonUtils.sendError(req, res, 500, 'Failed to retrieve hello plugin statistics', 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
+     * Verify the demo API key without returning it.
+     * GET /api/1/helloPlugin/verify-demo-api-key
+     * Companion to the plugin.json password field: the browser never holds the secret.
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async apiVerifyDemoApiKey(req, res) {
+        const startTime = Date.now();
+        try {
+            LogController.logRequest(req, 'helloPlugin.verifyDemoApiKey', '');
+            if (!AuthController.isAdmin(req)) {
+                LogController.logError(req, 'helloPlugin.verifyDemoApiKey', 'error: admin role required');
+                return global.CommonUtils.sendError(req, res, 403, 'Administrator access required', 'FORBIDDEN');
+            }
+            const value = await PluginModel.getSecret('hello-world', 'demoApiKey');
+            const configured = typeof value === 'string' && value !== '';
+            const valid = configured && value.length >= 8 && !PluginModel.isSensitiveMask(value);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'helloPlugin.verifyDemoApiKey',
+                `success: configured=${configured} valid=${valid} completed in ${elapsed}ms`);
+            let message = 'Demo API key is not configured.';
+            if (configured && valid) {
+                message = 'Demo API key is configured and meets the demo check (8+ characters).';
+            } else if (configured) {
+                message = 'Demo API key is set but shorter than 8 characters.';
+            }
+            res.json({
+                success: true,
+                data: { configured, valid },
+                message,
+                elapsed
+            });
+        } catch (error) {
+            LogController.logError(req, 'helloPlugin.verifyDemoApiKey', `error: ${error.message}`);
+            return global.CommonUtils.sendError(req, res, 500, 'Failed to verify demo API key', 'INTERNAL_ERROR', error.message);
         }
     }
 

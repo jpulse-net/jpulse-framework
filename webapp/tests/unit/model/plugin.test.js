@@ -3,15 +3,17 @@
  * @tagline         Unit tests for W-045 PluginModel
  * @description     Tests plugin configuration validation
  * @file            webapp/tests/unit/model/plugin.test.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           90%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           90%, Cursor 3.15, Grok 4.6
  */
 
+import { readFileSync } from 'fs';
+import path from 'path';
 import { describe, test, expect } from '@jest/globals';
 
 // Mock database before importing PluginModel
@@ -194,6 +196,86 @@ describe('PluginModel (W-045)', () => {
 
             const result = PluginModel.validateConfig('test-plugin', { links: 'not-a-number' }, schema);
             expect(result.valid).toBe(true);
+        });
+    });
+
+    describe('sensitive fields (W-210)', () => {
+        const schema = [
+            { id: 'apiKey', label: 'API Key', type: 'password' },
+            { id: 'token', label: 'Token', type: 'text', sensitive: true },
+            { id: 'legacy', label: 'Legacy', type: 'password', sensitive: false },
+            { id: 'timeout', label: 'Timeout', type: 'number' }
+        ];
+
+        test('isSensitiveField honors password, explicit flag, and the false escape hatch', () => {
+            expect(PluginModel.isSensitiveField({ type: 'password' })).toBe(true);
+            expect(PluginModel.isSensitiveField({ type: 'text', sensitive: true })).toBe(true);
+            expect(PluginModel.isSensitiveField({ type: 'password', sensitive: false })).toBe(false);
+            expect(PluginModel.isSensitiveField({ type: 'text' })).toBe(false);
+        });
+
+        test('getSensitiveFieldIds returns password and sensitive ids only', () => {
+            expect(PluginModel.getSensitiveFieldIds(schema)).toEqual(['apiKey', 'token']);
+            expect(PluginModel.getSensitiveFieldIds(null)).toEqual([]);
+        });
+
+        test('maskSensitive replaces set secrets and leaves empty and non-secrets', () => {
+            const masked = PluginModel.maskSensitive({
+                apiKey: 'plain-secret',
+                token: '',
+                legacy: 'visible',
+                timeout: 30
+            }, schema);
+            expect(masked.apiKey).toBe(PluginModel.SENSITIVE_MASK);
+            expect(masked.token).toBe('');
+            expect(masked.legacy).toBe('visible');
+            expect(masked.timeout).toBe(30);
+        });
+
+        test('applySensitiveWrites keeps absent and mask, stores a new value, and clears empty', () => {
+            const oldValues = { apiKey: 'stored', token: 'old-token' };
+
+            const keep = PluginModel.applySensitiveWrites({ timeout: 5 }, oldValues, schema);
+            expect(keep.apiKey).toBe('stored');
+            expect(keep.token).toBe('old-token');
+            expect(keep.timeout).toBe(5);
+
+            const echo = PluginModel.applySensitiveWrites(
+                { apiKey: PluginModel.SENSITIVE_MASK, token: 'new-token' },
+                oldValues,
+                schema
+            );
+            expect(echo.apiKey).toBe('stored');
+            expect(echo.token).toBe('new-token');
+
+            const clear = PluginModel.applySensitiveWrites({ apiKey: '' }, oldValues, schema);
+            expect(clear.apiKey).toBe('');
+        });
+
+        test('getSecret returns the stored value or empty when unset', async () => {
+            const spy = jest.spyOn(PluginModel, 'getByName');
+            spy.mockResolvedValueOnce({ config: { apiKey: 'plain-secret' } });
+            expect(await PluginModel.getSecret('test-plugin', 'apiKey')).toBe('plain-secret');
+            spy.mockResolvedValueOnce({ config: {} });
+            expect(await PluginModel.getSecret('test-plugin', 'apiKey')).toBe('');
+            spy.mockResolvedValueOnce(null);
+            expect(await PluginModel.getSecret('test-plugin', 'apiKey')).toBe('');
+            spy.mockRestore();
+        });
+
+        test('hello-world plugin.json marks demoApiKey as a password secret', () => {
+            const pluginJson = JSON.parse(readFileSync(
+                path.join(process.cwd(), 'plugins/hello-world/plugin.json'),
+                'utf8'
+            ));
+            const schema = pluginJson.config.schema;
+            expect(PluginModel.getSensitiveFieldIds(schema)).toEqual(['demoApiKey']);
+            const masked = PluginModel.maskSensitive(
+                { demoApiKey: 'teach-me-secret', message: 'hi' },
+                schema
+            );
+            expect(masked.demoApiKey).toBe(PluginModel.SENSITIVE_MASK);
+            expect(masked.message).toBe('hi');
         });
     });
 });

@@ -3,17 +3,18 @@
  * @tagline         Unit tests for log model and controller basic functionality
  * @description     This file contains unit tests for the log model and controller
  * @file            webapp/tests/unit/log/log-basic.test.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.15, Grok 4.6
  */
 
 import { describe, test, expect, beforeEach, afterEach, beforeAll, jest } from '@jest/globals';
 import LogModel from '../../../model/log.js';
+import ConfigModel from '../../../model/config.js';
 import CommonUtils from '../../../utils/common.js';
 import LogController from '../../../controller/log.js';
 import TestUtils from '../../helpers/test-utils.js';
@@ -105,7 +106,20 @@ describe('Log Model Basic Functionality', () => {
 
             const result = LogModel.validate(invalidDoc);
             expect(result.success).toBe(false);
-            expect(result.errors).toContain('data.action must be one of: create, update, delete');
+            expect(result.errors).toContain('data.action must be one of: create, update, delete, read');
+        });
+
+        test('should accept read action', () => {
+            const validDoc = {
+                data: {
+                    docId: 'global',
+                    docType: 'config',
+                    action: 'read',
+                    changes: [['email.smtpPass']]
+                }
+            };
+            const result = LogModel.validate(validDoc);
+            expect(result.success).toBe(true);
         });
     });
 
@@ -259,6 +273,80 @@ describe('Log Model Basic Functionality', () => {
             expect(logEntryStr).not.toContain('new-secret');
             expect(logEntryStr).not.toContain('old-license');
             expect(logEntryStr).not.toContain('new-license');
+            const smtpChange = insertedDoc.data.changes.find((c) =>
+                Array.isArray(c) && String(c[0]).endsWith('smtpPass'));
+            expect(smtpChange).toBeDefined();
+            expect(smtpChange[1]).toBe(ConfigModel.SENSITIVE_MASK);
+            expect(smtpChange[2]).toBe(ConfigModel.SENSITIVE_MASK);
+            const emailChange = insertedDoc.data.changes.find((c) =>
+                Array.isArray(c) && String(c[0]).endsWith('adminEmail'));
+            expect(emailChange).toEqual([
+                'data.email.adminEmail',
+                'old@example.com',
+                'new@example.com'
+            ]);
+        });
+    });
+
+    describe('logChange plugin sanitization', () => {
+        test('should not store raw plugin secrets in change log', async () => {
+            const rawSecret = 'plugin-plain-secret';
+            const previousPluginManager = global.PluginManager;
+            global.PluginManager = {
+                getPlugin: jest.fn().mockReturnValue({
+                    metadata: {
+                        config: {
+                            schema: [{ id: 'apiKey', label: 'API Key', type: 'password' }]
+                        }
+                    }
+                })
+            };
+
+            let insertedDoc;
+            mockCollection.insertOne = jest.fn().mockImplementation((doc) => {
+                insertedDoc = doc;
+                return Promise.resolve({ insertedId: 'log-id' });
+            });
+
+            try {
+                await LogModel.logChange(
+                    'plugin',
+                    'update',
+                    'test-plugin',
+                    { apiKey: rawSecret, timeout: 10 },
+                    { apiKey: 'new-plugin-secret', timeout: 20 },
+                    'testuser'
+                );
+                const logEntryStr = JSON.stringify(insertedDoc);
+                expect(logEntryStr).not.toContain(rawSecret);
+                expect(logEntryStr).not.toContain('new-plugin-secret');
+                expect(logEntryStr).toContain('timeout');
+                const keyChange = insertedDoc.data.changes.find((c) =>
+                    Array.isArray(c) && c[0] === 'apiKey');
+                expect(keyChange).toEqual(['apiKey', '********', '********']);
+            } finally {
+                global.PluginManager = previousPluginManager;
+            }
+        });
+    });
+
+    describe('logReveal (W-210)', () => {
+        test('stores the field path and never the secret value', async () => {
+            const secret = 'plaintext-smtp-secret';
+            let insertedDoc;
+            mockCollection.insertOne = jest.fn().mockImplementation((doc) => {
+                insertedDoc = doc;
+                return Promise.resolve({ insertedId: 'log-id' });
+            });
+
+            await LogModel.logReveal('config', 'global', 'email.smtpPass', 'testuser');
+
+            expect(insertedDoc.data.action).toBe('read');
+            expect(insertedDoc.data.docType).toBe('config');
+            expect(insertedDoc.data.docId).toBe('global');
+            expect(insertedDoc.data.changes).toEqual([['email.smtpPass']]);
+            expect(insertedDoc.createdBy).toBe('testuser');
+            expect(JSON.stringify(insertedDoc)).not.toContain(secret);
         });
     });
 });

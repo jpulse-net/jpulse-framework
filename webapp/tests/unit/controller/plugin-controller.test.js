@@ -3,13 +3,13 @@
  * @tagline         Unit tests for W-045 PluginController
  * @description     Tests plugin API endpoints including new public getInfo()
  * @file            webapp/tests/unit/controller/plugin-controller.test.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           90%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           90%, Cursor 3.15, Grok 4.6
  */
 
 import { describe, test, expect, beforeEach, beforeAll, jest } from '@jest/globals';
@@ -58,7 +58,12 @@ describe('PluginController (W-045)', () => {
                     'controller.plugin.enable.failed': `Failed to enable plugin: ${context.message}`,
                     'controller.plugin.disable.success': `Plugin ${context.name} disabled successfully. Server restart required.`,
                     'controller.plugin.updateConfig.success': 'Plugin configuration updated successfully',
-                    'controller.plugin.updateConfig.validationFailed': `Configuration validation failed: ${context.errors}`
+                    'controller.plugin.updateConfig.validationFailed': `Configuration validation failed: ${context.errors}`,
+                    'controller.plugin.getSecret.notFound': `Plugin not found: ${context.name}`,
+                    'controller.plugin.getSecret.fieldRequired': 'Secret field name is required',
+                    'controller.plugin.getSecret.fieldInvalid': 'That field is not a secret',
+                    'controller.plugin.getSecret.success': `Secret field ${context.field} retrieved`,
+                    'controller.plugin.getSecret.failed': 'Internal server error while retrieving secret field'
                 };
                 return translations[key] || key;
             })
@@ -75,6 +80,7 @@ describe('PluginController (W-045)', () => {
         mockReq = {
             params: {},
             body: {},
+            query: {},
             session: {
                 user: { id: 'test-user', username: 'testuser' }
             }
@@ -84,7 +90,8 @@ describe('PluginController (W-045)', () => {
         mockRes = {
             status: jest.fn().mockReturnThis(),
             json: jest.fn(),
-            send: jest.fn()
+            send: jest.fn(),
+            set: jest.fn()
         };
 
         // Set up mock implementations
@@ -96,11 +103,16 @@ describe('PluginController (W-045)', () => {
         PluginModel.getByName.mockResolvedValue(null);
         PluginModel.validateConfig.mockReturnValue({ valid: true, errors: [] });
         PluginModel.upsert.mockResolvedValue({ modified: true });
+        PluginModel.applySensitiveWrites.mockImplementation((submitted) => submitted);
+        PluginModel.maskSensitive.mockImplementation((values) => values);
+        PluginModel.getSensitiveFieldIds.mockReturnValue([]);
+        PluginModel.getSecret.mockResolvedValue('');
 
         LogController.logRequest.mockImplementation(() => {});
         LogController.logInfo.mockImplementation(() => {});
         LogController.logError.mockImplementation(() => {});
         LogController.logChange.mockImplementation(() => {});
+        LogController.logReveal.mockResolvedValue({ data: { action: 'read' } });
 
         CommonUtils.sendError.mockImplementation(() => {});
 
@@ -526,6 +538,132 @@ describe('PluginController (W-045)', () => {
                     expect.objectContaining({ configData: {}, oldConfig: null })
                 );
             });
+        });
+
+        test('applies absent/mask/clear before validate and the before-save hook', async () => {
+            const schema = [
+                { id: 'apiKey', label: 'API Key', type: 'password' },
+                { id: 'timeout', label: 'Timeout', type: 'number' }
+            ];
+            const mockPlugin = { name: 'test-plugin', metadata: { config: { schema } } };
+            const submitted = { timeout: 30 };
+            const oldConfigDoc = { config: { apiKey: 'stored-secret', timeout: 10 } };
+
+            PluginManager.getPlugin.mockReturnValue(mockPlugin);
+            PluginModel.getByName.mockResolvedValue(oldConfigDoc);
+            PluginModel.applySensitiveWrites.mockImplementation((data, oldValues) => {
+                data.apiKey = oldValues.apiKey;
+                return data;
+            });
+
+            mockReq.params.name = 'test-plugin';
+            mockReq.body = { config: submitted };
+
+            await PluginController.updateConfig(mockReq, mockRes);
+
+            expect(PluginModel.applySensitiveWrites).toHaveBeenCalledWith(
+                submitted,
+                oldConfigDoc.config,
+                schema
+            );
+            expect(PluginModel.validateConfig).toHaveBeenCalledWith(
+                'test-plugin',
+                expect.objectContaining({ apiKey: 'stored-secret', timeout: 30 }),
+                schema
+            );
+            expect(HookManager.executeForPlugin).toHaveBeenCalledWith(
+                'onPluginConfigBeforeSave',
+                'test-plugin',
+                expect.objectContaining({
+                    configData: expect.objectContaining({ apiKey: 'stored-secret' })
+                })
+            );
+        });
+    });
+
+    describe('getConfig', () => {
+        test('masks sensitive values in the response', async () => {
+            const schema = [{ id: 'apiKey', label: 'API Key', type: 'password' }];
+            const mockPlugin = { name: 'test-plugin', metadata: { config: { schema } } };
+            PluginManager.getPlugin.mockReturnValue(mockPlugin);
+            PluginModel.getByName.mockResolvedValue({ config: { apiKey: 'plain-secret' } });
+            PluginModel.maskSensitive.mockReturnValue({ apiKey: '********' });
+
+            mockReq.params.name = 'test-plugin';
+            await PluginController.getConfig(mockReq, mockRes);
+
+            expect(PluginModel.maskSensitive).toHaveBeenCalledWith({ apiKey: 'plain-secret' }, schema);
+            expect(mockRes.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    success: true,
+                    data: expect.objectContaining({
+                        values: { apiKey: '********' }
+                    })
+                })
+            );
+        });
+    });
+
+    describe('getSecret', () => {
+        const mockPlugin = {
+            name: 'test-plugin',
+            metadata: {
+                config: {
+                    schema: [{ id: 'apiKey', label: 'API Key', type: 'password' }]
+                }
+            }
+        };
+
+        test('rejects a missing field', async () => {
+            PluginManager.getPlugin.mockReturnValue(mockPlugin);
+            mockReq.params.name = 'test-plugin';
+            mockReq.query = {};
+
+            await PluginController.getSecret(mockReq, mockRes);
+
+            expect(CommonUtils.sendError).toHaveBeenCalledWith(
+                mockReq, mockRes, 400, expect.any(String), 'MISSING_FIELD'
+            );
+            expect(PluginModel.getSecret).not.toHaveBeenCalled();
+            expect(LogController.logReveal).not.toHaveBeenCalled();
+        });
+
+        test('rejects a non-sensitive field', async () => {
+            PluginManager.getPlugin.mockReturnValue(mockPlugin);
+            PluginModel.getSensitiveFieldIds.mockReturnValue(['apiKey']);
+            mockReq.params.name = 'test-plugin';
+            mockReq.query = { field: 'timeout' };
+
+            await PluginController.getSecret(mockReq, mockRes);
+
+            expect(CommonUtils.sendError).toHaveBeenCalledWith(
+                mockReq, mockRes, 400, expect.any(String), 'INVALID_SECRET_FIELD'
+            );
+            expect(PluginModel.getSecret).not.toHaveBeenCalled();
+            expect(LogController.logReveal).not.toHaveBeenCalled();
+        });
+
+        test('returns the stored value and audits the field id only', async () => {
+            PluginManager.getPlugin.mockReturnValue(mockPlugin);
+            PluginModel.getSensitiveFieldIds.mockReturnValue(['apiKey']);
+            PluginModel.getSecret.mockResolvedValue('plain-secret');
+            mockReq.params.name = 'test-plugin';
+            mockReq.query = { field: 'general.apiKey' };
+
+            await PluginController.getSecret(mockReq, mockRes);
+
+            expect(PluginModel.getSecret).toHaveBeenCalledWith('test-plugin', 'apiKey');
+            expect(LogController.logReveal).toHaveBeenCalledWith(mockReq, 'plugin', 'test-plugin', 'apiKey');
+            expect(mockRes.set).toHaveBeenCalledWith('Cache-Control', 'no-store');
+            expect(mockRes.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    success: true,
+                    data: { field: 'apiKey', value: 'plain-secret' }
+                })
+            );
+            const logged = JSON.stringify(LogController.logRequest.mock.calls)
+                + JSON.stringify(LogController.logInfo.mock.calls);
+            expect(logged).not.toContain('plain-secret');
         });
     });
 });

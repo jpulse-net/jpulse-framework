@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.7.13
+# jPulse Docs / jPulse.UI Widget Reference v1.7.14
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -771,6 +771,8 @@ Calls `getAllValues(form)`, then coerces by `schema.type` (number, boolean) and 
 
 **Returns:** `Object` - `{ data: Object }` suitable for PUT /api/1/config
 
+Untouched sensitive fields (mask or empty, not edited after load) are omitted so a save cannot overwrite a stored secret with the mask.
+
 **Example:** `const payload = jPulse.UI.input.getFormData(configForm, configSchema); await jPulse.api.put('/api/1/config', payload);`
 
 **When to use:** Use **setFormData/getFormData** when you have a complete schema and want one-line set/get with defaults and coercion. Use **setAllValues/getAllValues** when you have no schema or apply defaults yourself.
@@ -795,7 +797,7 @@ These are independent. `{ type: 'string', inputType: 'jpCombo' }` says "the valu
 | `inputType` | Rendering | Notes |
 |-------------|-----------|-------|
 | `text` | `<input type="text">` | Default when nothing else matches |
-| `password` | `<input type="password">` + show/hide eye button | |
+| `password` | Sensitive widget (configured / not configured + Reveal), unless `sensitive: false` | See [Sensitive password fields](#sensitive-password-fields) |
 | `email` / `url` / `tel` | `<input type="…">` | Browser-native validation |
 | `textarea` | `<textarea>` | Honors `rows` (default 3); always full-width |
 | `number` | `<input type="number">` | Use `type: 'number'` for value coercion |
@@ -812,6 +814,19 @@ These are independent. `{ type: 'string', inputType: 'jpCombo' }` says "the valu
 | `help` | `<div class="jp-schema-help">` | Inline info (not toast `.jp-alert`); honors `content` (sanitized HTML); not a field |
 | `separator` | `<div class="jp-divider">` | Honors `label`; not a field |
 | `button` | `<button class="jp-btn jp-btn-secondary">` | Honors `action`, `callback`, `title` |
+
+### Sensitive password fields
+
+`inputType: 'password'` implies `sensitive: true` (override with `sensitive: false` for a plain password input with only the show/hide eye).
+
+When the field is sensitive:
+
+- API value `********` → empty input, placeholder **Configured**, **Reveal** visible, eye hidden
+- API value `""` → placeholder **Not configured**, no Reveal
+- **Reveal** calls a single-field GET (it does not unmask a value already in the DOM). Set the URL on the form: `data-jp-secret-reveal="/api/1/config/_default/secret?path={path}"` (config) or `data-jp-secret-reveal="/api/1/plugin/${name}/config/secret?field={field}"` (plugin). `{path}` and `{field}` are substituted from the field.
+- Reveal does not mark the field dirty. A user edit does. `getFormData()` omits an untouched sensitive field so Save cannot write the mask back.
+
+`jPulse.UI.input.initAll()` calls `initSensitiveFields`. `jPulse.UI.input.SENSITIVE_MASK` is `'********'` and must match the server constant.
 
 ### Flat widget tuning keys (top-level on the field def)
 

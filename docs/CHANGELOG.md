@@ -1,6 +1,47 @@
-# jPulse Docs / Version History v1.7.13
+# jPulse Docs / Version History v1.7.14
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.14, W-210, 2026-08-14
+
+**Commit:** `W-210, v1.7.14: config: sensitive fields, masked reads with audited reveal`
+
+**Objective**: Keep secrets out of every bulk config and plugin read — for admins too — while admins keep deliberate read-back through one audited single-field endpoint, with the same contract on plugin config where third-party API keys live.
+
+**Summary**: `sensitive: true` (implied by `inputType: 'password'` / plugin `type: 'password'`; escape hatch `sensitive: false`) drives masking. Bulk reads return `""` when unset and `********` when set. Writes treat an omitted field or a submitted mask as unchanged and `""` as clear. `GET /api/1/config/:id/secret?path=…` and `GET /api/1/plugin/:name/config/secret?field=…` are admin-only, path-validated, and write a change-log `read` (path only). Request bodies and change-log diffs are sanitized; updates diff raw documents then mask the tuples so a password change is recorded as `********` ==> `********`. Test Email resolves the stored `smtpPass` when the form posts the mask (`apiSend` calls the helper on the class — Express invokes the handler unbound). Hello-world ships `demoApiKey` plus a Verify button that uses `PluginModel.getSecret` and never returns the value.
+
+**Behavior**:
+- Admin `GET /api/1/config` (and create/update/upsert echoes) no longer return `smtpPass` or `manifest.license.key` in clear
+- Plugin `GET` config and hello-world `GET /api/1/helloPlugin` mask `type: "password"` fields
+- `siteConfig` strips schema-derived sensitive paths in both auth states
+
+**Key features**:
+- One schema flag for secrets; mask is the presence marker (`""` vs `********`)
+- Audited reveal (`read` action) for config and plugin; Logs GUI badge and Angezeigt / Revealed copy
+- Write contract: omit / mask = keep, `""` = clear
+- Test Email and plugin Verify read stored secrets server-side
+- hello-world teaching `demoApiKey`
+
+**Files changed**:
+- `webapp/model/config.js`, `webapp/controller/config.js`, `webapp/controller/handlebar.js`, `webapp/controller/email.js`, `webapp/routes.js`
+- `webapp/model/log.js`, `webapp/controller/log.js`, `webapp/view/admin/logs.shtml`
+- `webapp/model/plugin.js`, `webapp/controller/plugin.js`
+- `webapp/view/jpulse-common.js`, `webapp/view/jpulse-common.css`, `webapp/view/admin/config.shtml`, `webapp/view/admin/plugin-config.shtml`
+- `webapp/translations/en.conf`, `de.conf`
+- `plugins/hello-world/plugin.json`, `helloPlugin.js`, `jpulse-common.js`, READMEs, `hello-plugin/index.shtml` schema snippet
+- Tests: `config-masked-reads.test.js`, `config-secret.test.js`, `jpulse-ui-input-sensitive.test.js` (new); updates to config-model/manifest/basic, log-basic, handlebar-context-filter, plugin-controller, plugin, email-controller
+- Docs: `docs/api-reference.md`, `docs/security-and-auth.md`, `docs/jpulse-ui-reference.md`, `docs/plugins/creating-plugins.md`, `docs/plugins/plugin-api-reference.md`, `docs/site-customization.md`, `docs/site-administration.md`
+- `docs/dev/work-items.md`: W-210 features/deliverables (status left for the release operator)
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.7.14 / W-210
+- `docs/CHANGELOG.md`: this section
+
+Verified via email-controller, log-basic, config-masked-reads, config-secret, and related unit suites, plus live manual testing: Test Email after mask, reveal/untouched/clear for `smtpPass` / `demoApiKey` / license key, admin GET mask, app-log sanitization, Logs GUI `read` + mask-to-mask and mask-to-empty, hello-world Verify and `GET /api/1/helloPlugin`.
+
+**Release**:
+- Work Item: W-210
+- Version: v1.7.14
+- Release Date: 2026-08-14
 
 ________________________________________________
 ## v1.7.13, W-209, 2026-08-13

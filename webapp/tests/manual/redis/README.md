@@ -1,4 +1,4 @@
-# jPulse Framework / WebApp / Tests / Manual / Redis / Redis Tests v1.7.13
+# jPulse Framework / WebApp / Tests / Manual / Redis / Redis Tests v1.7.14
 
 ## Overview
 

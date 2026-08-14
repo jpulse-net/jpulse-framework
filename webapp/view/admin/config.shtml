@@ -4,13 +4,13 @@
  * @tagline         Site configuration management interface
  * @description     Edit site configuration, for administrators
  * @file            webapp/view/admin/config.shtml
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 3.15, Grok 4.6
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -69,7 +69,7 @@
                 <span class="jp-subtitle">{{i18n.view.admin.config.subtitle}}</span>
             </div>
 
-            <form id="configForm" class="local-config-form" data-current-user-roles="{{#each user.roles}}{{this}}{{#unless @last}},{{/unless}}{{/each}}">
+            <form id="configForm" class="local-config-form" data-current-user-roles="{{#each user.roles}}{{this}}{{#unless @last}},{{/unless}}{{/each}}" data-jp-secret-reveal="/api/1/config/_default/secret?path={path}">
                 <!-- Tab Navigation and Panels (W-148 Phase 4: unified schema-driven) -->
                 <div id="config-tabs" class="jp-tabs"></div>
                 <div id="config-all-panels"></div>
@@ -90,22 +90,6 @@
     </div>
 
     <script>
-        // Password visibility toggle function
-        function togglePasswordVisibility(fieldId) {
-            const field = document.getElementById(fieldId);
-            const button = field.nextElementSibling;
-
-            if (field.type === 'password') {
-                field.type = 'text';
-                button.textContent = '🙈';
-                button.title = 'Hide password';
-            } else {
-                field.type = 'password';
-                button.textContent = '👁️';
-                button.title = 'Show password';
-            }
-        }
-
         // Dirty form state (declared outside jPulse.dom.ready for beforeunload access)
         let isDirty = false;
 
@@ -128,15 +112,6 @@
             let originalDirtySnapshot = '';
             let dirtyTrackingReady = false;
             let configSchema = null;
-
-            // Password toggle: delegated so dynamically rendered password fields work
-            configForm.addEventListener('click', (e) => {
-                const btn = e.target.closest('.jp-password-toggle');
-                if (btn) {
-                    const inputId = btn.getAttribute('data-password-for');
-                    if (inputId) togglePasswordVisibility(inputId);
-                }
-            });
 
             // Schema action buttons (data-action / data-callback): delegated for schema type: 'button' fields
             const actionHandlers = { testEmail: handleTestEmail };
@@ -241,6 +216,12 @@
                     if (!key) return;
                     if (el.type === 'checkbox') {
                         snapshot[key] = el.checked ? 'true' : 'false';
+                        return;
+                    }
+                    // Reveal fills the input but is not a user edit; keep the loaded marker
+                    // so Save stays disabled until the admin actually changes the secret.
+                    if (el.dataset.jpSensitive === '1' && el.dataset.jpSensitiveTouched !== '1') {
+                        snapshot[key] = el.dataset.jpSensitiveInitial || '';
                         return;
                     }
                     snapshot[key] = el.value;

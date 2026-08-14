@@ -3,13 +3,13 @@
  * @tagline         Unit tests for Email Controller
  * @description     Minimal unit tests for EmailController basic functionality
  * @file            webapp/tests/unit/controller/email-controller.test.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.14, Claude Sonnet 5
+ * @genai           80%, Cursor 3.15, Grok 4.6
  */
 
 import { describe, test, expect, beforeAll, beforeEach, jest } from '@jest/globals';
@@ -205,6 +205,69 @@ describe('EmailController', () => {
 
             const mailOptions = mockTransporter.sendMail.mock.calls[0][0];
             expect(mailOptions.replyTo).toBe('admin@example.com');
+        });
+    });
+
+    describe('_resolveTestSmtpPass (W-210)', () => {
+        beforeEach(() => {
+            ConfigModel.SENSITIVE_MASK = '********';
+        });
+
+        test('uses a newly typed password as-is', async () => {
+            EmailController.config = { smtpPass: 'stored-secret' };
+            const result = await EmailController._resolveTestSmtpPass('typed-new');
+            expect(result).toBe('typed-new');
+        });
+
+        test('falls back to in-memory config when submitted is empty', async () => {
+            EmailController.config = { smtpPass: 'stored-secret' };
+            const result = await EmailController._resolveTestSmtpPass('');
+            expect(result).toBe('stored-secret');
+        });
+
+        test('falls back to in-memory config when submitted is the mask', async () => {
+            EmailController.config = { smtpPass: 'stored-secret' };
+            const result = await EmailController._resolveTestSmtpPass('********');
+            expect(result).toBe('stored-secret');
+        });
+
+        test('apiSend test mode resolves smtpPass when Express calls the handler unbound', async () => {
+            EmailController.config = { smtpPass: 'stored-secret' };
+            LogController.logRequest = jest.fn();
+            LogController.logInfo = jest.fn();
+            LogController.logError = jest.fn();
+            const resolveSpy = jest.spyOn(EmailController, '_resolveTestSmtpPass');
+            const mockReq = {
+                originalUrl: '/api/1/email/send',
+                session: { user: { id: 'admin-1', username: 'admin' } },
+                body: {
+                    to: 'admin@example.com',
+                    subject: 'Test',
+                    message: 'Body',
+                    emailConfig: {
+                        smtpServer: 'smtp.example.com',
+                        smtpPort: 587,
+                        smtpUser: 'user@example.com',
+                        smtpPass: '********',
+                        useTls: true,
+                        adminEmail: 'admin@example.com',
+                        adminName: 'Admin'
+                    }
+                }
+            };
+            const mockRes = {
+                status: jest.fn().mockReturnThis(),
+                json: jest.fn()
+            };
+            // Express registers the method unbound; this used to throw on `_resolveTestSmtpPass`.
+            const handler = EmailController.apiSend;
+            await handler(mockReq, mockRes);
+            expect(resolveSpy).toHaveBeenCalledWith('********');
+            expect(await resolveSpy.mock.results[0].value).toBe('stored-secret');
+            expect(mockRes.json).toHaveBeenCalled();
+            const payload = mockRes.json.mock.calls[0][0];
+            expect(JSON.stringify(payload)).not.toMatch(/_resolveTestSmtpPass/);
+            resolveSpy.mockRestore();
         });
     });
 

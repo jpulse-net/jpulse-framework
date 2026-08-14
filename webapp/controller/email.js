@@ -3,13 +3,13 @@
  * @tagline         Email Controller for jPulse Framework
  * @description     Provides email sending capability and API endpoint for jPulse Framework
  * @file            webapp/controller/email.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.14, Claude Sonnet 5
+ * @genai           80%, Cursor 3.15, Grok 4.6
  */
 
 import nodemailer from 'nodemailer';
@@ -209,6 +209,37 @@ class EmailController {
      */
     static isConfigured() {
         return !!(this.initialized && this.config && this.transporter && this.config.adminEmail);
+    }
+
+    /**
+     * W-210: Test Email posts the form's email block. Once smtpPass is masked in reads,
+     * the submitted value is empty or the mask — use the stored password instead.
+     * A newly typed (non-empty, non-mask) value is used as-is so an unsaved password can be tested.
+     * @param {string} submittedPass - smtpPass from the request body
+     * @returns {Promise<string>} Password to use for the test transporter
+     * @private
+     */
+    static async _resolveTestSmtpPass(submittedPass) {
+        const mask = ConfigModel.SENSITIVE_MASK;
+        if (typeof submittedPass === 'string' && submittedPass !== '' && submittedPass !== mask) {
+            return submittedPass;
+        }
+        const inMemory = EmailController.config?.smtpPass;
+        if (typeof inMemory === 'string' && inMemory !== '' && inMemory !== mask) {
+            return inMemory;
+        }
+        try {
+            const defaultDocName = ConfigController.getDefaultDocName();
+            const configDoc = await ConfigModel.getEffectiveConfig(defaultDocName, true);
+            const stored = configDoc?.data?.email?.smtpPass;
+            if (typeof stored === 'string' && stored !== '' && stored !== mask) {
+                return stored;
+            }
+        } catch (error) {
+            LogController.logWarning(null, 'email._resolveTestSmtpPass',
+                `Could not read stored smtpPass: ${error.message}`);
+        }
+        return '';
     }
 
     /**
@@ -718,14 +749,16 @@ class EmailController {
                 const useTls = emailConfig.useTls === true;
                 const isPort465 = port === 465;
                 const isPort587 = port === 587;
+                // Call on the class: Express invokes apiSend unbound, so `this` is undefined.
+                const smtpPass = await EmailController._resolveTestSmtpPass(emailConfig.smtpPass);
 
                 const testConfig = {
                     host: emailConfig.smtpServer,
                     port: port,
                     secure: useTls && isPort465, // Only port 465 uses direct SSL
-                    auth: emailConfig.smtpUser && emailConfig.smtpPass ? {
+                    auth: emailConfig.smtpUser && smtpPass ? {
                         user: emailConfig.smtpUser,
-                        pass: emailConfig.smtpPass
+                        pass: smtpPass
                     } : undefined
                 };
 

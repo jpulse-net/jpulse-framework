@@ -3,15 +3,16 @@
  * @tagline         Unit tests for ConfigModel
  * @description     Tests for config model validation, CRUD operations, and inheritance
  * @file            webapp/tests/unit/config/config-model.test.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.15, Grok 4.6
  */
 
+import { jest } from '@jest/globals';
 import ConfigModel from '../../../model/config.js';
 
 describe('ConfigModel', () => {
@@ -331,6 +332,130 @@ describe('ConfigModel', () => {
             expect(out.data.email.adminEmail).toBe('admin@example.com');
             expect(out.data.manifest.license.tier).toBe('bsl');
             expect(doc.data.email.smtpPass).toBe('secret');
+        });
+    });
+
+    describe('W-210 sensitive fields', () => {
+        test('normalizeSensitivePath accepts UI and document paths', () => {
+            expect(ConfigModel.normalizeSensitivePath('email.smtpPass')).toBe('data.email.smtpPass');
+            expect(ConfigModel.normalizeSensitivePath('data.email.smtpPass')).toBe('data.email.smtpPass');
+            expect(ConfigModel.normalizeSensitivePath('  email.smtpPass  ')).toBe('data.email.smtpPass');
+            expect(ConfigModel.normalizeSensitivePath('')).toBe('');
+            expect(ConfigModel.toDisplayPath('data.email.smtpPass')).toBe('email.smtpPass');
+            expect(ConfigModel.toDisplayPath('email.smtpPass')).toBe('email.smtpPass');
+        });
+
+        test('getSensitivePaths includes password fields from the base schema', () => {
+            const paths = ConfigModel.getSensitivePaths();
+            expect(paths).toContain('data.email.smtpPass');
+            expect(paths).toContain('data.manifest.license.key');
+            expect(paths).not.toContain('data.email.smtpServer');
+            expect(paths).not.toContain('data.email.smtpUser');
+        });
+
+        test('isSensitiveField honors password, explicit flag, and the false escape hatch', () => {
+            expect(ConfigModel.isSensitiveField({ inputType: 'password' })).toBe(true);
+            expect(ConfigModel.isSensitiveField({ inputType: 'password', sensitive: false })).toBe(false);
+            expect(ConfigModel.isSensitiveField({ type: 'string', sensitive: true })).toBe(true);
+            expect(ConfigModel.isSensitiveField({ type: 'string' })).toBe(false);
+        });
+
+        test('maskSensitive replaces set secrets and leaves empty ones', () => {
+            const doc = {
+                _id: 'global',
+                data: {
+                    email: { smtpPass: 'secret', smtpServer: 'localhost' },
+                    manifest: { license: { key: '', tier: 'bsl' } }
+                }
+            };
+            const out = ConfigModel.maskSensitive(doc);
+            expect(out.data.email.smtpPass).toBe(ConfigModel.SENSITIVE_MASK);
+            expect(out.data.manifest.license.key).toBe('');
+            expect(out.data.email.smtpServer).toBe('localhost');
+            expect(out.data.manifest.license.tier).toBe('bsl');
+            expect(doc.data.email.smtpPass).toBe('secret');
+        });
+
+        test('stripMaskEchoes drops a submitted mask and keeps a real value', () => {
+            const data = {
+                data: {
+                    email: { smtpPass: ConfigModel.SENSITIVE_MASK, smtpServer: 'smtp.example.com' },
+                    manifest: { license: { key: 'new-key' } }
+                }
+            };
+            ConfigModel.stripMaskEchoes(data);
+            expect(data.data.email.smtpPass).toBeUndefined();
+            expect(data.data.email.smtpServer).toBe('smtp.example.com');
+            expect(data.data.manifest.license.key).toBe('new-key');
+        });
+
+        test('initializeSchema picks up a sensitive field from extendSchema', () => {
+            const savedExtensions = ConfigModel.schemaExtensions.slice();
+            const savedSchema = ConfigModel.schema;
+            const savedPaths = ConfigModel._sensitivePaths;
+            try {
+                ConfigModel.schemaExtensions.length = 0;
+                ConfigModel.extendSchema({
+                    ai: {
+                        apiKey: { type: 'string', inputType: 'password', default: '' }
+                    }
+                });
+                ConfigModel.initializeSchema();
+                expect(ConfigModel.getSensitivePaths()).toContain('data.ai.apiKey');
+                expect(ConfigModel.getSensitivePaths()).toContain('data.email.smtpPass');
+            } finally {
+                ConfigModel.schemaExtensions.length = 0;
+                savedExtensions.forEach((ext) => ConfigModel.schemaExtensions.push(ext));
+                ConfigModel.schema = savedSchema;
+                ConfigModel._sensitivePaths = savedPaths;
+            }
+        });
+
+        test('updateById does not $set a mask echo, so the stored secret is preserved', async () => {
+            const findSpy = jest.spyOn(ConfigModel, 'findById').mockResolvedValue({
+                _id: 'global',
+                saveCount: 1,
+                data: { email: { smtpPass: 'stored-secret' } }
+            });
+            const updateOne = jest.fn(async () => ({ matchedCount: 1 }));
+            const collSpy = jest.spyOn(ConfigModel, 'getCollection').mockReturnValue({ updateOne });
+            try {
+                await ConfigModel.updateById('global', {
+                    data: {
+                        email: {
+                            smtpPass: ConfigModel.SENSITIVE_MASK,
+                            smtpServer: 'smtp.example.com'
+                        }
+                    }
+                });
+
+                const setOp = updateOne.mock.calls[0][1].$set;
+                expect(setOp['data.email.smtpPass']).toBeUndefined();
+                expect(setOp['data.email.smtpServer']).toBe('smtp.example.com');
+            } finally {
+                findSpy.mockRestore();
+                collSpy.mockRestore();
+            }
+        });
+
+        test('updateById $sets an empty smtpPass so a deliberate clear is stored', async () => {
+            const findSpy = jest.spyOn(ConfigModel, 'findById').mockResolvedValue({
+                _id: 'global',
+                saveCount: 1,
+                data: { email: { smtpPass: 'stored-secret' } }
+            });
+            const updateOne = jest.fn(async () => ({ matchedCount: 1 }));
+            const collSpy = jest.spyOn(ConfigModel, 'getCollection').mockReturnValue({ updateOne });
+            try {
+                await ConfigModel.updateById('global', {
+                    data: { email: { smtpPass: '' } }
+                });
+
+                expect(updateOne.mock.calls[0][1].$set['data.email.smtpPass']).toBe('');
+            } finally {
+                findSpy.mockRestore();
+                collSpy.mockRestore();
+            }
         });
     });
 

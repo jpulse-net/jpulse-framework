@@ -4,13 +4,13 @@
  * @tagline         Interactive Plugin Development Tutorial
  * @description     Educational demo showing how plugins work in jPulse Framework
  * @file            plugins/hello-world/webapp/view/hello-plugin/index.shtml
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.15, Grok 4.6
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -280,6 +280,13 @@ export default class HelloPluginController {
                 "label": "Show Statistics",
                 "type": "boolean",
                 "default": true,
+                "tab": "General"
+            },
+            {
+                "id": "demoApiKey",
+                "label": "Demo API Key",
+                "type": "password",
+                "default": "",
                 "tab": "General"
             }
         ]

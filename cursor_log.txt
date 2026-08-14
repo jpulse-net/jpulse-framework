@@ -22301,3 +22301,227 @@ Updated the onPluginConfigBeforeSave JSDoc in plugins/auth-oauth/webapp/controll
 
 
 ============================================================
+2026-08-13 14:48
+
+next work item: W-210, v1.7.14, 2026-08-14: config: write-only field
+- review work-items.md (7995-8034)
+- ask questions if unclear
+- suggest change of spec if any, goal is a good DX, good usability, good onboarding & learning experience for site admins and developers; use the "don't make me think" paradigm
+- plan how to implement (wait for my go ahead)
+[then] let's take a step back: a write-only field would need clear and verify callback logic to make it usable; we already have a sensitive: true flag; what if we push back on write-only altogether? what would we lose? can admins be trusted to see secrets? how can sensitive: true handling be improved?
+[then] update the work item for rescoped work, use term "phase" instead of "commit"
+
+Reviewed the write-only spec against the code and pushed back on it. Threat-model finding: write-only blocks bulk exfiltration through a hijacked admin session but not the admin as a person (shell/Mongo access), and it costs a four-state widget plus a per-field verify action inherited by every plugin author. Also found the original spec's first deliverable (strip secrets from findById(id, true)) would break authenticated SMTP, since EmailController.initialize() reads data.email.smtpPass from exactly that path. Rescoped to "sensitive fields, masked reads with audited reveal": sensitive: true becomes load-bearing (it exists on smtpPass today and nothing reads it), implied by inputType/type 'password'; reads return '' or ******** for everyone including admins; the real value comes only from an admin-only single-field endpoint that writes a change-log entry under a new 'read' action; untouched fields are omitted from saves and an echoed mask is ignored, so no null sentinel and no Clear button. Masking skips empty values, so the mask itself is the presence marker — no _secrets marker or new payload shape. Decisions taken: audit as an admin-visible change-log entry (needs the action enum + logs.shtml badge/filter/branch), and fold in two pre-existing leaks of the same class (request-body logging in ConfigController.create/update/upsert, and unsanitized plugin change-log diffs). Other gaps folded in: siteConfig context stripping derived from schema instead of hand-maintained contextFilter globs, and an EmailController test-mode fallback to the stored smtpPass so Test Email keeps working. Non-goals recorded: no reveal step-up, no at-rest encryption (crypto-secrets.js exists but envelope + migration + rotation warning is its own item). Rewrote W-210 in docs/dev/work-items.md (retitled, objectives/context/features/notes rewritten, deliverables organized as phases 1-6: server contract, reveal endpoint + audit action, admin UI, plugin parity + log sanitization, tests, docs). Status line and section placement untouched. No code changes yet — awaiting go-ahead for phase 1.
+
+
+============================================================
+2026-08-13 15:03
+
+start with phase 1
+
+Implemented W-210 phase 1 (server contract). ConfigModel: SENSITIVE_MASK, getSensitivePaths() derived in initializeSchema() from sensitive: true / inputType: 'password' (sensitive: false escape hatch), maskSensitive() (non-empty only), stripMaskEchoes() on create/updateById, license.key marked sensitive, findById(id, true) still returns raw secrets with a doc comment that the result must never reach a client. ConfigController: all six response payloads masked; create/update/upsert request logs run through maskSensitive(). HandlebarController._filterContext() strips schema-derived sensitive paths from siteConfig in both auth states. EmailController test mode falls back to stored smtpPass when the submitted value is empty or the mask. LogModel.logChange() sanitizes config diffs via maskSensitive() instead of contextFilter.withoutAuth. Tests: 108 passed across config-model, config-manifest, config-basic, log-basic, handlebar-context-filter, email-controller. Phase 2 (reveal endpoint + audit action) not started.
+
+
+============================================================
+2026-08-13 15:12
+
+phase 2 please
+
+Implemented W-210 phase 2 (reveal endpoint and audit action). GET /api/1/config/:id/secret?path=email.smtpPass (and _default) is admin-only; path must be a schema-marked secret (UI or data. form accepted); returns { path, value } with Cache-Control: no-store; request/success logs carry id and path only. LogModel action enum and validate() accept 'read'; LogModel.logReveal() / LogController.logReveal() write a change-log entry with the field path and no value. Admin → Logs: Read filter option, .local-action-read badge, formatChanges/formatDetailedChanges branches that show the path without values. i18n in en.conf and de.conf for controller errors and log labels. Tests: config-secret (4), log-basic (read action + logReveal), config-model path helpers; 88 related tests passed. Phase 3 (admin UI widget) not started.
+
+
+============================================================
+2026-08-13 15:19
+
+@logs.shtml (287-294) - config/system values are typically not translated - in German Delete, Lesen looks odd - any reason for translating this?
+
+No reason — Create/Update/Delete were already English system values; only Read was i18n'd, which would have shown "Delete, Lesen" in German. Changed the Read option to hardcoded "Read" and removed actionRead from en.conf and de.conf. Sentence-level log copy (Revealed / Angezeigt) stays translated.
+
+
+============================================================
+2026-08-13 15:27
+
+on to phase 3
+
+Implemented W-210 phase 3 (admin UI widget). Password / sensitive fields render as Configured (mask) or Not configured (empty) with a Reveal button that GETs one value and does not mark the field dirty or touched. getFormData() omits untouched mask/empty secrets so a save leaves them unchanged; a typed replacement or an explicit clear is sent. config.shtml dirty snapshot uses the loaded marker so Reveal does not enable Save. plugin-config.shtml points reveal at the phase-4 plugin secret URL; until that lands, plugin reads are still plaintext so Reveal stays hidden and the current value is still submitted. Eye show/hide moved into the shared init. Tests: 16 new in jpulse-ui-input-sensitive plus 186 related UI tests passed. Phase 4 (plugin parity + log sanitization) not started.
+
+
+============================================================
+2026-08-13 16:16
+
+first fix unit test, then proceed with phase 4
+
+Fixed 27 Handlebar unit failures: view.test.js and template-includes.test.js mocked ConfigModel without getSensitivePaths, which phase 1 started calling from _filterContext. Added a typeof guard (same pattern as getEffectiveAdminRoles) and getSensitivePaths: [] on both mocks. Then implemented W-210 phase 4: PluginModel derives sensitive field ids (type/inputType password or sensitive: true), maskSensitive, applySensitiveWrites (absent/mask keep, empty clears), and getSecret(); PluginController.getConfig masks values, updateConfig applies writes before validate and onPluginConfigBeforeSave, GET /api/1/plugin/:name/config/secret?field=apiKey is admin-only with path validation and a read audit (field id only); LogModel.logChange sanitizes plugin diffs via PluginManager schema. Tests: 207 passed across the Handlebar pair, plugin model/controller, and log-basic. Phase 5 (broader tests) and phase 6 (docs) not started.
+
+
+============================================================
+2026-08-13 16:26
+
+proceed with phase 5 & 6
+
+Completed W-210 phases 5 and 6. Phase 5: added masked admin/non-admin GET coverage and sanitized update request-log assertions (config-masked-reads.test.js); updateById mask-echo vs empty-clear tests; handlebar extendSchema secret stripped from siteConfig; PluginModel.getSecret; config-basic client-vs-raw contract. 176 related tests passed. Phase 6: documented masked read/write/reveal in api-reference, secrets-in-configuration in security-and-auth (guarantees vs not, contextFilter vs sensitive, findById(id, true), writeOnly escalation), password widget + reveal in jpulse-ui-reference, license-key configured/reveal/audit in site-administration, extendSchema secret example in site-customization, type:password / PluginModel.getSecret / Test-button companion in plugin docs. T-092 (BubbleMap AI Agent) is not in this repo, so that design-doc correction was not applied. Work-item status left unchanged.
+
+
+============================================================
+2026-08-13 16:32
+
+I will handle the bubblemap item separately
+
+do any plugins and sites need an update?
+
+Checked in-tree site/ and local plugins (hello-world, auth-mfa, auth-oauth). None require a code change for the masked-read contract: no plugin.json uses type password or sensitive; hello-world extendSchema is message/showBadge only; auth-mfa has no plugin-config secrets; auth-oauth already encrypts client secrets in a custom providers field and never returns them. Site hello-* demos do not read smtpPass or license.key. External plugins/sites only need an update if they consume a secret from a bulk GET (config or plugin config) instead of findById(id, true) / PluginModel.getSecret.
+
+
+============================================================
+2026-08-13 16:46
+
+would it make sense to enhance the hello-world plugin with a new sensitive: true field for education?
+
+Yes as a follow-up, not as part of W-210 and not as a bare schema flag. Recommend type: password (the case authors copy) plus a Test button, and helloPlugin.api() must stop echoing PluginModel.getByName() wholesale or the demo page /api/1/helloPlugin dump would teach a leak. sensitive: true on a text field is the less common variant and a weaker primary example.
+
+
+============================================================
+2026-08-13 16:52
+
+unless other plugins, hello-world is shipped with framework, so we should add the teaching enhancement to this work item
+
+Added the hello-world teaching example to W-210 (phase 7 in work-items; status unchanged). plugin.json: demoApiKey (type password) plus Verify button. helloPlugin.api() masks secrets before the public GET; GET /api/1/helloPlugin/verify-demo-api-key is admin-only, uses PluginModel.getSecret, returns configured/valid only. plugin-config.shtml now resolves data-callback so plugin Test buttons run. Docs: hello-world README/docs, creating-plugins, plugin-api-reference. Test: hello-world schema marks demoApiKey sensitive (18 plugin model tests passed).
+
+
+============================================================
+2026-08-13 16:57
+
+app start log: [npm start output]
+
+Start log is clean. hello-world now registers 3 APIs including GET /api/1/helloPlugin/verify-demo-api-key. Session/Redis secrets in the dumped appConfig are already masked. No errors; email transporter verified. Ready for the Admin → Plugin Config manual check.
+
+
+============================================================
+2026-08-13 18:03
+
+initial save of demo key: [plugin.updateConfig log] page reload, then show value: [plugin.getSecret log] + screenshots
+
+Confirmed the contract: save logs demoApiKey as undefined ==> ******** (value never in the app log); reveal logs plugin read: hello-world (demoApiKey) with no value; UI shows Konfiguriert/Anzeigen then the stored key after Reveal. quickLinks appearing as a no-op change is createFieldDiff comparing arrays by reference, pre-existing, not a secret leak.
+
+
+============================================================
+2026-08-13 18:06
+
+confirmed: change other config field, save, reload page, reveal demo key => unchanged
+
+Acknowledged. Untouched demoApiKey survived a save of other fields, which is the write-contract check (omit/mask must not overwrite).
+
+
+============================================================
+2026-08-13 18:07
+
+save log: [plugin.updateConfig after changing message only]
+
+demoApiKey is absent from the change-log, which is correct: the field was omitted, applySensitiveWrites kept the stored value, so it is not a change and the secret is not logged. message is the real diff. quickLinks is the same array-reference no-op as before.
+
+
+============================================================
+2026-08-13 18:09
+
+log gui looks ok too
+
+Acknowledged. Admin → Logs shows read (demoApiKey Angezeigt, path only) and update (message old/new, no secret). Action badges stay English; Revealed/Angezeigt is the translated sentence copy. Matches the phase 2 log UI contract.
+
+
+============================================================
+2026-08-13 18:10
+
+initial set is hidden too
+
+Acknowledged. The first plugin update row shows demoApiKey new value as ******** in the Logs GUI, matching maskSensitive on change-log diffs. The real key is not in the admin log UI.
+
+
+============================================================
+2026-08-13 18:16
+
+regression bug: send test email fails
+
+Fixed Test Email: Express calls EmailController.apiSend unbound, so this was undefined when W-210 added this._resolveTestSmtpPass. apiSend now calls EmailController._resolveTestSmtpPass, and that helper reads EmailController.config. Added an unbound-handler unit test. Restart the server, then click Test-E-Mail senden again.
+
+
+============================================================
+2026-08-13 19:38
+
+works now [test email log] what else should I test manually?
+
+Test Email confirmed. Remaining high-value manual checks: site-config smtpPass reveal + dirty/untouched save; DevTools GET mask; app-log grep after save; deliberate clear; license key widget; hello-world Verify + public GET mask; optional non-admin reveal 403.
+
+
+============================================================
+2026-08-13 19:48
+
+Site config untouched/reveal pass; DevTools GET + two app-log upserts
+
+GET /api/1/config/_default: smtpPass is ********, license.key is unset "". Save 1 omitted smtpPass. Save 2 logged smtpPass as ******** (sanitized); change-log has no smtpPass, so the stored password did not change — correct if they submitted the mask or the same value, not if they typed a new one. Remaining: clear, license key, hello-world Verify/GET/clear.
+
+
+============================================================
+2026-08-13 19:55
+
+I revealed and changed the password; last two changes show Keine Änderungen erfasst
+
+Root cause: logChange masked both docs before diffing, so two different smtpPass values became ******** === ******** and vanished; the Logs UI then hid remaining identical-looking diffs. Fix: diff raw, then mask change tuples; keep mask-to-mask visible in the Logs GUI. Old empty rows stay empty; a new password save after restart should show 1 field updated (******** ==> ********).
+
+
+============================================================
+2026-08-13 20:02
+
+4 manual cases: regular field, two password changes, reveal-then-save; gui looks ok
+
+All four match the contract. Regular save omits smtpPass. Password changes log ******** ==> ******** and the GUI shows 1 field updated. Reveal-then-save-without-edit has no smtpPass in the change-log (same stored value); the empty GUI row is the roles no-op leftover. Remaining: clear, license key, hello-world Verify/GET/clear.
+
+
+============================================================
+2026-08-13 20:06
+
+clear smtp passw / clear demo key; log gui looks ok
+
+Both clears pass: request has smtpPass "", change-log is ******** ==> "" for smtpPass and demoApiKey, no raw secrets. GUI shows the clear. Remind to restore the Gmail password. Remaining optional: license key, hello-world Verify + public GET (key is now unset).
+
+
+============================================================
+2026-08-13 20:09
+
+gui looks ok for set and delete lic key
+
+License key pass: set/reveal/clear audited, clear request has key "", change-log is ******** ==> "", no raw secret. GUI matches. Optional leftovers: hello-world Verify + GET; restore Gmail smtpPass if still cleared.
+
+
+============================================================
+2026-08-13 20:12
+
+smtp passw is restored; GET /api/1/helloPlugin shows demoApiKey ""
+
+Pass. Unset secret is "" on the public plugin GET, not a leak and not the mask. SMTP restored. Optional: set the demo key again and confirm GET shows ******** and Verify returns configured/valid without the value.
+
+
+============================================================
+2026-08-13 20:13
+
+GET /api/1/helloPlugin after setting demo key; Verify UI success
+
+Pass. Public GET shows demoApiKey ********, not 1234567890. Reveal on the form is expected and audited. Verify reports configured/valid without returning the key. W-210 manual verify list is complete.
+
+
+============================================================
+2026-08-13 20:14
+
+anything else before release prep?
+
+No blocking product work left. Manual verify is complete. Before/as release prep: full test run, optional work-item deliverable notes for the Test Email this-binding and change-log mask-after-diff fixes, then README/CHANGELOG/commit-message. Non-blockers: T-092 (other repo), array no-op diffs, untested non-admin reveal 403. Do not bump version.
+
+
+============================================================
+2026-08-13 20:17
+
+release prep: review tt-git-diff.txt; assume W-210, v1.7.14, 2026-08-14; update features/deliverables, README highlights, CHANGELOG, commit-message.txt
+
+Reviewed tt-git-diff.txt: matches W-210 (config/plugin mask + reveal, Test Email class-bound resolve, change-log diff-then-mask, hello-world demoApiKey, docs, new tests). Incidental: test-count 3200+ in README/docs/dev/README; getSensitivePaths mocks; @genai header-only on a few tests. Updated W-210 features/deliverables only (status unchanged). Added v1.7.14 highlights and CHANGELOG section. Wrote commit-message.txt. No version bump, no commit.
+
+
+============================================================

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administration v1.7.13
+# jPulse Docs / Site Administration v1.7.14
 
 Complete guide to managing your jPulse site through the admin interface.
 
@@ -67,7 +67,7 @@ Configure site-wide messages that are shown to all users with a prominent yellow
 The **Manifest** section in `/admin/config.shtml` manages license and compliance-related settings stored in MongoDB. This is the single source of truth for these settings across app-cluster deployments.
 
 **Fields:**
-- **License Key**: Commercial license key (stored server-side; never exposed via APIs or templates)
+- **License Key**: Commercial license key (stored server-side). Bulk API reads and templates show it as configured or not configured; an admin can reveal the value, and that reveal is recorded in Admin → Logs.
 - **License Tier**: License tier selection (e.g., BSL, commercial, enterprise)
 - **Site UUID**: Deployment UUID used for compliance reporting and monitoring
 - **Admin Email Opt-In**: Optional opt-in to share the admin email address with `jpulse.net` for site monitoring services
@@ -75,7 +75,7 @@ The **Manifest** section in `/admin/config.shtml` manages license and compliance
 
 **Notes:**
 - **Cluster-safe**: Values are stored in MongoDB and shared across all app instances in a cluster.
-- **Security**: The license key is treated as sensitive and is filtered from server responses.
+- **Security**: The license key is a sensitive field. List and get responses return `********` when a key is stored, or empty when it is not. The admin form shows **Configured** or **Not configured**; **Reveal** fetches that one value and writes a `read` entry in Admin → Logs (path only, never the value). Saving the form without touching the field leaves the stored key unchanged. Clearing the field and saving removes it.
 - **Monitoring**: Opting in to admin email sharing is optional and is only used for monitoring services.
 
 ### Site Configuration Storage: MongoDB

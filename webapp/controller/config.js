@@ -3,13 +3,13 @@
  * @tagline         Config Controller for jPulse Framework WebApp
  * @description     This is the config controller for the jPulse Framework WebApp
  * @file            webapp/controller/config.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.15, Grok 4.6
  */
 
 import ConfigModel from '../model/config.js';
@@ -105,7 +105,7 @@ class ConfigController {
             const message = global.i18n.translate(req, 'controller.config.configGetDone', { id });
             const response = {
                 success: true,
-                data: config,
+                data: ConfigModel.maskSensitive(config),
                 message: message,
                 elapsed
             };
@@ -122,6 +122,62 @@ class ConfigController {
             LogController.logError(req, 'config.get', `error: ${error.message}`);
             const message = global.i18n.translate(req, 'controller.config.configGetFailed', { id });
             return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
+     * Reveal one sensitive field. Admin-only. Path must be a schema-marked secret.
+     * GET /api/1/config/:id/secret?path=email.smtpPass
+     * Returns the stored value and writes a change-log entry (path only, never the value).
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async getSecret(req, res) {
+        const startTime = Date.now();
+        const defaultDocName = ConfigController.getDefaultDocName();
+        let id = req.params.id && req.params.id.trim();
+        if (id === '_default' || !id) {
+            id = defaultDocName;
+        }
+        const rawPath = typeof req.query.path === 'string' ? req.query.path.trim() : '';
+        LogController.logRequest(req, 'config.getSecret', `${id || ''}, path=${rawPath}`);
+        try {
+            if (!rawPath) {
+                LogController.logError(req, 'config.getSecret', 'error: path is required');
+                const message = global.i18n.translate(req, 'controller.config.configSecretPathRequired');
+                return global.CommonUtils.sendError(req, res, 400, message, 'MISSING_PATH');
+            }
+            const docPath = ConfigModel.normalizeSensitivePath(rawPath);
+            if (!ConfigModel.getSensitivePaths().includes(docPath)) {
+                LogController.logError(req, 'config.getSecret', `error: path is not a sensitive field: ${rawPath}`);
+                const message = global.i18n.translate(req, 'controller.config.configSecretPathInvalid');
+                return global.CommonUtils.sendError(req, res, 400, message, 'INVALID_SECRET_PATH');
+            }
+            const config = await ConfigModel.findById(id, true);
+            if (!config) {
+                LogController.logError(req, 'config.getSecret', `error: config not found for id: ${id}`);
+                const message = global.i18n.translate(req, 'controller.config.configNotFound', { id });
+                return global.CommonUtils.sendError(req, res, 404, message, 'CONFIG_NOT_FOUND');
+            }
+            const stored = global.CommonUtils.getValueByPath(config, docPath);
+            const value = (stored === undefined || stored === null) ? '' : stored;
+            const displayPath = ConfigModel.toDisplayPath(docPath);
+            await LogController.logReveal(req, 'config', id, displayPath);
+            const elapsed = Date.now() - startTime;
+            LogController.logInfo(req, 'config.getSecret',
+                `success: secret revealed for id: ${id}, path: ${displayPath}, completed in ${elapsed}ms`);
+            const message = global.i18n.translate(req, 'controller.config.configSecretGetDone', { path: displayPath });
+            res.set('Cache-Control', 'no-store');
+            res.json({
+                success: true,
+                data: { path: displayPath, value },
+                message,
+                elapsed
+            });
+        } catch (error) {
+            LogController.logError(req, 'config.getSecret', `error: ${error.message}`);
+            const message = global.i18n.translate(req, 'controller.config.configSecretGetFailed');
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR');
         }
     }
 
@@ -151,7 +207,7 @@ class ConfigController {
             const message = global.i18n.translate(req, 'controller.config.configGetEffectiveDone', { id });
             res.json({
                 success: true,
-                data: config,
+                data: ConfigModel.maskSensitive(config),
                 message: message
             });
 
@@ -184,7 +240,7 @@ class ConfigController {
             const message = global.i18n.translate(req, 'controller.config.configListRetrieved', { count: configs.length });
             res.json({
                 success: true,
-                data: configs,
+                data: configs.map((doc) => ConfigModel.maskSensitive(doc)),
                 count: configs.length,
                 message: message
             });
@@ -204,7 +260,7 @@ class ConfigController {
      */
     static async create(req, res) {
         const configData = req.body;
-        LogController.logRequest(req, 'config.create', JSON.stringify(configData));
+        LogController.logRequest(req, 'config.create', JSON.stringify(ConfigModel.maskSensitive(configData)));
         try {
             if (!configData || Object.keys(configData).length === 0) {
                 LogController.logError(req, 'config.create', 'error: config data is required');
@@ -223,7 +279,7 @@ class ConfigController {
             const message = global.i18n.translate(req, 'controller.config.configCreated', { id: config._id });
             res.status(201).json({
                 success: true,
-                data: config,
+                data: ConfigModel.maskSensitive(config),
                 message: message
             });
 
@@ -256,7 +312,7 @@ class ConfigController {
             id = defaultDocName;
         }
         const updateData = req.body;
-        LogController.logRequest(req, 'config.update', `${id || ''}, ${JSON.stringify(updateData)}`);
+        LogController.logRequest(req, 'config.update', `${id || ''}, ${JSON.stringify(ConfigModel.maskSensitive(updateData))}`);
         try {
             if (!id) {
                 LogController.logError(req, 'config.update', 'error: id is required');
@@ -323,7 +379,7 @@ class ConfigController {
             const message = global.i18n.translate(req, 'controller.config.configUpdated', { id });
             res.json({
                 success: true,
-                data: config,
+                data: ConfigModel.maskSensitive(config),
                 message: message
             });
 
@@ -352,7 +408,7 @@ class ConfigController {
             id = defaultDocName;
         }
         const configData = req.body;
-        LogController.logRequest(req, 'config.upsert', `${id || ''}, ${JSON.stringify(configData)}`);
+        LogController.logRequest(req, 'config.upsert', `${id || ''}, ${JSON.stringify(ConfigModel.maskSensitive(configData))}`);
         try {
             if (!configData || Object.keys(configData).length === 0) {
                 LogController.logError(req, 'config.upsert', 'error: config data is required');
@@ -413,7 +469,7 @@ class ConfigController {
             const message = global.i18n.translate(req, 'controller.config.configSaved', { id });
             res.json({
                 success: true,
-                data: config,
+                data: ConfigModel.maskSensitive(config),
                 message: message
             });
 

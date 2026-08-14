@@ -3,13 +3,13 @@
  * @tagline         Config Model for jPulse Framework WebApp
  * @description     This is the config model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/config.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.15, Grok 4.6
  */
 
 import database from '../database.js';
@@ -95,7 +95,7 @@ class ConfigModel {
                 },
                 // W-137+: Site manifest, used for jpulse.net integration and services
                 license: {
-                    key: { type: 'string', default: '', inputType: 'password', label: '{{i18n.view.admin.config.manifest.licenseKey}}', placeholder: '{{i18n.view.admin.config.manifest.licenseKeyPlaceholder}}' },
+                    key: { type: 'string', default: '', inputType: 'password', sensitive: true, label: '{{i18n.view.admin.config.manifest.licenseKey}}', placeholder: '{{i18n.view.admin.config.manifest.licenseKeyPlaceholder}}' },
                     tier: {
                         type: 'string', default: 'bsl',
                         enum: ['bsl', 'commercial', 'enterprise'],
@@ -126,6 +126,9 @@ class ConfigModel {
         saveCount: { type: 'number', default: 1, autoIncrement: true },
         _meta: {
             contextFilter: {
+                // Audience filter for non-secret fields (smtpServer, smtpPort, …).
+                // Secrets are driven by sensitive: true / inputType: 'password' (W-210);
+                // the two secret entries below stay as belt-and-braces.
                 withoutAuth: [
                     'data.email.smtp*',         // Remove all smtp fields for unauthenticated users
                     'data.email.*pass',         // Remove any password fields
@@ -138,6 +141,18 @@ class ConfigModel {
             }
         }
     };
+
+    /**
+     * Placeholder returned in place of a set sensitive value. Empty string means unset.
+     * A submitted value equal to this mask is ignored (form / curl round-trip must not overwrite).
+     */
+    static SENSITIVE_MASK = '********';
+
+    /**
+     * Cached document-relative paths of sensitive fields (e.g. 'data.email.smtpPass').
+     * Rebuilt in initializeSchema(); lazily derived from getSchema() before init.
+     */
+    static _sensitivePaths = null;
 
     /**
      * Extended schema (base + plugin/site extensions) - computed at init
@@ -160,6 +175,7 @@ class ConfigModel {
             schema = this.applySchemaExtension(schema, extension);
         }
         this.schema = schema;
+        this._sensitivePaths = this._collectSensitivePaths(schema);
     }
 
     /**
@@ -238,7 +254,126 @@ class ConfigModel {
     }
 
     /**
+     * Whether a schema field definition is a secret.
+     * `sensitive: true` or `inputType: 'password'`; `sensitive: false` is the escape hatch.
+     * @param {object} fieldDef - Schema leaf
+     * @returns {boolean}
+     */
+    static isSensitiveField(fieldDef) {
+        if (!fieldDef || typeof fieldDef !== 'object') return false;
+        if (fieldDef.sensitive === false) return false;
+        return fieldDef.sensitive === true || fieldDef.inputType === 'password';
+    }
+
+    /**
+     * Walk a schema tree and collect document-relative paths of sensitive leaves.
+     * A leaf is an object with `type` or `inputType` (same rule as the form walker).
+     * @param {object} schema - Config schema (base or extended)
+     * @returns {string[]} Paths such as 'data.email.smtpPass'
+     * @private
+     */
+    static _collectSensitivePaths(schema) {
+        const paths = [];
+        const walk = (block, prefix) => {
+            if (!block || typeof block !== 'object' || Array.isArray(block)) return;
+            for (const [key, value] of Object.entries(block)) {
+                if (key === '_meta' || key.startsWith('_')) continue;
+                const path = prefix ? `${prefix}.${key}` : key;
+                if (value && typeof value === 'object' && !Array.isArray(value)
+                    && (value.type !== undefined || value.inputType !== undefined)) {
+                    if (this.isSensitiveField(value)) paths.push(path);
+                } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+                    walk(value, path);
+                }
+            }
+        };
+        walk(schema, '');
+        return paths;
+    }
+
+    /**
+     * Document-relative paths of sensitive config fields.
+     * @returns {string[]}
+     */
+    static getSensitivePaths() {
+        if (this._sensitivePaths === null) {
+            this._sensitivePaths = this._collectSensitivePaths(this.getSchema());
+        }
+        return this._sensitivePaths;
+    }
+
+    /**
+     * Normalize a UI or document path to the document-relative form used in the schema
+     * (`data.email.smtpPass`). Accepts `email.smtpPass` or `data.email.smtpPass`.
+     * @param {string} path - Query or form path
+     * @returns {string} Document-relative path, or '' if empty
+     */
+    static normalizeSensitivePath(path) {
+        if (typeof path !== 'string') return '';
+        const trimmed = path.trim();
+        if (!trimmed) return '';
+        return trimmed.startsWith('data.') ? trimmed : `data.${trimmed}`;
+    }
+
+    /**
+     * Display path for API responses and audit entries (`email.smtpPass`).
+     * @param {string} docPath - Document-relative path
+     * @returns {string}
+     */
+    static toDisplayPath(docPath) {
+        if (typeof docPath !== 'string') return '';
+        return docPath.startsWith('data.') ? docPath.substring(5) : docPath;
+    }
+
+    /**
+     * True when value is the sensitive-field mask (echoed read, must not be stored).
+     * @param {*} value
+     * @returns {boolean}
+     */
+    static isSensitiveMask(value) {
+        return value === this.SENSITIVE_MASK;
+    }
+
+    /**
+     * Clone `doc` and replace every non-empty sensitive string with SENSITIVE_MASK.
+     * Empty / missing values stay as they are so '' means unset and the mask means set.
+     * Use this on every API response. Do not use on internal reads that need the real secret.
+     * @param {object} doc - Config document (or request body in the same shape)
+     * @returns {object} Masked clone
+     */
+    static maskSensitive(doc) {
+        if (doc == null || typeof doc !== 'object') return doc;
+        const clone = JSON.parse(JSON.stringify(doc));
+        const mask = this.SENSITIVE_MASK;
+        for (const path of this.getSensitivePaths()) {
+            const value = CommonUtils.getValueByPath(clone, path);
+            if (typeof value === 'string' && value !== '') {
+                CommonUtils.setValueByPath(clone, path, mask);
+            }
+        }
+        return clone;
+    }
+
+    /**
+     * Drop sensitive fields whose submitted value is the mask, so a round-trip cannot
+     * overwrite the stored secret with ********. Mutates `data` in place.
+     * @param {object} data - Incoming create/update payload
+     * @returns {object} The same object
+     */
+    static stripMaskEchoes(data) {
+        if (data == null || typeof data !== 'object') return data;
+        for (const path of this.getSensitivePaths()) {
+            const value = CommonUtils.getValueByPath(data, path);
+            if (this.isSensitiveMask(value)) {
+                CommonUtils.deleteValueByPath(data, path);
+            }
+        }
+        return data;
+    }
+
+    /**
      * Internal: apply contextFilter.withoutAuth via CommonUtils.sanitizeObject (obfuscate mode).
+     * Audience filter for non-admin callers — not the secret-masking contract (see maskSensitive).
      * @param {object} doc - Config document
      * @returns {object} Sanitized clone
      * @private
@@ -574,7 +709,11 @@ class ConfigModel {
     /**
      * Find config by ID
      * @param {string} id - Config ID
-     * @param {boolean} isAdmin - If true return full document; if false/omitted return sanitized (sensitive fields obfuscated)
+     * @param {boolean} isAdmin - If true return the full document, including secrets.
+     *   The raw result is for internal use only (e.g. EmailController SMTP auth) and
+     *   must never be sent to a client — controllers must pass it through maskSensitive()
+     *   before any API response. If false/omitted, return sanitized
+     *   (contextFilter.withoutAuth obfuscated).
      * @returns {Promise<object|null>} Config document or null if not found
      */
     static async findById(id, isAdmin = false) {
@@ -604,7 +743,8 @@ class ConfigModel {
     /**
      * Find all configs
      * @param {object} filter - MongoDB filter object
-     * @param {boolean} isAdmin - If true return full documents; if false/omitted return sanitized
+     * @param {boolean} isAdmin - If true return full documents (secrets included; do not send to a client);
+     *   if false/omitted return sanitized (contextFilter.withoutAuth)
      * @returns {Promise<Array>} Array of config documents
      */
     static async find(filter = {}, isAdmin = false) {
@@ -627,6 +767,7 @@ class ConfigModel {
      */
     static async create(data) {
         try {
+            this.stripMaskEchoes(data);
             // Validate data
             this.validate(data, false);
 
@@ -659,6 +800,7 @@ class ConfigModel {
      */
     static async updateById(id, data) {
         try {
+            this.stripMaskEchoes(data);
             // Validate update data
             this.validate(data, true);
 
@@ -793,7 +935,8 @@ class ConfigModel {
     /**
      * Get effective config by resolving inheritance chain
      * @param {string} id - Config ID
-     * @param {boolean} isAdmin - If true return full merged config; if false/omitted return sanitized
+     * @param {boolean} isAdmin - If true return full merged config (secrets included; do not send to a client);
+     *   if false/omitted return sanitized (contextFilter.withoutAuth)
      * @returns {Promise<object|null>} Merged config with inheritance resolved
      */
     static async getEffectiveConfig(id, isAdmin = false) {

@@ -3,18 +3,19 @@
  * @tagline         Log Model for jPulse Framework WebApp
  * @description     This is the log model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/log.js
- * @version         1.7.13
- * @release         2026-08-13
+ * @version         1.7.14
+ * @release         2026-08-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.15, Grok 4.6
  */
 
 import database from '../database.js';
 import CommonUtils from '../utils/common.js';
 import ConfigModel from './config.js';
+import PluginModel from './plugin.js';
 
 /**
  * Log Model - handles logging infrastructure with native MongoDB driver
@@ -28,7 +29,7 @@ class LogModel {
         data: {
             docId: { type: 'mixed', required: true }, // ObjectId or String
             docType: { type: 'string', required: true }, // 'config', 'user', etc.
-            action: { type: 'string', required: true, enum: ['create', 'update', 'delete'] },
+            action: { type: 'string', required: true, enum: ['create', 'update', 'delete', 'read'] },
             changes: { type: 'array', default: [] } // array of [fieldPath, oldValue, newValue]
         },
         createdAt: { type: 'date', auto: true },
@@ -63,8 +64,8 @@ class LogModel {
             if (!doc.data.docType || typeof doc.data.docType !== 'string') {
                 errors.push('data.docType is required and must be a string');
             }
-            if (!doc.data.action || !['create', 'update', 'delete'].includes(doc.data.action)) {
-                errors.push('data.action must be one of: create, update, delete');
+            if (!doc.data.action || !['create', 'update', 'delete', 'read'].includes(doc.data.action)) {
+                errors.push('data.action must be one of: create, update, delete, read');
             }
         }
         return {
@@ -315,9 +316,55 @@ class LogModel {
     }
 
     /**
-     * Log a document change (create, update, delete)
+     * Replace non-empty secret values in a changes array with the mask.
+     * Diff first, then call this — masking both docs before createFieldDiff
+     * collapses a real password change into ******** === ******** and drops it.
+     * @param {string} docType - 'config' or 'plugin'
+     * @param {*} docId - Document id (plugin name for plugin docs)
+     * @param {array} changes - [[fieldPath, oldValue, newValue], ...]
+     * @returns {array} Changes with secret values masked
+     */
+    static _maskSensitiveChangeValues(docType, docId, changes) {
+        if (!Array.isArray(changes) || changes.length === 0) return changes;
+        if (docType === 'config') {
+            const paths = new Set(ConfigModel.getSensitivePaths());
+            const mask = ConfigModel.SENSITIVE_MASK;
+            return changes.map((entry) => {
+                if (!Array.isArray(entry) || entry.length < 3) return entry;
+                const [fieldPath, oldVal, newVal] = entry;
+                const normalized = ConfigModel.normalizeSensitivePath(fieldPath);
+                if (!paths.has(normalized)) return entry;
+                return [
+                    fieldPath,
+                    (typeof oldVal === 'string' && oldVal !== '') ? mask : oldVal,
+                    (typeof newVal === 'string' && newVal !== '') ? mask : newVal
+                ];
+            });
+        }
+        if (docType === 'plugin') {
+            const plugin = (typeof global.PluginManager?.getPlugin === 'function')
+                ? global.PluginManager.getPlugin(docId)
+                : null;
+            const ids = new Set(PluginModel.getSensitiveFieldIds(plugin?.metadata?.config?.schema));
+            const mask = PluginModel.SENSITIVE_MASK;
+            return changes.map((entry) => {
+                if (!Array.isArray(entry) || entry.length < 3) return entry;
+                const [fieldPath, oldVal, newVal] = entry;
+                if (!ids.has(fieldPath)) return entry;
+                return [
+                    fieldPath,
+                    (typeof oldVal === 'string' && oldVal !== '') ? mask : oldVal,
+                    (typeof newVal === 'string' && newVal !== '') ? mask : newVal
+                ];
+            });
+        }
+        return changes;
+    }
+
+    /**
+     * Log a document change (create, update, delete, read)
      * @param {string} docType - Type of document ('config', 'user', etc.)
-     * @param {string} action - Action performed ('create', 'update', 'delete')
+     * @param {string} action - Action performed ('create', 'update', 'delete', 'read')
      * @param {*} docId - Document ID
      * @param {object} oldDoc - Original document (for updates/deletes)
      * @param {object} newDoc - New document (for creates/updates)
@@ -325,23 +372,35 @@ class LogModel {
      * @returns {Promise<object>} Created log entry
      */
     static async logChange(docType, action, docId, oldDoc = null, newDoc = null, createdBy = '') {
-        // Never store sensitive config values in change log (admin log UI and console)
-        if (docType === 'config') {
-            const pathList = ConfigModel.getSchema()?._meta?.contextFilter?.withoutAuth;
-            if (Array.isArray(pathList) && pathList.length > 0) {
-                const opts = { mode: 'obfuscate' };
-                if (oldDoc) oldDoc = CommonUtils.sanitizeObject(oldDoc, pathList, opts);
-                if (newDoc) newDoc = CommonUtils.sanitizeObject(newDoc, pathList, opts);
+        // Never store sensitive values in the change log (admin log UI and console).
+        // Diff updates on the raw docs, then mask the change tuples — masking both
+        // documents first makes two different secrets compare equal and disappear.
+        // Create/delete walk a single doc, so masking that doc first is enough.
+        let safeOld = oldDoc;
+        let safeNew = newDoc;
+        if (action === 'create' || action === 'delete') {
+            if (docType === 'config') {
+                if (safeOld) safeOld = ConfigModel.maskSensitive(safeOld);
+                if (safeNew) safeNew = ConfigModel.maskSensitive(safeNew);
+            }
+            if (docType === 'plugin') {
+                const plugin = (typeof global.PluginManager?.getPlugin === 'function')
+                    ? global.PluginManager.getPlugin(docId)
+                    : null;
+                const schema = plugin?.metadata?.config?.schema;
+                if (safeOld) safeOld = PluginModel.maskSensitive(safeOld, schema);
+                if (safeNew) safeNew = PluginModel.maskSensitive(safeNew, schema);
             }
         }
 
         let changes = [];
         if (action === 'create') {
-            changes = LogModel.createDocumentCreatedChanges(newDoc);
+            changes = LogModel.createDocumentCreatedChanges(safeNew);
         } else if (action === 'delete') {
-            changes = LogModel.createDocumentDeletedChanges(oldDoc);
+            changes = LogModel.createDocumentDeletedChanges(safeOld);
         } else if (action === 'update' && oldDoc && newDoc) {
             changes = LogModel.createFieldDiff(oldDoc, newDoc);
+            changes = LogModel._maskSensitiveChangeValues(docType, docId, changes);
         }
         const logData = {
             data: {
@@ -349,6 +408,27 @@ class LogModel {
                 docType,
                 action,
                 changes
+            },
+            createdBy
+        };
+        return await LogModel.create(logData);
+    }
+
+    /**
+     * Log that a secret field was revealed. Stores the field path only — never the value.
+     * @param {string} docType - Type of document ('config', 'plugin', …)
+     * @param {*} docId - Document ID
+     * @param {string} fieldPath - Display path (e.g. 'email.smtpPass')
+     * @param {string} createdBy - User who revealed the field
+     * @returns {Promise<object>} Created log entry
+     */
+    static async logReveal(docType, docId, fieldPath, createdBy = '') {
+        const logData = {
+            data: {
+                docId,
+                docType,
+                action: 'read',
+                changes: [[fieldPath]]
             },
             createdBy
         };

@@ -1,4 +1,4 @@
-# jPulse Docs / Installed Plugins / Hello World Plugin v1.7.13
+# jPulse Docs / Installed Plugins / Hello World Plugin v1.7.14
 
 Welcome to the Hello World plugin! This is a demonstration plugin that showcases the jPulse Framework's plugin architecture.
 
@@ -7,7 +7,7 @@ Welcome to the Hello World plugin! This is a demonstration plugin that showcases
 The Hello World plugin provides:
 
 - **Demo Application Page**: Visit [/hello-plugin/](/hello-plugin/) to see the plugin in action
-- **Configuration Options**: Customize the welcome message and enable/disable features
+- **Configuration Options**: Customize the welcome message, statistics, and a demo API key (teaching example)
 - **Plugin Statistics**: View plugin name, version, and status information
 - **Example Features**: Demonstrates auto-discovery, configuration management, API endpoints, and more
 
@@ -38,7 +38,8 @@ Plugins that require initial configuration should set `autoEnable: false` and mu
 The plugin stores its configuration in the `pluginConfigs` MongoDB collection:
 
 - **Welcome Message**: Customize the message shown on the plugin page
-- **Enable/Disable**: Toggle whether the custom message is displayed
+- **Show Statistics**: Toggle statistics on the plugin page
+- **Demo API Key**: A password field used only as a teaching example (not sent anywhere). The admin form shows Configured or Not configured; Reveal fetches that one value and is recorded in Admin → Logs. Verify asks the server whether a key is stored, without showing it.
 
 Configuration can be modified via:
 - The admin UI at [/admin/plugin-config.shtml?plugin=hello-world](/admin/plugin-config.shtml?plugin=hello-world) (for adinistrators only)

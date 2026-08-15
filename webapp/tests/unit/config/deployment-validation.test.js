@@ -3,8 +3,8 @@
  * @tagline         Unit tests for deployment configuration validation
  * @description     Validates deployment configuration
  * @file            webapp/tests/unit/config/deployment-validation.test.js
- * @version         1.7.14
- * @release         2026-08-14
+ * @version         1.7.15
+ * @release         2026-08-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

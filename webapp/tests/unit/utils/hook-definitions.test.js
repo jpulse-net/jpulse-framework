@@ -5,8 +5,8 @@
  *                  is not marked planned has a matching execute/executeFirst/executeForPlugin
  *                  call site, so the catalog cannot silently lie about hooks that never fire.
  * @file            webapp/tests/unit/utils/hook-definitions.test.js
- * @version         1.7.14
- * @release         2026-08-14
+ * @version         1.7.15
+ * @release         2026-08-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

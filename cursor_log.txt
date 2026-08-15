@@ -22525,3 +22525,61 @@ Reviewed tt-git-diff.txt: matches W-210 (config/plugin mask + reveal, Test Email
 
 
 ============================================================
+2026-08-15 15:12
+
+tooltips
+- possible to show arrow at disired location?
+- see screenshots
+- arrow point to void instead of button
+
+Yes. The caret is CSS-fixed at 50% of the tooltip box. After viewport clamp, the box shifts but the arrow does not, so it points at the gap. Proposed fix: after clamp, set a CSS variable so the arrow tracks the trigger center (inset-clamped). Automatic, no new attribute. Wait for go-ahead.
+
+
+============================================================
+2026-08-15 15:48
+
+yes, implement
+
+Implemented tooltip arrow tracking. After viewport clamp, `_positionTooltip` sets `--jp-tooltip-arrow-x` / `--jp-tooltip-arrow-y` so the caret points at the trigger center (inset 16px from rounded corners). CSS uses those vars instead of 50%. Docs: Smart Positioning note. 5 new unit tests, all 63 in jpulse-ui-widgets.test.js passed. No new attribute, no version bump.
+
+
+============================================================
+2026-08-15 16:11
+
+tested, it works
+
+lets fold this and next into one work item:
+- W-211, v1.7.15, 2026-08-15: confirmDialog: toast and keep open on button-callback throw; fix tooltip arrow position
+- update work item
+- suggest change in spec if needed
+- implement if no open questions
+
+Folded tooltip into W-211 (status unchanged). Spec tweaks applied: string throws toast the string; empty message → Unexpected error; toast.error guarded; docs for both bugs. confirmDialog catch now toasts and sets shouldClose=false. 4 new tests; 67 passed in jpulse-ui-widgets.test.js. No i18n key (matches other hardcoded toasts).
+
+
+============================================================
+2026-08-15 16:14
+
+review other jpulse ui dialogs if they have the same issue
+
+No other dialog has the same bug. alert/info/success are _showSimpleDialog → confirmDialog with array buttons (no app callback). Object buttons passed through those APIs inherit the W-211 catch. No prompt/form dialog. onOpen (uncaught) and onClose (console-only after close) are different classes, not fold-in.
+
+
+============================================================
+2026-08-15 16:27
+
+release prep: review tt-git-diff.txt; assume W-211, v1.7.15, 2026-08-15; update highlights, CHANGELOG, commit-message.txt
+
+Reviewed tt-git-diff.txt: matches W-211 (confirmDialog toast+keep-open; tooltip arrow CSS vars; ui-reference; 9 tests). Incidental: test @genai header; work-items W-210 DONE + IN_PROGRESS section move (operator). W-211 deliverables: added string-throw test note (status unchanged). Added v1.7.15 highlights and CHANGELOG section. Wrote commit-message.txt. No version bump, no commit.
+
+
+============================================================
+2026-08-15 16:35
+
+operator error, W-211 was already taken
+- now changed to W-212
+
+Renamed leftover test describe to W-212. README, docs/README, CHANGELOG, commit-message, and work-item heading were already W-212. Left historical cursor_log and the real auth-mfa W-211 (v1.0.6) alone.
+
+
+============================================================

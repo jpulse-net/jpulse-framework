@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.7.14
- * @release         2026-08-14
+ * @version         1.7.15
+ * @release         2026-08-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -3373,6 +3373,13 @@ window.jPulse = {
                                     }
                                 } catch (error) {
                                     console.error('- jPulse.UI.confirmDialog: Dialog callback error:', error);
+                                    const message = (error && error.message)
+                                        || (typeof error === 'string' && error)
+                                        || 'Unexpected error';
+                                    if (jPulse.UI.toast && typeof jPulse.UI.toast.error === 'function') {
+                                        jPulse.UI.toast.error(message);
+                                    }
+                                    shouldClose = false;
                                 }
                             }
 
@@ -8388,6 +8395,7 @@ window.jPulse = {
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
                 const spacing = 8; // Space between trigger and tooltip
+                const arrowInset = 16; // Keep caret off the 15px rounded corners
 
                 // Get preferred position from attribute, config, or auto-detect
                 const configPosition = '{{appConfig.view.jPulse.UI.tooltip.position}}' || 'auto';
@@ -8455,6 +8463,18 @@ window.jPulse = {
                 // Keep tooltip within viewport bounds
                 left = Math.max(8, Math.min(left, viewportWidth - tooltipRect.width - 8));
                 top = Math.max(8, Math.min(top, viewportHeight - tooltipRect.height - 8));
+
+                // Point the caret at the trigger center after the box may have shifted
+                const clampArrow = (offset, size) => {
+                    const inset = Math.min(arrowInset, size / 2);
+                    return Math.max(inset, Math.min(offset, size - inset));
+                };
+                const triggerCenterX = triggerRect.left + (triggerRect.width / 2);
+                const triggerCenterY = triggerRect.top + (triggerRect.height / 2);
+                const arrowX = clampArrow(triggerCenterX - left, tooltipRect.width);
+                const arrowY = clampArrow(triggerCenterY - top, tooltipRect.height);
+                tooltipEl.style.setProperty('--jp-tooltip-arrow-x', `${arrowX}px`);
+                tooltipEl.style.setProperty('--jp-tooltip-arrow-y', `${arrowY}px`);
 
                 // Apply position
                 tooltipEl.style.top = `${top + window.scrollY}px`;

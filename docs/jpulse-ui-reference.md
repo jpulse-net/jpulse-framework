@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.7.14
+# jPulse Docs / jPulse.UI Widget Reference v1.7.15
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -264,7 +264,7 @@ const result = await jPulse.UI.confirmDialog({
   - `minHeight` (number): Minimum dialog height (default: 200)
   - `zIndex` (number): Custom z-index (default: auto-calculated). Omitted or `null` uses automatic stacking; any other value is applied (including **`0`**, v1.6.39+).
   - `onOpen` (Function): Callback when dialog opens; receives `dialog` element. Fired **synchronously** after the dialog is appended to the DOM and **before** any open animation — use it to initialize widgets (e.g. `jPulse.UI.input.initAll(dialog)`) when `message` contains dynamic HTML with jpSelect, slider, or other input widgets.
-  - `onClose` (Function): Callback when dialog closes; fired on **all** close paths — button click, ESC key, and programmatic close
+  - `onClose` (Function): Callback when dialog closes; fired on **all** close paths — button click, ESC key, and programmatic close. Not called when an object-style button callback returns `{ dontClose: true }` or throws (see below).
 
 **Returns:** `Promise<Object>` - Resolves with user choice:
 - `confirmed` (boolean): True if user clicked a non-cancel button
@@ -289,6 +289,7 @@ const result = await jPulse.UI.confirmDialog({
 - **Default button styling**: default button has a visible at-rest ring indicator; all buttons have an enhanced focus ring
 - **Button shortcut underline**: the shortcut letter (first letter of label) is underlined in the button text
 - **i18n support**: Default titles and buttons from translation system
+- **Object-button callback errors**: If an object-style button callback throws or rejects, the dialog stays open (`shouldClose = false`, same as `{ dontClose: true }`), `console.error` is logged, and an error toast shows `error.message` (or the thrown string, or `Unexpected error`). The confirm promise stays pending until a later close or ESC. Array-style `buttons: ['Cancel', 'OK']` is unchanged.
 
 ---
 
@@ -1224,7 +1225,7 @@ Individual tooltips can override these defaults using `data-tooltip-position` an
 ### Features
 
 - **HTML Content Support**: All tooltip content is treated as HTML, allowing rich formatting
-- **Smart Positioning**: Automatically positions tooltip to stay within viewport bounds
+- **Smart Positioning**: Automatically positions tooltip to stay within viewport bounds. After the box is shifted, the arrow stays pointed at the trigger (not the center of the tooltip).
 - **Mobile Support**: On touch devices, tooltips appear on tap instead of hover
 - **Keyboard Accessibility**: Tooltips appear on focus and can be dismissed with Escape key
 - **ARIA Attributes**: Automatically adds `aria-describedby` and `role="tooltip"` for screen readers

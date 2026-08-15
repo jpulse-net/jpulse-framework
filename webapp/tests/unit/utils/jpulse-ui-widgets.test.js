@@ -3,13 +3,13 @@
  * @tagline         Unit Tests for jPulse.UI Dialog, Accordion, Tab, and Tooltip Widgets
  * @description     Tests for client-side UI widgets: alertDialog, infoDialog, accordion, tabs, tooltip
  * @file            webapp/tests/unit/utils/jpulse-ui-widgets.test.js
- * @version         1.7.14
- * @release         2026-08-14
+ * @version         1.7.15
+ * @release         2026-08-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.5, Claude Sonnet 4.6
+ * @genai           80%, Cursor 3.15, Grok 4.6
  */
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
@@ -299,6 +299,96 @@ describe('jPulse.UI Dialog Widgets (W-048)', () => {
             const buttons = document.querySelectorAll('.jp-dialog-btn');
             buttons[0].click();
             await new Promise(r => setTimeout(r, 50));
+        });
+    });
+
+    describe('confirmDialog - callback throw (W-212)', () => {
+        let toastErrorSpy;
+        let consoleErrorSpy;
+
+        beforeEach(() => {
+            toastErrorSpy = jest.spyOn(window.jPulse.UI.toast, 'error').mockImplementation(() => {});
+            consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        });
+
+        afterEach(() => {
+            toastErrorSpy.mockRestore();
+            consoleErrorSpy.mockRestore();
+        });
+
+        test('thrown callback: toasts error.message, keeps dialog open, does not call onClose', async () => {
+            const onClose = jest.fn();
+            window.jPulse.UI.confirmDialog({
+                message: 'Save settings?',
+                buttons: {
+                    'Save': () => {
+                        throw new Error('jPulse.api.patch is not a function');
+                    }
+                },
+                onClose
+            });
+
+            const overlay = document.querySelector('.jp-dialog-overlay');
+            expect(overlay).toBeTruthy();
+            document.querySelector('.jp-dialog-btn').click();
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            expect(toastErrorSpy).toHaveBeenCalledWith('jPulse.api.patch is not a function');
+            expect(consoleErrorSpy).toHaveBeenCalled();
+            expect(document.querySelector('.jp-dialog-overlay')).toBeTruthy();
+            expect(onClose).not.toHaveBeenCalled();
+        });
+
+        test('rejected promise: toasts error.message and keeps dialog open', async () => {
+            const onClose = jest.fn();
+            window.jPulse.UI.confirmDialog({
+                message: 'Save settings?',
+                buttons: {
+                    'Save': () => Promise.reject(new Error('save failed'))
+                },
+                onClose
+            });
+
+            document.querySelector('.jp-dialog-btn').click();
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            expect(toastErrorSpy).toHaveBeenCalledWith('save failed');
+            expect(document.querySelector('.jp-dialog-overlay')).toBeTruthy();
+            expect(onClose).not.toHaveBeenCalled();
+        });
+
+        test('throw without message: toasts Unexpected error', async () => {
+            window.jPulse.UI.confirmDialog({
+                message: 'Save settings?',
+                buttons: {
+                    'Save': () => {
+                        throw new Error('');
+                    }
+                }
+            });
+
+            document.querySelector('.jp-dialog-btn').click();
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            expect(toastErrorSpy).toHaveBeenCalledWith('Unexpected error');
+            expect(document.querySelector('.jp-dialog-overlay')).toBeTruthy();
+        });
+
+        test('string throw: toasts the string', async () => {
+            window.jPulse.UI.confirmDialog({
+                message: 'Save settings?',
+                buttons: {
+                    'Save': () => {
+                        throw 'save failed';
+                    }
+                }
+            });
+
+            document.querySelector('.jp-dialog-btn').click();
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            expect(toastErrorSpy).toHaveBeenCalledWith('save failed');
+            expect(document.querySelector('.jp-dialog-overlay')).toBeTruthy();
         });
     });
 });
@@ -1184,6 +1274,115 @@ describe('jPulse.UI Tooltip Widget (W-162)', () => {
 
             expect(tooltipEl.classList.contains('jp-tooltip-show')).toBe(false);
         });
+    });
+});
+
+describe('jPulse.UI Tooltip Widget (arrow tracks trigger)', () => {
+    const tooltipSize = { width: 240, height: 40 };
+    const triggerSize = { width: 32, height: 32 };
+
+    function mockRect(el, rect) {
+        el.getBoundingClientRect = () => ({
+            x: rect.left,
+            y: rect.top,
+            left: rect.left,
+            top: rect.top,
+            right: rect.left + rect.width,
+            bottom: rect.top + rect.height,
+            width: rect.width,
+            height: rect.height,
+            toJSON: () => {}
+        });
+    }
+
+    function setupTooltip(position) {
+        document.body.innerHTML = `
+            <button id="arrow-trigger" class="jp-tooltip"
+                data-tooltip="Preferences and map settings"
+                data-tooltip-position="${position}">Hover</button>
+        `;
+        const trigger = document.getElementById('arrow-trigger');
+        window.jPulse.UI.tooltip.init(trigger);
+        const tooltipEl = trigger._jpTooltip;
+        mockRect(tooltipEl, { left: 0, top: 0, ...tooltipSize });
+        return { trigger, tooltipEl };
+    }
+
+    function arrowOffset(tooltipEl, axis) {
+        return parseFloat(tooltipEl.style.getPropertyValue(`--jp-tooltip-arrow-${axis}`));
+    }
+
+    beforeEach(() => {
+        document.body.innerHTML = '';
+        window.jPulse.UI.tooltip._activeTooltip = null;
+        window.jPulse.UI.tooltip._activeTrigger = null;
+        window.jPulse.UI.tooltip._tooltipTimers = new WeakMap();
+    });
+
+    afterEach(() => {
+        document.querySelectorAll('.jp-tooltip-popup').forEach(el => el.remove());
+    });
+
+    test('centered trigger: arrow sits at the tooltip midpoint', () => {
+        const { trigger, tooltipEl } = setupTooltip('bottom');
+        const left = Math.round((window.innerWidth - triggerSize.width) / 2);
+        mockRect(trigger, { left, top: 80, ...triggerSize });
+
+        window.jPulse.UI.tooltip._positionTooltip(trigger, tooltipEl);
+
+        expect(arrowOffset(tooltipEl, 'x')).toBe(tooltipSize.width / 2);
+    });
+
+    test('right-edge trigger: arrow tracks the button, not the tooltip center', () => {
+        const { trigger, tooltipEl } = setupTooltip('bottom');
+        const left = window.innerWidth - triggerSize.width - 12;
+        mockRect(trigger, { left, top: 16, ...triggerSize });
+
+        window.jPulse.UI.tooltip._positionTooltip(trigger, tooltipEl);
+
+        const triggerCenterX = left + (triggerSize.width / 2);
+        const tooltipLeft = parseFloat(tooltipEl.style.left) - (window.scrollX || 0);
+        const expected = triggerCenterX - tooltipLeft;
+        expect(arrowOffset(tooltipEl, 'x')).toBe(expected);
+        expect(arrowOffset(tooltipEl, 'x')).not.toBe(tooltipSize.width / 2);
+    });
+
+    test('left-edge trigger: arrow tracks the button, not the tooltip center', () => {
+        const { trigger, tooltipEl } = setupTooltip('top');
+        mockRect(trigger, { left: 8, top: 80, ...triggerSize });
+
+        window.jPulse.UI.tooltip._positionTooltip(trigger, tooltipEl);
+
+        const triggerCenterX = 8 + (triggerSize.width / 2);
+        const tooltipLeft = parseFloat(tooltipEl.style.left) - (window.scrollX || 0);
+        const expected = triggerCenterX - tooltipLeft;
+        expect(arrowOffset(tooltipEl, 'x')).toBe(expected);
+        expect(arrowOffset(tooltipEl, 'x')).not.toBe(tooltipSize.width / 2);
+    });
+
+    test('bottom-edge left tooltip: vertical arrow tracks the button', () => {
+        const { trigger, tooltipEl } = setupTooltip('left');
+        const tall = { width: 240, height: 80 };
+        mockRect(tooltipEl, { left: 0, top: 0, ...tall });
+        const top = window.innerHeight - triggerSize.height - 12;
+        mockRect(trigger, { left: 400, top, ...triggerSize });
+
+        window.jPulse.UI.tooltip._positionTooltip(trigger, tooltipEl);
+
+        const triggerCenterY = top + (triggerSize.height / 2);
+        const tooltipTop = parseFloat(tooltipEl.style.top) - (window.scrollY || 0);
+        const expected = triggerCenterY - tooltipTop;
+        expect(arrowOffset(tooltipEl, 'y')).toBe(expected);
+        expect(arrowOffset(tooltipEl, 'y')).not.toBe(tall.height / 2);
+    });
+
+    test('extreme clamp: arrow stays inset from the tooltip edge', () => {
+        const { trigger, tooltipEl } = setupTooltip('bottom');
+        mockRect(trigger, { left: window.innerWidth - 8, top: 16, width: 4, height: 32 });
+
+        window.jPulse.UI.tooltip._positionTooltip(trigger, tooltipEl);
+
+        expect(arrowOffset(tooltipEl, 'x')).toBe(tooltipSize.width - 16);
     });
 });
 

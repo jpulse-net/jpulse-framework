@@ -1,6 +1,35 @@
-# jPulse Docs / Version History v1.7.14
+# jPulse Docs / Version History v1.7.15
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.15, W-212, 2026-08-15
+
+**Commit:** `W-212, v1.7.15: jPulse.UI: toast and keep confirmDialog open on button-callback throw; fix tooltip arrow`
+
+**BUGFIX RELEASE**: Two `jPulse.UI` bugs. **(1) confirmDialog:** Object-style button callbacks that throw or reject no longer close the dialog as if the action succeeded. The `catch` still logs `console.error`, toasts `error.message` (or a thrown string, or `Unexpected error`), and sets `shouldClose = false` (same as `{ dontClose: true }`); `onClose` is not called; the confirm promise stays pending until a later close or ESC. Array-style `buttons: ['Cancel', 'OK']` is unchanged. Found in BubbleMap Map Settings: Save threw (`jPulse.api.patch` is not a function); dialog closed; no toast. Alert / info / success use array buttons by default; object buttons passed through those APIs inherit the same catch. **(2) Tooltip arrow:** After viewport clamp, `_positionTooltip` sets `--jp-tooltip-arrow-x` / `--jp-tooltip-arrow-y` so the caret tracks the trigger center (inset 16px from rounded corners) instead of staying at 50% of the box and pointing at the gap between nearby buttons. No new attribute.
+
+**Objective**: Surface button-callback failures to the user and keep the dialog open; keep the tooltip caret pointed at the trigger after the box is shifted on screen.
+
+**Key features**:
+- confirmDialog object-button throw/reject: toast + keep open
+- Tooltip caret tracks trigger after viewport clamp
+
+**Files changed**:
+- `webapp/view/jpulse-common.js`: confirmDialog `catch`; `_positionTooltip` arrow CSS variables
+- `webapp/view/jpulse-common.css`: caret `left`/`top` from `--jp-tooltip-arrow-x` / `--jp-tooltip-arrow-y`
+- `docs/jpulse-ui-reference.md`: callback-error and Smart Positioning notes
+- `webapp/tests/unit/utils/jpulse-ui-widgets.test.js`: 4 confirmDialog throw tests; 5 tooltip arrow tests
+- `docs/dev/work-items.md`: W-212 features/deliverables (status unchanged)
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.7.15 / W-212
+- `docs/CHANGELOG.md`: this section
+
+Verified via `jpulse-ui-widgets.test.js` (67 tests) and live manual testing on `/jpulse-examples/ui-widgets.shtml`: object-button Save throw shows the error toast and leaves the dialog open; tooltip caret points at the trigger on edge-clamped buttons.
+
+**Release**:
+- Work Item: W-212
+- Version: v1.7.15
+- Release Date: 2026-08-15
 
 ________________________________________________
 ## v1.7.14, W-210, 2026-08-14

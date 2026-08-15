@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.7.14
- * @release         2026-08-14
+ * @version         1.7.15
+ * @release         2026-08-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -4405,31 +4405,33 @@ body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {
     border: 6px solid transparent;
 }
 
-/* Position variants with arrows */
+/* Position variants with arrows.
+ * --jp-tooltip-arrow-x / --jp-tooltip-arrow-y are set in JS so the caret
+ * keeps pointing at the trigger after the box is shifted to stay on screen. */
 .jp-tooltip-popup-top::before {
     bottom: -12px;
-    left: 50%;
+    left: var(--jp-tooltip-arrow-x, 50%);
     transform: translateX(-50%);
     border-top-color: var(--jp-theme-color-warning, #ffc107);
 }
 
 .jp-tooltip-popup-bottom::before {
     top: -12px;
-    left: 50%;
+    left: var(--jp-tooltip-arrow-x, 50%);
     transform: translateX(-50%);
     border-bottom-color: var(--jp-theme-color-warning, #ffc107);
 }
 
 .jp-tooltip-popup-left::before {
     right: -12px;
-    top: 50%;
+    top: var(--jp-tooltip-arrow-y, 50%);
     transform: translateY(-50%);
     border-left-color: var(--jp-theme-color-warning, #ffc107);
 }
 
 .jp-tooltip-popup-right::before {
     left: -12px;
-    top: 50%;
+    top: var(--jp-tooltip-arrow-y, 50%);
     transform: translateY(-50%);
     border-right-color: var(--jp-theme-color-warning, #ffc107);
 }

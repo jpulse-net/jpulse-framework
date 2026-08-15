@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.14
+# jPulse Docs / Dev / Work Items v1.7.15
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -7982,19 +7982,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - the dogfood copy under `plugins/auth-mfa/` already has the controller rename and README note; plugin `version` in `plugin.json` is still 1.0.5 until the plugin release bump
   - no framework files; no work-item status change on W-209
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-210, v1.7.14, 2026-08-14: config: sensitive fields, masked reads with audited reveal
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - no secret in any bulk config read, page context, application log, or change-log diff — for admins too, not just non-admins
@@ -8081,6 +8070,52 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-212, v1.7.15, 2026-08-15: jPulse.UI: toast and keep confirmDialog open on button-callback throw; fix tooltip arrow position
+- status: 🚧 IN_PROGRESS
+- type: Bug
+- objectives:
+  - when a confirmDialog object-style button callback throws, show an error toast and leave the dialog open
+  - do not fail silently (console-only) and do not close as if the action succeeded
+  - tooltip caret must point at the trigger after the box is shifted to stay on screen
+- context:
+  - `jPulse.UI.confirmDialog` in `webapp/view/jpulse-common.js` awaits object-style button callbacks
+  - the `catch` only does `console.error('- jPulse.UI.confirmDialog: Dialog callback error:', error)`
+  - `shouldClose` stays `true`, so the dialog closes after the throw
+  - found in BubbleMap Map Settings: Save threw (`jPulse.api.patch` is not a function); dialog closed; no toast; no request
+  - tooltip `_positionTooltip` clamps the box to the viewport, but the caret was CSS-fixed at 50% of the box, so it pointed at the gap between nearby buttons
+- features:
+  - on callback throw (sync or rejected promise): keep `console.error`
+  - toast `error.message`; if the throw is a non-empty string, toast that string; otherwise `Unexpected error`
+  - set `shouldClose = false` (same as `{ dontClose: true }`); `onClose` is not called; the confirm promise stays pending until a later close or ESC
+  - array-style `buttons: ['Cancel', 'OK']` unchanged (those handlers do not run app callbacks)
+  - tooltip arrow: after viewport clamp, set `--jp-tooltip-arrow-x` / `--jp-tooltip-arrow-y` so the caret tracks the trigger center; inset 16px from rounded corners; no new attribute
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - `confirmDialog` object-button `catch` as above (guard `jPulse.UI.toast.error`)
+    - `_positionTooltip` sets arrow CSS variables after clamp
+  - `webapp/view/jpulse-common.css`:
+    - caret `left`/`top` from `--jp-tooltip-arrow-x` / `--jp-tooltip-arrow-y` (fallback 50%)
+  - `docs/jpulse-ui-reference.md`:
+    - confirmDialog: callback throw keeps dialog open and toasts
+    - tooltip Smart Positioning: arrow tracks trigger after clamp
+  - `webapp/tests/unit/utils/jpulse-ui-widgets.test.js`:
+    - thrown callback → toast.error called, dialog still in the document, `onClose` not called
+    - rejected promise, missing `error.message`, and string throw covered
+    - tooltip arrow: center, left/right edge, vertical clamp, extreme inset
+- notes:
+  - `Unexpected error` is a literal (same as other hardcoded toasts in `jpulse-common.js`); no new i18n key
+  - string throws toast the string so `throw 'save failed'` is visible; empty `error.message` uses the fallback
+
+
+
+
+
+
+
+
 
 
 ### Pending
@@ -8109,7 +8144,7 @@ release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
 - assume W-211, v1.0.6, 2026-08-13
-- assume W-210, v1.7.14, 2026-08-14
+- assume W-212, v1.7.15, 2026-08-15
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -8121,12 +8156,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.14 2026-08-14
+node bin/bump-version.js 1.7.15 2026-08-15
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.14; git push origin main --tags
+git tag v1.7.15; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

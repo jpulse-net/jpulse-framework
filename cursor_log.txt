@@ -22583,3 +22583,175 @@ Renamed leftover test describe to W-212. README, docs/README, CHANGELOG, commit-
 
 
 ============================================================
+2026-08-18 00:48
+
+Thoroughness: medium. Repo: /Users/peterthoeny/Dev/jpulse-framework (jPulse Framework).
+
+I need to add a new config section `controller.net.outboundFetch` (or similar) with keys maxBytes, timeoutMs, stallTimeoutMs, maxRedirects, allowedSchemes, blockedHosts, userAgent, allowPrivateAddresses. Please report:
+
+1. The structure of `webapp/app.conf`: how the `controller.*` section is organized (paste the surrounding structure and 2-3 representative subsections with their comment style, e.g. controller.auth, controller.user, controller.log). Is there already a `controller.net` or anything network related? What is the comment convention for documenting each key? Note the file's format (is it JS object, JSON5, conf syntax?).
+
+2. How site admins override these values: is there `site/webapp/app.conf`? How does config merging work (which file/function)? Is there a runtime-editable config in MongoDB (`webapp/model/config.js` + admin config UI) and how does a config section become admin-editable (schema definition, `extendSchema`)? Which framework config keys are admin-editable vs app.conf-only? Give concrete examples.
+
+3. Where config keys are documented for users/admins: list the doc files under docs/ that enumerate app.conf keys (e.g. docs/configuration.md or similar) and show the format of a few entries.
+
+4. Whether there's a JSON schema / validation for app.conf keys anywhere.
+
+Return concrete excerpts with file:line references.
+
+Investigated app.conf structure, merge chain, MongoDB ConfigModel vs file config, user-facing docs, and validation. No `controller.net` exists today. app.conf is a JS object literal loaded via `new Function`; merged framework → site → app-secret with `CommonUtils.deepMerge`; cached in `.jpulse/app.json`. Admin-editable keys live in ConfigModel.baseSchema/extendSchema (general, email, broadcast, manifest), not app.conf. No JSON schema for app.conf; ConfigModel has custom JS schema validation only for MongoDB site config.
+
+
+============================================================
+2026-08-18 00:47
+
+next: ### W-213, v1.7.16, 2026-08-18: utils: URL fetch
+- placeholder @work-items.md (8112-8121)
+- review design @tt-T-098-ai-external-ingest.md (302-378)
+- ask questions if unclear
+- suggest change of spec if any, goal is a good DX, good usability for site developers; use the "don't make me think" paradigm
+- plan how to implement (wait for my go ahead)
+
+Reviewed the T-098 §11.1 hardened outbound fetch design against the actual framework, explored utils/config/logging/metrics/demo conventions via three explore subagents, then proposed spec changes and a phased plan. No code written yet (waiting for go-ahead).
+
+Repo mismatches found in the design:
+- Config path `controller.net.outboundFetch` does not fit: app.conf mirrors the file tree and already has a `utils:` section (utils.common, utils.i18n, utils.theme); no `net` controller exists. Config belongs at `utils.outboundFetch`.
+- T-083 `widgetChartCore.apiFetch` is not in this repo (map site/plugin repo) - the migration and its deliberate PRIVATE_ADDRESS behavior change are downstream, not W-213. Framework's only outbound call is the compliance POST in controller/health.js (fixed jPulse host, AbortSignal.timeout 30s) - leave as-is.
+
+DX spec changes proposed (all accepted):
+1. `OutboundFetch.fetch(url, options)` instead of `fetchExternal` (module name already says outbound).
+2. Add `getEffectiveOptions(callerOptions)` - mirrors W-208 `getEffectiveLimits()`; needed by the demo, T-098 chip, T-083 admin, and makes narrowing unit-testable.
+3. Config value is both default and ceiling, so ship generous ceilings (maxBytes 10 MB, timeoutMs 30 s, stallTimeoutMs 10 s, maxRedirects 5) and let callers narrow.
+4. `as: 'json'` plus JSON_PARSE_ERROR (T-083's whole use case is a JSON API).
+5. Return body + headers on non-2xx (still success:false / UPSTREAM_ERROR) - upstream error messages and etag/last-modified for caching callers.
+6. Host-list semantics spelled out: case-insensitive, punycode-normalized, exact host, `*.host` wildcard (not apex), string-or-array input, blocked beats allowed, site blockedHosts unioned with caller's.
+7. `req`/`ctx` option so log lines carry username+IP (SSRF trail must say who), plus caller `signal`.
+8. Error messages name the limit and the config key that changes it; PRIVATE_ADDRESS mentions the dev switch.
+9. Startup warning when allowPrivateAddresses is true in production, mirroring checkLocalAuthRestrictionSafety (W-195) / checkEmailVerificationSafety (W-205).
+10. Concrete header rules: hop-by-hop + Host + Content-Length always stripped; Authorization/Cookie/Proxy-Authorization dropped cross-origin; 307/308 preserve method+body, 301/302/303 downgrade to GET; maxRedirects 0 means no follow.
+11. Demo endpoint must be `auth: 'admin'` + rate limited (auth:'none' like hello-todo would make the site an open SSRF proxy).
+Documented limitation: no forward/egress proxy support in v1.
+
+Decisions taken via the question card:
+- Transport: node:https / node:http with a pinned `lookup` (no new dependency; correct SNI + cert validation; full control of encoded and decoded byte caps and the stall timer) rather than fetch+undici or unpinned fetch.
+- Config at `utils.outboundFetch`.
+- Default acceptContentTypes empty = accept anything, callers narrow.
+- Standalone `/hello-fetch/` page with an admin-only, rate-limited endpoint.
+- Include metrics counters, optional rateLimitKey, production startup warning, and `as: 'json'`; the `onOutboundFetch` plugin hook is deferred as tech debt.
+
+Plan (5 phases, awaiting go-ahead): (1) webapp/utils/outbound-fetch.js pure layer - getEffectiveOptions, URL pre-flight, host matching, address classifier with IPv4-mapped unwrapping; (2) transport - pinned single hop, Content-Length pre-check, encoded+decoded counters with mid-stream abort, zlib decompression, stall + total timeouts, redirect loop re-running the full guard per hop, `_deps` injection for offline tests; (3) plumbing - global.OutboundFetch in bootstrap.js, checkOutboundFetchSafety, utils.outboundFetch in app.conf, CounterManager + MetricsRegistry, RedisManager rate limit; (4) docs/outbound-fetch.md + docs/README.md link + security-and-auth.md cross-reference (no W-numbers); (5) hello-fetch demo page, site/webapp/controller/helloFetch.js, nav entry, helloCards component, structure test. Then npm test. No version headers touched, no bump script, no work-item status change.
+
+
+============================================================
+2026-08-18 01:13
+
+looks good.
+
+grok:
+- create work item @work-items.md (8112-8121)
+- start implementation unless questions
+
+Filled W-213 in work-items.md (status left 🚧 IN_PROGRESS, section unchanged) and implemented the agreed outbound-fetch plan.
+
+Core: webapp/utils/outbound-fetch.js — OutboundFetch.fetch() / getEffectiveOptions(); two-stage SSRF guard (URL pre-flight + DNS then pin via custom lookup on node:http/https); host lists (exact / *.host, punycode, string or array); encoded+decoded byte caps with gzip/deflate/br; stall + total timeouts; manual redirect loop with 301/302/303 GET downgrade and sensitive-header strip on cross-origin hops; as: text|json|buffer; never rejects. _deps injection for offline tests.
+
+Plumbing: global.OutboundFetch + checkOutboundFetchSafety() in bootstrap.js (warns if allowPrivateAddresses is true in prod); utils.outboundFetch in webapp/app.conf (10 MB / 30 s / 10 s stall / 5 redirects); CounterManager + MetricsRegistry; optional rateLimitKey via RedisManager.
+
+Tests: outbound-fetch.test.js (pure guards), outbound-fetch-transport.test.js (mocked I/O: gzip bomb, lying Content-Length, private second hop, 303 downgrade, Authorization strip, stall vs total timeout, json, non-2xx body), bootstrap safety tests, hello-fetch-structure.test.js. 69/69 passed.
+
+Docs: docs/outbound-fetch.md; links from docs/README.md, security-and-auth.md, genai-instructions.md, app-examples.md, api-reference.md. No W-numbers in user docs.
+
+Demo: /hello-fetch/ (admin-only + rate-limited API), helloCards.fetch, nav + home card.
+
+Did not change work-item status, version headers, or run bump-version / git.
+
+
+============================================================
+2026-08-18 01:24
+
+I renamed the files already; I left the hello-fetch as is
+[mv outbound-fetch → url-fetch for docs, util, and two test files]
+please make the changes in code and text
+
+Renamed identifiers and prose to UrlFetch / urlFetch / url-fetch after the user's file moves. hello-fetch demo path kept.
+
+Code: class/global UrlFetch; config utils.urlFetch; checkUrlFetchSafety; log scope url-fetch.fetch; metrics urlFetch; rate-limit path utils:urlFetch; User-Agent jPulse-UrlFetch/<version>. Updated bootstrap.js, app.conf, url-fetch.js, both unit tests, bootstrap tests, helloFetch controller, hello-fetch page copy (API name and docs link), nav/home labels to "URL Fetch Demo".
+
+Docs: docs/url-fetch.md title and anchors; README, security-and-auth, genai-instructions, app-examples, api-reference. W-213 work-item text updated to the new names (status unchanged).
+
+Left tt-T-098-ai-external-ingest.md as the original design note (still says OutboundFetch.fetchExternal / controller.net.outboundFetch).
+
+Rename tests: 69 passed.
+
+
+============================================================
+2026-08-22 00:02
+
+...back after a break working on bubblemap.net website
+
+app start log has:
+- UrlFetch config dump (utils.urlFetch keys)
+- bootstrap ✅ UrlFetch: Available globally
+
+Confirmed the start log is the expected post-rename shape: app.conf merged as urlFetch, bootstrap registers global.UrlFetch. userAgent empty in the dump is correct (resolved at fetch time to jPulse-UrlFetch/<version>). Ready for /hello-fetch/ admin testing.
+
+
+============================================================
+2026-08-22 00:03
+
+I lost track here, what is next?
+
+Oriented: W-213 implementation and UrlFetch rename are done; unit tests passed; app start log confirms the util is live. Next is the user's manual test of /hello-fetch/ (admin), then they say "release prep" when satisfied. Status stays IN_PROGRESS until they move it.
+
+
+============================================================
+2026-08-22 00:10
+
+Manual test results from /hello-fetch/: pre-flight presets OK; example.com too-large and timeout returned NETWORK_ERROR "Invalid IP address: undefined"; twiki.org timed out at 20ms immediately.
+
+Root cause of the example.com failures: Node 20+ Happy Eyeballs calls the custom lookup with { all: true } and expects [{ address, family }]. The pin callback always used the classic (err, address, family) form, so the connector saw address undefined. Fixed pinned lookup to honor options.all. Also redact userinfo from finalUrl/redirects (credentials preset was echoing user:pass). Demo leftover extras: timeoutMs: 20 stuck after the Timeout preset and applied to the next typed URL — clear extras on URL edit and show the extras that will be sent. Tests: 52 passed in the two url-fetch files.
+
+
+============================================================
+2026-08-22 00:23
+
+Second-round manual results: too-large is RESPONSE_TOO_LARGE, timeout is REQUEST_TIMEOUT, twiki.org and robots.txt and jpulse.net succeed; health/status OK as JSON then 404 as UPSTREAM_ERROR (almost certainly POST on a GET-only route). User asked what else to test. Replied with a remaining checklist (form-only plus a few browser-console extras the demo cannot set). No code changes.
+
+
+============================================================
+2026-08-22 00:36
+
+Unexpected manual results: http://example.com/ stays HTTP 200 (IANA/Cloudflare serve HTTP; not a bug). httpbingo.org 403 on redirect-to 127.0.0.1 (they allowlist destinations; not a bug). wildcard *.example.com vs apex HOST_NOT_ALLOWED is the designed miss. Real bug: http://[::1]/ was DNS_FAILED because Node URL.hostname is "[::1]" and net.isIP rejects brackets, so we looked the literal up. Strip IPv6 brackets in normalizeHost / isPublicAddress / requestOnce. Tests 56 passed.
+
+
+============================================================
+2026-08-22 00:40
+
+Manual retest after IPv6 bracket fix: http://[::1]/ is PRIVATE_ADDRESS. httpbingo.org redirect-to example.com is OK with finalUrl https://example.com/ and one redirect hop. Confirmed both expected; no code change. User can say release prep when ready.
+
+
+============================================================
+2026-08-22 00:41
+
+User asked whether POST-with-body works (no form field) and whether PUT/DELETE are supported. Answered from code + transport tests: POST body is sent (string/Buffer as-is, object as JSON + content-type); 303 drops body and becomes GET; PUT/DELETE/HEAD are METHOD_NOT_ALLOWED with no request. No code change.
+
+
+============================================================
+2026-08-22 00:44
+
+Console POST to httpbingo.org/post returned OK. User asked if allowedMethods should be site-configurable. Recommended leave GET/POST hard-coded for W-213: untrusted-URL + write verbs is a confused-deputy write; no concrete caller needs PUT/DELETE yet. Same ceiling pattern as allowedSchemes would be the shape later if needed.
+
+
+============================================================
+2026-08-22 00:46
+
+User asked if more manual tests are needed and whether admin/developer docs are in place. Advised we are good on manual tests (redirect-to-private and gzip bomb stay unit-tested). Docs already exist: docs/url-fetch.md plus links from docs/README, security-and-auth, genai-instructions, api-reference, app-examples; changelog/highlights wait for release prep. Optional nits only (GET/POST not a config key, finalUrl redacts userinfo).
+
+
+============================================================
+2026-08-22 00:53
+
+Release prep W-213, v1.7.16, 2026-08-22. Reviewed tt-git-diff.txt: file list matches the work item (url-fetch util/tests/docs, bootstrap, app.conf, hello-fetch, nav/home). Updated W-213 features/deliverables only (Happy Eyeballs lookup, IPv6 unbracket, userinfo redact, extras note, api-reference/.markdown); status left IN_PROGRESS. Highlights + CHANGELOG + commit-message.txt. url-fetch.md notes GET/POST not configurable, redacted finalUrl, IPv6 literals. Tests: 74 passed (url-fetch, transport, bootstrap, hello-fetch-structure). Did not bump version or commit.
+
+
+============================================================

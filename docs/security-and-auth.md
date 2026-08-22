@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.7.15
+# jPulse Docs / Security & Authentication v1.7.16
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -453,6 +453,14 @@ middleware: {
 - Configurable directives per security requirements
 - Report-Only mode available for testing
 
+### URL Fetch
+
+When a user, a saved configuration, or any other untrusted input chooses the URL, do not call Node's `fetch()` or `http.request()` directly. Those follow redirects without re-checking the target, have no size cap unless you add one, and cannot stop a public hostname whose DNS points at a private address (cloud metadata, RFC1918, link-local).
+
+`UrlFetch.fetch(url, options)` is the framework primitive for that case: scheme and credential checks, punycode host matching, DNS resolution with a private-address reject and a pinned connect, per-hop redirect re-validation, encoded and decoded byte caps, and stall plus total timeouts. Callers may only **narrow** the site ceiling in `utils.urlFetch`. Details, codes, and the local-dev `allowPrivateAddresses` switch: [URL Fetch](url-fetch.md).
+
+Do **not** use it for a compile-time constant you already trust (for example the framework's own compliance POST). Use it the moment the host comes from outside your source tree.
+
 ### Rate Limiting
 
 jPulse rate-limits requests at two independent layers - they don't know about each other, and
@@ -709,6 +717,7 @@ For authenticated namespaces, **connection context (`ctx`) is established at upg
 3. **SQL injection**: Use parameterized queries (MongoDB driver handles this)
 4. **XSS prevention**: Escape user-generated content in templates; when rendering trusted-but-untrusted-content HTML (e.g. from a WYSIWYG editor), use `CommonUtils.sanitizeHtml()` (server) or `jPulse.string.sanitizeHtml()` (client) rather than a custom filter — both strip dangerous tags/attributes and normalize element tag-name case so foreign-namespace content (SVG, MathML) can't smuggle a `<script>` past a case-sensitive check
 5. **CSRF protection**: Consider implementing CSRF tokens for state-changing operations
+6. **Untrusted URLs**: Fetch user- or config-supplied URLs with `UrlFetch.fetch()`, never with raw `fetch()` / `http.request()` — see [URL Fetch](#url-fetch)
 
 ---
 
@@ -743,6 +752,7 @@ The following security features are planned or recommended for future implementa
 - **[Deployment Guide](deployment.md)** - Production deployment with security considerations
 - **[Cache Infrastructure](cache-infrastructure.md#rate-limiting)** - `RedisManager.cacheCheckRateLimit()` pattern for adding app-level rate limiting to your own endpoints
 - **[Getting Started](getting-started.md)** - Quick start guide including initial admin setup
+- **[URL Fetch](url-fetch.md)** - Hardened fetch for untrusted URLs
 
 ---
 

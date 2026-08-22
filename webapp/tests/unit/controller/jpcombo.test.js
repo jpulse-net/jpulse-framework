@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-187: jPulse.UI.input.jpCombo combo-box widget
  * @description     Source-code structural tests verifying jpCombo widget implementation in jpulse-common.js
  * @file            webapp/tests/unit/controller/jpcombo.test.js
- * @version         1.7.15
- * @release         2026-08-15
+ * @version         1.7.16
+ * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

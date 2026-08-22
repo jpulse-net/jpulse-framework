@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.15
+# jPulse Docs / Dev / Work Items v1.7.16
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -8062,19 +8062,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - T-092 (BubbleMap AI Agent) assumed provider LLM keys are unreadable even by admins; that is not what the framework will do, so correct that design doc to "masked in reads, revealable by an admin with an audit record" — or raise a `writeOnly` item if the hosted case demands it
   - `data.manifest.license.key` becomes sensitive in this pass; nothing in `webapp/` reads it yet, so there is no internal consumer to migrate
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-212, v1.7.15, 2026-08-15: jPulse.UI: toast and keep confirmDialog open on button-callback throw; fix tooltip arrow position
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bug
 - objectives:
   - when a confirmDialog object-style button callback throws, show an error toast and leave the dialog open
@@ -8117,6 +8106,78 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-213, v1.7.16, 2026-08-22: utils: URL fetch
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - one framework-owned way to fetch a URL that a user, a saved configuration, or any other untrusted input chose
+  - SSRF defenses, size caps, redirect re-validation, and timeouts written once and audited once
+  - call shape a site developer can use without thinking: `const res = await UrlFetch.fetch(url)` — resolves, never rejects
+- rationale:
+  - needed twice already (chart-widget proxy in the map site, AI URL ingest in T-098); the existing copy is plugin-local, has no size cap, follows redirects without re-checking the target, and allowlists by hostname string so a public name pointing at a private address sails through
+  - this is a pure security primitive with no site vocabulary; it belongs in the framework
+  - T-083 (`widgetChartCore.apiFetch`) is not in this repo — W-213 ships the primitive; the migration (and the deliberate "redirect to a private address now fails" change) is a downstream item
+- features:
+  - `UrlFetch.fetch(url, options)` and `UrlFetch.getEffectiveOptions(callerOptions)` on `global` after bootstrap; kebab-case file / PascalCase global like RedisManager
+  - caller options only narrow the site ceiling, never widen it; `getEffectiveOptions` is the same idea as W-208 `getEffectiveLimits()`
+  - GET or POST only (anything else is an error, not a silent downgrade); methods are not a site config key; `as: 'text' | 'json' | 'buffer'`
+  - two-stage address guard: URL pre-flight (http/https, no embedded credentials, IDN → punycode before allowlist compare, reject localhost / `*.localhost` / `*.local` / `*.internal`), then resolve DNS, reject if **any** address is non-public, connect to the address that was checked via a pinned `lookup` (node:http / node:https — no new dependency)
+  - pinned `lookup` answers both the classic `(err, address, family)` form and Node 20+ Happy Eyeballs `{ all: true }` → `[{ address, family }]`
+  - IPv6 URL literals: strip Node's hostname brackets (`[::1]`) before `net.isIP` so loopback is `PRIVATE_ADDRESS`, not `DNS_FAILED`
+  - `finalUrl` and `redirects` redact userinfo (credentials never echoed in the result)
+  - rejected ranges as specified (IPv4 private/loopback/link-local/CGNAT/multicast/reserved; IPv6 unspecified/loopback/ULA/link-local/NAT64/multicast); IPv4-mapped IPv6 unwrapped and re-checked
+  - redirects: manual loop, full guard on every Location, relative resolution, `maxRedirects: 0` means do not follow, 301/302/303 → GET and drop body, 307/308 preserve method and body, strip Authorization / Cookie / Proxy-Authorization on a cross-origin hop
+  - size cap on Content-Length (when present), on encoded bytes, and on decoded bytes (gzip/br bombs); stall timer plus total deadline
+  - empty `acceptContentTypes` accepts anything; callers narrow; empty caller `allowedHosts` means no caller restriction (site `blockedHosts` still apply)
+  - host lists: case-insensitive, punycode-normalized, exact host or `*.host` (subdomains, not apex), string or array input; blocked always beats allowed; site blockedHosts unioned with the caller
+  - non-2xx still returns status, headers, and the capped body (`success: false`, `UPSTREAM_ERROR`) so callers can read the upstream error message and cache validators
+  - error codes in the W-208 style with `details` and a message that names the limit and the `utils.urlFetch.*` key that changes it
+  - optional `rateLimitKey` via `RedisManager.cacheCheckRateLimit()` (fail-open); `req`/`ctx` so the log line says who; caller `AbortSignal`
+  - config at `utils.urlFetch` (mirrors `webapp/utils/url-fetch.js`); generous ceilings because the config value is both default and max
+  - startup warning when `allowPrivateAddresses` is true in production
+  - per-code counters + MetricsRegistry provider
+  - demo at `/hello-fetch/` (admin-only + rate-limited endpoint — not an open proxy)
+- deliverables:
+  - `webapp/utils/url-fetch.js`:
+    - `getEffectiveOptions()`, `fetch()`, address classifier, host matching, pinned http(s) transport, redirect loop, streaming byte caps, gzip/deflate/br decode, stall + total timeouts
+    - `_deps` injection (`lookup`, `httpRequest`, `httpsRequest`) so tests stay offline
+    - Happy Eyeballs `{ all: true }` pin; IPv6 unbracket; redact userinfo on finish
+  - `webapp/utils/bootstrap.js`:
+    - `global.UrlFetch` after LogController; `checkUrlFetchSafety()`
+  - `webapp/app.conf`:
+    - `utils.urlFetch` — maxBytes 10 MB, timeoutMs 30 s, stallTimeoutMs 10 s, maxRedirects 5, allowedSchemes, blockedHosts, userAgent, allowPrivateAddresses false, rateLimit
+  - `webapp/tests/unit/utils/url-fetch.test.js`:
+    - option narrowing both directions; every rejected address range; IPv4-mapped IPv6; punycode homograph vs ASCII allowlist; wildcard host matching; string-form lists; IPv6 bracket literals; `CREDENTIALS_IN_URL` redacts `finalUrl`
+  - `webapp/tests/unit/utils/url-fetch-transport.test.js`:
+    - Content-Length over cap vs lying Content-Length with oversized body; gzip bomb vs decoded cap; second-hop-resolves-private redirect; redirect limit; 303 downgrade with body dropped; Authorization stripped cross-origin; stall vs total timeout; content-type rejection; `as: 'json'` success and parse failure; non-2xx body still returned; pinned lookup `{ all: true }` shape
+  - `webapp/tests/unit/utils/bootstrap.test.js`:
+    - production warning when allowPrivateAddresses is true; silent otherwise
+  - `docs/url-fetch.md`:
+    - call, result, every code, config keys and ceiling semantics, localhost/dev switch, no-egress-proxy limitation
+  - `docs/README.md`, `docs/security-and-auth.md`, `docs/genai-instructions.md`, `docs/app-examples.md`, `docs/api-reference.md`, `docs/.markdown`:
+    - links / SSRF cross-reference / hello-fetch mention / sidebar listing (no work-item numbers)
+  - `site/webapp/view/hello-fetch/index.shtml` + `site/webapp/controller/helloFetch.js`:
+    - URL field, method/`as`, effective-limits panel, preset buttons that trip the interesting rejections, extras note + clear extras on URL edit, raw result; API `auth: 'admin'` + rateLimitKey
+  - `webapp/view/jpulse-navigation.js`, `webapp/view/home/index.shtml`:
+    - conditional hello-fetch entry / home card
+  - `webapp/tests/unit/site/hello-fetch-structure.test.js`:
+    - page, admin auth, card component, nav entry
+- notes:
+  - T-083 `widgetChartCore.apiFetch` is in the map site/plugin repo, not here; this item does not migrate it
+  - `webapp/controller/health.js` compliance POST stays on raw `fetch()` — it is a fixed jPulse-owned host, not untrusted input
+  - no forward/egress-proxy support in v1 (a proxy would move DNS out of the guard); document the limitation
+  - `onUrlFetch` plugin hook deferred (tech debt) — logging + metrics cover the audit trail for now
+  - caching stays out: caller policy, not a security primitive
+
+
+
+
+
+
+
 
 ### Pending
 
@@ -8126,6 +8187,8 @@ old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
+- version history: label is not shown in history table
+
 
 ### Potential next items:
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
@@ -8144,7 +8207,7 @@ release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
 - assume W-211, v1.0.6, 2026-08-13
-- assume W-212, v1.7.15, 2026-08-15
+- assume W-213, v1.7.16, 2026-08-22
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -8156,12 +8219,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.15 2026-08-15
+node bin/bump-version.js 1.7.16 2026-08-22
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.15; git push origin main --tags
+git tag v1.7.16; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

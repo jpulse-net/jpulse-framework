@@ -1,4 +1,4 @@
-# jPulse Framework v1.7.15
+# jPulse Framework v1.7.16
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -80,8 +80,9 @@ npm start
   - Ships with `hello-world` demo plugin showcasing all capabilities
 - **Health Metrics**: Aggregated across instances on all app servers
 - **Enterprise Security**: Built-in authentication, session management, security headers, and HTML sanitization
+- **Hardened URL Fetch**: `UrlFetch.fetch()` for a URL a user or a config field chose — SSRF guard, size caps, redirect re-validation (not raw Node `fetch()`)
 - **Internationalization**: Complete i18n support with dynamic translation loading
-- **Testing Framework**: 3200+ tests with automated cleanup and isolation
+- **Testing Framework**: 3300+ tests with automated cleanup and isolation
 - **Production Ready**: nginx integration, PM2 clustering, MongoDB replica sets
 
 ## Deployment Requirements
@@ -205,6 +206,7 @@ Business Source License 1.1 with Additional Terms
 
 ## Latest Release Highlights
 
+- **v1.7.16, W-213, 2026-08-22: Utils: URL fetch**: `UrlFetch.fetch(url)` is the one helper for a URL a user or a config field chose — scheme and credential checks, punycode host lists, DNS then reject any non-public address, pinned connect (including Node 20+ Happy Eyeballs), per-hop redirect re-validation, encoded and decoded size caps, stall plus total timeouts. The call resolves and never rejects. GET or POST only (not a site config key). Callers may only narrow `utils.urlFetch`. Admin demo at `/hello-fetch/`.
 - **v1.7.15, W-212, 2026-08-15: jPulse.UI: toast and keep confirmDialog open on button-callback throw; fix tooltip arrow**: Object-style `confirmDialog` button callbacks that throw or reject no longer close the dialog as if the action succeeded. The catch still logs `console.error`, shows an error toast (`error.message`, a thrown string, or `Unexpected error`), and sets `shouldClose = false` (same as `{ dontClose: true }`). Array-style `buttons: ['Cancel', 'OK']` is unchanged. Tooltip caret now tracks the trigger after the box is shifted to stay on screen, instead of staying at 50% and pointing at the gap between nearby buttons.
 - **v1.7.14, W-210, 2026-08-14: Config: sensitive fields, masked reads with audited reveal**: One schema flag (`sensitive: true`, implied by password inputs) keeps secrets out of every bulk config and plugin read — including for admins. Unset is `""`; set is `********`. An admin-only single-field reveal (`GET /api/1/config/:id/secret`, `GET /api/1/plugin/:name/config/secret`) writes a `read` audit (path only). Writes treat omit/mask as unchanged and `""` as clear. Test Email and plugin Verify read the stored secret on the server. Hello-world ships a `demoApiKey` teaching field. **Behavior:** admin `GET /api/1/config` and plugin config no longer return SMTP passwords, license keys, or `type: "password"` values in clear.
 - **v1.7.13, W-209, 2026-08-13: Plugins: extensible hook registry**: Framework, site, and plugin producers define hooks (`defineHook()` / `static hookDefinitions`); consumers keep `static hooks`. Cancellation is throw-to-abort with a declared `onError` policy. **Breaking:** `executeWithCancel()` removed; `return false` no longer cancels; `onUserBeforeSave` throws abort the save (400 `USER_SAVE_REJECTED`); `onGetInstanceStats` → `onSystemGetStats`; `HookManager.clear()` clears handlers only (`clearDefinitions()` for the catalog). Also: boot audit with did-you-mean, `GET /api/1/hook`, Admin → Plugins hooks panel (refreshes on enable/disable; inactive badge), hook guide at `docs/hooks.md` (sidebar after API Reference; tables wrap then scroll).

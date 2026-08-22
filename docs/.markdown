@@ -71,6 +71,7 @@ api-reference.md
 hooks.md
 websockets.md
 sending-email.md
+url-fetch.md
 
 # Security & Deployment
 security-and-auth.md

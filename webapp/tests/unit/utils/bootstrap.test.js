@@ -3,10 +3,11 @@
  * @tagline         Unit Tests for Bootstrap safety-check helpers
  * @description     Tests for standalone bootstrap helper functions (not the full bootstrap sequence,
  *                   which has heavy side effects and is already exercised by the Jest global setup):
- *                   checkLocalAuthRestrictionSafety() (W-195) and checkEmailVerificationSafety() (W-205)
+ *                   checkLocalAuthRestrictionSafety() (W-195), checkEmailVerificationSafety() (W-205),
+ *                   and checkUrlFetchSafety()
  * @file            webapp/tests/unit/utils/bootstrap.test.js
- * @version         1.7.15
- * @release         2026-08-15
+ * @version         1.7.16
+ * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -15,7 +16,7 @@
  */
 
 import { describe, test, expect, jest } from '@jest/globals';
-import { checkLocalAuthRestrictionSafety, checkEmailVerificationSafety } from '../../../utils/bootstrap.js';
+import { checkLocalAuthRestrictionSafety, checkEmailVerificationSafety, checkUrlFetchSafety } from '../../../utils/bootstrap.js';
 
 // W-195: Bootstrap safety check for localAuthRestriction: 'disabled'
 describe('checkLocalAuthRestrictionSafety (W-195)', () => {
@@ -134,6 +135,51 @@ describe('checkEmailVerificationSafety (W-205)', () => {
         const log = jest.fn();
 
         expect(() => checkEmailVerificationSafety(appConfig, emailController, log)).not.toThrow();
+        expect(log).not.toHaveBeenCalled();
+    });
+});
+
+describe('checkUrlFetchSafety', () => {
+    test('warns when allowPrivateAddresses is true in production', () => {
+        const appConfig = {
+            deployment: { mode: 'prod' },
+            utils: { urlFetch: { allowPrivateAddresses: true } }
+        };
+        const log = jest.fn();
+
+        checkUrlFetchSafety(appConfig, log);
+
+        expect(log).toHaveBeenCalledWith(expect.stringContaining('allowPrivateAddresses'), 'warn');
+        expect(appConfig.utils.urlFetch.allowPrivateAddresses).toBe(true);
+    });
+
+    test('does not warn when allowPrivateAddresses is true in dev', () => {
+        const appConfig = {
+            deployment: { mode: 'dev' },
+            utils: { urlFetch: { allowPrivateAddresses: true } }
+        };
+        const log = jest.fn();
+
+        checkUrlFetchSafety(appConfig, log);
+
+        expect(log).not.toHaveBeenCalled();
+    });
+
+    test('does not warn when allowPrivateAddresses is false in production', () => {
+        const appConfig = {
+            deployment: { mode: 'prod' },
+            utils: { urlFetch: { allowPrivateAddresses: false } }
+        };
+        const log = jest.fn();
+
+        checkUrlFetchSafety(appConfig, log);
+
+        expect(log).not.toHaveBeenCalled();
+    });
+
+    test('does not throw when urlFetch config is missing', () => {
+        const log = jest.fn();
+        expect(() => checkUrlFetchSafety({}, log)).not.toThrow();
         expect(log).not.toHaveBeenCalled();
     });
 });

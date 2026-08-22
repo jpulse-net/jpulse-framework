@@ -1,4 +1,4 @@
-# jPulse Docs / Generative-AI Instructions for AI Assistants v1.7.15
+# jPulse Docs / Generative-AI Instructions for AI Assistants v1.7.16
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
@@ -313,6 +313,8 @@ Complete details:
 - Vue Router integration
 - Component-based development
 - What to learn: SPA patterns, Vue integration, client-side routing
+
+**Untrusted URL fetch**: `UrlFetch.fetch(url, options)` in `webapp/utils/url-fetch.js` (global after bootstrap). Resolves, never rejects. Use this — not raw `fetch()` / `http.request()` — whenever the host comes from a user, a saved config, or any other untrusted input. Callers may only narrow `utils.urlFetch` ceilings. See [URL Fetch](url-fetch.md). Demo: `/hello-fetch/`.
 
 **WebSocket/Real-time**: `site/webapp/view/hello-websocket/templates/todo-demo.tmpl`
 - Real-time bidirectional communication

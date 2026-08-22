@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.7.15
+# jPulse Docs / REST API Reference v1.7.16
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -2703,6 +2703,19 @@ const result = await RedisManager.cacheCheckRateLimit(category, identifier, maxR
 - Full Redis key: `category:key` (e.g., `'controller:health:last_run'`)
 
 **See:** [Cache Infrastructure - Server-Side API](cache-infrastructure.md#redis-cache-api---server-side) for complete documentation and patterns.
+
+## URL Fetch
+
+Server-side helper for a URL that a user, a saved configuration, or any other untrusted input chose. Resolves, never rejects.
+
+```js
+const fetched = await UrlFetch.fetch(url, { as: 'json', allowedHosts: ['api.example.com'], req });
+if (!fetched.success) {
+    return CommonUtils.sendError(req, res, 400, fetched.error, fetched.code, fetched.details);
+}
+```
+
+On `global` after bootstrap (`webapp/utils/url-fetch.js`). Callers may only narrow `utils.urlFetch`. Full contract, codes, and the SSRF guard: [URL Fetch](url-fetch.md).
 
 ## 🪝 Hook Catalog API
 

@@ -1,4 +1,4 @@
-# jPulse Docs / Installed Plugins / Overview v1.7.15
+# jPulse Docs / Installed Plugins / Overview v1.7.16
 
 This directory contains documentation for all installed jPulse plugins.
 

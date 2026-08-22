@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.7.15
+# jPulse Docs / Site Administrator & Developer Documentation v1.7.16
 
 **For Site Administrators & Site Developers**
 
@@ -25,6 +25,7 @@ jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application f
   - File cache for framework assets (templates, i18n, markdown)
   - Redis cache for application data (user-scoped, rate limiting)
 - Email sending with SMTP support (Gmail, SendGrid, AWS SES, Office 365, Mailgun)
+- Hardened URL Fetch: `UrlFetch.fetch()` for untrusted URLs (SSRF guard, size caps, redirect re-validation)
 
 ### 🎨 **Modern User Experience**
 - **Real-Time Multi-User Communication**:
@@ -60,7 +61,7 @@ jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application f
 - Ships with `hello-world` demo plugin
 
 ### 🧪 **Testing & Quality**
-- 3200+ tests with 100% pass rate
+- 3300+ tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis
@@ -149,6 +150,7 @@ my-jpulse-site/
 - **[Front-End Development](front-end-development.md)** - Complete jPulse JavaScript framework guide
 - **[Application Cluster Communication](application-cluster.md)** - Multi-server broadcasting for state synchronization
 - **[WebSocket Real-Time Communication](websockets.md)** - Bi-directional real-time interactions
+- **[URL Fetch](url-fetch.md)** - Hardened fetch for untrusted URLs (SSRF guard, size caps, redirects)
 - **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation
 - **[Hooks](hooks.md)** - Define and handle extension points (framework, site, or plugin)
 - **[Handlebars Reference](handlebars.md)** - Complete Handlebars syntax guide (variables, conditionals, loops)
@@ -235,6 +237,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v1.7.16, W-213, 2026-08-22: Utils: URL fetch**: `UrlFetch.fetch(url)` is the one helper for a URL a user or a config field chose — scheme and credential checks, punycode host lists, DNS then reject any non-public address, pinned connect (including Node 20+ Happy Eyeballs), per-hop redirect re-validation, encoded and decoded size caps, stall plus total timeouts. The call resolves and never rejects. GET or POST only (not a site config key). Callers may only narrow `utils.urlFetch`. Admin demo at `/hello-fetch/`.
 - **v1.7.15, W-212, 2026-08-15: jPulse.UI: toast and keep confirmDialog open on button-callback throw; fix tooltip arrow**: Object-style `confirmDialog` button callbacks that throw or reject no longer close the dialog as if the action succeeded. The catch still logs `console.error`, shows an error toast (`error.message`, a thrown string, or `Unexpected error`), and sets `shouldClose = false` (same as `{ dontClose: true }`). Array-style `buttons: ['Cancel', 'OK']` is unchanged. Tooltip caret now tracks the trigger after the box is shifted to stay on screen, instead of staying at 50% and pointing at the gap between nearby buttons.
 - **v1.7.14, W-210, 2026-08-14: Config: sensitive fields, masked reads with audited reveal**: One schema flag (`sensitive: true`, implied by password inputs) keeps secrets out of every bulk config and plugin read — including for admins. Unset is `""`; set is `********`. An admin-only single-field reveal (`GET /api/1/config/:id/secret`, `GET /api/1/plugin/:name/config/secret`) writes a `read` audit (path only). Writes treat omit/mask as unchanged and `""` as clear. Test Email and plugin Verify read the stored secret on the server. Hello-world ships a `demoApiKey` teaching field. **Behavior:** admin `GET /api/1/config` and plugin config no longer return SMTP passwords, license keys, or `type: "password"` values in clear.
 - **v1.7.13, W-209, 2026-08-13: Plugins: extensible hook registry**: Framework, site, and plugin producers define hooks (`defineHook()` / `static hookDefinitions`); consumers keep `static hooks`. Cancellation is throw-to-abort with a declared `onError` policy. **Breaking:** `executeWithCancel()` removed; `return false` no longer cancels; `onUserBeforeSave` throws abort the save (400 `USER_SAVE_REJECTED`); `onGetInstanceStats` → `onSystemGetStats`; `HookManager.clear()` clears handlers only (`clearDefinitions()` for the catalog). Also: boot audit with did-you-mean, `GET /api/1/hook`, Admin → Plugins hooks panel (refreshes on enable/disable; inactive badge), hook guide at `docs/hooks.md` (sidebar after API Reference; tables wrap then scroll).

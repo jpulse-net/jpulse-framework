@@ -3,8 +3,8 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.7.15
- * @release         2026-08-15
+ * @version         1.7.16
+ * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -13,6 +13,7 @@
  */
 
 import CommonUtils from './common.js';
+import UrlFetch from './url-fetch.js';
 
 let isBootstrapped = false;
 
@@ -63,6 +64,25 @@ export function checkEmailVerificationSafety(appConfig, emailController, log = b
 }
 
 /**
+ * Warn at startup if the SSRF private-address guard is switched off in production.
+ * Does not mutate appConfig - turning the guard off is an explicit operator choice;
+ * this check exists so that choice cannot be silent.
+ * @param {object} appConfig - global.appConfig (read-only)
+ * @param {function} log - Logging function (message, level)
+ */
+export function checkUrlFetchSafety(appConfig, log = bootstrapLog) {
+    if (appConfig?.utils?.urlFetch?.allowPrivateAddresses !== true) {
+        return;
+    }
+    const mode = appConfig?.deployment?.mode;
+    if (mode === 'prod' || mode === 'production') {
+        log(`⚠️  utils.urlFetch.allowPrivateAddresses is true in production - ` +
+            `the private-address SSRF guard is off. This switch is for local development ` +
+            `and tests only (see docs/url-fetch.md)`, 'warn');
+    }
+}
+
+/**
  * Bootstrap the jPulse Framework in the correct dependency order
  * @param {object} options - Bootstrap options
  * @param {boolean} options.isTest - Whether this is a test environment
@@ -91,6 +111,10 @@ export async function bootstrap(options = {}) {
         // Step 2: Set CommonUtils globally before any controller loads (e.g. appCluster -> websocket in Step 9)
         global.CommonUtils = CommonUtils;
         bootstrapLog('✅ CommonUtils: Available globally');
+
+        global.UrlFetch = UrlFetch;
+        bootstrapLog('✅ UrlFetch: Available globally');
+        checkUrlFetchSafety(global.appConfig, bootstrapLog);
 
         // Step 3: Initialize LogController
         const LogControllerModule = await import('../controller/log.js');

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<!--
+ * @name            jPulse Framework / Site / WebApp / View / Hello Fetch
+ * @tagline         Demo for UrlFetch (hardened URL fetch)
+ * @description     Admin-only playground that shows the result envelope and rejection codes
+ * @file            site/webapp/view/hello-fetch/index.shtml
+ * @version         1.7.16
+ * @release         2026-08-22
+ * @repository      https://github.com/jpulse-net/jpulse-framework
+ * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
+ * @genai           60%, Cursor 3.15, Grok 4.6
+-->
+<html {{appConfig.system.htmlAttrs}}>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello URL Fetch - {{app.site.shortName}}</title>
+    {{file.include "jpulse-header.tmpl"}}
+    <style>
+        .local-limits {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .local-limit {
+            background: var(--jp-theme-bg-secondary, #f5f5f5);
+            border: 1px solid var(--jp-theme-border-color, #ddd);
+            border-radius: 6px;
+            padding: 10px 12px;
+        }
+        .local-limit dt {
+            font-size: 12px;
+            color: var(--jp-theme-text-muted, #6c757d);
+            margin: 0 0 4px 0;
+        }
+        .local-limit dd {
+            margin: 0;
+            font-family: var(--jp-font-mono, monospace);
+            font-size: 13px;
+            color: var(--jp-theme-text-primary, #333);
+            word-break: break-all;
+        }
+        .local-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .local-result {
+            max-height: 480px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .local-row {
+            display: grid;
+            grid-template-columns: 1fr 140px 140px;
+            gap: 10px;
+        }
+        @media (max-width: 700px) {
+            .local-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="jp-main">
+        {{#component "helloCards.fetch" order=70}}
+            <a href="/hello-fetch/" class="jp-card-dashboard jp-icon-btn">
+                <div class="jp-icon-container">{{components.jpIcons.apiSvg size="64"}}</div>
+                <h3 class="jp-card-title">URL Fetch Demo</h3>
+                <p class="jp-card-description">Fetch an untrusted URL with the framework SSRF guard</p>
+            </a>
+        {{/component}}
+
+        <div class="jp-container-1000">
+            <div class="jp-page-header">
+                <h1>{{components.jpIcons.apiSvg size="26"}} URL Fetch Demo</h1>
+                <span class="jp-subtitle">UrlFetch.fetch() — one helper for any URL a user or a config field chose</span>
+            </div>
+
+            <div class="jp-card">
+                <div class="jp-info-box">
+                    <p><strong>Don't use Node <code>fetch()</code> for untrusted hosts.</strong> This helper checks the scheme, rejects credentials in the URL, resolves DNS, refuses private addresses, re-validates every redirect hop, and caps encoded and decoded bytes. Callers can only <em>narrow</em> the site ceiling in <code>utils.urlFetch</code>.</p>
+                    <p>Docs: <a href="/docs/url-fetch.html">URL Fetch</a>. The API on this page is <strong>admin-only and rate-limited</strong> so the site is not an open proxy.</p>
+                </div>
+
+                {{#if user.isAdmin}}
+                <h3>Effective limits</h3>
+                <dl class="local-limits" id="limits"></dl>
+
+                <h3>Presets (they fill the form — then Fetch)</h3>
+                <div class="local-presets">
+                    <button type="button" class="jp-btn jp-btn-outline" data-preset="private">Private address</button>
+                    <button type="button" class="jp-btn jp-btn-outline" data-preset="localhost">localhost</button>
+                    <button type="button" class="jp-btn jp-btn-outline" data-preset="credentials">Credentials in URL</button>
+                    <button type="button" class="jp-btn jp-btn-outline" data-preset="scheme">ftp scheme</button>
+                    <button type="button" class="jp-btn jp-btn-outline" data-preset="blocked">Blocked host</button>
+                    <button type="button" class="jp-btn jp-btn-outline" data-preset="allow">Allowlist miss</button>
+                    <button type="button" class="jp-btn jp-btn-outline" data-preset="large">Too large (1 byte cap)</button>
+                    <button type="button" class="jp-btn jp-btn-outline" data-preset="timeout">Timeout (20 ms)</button>
+                </div>
+
+                <form id="fetchForm">
+                    <div class="local-row">
+                        <div class="jp-form-group">
+                            <label class="jp-form-label" for="url">URL</label>
+                            <input id="url" class="jp-form-input" type="text" value="https://example.com/" autocomplete="off" />
+                        </div>
+                        <div class="jp-form-group">
+                            <label class="jp-form-label" for="method">Method</label>
+                            <select id="method" class="jp-form-input">
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                            </select>
+                        </div>
+                        <div class="jp-form-group">
+                            <label class="jp-form-label" for="as">as</label>
+                            <select id="as" class="jp-form-input">
+                                <option value="text">text</option>
+                                <option value="json">json</option>
+                                <option value="buffer">buffer</option>
+                            </select>
+                        </div>
+                    </div>
+                    <p class="jp-info-text" id="extrasNote"></p>
+                    <div class="jp-btn-group">
+                        <button type="submit" class="jp-btn jp-btn-primary" id="fetchBtn">Fetch</button>
+                    </div>
+                </form>
+
+                <h3>Result</h3>
+                <pre class="jp-code-block local-result" id="result">(choose a preset or enter a URL, then Fetch)</pre>
+                {{else}}
+                <div class="jp-warning-box">
+                    <p>Sign in as an admin to run fetches from this page. The endpoint is admin-only so an untrusted visitor cannot turn the site into a proxy.</p>
+                </div>
+                {{/if}}
+            </div>
+        </div>
+    </div>
+    {{file.include "jpulse-footer.tmpl"}}
+    {{#if user.isAdmin}}
+    <script>
+        jPulse.dom.ready(() => {
+            const urlEl = document.getElementById('url');
+            const methodEl = document.getElementById('method');
+            const asEl = document.getElementById('as');
+            const resultEl = document.getElementById('result');
+            const limitsEl = document.getElementById('limits');
+            const fetchBtn = document.getElementById('fetchBtn');
+            const extrasNote = document.getElementById('extrasNote');
+            const extra = {};
+
+            function setExtra(next) {
+                Object.keys(extra).forEach((k) => delete extra[k]);
+                Object.assign(extra, next || {});
+                const keys = Object.keys(extra);
+                extrasNote.textContent = keys.length
+                    ? 'This Fetch will also send: ' + JSON.stringify(extra)
+                    : '';
+            }
+
+            const presets = {
+                private: { url: 'http://127.0.0.1/', extra: {} },
+                localhost: { url: 'http://localhost:8080/', extra: {} },
+                credentials: { url: 'https://user:pass@example.com/', extra: {} },
+                scheme: { url: 'ftp://example.com/', extra: {} },
+                blocked: { url: 'https://blocked.example/', extra: { blockedHosts: ['blocked.example'] } },
+                allow: { url: 'https://other.example/', extra: { allowedHosts: ['api.example.com'] } },
+                large: { url: 'https://example.com/', extra: { maxBytes: 1 } },
+                timeout: { url: 'https://example.com/', extra: { timeoutMs: 20 } }
+            };
+
+            function showLimits(limits) {
+                const rows = [
+                    ['maxBytes', limits.maxBytes],
+                    ['timeoutMs', limits.timeoutMs],
+                    ['stallTimeoutMs', limits.stallTimeoutMs],
+                    ['maxRedirects', limits.maxRedirects],
+                    ['allowedSchemes', (limits.allowedSchemes || []).join(', ')],
+                    ['allowPrivateAddresses', String(limits.allowPrivateAddresses)]
+                ];
+                limitsEl.innerHTML = rows.map(([k, v]) => (
+                    `<div class="local-limit"><dt>${k}</dt><dd>${String(v)}</dd></div>`
+                )).join('');
+            }
+
+            async function loadLimits() {
+                const res = await jPulse.api.call('/api/1/helloFetch/limits', { method: 'GET' });
+                if (res && res.success && res.data) {
+                    showLimits(res.data);
+                } else {
+                    limitsEl.textContent = res && res.error ? res.error : 'Could not load limits';
+                }
+            }
+
+            document.querySelectorAll('[data-preset]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const preset = presets[btn.getAttribute('data-preset')];
+                    if (!preset) {
+                        return;
+                    }
+                    urlEl.value = preset.url;
+                    setExtra(preset.extra || {});
+                    resultEl.textContent = extrasNote.textContent
+                        ? 'Preset loaded. Click Fetch. ' + extrasNote.textContent
+                        : 'Preset loaded. Click Fetch.';
+                });
+            });
+
+            urlEl.addEventListener('input', () => {
+                if (Object.keys(extra).length) {
+                    setExtra({});
+                }
+            });
+
+            document.getElementById('fetchForm').addEventListener('submit', async (ev) => {
+                ev.preventDefault();
+                fetchBtn.disabled = true;
+                resultEl.textContent = 'Fetching…';
+                try {
+                    const res = await jPulse.api.call('/api/1/helloFetch', {
+                        method: 'POST',
+                        body: {
+                            url: urlEl.value,
+                            method: methodEl.value,
+                            as: asEl.value,
+                            ...extra
+                        }
+                    });
+                    const payload = res && res.data ? res.data : res;
+                    resultEl.textContent = JSON.stringify(payload, null, 2);
+                } catch (err) {
+                    resultEl.textContent = err && err.message ? err.message : String(err);
+                } finally {
+                    fetchBtn.disabled = false;
+                }
+            });
+
+            loadLimits();
+        });
+    </script>
+    {{/if}}
+</body>
+</html>

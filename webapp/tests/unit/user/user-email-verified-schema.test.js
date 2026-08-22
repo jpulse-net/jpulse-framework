@@ -7,8 +7,8 @@
  *                   applyDefaults() and stay absent, which reads as verified/grandfathered
  *                   (see model/user.js)
  * @file            webapp/tests/unit/user/user-email-verified-schema.test.js
- * @version         1.7.15
- * @release         2026-08-15
+ * @version         1.7.16
+ * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

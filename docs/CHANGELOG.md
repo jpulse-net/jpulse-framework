@@ -1,6 +1,45 @@
-# jPulse Docs / Version History v1.7.15
+# jPulse Docs / Version History v1.7.16
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.16, W-213, 2026-08-22
+
+**Commit:** `W-213, v1.7.16: utils: URL fetch`
+
+**FEATURE RELEASE**: One framework-owned way to fetch a URL that a user, a saved configuration, or any other untrusted input chose. `UrlFetch.fetch(url, options)` resolves and never rejects (same envelope as `jPulse.api.call()` / `ws.request()`). Callers may only **narrow** the site ceiling in `utils.urlFetch`. Do not use Node `fetch()` / `http.request()` for an untrusted host — those follow redirects without re-checking the target, have no size cap unless you add one, and cannot stop a public name whose DNS points at a private address.
+
+**Objective**: SSRF defenses, size caps, redirect re-validation, and timeouts written once so site developers call `const res = await UrlFetch.fetch(url)` without thinking.
+
+**Key features**:
+- Two-stage address guard: URL pre-flight (http/https, no embedded credentials, punycode host lists, reject `localhost` / `*.local` / `*.internal`), then DNS, reject if **any** address is non-public, connect via a pinned `lookup`
+- Pinned lookup answers classic `(err, address, family)` and Node 20+ Happy Eyeballs `{ all: true }`
+- IPv6 literals: strip Node's `[::1]` brackets so loopback is `PRIVATE_ADDRESS`, not `DNS_FAILED`
+- Manual redirects with the full guard on every hop; 301/302/303 → GET and drop body; 307/308 keep method and body; strip Authorization / Cookie / Proxy-Authorization cross-origin
+- Encoded and decoded byte caps (gzip/deflate/br); Content-Length pre-check; stall + total timeouts
+- GET or POST only (not a site config key); `as: 'text' | 'json' | 'buffer'`; non-2xx still returns status, headers, and the capped body (`UPSTREAM_ERROR`)
+- `finalUrl` / `redirects` redact userinfo
+- Optional `rateLimitKey`; `req`/`ctx` on the log line; startup warning if `allowPrivateAddresses` is true in production
+- Admin demo `/hello-fetch/` (auth + rate-limited — not an open proxy)
+
+**Files changed**:
+- `webapp/utils/url-fetch.js`: helper + `_deps` injection
+- `webapp/utils/bootstrap.js`: `global.UrlFetch`, `checkUrlFetchSafety()`
+- `webapp/app.conf`: `utils.urlFetch` ceilings
+- `site/webapp/view/hello-fetch/index.shtml`, `site/webapp/controller/helloFetch.js`: admin demo
+- `webapp/view/jpulse-navigation.js`, `webapp/view/home/index.shtml`: nav + home card
+- Tests: `url-fetch.test.js`, `url-fetch-transport.test.js`, bootstrap safety, `hello-fetch-structure.test.js`
+- Docs: `docs/url-fetch.md`; links from `docs/README.md`, `docs/security-and-auth.md`, `docs/genai-instructions.md`, `docs/app-examples.md`, `docs/api-reference.md`; `docs/.markdown` sidebar listing
+- `docs/dev/work-items.md`: W-213 features/deliverables (status unchanged)
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.7.16 / W-213
+- `docs/CHANGELOG.md`: this section
+
+Verified via url-fetch + url-fetch-transport + bootstrap + hello-fetch-structure unit tests, plus live admin testing on `/hello-fetch/`: private IPv4/IPv6, localhost / `.local` / `.internal`, credentials, schemes, allow/block lists, size and timeout presets, redirects (httpbingo → example.com), `as: json` / POST body, and `twiki.org` / `jpulse.net` happy paths.
+
+**Release**:
+- Work Item: W-213
+- Version: v1.7.16
+- Release Date: 2026-08-22
 
 ________________________________________________
 ## v1.7.15, W-212, 2026-08-15

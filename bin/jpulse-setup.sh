@@ -6,8 +6,8 @@
  #                  - Run as root: sudo npx jpulse setup
  #                  - For Red Hat Enterprise Linux ecosystem
  # @file            bin/jpulse-setup.sh
- # @version         1.7.15
- # @release         2026-08-15
+ # @version         1.7.16
+ # @release         2026-08-22
  # @repository      https://github.com/jpulse-net/jpulse-framework
  # @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  # @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

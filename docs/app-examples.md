@@ -1,4 +1,4 @@
-# jPulse Docs / Examples & Use Cases v1.7.15
+# jPulse Docs / Examples & Use Cases v1.7.16
 
 Real-world examples of building applications with the jPulse Framework, targeting enterprise and government scenarios.
 
@@ -47,6 +47,27 @@ The Hello To-Do example is designed to be easily cloned:
 5. Add your new route to the navigation
 
 **Location**: Available at `/hello-todo/` after installation
+
+---
+
+## Hello Fetch (untrusted URLs)
+
+**Perfect for: Site developers who need to GET/POST a URL the user or a config field chose**
+
+`UrlFetch.fetch(url)` is the framework primitive for that case. The hello-fetch page shows the result envelope and the interesting rejection codes without reading the tests.
+
+### Features
+- **Admin-only API** on purpose — a fetch-any-URL endpoint is otherwise an open proxy
+- **Effective limits panel** from `UrlFetch.getEffectiveOptions()` (same idea as WebSocket `getEffectiveLimits()`)
+- **Preset buttons** that trip private address, blocked host, credentials-in-URL, scheme, and caller-narrowed size/timeout
+
+### Quick Start
+```bash
+npm start
+# Sign in as an admin, then visit http://localhost:8080/hello-fetch/
+```
+
+**Location**: `/hello-fetch/` — see [URL Fetch](url-fetch.md)
 
 ---
 

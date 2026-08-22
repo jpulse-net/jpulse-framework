@@ -3,7 +3,7 @@
  * @tagline         Site Controller Registry and Auto-Discovery
  * @description     Discovers and registers site controller APIs at startup (W-014)
  * @file            webapp/utils/site-controller-registry.js
- * @version         1.7.16
+ * @version         1.7.17
  * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -115,18 +115,30 @@ class SiteControllerRegistry {
         try {
             const content = fs.readFileSync(controllerPath, 'utf8');
 
-            // W-108: Check for static routes first (takes precedence over api* discovery)
-            const staticRoutes = this._detectStaticRoutes(content);
+            // W-108 / W-214: static routes take precedence over api* discovery.
+            // Prefer the live ControllerClass.routes array so field order and bodyLimit
+            // are source-of-truth; fall back to the source regex if the import fails.
             let apiMethods;
-
-            if (staticRoutes.length > 0) {
-                // Use static routes - these define custom paths and HTTP methods
-                apiMethods = staticRoutes;
-                LogController.logInfo(null, 'site-controller-registry',
-                    `${source} controller ${controllerName}: using ${staticRoutes.length} static route(s)`);
-            } else {
-                // Fall back to api* method discovery
-                apiMethods = this._detectApiMethods(content);
+            let hasStaticRoutes = false;
+            if (/\bstatic\s+routes\s*=/.test(content)) {
+                const liveRoutes = await this._loadLiveStaticRoutes(controllerPath);
+                if (liveRoutes && liveRoutes.length > 0) {
+                    apiMethods = liveRoutes;
+                    hasStaticRoutes = true;
+                    LogController.logInfo(null, 'site-controller-registry',
+                        `${source} controller ${controllerName}: using ${liveRoutes.length} static route(s)`);
+                }
+            }
+            if (!apiMethods) {
+                const staticRoutes = this._detectStaticRoutes(content);
+                if (staticRoutes.length > 0) {
+                    apiMethods = staticRoutes;
+                    hasStaticRoutes = true;
+                    LogController.logInfo(null, 'site-controller-registry',
+                        `${source} controller ${controllerName}: using ${staticRoutes.length} static route(s)`);
+                } else {
+                    apiMethods = this._detectApiMethods(content);
+                }
             }
 
             const hasInitialize = /\bstatic\s+(?:async\s+)?initialize\(/.test(content);
@@ -140,7 +152,7 @@ class SiteControllerRegistry {
                 name: controllerName,
                 path: controllerPath,
                 apiMethods,
-                hasStaticRoutes: staticRoutes.length > 0,  // W-108: Track if using static routes
+                hasStaticRoutes,
                 hasInitialize,
                 relativePath: `controller/${path.basename(controllerPath)}`,
                 source,  // W-045: Track source (framework, site, or plugin)
@@ -211,6 +223,54 @@ class SiteControllerRegistry {
         }
 
         return routes;
+    }
+
+    /**
+     * Load static routes from the live controller class (W-214)
+     * @param {string} controllerPath - Full path to the controller file
+     * @returns {Promise<Array|null>} Normalized routes, or null if unavailable
+     */
+    static async _loadLiveStaticRoutes(controllerPath) {
+        try {
+            const fileUrl = pathToFileURL(controllerPath).href;
+            const ControllerClass = (await import(fileUrl)).default;
+            if (!Array.isArray(ControllerClass?.routes)) {
+                return null;
+            }
+            return this._normalizeStaticRoutes(ControllerClass.routes);
+        } catch (error) {
+            LogController.logWarning(null, 'site-controller-registry',
+                `warning: failed to load live static routes from ${controllerPath}: ${error.message}`);
+            return null;
+        }
+    }
+
+    /**
+     * Normalize a live `static routes` array. Field order does not matter.
+     * @param {Array} routes - ControllerClass.routes
+     * @returns {Array} Array of { name, method, fullPath, authLevel, bodyLimit? }
+     */
+    static _normalizeStaticRoutes(routes) {
+        if (!Array.isArray(routes)) {
+            return [];
+        }
+        const normalized = [];
+        for (const route of routes) {
+            if (!route || !route.method || !route.path || !route.handler) {
+                continue;
+            }
+            const entry = {
+                name: String(route.handler),
+                method: String(route.method).toLowerCase(),
+                fullPath: String(route.path),
+                authLevel: route.auth || 'user'
+            };
+            if (route.bodyLimit != null && route.bodyLimit !== '') {
+                entry.bodyLimit = route.bodyLimit;
+            }
+            normalized.push(entry);
+        }
+        return normalized;
     }
 
     /**
@@ -486,12 +546,37 @@ class SiteControllerRegistry {
                 router[httpMethod](fullPath, ...middlewares, handler);
 
                 routeCount++;
+                const limitNote = apiMethod.bodyLimit != null ? ` bodyLimit=${apiMethod.bodyLimit}` : '';
                 LogController.logInfo(null, 'site-controller-registry',
-                    `Registered: ${httpMethod.toUpperCase()} ${fullPath} → ${controller.source}:${controller.name}.${apiMethod.name}`);
+                    `Registered: ${httpMethod.toUpperCase()} ${fullPath} → ${controller.source}:${controller.name}.${apiMethod.name}${limitNote}`);
             }
         }
 
         return routeCount;
+    }
+
+    /**
+     * Routes that declared a per-route bodyLimit (W-214)
+     * @returns {Array<{method: string, path: string, bodyLimit: string|number, controller: string, handler: string}>}
+     */
+    static getBodyLimitRoutes() {
+        const routes = [];
+        for (const controller of this.registry.controllers.values()) {
+            for (const apiMethod of controller.apiMethods || []) {
+                if (apiMethod.bodyLimit == null || apiMethod.bodyLimit === '') {
+                    continue;
+                }
+                const routePath = apiMethod.fullPath || (`/api/1/${controller.name}${apiMethod.pathSuffix || ''}`);
+                routes.push({
+                    method: String(apiMethod.method).toLowerCase(),
+                    path: routePath,
+                    bodyLimit: apiMethod.bodyLimit,
+                    controller: controller.name,
+                    handler: apiMethod.name
+                });
+            }
+        }
+        return routes;
     }
 
     /**

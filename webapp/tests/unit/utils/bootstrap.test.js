@@ -6,7 +6,7 @@
  *                   checkLocalAuthRestrictionSafety() (W-195), checkEmailVerificationSafety() (W-205),
  *                   and checkUrlFetchSafety()
  * @file            webapp/tests/unit/utils/bootstrap.test.js
- * @version         1.7.16
+ * @version         1.7.17
  * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

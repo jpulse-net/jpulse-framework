@@ -4,7 +4,7 @@
  * @description     A throwing onUserBeforeSave handler must abort create/update with the
  *                  handler's message, not wrap it as a generic "Failed to create/update user".
  * @file            webapp/tests/unit/model/user-before-save-abort.test.js
- * @version         1.7.16
+ * @version         1.7.17
  * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

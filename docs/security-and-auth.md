@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.7.16
+# jPulse Docs / Security & Authentication v1.7.17
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -706,9 +706,10 @@ For authenticated namespaces, **connection context (`ctx`) is established at upg
 2. **Enable HTTPS**: Always use HTTPS in production
 3. **Secure cookies**: Enable `secure` flag for cookies
 4. **Rate limiting**: Configure appropriate rate limits for your traffic. Note that `/assets/` is proxied to Node and may need a separate, higher limit in nginx compared to general traffic to avoid 429s on bursty legitimate loads.
-5. **Monitor logs**: Set up monitoring for authentication failures and security events
-6. **Regular updates**: Keep dependencies updated for security patches
-7. **Access control**: Use principle of least privilege for user roles
+5. **Request body size**: Leave `middleware.bodyParser.json.limit` at 10mb. For one large upload, set `bodyLimit` on that `static routes` entry — do not raise the global limit (that widens login and every write API). nginx `client_max_body_size` (default 27M) is an outer gate only. Oversize `/api/*` bodies return 413 `PAYLOAD_TOO_LARGE`. See [API Reference — Custom Routes](api-reference.md#custom-routes-static-routes).
+6. **Monitor logs**: Set up monitoring for authentication failures and security events
+7. **Regular updates**: Keep dependencies updated for security patches
+8. **Access control**: Use principle of least privilege for user roles
 
 ### Code Security
 

@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.7.16
+# jPulse Docs / REST API Reference v1.7.17
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -351,6 +351,39 @@ On startup, you'll see logs like:
 - 2025-10-26 23:12:23  info  site-controller-registry  Registered: GET /api/1/product/stats → product.apiStats
 - 2025-10-26 23:12:23  info  routes  Auto-registered 6 site API endpoints
 ```
+
+### Custom Routes (`static routes`)
+
+When you need a custom path, an auth level, or a per-route body size, declare `static routes` instead of relying on `api*` name inference. Field order does not matter.
+
+```javascript
+static routes = [
+    { method: 'GET',  path: '/api/1/helloFetch/limits', handler: 'apiLimits',      auth: 'admin' },
+    { method: 'POST', path: '/api/1/ai/fetch-source',   handler: 'apiFetchSource', auth: 'user', bodyLimit: '25mb' }
+];
+```
+
+| Field | Required | Notes |
+|---|---|---|
+| `method` | yes | `GET`, `POST`, `PUT`, `DELETE`, … |
+| `path` | yes | Full path, including `/api/1/…` |
+| `handler` | yes | Static method name on the same class |
+| `auth` | no | `'none'` \| `'user'` (default) \| `'admin'` |
+| `bodyLimit` | no | body-parser size string (`'25mb'`, `'2mb'`) or a byte count |
+
+`bodyLimit` is authoritative for that route's JSON and urlencoded parsers, in both directions — it can be larger or smaller than the global default. Routes that omit it, and every framework route, keep `middleware.bodyParser.json.limit` / `urlencoded.limit` (default `10mb`). Do not raise the global limit just to accept a large body on one endpoint.
+
+A `bodyLimit` above 25mb logs a startup warning: a JSON body that size can consume several hundred MB per in-flight request against the production 1 GB worker heap (`max_old_space_size` / `max_memory_restart` in `ecosystem.prod.config.cjs`). Raise those together with nginx `client_max_body_size` and `client_body_timeout` if you go higher. Above ~50mb, stream multipart to storage instead of buffering JSON.
+
+If the JSON body carries a base64 file, the file is about **0.72×** the `bodyLimit` (25mb of body ≈ 18mb file).
+
+Oversize bodies on `/api/*` return HTTP 413:
+
+```json
+{ "success": false, "error": "Request body too large", "code": "PAYLOAD_TOO_LARGE", "path": "/api/1/…" }
+```
+
+Production nginx `client_max_body_size` (default `27M` in `deploy/nginx.prod.conf`) is an outer gate only — Express still defaults to 10mb per route. `27M` is enough for `bodyLimit: '25mb'` plus a little headroom so nginx is not the one that 413s first. Raise it if a route goes above 25mb. `npm start` has no nginx.
 
 ### Best Practices
 

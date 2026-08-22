@@ -4,7 +4,7 @@
  * @description     Teaching endpoint for the hardened outbound fetch utility. Auth is admin
  *                   on purpose: a fetch-any-URL route is otherwise an open proxy.
  * @file            site/webapp/controller/helloFetch.js
- * @version         1.7.16
+ * @version         1.7.17
  * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

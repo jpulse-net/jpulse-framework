@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for renderTabsAndPanelsFromSchema and schema flow (W-148 Phase 4)
  * @description     Low-hanging fruit: _walkSchemaFields, renderTabsAndPanelsFromSchema flow classes and field HTML
  * @file            webapp/tests/unit/utils/jpulse-ui-tabs-schema.test.js
- * @version         1.7.16
+ * @version         1.7.17
  * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

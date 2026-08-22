@@ -4,7 +4,7 @@
  * @tagline         Demo for UrlFetch (hardened URL fetch)
  * @description     Admin-only playground that shows the result envelope and rejection codes
  * @file            site/webapp/view/hello-fetch/index.shtml
- * @version         1.7.16
+ * @version         1.7.17
  * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

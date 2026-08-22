@@ -3,7 +3,7 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         1.7.16
+ * @version         1.7.17
  * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

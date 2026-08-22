@@ -1,4 +1,4 @@
-# jPulse Docs / Production Deployment Guide v1.7.16
+# jPulse Docs / Production Deployment Guide v1.7.17
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -81,6 +81,12 @@ Since nginx terminates SSL and forwards plain HTTP to Node.js, `site/webapp/app.
 and `req.secure` reflect the original client request (read from nginx's `X-Forwarded-*` headers)
 rather than the local nginx→Node.js hop. Leave this `false` only if your Node.js process is
 reachable directly, without any reverse proxy in front of it.
+
+nginx `client_max_body_size` (default `27M` in `deploy/nginx.prod.conf`) is an outer gate only —
+Express still defaults to 10mb per route. `27M` covers `bodyLimit: '25mb'` (the comfortable max)
+plus a little headroom; raise it only if a route goes higher (see
+[API Reference — Custom Routes](api-reference.md#custom-routes-static-routes)). `npm start` has
+no nginx.
 
 ## 🔧 Prerequisites
 
@@ -289,6 +295,23 @@ sudo tail -f /var/log/nginx/access.log | grep ' 429 '
 #   fails open if Redis is down) - see docs/security-and-auth.md#rate-limiting for both
 # - If nginx and the app-level limit disagree (e.g. nginx allows more than the app does), the
 #   stricter one always wins since both are enforced independently
+```
+
+#### 7. 413 Payload Too Large
+
+**Symptoms**: API returns `{ "code": "PAYLOAD_TOO_LARGE" }` or nginx returns 413
+```bash
+# App-level 413: the route's bodyLimit (or the global 10mb default) was exceeded
+# nginx 413: client_max_body_size in deploy/nginx.prod.conf (default 27M) is smaller
+# than the body. 27M already covers bodyLimit: '25mb'; raise it only above that.
+# npm start has no nginx.
+#
+# Fixes:
+# - For one large endpoint, set bodyLimit on that static route (do not raise the global
+#   middleware.bodyParser.json.limit — that widens login and every write API)
+# - If bodyLimit is above 25mb, raise client_max_body_size to match, then sudo nginx -t
+#   && sudo systemctl reload nginx; also raise the PM2 heap (max_old_space_size /
+#   max_memory_restart) and possibly client_body_timeout
 ```
 
 ### Validation and Recovery

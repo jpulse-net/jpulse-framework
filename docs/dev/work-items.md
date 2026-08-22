@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.16
+# jPulse Docs / Dev / Work Items v1.7.17
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -8098,19 +8098,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `Unexpected error` is a literal (same as other hardcoded toasts in `jpulse-common.js`); no new i18n key
   - string throws toast the string so `throw 'save failed'` is visible; empty `error.message` uses the fallback
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-213, v1.7.16, 2026-08-22: utils: URL fetch
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - one framework-owned way to fetch a URL that a user, a saved configuration, or any other untrusted input chose
@@ -8179,6 +8168,62 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-214, v1.7.17, 2026-08-22: api: per-route body size limit
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - let one upload endpoint accept a larger JSON/urlencoded body without raising the global parser limit for login and every write API
+  - keep the limit next to the route it protects: `{ method, path, handler, auth, bodyLimit: '25mb' }`
+- rationale:
+  - `middleware.bodyParser.json.limit` is a single global (10mb) mounted before any route; a site that needs 25mb for `POST /api/1/ai/fetch-source` (T-098) would otherwise widen the app's DoS surface
+  - a second config key (`maxLimit`) is unnecessary: the site already overrides `app.conf`, and a pre-mounted per-route parser runs first so body-parser skips the global pass (`req._body`)
+- features:
+  - `bodyLimit` on `static routes` only (`api*` auto-discovery stays on the global default); field order does not matter because discovery reads the live `ControllerClass.routes` array
+  - `bodyLimit` is authoritative in both directions (raise or lower) and applies to JSON and urlencoded
+  - global `json.limit` / `urlencoded.limit` stay the default (10mb) for undeclared routes, including every framework route in `routes.js`
+  - invalid `bodyLimit` is skipped with a startup warning (route keeps the global default); above 25mb also warns (1 GB PM2 worker heap) but is not clamped
+  - oversize `/api/*` bodies return HTTP 413 `{ success: false, code: 'PAYLOAD_TOO_LARGE', details: { limit, length } }` instead of Express's HTML default
+  - nginx `client_max_body_size` default `27M` — outer gate only, enough for `bodyLimit: '25mb'` plus headroom; Express default remains 10mb
+- deliverables:
+  - `webapp/utils/body-limit.js`:
+    - `parseBodyLimit()`, `mountRouteBodyLimitParsers()`, `handleBodyParserError()`, `BODY_LIMIT_WARN_BYTES` (25mb)
+  - `webapp/utils/site-controller-registry.js`:
+    - live `ControllerClass.routes` via `_loadLiveStaticRoutes` / `_normalizeStaticRoutes`; regex fallback; `getBodyLimitRoutes()`
+  - `webapp/app.js`:
+    - pre-mount per-route parsers before the global body-parser; 413 error handler after the router
+  - `webapp/app.conf`:
+    - comment on `bodyParser.json.limit` / `urlencoded.limit` (default unchanged)
+  - `templates/deploy/nginx.prod.conf`:
+    - `client_max_body_size 27M` with comment that Express still defaults to 10mb
+  - `docs/api-reference.md`:
+    - Custom Routes (`static routes`) — `bodyLimit`, 25mb warning, 0.72× base64 rule of thumb, `PAYLOAD_TOO_LARGE`, nginx 27M
+  - `docs/genai-instructions.md`:
+    - use `static routes` + `bodyLimit` instead of raising the global limit
+  - `docs/deployment.md`:
+    - nginx outer-gate note; troubleshooting 413
+  - `docs/security-and-auth.md`:
+    - production checklist: bodyLimit vs global raise; 413 PAYLOAD_TOO_LARGE
+  - `webapp/tests/unit/utils/body-limit.test.js`:
+    - parse sizes; mount json+urlencoded; no warn at 25mb; warn at 50mb; skip invalid; 413 envelope vs pass-through
+  - `webapp/tests/unit/utils/site-controller-registry.test.js`:
+    - normalize any field order; skip incomplete objects; `getBodyLimitRoutes` only returns declared limits
+- notes:
+  - no hello-* demo — this is a primitive; hello-todo POST is `auth: 'none'` and was used for a manual 11mb → 413 check
+  - existing `deploy/nginx.prod.conf` copies are not rewritten by configure; sites already deployed need a one-line edit + reload
+  - no clamp and no `maxLimit` config key; 25mb is a warning threshold, not a ceiling
+  - `api*` methods cannot set `bodyLimit` — use `static routes`
+
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -8206,8 +8251,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-211, v1.0.6, 2026-08-13
-- assume W-213, v1.7.16, 2026-08-22
+- assume W-214, v1.7.17, 2026-08-22
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -8219,12 +8263,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.16 2026-08-22
+node bin/bump-version.js 1.7.17 2026-08-22
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.16; git push origin main --tags
+git tag v1.7.17; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa
@@ -8289,6 +8333,7 @@ template:
 - deliverables:
   - FIXME `path/file`:
     - FIXME summary
+- notes:            // optional
 - tests:            // optional
 - tech-debt:        // optional
 

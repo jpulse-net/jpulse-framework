@@ -1,4 +1,4 @@
-# jPulse Docs / URL Fetch v1.7.16
+# jPulse Docs / URL Fetch v1.7.17
 
 One framework-owned way to fetch a URL that a user, a saved configuration, or any other untrusted input chose. Use this instead of Node's `fetch()` or `http.request()` whenever the host is not a constant you compiled in.
 

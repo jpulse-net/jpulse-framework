@@ -1,6 +1,42 @@
-# jPulse Docs / Version History v1.7.16
+# jPulse Docs / Version History v1.7.17
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.17, W-214, 2026-08-22
+
+**Commit:** `W-214, v1.7.17: api: per-route body size limit`
+
+**FEATURE RELEASE**: One upload endpoint can accept a larger JSON or urlencoded body without raising the global parser for login and every write API. Declare `bodyLimit` on the `static routes` entry next to the path it protects. The global `middleware.bodyParser.json.limit` / `urlencoded.limit` stay 10mb for every route that omits it.
+
+**Objective**: Keep a large-body exception next to the route (visible in review) instead of a site-wide `app.conf` raise that widens the DoS surface.
+
+**Key features**:
+- `bodyLimit` on `static routes` only; live `ControllerClass.routes` so field order does not matter; `api*` auto-discovery stays on the default
+- Authoritative in both directions; JSON and urlencoded
+- Pre-mounted per-route parsers run before the global parser (body-parser skips once `req._body` is set)
+- Invalid `bodyLimit` skipped with a startup warning; above 25mb also warns (1 GB PM2 heap) but is not clamped
+- Oversize `/api/*` bodies return HTTP 413 `{ success: false, code: 'PAYLOAD_TOO_LARGE', details: { limit, length } }` instead of Express HTML
+- nginx `client_max_body_size` default `27M` — outer gate only, enough for `bodyLimit: '25mb'` plus headroom; Express default remains 10mb
+
+**Files changed**:
+- `webapp/utils/body-limit.js`: `parseBodyLimit()`, `mountRouteBodyLimitParsers()`, `handleBodyParserError()`
+- `webapp/utils/site-controller-registry.js`: live static routes, `getBodyLimitRoutes()`
+- `webapp/app.js`: pre-mount + 413 error handler
+- `webapp/app.conf`: comments on the 10mb defaults
+- `templates/deploy/nginx.prod.conf`: `client_max_body_size 27M`
+- Tests: `body-limit.test.js`, `site-controller-registry.test.js` (normalize / getBodyLimitRoutes)
+- Docs: `docs/api-reference.md` (Custom Routes), `docs/genai-instructions.md`, `docs/deployment.md`, `docs/security-and-auth.md`, `docs/README.md` API index blurb
+- `docs/dev/work-items.md`: W-214 features/deliverables (status unchanged)
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.7.17 / W-214
+- `docs/CHANGELOG.md`: this section
+
+Verified via body-limit + site-controller-registry unit tests, plus a live 11mb POST to `POST /api/1/helloTodo` returning 413 `PAYLOAD_TOO_LARGE` (`limit` 10485760, `length` 11534363) and the matching `app.bodyParser` warning.
+
+**Release**:
+- Work Item: W-214
+- Version: v1.7.17
+- Release Date: 2026-08-22
 
 ________________________________________________
 ## v1.7.16, W-213, 2026-08-22

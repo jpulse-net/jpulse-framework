@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-014 SiteControllerRegistry auto-discovery utility
  * @description     Tests site controller auto-discovery and API registration functionality
  * @file            webapp/tests/unit/utils/site-controller-registry.test.js
- * @version         1.7.16
+ * @version         1.7.17
  * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -811,6 +811,84 @@ describe('SiteControllerRegistry (W-014)', () => {
 
             expect(registerFromClass).toHaveBeenCalledTimes(1);
             expect(registerFromClass).toHaveBeenCalledWith('site', siteController);
+        });
+    });
+
+    describe('Static routes and bodyLimit (W-214)', () => {
+        test('normalizes routes regardless of field order', () => {
+            const routes = [
+                { bodyLimit: '25mb', auth: 'admin', handler: 'apiFetch', path: '/api/1/foo', method: 'POST' },
+                { method: 'GET', path: '/api/1/foo/limits', handler: 'apiLimits' }
+            ];
+            const normalized = SiteControllerRegistry._normalizeStaticRoutes(routes);
+            expect(normalized).toHaveLength(2);
+            expect(normalized[0]).toEqual({
+                name: 'apiFetch',
+                method: 'post',
+                fullPath: '/api/1/foo',
+                authLevel: 'admin',
+                bodyLimit: '25mb'
+            });
+            expect(normalized[1]).toEqual({
+                name: 'apiLimits',
+                method: 'get',
+                fullPath: '/api/1/foo/limits',
+                authLevel: 'user'
+            });
+            expect(normalized[1].bodyLimit).toBeUndefined();
+        });
+
+        test('skips incomplete route objects', () => {
+            const normalized = SiteControllerRegistry._normalizeStaticRoutes([
+                { method: 'POST', path: '/api/1/x', handler: 'apiX' },
+                { method: 'POST', path: '/api/1/y' },
+                null,
+                { handler: 'apiZ' }
+            ]);
+            expect(normalized).toHaveLength(1);
+            expect(normalized[0].name).toBe('apiX');
+        });
+
+        test('getBodyLimitRoutes returns only routes that declared bodyLimit', () => {
+            SiteControllerRegistry.registry.controllers.set('ai', {
+                name: 'ai',
+                apiMethods: [
+                    { name: 'apiFetch', method: 'post', fullPath: '/api/1/ai/fetch-source', authLevel: 'user', bodyLimit: '25mb' },
+                    { name: 'apiList', method: 'get', fullPath: '/api/1/ai', authLevel: 'user' }
+                ]
+            });
+            SiteControllerRegistry.registry.controllers.set('hello', {
+                name: 'hello',
+                apiMethods: [
+                    { name: 'apiCreate', method: 'post', pathSuffix: '', bodyLimit: '2mb' }
+                ]
+            });
+            expect(SiteControllerRegistry.getBodyLimitRoutes()).toEqual([
+                {
+                    method: 'post',
+                    path: '/api/1/ai/fetch-source',
+                    bodyLimit: '25mb',
+                    controller: 'ai',
+                    handler: 'apiFetch'
+                },
+                {
+                    method: 'post',
+                    path: '/api/1/hello',
+                    bodyLimit: '2mb',
+                    controller: 'hello',
+                    handler: 'apiCreate'
+                }
+            ]);
+        });
+
+        test('getBodyLimitRoutes is empty when no route set bodyLimit', () => {
+            SiteControllerRegistry.registry.controllers.set('hello', {
+                name: 'hello',
+                apiMethods: [
+                    { name: 'api', method: 'get', fullPath: '/api/1/hello', authLevel: 'none' }
+                ]
+            });
+            expect(SiteControllerRegistry.getBodyLimitRoutes()).toEqual([]);
         });
     });
 });

@@ -3,7 +3,7 @@
  * @tagline         Redis connection management with cluster support and graceful fallback
  * @description     Manages Redis connections for sessions, WebSocket, broadcasting, and metrics
  * @file            webapp/utils/redis-manager.js
- * @version         1.7.16
+ * @version         1.7.17
  * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

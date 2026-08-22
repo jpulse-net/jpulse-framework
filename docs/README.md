@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.7.16
+# jPulse Docs / Site Administrator & Developer Documentation v1.7.17
 
 **For Site Administrators & Site Developers**
 
@@ -151,7 +151,7 @@ my-jpulse-site/
 - **[Application Cluster Communication](application-cluster.md)** - Multi-server broadcasting for state synchronization
 - **[WebSocket Real-Time Communication](websockets.md)** - Bi-directional real-time interactions
 - **[URL Fetch](url-fetch.md)** - Hardened fetch for untrusted URLs (SSRF guard, size caps, redirects)
-- **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation
+- **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation, including `static routes` and per-route `bodyLimit`
 - **[Hooks](hooks.md)** - Define and handle extension points (framework, site, or plugin)
 - **[Handlebars Reference](handlebars.md)** - Complete Handlebars syntax guide (variables, conditionals, loops)
 - **[Template Reference](template-reference.md)** - Template development guide (file structure, security, patterns)
@@ -220,7 +220,7 @@ jPulse is designed for:
 
 ### Documentation Resources
 - **[Front-End Development](front-end-development.md)** - Primary entry point for client-side developers
-- **[REST API Reference](api-reference.md)** - Complete endpoint documentation
+- **[REST API Reference](api-reference.md)** - Complete endpoint documentation, including `static routes` and per-route `bodyLimit`
 - **[Style Reference](style-reference.md)** - Complete CSS framework and components
 - **[Template Reference](template-reference.md)** - Server-side integration guide
 - **[MPA vs SPA Comparison](mpa-vs-spa.md)** - Architecture patterns and when to choose each
@@ -237,6 +237,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v1.7.17, W-214, 2026-08-22: API: per-route body size limit**: A `static routes` entry may set `bodyLimit: '25mb'` so one upload endpoint accepts a larger JSON or urlencoded body without raising the global 10mb parser for login and every write API. `bodyLimit` is authoritative in both directions. Oversize `/api/*` bodies return 413 `{ code: 'PAYLOAD_TOO_LARGE' }` instead of Express HTML. A value above 25mb logs a startup warning (1 GB worker heap) but is not clamped. nginx `client_max_body_size` default is now 27M — an outer gate only, enough for the 25mb comfort max plus headroom; Express default stays 10mb.
 - **v1.7.16, W-213, 2026-08-22: Utils: URL fetch**: `UrlFetch.fetch(url)` is the one helper for a URL a user or a config field chose — scheme and credential checks, punycode host lists, DNS then reject any non-public address, pinned connect (including Node 20+ Happy Eyeballs), per-hop redirect re-validation, encoded and decoded size caps, stall plus total timeouts. The call resolves and never rejects. GET or POST only (not a site config key). Callers may only narrow `utils.urlFetch`. Admin demo at `/hello-fetch/`.
 - **v1.7.15, W-212, 2026-08-15: jPulse.UI: toast and keep confirmDialog open on button-callback throw; fix tooltip arrow**: Object-style `confirmDialog` button callbacks that throw or reject no longer close the dialog as if the action succeeded. The catch still logs `console.error`, shows an error toast (`error.message`, a thrown string, or `Unexpected error`), and sets `shouldClose = false` (same as `{ dontClose: true }`). Array-style `buttons: ['Cancel', 'OK']` is unchanged. Tooltip caret now tracks the trigger after the box is shifted to stay on screen, instead of staying at 50% and pointing at the gap between nearby buttons.
 - **v1.7.14, W-210, 2026-08-14: Config: sensitive fields, masked reads with audited reveal**: One schema flag (`sensitive: true`, implied by password inputs) keeps secrets out of every bulk config and plugin read — including for admins. Unset is `""`; set is `********`. An admin-only single-field reveal (`GET /api/1/config/:id/secret`, `GET /api/1/plugin/:name/config/secret`) writes a `read` audit (path only). Writes treat omit/mask as unchanged and `""` as clear. Test Email and plugin Verify read the stored secret on the server. Hello-world ships a `demoApiKey` teaching field. **Behavior:** admin `GET /api/1/config` and plugin config no longer return SMTP passwords, license keys, or `type: "password"` values in clear.

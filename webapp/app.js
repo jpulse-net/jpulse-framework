@@ -3,7 +3,7 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         1.7.16
+ * @version         1.7.17
  * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -22,6 +22,7 @@ import { fileURLToPath } from 'url';
 import os from 'os';
 import fs from 'fs';
 import CommonUtils from './utils/common.js';
+import { mountRouteBodyLimitParsers, handleBodyParserError } from './utils/body-limit.js';
 
 // Get current directory for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -305,6 +306,13 @@ async function startApp() {
         });
         next();
     });
+    // W-214: per-route parsers first so a larger (or smaller) bodyLimit is applied
+    // before the global default; body-parser then skips because req._body is set.
+    const bodyLimitRoutes = global.SiteControllerRegistry?.getBodyLimitRoutes?.() || [];
+    mountRouteBodyLimitParsers(app, bodyLimitRoutes, appConfig, {
+        info: (message) => LogController.logInfo(null, 'app', message),
+        warn: (message) => LogController.logWarning(null, 'app', `warning: ${message}`)
+    });
     app.use(bodyParser.urlencoded(appConfig.middleware.bodyParser.urlencoded));
     app.use(bodyParser.json(appConfig.middleware.bodyParser.json));
 
@@ -324,6 +332,9 @@ async function startApp() {
 
     // All app routing is handled by routes.js
     app.use('/', routes);
+
+    // W-214: body-parser oversize throws before the router; turn it into JSON on /api/*
+    app.use(handleBodyParserError);
 
     // Start the HTTP server
     const server = app.listen(appConfig.system.port, () => {

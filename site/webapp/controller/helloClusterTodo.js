@@ -3,7 +3,7 @@
  * @tagline         Collaborative Todo Demo Controller - Server-Side Broadcasting Pattern
  * @description     Full MVC pattern with database persistence and Redis broadcasting
  * @file            site/webapp/controller/helloClusterTodo.js
- * @version         1.7.16
+ * @version         1.7.17
  * @release         2026-08-22
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

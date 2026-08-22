@@ -22755,3 +22755,57 @@ Release prep W-213, v1.7.16, 2026-08-22. Reviewed tt-git-diff.txt: file list mat
 
 
 ============================================================
+2026-08-22 01:15
+
+next work item, needed for bubblemap.net site code:
+
+W-214, v1.7.17, 2026-08-22: api: per-route body size limit
+
+Reviewed W-214 (stub) plus T-098 §11.2, SiteControllerRegistry static-route regex, global bodyParser in app.js, and nginx client_max_body_size 10M. Did not implement. Recommended spec: keep json.limit as the 10mb default for undeclared routes; add json.maxLimit as the site ceiling (defaults to limit); bodyLimit on static routes only, clamped to the ceiling with a startup warning. Global parser must accept up to the ceiling or a 25mb body never reaches the route. Read ControllerClass.routes at register time instead of extending the order-sensitive regex. Document nginx must be raised in lockstep. Plan and questions; waiting for go-ahead.
+
+
+============================================================
+2026-08-22 01:54
+
+now in agent mode
+
+Implemented W-214 per settled spec (one config key, pre-mount parsers, bodyLimit authoritative both directions, JSON+urlencoded, 25mb warning no clamp, 413 JSON envelope, live ControllerClass.routes, nginx 10M left literal with comment). New webapp/utils/body-limit.js; registry getBodyLimitRoutes + _normalizeStaticRoutes; app.js pre-mount + handleBodyParserError; comments in app.conf and nginx.prod.conf; docs in api-reference, genai-instructions, deployment. Tests: 38 passed (body-limit + registry) and 26 passed (app-startup + app-config). Did not bump version, did not touch work-item status.
+
+
+============================================================
+2026-08-22 02:22
+
+why not set nginx client_max_body_size to 25M or 27M to match the max bodyParser overload? default in express remains 10mb
+
+Agreed. nginx is only an outer gate; Express still rejects undeclared routes at 10mb. Set template to 27M so bodyLimit: '25mb' is not blocked in prod (2M headroom so nginx is not the one that 413s first). Docs in api-reference and deployment updated. Express default unchanged.
+
+
+============================================================
+2026-08-22 12:59
+
+is there any easy manual test I can do?
+
+Yes. Two curls against a running npm start: (1) no code change — ~11mb POST to /api/1/helloTodo expects 413 PAYLOAD_TOO_LARGE; (2) easier per-route check — temporarily bodyLimit: '2kb' on helloTodo POST, restart, ~3kb POST to helloTodo 413s while the same body to /api/1/auth/login is not 413. Revert after.
+
+
+============================================================
+2026-08-22 13:04
+
+User posted 11mb JSON to /api/1/helloTodo. Confirmed expected result: 413, PAYLOAD_TOO_LARGE, details.limit 10485760 / length 11534363, plus app.bodyParser warning. 100 Continue is curl Expect. Proves global default + JSON envelope; per-route bodyLimit still optional.
+
+
+============================================================
+2026-08-22 13:07
+
+create work item @work-items.md (8174-8183)
+
+Filled W-214 objectives, rationale, features, deliverables, notes (pre-mount parsers, live ControllerClass.routes, PAYLOAD_TOO_LARGE, nginx 27M, tests/docs). Status left IN_PROGRESS; section not moved.
+
+
+============================================================
+2026-08-22 13:10
+
+release prep W-214, v1.7.17, 2026-08-22. Reviewed tt-git-diff.txt: file list matches the work item (body-limit util/tests, registry, app.js, app.conf comments, nginx 27M, api-reference/genai/deployment). Added security-and-auth production checklist + docs/README API index blurb to deliverables. Status left IN_PROGRESS. Highlights + CHANGELOG + commit-message.txt. Did not bump version or commit.
+
+
+============================================================

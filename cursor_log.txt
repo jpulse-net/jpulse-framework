@@ -22809,3 +22809,34 @@ release prep W-214, v1.7.17, 2026-08-22. Reviewed tt-git-diff.txt: file list mat
 
 
 ============================================================
+2026-08-25 12:03
+
+create work item @work-items.md (8220-8229)
+
+Filled W-215 objectives, rationale, features, deliverables, notes: site .gitignore write/append, runtime-only plugin links, stale-link removal on start, /plugins/{name}/ URL only, drop nginx location /static/, docs fixes. Status left PENDING; section not moved.
+
+
+============================================================
+2026-08-25 12:11
+
+implement
+
+Implemented W-215: templates/site.gitignore + bin/site-gitignore.js (write-if-missing, append-if-missing); wired into configure and jpulse-update; stale plugin symlink removal on scan; nginx location /static/ removed; docs/URL/path-comment fixes. 19 related unit tests passed. Status left IN_PROGRESS; section not moved.
+
+
+============================================================
+2026-08-25 12:59
+
+release prep:
+- run tests, and fix issues
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-215, v1.7.18, 2026-08-25
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Release prep W-215, v1.7.18, 2026-08-25. Unit tests 126 suites / 3191 passing. Reviewed tt-git-diff.txt: file list matches the work item (site.gitignore helper, configure/update, stale-link removal, nginx /static/ drop, plugin docs/URL/path comments, tests). Tightened W-215 deliverables to name ensureSiteGitignore / removeStalePluginSymlinks and the test files. Status left IN_PROGRESS. Highlights + CHANGELOG + commit-message.txt. Did not bump version or commit.
+
+
+============================================================

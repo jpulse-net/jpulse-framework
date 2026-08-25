@@ -11,5 +11,4 @@
 #   fonts/     - Custom fonts
 #   lib/       - Third-party libraries
 #
-# Accessible at: /static/plugins/hello-world/{subdirectory}/{file}
-
+# Accessible at: /plugins/hello-world/{subdirectory}/{file}

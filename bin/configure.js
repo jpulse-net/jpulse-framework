@@ -4,13 +4,13 @@
  * @tagline         Interactive site configuration and deployment setup CLI tool
  * @description     Creates and configures jPulse sites with smart detection (W-054)
  * @file            bin/configure.js
- * @version         1.7.17
- * @release         2026-08-22
+ * @version         1.7.18
+ * @release         2026-08-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 3.15, Grok 4.6
  */
 
 import fs from 'fs';
@@ -19,6 +19,7 @@ import readline from 'readline';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { CONFIG_REGISTRY, buildCompleteConfig, expandAllVariables } from './config-registry.js';
+import { ensureSiteGitignore } from './site-gitignore.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1089,6 +1090,15 @@ async function setup() {
             console.log(`   sudo chown -R $(whoami):$(whoami) .`);
             console.log('   Then re-run: npx jpulse configure');
             process.exit(1);
+        }
+
+        const gitignoreResult = ensureSiteGitignore(process.cwd(), {
+            templatePath: path.join(packageRoot, 'templates', 'site.gitignore')
+        });
+        if (gitignoreResult.action === 'created') {
+            console.log('📝 Created .gitignore (plugin runtime links are not committed)');
+        } else if (gitignoreResult.action === 'appended') {
+            console.log('📝 Updated .gitignore with plugin runtime link exclusions');
         }
 
         // Detect directory state

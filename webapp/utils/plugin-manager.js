@@ -3,13 +3,13 @@
  * @tagline         Plugin Discovery and Lifecycle Management
  * @description     Manages plugin discovery, validation, dependencies, and lifecycle
  * @file            webapp/utils/plugin-manager.js
- * @version         1.7.17
- * @release         2026-08-22
+ * @version         1.7.18
+ * @release         2026-08-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.15, Grok 4.6
  */
 
 import fs from 'fs';
@@ -118,6 +118,7 @@ class PluginManager {
         const pluginsDir = path.join(projectRoot, 'plugins');
 
         if (!fs.existsSync(pluginsDir)) {
+            SymlinkManager.removeStalePluginSymlinks([]);
             return 0;
         }
 
@@ -222,6 +223,17 @@ class PluginManager {
                 registryEntry.status = 'missing';
                 registryEntry.errors = ['Plugin directory or plugin.json not found'];
             }
+        }
+
+        const enabledNames = this.registry.plugins
+            .filter(p => p.enabled && this.discovered.has(p.name))
+            .map(p => p.name);
+        const staleResult = SymlinkManager.removeStalePluginSymlinks(enabledNames);
+        if (staleResult.removed > 0) {
+            console.log(`Removed ${staleResult.removed} stale plugin symlink(s)`);
+        }
+        for (const err of staleResult.errors) {
+            console.warn(`Stale plugin symlink: ${err}`);
         }
 
         this.registry.lastScan = now;

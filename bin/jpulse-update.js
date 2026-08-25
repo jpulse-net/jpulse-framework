@@ -4,19 +4,20 @@
  * @tagline         Framework update synchronization CLI tool
  * @description     Updates local framework files from installed package
  * @file            bin/jpulse-update.js
- * @version         1.7.17
- * @release         2026-08-22
+ * @version         1.7.18
+ * @release         2026-08-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.15, Grok 4.6
  */
 
 import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 import { CONFIG_REGISTRY, buildCompleteConfig, expandAllVariables } from './config-registry.js';
+import { ensureSiteGitignore } from './site-gitignore.js';
 
 /**
  * Load and parse .markdown file [ignore] section
@@ -359,11 +360,21 @@ function sync() {
                 fs.rmSync(backupPath, { recursive: true, force: true });
             }
 
+            const gitignoreResult = ensureSiteGitignore(process.cwd(), {
+                templatePath: path.join(frameworkPath, 'templates', 'site.gitignore')
+            });
+            if (gitignoreResult.action === 'created') {
+                console.log('📝 Created .gitignore (plugin runtime links are not committed)');
+            } else if (gitignoreResult.action === 'appended') {
+                console.log('📝 Updated .gitignore with plugin runtime link exclusions');
+            }
+
             console.log('✅ Framework sync complete!');
             console.log(`📊 Updated to ${versionInfo.name} v${versionInfo.version}`);
             console.log('');
             console.log('💡 Review changes with: git diff webapp/');
             console.log('🚀 Restart your application to use updated framework');
+            console.log('   Plugin static and docs links are recreated on start');
 
         } catch (syncError) {
             // Restore backup on failure

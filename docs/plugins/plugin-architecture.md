@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Architecture v1.7.17
+# jPulse Docs / Plugins / Plugin Architecture v1.7.18
 
 Understanding how the jPulse plugin system works under the hood.
 
@@ -169,16 +169,16 @@ Create: webapp/static/plugins/{name} → ../../../plugins/{name}/webapp/static
 
 Documentation symlink (context-dependent):
   Framework repo: docs/installed-plugins/{name} → ../../plugins/{name}/docs
-  Site install:   webapp/static/assets/jpulse-docs/installed-plugins/{name} → ../../../../plugins/{name}/docs
+  Site install:   webapp/static/assets/jpulse-docs/installed-plugins/{name} → ../../../../../plugins/{name}/docs
     ↓
 Assets accessible at:
     /plugins/{name}/file.png
     /jpulse-docs/installed-plugins/{name}/README
 ```
 
-**Context Detection:** SymlinkManager automatically detects if running in framework repository (has `docs/plugins/`) or site installation (has `webapp/static/assets/jpulse-docs/plugins/`).
+These links are **runtime-only — do not commit them**. They are created on start for enabled plugins, wiped when `jpulse-update` or configure recopies `webapp/` and `jpulse-docs`, and recreated on the next start. Leftover links for disabled or missing plugins are removed on start. Only `webapp/static/plugins/.gitkeep` and `installed-plugins/README.md` are shipped.
 
-**Symlink removal** happens automatically when plugin is disabled.
+**Context Detection:** SymlinkManager automatically detects if running in framework repository (has `docs/plugins/`) or site installation (has `webapp/static/assets/jpulse-docs/plugins/`).
 
 **Troubleshooting (framework dev repo):** If `docs/installed-plugins/{name}` exists as a real directory (often empty), symlink creation is skipped for safety. Remove/rename the directory and restart the app so PluginManager can create the symlink (e.g., `rm -rf docs/installed-plugins/auth-mfa`).
 

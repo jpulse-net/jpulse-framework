@@ -1,4 +1,4 @@
-# jPulse Docs / Production Deployment Guide v1.7.17
+# jPulse Docs / Production Deployment Guide v1.7.18
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -134,7 +134,6 @@ If you need to integrate with existing infrastructure (like httpd proxy):
 2. **Configure your existing proxy**:
    ```apache
    # Example httpd configuration
-   ProxyPass /static/ !
    ProxyPass / http://localhost:8081/
    ProxyPassReverse / http://localhost:8081/
    ```
@@ -239,6 +238,10 @@ npx jpulse update  # Updates to latest and syncs files
 # 1. Check site/webapp/app.conf for compatibility
 # 2. Review CHANGELOG.md for breaking changes
 # 3. Test with npx jpulse validate
+
+# Restart after a successful update. jpulse-update recopies webapp/ and
+# jpulse-docs, which removes generated plugin static/docs links; they are
+# recreated on the next start.
 ```
 
 #### 4. SSL/HTTPS Issues
@@ -531,17 +534,24 @@ git init
 git remote add origin git@github.com:username/your-site.git
 ```
 
-**Step 2: Create .gitignore File**
-```bash
-cat > .gitignore << 'EOF'
-# CRITICAL: Environment and secrets
+**Step 2: .gitignore File**
+
+`npx jpulse configure` writes this file when it is missing, and appends the plugin-runtime block if a customized `.gitignore` lacks it. Do not overwrite a file you have already tailored.
+
+```
+# Environment and secrets
 .env
 .env.*
 
-# Site-specific configuration (each deployment customizes)
-site/webapp/app.conf
-# But keep template files for reference
-!site/webapp/app.conf.tmpl
+# Site secrets (per-environment, never commit)
+site/webapp/app-secret.conf
+!site/webapp/app-secret.conf.tmpl
+
+# Plugin runtime links (created on start; do not commit)
+webapp/static/plugins/*
+!webapp/static/plugins/.gitkeep
+webapp/static/assets/jpulse-docs/installed-plugins/*
+!webapp/static/assets/jpulse-docs/installed-plugins/README.md
 
 # Dependencies
 node_modules/
@@ -555,7 +565,7 @@ pids
 *.seed
 *.pid.lock
 
-# Logs (symbolic link to system logs)
+# Logs
 logs
 *.log
 
@@ -573,7 +583,7 @@ coverage/
 .nyc_output
 webapp/tests/fixtures/temp-*.conf
 
-# Optional npm cache directory
+# Optional npm cache
 .npm
 .eslintcache
 
@@ -599,8 +609,9 @@ temp/
 .Trashes
 ehthumbs.db
 Thumbs.db
-EOF
 ```
+
+`site/webapp/app.conf` is committed (no secrets). `site/webapp/app-secret.conf` is gitignored.
 
 **Step 3: Initial Commit**
 ```bash
@@ -632,9 +643,20 @@ git push -u origin main
 **❌ EXCLUDE from Git:**
 - `.env` - Contains secrets (DB passwords, session secrets, API keys)
 - `site/webapp/app-secret.conf` - Site secrets and deployment mode (gitignored)
+- `webapp/static/plugins/*` - Generated plugin static links (keep `.gitkeep`)
+- `webapp/static/assets/jpulse-docs/installed-plugins/*` - Generated plugin docs links (keep `README.md`)
 - `logs` - Symbolic link to system log directory
 - `node_modules/` - Dependencies (installed via npm install)
 - `.jpulse/` - Runtime framework metadata
+
+If a generated plugin link was already committed, untrack it and restart so PluginManager can recreate it as an untracked symlink:
+
+```bash
+git rm -r --cached webapp/static/plugins/<plugin-name> \
+  webapp/static/assets/jpulse-docs/installed-plugins/<plugin-name>
+```
+
+Keep `webapp/static/plugins/.gitkeep` and `webapp/static/assets/jpulse-docs/installed-plugins/README.md`.
 
 #### Deployment from Repository
 

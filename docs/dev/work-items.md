@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.17
+# jPulse Docs / Dev / Work Items v1.7.18
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -8161,19 +8161,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `onUrlFetch` plugin hook deferred (tech debt) — logging + metrics cover the audit trail for now
   - caching stays out: caller policy, not a security primitive
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-214, v1.7.17, 2026-08-22: api: per-route body size limit
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - let one upload endpoint accept a larger JSON/urlencoded body without raising the global parser limit for login and every write API
@@ -8224,6 +8213,77 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-215, v1.7.18, 2026-08-25: plugins: generated static/docs links leak into site git; fix leftover /static/ URL
+- status: 🚧 IN_PROGRESS
+- type: Bugfix
+- objectives:
+  - site repos must not track generated plugin static or docs links (the actual leak: a new site that follows the docs commits the next non-widget plugin's docs link)
+  - docs and comments must describe those links as runtime-only, created on start, wiped by update, recreated on next start
+  - the only public plugin-asset URL is `/plugins/{name}/file.png` (`webapp/static` is the HTTP document root); `/static/plugins/...` must not exist
+- rationale:
+  - `npx jpulse configure` never writes a site `.gitignore`; the only template is the heredoc in `docs/deployment.md` Step 2, which still ignores `site/webapp/app.conf` (wrong since W-172) and says nothing about generated plugin links; the later EXCLUDE list omits them too; `getting-started.md` then says `git add .`
+  - framework `.gitignore` already ignores `webapp/static/plugins/*` and `docs/installed-plugins/*`; site installs never get those rules
+  - PluginManager creates the links on the startup scan for enabled plugins; `jpulse-update` / configure wipe `webapp/` and recopy `jpulse-docs` (only `.gitkeep` and `installed-plugins/README.md` ship); that is correct if untracked, and looks like "deleted plugin docs" if they were committed
+  - `enablePlugin()` / `disablePlugin()` only update `.jpulse/plugins.json` and say restart required; `removePluginSymlink` / `removePluginDocsSymlink` have no callers, so a disabled plugin's assets/docs can still be served after restart
+  - site docs-link comments say four `../` levels; from `webapp/static/assets/jpulse-docs/installed-plugins/` the root is five; code uses `path.relative()` so behavior is fine
+  - `creating-plugins.md`, `plugin-api-reference.md`, and hello-world `.gitkeep` document `/static/plugins/...`; `plugin-architecture.md` already has `/plugins/{name}/file.png`; no runtime code and neither live site app uses the `/static/plugins/` URL
+  - nginx `location /static/` is the same leftover URL model (hard-coded `/opt/jpulse/webapp/static/`, bypasses site overrides); real assets (`/images/`, `/assets/`, `/plugins/`, `/favicon.ico`) never hit it
+- features:
+  - canonical `templates/site.gitignore` written by configure when `.gitignore` is missing
+  - configure and jpulse-update append the plugin-runtime ignore block when a site `.gitignore` exists but lacks it; never overwrite a customized file
+  - on startup, create links for enabled plugins and remove leftover static/docs links for disabled or missing plugins
+  - public plugin-asset URL documented as `/plugins/{name}/file.png` only
+  - nginx template drops `location /static/`; `/plugins/` stays on the catch-all proxy (same as `/images/` and `/favicon.ico`)
+- deliverables:
+  - `templates/site.gitignore`:
+    - full site ignore file: `.env`, `site/webapp/app-secret.conf`, plugin-runtime links, `.jpulse/`, `node_modules/`, logs, editor/OS junk; `app.conf` is committed
+  - `bin/site-gitignore.js`:
+    - `ensureSiteGitignore(siteRoot, { templatePath })` — write full template if missing (`templatePath` required to create); append the plugin-runtime block if present but missing those patterns; idempotent
+    - `hasPluginRuntimeBlock(content)`
+  - `bin/configure.js`, `bin/jpulse-update.js`:
+    - call the helper; jpulse-update already prints restart — add that plugin static/docs links are recreated on start
+  - `webapp/utils/plugin-manager.js` / `webapp/utils/symlink-manager.js`:
+    - on scan, create links for enabled plugins; `removeStalePluginSymlinks(enabledNames)` / `_removeStaleInDir` unlink leftovers (keep `.gitkeep` and `README.md`; never delete a real directory)
+    - site docs-link comment: five `../` levels (`../../../../../plugins/{name}/docs`)
+  - `templates/deploy/nginx.prod.conf`:
+    - delete `location /static/ { ... }`
+  - `docs/deployment.md`:
+    - Step 2 sample and EXCLUDE list match the template (`app.conf` committed, `app-secret.conf` ignored, plugin-runtime links ignored)
+    - existing-site note: if a plugin link was already committed, `git rm --cached` those entries, keep `.gitkeep` and `installed-plugins/README.md`, restart
+    - drop Apache `ProxyPass /static/ !`
+    - restart-after-update note for plugin links
+  - `docs/getting-started.md`:
+    - ignore file in place before `git add .` (configure writes it)
+  - `docs/plugins/plugin-architecture.md`, `docs/plugins/plugin-api-reference.md`, `docs/site-customization.md`:
+    - runtime, do not commit; created on start; wiped by update; only `.gitkeep` and `installed-plugins/README.md` are shipped
+    - site docs-link path: five `../` levels
+    - plugin-asset URL: `/plugins/{name}/file.png` only
+  - `docs/plugins/creating-plugins.md`, `plugins/hello-world/webapp/static/.gitkeep`:
+    - replace `/static/plugins/...` with `/plugins/{name}/...`
+  - tests:
+    - `webapp/tests/unit/bin/site-gitignore.test.js`: write-if-missing; append-if-missing; second run is a no-op
+    - `webapp/tests/unit/utils/symlink-manager.test.js`: stale-link removal for a disabled plugin; does not delete a real directory
+- notes:
+  - install / enable / update scripts do not create or commit the links; PluginManager already does that on start
+  - do not preserve generated links across jpulse-update; they must stay untracked
+  - do not overwrite an existing customized `.gitignore`
+  - do not rewrite historical CHANGELOG path comments; mention the five-level correction in this release note
+  - existing `deploy/nginx.prod.conf` copies are not rewritten by configure; live sites keep the dead `/static/` block until a one-line delete + nginx reload (harmless if left)
+  - out of scope (later item): serve plugin static and docs without writing into framework-managed `webapp/` (virtual `/plugins/{name}` and `/jpulse-docs/installed-plugins/{name}`)
+
+
+
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -8251,7 +8311,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-214, v1.7.17, 2026-08-22
+- assume W-215, v1.7.18, 2026-08-25
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -8263,12 +8323,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.17 2026-08-22
+node bin/bump-version.js 1.7.18 2026-08-25
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.17; git push origin main --tags
+git tag v1.7.18; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v1.7.17
+# jPulse Docs / Site Customization Guide v1.7.18
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -28,29 +28,30 @@ This means you only override what you need to customize. Plugins provide a middl
 ### Directory Structure
 ```
 my-jpulse-site/
-├── site/                     # Site custom code (highest priority, update-safe)
-│   └── webapp/               # Site-specific MVC components (overrides)
-│       ├── app.conf          # Site configuration (committed — no secrets)
-│       ├── app-secret.conf   # Per-environment secrets (gitignored — never commit)
-│       ├── controller/      # Custom controllers
-│       ├── model/            # Custom models
-│       ├── view/             # Custom templates
-│       └── static/           # Site assets
-├── plugins/                  # Plugins (middle priority, v1.3.0+)
-│   └── hello-world/          # Example plugin
-│       ├── plugin.json       # Plugin metadata & config schema
-│       ├── docs/             # Plugin documentation
-│       └── webapp/           # Plugin MVC components
-│           ├── controller/   # Plugin controllers
-│           ├── model/        # Plugin models
-│           ├── view/         # Plugin views
-│           └── static/       # Plugin assets (auto-symlinked)
-└── webapp/                   # Framework files (lowest priority, managed by jpulse update)
-    ├── controller/           # Base controllers
-    ├── model/                # Data models
-    ├── view/                 # Base templates
-    ├── static/               # Framework assets
-    └── utils/                # Framework utilities
+├── site/                   # Site custom code (highest priority, update-safe)
+│   └── webapp/             # Site-specific MVC components (overrides)
+│       ├── app.conf        # Site configuration (committed — no secrets)
+│       ├── app-secret.conf # Per-environment secrets (gitignored — never commit)
+│       ├── controller/     # Custom controllers
+│       ├── model/          # Custom models
+│       ├── view/           # Custom templates
+│       └── static/         # Site assets
+├── plugins/                # Plugins (middle priority, v1.3.0+)
+│   └── hello-world/        # Example plugin
+│       ├── plugin.json     # Plugin metadata & config schema
+│       ├── docs/           # Plugin documentation
+│       └── webapp/         # Plugin MVC components
+│           ├── controller/ # Plugin controllers
+│           ├── model/      # Plugin models
+│           ├── view/       # Plugin views
+│           └── static/     # Plugin assets (symlinked on start into
+│                           # webapp/static/plugins/{name}; runtime, do not commit)
+└── webapp/                 # Framework files (lowest priority, managed by jpulse update)
+    ├── controller/         # Base controllers
+    ├── model/              # Data models
+    ├── view/               # Base templates
+    ├── static/             # Framework assets
+    └── utils/              # Framework utilities
 ```
 
 ________________________________________________

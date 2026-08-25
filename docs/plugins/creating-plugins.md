@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v1.7.17
+# jPulse Docs / Plugins / Creating Plugins v1.7.18
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -32,7 +32,7 @@ plugins/your-plugin/
         └── .gitkeep
 ```
 
-**Static Assets Note**: A subdirectory structure under `static/` helps you organize assets, and avoids naming conflicts within your plugin, such as `css`, `js`, `images`, `fonts`, and `libs`. Assets are accessible at `/static/plugins/your-plugin/{subdirectory}/{file}`.
+**Static Assets Note**: A subdirectory structure under `static/` helps you organize assets, and avoids naming conflicts within your plugin, such as `css`, `js`, `images`, `fonts`, and `libs`. Assets are accessible at `/plugins/your-plugin/{subdirectory}/{file}`.
 
 ## Step 1: Create plugin.json
 

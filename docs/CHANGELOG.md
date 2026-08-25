@@ -1,6 +1,41 @@
-# jPulse Docs / Version History v1.7.17
+# jPulse Docs / Version History v1.7.18
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.18, W-215, 2026-08-25
+
+**Commit:** `W-215, v1.7.18: plugins: generated static/docs links leak into site git; leftover /static/ URL`
+
+**BUGFIX RELEASE**: A new site that followed the docs committed the next non-widget plugin's docs link. `npx jpulse configure` never wrote a site `.gitignore`; the only sample still ignored `app.conf` and said nothing about generated plugin links. Those links are runtime-only (created on start, wiped by update, recreated on the next start) and must stay untracked. Also drop the leftover `/static/` URL model: plugin assets are `/plugins/{name}/file.png` because `webapp/static` is the HTTP document root.
+
+**Objective**: Stop the leak at the source (write/append a site `.gitignore`), teach "runtime, do not commit," remove stale links on start, and document the only public plugin-asset URL.
+
+**Key features**:
+- Canonical `templates/site.gitignore` written when `.gitignore` is missing; append the plugin-runtime block if a customized file lacks it; never overwrite
+- On scan: create links for enabled plugins; `removeStalePluginSymlinks()` unlinks leftovers for disabled or missing plugins (keeps `.gitkeep` / `README.md`; never deletes a real directory)
+- Public plugin-asset URL: `/plugins/{name}/file.png` only — `/static/plugins/...` must not exist
+- nginx template drops `location /static/`; `/plugins/` stays on the catch-all proxy
+- Site docs-link comments corrected to five `../` levels (`../../../../../plugins/{name}/docs`); code already used `path.relative()`
+
+**Files changed**:
+- `templates/site.gitignore`: full site ignore file (`app.conf` committed, `app-secret.conf` ignored, plugin-runtime links ignored)
+- `bin/site-gitignore.js`: `ensureSiteGitignore()`, `hasPluginRuntimeBlock()`
+- `bin/configure.js`, `bin/jpulse-update.js`: call the helper; update notes that plugin links are recreated on start
+- `webapp/utils/plugin-manager.js`, `webapp/utils/symlink-manager.js`: stale-link removal on scan; five-level comment
+- `templates/deploy/nginx.prod.conf`: delete `location /static/`
+- Tests: `webapp/tests/unit/bin/site-gitignore.test.js`, `webapp/tests/unit/utils/symlink-manager.test.js`
+- Docs: `docs/deployment.md`, `docs/getting-started.md`, `docs/plugins/plugin-architecture.md`, `docs/plugins/plugin-api-reference.md`, `docs/plugins/creating-plugins.md`, `docs/site-customization.md`, `plugins/hello-world/webapp/static/.gitkeep`
+- `docs/dev/work-items.md`: W-215 features/deliverables (status unchanged)
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.7.18 / W-215
+- `docs/CHANGELOG.md`: this section
+
+Verified via unit tests: 126 suites / 3191 tests passing (`site-gitignore` write/append/no-op; stale-link removal; existing plugin-manager suite). Existing live `deploy/nginx.prod.conf` copies are not rewritten; the dead `/static/` block is harmless if left.
+
+**Release**:
+- Work Item: W-215
+- Version: v1.7.18
+- Release Date: 2026-08-25
 
 ________________________________________________
 ## v1.7.17, W-214, 2026-08-22

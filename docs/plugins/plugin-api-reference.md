@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v1.7.17
+# jPulse Docs / Plugins / Plugins API Reference v1.7.18
 
 Complete API reference for jPulse plugin developers.
 
@@ -537,19 +537,21 @@ This allows sites to override plugin views, and plugins to override framework vi
 
 ### Static Assets
 
-Plugin static files are symlinked when enabled:
+Plugin static files are symlinked on start when the plugin is enabled (runtime, do not commit):
 - Plugin: `plugins/your-plugin/webapp/static/`
-- Symlink: `webapp/static/plugins/your-plugin/`
-- URL: `/static/plugins/your-plugin/file.png`
+- Symlink: `webapp/static/plugins/your-plugin/` → that directory
+- URL: `/plugins/your-plugin/file.png` (`webapp/static` is the HTTP document root)
+- Only `webapp/static/plugins/.gitkeep` is shipped; per-plugin links are created on start, wiped by `jpulse-update`, and recreated on the next start
 
 ### Documentation
 
-Plugin docs are symlinked when enabled (context-aware):
+Plugin docs are symlinked on start when the plugin is enabled (runtime, do not commit; context-aware):
 - Plugin: `plugins/your-plugin/docs/`
 - Symlink:
-  * Framework repo: `docs/installed-plugins/your-plugin/`
-  * Site install: `webapp/static/assets/jpulse-docs/installed-plugins/your-plugin/`
+  * Framework repo: `docs/installed-plugins/your-plugin/` → `../../plugins/your-plugin/docs`
+  * Site install: `webapp/static/assets/jpulse-docs/installed-plugins/your-plugin/` → `../../../../../plugins/your-plugin/docs`
 - URL: `/jpulse-docs/installed-plugins/your-plugin/README` (same for both)
+- Only `installed-plugins/README.md` is shipped; leftover links for disabled or missing plugins are removed on the next start
 
 ## CSS and JavaScript Loading
 

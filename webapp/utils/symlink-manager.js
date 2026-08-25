@@ -3,13 +3,13 @@
  * @tagline         Symlink Management for Plugin Static Assets
  * @description     Manages symlinks for plugin static assets
  * @file            webapp/utils/symlink-manager.js
- * @version         1.7.17
- * @release         2026-08-22
+ * @version         1.7.18
+ * @release         2026-08-25
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.0, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.15, Grok 4.6
  */
 
 import fs from 'fs';
@@ -204,7 +204,7 @@ class SymlinkManager {
     /**
      * Create symlink for plugin documentation
      * Framework: docs/installed-plugins/{pluginName} → ../../plugins/{pluginName}/docs
-     * Site: webapp/static/assets/jpulse-docs/installed-plugins/{pluginName} → ../../../../plugins/{pluginName}/docs
+     * Site: webapp/static/assets/jpulse-docs/installed-plugins/{pluginName} → ../../../../../plugins/{pluginName}/docs
      *
      * @param {string} pluginName - Plugin name
      * @param {string} pluginPath - Absolute path to plugin directory
@@ -387,6 +387,64 @@ class SymlinkManager {
                 target: null,
                 message: `Error verifying symlink: ${error.message}`
             };
+        }
+    }
+
+    /**
+     * Remove leftover static/docs symlinks that are not for currently enabled plugins.
+     * Keeps shipped placeholders (.gitkeep, README.md). Never deletes a real directory.
+     *
+     * @param {string[]} enabledPluginNames - Names of enabled, discovered plugins
+     * @returns {object} Statistics { removed: number, failed: number, errors: string[] }
+     */
+    static removeStalePluginSymlinks(enabledPluginNames) {
+        const enabled = new Set(enabledPluginNames || []);
+        const stats = { removed: 0, failed: 0, errors: [] };
+        const projectRoot = global.appConfig.system.projectRoot;
+
+        const staticDir = path.join(projectRoot, 'webapp', 'static', 'plugins');
+        this._removeStaleInDir(staticDir, enabled, ['.gitkeep'], stats);
+
+        const context = this.detectContext();
+        const docsDir = context === 'site'
+            ? path.join(projectRoot, 'webapp', 'static', 'assets', 'jpulse-docs', 'installed-plugins')
+            : path.join(projectRoot, 'docs', 'installed-plugins');
+        this._removeStaleInDir(docsDir, enabled, ['README.md'], stats);
+
+        return stats;
+    }
+
+    /**
+     * Unlink stale symlinks in a directory. Skips keep-list names, enabled plugins,
+     * and non-symlink entries.
+     *
+     * @param {string} dir
+     * @param {Set<string>} enabledNames
+     * @param {string[]} keepNames
+     * @param {object} stats
+     */
+    static _removeStaleInDir(dir, enabledNames, keepNames, stats) {
+        let entries;
+        try {
+            entries = fs.readdirSync(dir, { withFileTypes: true });
+        } catch {
+            return;
+        }
+
+        for (const entry of entries) {
+            if (keepNames.includes(entry.name) || enabledNames.has(entry.name)) {
+                continue;
+            }
+            if (!entry.isSymbolicLink()) {
+                continue;
+            }
+            try {
+                fs.unlinkSync(path.join(dir, entry.name));
+                stats.removed++;
+            } catch (error) {
+                stats.failed++;
+                stats.errors.push(`${entry.name}: ${error.message}`);
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-# jPulse Docs / Getting Started with jPulse v1.7.17
+# jPulse Docs / Getting Started with jPulse v1.7.18
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the site override system.
 
@@ -353,6 +353,9 @@ export { HelloModel };
 ## Step 4: Set Up Your Site Repository
 
 ### Initialize Git Repository
+
+`npx jpulse configure` writes a site `.gitignore` (or appends the plugin-runtime ignore block if you already have one). Generated plugin static and docs links under `webapp/static/plugins/` and `webapp/static/assets/jpulse-docs/installed-plugins/` are runtime-only and must not be committed.
+
 ```bash
 # Initialize git repository for your site
 git init

@@ -1,6 +1,34 @@
-# jPulse Docs / Version History v1.7.18
+# jPulse Docs / Version History v1.7.19
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.7.19, W-216, 2026-08-28
+
+**Commit:** `W-216, v1.7.19: markdown: HTML anchors for in-page deep links`
+
+**FEATURE RELEASE**: Markdown authors can deep-link to a non-heading target (table cell, glossary term, figure caption) with a named HTML anchor and a fragment link. `marked.js` already passed the raw HTML through, so `<a id="public-map">public map</a>` plus `[public map](#public-map)` already jumped. `.jp-markdown-content a` had styled every `<a>`, including named targets with no `href`, so the target looked like a dead primary-colored link. Link CSS now applies only to `a[href]`; `a:not([href])` inherits surrounding text. `.heading-anchor` still has `href` and stays styled.
+
+**Objective**: Make the existing HTML-anchor pattern look like surrounding text, document it so authors do not need a site CSS override, and leave heading 🔗 anchors unchanged.
+
+**Key features**:
+- `.jp-markdown-content a[href]` / `:visited` / `:hover` keep theme-primary link styles
+- `.jp-markdown-content a:not([href])` — `color: inherit; text-decoration: none; cursor: inherit`
+- Authoring pattern documented under URL Routing → In-page named anchors (source example + live table)
+
+**Files changed**:
+- `webapp/view/jpulse-common.css`: scope markdown link rules to `a[href]`; reset named targets
+- `docs/markdown-docs.md`: Overview bullet; In-page named anchors section
+- `docs/dev/work-items.md`: W-216 features/deliverables (status unchanged)
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.7.19 / W-216
+- `docs/CHANGELOG.md`: this section
+
+Verified via `npm test` (CSS-only; no new unit tests). Browser check: named target matches cell text; `#id` link stays primary and jumps; heading 🔗 still styled.
+
+**Release**:
+- Work Item: W-216
+- Version: v1.7.19
+- Release Date: 2026-08-28
 
 ________________________________________________
 ## v1.7.18, W-215, 2026-08-25

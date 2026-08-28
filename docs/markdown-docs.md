@@ -1,4 +1,4 @@
-# jPulse Docs / Markdown Documentation System v1.7.18
+# jPulse Docs / Markdown Documentation System v1.7.19
 
 **For Site Developers**
 
@@ -15,6 +15,7 @@ jPulse provides a complete markdown documentation infrastructure that:
 - **Follows site override patterns** (site > plugins > framework)
 - **Supports file exclusion** via `.markdown` `[ignore]` section
 - **Automatic anchor links** - All headings (h1-h6) automatically get GitHub-style anchor links for deep linking and easy content sharing
+- **Named HTML anchors** - Deep-link to a table cell, glossary term, or other non-heading target with `<a id="...">` and `[text](#id)`
 
 ## Quick Start
 
@@ -547,6 +548,26 @@ Documentation pages support deep linking:
 **Note**: Directory paths like `/my-help/` return the navigation listing, not content. Always link to `README.md` explicitly for index pages (e.g., `/my-help/README.md`).
 
 The `.md` extension is optional in browser URLs, but **always include `.md` in your markdown source links** for GitHub compatibility.
+
+### In-page named anchors
+
+Headings get automatic ids. For a table cell, glossary term, or figure caption, add a named HTML anchor and link to it with a fragment:
+
+```markdown
+| Term | Meaning |
+|------|---------|
+| <a id="public-map">public map</a> | A map anyone can view without signing in. |
+
+See the [public map](#public-map).
+```
+
+| Term | Meaning |
+|------|---------|
+| <a id="public-map">public map</a> | A map anyone can view without signing in. |
+
+See the [public map](#public-map).
+
+The target inherits surrounding text (not styled as a link). The `[public map](#public-map)` link stays theme-primary. Pick an `id` that is unique on the page and will not collide with a heading slug. The same HTML works on GitHub.
 
 ## Styling
 

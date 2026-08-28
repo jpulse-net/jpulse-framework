@@ -3,13 +3,13 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.7.18
- * @release         2026-08-25
+ * @version         1.7.19
+ * @release         2026-08-28
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.15, Grok 4.6
+ * @genai           60%, Cursor 3.17, Grok 4.6
  */
 
 /* ========================================
@@ -4604,20 +4604,28 @@ body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {
     box-sizing: border-box;
 }
 
-/* Markdown links: avoid browser default (purple visited links); keep consistent with theme. */
-.jp-markdown-content a {
+/* Markdown links: avoid browser default (purple visited links); keep consistent with theme.
+   Scope to a[href] so named targets (<a id="..."> with no href) inherit surrounding text.
+   .heading-anchor has href and stays styled as a link. */
+.jp-markdown-content a[href] {
     color: var(--jp-theme-color-primary, #007acc);
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 2px;
 }
 
-.jp-markdown-content a:visited {
+.jp-markdown-content a[href]:visited {
     color: var(--jp-theme-color-primary, #007acc);
 }
 
-.jp-markdown-content a:hover {
+.jp-markdown-content a[href]:hover {
     color: var(--jp-theme-color-primary-hover, #0056b3);
+}
+
+.jp-markdown-content a:not([href]) {
+    color: inherit;
+    text-decoration: none;
+    cursor: inherit;
 }
 
 .jp-markdown-content h1 {

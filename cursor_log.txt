@@ -22840,3 +22840,40 @@ Release prep W-215, v1.7.18, 2026-08-25. Unit tests 126 suites / 3191 passing. R
 
 
 ============================================================
+2026-08-28 00:09
+
+next: fix anchor style in markdown renderer
+
+**Markdown named anchors look like dead links**
+
+`.jp-markdown-content a` in `webapp/view/jpulse-common.css` styled every `<a>`, including named targets with no `href`. Jump worked; target was painted as a theme-primary link.
+
+Fix: scope link rules to `a[href]`; reset `a:not([href])` to inherit surrounding text. Do not break `.heading-anchor`.
+
+Scoped markdown link CSS in `webapp/view/jpulse-common.css` to `a[href]` / `:visited` / `:hover`, and reset `a:not([href])` (color inherit, no underline, cursor inherit). `.heading-anchor` still has `href` and stays styled. Browser check: target `term` matches body text; `#foo` link stays primary and jumps; loaded selectors confirmed.
+
+
+============================================================
+2026-08-28 00:25
+
+create work item @work-items.md (8278-8287)
+
+Filled W-216 objectives, rationale, features, deliverables, notes: HTML named anchors for non-heading deep links; CSS scoped to a[href] plus inherit reset; document the pattern in markdown-docs.md. Status left PENDING; section not moved.
+
+
+============================================================
+2026-08-28 00:30
+
+release prep:
+- run tests, and fix issues
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-216, v1.7.19, 2026-08-28
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Release prep W-216, v1.7.19, 2026-08-28. npm test passed (CSS-only; no new unit tests). Reviewed tt-git-diff.txt: CSS a[href] scope + a:not([href]) reset matches the work item; added the missing docs/markdown-docs.md section (Overview bullet + In-page named anchors with live table). Tightened W-216 markdown-docs deliverable. Status left PENDING. Highlights + CHANGELOG + commit-message.txt. Did not bump version or commit.
+
+
+============================================================

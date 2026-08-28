@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.18
+# jPulse Docs / Dev / Work Items v1.7.19
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -8206,19 +8206,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - no clamp and no `maxLimit` config key; 25mb is a warning threshold, not a ceiling
   - `api*` methods cannot set `bodyLimit` — use `static routes`
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-215, v1.7.18, 2026-08-25: plugins: generated static/docs links leak into site git; fix leftover /static/ URL
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bugfix
 - objectives:
   - site repos must not track generated plugin static or docs links (the actual leak: a new site that follows the docs commits the next non-widget plugin's docs link)
@@ -8283,17 +8272,58 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-216, v1.7.19, 2026-08-28: markdown: HTML anchors for in-page deep links
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - authors can deep-link to a non-heading target in markdown (table cell, glossary term, figure caption) with a named HTML anchor and `[text](#id)`
+  - the target must look like surrounding text, not a dead primary-colored link
+  - `.heading-anchor` (W-118) stays styled — those have `href`
+- rationale:
+  - headings already get GitHub-style ids (W-118); table cells and inline terms do not
+  - marked.js already passes raw HTML, so `<a id="public-map">public map</a>` plus `[public map](#public-map)` already jumps in `jPulse.UI.docs`
+  - `.jp-markdown-content a` styled every `<a>`, including named targets with no `href`; the jump worked, the target looked clickable and did nothing
+  - BubbleMap already ships this as a site override; put it in the framework so sites do not need the override
+- features:
+  - markdown link CSS applies only to `a[href]` (including `:visited` / `:hover`)
+  - `a:not([href])` inherits color, decoration, and cursor from surrounding text
+  - document the authoring pattern: raw HTML named anchor + markdown fragment link; unique `id`; works in tables
+- deliverables:
+  - `webapp/view/jpulse-common.css`:
+    - `.jp-markdown-content a[href]`, `a[href]:visited`, `a[href]:hover` (existing theme-primary link rules)
+    - `.jp-markdown-content a:not([href])` — `color: inherit; text-decoration: none; cursor: inherit`
+  - `docs/markdown-docs.md`:
+    - Overview bullet; URL Routing → In-page named anchors (source example + live table); `[text](#id)` stays the link; target is not styled as a link
+    - no work-item number in user-facing docs
+- notes:
+  - no renderer change — `marked.parse()` already keeps the HTML; `_loadDocument` already scrolls to `location.hash`
+  - do not add `id` to `utils.common.sanitizeHtml` allowedAttributes — markdown docs do not go through that sanitizer; widening it is a separate security item
+  - do not invent a `{#id}` markdown extension; raw HTML is enough and works on GitHub too
+  - no new unit tests (CSS-only); verify on any `jPulse.UI.docs` page: target matches cell text, `#id` link stays primary, heading 🔗 still styled
+  - sites can drop the BubbleMap-style override in `site/webapp/view/jpulse-common.css` once they take this release
+
+
+
+
+
+
+
+
+
 
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
+- user registration: admin option to get notified by email
 
 old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - logLevel: 'warn' or 1, 2; or verboseLogging: true
 - version history: label is not shown in history table
-
 
 ### Potential next items:
 - W-0: i18n: site specific and plugin specific translations & vue.js SPA support
@@ -8311,7 +8341,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-215, v1.7.18, 2026-08-25
+- assume W-216, v1.7.19, 2026-08-28
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -8323,12 +8353,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.18 2026-08-25
+node bin/bump-version.js 1.7.19 2026-08-28
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.18; git push origin main --tags
+git tag v1.7.19; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

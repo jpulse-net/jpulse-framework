@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.7.18
+# jPulse Docs / Site Administrator & Developer Documentation v1.7.19
 
 **For Site Administrators & Site Developers**
 
@@ -237,6 +237,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v1.7.19, W-216, 2026-08-28: Markdown: HTML anchors for in-page deep links**: Authors can deep-link to a non-heading target (table cell, glossary term, figure caption) with `<a id="foo">term</a>` and `[term](#foo)`. The jump already worked; named targets no longer look like dead primary-colored links (CSS applies only to `a[href]`; `a:not([href])` inherits surrounding text). Heading 🔗 anchors are unchanged.
 - **v1.7.18, W-215, 2026-08-25: Plugins: generated static/docs links leak into site git; leftover `/static/` URL**: `npx jpulse configure` now writes a site `.gitignore` (or appends the plugin-runtime block if a customized file lacks it) so generated plugin static and docs links are not committed. Those links are runtime-only: created on start for enabled plugins, wiped by `jpulse-update`, recreated on the next start; leftovers for disabled or missing plugins are removed. Public plugin-asset URL is `/plugins/{name}/file.png` (`webapp/static` is the HTTP document root) — `/static/plugins/...` must not exist. nginx template drops the leftover `location /static/`. Site docs-link comments corrected to five `../` levels.
 - **v1.7.17, W-214, 2026-08-22: API: per-route body size limit**: A `static routes` entry may set `bodyLimit: '25mb'` so one upload endpoint accepts a larger JSON or urlencoded body without raising the global 10mb parser for login and every write API. `bodyLimit` is authoritative in both directions. Oversize `/api/*` bodies return 413 `{ code: 'PAYLOAD_TOO_LARGE' }` instead of Express HTML. A value above 25mb logs a startup warning (1 GB worker heap) but is not clamped. nginx `client_max_body_size` default is now 27M — an outer gate only, enough for the 25mb comfort max plus headroom; Express default stays 10mb.
 - **v1.7.16, W-213, 2026-08-22: Utils: URL fetch**: `UrlFetch.fetch(url)` is the one helper for a URL a user or a config field chose — scheme and credential checks, punycode host lists, DNS then reject any non-public address, pinned connect (including Node 20+ Happy Eyeballs), per-hop redirect re-validation, encoded and decoded size caps, stall plus total timeouts. The call resolves and never rejects. GET or POST only (not a site config key). Callers may only narrow `utils.urlFetch`. Admin demo at `/hello-fetch/`.

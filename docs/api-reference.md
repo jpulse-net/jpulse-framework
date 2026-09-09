@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.8.0
+# jPulse Docs / REST API Reference v1.8.1
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -403,6 +403,44 @@ if (bytes == null) {
 `StreamBody` is `global.StreamBody` (same pattern as `CommonUtils`). The cap comes from the route; pass `{ maxBytes }` only to override. On over-cap, `pipe` destroys `req` and `dest`, sends the same 413 envelope as a parser limit, and returns `null`. `dest` may already contain a prefix of the rejected body — unlink that partial file; `pipe` does not.
 
 nginx still buffers the request body by default, so a production upload does not stream end-to-end until a location sets `proxy_request_buffering off`. `npm start` has no nginx and streams immediately.
+
+#### Streaming Responses (`CommonUtils.sendStream`)
+
+Use `sendStream` for bytes that have no path — GridFS, S3, a DB blob, decrypt-on-read, generated output. A plain file at a path the app controls still goes to `res.sendFile` (Express `send` already does ranges, `ETag`, `Last-Modified`, `If-Range`, and `304`).
+
+```javascript
+const result = await CommonUtils.sendStream(req, res, ({ start, end }) => {
+    return bucket.openDownloadStream(fileId, { start, end: end + 1 });
+}, {
+    size: file.length,
+    filename: file.filename,          // "Bericht München.pdf" just works
+    mimeType: file.contentType,       // or omit — inferred from the filename extension
+    disposition: 'inline',            // default is attachment when filename is set
+    etag: `"${file._id}-${file.uploadDate.getTime()}-${file.length}"`,
+    lastModified: file.uploadDate
+});
+if (result.aborted) {
+    return; // client closed the tab; already torn down
+}
+```
+
+`source` is one of three shapes:
+
+| What you pass | Ranges | Typical use |
+|---|---|---|
+| `({ start, end }) => readable` | yes, when `size` is set (`end` inclusive, same as `fs.createReadStream`) | files, GridFS, S3 |
+| `Buffer` | yes (`size` inferred) | small already-loaded bytes |
+| `Readable` | no — `Range` ignored, no `Accept-Ranges` | you already have a stream and do not care about seek |
+
+A `Range` the helper cannot slice is answered `200` with the full body. `Accept-Ranges: bytes` is advertised only when a range could actually be served. An over-long `end` clamps and still answers `206`; a `start` past `size` (or any range on `size: 0`) is `416` with `Content-Range: bytes */size` and an empty body — not a JSON `sendError` envelope.
+
+`Content-Disposition` is omitted without a `filename`. With a `filename` it defaults to `attachment` and carries both the ASCII fallback and `filename*=UTF-8''…`. Pass `disposition: 'inline'` to display in the browser. Caller-supplied `inline` bytes (an uploaded SVG or HTML file) can execute script in the site's origin — `attachment` plus `nosniff` is the safe default; `inline` is an informed choice.
+
+`X-Content-Type-Options: nosniff` is set on every `sendStream` response. Conditional requests follow RFC 7232: `If-None-Match` → `304`, `If-Modified-Since` (only when there is no `If-None-Match`) compared at whole-second granularity, `If-Range` mismatch → full `200`. A weak `etag` (`W/"…"`) never matches `If-Range`. `etag` is the caller's to compute; the helper quotes it if needed. `size` must be the exact byte length — `Content-Length` is set from it, and a source that under-delivers hangs the request.
+
+The shipped CSP uses `frame-ancestors 'none'`, so an `<iframe>` pointing at an `inline` PDF is refused even same-origin. A site that embeds PDFs that way selects the `Content-Security-Policy-Frameable` alias in `middleware.setHeaders.headers` (see [Security and Auth](security-and-auth.md#content-security-policy-csp)). A PDF.js viewer that fetches and paints to canvas does not need it.
+
+`sendStream` returns `{ status, aborted }`. A client disconnect resolves `aborted: true` and destroys the upstream stream; it does not reject.
 
 ### Best Practices
 

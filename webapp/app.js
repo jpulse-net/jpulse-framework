@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         1.8.0
- * @release         2026-09-08
+ * @version         1.8.1
+ * @release         2026-09-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -22,6 +22,7 @@ import { fileURLToPath } from 'url';
 import os from 'os';
 import fs from 'fs';
 import CommonUtils from './utils/common.js';
+import { applySetHeaders } from './utils/set-headers.js';
 import {
     mountRouteBodyLimitParsers,
     mountStreamBodyGuards,
@@ -301,14 +302,9 @@ async function startApp() {
     // Configure middleware
     app.use(cors(appConfig.middleware.cors));
     app.use((req, res, next) => {
-        // Set headers, including Content-Security-Policy (CSP) and Report-To:
-        const setHeadersConf = appConfig.middleware.setHeaders;
-        setHeadersConf.headers.forEach((header) => {
-            if (setHeadersConf.availableHeaders[header]) {
-                res.setHeader(header, setHeadersConf.availableHeaders[header]);
-            } else {
-                appLog(`Header "${header}" not found in middleware.setHeaders.availableHeaders`, 'warning');
-            }
+        // Set headers, including Content-Security-Policy (CSP), nosniff, and Report-To:
+        applySetHeaders(res, appConfig.middleware.setHeaders, (message) => {
+            appLog(message, 'warning');
         });
         next();
     });

@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.8.0
+# jPulse Docs / Security & Authentication v1.8.1
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -431,18 +431,25 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
 #### Content Security Policy (CSP)
 
-CSP is configured via `appConfig.middleware.setHeaders`:
+CSP and `X-Content-Type-Options` are configured via `appConfig.middleware.setHeaders`. Express now sends `nosniff` by default (nginx already did in production). An `availableHeaders` entry is either a string — the key is the header name — or `{ header, value }` so an alias can select a variant without emitting a bogus header name.
 
 ```javascript
 // CSP configuration in app.conf
 middleware: {
     setHeaders: {
-        headers: ['Content-Security-Policy', 'Report-To'],
+        headers: ['Content-Security-Policy', 'Report-To', 'X-Content-Type-Options'],
         availableHeaders: {
             'Content-Security-Policy':
                 "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; report-to default",
+            // Select this key instead of Content-Security-Policy to allow same-origin
+            // framing (an <iframe> PDF viewer on the site's own page).
+            'Content-Security-Policy-Frameable': {
+                header: 'Content-Security-Policy',
+                value:  "… frame-ancestors 'self' …"
+            },
             'Report-To':
-                '{"group":"default","max_age":31536000,"endpoints":[{"url":"/api/1/log/report/csp"}]}'
+                '{"group":"default","max_age":31536000,"endpoints":[{"url":"/api/1/log/report/csp"}]}',
+            'X-Content-Type-Options': 'nosniff'
         }
     }
 }
@@ -452,6 +459,7 @@ middleware: {
 - Violation reporting to `/api/1/log/report/csp`
 - Configurable directives per security requirements
 - Report-Only mode available for testing
+- `Content-Security-Policy-Frameable` — same shipped CSP with `frame-ancestors 'self'` so a site can embed an `inline` PDF in its own page. The default `frame-ancestors 'none'` refuses that even same-origin. A PDF.js viewer that fetches and paints to canvas does not need the alias; an `<iframe>` or `<embed>` does. Pick the alias from `headers` — do not copy the CSP string into site config.
 
 ### URL Fetch
 

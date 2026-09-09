@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.8.0
+# jPulse Docs / Dev / Work Items v1.8.1
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -8294,19 +8294,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - no new unit tests (CSS-only); verify on any `jPulse.UI.docs` page: target matches cell text, `#id` link stays primary, heading 🔗 still styled
   - sites can drop the BubbleMap-style override in `site/webapp/view/jpulse-common.css` once they take this release
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-217, v1.8.0, 2026-09-08: controllers: declare routes with streaming request bodies (bodyMode: 'stream')
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - a controller can declare a route whose request body is consumed as a stream, so a large upload never buffers in memory or on disk
@@ -8364,35 +8353,97 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
 
-
-
-### W-218, vX.X.X, YYYY-MM-DD: controllers: `CommonUtils.sendStream` response with range requests and RFC 5987 filenames
-- status: 🕑 PENDING
+### W-218, v1.8.1, 2026-09-09: controllers: CommonUtils.sendStream response with range requests and RFC 5987 filenames
+- status: 🚧 IN_PROGRESS
 - type: Feature
 - objectives:
-  - one helper streams a file-like response with correct headers, range support, and a filename that survives non-ASCII characters
+  - one helper streams a file-like response with correct headers, range support, conditional requests, and a filename that survives non-ASCII characters
   - a client disconnect tears down the upstream stream instead of leaking it
+  - the careless call is the safe call: an unknown byte stream never renders in the site's origin by default
 - rationale:
   - `webapp/utils/common.js` exports `sendError` but has no streaming response helper, so every controller that serves bytes reinvents the headers
   - two details are easy to get wrong once per controller and right once in the framework: a disconnect must destroy the upstream stream, and a non-ASCII `Content-Disposition` filename needs RFC 5987 `filename*=UTF-8''…` beside the ASCII fallback or a German or Japanese document downloads with a mangled name
   - range requests are what make a large stored PDF seekable in a browser viewer instead of a full re-download on every jump
+  - a `Range` cannot be answered from an already-open full-length stream without reading and discarding bytes, so the helper has to be handed something it can open *after* it has parsed the header - that is why the third argument is a factory rather than a stream
+  - without a validator, a resource that changes between two range requests silently assembles into a corrupt file on the client; `If-Range` is the only thing that turns that into a clean full re-fetch
+  - `inline` on caller-supplied bytes is a stored-XSS vector - an uploaded `.svg` or `.html` runs script in the site's own origin with the visitor's cookies - and Express sets no `X-Content-Type-Options`, only the nginx config does, so `npm start` and any non-nginx deployment sniff
+  - `res.sendFile` already covers on-disk paths with ranges and validators; this helper is for bytes that have no path (GridFS, S3, a DB blob, decrypt-on-read, generated output) and has to say so or it ships as a weaker `sendFile`
 - features:
-  - `CommonUtils.sendStream(req, res, stream, { mimeType, size, filename, disposition, cacheControl })`
-  - sets `Content-Type`, `Content-Length`, `Cache-Control`, `Accept-Ranges`
-  - a `Range` request answered `206` with `Content-Range`; an unsatisfiable range `416`; a `HEAD` as headers with no body
-  - a client disconnect destroys the upstream stream rather than leaking it
-  - `Content-Disposition` carrying both the ASCII fallback and the RFC 5987 encoded filename, `inline` or `attachment` chosen by the caller
+  - `CommonUtils.sendStream(req, res, source, options)` returning `Promise<{ status, aborted }>`
+  - `source` is one of three shapes, and only the seekable ones advertise ranges:
+    - `({ start, end }) => Readable` - factory, `end` inclusive (same convention as `fs.createReadStream`); ranges served when `size` is known
+    - `Buffer` - `size` inferred, ranges served by slicing
+    - `Readable` - sent as-is, `Range` ignored, no `Accept-Ranges`
+  - `options`: `mimeType`, `size`, `filename`, `disposition`, `cacheControl`, `etag`, `lastModified`
+  - `Content-Type` from `mimeType`, else inferred from the `filename` extension via `utils.sendStream.contentTypes`, else `application/octet-stream`
+  - `Content-Disposition` omitted when there is no `filename`; with a `filename` it defaults to `attachment` and carries both the ASCII fallback and the RFC 5987 `filename*=UTF-8''...` form; `inline` is opt-in per call
+  - `X-Content-Type-Options: nosniff` on every `sendStream` response, and framework-wide through `middleware.setHeaders` so it is not only the byte routes that stop sniffing
+  - a selectable CSP variant carrying `frame-ancestors 'self'`, so a site can embed an `inline` PDF in its own page without hand-copying the whole CSP string
+  - `Accept-Ranges: bytes` only when a range could actually be served
+  - `Content-Length` from `size`, `Cache-Control` only when the caller passes one
+  - conditional requests, evaluated in RFC 7232 precedence order:
+    - `If-None-Match` against `etag` gives `304` with no body
+    - `If-Modified-Since` against `lastModified`, only when there is no `If-None-Match`, gives `304`; compared at whole-second granularity so a timestamp carrying milliseconds does not spuriously `200`
+    - `If-Range` mismatch drops the `Range` and sends the full `200`; a weak `etag` (`W/"..."`) never matches
+  - `etag` is quoted for the caller when it is not already; `lastModified` accepts a `Date`, epoch ms, or a parseable string and is emitted as an HTTP-date
+  - range handling, single range only:
+    - `bytes=0-499`, `bytes=500-`, `bytes=-500` give `206` with `Content-Range` and a `Content-Length` of the slice
+    - an `end` past the last byte clamps to `size - 1` and still answers `206` - it is satisfiable, not an error
+    - a `start` at or beyond `size`, and any range against `size: 0`, gives `416` with `Content-Range: bytes */size` and an empty body, as a plain HTTP response and not a `sendError` JSON envelope
+    - a malformed or multi-range header is ignored and answered `200`
+  - `HEAD`, `304`, and `416` send headers with no body and never invoke the factory; a `Readable` handed in and left unused is destroyed
+  - the response is piped with `stream/promises.pipeline`, so a dead client destroys the source; teardown is observed on the `res` `close` event, not the `req` `aborted` event that Node 24 deprecates
+  - a client disconnect resolves with `aborted: true` rather than rejecting - a visitor closing a tab is not an error every caller has to catch
+  - a `source` error before headers rejects so the caller can log it; after headers it destroys the response, since no error envelope is possible any more
+  - calling with headers already sent throws a programmer error instead of corrupting the response
+  - no logging inside the helper, matching `sendError`
 - deliverables:
+  - `webapp/utils/send-stream.js` (new):
+    - `sendStream`, plus the internal range parser, conditional-request evaluator, and `Content-Disposition` builder
   - `webapp/utils/common.js`:
-    - `sendStream` implemented and exported next to `sendError`
-  - `webapp/static/assets/jpulse-docs/api-reference.md`:
-    - document the helper and its options
+    - `static sendStream()` delegating to `send-stream.js`, and in the named export list next to `sendError`
+  - `webapp/app.conf`:
+    - `utils.sendStream.contentTypes` - extension to MIME map covering office and workplace formats (`.xlsx`, `.docx`, `.pptx`, `.vsdx`, legacy `.xls` / `.doc` / `.ppt` / `.vsd`, OpenDocument `.odt` / `.ods` / `.odp`), documents and text (`.pdf`, `.rtf`, `.csv`, `.txt`, `.md`, `.xml`), archives (`.zip`, `.7z`, `.gz`, `.tar`), audio and video (`.mp4`, `.webm`, `.mp3`, `.wav`), images (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.avif`, `.heic`, `.svg`), and mail (`.eml`)
+    - self-contained rather than shared with `controller.view.contentTypes`: a util must not read a controller's config namespace, and `.vsdx` has no business in a view-asset map
+    - `middleware.setHeaders.availableHeaders` gains `X-Content-Type-Options: nosniff`, and `middleware.setHeaders.headers` lists it by default
+    - `middleware.setHeaders.availableHeaders` gains a `Content-Security-Policy-Frameable` alias, the shipped CSP with `frame-ancestors 'self'` in place of `'none'`
+  - `webapp/app.js`:
+    - the `setHeaders` middleware accepts an `availableHeaders` entry as either a plain value (current shape, key is the header name) or `{ header, value }`, so an alias key can select a variant of a header it does not share a name with - without this, an alias key is emitted verbatim as a bogus header name
+  - `docs/security-and-auth.md`:
+    - `nosniff` now on by default; the `Content-Security-Policy-Frameable` alias and when a site wants it
+  - `docs/api-reference.md`:
+    - `sendStream` subsection next to Streaming Routes, where `StreamBody.pipe` is already documented - the three `source` shapes, the option table, the decision rule against `res.sendFile`, and the `inline` caveat for caller-supplied bytes
+  - `docs/genai-instructions.md`:
+    - serve bytes with `CommonUtils.sendStream` instead of hand-rolling the headers; `res.sendFile` stays the answer for a plain on-disk path
   - tests:
-    - range, no-range, unsatisfiable range, `HEAD`, disconnect teardown, and a non-ASCII filename
+    - `webapp/tests/unit/utils/send-stream.test.js`: no-range `200`; `bytes=0-499` / `bytes=500-` / `bytes=-500` giving `206` with correct `Content-Range` and `Content-Length`; a clamped `end` still `206`; `start` past `size` and any range on `size: 0` giving `416`; malformed and multi-range answered `200`; `HEAD` with no body and the factory never called; `If-None-Match` giving `304`; `If-Modified-Since` at second granularity; `If-Range` mismatch giving the full `200`; a weak `etag` never matching `If-Range`; disconnect destroying the source and resolving `aborted: true`; `Bericht München.pdf` carrying both `filename` and `filename*=`; `mimeType` inferred from the extension; default disposition `attachment`; `nosniff` present; a plain `Readable` ignoring `Range` and omitting `Accept-Ranges`; headers-already-sent throwing
+    - `webapp/tests/integration/send-stream.test.js`: the range, `304`, and `416` paths over real HTTP with `supertest`, where Node enforces `Content-Length` and suppresses a `304` body - the things a mocked `res` cannot catch
+    - `webapp/tests/unit/utils/set-headers.test.js`: an `availableHeaders` alias entry emits its mapped header name, a plain entry still emits the key
 - notes:
-  - acceptance check: an existing image `/raw` route can adopt it with no behaviour change
+  - decision rule for the docs: a plain file at a path the app controls goes to `res.sendFile` (Express `send` already does ranges, `ETag`, `Last-Modified`, `If-Range`, `304`); bytes with no path go to `sendStream`
+  - `size` must be the exact byte length - `Content-Length` is set from it, and a source that under-delivers hangs the request
+  - `etag` is the caller's to compute: a content hash for content-addressed storage, or something like `"<id>-<mtime>-<size>"` for a mutable document; the helper cannot hash a stream it has not read
+  - `inline` stays available for every type rather than deny-listed for `.svg` / `.html`: `attachment` by default plus `nosniff` already covers the careless caller, and a deny-list would block a caller with a legitimate SVG for no gain - the risk is documented instead
+  - the CSP alias is what makes the `inline` PDF rationale actually reachable: the header middleware is a global `app.use` with no path filter, so a byte response carries the shipped `frame-ancestors 'none'` and the browser refuses to frame it even same-origin; worth confirming in a real browser once implemented, since a PDF.js viewer that fetches and paints to canvas is unaffected and only the `<iframe>` / `<embed>` path needs the alias
+  - out of scope: `multipart/byteranges` for multi-range requests, and `ETag` generation
+  - no new global needed - `CommonUtils` is already on `global`, unlike W-217's `global.StreamBody`
+  - adoption is site-side; the framework has no byte-serving route of its own to migrate, so there is no in-repo before/after to diff
   - needed by BubbleMap T-118 (large and resumable uploads, range reads); T-117 ships without ranges, so this does not block it
+  - W-219 stays a later, separate release: this item ships against nginx defaults; `proxy_request_buffering` / `proxy_buffering` / the upload rate-limit zone are not in scope here
+
+
+
+
+
+
+
+
+
+
+
 
 ### W-219, vX.X.X, YYYY-MM-DD: deploy: nginx streaming location and a dedicated upload rate-limit zone
 - status: 🕑 PENDING
@@ -8417,7 +8468,9 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - notes:
   - `deployment.md` states the `client_max_body_size` default is `27M` while BubbleMap's `deploy/nginx.prod.conf` is at `35M`, so the documented default is already stale for at least one site — worth reconciling while editing
   - no code dependency: a site can apply the location block by hand before taking the release, which is why this is not a floor for any BubbleMap phase
-  - open: I could not confirm from a site checkout where the framework holds the scaffold copy of `deploy/nginx.prod.conf`; the path needs checking in the framework repo before writing the deliverable
+  - stays a later, separate release from W-218 (one work item per version); W-218 ships first against nginx defaults
+  - scaffold path confirmed: `templates/deploy/nginx.prod.conf` (214 lines), and `templates/` is in `package.json` `files`
+  - the download direction belongs here too: `proxy_buffering off` on the same commented location, plus a note that `/api/`'s `proxy_read_timeout 30s` is tight for a slow first byte from GridFS or S3; a site copies the block onto its own byte-serving paths (the framework has none)
 
 
 
@@ -8455,7 +8508,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-217, v1.8.0, 2026-09-08
+- assume W-218, v1.8.1, 2026-09-09
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -8467,12 +8520,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.8.0 2026-09-08
+node bin/bump-version.js 1.8.1 2026-09-09
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.8.0; git push origin main --tags
+git tag v1.8.1; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

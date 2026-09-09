@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.sourceCode and jPulse.clipboard (W-063)
  * @description     Tests for client-side source code widget and clipboard functionality
  * @file            webapp/tests/unit/utils/jpulse-ui-sourcecode.test.js
- * @version         1.8.0
- * @release         2026-09-08
+ * @version         1.8.1
+ * @release         2026-09-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

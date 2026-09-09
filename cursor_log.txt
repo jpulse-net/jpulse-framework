@@ -22948,3 +22948,85 @@ Release prep W-217, v1.8.0, 2026-09-08. Unit tests 127 suites / 3214 passed. Rev
 
 
 ============================================================
+2026-09-09 00:14
+
+next: W-218, v1.8.1, 2026-09-09: controllers: CommonUtils.sendStream response with range requests and RFC 5987 filenames
+- better start a new chat?
+
+Recommended a new chat. This thread is W-217 request-body + release prep; W-218 is response streaming and will read cleaner from work-items.md in a fresh session. No code changes.
+
+
+============================================================
+2026-09-09 00:16
+
+next: W-218, v1.8.1, 2026-09-09: controllers: CommonUtils.sendStream response with range requests and RFC 5987 filenames
+- review @work-items.md (8358-8385)
+- ask questions if unclear
+- suggest change of spec if any, goal is a good DX for developers; use the "don't make me think" paradigm
+- plan how to implement (wait for my go ahead)
+
+Reviewed W-218. Spec outcome is clear; the hole is that Range cannot be honored from an already-open full-file stream. Proposed DX: 3rd arg is Readable | Buffer | open({ start, end }) factory; ranges only when size + open/Buffer; defaults that do not invent policy; 416 is HTTP not JSON; HEAD destroys unused stream; implementation in send-stream.js with CommonUtils.sendStream facade; docs in docs/api-reference.md next to StreamBody. No in-repo /raw route to migrate. Waiting for go-ahead.
+
+
+============================================================
+2026-09-09 01:19
+
+opus: review the proposed spec change for W-218, v1.8.1, 2026-09-09: controllers: CommonUtils.sendStream response with range requests and RFC 5987 filenames
+- recommend changes for better DX if you have
+
+Reviewed the proposal. Kept the factory insight. Recommended: default disposition attachment (not inline) + always nosniff, since inline on caller-supplied bytes is stored XSS and Express sets no X-Content-Type-Options (only nginx does); scope the helper explicitly against res.sendFile, which already does ranges/ETag/If-Range/304 for on-disk paths (routes.js:189 already uses it); infer mimeType from the filename extension; clamp an over-long range end to size-1 and answer 206 instead of 416; use stream/promises.pipeline plus res 'close' rather than the deprecated req 'aborted'; resolve with aborted:true on client disconnect instead of rejecting; guard res.headersSent; expanded the test list. Noted the jpulse-docs api-reference.md is a generated copy (bin/configure.js, bin/jpulse-update.js) of docs/api-reference.md.
+
+
+============================================================
+2026-09-09 01:19
+
+- validation: yes for If-Range
+- contentTypes should list common office & workplace files like .xlsx, .vsdx, ...
+- /raw is obvously site specific, can't assume in framework
+- update the work item
+- let me know stuff we should discuss
+
+Updated W-218 features/deliverables/notes/objectives/rationale in docs/dev/work-items.md (status and section untouched). Added: full conditional-request support in RFC 7232 precedence order (If-None-Match to 304, If-Modified-Since at second granularity, If-Range mismatch to full 200, weak etag never matches); etag auto-quoted, lastModified accepts Date/epoch/string; utils.sendStream.contentTypes as a self-contained MIME map with office and workplace formats (.xlsx, .docx, .pptx, .vsdx, legacy .xls/.doc/.ppt/.vsd, OpenDocument, .pdf, archives, AV, images, .eml) rather than sharing controller.view.contentTypes, since a util must not read a controller's config namespace; attachment default plus nosniff; range clamping; pipeline teardown; resolve-on-abort; headersSent guard. Dropped the /raw acceptance check as site-specific. Flagged for discussion: the global CSP middleware (app.js:303) stamps frame-ancestors 'none' on every response including byte responses, so an inline PDF cannot be embedded in an iframe on the site's own page; whether nosniff joins middleware.setHeaders.availableHeaders framework-wide; whether inline should be refused for .svg/.html without an explicit override; nginx proxy_buffering for the download direction as a W-219 addition; whether bytesSent is worth the counter; unit-only tests vs adding a supertest integration file.
+
+
+============================================================
+2026-09-09 01:24
+
+W-218 decisions (answers to the open questions): CSP = do A if it supports BubbleMap's iframe embed, else B; nosniff = availableHeaders + default headers list; inline deny-list = no; tests = unit + supertest integration; bytesSent = drop.
+
+Chose B for CSP: a site can already deep-merge middleware.setHeaders in site/webapp/app.conf, but only by hand-copying the entire framework CSP string and re-copying it on every framework update, so documenting alone does not really support the embed. Found that app.js:308 uses the availableHeaders key directly as the header name, so an alias key would emit a bogus header - B therefore needs the setHeaders middleware to accept an entry as either a plain value or { header, value }. Folded all five decisions into W-218: return value now { status, aborted }; nosniff per-response plus availableHeaders and the default headers list; Content-Security-Policy-Frameable alias with frame-ancestors 'self'; app.js alias mechanism plus its own test; docs/security-and-auth.md deliverable; supertest integration test file; notes recording why inline is not deny-listed and why the CSP alias is what makes the inline-PDF rationale reachable. Status and section placement untouched. Not yet flagged to W-219: nginx proxy_buffering off for the download direction. No implementation code written - waiting for go-ahead.
+
+
+============================================================
+2026-09-09 12:17
+
+- that question took some time to resolve
+- decision: keep W-218 and W-219 separate releases
+
+Recorded the decision. Convention is one work item per version, so they cannot share v1.8.1. W-218 note: ships against nginx defaults; buffering and the upload rate-limit zone stay out of scope. W-219 note: later separate release; closed the open scaffold-path question (templates/deploy/nginx.prod.conf, templates/ in package.json files); download-direction proxy_buffering off belongs on the same commented location because the framework has no byte-serving path to configure. Status and section placement untouched. No implementation.
+
+
+============================================================
+2026-09-09 12:20
+
+on to coding
+
+Implemented W-218. send-stream.js + CommonUtils.sendStream facade; set-headers.js applySetHeaders (plain value or { header, value }); app.conf utils.sendStream.contentTypes plus nosniff default and Content-Security-Policy-Frameable alias; app.js uses applySetHeaders. Tests: unit send-stream (ranges, 416, HEAD, If-None-Match/If-Modified-Since/If-Range, disconnect, RFC 5987, nosniff), unit set-headers, integration send-stream via supertest. Docs: api-reference Streaming Responses, genai-instructions item 6, security-and-auth nosniff + Frameable. Status untouched. Did not bump version or commit.
+
+
+============================================================
+2026-09-09 12:57
+
+release prep:
+- run tests, and fix issues
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-218, v1.8.1, 2026-09-09
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Release prep for W-218 / v1.8.1. Jest: 141 suites / 3352 tests passing. Tightened W-218 deliverable to name set-headers.test.js (dropped "or the nearest existing home"). Added Latest Release Highlights in README.md and docs/README.md; new CHANGELOG section above v1.8.0; replaced commit-message.txt. Work-item status and section placement untouched. Did not bump version or commit.
+
+
+============================================================

@@ -3,18 +3,19 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         1.8.0
- * @release         2026-09-08
+ * @version         1.8.1
+ * @release         2026-09-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.14, Claude Sonnet 5
+ * @genai           60%, Cursor 3.19, Grok 4.6
  */
 
 import fs from 'fs';
 import path from 'path';
 import { ObjectId } from 'mongodb';
+import { sendStream as sendStreamImpl } from './send-stream.js';
 
 /**
  * Common Utilities - shared functions for the jPulse Framework
@@ -1462,6 +1463,20 @@ class CommonUtils {
     }
 
     /**
+     * Stream a file-like response with range support, conditional GET, and RFC 5987 filenames.
+     * Use this for bytes that have no path (GridFS, S3, a DB blob). A plain file at a path
+     * the app controls still goes to `res.sendFile`.
+     * @param {object} req
+     * @param {object} res
+     * @param {Buffer|function|object} source - Readable (no ranges), Buffer, or ({ start, end }) => Readable
+     * @param {object} [options]
+     * @returns {Promise<{ status: number, aborted: boolean }>}
+     */
+    static sendStream(req, res, source, options) {
+        return sendStreamImpl(req, res, source, options);
+    }
+
+    /**
      * Extract context information for logging (username, IP, VM, ID)
      * Accepts Express req or a plain context object { username?, ip? } (e.g. from WebSocket).
      * @param {object} reqOrContext - Express request object, or plain { username?, ip? }; optional
@@ -2135,6 +2150,7 @@ export const {
     slugifyString,
     sanitizeHtml,
     sendError,
+    sendStream,
     getLogContext,
     formatTimestamp,
     formatLogMessage,

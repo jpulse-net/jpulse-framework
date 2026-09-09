@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Development Guide v1.8.0
+# jPulse Docs / Plugins / Plugin Development Guide v1.8.1
 
 Welcome to jPulse Framework's plugin development guide! This documentation will help you create, publish, and manage plugins for the jPulse Framework.
 

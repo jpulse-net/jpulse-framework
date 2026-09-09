@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-116: context caching optimization
  * @description     Tests for baseContext caching across nested template expansions
  * @file            webapp/tests/unit/controller/handlebar-context-caching.test.js
- * @version         1.8.0
- * @release         2026-09-08
+ * @version         1.8.1
+ * @release         2026-09-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

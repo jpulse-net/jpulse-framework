@@ -1,6 +1,48 @@
-# jPulse Docs / Version History v1.8.0
+# jPulse Docs / Version History v1.8.1
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.8.1, W-218, 2026-09-09
+
+**Commit:** `W-218, v1.8.1, 2026-09-09: controllers: CommonUtils.sendStream with range requests and RFC 5987 filenames`
+
+**FEATURE RELEASE**: Controllers that serve bytes with no path (GridFS, S3, a DB blob, decrypt-on-read, generated output) get one helper for headers, ranges, conditional requests, and a filename that survives non-ASCII characters. A `Range` cannot be honored from an already-open full-length stream, so the third argument is a factory (or a Buffer / Readable), not an already-open file stream. `res.sendFile` stays the answer for an on-disk path.
+
+**Objective**: One call streams a file-like response with correct headers; a disconnect tears down the upstream stream; the careless call is the safe call (`attachment` by default, `nosniff` on every response).
+
+**Key features**:
+- `CommonUtils.sendStream(req, res, source, options)` returns `Promise<{ status, aborted }>`
+- `source`: `({ start, end }) => Readable` (`end` inclusive; ranges when `size` is known), `Buffer` (size inferred, ranges by slice), or `Readable` (`Range` ignored, no `Accept-Ranges`)
+- `Content-Type` from `mimeType`, else `utils.sendStream.contentTypes` via filename ext, else `application/octet-stream`
+- `Content-Disposition` omitted without `filename`; with a filename defaults to `attachment` and carries ASCII `filename` plus RFC 5987 `filename*=UTF-8''…`; `inline` is opt-in
+- `X-Content-Type-Options: nosniff` on every `sendStream` response and framework-wide via `middleware.setHeaders`
+- `Content-Security-Policy-Frameable` alias (`frame-ancestors 'self'`) so a site can iframe an inline PDF without copying the whole CSP string
+- `Accept-Ranges: bytes` only when a range can actually be served
+- RFC 7232: `If-None-Match` → `304`; `If-Modified-Since` only if no INM, compared at whole-second granularity; `If-Range` mismatch → full `200`; a weak etag never matches `If-Range`
+- Range: `bytes=0-499` / `bytes=500-` / `bytes=-500` → `206`; over-long end clamps and stays `206`; start ≥ size or any range on `size: 0` → `416` with `Content-Range: bytes */size`, empty body, not `sendError` JSON; malformed / multi-range → `200`
+- `HEAD` / `304` / `416`: headers only; factory never called; unused Readable destroyed
+- `stream/promises.pipeline`; client disconnect resolves `{ aborted: true }` (observed on `res` `close`)
+- `res.headersSent` throws a programmer error; no logging in the helper
+
+**Files changed**:
+- `webapp/utils/send-stream.js` (new): `sendStream`, range parser, conditional-request evaluator, RFC 5987 `Content-Disposition`
+- `webapp/utils/set-headers.js` (new): `applySetHeaders(res, conf, logMissing)` — plain value or `{ header, value }` alias
+- `webapp/utils/common.js`: `static sendStream()` delegates; named export next to `sendError`
+- `webapp/app.js`: setHeaders middleware uses `applySetHeaders`
+- `webapp/app.conf`: `utils.sendStream.contentTypes`; `X-Content-Type-Options: nosniff` in default headers; `Content-Security-Policy-Frameable` alias
+- Tests: `webapp/tests/unit/utils/send-stream.test.js` (ranges, 416, HEAD, validators, disconnect, RFC 5987, nosniff), `webapp/tests/unit/utils/set-headers.test.js` (alias vs plain), `webapp/tests/integration/send-stream.test.js` (SuperTest)
+- Docs: `docs/api-reference.md` (Streaming Responses), `docs/genai-instructions.md`, `docs/security-and-auth.md`
+- `docs/dev/work-items.md`: W-218 features/deliverables (status unchanged)
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.8.1 / W-218
+- `docs/CHANGELOG.md`: this section
+
+Verified via `npm test` / Jest: 141 suites / 3352 tests passing. `npm start` regenerates config; `utils.sendStream.contentTypes` and the Frameable `{ header, value }` alias are in the consolidated object. No dedicated `sendStream` boot line (rides `CommonUtils`). Framework has no byte-serving route, so the helper itself is unit + SuperTest only. Manual `curl -sI /home/` shows CSP `frame-ancestors 'none'` plus `X-Content-Type-Options: nosniff`.
+
+**Release**:
+- Work Item: W-218
+- Version: v1.8.1
+- Release Date: 2026-09-09
 
 ________________________________________________
 ## v1.8.0, W-217, 2026-09-08

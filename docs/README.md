@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.7.19
+# jPulse Docs / Site Administrator & Developer Documentation v1.8.0
 
 **For Site Administrators & Site Developers**
 
@@ -151,7 +151,7 @@ my-jpulse-site/
 - **[Application Cluster Communication](application-cluster.md)** - Multi-server broadcasting for state synchronization
 - **[WebSocket Real-Time Communication](websockets.md)** - Bi-directional real-time interactions
 - **[URL Fetch](url-fetch.md)** - Hardened fetch for untrusted URLs (SSRF guard, size caps, redirects)
-- **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation, including `static routes` and per-route `bodyLimit`
+- **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation, including `static routes`, per-route `bodyLimit`, and `bodyMode: 'stream'`
 - **[Hooks](hooks.md)** - Define and handle extension points (framework, site, or plugin)
 - **[Handlebars Reference](handlebars.md)** - Complete Handlebars syntax guide (variables, conditionals, loops)
 - **[Template Reference](template-reference.md)** - Template development guide (file structure, security, patterns)
@@ -220,7 +220,7 @@ jPulse is designed for:
 
 ### Documentation Resources
 - **[Front-End Development](front-end-development.md)** - Primary entry point for client-side developers
-- **[REST API Reference](api-reference.md)** - Complete endpoint documentation, including `static routes` and per-route `bodyLimit`
+- **[REST API Reference](api-reference.md)** - Complete endpoint documentation, including `static routes`, per-route `bodyLimit`, and `bodyMode: 'stream'`
 - **[Style Reference](style-reference.md)** - Complete CSS framework and components
 - **[Template Reference](template-reference.md)** - Server-side integration guide
 - **[MPA vs SPA Comparison](mpa-vs-spa.md)** - Architecture patterns and when to choose each
@@ -237,6 +237,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v1.8.0, W-217, 2026-09-08: Controllers: streaming request bodies (`bodyMode: 'stream'`)**: A `static routes` entry may set `{ bodyMode: 'stream', bodyLimit: '50mb' }` so a large raw upload is never buffered by the JSON/urlencoded parsers. `bodyLimit` is the byte cap in every mode. `StreamBody.pipe(req, res, dest)` writes the unread body, returns the byte count, or sends the same 413 `{ code: 'PAYLOAD_TOO_LARGE' }` envelope as a parser limit and returns `null` (caller unlinks a partial file). Missing/`GET`/`HEAD`/unknown `bodyMode` throws at startup. A skip guard plus a boot assertion keep the route unread even if a later release sets the JSON parser to `type: '*/*'`. nginx still buffers until a streaming location is applied.
 - **v1.7.19, W-216, 2026-08-28: Markdown: HTML anchors for in-page deep links**: Authors can deep-link to a non-heading target (table cell, glossary term, figure caption) with `<a id="foo">term</a>` and `[term](#foo)`. The jump already worked; named targets no longer look like dead primary-colored links (CSS applies only to `a[href]`; `a:not([href])` inherits surrounding text). Heading 🔗 anchors are unchanged.
 - **v1.7.18, W-215, 2026-08-25: Plugins: generated static/docs links leak into site git; leftover `/static/` URL**: `npx jpulse configure` now writes a site `.gitignore` (or appends the plugin-runtime block if a customized file lacks it) so generated plugin static and docs links are not committed. Those links are runtime-only: created on start for enabled plugins, wiped by `jpulse-update`, recreated on the next start; leftovers for disabled or missing plugins are removed. Public plugin-asset URL is `/plugins/{name}/file.png` (`webapp/static` is the HTTP document root) — `/static/plugins/...` must not exist. nginx template drops the leftover `location /static/`. Site docs-link comments corrected to five `../` levels.
 - **v1.7.17, W-214, 2026-08-22: API: per-route body size limit**: A `static routes` entry may set `bodyLimit: '25mb'` so one upload endpoint accepts a larger JSON or urlencoded body without raising the global 10mb parser for login and every write API. `bodyLimit` is authoritative in both directions. Oversize `/api/*` bodies return 413 `{ code: 'PAYLOAD_TOO_LARGE' }` instead of Express HTML. A value above 25mb logs a startup warning (1 GB worker heap) but is not clamped. nginx `client_max_body_size` default is now 27M — an outer gate only, enough for the 25mb comfort max plus headroom; Express default stays 10mb.

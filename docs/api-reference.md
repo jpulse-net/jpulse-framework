@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.7.19
+# jPulse Docs / REST API Reference v1.8.0
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -354,12 +354,13 @@ On startup, you'll see logs like:
 
 ### Custom Routes (`static routes`)
 
-When you need a custom path, an auth level, or a per-route body size, declare `static routes` instead of relying on `api*` name inference. Field order does not matter.
+When you need a custom path, an auth level, a per-route body size, or a streaming upload, declare `static routes` instead of relying on `api*` name inference. Field order does not matter.
 
 ```javascript
 static routes = [
     { method: 'GET',  path: '/api/1/helloFetch/limits', handler: 'apiLimits',      auth: 'admin' },
-    { method: 'POST', path: '/api/1/ai/fetch-source',   handler: 'apiFetchSource', auth: 'user', bodyLimit: '25mb' }
+    { method: 'POST', path: '/api/1/ai/fetch-source',   handler: 'apiFetchSource', auth: 'user', bodyLimit: '25mb' },
+    { method: 'POST', path: '/api/1/files',             handler: 'apiUpload',      auth: 'user', bodyMode: 'stream', bodyLimit: '50mb' }
 ];
 ```
 
@@ -369,11 +370,12 @@ static routes = [
 | `path` | yes | Full path, including `/api/1/…` |
 | `handler` | yes | Static method name on the same class |
 | `auth` | no | `'none'` \| `'user'` (default) \| `'admin'` |
-| `bodyLimit` | no | body-parser size string (`'25mb'`, `'2mb'`) or a byte count |
+| `bodyLimit` | no | size string (`'25mb'`, `'2mb'`) or a byte count — parser cap, or stream cap when `bodyMode: 'stream'` |
+| `bodyMode` | no | `'stream'` leaves `req` unread so the handler can pipe the raw body |
 
 `bodyLimit` is authoritative for that route's JSON and urlencoded parsers, in both directions — it can be larger or smaller than the global default. Routes that omit it, and every framework route, keep `middleware.bodyParser.json.limit` / `urlencoded.limit` (default `10mb`). Do not raise the global limit just to accept a large body on one endpoint.
 
-A `bodyLimit` above 25mb logs a startup warning: a JSON body that size can consume several hundred MB per in-flight request against the production 1 GB worker heap (`max_old_space_size` / `max_memory_restart` in `ecosystem.prod.config.cjs`). Raise those together with nginx `client_max_body_size` and `client_body_timeout` if you go higher. Above ~50mb, stream multipart to storage instead of buffering JSON.
+A `bodyLimit` above 25mb logs a startup warning: a JSON body that size can consume several hundred MB per in-flight request against the production 1 GB worker heap (`max_old_space_size` / `max_memory_restart` in `ecosystem.prod.config.cjs`). Raise those together with nginx `client_max_body_size` and `client_body_timeout` if you go higher. That heap warning does not apply to `bodyMode: 'stream'` — those bytes go to the destination stream, not a buffered object. Above ~50mb, declare `bodyMode: 'stream'` instead of buffering JSON.
 
 If the JSON body carries a base64 file, the file is about **0.72×** the `bodyLimit` (25mb of body ≈ 18mb file).
 
@@ -384,6 +386,23 @@ Oversize bodies on `/api/*` return HTTP 413:
 ```
 
 Production nginx `client_max_body_size` (default `27M` in `deploy/nginx.prod.conf`) is an outer gate only — Express still defaults to 10mb per route. `27M` is enough for `bodyLimit: '25mb'` plus a little headroom so nginx is not the one that 413s first. Raise it if a route goes above 25mb. `npm start` has no nginx.
+
+#### Streaming Routes
+
+`bodyMode: 'stream'` skips every body parser for that method and path. `req` reaches the handler unread. `bodyLimit` is required — it is the byte cap, not a parser size. `GET` and `HEAD` cannot be streaming routes (startup throw). The body is raw bytes (`application/pdf`, `application/octet-stream`, …), not multipart.
+
+```javascript
+const dest = fs.createWriteStream(tmpPath);
+const bytes = await StreamBody.pipe(req, res, dest);
+if (bytes == null) {
+    fs.unlink(tmpPath, () => {});
+    return; // 413 PAYLOAD_TOO_LARGE already sent
+}
+```
+
+`StreamBody` is `global.StreamBody` (same pattern as `CommonUtils`). The cap comes from the route; pass `{ maxBytes }` only to override. On over-cap, `pipe` destroys `req` and `dest`, sends the same 413 envelope as a parser limit, and returns `null`. `dest` may already contain a prefix of the rejected body — unlink that partial file; `pipe` does not.
+
+nginx still buffers the request body by default, so a production upload does not stream end-to-end until a location sets `proxy_request_buffering off`. `npm start` has no nginx and streams immediately.
 
 ### Best Practices
 

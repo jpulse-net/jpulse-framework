@@ -1,4 +1,4 @@
-# jPulse Docs / Generative-AI Instructions for AI Assistants v1.7.19
+# jPulse Docs / Generative-AI Instructions for AI Assistants v1.8.0
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
@@ -448,7 +448,7 @@ Complete details:
 2. Create file in `site/webapp/controller/[name].js`
 3. Export default class with static async methods
 4. Use `api*()` naming for auto-discovery (api, apiCreate, apiUpdate, apiDelete, apiCustomName)
-5. For a custom path, auth level, or per-route body size, declare `static routes` (see [API Reference](api-reference.md#custom-routes-static-routes)). Use `bodyLimit` on that one route — do not raise the global `middleware.bodyParser.json.limit` for a single upload endpoint
+5. For a custom path, auth level, or per-route body size, declare `static routes` (see [API Reference](api-reference.md#custom-routes-static-routes)). Use `bodyLimit` on that one route — do not raise the global `middleware.bodyParser.json.limit` for a single upload endpoint. For a large raw upload, set `bodyMode: 'stream'` and the same `bodyLimit` as the byte cap, then `StreamBody.pipe(req, res, dest)` — do not buffer the file as base64 JSON
 6. Include logging with LogController for all operations
 7. Return standardized JSON responses: `{ success: true/false, data/error }`
 8. Use try-catch with CommonUtils.sendError() for errors

@@ -3,17 +3,18 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         1.7.19
- * @release         2026-08-28
+ * @version         1.8.0
+ * @release         2026-09-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.15, Claude Opus 5
+ * @genai           60%, Cursor 3.19, Grok 4.6
  */
 
 import CommonUtils from './common.js';
 import UrlFetch from './url-fetch.js';
+import StreamBody from './stream-body.js';
 
 let isBootstrapped = false;
 
@@ -115,6 +116,9 @@ export async function bootstrap(options = {}) {
         global.UrlFetch = UrlFetch;
         bootstrapLog('✅ UrlFetch: Available globally');
         checkUrlFetchSafety(global.appConfig, bootstrapLog);
+
+        global.StreamBody = StreamBody;
+        bootstrapLog('✅ StreamBody: Available globally');
 
         // Step 3: Initialize LogController
         const LogControllerModule = await import('../controller/log.js');

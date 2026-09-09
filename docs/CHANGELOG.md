@@ -1,6 +1,43 @@
-# jPulse Docs / Version History v1.7.19
+# jPulse Docs / Version History v1.8.0
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.8.0, W-217, 2026-09-08
+
+**Commit:** `W-217, v1.8.0, 2026-09-08: controllers: declare routes with streaming request bodies (bodyMode: 'stream'))`
+
+**FEATURE RELEASE**: A controller can declare a route whose request body is consumed as a stream, so a large upload never buffers in memory or on disk. Today's `application/pdf` pass-through is an accident of content-type matching; a skip guard plus a boot assertion make the unread body a startup guarantee. `bodyLimit` is the size cap in every mode — `{ bodyMode: 'stream', bodyLimit: '50mb' }`.
+
+**Objective**: One declaration, one byte-cap, one `413` error shape, and a boot-time guarantee that no parser will consume the body.
+
+**Key features**:
+- `static routes` accept `bodyMode: 'stream'`; `bodyLimit` is required and is the stream cap (same size strings as the parser path)
+- Skip guard mounted on the method+path before the global parsers sets `req._body` so body-parser skips without reading a byte
+- Boot assertion: skip guard present; no route-scoped `json` / `urlencoded` / `raw` / `text` parser on that path
+- Startup throw: stream without `bodyLimit`, unparseable `bodyLimit`, `GET`/`HEAD` + stream, unknown `bodyMode`
+- `StreamBody.pipe(req, res, dest)` — cap from the route; success returns the byte count; over-cap destroys `req` and `dest`, sends `PAYLOAD_TOO_LARGE`, returns `null` (caller unlinks a partial file)
+- 25mb heap warning does not apply to stream routes
+- Raw body only (not multipart); nginx still buffers until a streaming location is applied
+
+**Files changed**:
+- `webapp/utils/body-limit.js`: `assertRouteBodyOptions()`, `mountStreamBodyGuards()`, `assertStreamRouteGuards()`; skip stream routes in `mountRouteBodyLimitParsers()`
+- `webapp/utils/stream-body.js` (new): `StreamBody.pipe()`
+- `webapp/utils/site-controller-registry.js`: normalize `bodyMode`; `getBodyModeRoutes()` / `getStreamBodyRoutes()`; `getBodyLimitRoutes()` omits stream routes
+- `webapp/app.js`: skip guards, then per-route parsers, then global parsers, then boot assertion
+- `webapp/utils/bootstrap.js`: `global.StreamBody`
+- Tests: `body-limit.test.js` (guards, assertion, readable pdf/json/urlencoded), `stream-body.test.js` (pipe, 413, Content-Length), `site-controller-registry.test.js` (normalize / getters)
+- Docs: `docs/api-reference.md` (Streaming Routes), `docs/genai-instructions.md`, `docs/security-and-auth.md`, `docs/deployment.md` (413)
+- `docs/dev/work-items.md`: W-217 features/deliverables (status unchanged)
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.8.0 / W-217
+- `docs/CHANGELOG.md`: this section
+
+Verified via unit tests: 127 suites / 3214 tests passing. `npm start` shows `StreamBody: Available globally`; this site has no stream routes so no mount line (same quiet-if-unused pattern as `bodyLimit`).
+
+**Release**:
+- Work Item: W-217
+- Version: v1.8.0
+- Release Date: 2026-09-08
 
 ________________________________________________
 ## v1.7.19, W-216, 2026-08-28

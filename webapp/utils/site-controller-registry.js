@@ -3,13 +3,13 @@
  * @tagline         Site Controller Registry and Auto-Discovery
  * @description     Discovers and registers site controller APIs at startup (W-014)
  * @file            webapp/utils/site-controller-registry.js
- * @version         1.7.19
- * @release         2026-08-28
+ * @version         1.8.0
+ * @release         2026-09-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.15, Claude Opus 5
+ * @genai           60%, Cursor 3.19, Grok 4.6
  */
 
 import fs from 'fs';
@@ -248,7 +248,7 @@ class SiteControllerRegistry {
     /**
      * Normalize a live `static routes` array. Field order does not matter.
      * @param {Array} routes - ControllerClass.routes
-     * @returns {Array} Array of { name, method, fullPath, authLevel, bodyLimit? }
+     * @returns {Array} Array of { name, method, fullPath, authLevel, bodyLimit?, bodyMode? }
      */
     static _normalizeStaticRoutes(routes) {
         if (!Array.isArray(routes)) {
@@ -267,6 +267,9 @@ class SiteControllerRegistry {
             };
             if (route.bodyLimit != null && route.bodyLimit !== '') {
                 entry.bodyLimit = route.bodyLimit;
+            }
+            if (route.bodyMode != null && route.bodyMode !== '') {
+                entry.bodyMode = String(route.bodyMode).toLowerCase();
             }
             normalized.push(entry);
         }
@@ -547,8 +550,9 @@ class SiteControllerRegistry {
 
                 routeCount++;
                 const limitNote = apiMethod.bodyLimit != null ? ` bodyLimit=${apiMethod.bodyLimit}` : '';
+                const modeNote = apiMethod.bodyMode != null ? ` bodyMode=${apiMethod.bodyMode}` : '';
                 LogController.logInfo(null, 'site-controller-registry',
-                    `Registered: ${httpMethod.toUpperCase()} ${fullPath} → ${controller.source}:${controller.name}.${apiMethod.name}${limitNote}`);
+                    `Registered: ${httpMethod.toUpperCase()} ${fullPath} → ${controller.source}:${controller.name}.${apiMethod.name}${limitNote}${modeNote}`);
             }
         }
 
@@ -556,7 +560,50 @@ class SiteControllerRegistry {
     }
 
     /**
-     * Routes that declared a per-route bodyLimit (W-214)
+     * Full path for a discovered API method (static fullPath or auto-discovered suffix).
+     * @param {object} controller
+     * @param {object} apiMethod
+     * @returns {string}
+     */
+    static _apiRoutePath(controller, apiMethod) {
+        return apiMethod.fullPath || (`/api/1/${controller.name}${apiMethod.pathSuffix || ''}`);
+    }
+
+    /**
+     * Routes that declared bodyMode (W-217). Includes invalid values so boot validation can throw.
+     * @returns {Array<{method: string, path: string, bodyLimit?: string|number, bodyMode: string, controller: string, handler: string}>}
+     */
+    static getBodyModeRoutes() {
+        const routes = [];
+        for (const controller of this.registry.controllers.values()) {
+            for (const apiMethod of controller.apiMethods || []) {
+                if (apiMethod.bodyMode == null || apiMethod.bodyMode === '') {
+                    continue;
+                }
+                routes.push({
+                    method: String(apiMethod.method).toLowerCase(),
+                    path: this._apiRoutePath(controller, apiMethod),
+                    bodyLimit: apiMethod.bodyLimit,
+                    bodyMode: apiMethod.bodyMode,
+                    controller: controller.name,
+                    handler: apiMethod.name
+                });
+            }
+        }
+        return routes;
+    }
+
+    /**
+     * Routes declared bodyMode: 'stream' (W-217)
+     * @returns {Array<{method: string, path: string, bodyLimit?: string|number, bodyMode: string, controller: string, handler: string}>}
+     */
+    static getStreamBodyRoutes() {
+        return this.getBodyModeRoutes().filter((route) => route.bodyMode === 'stream');
+    }
+
+    /**
+     * Routes that declared a per-route bodyLimit (W-214). Stream routes are excluded —
+     * their bodyLimit is a byte cap for StreamBody, not a parser limit.
      * @returns {Array<{method: string, path: string, bodyLimit: string|number, controller: string, handler: string}>}
      */
     static getBodyLimitRoutes() {
@@ -566,10 +613,12 @@ class SiteControllerRegistry {
                 if (apiMethod.bodyLimit == null || apiMethod.bodyLimit === '') {
                     continue;
                 }
-                const routePath = apiMethod.fullPath || (`/api/1/${controller.name}${apiMethod.pathSuffix || ''}`);
+                if (apiMethod.bodyMode === 'stream') {
+                    continue;
+                }
                 routes.push({
                     method: String(apiMethod.method).toLowerCase(),
-                    path: routePath,
+                    path: this._apiRoutePath(controller, apiMethod),
                     bodyLimit: apiMethod.bodyLimit,
                     controller: controller.name,
                     handler: apiMethod.name

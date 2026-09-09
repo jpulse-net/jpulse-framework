@@ -22877,3 +22877,74 @@ Release prep W-216, v1.7.19, 2026-08-28. npm test passed (CSS-only; no new unit 
 
 
 ============================================================
+2026-08-29 16:16
+
+ignore, wrong window
+
+Acknowledged; no changes.
+
+
+============================================================
+2026-09-08 21:49
+
+next: W-217, v1.8.0, 2026-09-07: controllers: declare routes with streaming request bodies (bodyMode: 'stream')
+- review @work-items.md (8307-8344)
+- ask questions if unclear
+- suggest change of spec if any, goal is a good DX for developers; use the "don't make me think" paradigm
+- plan how to implement (wait for my go ahead)
+
+Reviewed W-217 against body-limit.js, site-controller-registry, app.js mount order, and W-214. Core goal is sound (boot-time guarantee that a stream route stays unread). Recommended spec changes for DX: reuse bodyLimit as the cap (drop maxBytes + mutual exclusivity); StreamBody.pipe(req, res, dest) with the cap taken from the route; skip-guard middleware so global parsers cannot consume the body; boot assertion means "no route-scoped parser + skip guard present", not "no global parser exists". 25mb heap warning should not apply to stream routes. Docs live in docs/api-reference.md (jpulse-docs is a copy). Plan written; waiting for go-ahead. No code changes.
+
+
+============================================================
+2026-09-08 22:06
+
+- yes for bodyMode: 'stream' + bodyLimit as the cap
+- single raw body
+- stream without bodyLimit is startup throw
+- Partial file on 413: doc case
+
+Locked W-217 decisions: bodyLimit is the stream cap; raw body only; missing bodyLimit throws at startup; 413 may leave a partial dest and that is documented for the caller to unlink. GET/HEAD + stream still proposed as a startup throw. No code or work-item edit yet; waiting for go-ahead to update W-217 text and implement.
+
+
+============================================================
+2026-09-08 22:10
+
+- GET/HEAD + bodyMode: 'stream' is startup throw
+- start implement
+
+Implemented W-217 streaming request bodies. Declaration is bodyMode: 'stream' + bodyLimit as the cap. Skip guard sets req._body before global parsers; boot assertion requires the guard and rejects route-scoped parsers. StreamBody.pipe(req, res, dest) uses the route cap, returns bytes or null after 413 PAYLOAD_TOO_LARGE; caller unlinks a partial dest. GET/HEAD + stream, missing/invalid bodyLimit, and unknown bodyMode throw at startup. Docs in api-reference, genai-instructions, security-and-auth. Unit tests 3214 passed. Status left IN_PROGRESS.
+
+
+============================================================
+2026-09-08 22:37
+
+review app start log:
+
+Reviewed npm start log. Healthy: StreamBody registered globally, server on 8080, no errors. No bodyMode=stream / bodyLimit mount lines because this site has no such static routes; boot assertion is silent on an empty list (same as W-214). No code change.
+
+
+============================================================
+2026-09-08 22:44
+
+anything left before release prep?
+
+Implementation is complete against the agreed W-217 spec. No blockers. Optional polish (not required): one line in docs/deployment.md 413 section for stream bodyLimit. Release prep owns CHANGELOG, README highlights, commit-message.txt; user owns bump-version and status.
+
+
+============================================================
+2026-09-08 22:46
+
+release prep:
+- run tests, and fix issues
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-217, v1.8.0, 2026-09-08
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Release prep W-217, v1.8.0, 2026-09-08. Unit tests 127 suites / 3214 passed. Reviewed tt-git-diff.txt: matches W-217 (skip guard, boot assertion, StreamBody.pipe, registry getters, docs, tests); untracked stream-body.js + stream-body.test.js belong in the commit. Tightened W-217 deliverables (security-and-auth, deployment 413, named test files; dropped stale body-limit.js:117). Status left IN_PROGRESS. Highlights + CHANGELOG + deployment.md 413 + commit-message.txt. Did not bump version or commit.
+
+
+============================================================

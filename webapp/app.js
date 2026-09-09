@@ -3,13 +3,13 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         1.7.19
- * @release         2026-08-28
+ * @version         1.8.0
+ * @release         2026-09-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.13, Claude Sonnet 5
+ * @genai           60%, Cursor 3.19, Grok 4.6
  */
 
 // Load required modules
@@ -22,7 +22,13 @@ import { fileURLToPath } from 'url';
 import os from 'os';
 import fs from 'fs';
 import CommonUtils from './utils/common.js';
-import { mountRouteBodyLimitParsers, handleBodyParserError } from './utils/body-limit.js';
+import {
+    mountRouteBodyLimitParsers,
+    mountStreamBodyGuards,
+    assertRouteBodyOptions,
+    assertStreamRouteGuards,
+    handleBodyParserError
+} from './utils/body-limit.js';
 
 // Get current directory for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -306,15 +312,22 @@ async function startApp() {
         });
         next();
     });
-    // W-214: per-route parsers first so a larger (or smaller) bodyLimit is applied
-    // before the global default; body-parser then skips because req._body is set.
-    const bodyLimitRoutes = global.SiteControllerRegistry?.getBodyLimitRoutes?.() || [];
-    mountRouteBodyLimitParsers(app, bodyLimitRoutes, appConfig, {
+    // W-214 / W-217: skip guards and per-route parsers first so the global default
+    // sees req._body and skips. Stream routes stay unread; bodyLimit routes parse
+    // at their declared size.
+    const bodyParserLog = {
         info: (message) => LogController.logInfo(null, 'app', message),
         warn: (message) => LogController.logWarning(null, 'app', `warning: ${message}`)
-    });
+    };
+    const bodyModeRoutes = global.SiteControllerRegistry?.getBodyModeRoutes?.() || [];
+    assertRouteBodyOptions(bodyModeRoutes);
+    const streamBodyRoutes = global.SiteControllerRegistry?.getStreamBodyRoutes?.() || [];
+    mountStreamBodyGuards(app, streamBodyRoutes, bodyParserLog);
+    const bodyLimitRoutes = global.SiteControllerRegistry?.getBodyLimitRoutes?.() || [];
+    mountRouteBodyLimitParsers(app, bodyLimitRoutes, appConfig, bodyParserLog);
     app.use(bodyParser.urlencoded(appConfig.middleware.bodyParser.urlencoded));
     app.use(bodyParser.json(appConfig.middleware.bodyParser.json));
+    assertStreamRouteGuards(app, streamBodyRoutes);
 
     // W-076: Configure session middleware using pre-configured store from bootstrap
     const sessionMiddleware = session({

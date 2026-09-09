@@ -3,13 +3,13 @@
  * @tagline         Unit tests for W-014 SiteControllerRegistry auto-discovery utility
  * @description     Tests site controller auto-discovery and API registration functionality
  * @file            webapp/tests/unit/utils/site-controller-registry.test.js
- * @version         1.7.19
- * @release         2026-08-28
+ * @version         1.8.0
+ * @release         2026-09-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.15, Grok 4.6
+ * @genai           80%, Cursor 3.19, Grok 4.6
  */
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
@@ -889,6 +889,69 @@ describe('SiteControllerRegistry (W-014)', () => {
                 ]
             });
             expect(SiteControllerRegistry.getBodyLimitRoutes()).toEqual([]);
+        });
+
+        test('normalizes bodyMode regardless of field order', () => {
+            const normalized = SiteControllerRegistry._normalizeStaticRoutes([
+                { bodyMode: 'Stream', bodyLimit: '50mb', handler: 'apiUpload', path: '/api/1/files', method: 'POST', auth: 'user' }
+            ]);
+            expect(normalized[0]).toEqual({
+                name: 'apiUpload',
+                method: 'post',
+                fullPath: '/api/1/files',
+                authLevel: 'user',
+                bodyLimit: '50mb',
+                bodyMode: 'stream'
+            });
+        });
+
+        test('getStreamBodyRoutes returns stream routes; getBodyLimitRoutes omits them', () => {
+            SiteControllerRegistry.registry.controllers.set('files', {
+                name: 'files',
+                apiMethods: [
+                    { name: 'apiUpload', method: 'post', fullPath: '/api/1/files', authLevel: 'user', bodyLimit: '50mb', bodyMode: 'stream' },
+                    { name: 'apiFetch', method: 'post', fullPath: '/api/1/files/meta', authLevel: 'user', bodyLimit: '25mb' }
+                ]
+            });
+            expect(SiteControllerRegistry.getStreamBodyRoutes()).toEqual([
+                {
+                    method: 'post',
+                    path: '/api/1/files',
+                    bodyLimit: '50mb',
+                    bodyMode: 'stream',
+                    controller: 'files',
+                    handler: 'apiUpload'
+                }
+            ]);
+            expect(SiteControllerRegistry.getBodyLimitRoutes()).toEqual([
+                {
+                    method: 'post',
+                    path: '/api/1/files/meta',
+                    bodyLimit: '25mb',
+                    controller: 'files',
+                    handler: 'apiFetch'
+                }
+            ]);
+        });
+
+        test('getBodyModeRoutes includes unknown bodyMode so boot validation can throw', () => {
+            SiteControllerRegistry.registry.controllers.set('files', {
+                name: 'files',
+                apiMethods: [
+                    { name: 'apiUpload', method: 'post', fullPath: '/api/1/files', authLevel: 'user', bodyMode: 'json' }
+                ]
+            });
+            expect(SiteControllerRegistry.getBodyModeRoutes()).toEqual([
+                {
+                    method: 'post',
+                    path: '/api/1/files',
+                    bodyLimit: undefined,
+                    bodyMode: 'json',
+                    controller: 'files',
+                    handler: 'apiUpload'
+                }
+            ]);
+            expect(SiteControllerRegistry.getStreamBodyRoutes()).toEqual([]);
         });
     });
 });

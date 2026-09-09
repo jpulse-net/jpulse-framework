@@ -1,4 +1,4 @@
-# jPulse Docs / Production Deployment Guide v1.7.19
+# jPulse Docs / Production Deployment Guide v1.8.0
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -83,8 +83,9 @@ rather than the local nginx→Node.js hop. Leave this `false` only if your Node.
 reachable directly, without any reverse proxy in front of it.
 
 nginx `client_max_body_size` (default `27M` in `deploy/nginx.prod.conf`) is an outer gate only —
-Express still defaults to 10mb per route. `27M` covers `bodyLimit: '25mb'` (the comfortable max)
-plus a little headroom; raise it only if a route goes higher (see
+Express still defaults to 10mb per route. `27M` covers `bodyLimit: '25mb'` (the comfortable max
+for a buffered JSON body) plus a little headroom; raise it if a route goes higher, including a
+`bodyMode: 'stream'` upload (see
 [API Reference — Custom Routes](api-reference.md#custom-routes-static-routes)). `npm start` has
 no nginx.
 
@@ -304,17 +305,19 @@ sudo tail -f /var/log/nginx/access.log | grep ' 429 '
 
 **Symptoms**: API returns `{ "code": "PAYLOAD_TOO_LARGE" }` or nginx returns 413
 ```bash
-# App-level 413: the route's bodyLimit (or the global 10mb default) was exceeded
+# App-level 413: the route's bodyLimit (or the global 10mb default) was exceeded —
+# same cap for a JSON parser route and for bodyMode: 'stream'
 # nginx 413: client_max_body_size in deploy/nginx.prod.conf (default 27M) is smaller
 # than the body. 27M already covers bodyLimit: '25mb'; raise it only above that.
 # npm start has no nginx.
 #
 # Fixes:
-# - For one large endpoint, set bodyLimit on that static route (do not raise the global
-#   middleware.bodyParser.json.limit — that widens login and every write API)
+# - For one large JSON endpoint, set bodyLimit on that static route (do not raise the
+#   global middleware.bodyParser.json.limit — that widens login and every write API)
+# - For a large raw file, set bodyMode: 'stream' and bodyLimit as the byte cap
 # - If bodyLimit is above 25mb, raise client_max_body_size to match, then sudo nginx -t
 #   && sudo systemctl reload nginx; also raise the PM2 heap (max_old_space_size /
-#   max_memory_restart) and possibly client_body_timeout
+#   max_memory_restart) and possibly client_body_timeout (heap raise is for JSON only)
 ```
 
 ### Validation and Recovery

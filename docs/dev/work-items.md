@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.7.19
+# jPulse Docs / Dev / Work Items v1.8.0
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -8264,19 +8264,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - existing `deploy/nginx.prod.conf` copies are not rewritten by configure; live sites keep the dead `/static/` block until a one-line delete + nginx reload (harmless if left)
   - out of scope (later item): serve plugin static and docs without writing into framework-managed `webapp/` (virtual `/plugins/{name}` and `/jpulse-docs/installed-plugins/{name}`)
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-216, v1.7.19, 2026-08-28: markdown: HTML anchors for in-page deep links
-- status: 🕑 PENDING
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - authors can deep-link to a non-heading target in markdown (table cell, glossary term, figure caption) with a named HTML anchor and `[text](#id)`
@@ -8304,6 +8293,131 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - do not invent a `{#id}` markdown extension; raw HTML is enough and works on GitHub too
   - no new unit tests (CSS-only); verify on any `jPulse.UI.docs` page: target matches cell text, `#id` link stays primary, heading 🔗 still styled
   - sites can drop the BubbleMap-style override in `site/webapp/view/jpulse-common.css` once they take this release
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-217, v1.8.0, 2026-09-08: controllers: declare routes with streaming request bodies (bodyMode: 'stream')
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - a controller can declare a route whose request body is consumed as a stream, so a large upload never buffers in memory or on disk
+  - the absence of a body parser on such a route is guaranteed at boot rather than left to content-type coincidence
+  - one byte-cap implementation and one `413` error shape for every consumer
+- rationale:
+  - a streaming upload route works today only by accident: the global and per-route parsers are content-type matched, so `application/pdf` passes through unread — a future release that sets `type: '*/*'` on the JSON parser would break every streaming upload in production with no test failing
+  - base64-in-JSON is the only upload shape the framework offers; it inflates payloads by a third and is bounded by `bodyLimit`, so a 40 MB file is roughly 53 MB of base64 and exceeds the 10mb default, the 25mb comfort ceiling from W-214, and typical nginx limits
+  - streaming a request body is a general capability, not a site code one; a site-local helper would repeat the `UrlFetch` mistake that T-100 §11.4 warns about in BubbleMap site
+- features:
+  - `static routes` entries accept `bodyMode: 'stream'`; `bodyLimit` is the size cap in every mode (`{ bodyMode: 'stream', bodyLimit: '50mb' }`)
+  - `bodyMode: 'stream'` without `bodyLimit`, with an unparseable `bodyLimit`, on `GET`/`HEAD`, or with any other `bodyMode` value is a startup throw
+  - a skip guard is mounted on the stream route's method+path before the global parsers; it sets `req._body` so body-parser skips without reading a byte (safe even if a later release sets `type: '*/*'`)
+  - `mountRouteBodyLimitParsers` skips stream routes; `getBodyLimitRoutes()` omits them
+  - boot assertion: every stream route has the skip guard, and no route-scoped body-parser (`json` / `urlencoded` / `raw` / `text`) is mounted on that method+path — global parsers are expected and must skip via `_body`
+  - `StreamBody.pipe(req, res, dest)` takes the cap from the route (`req.jpulseStreamMaxBytes`); optional `{ maxBytes }` override; success returns the byte count; over-cap destroys `req` and `dest`, sends the existing `PAYLOAD_TOO_LARGE` envelope, returns `null`
+  - `req` reaches the handler unread and still readable, including for `application/json` and urlencoded
+  - the 25mb heap warning does not apply to stream routes (bytes go to `dest`, not a buffered JSON object)
+- deliverables:
+  - `webapp/utils/body-limit.js`:
+    - `assertRouteBodyOptions`, `mountStreamBodyGuards`, `assertStreamRouteGuards`; skip stream routes in `mountRouteBodyLimitParsers`
+    - export the new symbols beside the existing `parseBodyLimit`, `mountRouteBodyLimitParsers`, `handleBodyParserError`
+  - `webapp/utils/stream-body.js` (new):
+    - `StreamBody.pipe(req, res, dest, options?)`, counting bytes and reusing the `handleBodyParserError` `PAYLOAD_TOO_LARGE` envelope
+  - `webapp/utils/site-controller-registry.js`:
+    - normalize `bodyMode`; `getBodyModeRoutes()` / `getStreamBodyRoutes()`; `getBodyLimitRoutes()` excludes stream routes
+  - `webapp/app.js`:
+    - mount skip guards, then per-route parsers, then global parsers, then the boot assertion
+  - `webapp/utils/bootstrap.js`:
+    - `global.StreamBody`
+  - `docs/api-reference.md`:
+    - Streaming Routes subsection next to `### Custom Routes (`static routes`)` — declaration, three-line handler, 413 envelope, raw body not multipart, caller unlinks a partial `dest` after 413, nginx still buffers until a streaming location is applied
+  - `docs/genai-instructions.md`:
+    - stream uploads use `bodyMode: 'stream'` + `bodyLimit`, never raise the global parser
+  - `docs/security-and-auth.md`:
+    - production checklist: large raw file uses `bodyMode: 'stream'` + `bodyLimit`
+  - `docs/deployment.md`:
+    - 413 troubleshooting: a stream route's `bodyLimit` is also a cap
+  - tests:
+    - `webapp/tests/unit/utils/body-limit.test.js`: skip guard; boot assertion; `req` readable for `application/pdf`, `application/json`, and urlencoded
+    - `webapp/tests/unit/utils/stream-body.test.js`: pipe byte count; over-cap `413` / `PAYLOAD_TOO_LARGE`; `Content-Length` over cap rejected before write
+    - `webapp/tests/unit/utils/site-controller-registry.test.js`: normalize `bodyMode`; `getStreamBodyRoutes`; `getBodyLimitRoutes` omits stream routes
+    - startup throws: stream without `bodyLimit`; invalid `bodyLimit`; unknown `bodyMode`; `GET`/`HEAD` + stream
+- notes:
+  - `bodyLimit` on a stream route accepts the same size strings as the parser path; `parseBodyLimit` and `SIZE_UNITS` in `body-limit.js` already handle `b` / `kb` / `mb` / `gb`
+  - on 413, `pipe` destroys `dest` but does not unlink a partial file — the caller must
+  - required by BubbleMap T-117 Phase 1 (file attachments); `package.json` declares this as the framework floor
+  - this item alone does not deliver end-to-end streaming — nginx buffers the request body by default until W-219's location block is applied
+
+
+
+
+
+
+
+
+
+
+
+
+### W-218, vX.X.X, YYYY-MM-DD: controllers: `CommonUtils.sendStream` response with range requests and RFC 5987 filenames
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - one helper streams a file-like response with correct headers, range support, and a filename that survives non-ASCII characters
+  - a client disconnect tears down the upstream stream instead of leaking it
+- rationale:
+  - `webapp/utils/common.js` exports `sendError` but has no streaming response helper, so every controller that serves bytes reinvents the headers
+  - two details are easy to get wrong once per controller and right once in the framework: a disconnect must destroy the upstream stream, and a non-ASCII `Content-Disposition` filename needs RFC 5987 `filename*=UTF-8''…` beside the ASCII fallback or a German or Japanese document downloads with a mangled name
+  - range requests are what make a large stored PDF seekable in a browser viewer instead of a full re-download on every jump
+- features:
+  - `CommonUtils.sendStream(req, res, stream, { mimeType, size, filename, disposition, cacheControl })`
+  - sets `Content-Type`, `Content-Length`, `Cache-Control`, `Accept-Ranges`
+  - a `Range` request answered `206` with `Content-Range`; an unsatisfiable range `416`; a `HEAD` as headers with no body
+  - a client disconnect destroys the upstream stream rather than leaking it
+  - `Content-Disposition` carrying both the ASCII fallback and the RFC 5987 encoded filename, `inline` or `attachment` chosen by the caller
+- deliverables:
+  - `webapp/utils/common.js`:
+    - `sendStream` implemented and exported next to `sendError`
+  - `webapp/static/assets/jpulse-docs/api-reference.md`:
+    - document the helper and its options
+  - tests:
+    - range, no-range, unsatisfiable range, `HEAD`, disconnect teardown, and a non-ASCII filename
+- notes:
+  - acceptance check: an existing image `/raw` route can adopt it with no behaviour change
+  - needed by BubbleMap T-118 (large and resumable uploads, range reads); T-117 ships without ranges, so this does not block it
+
+### W-219, vX.X.X, YYYY-MM-DD: deploy: nginx streaming location and a dedicated upload rate-limit zone
+- status: 🕑 PENDING
+- type: Chore
+- objectives:
+  - a jPulse site that streams an upload gets a working nginx location from the scaffold instead of discovering the problem in production
+  - the deployment guide explains why `proxy_request_buffering off` matters and how the rate-limit zones interact with chunked uploads
+- rationale:
+  - nginx defaults `proxy_request_buffering` to `on`, so it buffers the entire request body before forwarding — which silently defeats W-217 and reintroduces a size ceiling; the failure mode is invisible, in that everything works and nothing streams
+  - the scaffolded `deploy/nginx.prod.conf` carries no `proxy_request_buffering` directive at all, so every site is currently on the buffering default
+  - the shipped `/api/` zone is `rate=10r/s burst=20 nodelay`, so a 100 MB upload in 8 MB parts is 13 requests and fits, but two concurrent uploads is 26 and takes a `429` mid-upload — a dedicated zone is not optional once chunked uploads exist
+  - this is not a BubbleMap insight; any jPulse site that streams an upload needs it
+- features:
+  - a commented, disabled-by-default streaming `location` block in the scaffolded nginx config with `proxy_request_buffering off`, `proxy_buffering off`, a raised `client_max_body_size`, and longer `proxy_send_timeout` / `proxy_read_timeout`
+  - a dedicated `limit_req_zone` for uploads with higher burst capacity, with the reasoning spelled out in a comment so it is not tuned away
+  - deployment guide prose beside the existing `client_max_body_size` guidance, and a pointer from the existing `429` troubleshooting section
+- deliverables:
+  - scaffolded `deploy/nginx.prod.conf`:
+    - commented streaming location block and upload `limit_req_zone`
+  - `webapp/static/assets/jpulse-docs/deployment.md`:
+    - streaming uploads subsection near the existing `client_max_body_size` paragraph, and a note in the `429` troubleshooting section
+- notes:
+  - `deployment.md` states the `client_max_body_size` default is `27M` while BubbleMap's `deploy/nginx.prod.conf` is at `35M`, so the documented default is already stale for at least one site — worth reconciling while editing
+  - no code dependency: a site can apply the location block by hand before taking the release, which is why this is not a floor for any BubbleMap phase
+  - open: I could not confirm from a site checkout where the framework holds the scaffold copy of `deploy/nginx.prod.conf`; the path needs checking in the framework repo before writing the deliverable
 
 
 
@@ -8341,7 +8455,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-216, v1.7.19, 2026-08-28
+- assume W-217, v1.8.0, 2026-09-08
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -8353,12 +8467,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.7.19 2026-08-28
+node bin/bump-version.js 1.8.0 2026-09-08
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.7.19; git push origin main --tags
+git tag v1.8.0; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

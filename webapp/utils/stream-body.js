@@ -5,7 +5,7 @@
  *                  the route's bodyLimit. Over-cap destroys req and dest and sends the
  *                  same 413 PAYLOAD_TOO_LARGE envelope as the JSON/urlencoded parsers.
  * @file            webapp/utils/stream-body.js
- * @version         1.8.1
+ * @version         1.8.2
  * @release         2026-09-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

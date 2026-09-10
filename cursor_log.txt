@@ -23030,3 +23030,56 @@ Release prep for W-218 / v1.8.1. Jest: 141 suites / 3352 tests passing. Tightene
 
 
 ============================================================
+2026-09-09 13:52
+
+should I start a new chat for W-219 or continue here?
+
+Recommended a new chat. This thread is W-218 sendStream + release prep and already hit a context summary; W-219 is nginx/deploy (streaming location + upload rate-limit zone) and will read cleaner from work-items.md. The keep-separate / scaffold-path decisions are already in the W-219 notes. No code changes.
+
+
+============================================================
+2026-09-09 13:55
+
+next: W-219, v1.8.2, 2026-09-09: deploy: nginx streaming location and a dedicated upload rate-limit zone
+- review work-items.md (8436-8463)
+- ask questions if unclear
+- suggest change of spec if any, goal is a good DX for developers; use the "don't make me think" paradigm
+- plan how to implement (wait for my go ahead)
+
+Reviewed W-219 against templates/deploy/nginx.prod.conf and docs/deployment.md. Spec is sound; proposed DX changes: ship the uploads zone live (location stays commented), numbered uncomment checklist, placeholder path /api/1/your-stream-prefix/, one block for upload+download, leave framework client_max_body_size at 27M (BubbleMap 35M is a site raise, docs are not stale), edit docs/deployment.md (source) not the published jpulse-docs copy, and add cross-links in security-and-auth.md zones table plus api-reference. Proposed numbers: rate=10r/s burst=80, client_max_body_size 100M, timeouts 300s. Implementation plan written; waiting for go-ahead. No code changes.
+
+
+============================================================
+2026-09-09 19:49
+
+opus: please give your assessment and recommendation
+
+Independent assessment of W-219. Endorsed the three problems and the fix shape, plus the seven earlier DX points. Found one factual error in the work item's rationale: "two concurrent uploads is 26 requests and takes a 429" is wrong - limit_req is a leaky bucket refilling at rate, so a one-second window allows ~burst+rate (about 30 with 10r/s burst=20), and real chunked uploads spread requests out anyway (13 parts of 8MB over ~9s is ~1.4 r/s). Matters because the work item wants that reasoning written into the config comment. Proposed the honest rationale (per-IP isolation from the page's other /api/ calls, plus NAT'd offices; the zone costs one line since the separate location is needed for buffering and timeouts regardless) and a comment-worthy rule: sustained per-IP throughput is rate x part size (10r/s x 8MB = 80 MB/s, fine; 10r/s x 1MB = 10 MB/s, throttles a gigabit client), which tells a developer which knob to turn. Additions: location ^~ (following the /assets/ precedent) so a site-added regex location cannot silently pull the path back onto buffered /api/; omit the Upgrade/Connection pair (auth block already does, and Connection: upgrade with an empty $http_upgrade defeats upstream keepalive); keep proxy_http_version 1.1; add limit_req_status 429; comment the two buffering-off caveats (nginx 413 arrives mid-stream after the app has written bytes, so bodyLimit is the real cap and W-217's unlink guidance applies; a non-buffered request cannot be retried against another upstream); client_body_timeout 60s needs no change since it is an inter-read timeout; docs should say "the current scaffold's default" and note configure never rewrites a live nginx.prod.conf. Recommended proceeding with rate=10r/s burst=50, client_max_body_size 100M, 300s timeouts. Asked three decisions: burst/rate numbers, whether to correct the work item's rationale text, and whether to add a limit_conn sentence to the docs. Decisions received: rate=10r/s burst=50; yes to correcting the work item rationale; limit_conn as one docs sentence only, nothing shipped. Applied the approved rationale correction in docs/dev/work-items.md - replaced the incorrect "two concurrent uploads is 26 and takes a 429" bullet with three bullets (leaky-bucket refill so a one-second window allows ~burst+rate and parts spread out anyway; isolation plus NAT as the real justification, the zone costing one line since the location is needed for buffering and timeouts either way; the rate x part size rule and which knob to turn). Status and section placement untouched, no other work-item changes. No config or docs implementation yet - holding for go-ahead.
+
+
+============================================================
+2026-09-09 20:01
+
+looks good
+
+grok: make the changes
+
+Implemented W-219. templates/deploy/nginx.prod.conf: live uploads zone (rate=10r/s) plus a commented location ^~ /api/1/your-upload-prefix/ before /api/ with the four-step checklist, isolation / rate x part size reasoning, buffering-off caveats, burst=50 nodelay, limit_req_status 429, client_max_body_size 100M, proxy_request_buffering off, proxy_buffering off, proxy_http_version 1.1, 300s send/read timeouts, no Upgrade/Connection pair. Global 27M unchanged. docs/deployment.md: Streaming uploads and downloads subsection, 429 and 413 notes, limit_conn sentence, "current scaffold's default" wording. docs/security-and-auth.md: five-zone table plus ^~ exception on the regex-vs-prefix note. docs/api-reference.md: pointers from the stream-in sentence and sendStream. Work-item features/deliverables/notes updated to match; status and section placement untouched. Did not bump version or commit.
+
+
+============================================================
+2026-09-09 20:13
+
+release prep:
+- run tests, and fix issues
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-219, v1.8.2, 2026-09-09
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Release prep for W-219 / v1.8.2. npm test and Jest: 141 suites / 3352 tests passing. tt-git-diff.txt matches the work item (nginx scaffold, deployment.md, security-and-auth.md, api-reference.md); features/deliverables already accurate, so work-items.md left untouched. Added Latest Release Highlights in README.md and docs/README.md; new CHANGELOG section above v1.8.1; replaced commit-message.txt. Status and section placement untouched. Did not bump version or commit.
+
+
+============================================================

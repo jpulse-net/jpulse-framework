@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v1.8.1
+# jPulse Docs / Security & Authentication v1.8.2
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -487,12 +487,14 @@ neither depends on the other being present:
 
 #### nginx Zones
 
-Four zones, each scoped to a `location` block:
+Five zones, each scoped to a `location` block (`uploads` is defined in the scaffold and
+applied only by the optional streaming location):
 
 | Zone | Rate | Covers |
 |---|---|---|
 | `login` | 5 requests/minute (burst 5) | `/auth/*` view pages (`login.shtml`, `signup.shtml`, `logout.shtml`, etc.) **and** the credential-submission API calls (`/api/1/auth/login`, `/api/1/user/signup`) |
 | `api` | 10 requests/second (burst 20) | every other `/api/*` endpoint (generic - not tuned per endpoint) |
+| `uploads` | 10 requests/second (burst 50) | optional streaming location (`bodyMode: 'stream'` / `sendStream`); unused until that location is uncommented |
 | `assets` | 150 requests/second (burst 200) | `/assets/` static files (kept high to avoid 429s on legitimate heavy page loads) |
 | `general` | 30 requests/second (burst 50) | every other page request |
 
@@ -502,6 +504,7 @@ limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
 limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
 limit_req_zone $binary_remote_addr zone=general:10m rate=30r/s;
 limit_req_zone $binary_remote_addr zone=assets:10m rate=150r/s;
+limit_req_zone $binary_remote_addr zone=uploads:10m rate=10r/s;
 
 # Authentication endpoints: 5 requests/minute (burst: 5)
 # Matches the auth view pages AND their credential-submission API calls - framework pages are
@@ -514,6 +517,12 @@ location ~ ^(/auth/|/api/1/auth/login$|/api/1/user/signup$) {
 location /api/ {
     limit_req zone=api burst=20 nodelay;
 }
+
+# Streaming uploads/downloads: same rate, burst 50 — commented in the scaffold.
+# Use ^~ so a later regex location cannot pull the path back onto /api/.
+# location ^~ /api/1/your-upload-prefix/ {
+#     limit_req zone=uploads burst=50 nodelay;
+# }
 
 # Assets endpoints: 150 requests/second (burst: 200)
 # (Separated to avoid 429s on legitimate heavy static loads)
@@ -531,7 +540,9 @@ Canonical numbers and the exact `location` mapping can be found in
 `templates/deploy/nginx.prod.conf`. Note that nginx always checks a regex `location` (like
 `login` above) against every request, even one that also matches a plain prefix `location` (like
 `/api/`) declared elsewhere in the file - so `/api/1/auth/login` correctly gets the stricter
-`login` zone instead of the generic `api` zone, regardless of which block appears first.
+`login` zone instead of the generic `api` zone, regardless of which block appears first. A
+`^~` prefix (the commented streaming location, and `/assets/`) is the exception: once it
+matches, regex locations are not considered.
 
 #### App-Level (Node) Rate Limiting
 

@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v1.8.1
+# jPulse Docs / REST API Reference v1.8.2
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -402,7 +402,7 @@ if (bytes == null) {
 
 `StreamBody` is `global.StreamBody` (same pattern as `CommonUtils`). The cap comes from the route; pass `{ maxBytes }` only to override. On over-cap, `pipe` destroys `req` and `dest`, sends the same 413 envelope as a parser limit, and returns `null`. `dest` may already contain a prefix of the rejected body — unlink that partial file; `pipe` does not.
 
-nginx still buffers the request body by default, so a production upload does not stream end-to-end until a location sets `proxy_request_buffering off`. `npm start` has no nginx and streams immediately.
+nginx still buffers the request body by default, so a production upload does not stream end-to-end until a location sets `proxy_request_buffering off`. Enable the commented streaming location in `deploy/nginx.prod.conf` (see [Deployment — Streaming uploads and downloads](deployment.md#streaming-uploads-and-downloads)). `npm start` has no nginx and streams immediately.
 
 #### Streaming Responses (`CommonUtils.sendStream`)
 
@@ -441,6 +441,8 @@ A `Range` the helper cannot slice is answered `200` with the full body. `Accept-
 The shipped CSP uses `frame-ancestors 'none'`, so an `<iframe>` pointing at an `inline` PDF is refused even same-origin. A site that embeds PDFs that way selects the `Content-Security-Policy-Frameable` alias in `middleware.setHeaders.headers` (see [Security and Auth](security-and-auth.md#content-security-policy-csp)). A PDF.js viewer that fetches and paints to canvas does not need it.
 
 `sendStream` returns `{ status, aborted }`. A client disconnect resolves `aborted: true` and destroys the upstream stream; it does not reject.
+
+`/api/`'s `proxy_read_timeout 30s` is tight for a slow first byte from GridFS or S3. The same commented streaming location sets `proxy_buffering off` and raises that timeout — copy it onto the byte-serving prefix (see [Deployment — Streaming uploads and downloads](deployment.md#streaming-uploads-and-downloads)).
 
 ### Best Practices
 

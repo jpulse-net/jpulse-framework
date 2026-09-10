@@ -1,6 +1,40 @@
-# jPulse Docs / Version History v1.8.1
+# jPulse Docs / Version History v1.8.2
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v1.8.2, W-219, 2026-09-09
+
+**Commit:** `W-219, v1.8.2, 2026-09-09: deploy: nginx streaming location and a dedicated upload rate-limit zone`
+
+**CHORE RELEASE**: A jPulse site that streams an upload (or serves bytes) gets a working nginx location from the scaffold instead of discovering the problem in production. nginx defaults `proxy_request_buffering` to `on`, so it buffers the entire request body before Node sees a byte — everything works and nothing streams, which silently defeats `bodyMode: 'stream'` and reimposes `client_max_body_size` as a hard ceiling. The same `/api/` location's 30s `proxy_read_timeout` is tight for a slow first byte from GridFS or S3.
+
+**Objective**: Ship a commented streaming location and a dedicated upload rate-limit zone; explain in the deployment guide why buffering off matters and how the zones interact with chunked uploads.
+
+**Key features**:
+- Live `limit_req_zone ... zone=uploads:10m rate=10r/s` — same sustained budget as `api`, unused until the location is uncommented
+- Commented `location ^~ /api/1/your-upload-prefix/` before `location /api/`: `proxy_request_buffering off`, `proxy_buffering off`, `client_max_body_size 100M`, `proxy_http_version 1.1`, `proxy_send_timeout` / `proxy_read_timeout` `300s`, `limit_req zone=uploads burst=50 nodelay`, `limit_req_status 429` — no `Upgrade` / `Connection` pair
+- Four-step uncomment checklist: leave the zone as-is, change the prefix (must be longer than `/api/`; `^~` stops a later regex from pulling the path back onto buffered `/api/`), raise `client_max_body_size` to the largest `bodyLimit` plus a couple of MB, `nginx -t` and reload
+- Isolation, not part-count: uploads otherwise share the `/api/` per-IP bucket (burst 20) with the page's status polls and saves; a NAT'd office with several uploaders is a realistic `429`. Sustained throughput per IP is `rate × part size` — raise `rate` for small parts, `burst` only for clumps
+- Scaffold `client_max_body_size` stays `27M`. `npx jpulse configure` does not rewrite a live `deploy/nginx.prod.conf`
+- Buffering-off caveats in the comment: an nginx `413` arrives mid-stream after the app has written bytes; a non-buffered request cannot be retried against another upstream
+- `limit_conn` named in docs only — nothing shipped
+
+**Files changed**:
+- `templates/deploy/nginx.prod.conf`: live `uploads` zone; commented streaming location before `/api/`
+- `docs/deployment.md`: Streaming uploads and downloads subsection; `429` and `413` troubleshooting notes
+- `docs/security-and-auth.md`: zones table four → five; `^~` exception on the regex-vs-prefix note
+- `docs/api-reference.md`: pointer from the existing "nginx still buffers" sentence; matching `proxy_buffering` / timeout note on `sendStream`
+- `docs/dev/work-items.md`: W-219 features/deliverables/notes (status unchanged)
+- `README.md`, `docs/README.md`: Latest Release Highlights — v1.8.2 / W-219
+- `docs/CHANGELOG.md`: this section
+
+Verified via `npm test` / Jest: 141 suites / 3352 tests passing. No new unit tests (scaffold + docs only). Existing live `deploy/nginx.prod.conf` copies are not rewritten; a site pastes the zone line and location from the current scaffold.
+
+**Release**:
+- Work Item: W-219
+- Version: v1.8.2
+- Release Date: 2026-09-09
 
 ________________________________________________
 ## v1.8.1, W-218, 2026-09-09

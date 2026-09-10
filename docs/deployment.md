@@ -1,4 +1,4 @@
-# jPulse Docs / Production Deployment Guide v1.8.1
+# jPulse Docs / Production Deployment Guide v1.8.2
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -82,12 +82,56 @@ and `req.secure` reflect the original client request (read from nginx's `X-Forwa
 rather than the local nginx→Node.js hop. Leave this `false` only if your Node.js process is
 reachable directly, without any reverse proxy in front of it.
 
-nginx `client_max_body_size` (default `27M` in `deploy/nginx.prod.conf`) is an outer gate only —
-Express still defaults to 10mb per route. `27M` covers `bodyLimit: '25mb'` (the comfortable max
-for a buffered JSON body) plus a little headroom; raise it if a route goes higher, including a
-`bodyMode: 'stream'` upload (see
-[API Reference — Custom Routes](api-reference.md#custom-routes-static-routes)). `npm start` has
-no nginx.
+nginx `client_max_body_size` (the current scaffold's default is `27M` in
+`deploy/nginx.prod.conf`) is an outer gate only — Express still defaults to 10mb per
+route. `27M` covers `bodyLimit: '25mb'` (the comfortable max for a buffered JSON body)
+plus a little headroom; raise it if a route goes higher, including a `bodyMode: 'stream'`
+upload (see [API Reference — Custom Routes](api-reference.md#custom-routes-static-routes)).
+A live `deploy/nginx.prod.conf` may already differ — `npx jpulse configure` does not
+rewrite it. `npm start` has no nginx.
+
+#### Streaming uploads and downloads
+
+If a route uses `bodyMode: 'stream'` or `CommonUtils.sendStream`, production nginx will
+not stream until you enable the commented location in `deploy/nginx.prod.conf`:
+
+1. Uncomment the location block. The `uploads` zone is already defined.
+2. Change `/api/1/your-upload-prefix/` to your stream-route prefix — it must be a
+   longer prefix than `/api/`, or `/api/` still wins (buffering on, burst 20, 30s
+   timeouts). The `^~` modifier stops a later regex `location` from pulling the path
+   back onto `/api/`.
+3. Set that location's `client_max_body_size` to your largest `bodyLimit` plus a
+   couple of MB so nginx is not the one that 413s first.
+4. `sudo nginx -t && sudo systemctl reload nginx`
+
+Already-deployed sites: `npx jpulse configure` does not rewrite `deploy/nginx.prod.conf`.
+Copy the `uploads` zone line (if missing) and the location block from the current
+scaffold into the live config. A download-only path can copy the same block —
+`proxy_request_buffering off` and a raised body size are harmless on GET.
+
+nginx defaults `proxy_request_buffering` to `on`, so it buffers the entire request
+body before Node sees a byte — everything works and nothing streams, which silently
+defeats `bodyMode: 'stream'` and reimposes `client_max_body_size` as a hard ceiling.
+`proxy_buffering off` is the matching response-side setting: `/api/`'s
+`proxy_read_timeout 30s` is too tight for a slow first byte from GridFS or S3 if
+nginx waits to fill a buffer.
+
+The `uploads` zone (`rate=10r/s`, applied with `burst=50`) is isolation, not
+part-count. Uploads otherwise share the `/api/` per-IP bucket (`10 r/s`, burst 20)
+with the page's status polls and saves, so one large upload degrades the rest of
+the session, and a NAT'd office with several concurrent uploaders is a realistic
+`429`. Sustained throughput per IP is `rate × part size` — 10 r/s at 8 MB parts is
+80 MB/s (above any real uplink); 10 r/s at 1 MB parts is 10 MB/s and throttles a
+gigabit client. Raise `rate` for small parts; raise `burst` only to absorb clumps
+from parallel parts and retries.
+
+With buffering off, an nginx `413` arrives mid-stream after the app has already
+received and possibly written bytes — rely on the route's `bodyLimit` as the cap,
+and unlink a partial dest the same way `StreamBody.pipe`'s 413 path already
+requires. nginx also cannot retry a non-buffered request against another upstream
+(moot for the single-server scaffold; a trap if the site later adds upstreams).
+For long-lived streams, concurrent connections per IP is the more meaningful bound
+than request rate — `limit_conn` is the nginx option if a site needs that cap.
 
 ## 🔧 Prerequisites
 
@@ -292,8 +336,12 @@ sudo tail -f /var/log/nginx/access.log | grep ' 429 '
 
 # Common causes and fixes:
 # - Shared/NAT IP (office, campus) exceeding a zone's burst - raise burst/rate for that zone in
-#   nginx.prod.conf (login: 5r/m burst 5; api: 10r/s burst 20; general: 30r/s burst 50; assets:
-#   150r/s burst 200), or key the zone on something other than $binary_remote_addr for that site
+#   nginx.prod.conf (login: 5r/m burst 5; api: 10r/s burst 20; uploads: 10r/s burst 50; general:
+#   30r/s burst 50; assets: 150r/s burst 200), or key the zone on something other than
+#   $binary_remote_addr for that site
+# - A chunked upload 429 mid-transfer is the /api/ zone (burst 20) — enable the commented
+#   streaming location so those requests use the uploads zone instead (see
+#   "Streaming uploads and downloads" above)
 # - Login-specific 429 (RATE_LIMITED / retryAfter in the JSON body) can come from either layer:
 #   nginx's 'login' zone, or the app-level appConfig.controller.auth.loginRateLimit (Redis-backed,
 #   fails open if Redis is down) - see docs/security-and-auth.md#rate-limiting for both
@@ -307,9 +355,10 @@ sudo tail -f /var/log/nginx/access.log | grep ' 429 '
 ```bash
 # App-level 413: the route's bodyLimit (or the global 10mb default) was exceeded —
 # same cap for a JSON parser route and for bodyMode: 'stream'
-# nginx 413: client_max_body_size in deploy/nginx.prod.conf (default 27M) is smaller
-# than the body. 27M already covers bodyLimit: '25mb'; raise it only above that.
-# npm start has no nginx.
+# nginx 413: client_max_body_size in deploy/nginx.prod.conf (the current scaffold's
+# default is 27M) is smaller than the body. 27M already covers bodyLimit: '25mb';
+# raise it only above that. A live copy may already differ — configure does not
+# rewrite it. npm start has no nginx.
 #
 # Fixes:
 # - For one large JSON endpoint, set bodyLimit on that static route (do not raise the
@@ -318,6 +367,11 @@ sudo tail -f /var/log/nginx/access.log | grep ' 429 '
 # - If bodyLimit is above 25mb, raise client_max_body_size to match, then sudo nginx -t
 #   && sudo systemctl reload nginx; also raise the PM2 heap (max_old_space_size /
 #   max_memory_restart) and possibly client_body_timeout (heap raise is for JSON only)
+# - Raising the global client_max_body_size without the streaming location still
+#   buffers the whole body in nginx — size works, streaming does not. Enable the
+#   commented location (see "Streaming uploads and downloads" above). With that
+#   location on, an nginx 413 arrives mid-stream after the app has already written
+#   bytes, so the route's bodyLimit is the cap to rely on.
 ```
 
 ### Validation and Recovery

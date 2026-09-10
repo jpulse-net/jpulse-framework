@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.8.1
+# jPulse Docs / Dev / Work Items v1.8.2
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -8345,19 +8345,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - required by BubbleMap T-117 Phase 1 (file attachments); `package.json` declares this as the framework floor
   - this item alone does not deliver end-to-end streaming — nginx buffers the request body by default until W-219's location block is applied
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-218, v1.8.1, 2026-09-09: controllers: CommonUtils.sendStream response with range requests and RFC 5987 filenames
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - one helper streams a file-like response with correct headers, range support, conditional requests, and a filename that survives non-ASCII characters
@@ -8442,11 +8431,11 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
 
-
-
-### W-219, vX.X.X, YYYY-MM-DD: deploy: nginx streaming location and a dedicated upload rate-limit zone
-- status: 🕑 PENDING
+### W-219, v1.8.2, 2026-09-09: deploy: nginx streaming location and a dedicated upload rate-limit zone
+- status: 🚧 IN_PROGRESS
 - type: Chore
 - objectives:
   - a jPulse site that streams an upload gets a working nginx location from the scaffold instead of discovering the problem in production
@@ -8454,23 +8443,31 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - rationale:
   - nginx defaults `proxy_request_buffering` to `on`, so it buffers the entire request body before forwarding — which silently defeats W-217 and reintroduces a size ceiling; the failure mode is invisible, in that everything works and nothing streams
   - the scaffolded `deploy/nginx.prod.conf` carries no `proxy_request_buffering` directive at all, so every site is currently on the buffering default
-  - the shipped `/api/` zone is `rate=10r/s burst=20 nodelay`, so a 100 MB upload in 8 MB parts is 13 requests and fits, but two concurrent uploads is 26 and takes a `429` mid-upload — a dedicated zone is not optional once chunked uploads exist
+  - the part count is not what trips the shipped `/api/` zone (`rate=10r/s burst=20 nodelay`): `limit_req` is a leaky bucket that refills at `rate`, so any one-second window allows roughly `burst + rate` requests, and a chunked upload spreads its parts out regardless — 13 parts of 8 MB over a ~9 second upload is about 1.4 r/s against a 10 r/s budget
+  - what justifies a dedicated zone is isolation: uploads otherwise draw on the same per-IP bucket as the page's status polls and saves, so one large upload degrades the rest of the session, and a NAT'd office with several concurrent uploaders is a realistic `429`; the zone costs one line, since the separate `location` is required for buffering and timeouts either way
+  - sustained throughput per IP is `rate × part size` — 10 r/s at 8 MB parts is 80 MB/s, above any real uplink, while 10 r/s at 1 MB parts is 10 MB/s and throttles a gigabit client — which is the rule that tells a site which knob to turn: `rate` for small parts, `burst` only to absorb clumps from parallel parts and retries
   - this is not a BubbleMap insight; any jPulse site that streams an upload needs it
 - features:
-  - a commented, disabled-by-default streaming `location` block in the scaffolded nginx config with `proxy_request_buffering off`, `proxy_buffering off`, a raised `client_max_body_size`, and longer `proxy_send_timeout` / `proxy_read_timeout`
-  - a dedicated `limit_req_zone` for uploads with higher burst capacity, with the reasoning spelled out in a comment so it is not tuned away
-  - deployment guide prose beside the existing `client_max_body_size` guidance, and a pointer from the existing `429` troubleshooting section
+  - a commented, disabled-by-default `location ^~ /api/1/your-upload-prefix/` in the scaffolded nginx config with `proxy_request_buffering off`, `proxy_buffering off`, `client_max_body_size 100M`, `proxy_http_version 1.1`, and `proxy_send_timeout` / `proxy_read_timeout` `300s` — no `Upgrade` / `Connection` pair
+  - a live `limit_req_zone` for uploads (`rate=10r/s`) applied with `burst=50 nodelay` and `limit_req_status 429` inside that location, with the isolation / `rate × part size` reasoning spelled out in a comment so it is not tuned away
+  - a four-step uncomment checklist above the block (path must be a longer prefix than `/api/`; `^~` stops a later regex from pulling the path back onto buffered `/api/`)
+  - deployment guide prose beside the existing `client_max_body_size` guidance, a pointer from the existing `429` and `413` troubleshooting sections, and a one-sentence `limit_conn` note
 - deliverables:
-  - scaffolded `deploy/nginx.prod.conf`:
-    - commented streaming location block and upload `limit_req_zone`
-  - `webapp/static/assets/jpulse-docs/deployment.md`:
-    - streaming uploads subsection near the existing `client_max_body_size` paragraph, and a note in the `429` troubleshooting section
+  - `templates/deploy/nginx.prod.conf`:
+    - live `uploads` zone; commented streaming location before `location /api/`
+  - `docs/deployment.md`:
+    - streaming uploads and downloads subsection near the existing `client_max_body_size` paragraph; notes in the `429` and `413` troubleshooting sections
+  - `docs/security-and-auth.md`:
+    - zones table updated from four zones to five (`uploads` defined in the scaffold, applied only by the optional location)
+  - `docs/api-reference.md`:
+    - pointer from the existing "nginx still buffers" sentence, and a matching `proxy_buffering` / timeout note on `sendStream`
 - notes:
-  - `deployment.md` states the `client_max_body_size` default is `27M` while BubbleMap's `deploy/nginx.prod.conf` is at `35M`, so the documented default is already stale for at least one site — worth reconciling while editing
+  - the scaffold `client_max_body_size` stays `27M` (W-214's 25mb comfort max plus headroom); BubbleMap's `35M` is a site raise, not a stale framework default — docs now say "the current scaffold's default" and that `configure` never rewrites a live `deploy/nginx.prod.conf`
   - no code dependency: a site can apply the location block by hand before taking the release, which is why this is not a floor for any BubbleMap phase
   - stays a later, separate release from W-218 (one work item per version); W-218 ships first against nginx defaults
-  - scaffold path confirmed: `templates/deploy/nginx.prod.conf` (214 lines), and `templates/` is in `package.json` `files`
+  - scaffold path confirmed: `templates/deploy/nginx.prod.conf`, and `templates/` is in `package.json` `files`
   - the download direction belongs here too: `proxy_buffering off` on the same commented location, plus a note that `/api/`'s `proxy_read_timeout 30s` is tight for a slow first byte from GridFS or S3; a site copies the block onto its own byte-serving paths (the framework has none)
+  - `limit_conn` is named in the deployment subsection only — nothing shipped
 
 
 
@@ -8508,7 +8505,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-218, v1.8.1, 2026-09-09
+- assume W-219, v1.8.2, 2026-09-09
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -8520,12 +8517,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.8.1 2026-09-09
+node bin/bump-version.js 1.8.2 2026-09-09
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.8.1; git push origin main --tags
+git tag v1.8.2; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

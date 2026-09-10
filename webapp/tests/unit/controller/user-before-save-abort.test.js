@@ -4,7 +4,7 @@
  * @description     A throwing onUserBeforeSave handler must surface as 400 USER_SAVE_REJECTED
  *                  with the handler's message verbatim.
  * @file            webapp/tests/unit/controller/user-before-save-abort.test.js
- * @version         1.8.1
+ * @version         1.8.2
  * @release         2026-09-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

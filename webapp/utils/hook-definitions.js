@@ -4,7 +4,7 @@
  * @description     Definitions of every hook fired by framework code, seeded into
  *                  HookManager's catalog at module load through the public defineHooks() API.
  * @file            webapp/utils/hook-definitions.js
- * @version         1.8.1
+ * @version         1.8.2
  * @release         2026-09-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

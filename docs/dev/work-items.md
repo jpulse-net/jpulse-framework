@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v1.8.2
+# jPulse Docs / Dev / Work Items v2.0.0
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -8423,19 +8423,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - needed by BubbleMap T-118 (large and resumable uploads, range reads); T-117 ships without ranges, so this does not block it
   - W-219 stays a later, separate release: this item ships against nginx defaults; `proxy_request_buffering` / `proxy_buffering` / the upload rate-limit zone are not in scope here
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-219, v1.8.2, 2026-09-09: deploy: nginx streaming location and a dedicated upload rate-limit zone
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Chore
 - objectives:
   - a jPulse site that streams an upload gets a working nginx location from the scaffold instead of discovering the problem in production
@@ -8477,6 +8466,90 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-220, v2.0.0, 2026-09-14: jPulse.UI: new floatPanel widget - draggable, resizable, persisted floating panels
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - add `jPulse.UI.floatPanel` to `jpulse-common.js`: a non-modal panel the user can drag, resize, and leave open while working the page underneath, which remembers its geometry and open state per browser, takes its place in a managed z-order stack with other panels, and animates to and from a launcher button
+  - one widget that works unchanged in a jPulse MPA page and in a Vue SPA component, so a site does not fork the implementation per architecture: pass an element and the widget owns its position styles, omit it and the widget owns nothing and hands back a rect
+  - absorb the entire panel lifecycle - load, clamp, persist, raise, stack, animate, drag, resize, mobile fallback - not only the geometry math, so a consumer writes one `create()` call instead of re-implementing a lifecycle
+  - replace a two-panel z-order special case with an N-panel stack, so adding a third panel to a page needs no new code
+- rationale:
+  - the framework has no floating panel primitive. Every widget today is in-flow (`tabs`, `accordion`, `collapsible`), modal (`dialog`), or transient (`toast`). A panel that is none of those - movable, resizable, non-modal, and persistent across page loads - is a real gap, and the kind of UI that is invariably built badly once per site
+  - BubbleMap has already built it twice: `site/webapp/view/map/map-canvas-ai.tmpl` lines 18-340 and `site/webapp/view/map/map-canvas-chat.tmpl` lines 14-298 are two ~290-line blocks that differ only in method prefix (`ai` vs `chat`), `localStorage` key, `$refs` names, and CSS class names - the same double-`requestAnimationFrame` ghost animation with the same `transitionend`-plus-timeout safety net, the same 300ms debounced persist, the same drag and resize wiring. Its shared `map-canvas-panel.tmpl` (204 lines) already factors out the geometry; the lifecycle stacked on top of it is what is still written twice
+  - stack order there is a hardcoded pair: `_panelIsFront('ai' | 'chat')` compares two `lastActiveAt` values against a fixed `Z_BACK` / `Z_FRONT` / `Z_GHOST` triple. Order belongs in a registry keyed by last-active time, which costs the same to write and does not cap the panel count at two
+  - BubbleMap unit-tests its browser-side panel logic by reading the `.tmpl`, stripping Handlebars with a regex, and evaluating the result in a Node `vm` context with a stubbed `window`. Moving the code into `jpulse-common.js` does not make that harness go away - `webapp/tests/unit/utils/jpulse-ui-widgets.test.js` does the same thing, reading `jpulse-common.js` with `fs.readFileSync`, regex-replacing its `{{i18n.view.ui.*}}` literals, and evaluating it in a JSDOM window. What the move does buy is one harness for one panel instead of one per site per panel, tested against the framework's own JSDOM setup rather than a hand-stubbed `window`, and geometry and stack logic that is unit-testable without a template at all
+  - the panel is also the floor for the planned AI agent framework, whose chat UI is a floating panel. Shipping the panel on its own first proves the MPA/SPA contract against something far simpler than a streaming chat surface, and leaves a widget that is independently useful to any site
+- features:
+  - `create(options)` returns a handle; the widget is state-first, computing a rect and a z-index and only optionally applying them:
+    - uncontrolled (MPA): pass `el` (element or selector) and the widget writes `left` / `top` / `width` / `height` / `z-index` and toggles state classes
+    - controlled (SPA): omit `el` and pass `onChange(rect, meta)`; the widget touches no DOM and the component binds `:style="panel.style()"`
+    - the widget never adds or removes child nodes in the panel body, and never stashes state on the element - deliberately unlike `jPulse.UI.accordion`, which injects an arrow `<span>` into headers and sets `element._jpAccordionConfig`; both fight a virtual DOM, and both are why a naive port of that pattern would not survive inside a Vue component. The one exception is `resizeHandles.mode: 'inject'` (MPA only), which appends handle nodes to `el`
+  - options: `id`, `el`, `launcher`, `storageKey` (default `jp:floatPanel:<id>`), `group` (default `'default'`), `defaults` (`{ x, y, w, h, open }`), `minWidth` / `minHeight`, `margin`, `topOffset` (CSS variable name or number, default `--jp-header-height`), `cascade`, `dragHandle`, `dragIgnore`, `resizeHandles` (`{ mode: 'inject' | 'manual', dirs }`), `mobile` (`{ breakpoint, mode, heightRatio, exclusive }`), `animate` (`{ durationMs }`), `persistDebounceMs`, `autoResize`, `storage` (adapter), `nextTick`, and the `onChange` / `onOpen` / `onClose` / `onRaise` callbacks
+  - handle: `open()` and `close()` returning promises that settle after the animation, `toggle()`, `raise()`, `hardClose()`, `isOpen()`, `isFront()`, `getRect()`, `setRect()`, `reclamp()`, `startDrag(evt)`, `startResize(evt, dir)`, `style()`, a readable `state`, and `destroy()`
+  - module level: `get(id)`, `list()` (open panels, front-most first), `front()`, `closeFront()` for an Escape handler, and `reclampAll()`
+  - launcher ghost animation is built in and driven by the `launcher` option: a ghost `<div>` appended to `document.body` transitions between the launcher's bounding rect and the panel's, with the double-`requestAnimationFrame` commit that makes the transition actually fire, a `transitionend` listener plus a timeout safety net, and an automatic bypass under `prefers-reduced-motion`. Appending to `document.body` puts the ghost outside any component-managed subtree, which is what makes it safe in both modes. With no launcher, or a launcher reference that has gone away, it falls back to a center-scale animation
+  - the launcher button itself stays the consumer's to render, style, and label - the widget only reads its rect for the animation and returns focus to it on close. The framework still ships `jp-float-panel-launcher` CSS and an unread-dot convention so a consumer does not have to invent one
+  - `cascade: true` offsets a panel that would otherwise open exactly on top of one already at the default position, replacing BubbleMap's hardcoded `{ offsetX: -48, offsetY: -48 }`
+  - mobile: below `mobile.breakpoint` the panel becomes a bottom sheet at `mobile.heightRatio` of the viewport with a **4px side inset** (enough to see the page as background, not a gutter) and drag and resize suppressed, and `mobile.exclusive` closes the other open panels **in the same `group`** when one opens - group-scoped rather than global, so a page with an inspector and two chat panels can have two independent policies
+  - z-order comes from a documented band assigned by `lastActiveAt`: panels 940-979 and the ghost at 985. Verified free - nothing in `jpulse-common.css` occupies 907-998. The band sits above the sidebar (895-897) and the `jp-tabs` elevation (900-906), and below toast messages (999), the site header (1000), the `jpSelect` dropdown (1200), and dialogs (2000+). Toasts deliberately paint over a panel; panels clamp below the header anyway via `topOffset`, so they never need to paint over it; and a dialog opened from a panel always covers it
+  - accessibility: non-modal, so no focus trap; `role="dialog"` with a consumer-supplied label, Escape closes the front panel, focus returns to the launcher on close. Programmatic focus goes to the panel element (`tabindex="-1"`, no visible `:focus` / `:focus-visible` ring) on open and on a click of the header or body, so arrow keys can nudge it; interactive children (close, links, inputs, resize handles) keep their own focus. Headings inside `.jp-float-panel` and `.jp-dialog` are skipped by `headingAnchors._addLinks()` / `_ensureHeadingIds()` so a panel title does not grow a 🔗 icon
+  - `reclamp()` on a viewport resize preserves distance from the nearer edge, then clamps, so panels do not walk toward the top-left over repeated shrinking
+  - `open()` / `close()` during an in-flight animation queue; last action wins. Resolving immediately would drop a launcher click that races the close animation
+  - Escape yields to an open dialog, and this needs its own handler rather than ordering. The framework has no central Escape registry: `jPulse.UI.showDialog()` adds a per-dialog `document` keydown listener when the dialog opens and removes it on close, and `jPulse.UI.navigation` adds a permanent one for the mobile menu; none calls `stopPropagation()`. Same-target listeners fire in registration order, so a panel listener registered at `create()` time fires *before* a dialog opened later - ordering cannot express "dialogs win". So the panel's own listener returns early when `document.querySelector('.jp-dialog-show')` matches, the class `showDialog()` sets on both overlay and dialog. One listener is shared by all panels and calls `closeFront()`
+  - MPA markup contract - the widget decorates existing markup rather than generating it: `.jp-float-panel` with `.jp-float-panel-header[data-jp-panel-drag]`, `.jp-float-panel-title`, `.jp-float-panel-header-btn[data-jp-panel-close]`, and `.jp-float-panel-body`; state classes `--mobile`, `--dragging`, `--resizing`, `--front`
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - new `jPulse.UI.floatPanel` object placed after collapsible and before accordion, structured in two layers: a closure-scoped headless engine (load, save, clamp, cascade, drag, resize, ghost) with no DOM-framework dependency, and the `create()` / handle surface over it. `_engine` is exposed (underscore-prefixed) so unit tests call the headless layer directly
+    - `headingAnchors._addLinks()` and `_ensureHeadingIds()` skip headings inside `.jp-float-panel` and `.jp-dialog`
+    - module-level panel registry with the stack functions and a single shared `window` resize listener rather than one per panel
+    - one shared document Escape listener calling `closeFront()`, which returns early while `.jp-dialog-show` is present so an open dialog wins
+  - `webapp/view/jpulse-common.css`:
+    - `.jp-float-panel` and its header / title / body / resize-handle / ghost / launcher classes and state modifiers, all colors from `--jp-theme-*`
+    - `--jp-float-panel-anim-ms` (default 300ms) as the animation duration, themeable and overridable per panel by `animate.durationMs`
+  - `webapp/translations/en.conf`, `webapp/translations/de.conf`:
+    - `view.ui.floatPanel.*` strings for the close button, the resize handles, and the drag-handle keyboard hint
+  - `webapp/view/jpulse-examples/ui-widgets.shtml`:
+    - new `2.4 Floating Panel Widget` demo under "Buttons, Dialogs, and Notifications" - two panels with launchers, showing stacking, cascade, persistence across reload, and the mobile sheet at a narrow viewport. The two `<aside>`s are hoisted to `document.body` because the example tab panel's `transform` traps `position: fixed`. Reset positions clears the two `localStorage` keys, destroys the instances, and reloads (panels stay closed because `defaults.open` is `false`)
+  - `docs/jpulse-ui-reference.md`:
+    - new `## Floating Panel Widget` section after `## Dialog Widgets`, matching the existing structure: basic usage, HTML structure, `create()` option table, handle and module API reference, the MPA versus SPA contract with a Vue example, the z-index band, and features
+  - `webapp/tests/unit/utils/jpulse-ui-float-panel.test.js` (new) - sibling of `jpulse-ui-widgets.test.js`, reusing its JSDOM-plus-regex harness; `tests/unit/controller/` is for server controllers, not client widgets:
+    - `loadState` defaults when storage is empty, malformed, or throws; `saveState` round-trips `x` / `y` / `w` / `h` / `open` / `lastActiveAt`; the legacy `openedAt` key still reads as `lastActiveAt`
+    - `clamp` honors `minWidth` / `minHeight`, the `margin` on all four sides, and `topOffset` from the CSS variable; a null `x` / `y` places the panel bottom-right; a viewport smaller than the minimum still yields a usable rect
+    - `cascade` offsets only when another panel already occupies the default position
+    - drag moves by pointer delta and re-clamps; `dragIgnore` suppresses a drag started on a header button; a non-primary button does not drag; mobile suppresses both drag and resize
+    - resize in all eight directions, with `nw` / `n` / `w` moving the origin as the size shrinks and stopping at the minimum
+    - stack: `list()` orders by `lastActiveAt`, `raise()` re-orders, `front()` and `closeFront()` pick the front-most, z-indices stay inside the documented band
+    - `mobile.exclusive` closes only same-group panels
+    - Escape closes the front panel, and is a no-op while a `.jp-dialog-show` element is in the document
+    - controlled mode: `onChange` fires with the rect and the element is never touched; uncontrolled mode writes the styles
+    - `open()` and `close()` resolve after the animation, resolve immediately under `prefers-reduced-motion`, and `hardClose()` removes an in-flight ghost
+    - `destroy()` removes listeners and the registry entry
+    - mobile sheet uses a 4px side inset; programmatic focus lands on the panel (not the header); clicking header or body refocuses the panel; clicking close does not steal focus
+  - `webapp/tests/unit/utils/jpulse-ui-heading-anchors.test.js`:
+    - headings inside `.jp-float-panel` and `.jp-dialog` get neither a 🔗 nor an auto-generated id
+  - `README.md`, `docs/README.md` — Latest Release Highlights — v2.0.0 / W-220 bullet
+  - `docs/CHANGELOG.md` — v2.0.0 / W-220 section
+- notes:
+  - scope decisions settled during design: the ghost animation is built into the widget rather than left to the consumer, because it is the single largest duplicated block in BubbleMap today (~80 identical lines per panel); the launcher is reference-only; and the mobile sheet with a group-scoped `exclusive` flag is in scope, because both BubbleMap panels already need it
+  - open state persists across page loads and the panel reopens on init, matching BubbleMap's current behavior. This is the surprising default, so the docs call it out and `defaults.open` plus a `false` in storage are both honored
+  - persistence is `localStorage` only - panel geometry is device-specific, and syncing it to a server-side user preference would be wrong more often than right. The `storage` adapter option covers a site that disagrees
+  - i18n in `jpulse-common.js` is inline Handlebars - 23 `{{i18n.…}}` expressions today, no runtime `window.i18n` lookups - and the unit-test harness regex-replaces each one before evaluating the file. So every `view.ui.floatPanel.*` string added to the widget needs a matching replacement line in the test. Keep the widget's string count small for that reason: the close button, the eight resize-handle labels as one parameterized string, and the drag-handle keyboard hint
+  - two details left to settle while implementing: whether `reclamp()` on a viewport resize should preserve the panel's distance from its nearest edge instead of clamping absolutely (BubbleMap clamps absolutely, which walks panels toward the top-left over repeated shrinking), and whether `open()` called during an in-flight animation should queue or resolve immediately
+  - out of scope: docking and snap-to-edge, maximize and restore, panel tabbing or grouping into one frame, multi-monitor or popped-out windows, and a server-side geometry preference
+  - the framework has no in-repo consumer to migrate; the demo page on `/jpulse-examples/ui-widgets.shtml` is the reference implementation, the same role it plays for the other widgets
+  - prerequisite for the planned AI agent framework: its chat panel is a floating panel, and this item is the floor for that work. BubbleMap adopts the widget in its own repository after the framework release lands, collapsing `map-canvas-panel.tmpl` and roughly 580 lines of duplicated lifecycle into two `create()` calls, and retiring the `vm`-sandbox panel test
+
+
+
+
+
+
+
+
 
 ### Pending
 
@@ -8505,7 +8578,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-219, v1.8.2, 2026-09-09
+- assume W-220, v2.0.0, 2026-09-14
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -8517,12 +8590,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 1.8.2 2026-09-09
+node bin/bump-version.js 2.0.0 2026-09-14
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.8.2; git push origin main --tags
+git tag v2.0.0; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

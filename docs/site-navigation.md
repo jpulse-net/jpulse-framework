@@ -1,4 +1,4 @@
-# jPulse Docs / Site Navigation Guide v1.8.2
+# jPulse Docs / Site Navigation Guide v2.0.0
 
 Complete guide to customizing site navigation in the jPulse Framework using direct mutation and append mode.
 

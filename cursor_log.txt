@@ -23083,3 +23083,538 @@ Release prep for W-219 / v1.8.2. npm test and Jest: 141 suites / 3352 tests pass
 
 
 ============================================================
+2026-09-10 17:57
+
+oops, wrong window!
+
+Acknowledged. The Google Cloud Storage / store-s3 setup for bubblemap.net belongs in the bubblemap-app chat, not this jpulse-framework window. No framework changes.
+
+
+============================================================
+2026-09-14 01:37
+
+missing design doc change highlight
+- now I have to review the full doc again, inefficient
+
+overall design objectives
+- 1. don't make me think
+- vs.
+- 2. simple design
+- the two seem mutually exclusive
+- current design it is overly complex (especially quota handling and typed principal)
+- what can we do for a better dx experience?
+
+your Qs
+- 1.A
+- 2.A
+- 3.A, but see below
+
+ai plugins:
+- I see the value of packaging all ai plugins as a single bundle
+- if easier I am open to one package per ai plugin (at the cost if installation convenience)
+- in any case, is there a plugin bootstrap issue we need to solve?
+- ai-openai is out of scope for this work item (a TD)
+
+hello-ai view
+- the ai feature is complex,
+- a hello-ai view shipped by ai-core helps for dx & onboarding
+
+provide capabilities
+- instead of a flat list of booleans like supportsVision,
+- how about this?
+  capabilities: { vision: Boolean, ... }
+
+service account:
+- principal plus onBehalfOf looks powerfull but complex
+- the service account case is the exception
+- possible to keep username, and borrow that in the future for username, and add a onBehalfOf field/param?
+- requiring registering a service account as a user for this use case is ok, i.e. from system perspective service account == user account
+
+Isomorphic tools
+- can this be simplified? better dx?
+- what if we rely more shared code, and it is the responsibility of the site code to track fields that are set only on one or the other side?
+- do we need the fine grained Snapshot contract and fidelity?
+
+20. Deferred items and technical debt
+- convert table to ### sections,
+- so that we can expand on each TD
+- number as TD-01, TD-02, ...
+- reference the TDs as such in the design doc
+
+work items sequence
+- W-220 floatPanel widget
+- W-221 Plugin bundle buld and installation
+- W-222 AI agent (likely split up into more)
+- I renamed the design doc to W-222-ai-agent.md
+
+Revised docs/dev/design/W-222-ai-agent.md as rev 2, a simplification pass. Net
+effect: the doc grew from 1314 to 1674 lines but the design shrank - the growth
+is the revision log, the new simple-case section, and the TD sections that are
+now prose instead of table cells.
+
+Added a "Revision history" section at the top with a per-section change table,
+so future revisions are reviewable without re-reading the whole document.
+
+DX answer to "don't make me think" vs "simple design": they only conflict when
+extension seams sit in the default path, which is what rev 1 did. Added new
+section 1.1 "The simple case" showing the complete minimum a site writes - two
+install commands, one site controller with four hook handlers, and one
+jPulse.ai.panel.create() call - followed by a table mapping each advanced
+feature to the specific problem that makes a site reach for it. Everything else
+in the doc is explicitly opt-in.
+
+Typed principals dropped entirely (section 6 rewritten). Identity stays the
+username; a service account is a user account, as you proposed. The only
+survivor is actor.onBehalfOf as one nullable field, justified because
+retrofitting it would mean migrating every thread and every log query.
+Delegated quota and guest access were re-examined and neither actually needed
+the typed key.
+
+Quota simplified (section 10.2). One subject per turn, defaulting to the
+username. The multi-subject list with per-subject enforce flags is gone. The
+seam that keeps delegation possible is one field name: the usage document is
+keyed <subject>:<period> and onAiQuotaCheck returns the subject. A delegated
+model writes whatever documents it wants inside its own two hook handlers,
+because a handler is code, not a declaration.
+
+Isomorphic tools rewritten and halved, renamed to "Shared tool modules"
+(section 8). Snapshot contract, the four-value fidelity enum, requiresFields,
+and host: 'auto' are all gone. What remains is one pure module per tool shared
+verbatim, each host passing the data it has, host declared explicitly, and the
+site owning the difference - your proposal. Kept the mechanism half (conventional
+path, content-hash serving, version pinning, purity scan) since that is where
+nearly all the value is: it removes the .tmpl and vm-sandbox workarounds.
+Recorded in TD-10 what was given up.
+
+Plugin bootstrap: checked against the code rather than assumed, new section
+5.1.1. No bootstrap gap exists. resolveLoadOrder() topologically sorts on
+dependencies.plugins and registerPluginHooks() iterates that order, so ai-core
+defines hooks before ai-anthropic registers on them; HookManager.register()
+does not require a prior definition anyway. enablePlugin() refuses on a missing
+dependency and disablePlugin() refuses when depended upon. A site controller
+loading before the plugin is covered by W-209's retro-validation. The only real
+gap is installation - dependencies.plugins never fetches anything - which is
+W-221.
+
+Bundle decided as ai-core + ai-mock + hello-ai in one package, ai-anthropic
+separate. Reasoning: the mock is not an optional extra, it is how ai-core is
+demonstrable and testable with no API key; providers churn, carry credentials,
+and a site running only ai-proprietary should not carry three it will not enable.
+
+Provider capabilities adopted as a map, capabilities: { vision: true }, with
+the reasoning written out - sibling booleans are a naming convention pretending
+to be a structure, a map is enumerable and renders on the admin page without
+code, and unknown keys read false so older providers keep working. Only vision
+ships; TD-05 tracks the rest.
+
+hello-ai now ships inside plugins/ai-core/ rather than the site template,
+citing hello-world as precedent (it already ships webapp/view/hello-plugin/ and
+its own jpulse-navigation.js from inside a plugin). It runs on ai-mock, so it
+works before any API key exists.
+
+Section 20 converted from a table to eleven ### TD-01..TD-11 sections, each with
+State / Why deferred / Trigger, referenced by number throughout the doc.
+ai-openai is TD-11. Removed the old table row for plugin bundle installation
+since it is now W-221, a real work item.
+
+Section 21 renumbered to W-220 (floatPanel), W-221 (plugin bundle build and
+installation), W-222 (AI agent), with W-222's seven proposed sub-items listed.
+
+Open questions: answered and removed 1, 2, 5, and 6 using your 1.A / 2.A / 3.A
+answers. Snapshot granularity became dataScope: 'turn' | 'call' per tool,
+defaulting to 'call'. The merged-data case is a registration error. Four
+questions remain.
+
+Verified: no tabs, no trailing whitespace, balanced code fences, no leftover
+references to principals, snapshots, fidelity, host: 'auto', or supportsVision
+outside the passages that describe the reference site's current state.
+
+No work item written, per your instruction.
+
+
+============================================================
+2026-09-14 02:16
+
+the design doc mentions "where rev 1 was wrong"
+- only mention once at the top the rev history
+- all design doc after that should be to the point, no mention of old rev stuff
+
+22. Deliverables
+- `webapp/view/jpulse-common.js` etc are likely `plugins/ai-core/webapp/view/jpulse-common.js`
+- what are the framework files that change besides docs?
+
+Two changes to docs/dev/design/W-222-ai-agent.md.
+
+1. Stripped all rev-1 commentary from the body. Eleven passages rewritten to
+state the design directly instead of narrating what changed: section 1.1 intro,
+6.1, 6.2, 6.3, 7.2, 8.1 (heading renamed from "The simplification, and why rev 1
+was wrong" to "The design"), 8.3, 10.2, TD-10, and 23. Where a rejected
+alternative was genuinely worth naming - the fidelity-marker approach in 8.1,
+the multi-subject quota list in 10.2, host: 'auto' in TD-10 - it is now argued
+on its merits in the present tense rather than as a correction. Added a line to
+the revision history saying rev-versus-rev commentary lives in that section
+only. Verified: "rev 1" now appears at lines 12, 14, and 39, all inside the
+revision history.
+
+2. You were right about the paths. Corrected `webapp/view/jpulse-common.js`,
+`webapp/view/jpulse-common.css`, and `webapp/translations/*.conf` to
+`plugins/ai-core/webapp/...`. Restructured section 22 into 22.1 plugin files,
+22.2 framework files, 22.3 documentation, and expanded 22.1 to the full plugin
+tree (manifest, controller, three layer dirs, models, jpulse-common.js/css,
+jpulse-navigation.js, admin view, hello-ai, ai-tools).
+
+Answer to "what framework files change besides docs?" - checked against the
+code rather than assumed. Exactly one, and it is not AI-specific:
+
+webapp/utils/i18n.js. loadTranslations() reads a single directory,
+join(config.system.appDir, 'translations') at line 159, and process.exit(1)s if
+it is missing. There is no site or plugin merge, no plugin in the repo has a
+translations/ directory, and hello-world sidesteps the question by hardcoding
+English. A chat panel is heavy on UI text, so ai-core either gets plugin
+translations or ships untranslatable strings. Fix is to collect and merge *.conf
+across framework, site, and active plugins the way
+PathResolver.collectAllFiles() already does for view assets, with merge order
+following file-resolution priority so a site can override a plugin's string.
+Assigned to W-221, since it is general plugin infrastructure, and section 21's
+W-221 row now lists it as the third part of that item.
+
+Everything else ai-core needs already exists, now documented as a table in 22.2
+with the mechanism that provides it:
+- client JS/CSS appended to jpulse-common.* - W-098 append mode, view.js:316-322
+  concatenates framework + site + plugins for any .js/.css under view/
+- views, navigation, static assets from a plugin - resolveModuleWithPlugins(),
+  hello-world precedent
+- /api/1/ai/* routes - site-controller-registry.js:68-74 scans plugin controller
+  dirs and auto-registers api* methods
+- own hooks, owned and introspectable - static hookDefinitions per W-209
+- admin config tab - ConfigModel.extendSchema(), which bootstrap.js:266
+  explicitly documents as callable by plugins
+- per-thread WebSocket namespace - WebSocketController.createNamespace() is
+  public and already supports :param pattern namespaces
+- load order ahead of provider plugins - resolveLoadOrder() topological sort
+- turn leases - existing RedisManager lease, unchanged
+
+Doc is now 1709 lines. Verified no tabs, no trailing whitespace, 30 balanced
+code fences.
+
+
+============================================================
+2026-09-14 11:32
+
+- I'll do more reviews of the design doc
+- for now, is work item "W-220, v2.0.0, 2026-09-14: jPulse.UI: new floatPanel widget - draggable, resizable, persisted floating panels" defined enough so that I can hand over for coding?
+
+Verdict: yes, close to hand-over ready. The API surface, MPA/SPA contract, markup
+contract, mobile and z-order policies, and test list are concrete enough to code
+against. Five findings, verified against the code rather than assumed.
+
+1. Version conflict (you resolve). Heading says v2.0.0, 2026-09-14; two
+deliverables say v1.8.3 - the Latest Release Highlights bullet and the CHANGELOG
+section. package.json is at 1.8.2 and the CHANGELOG's newest entry is
+v1.8.2/W-219. Recommended v2.0.0: you edited the heading deliberately and moved
+the date, the v1.8.3 strings are stale from my first draft, and floatPanel is
+the floor for the AI agent framework, which is a major-release story. Left both
+lines untouched as asked.
+
+2. Test file was in the wrong directory. Was
+webapp/tests/unit/controller/float-panel.test.js; tests/unit/controller/ is for
+server controllers. Changed to webapp/tests/unit/utils/jpulse-ui-float-panel.test.js,
+sibling of jpulse-ui-widgets.test.js, with a note that it reuses that harness.
+
+3. The Escape deliverable described a mechanism that does not exist - the real
+design hole. There is no central Escape registry in the framework.
+jPulse.UI.showDialog() adds a per-dialog document keydown listener on open and
+removes it on close (jpulse-common.js:3474-3485); jPulse.UI.navigation adds a
+permanent one for the mobile menu (:6460); neither calls stopPropagation().
+Same-target listeners fire in registration order, so a panel listener registered
+at create() time fires before a dialog opened later - "ordered after dialogs"
+is not achievable by ordering at all, and Escape would close both. Replaced with
+a concrete decision: one shared document listener calling closeFront(),
+returning early while document.querySelector('.jp-dialog-show') matches, that
+being the class showDialog() sets on overlay and dialog. Added a matching test
+case.
+
+4. The test-harness rationale was wrong in a way that would mislead. It claimed
+BubbleMap's read-template/strip-Handlebars/eval-in-vm harness "disappears the
+moment the code is a framework module with ordinary tests". It does not -
+webapp/tests/unit/utils/jpulse-ui-widgets.test.js does the same thing, reading
+jpulse-common.js with fs.readFileSync, regex-replacing its {{i18n.view.ui.*}}
+literals, and evaluating in a JSDOM window. Rewrote the bullet to claim what is
+actually true: one harness for one panel instead of one per site per panel,
+against the framework's JSDOM setup rather than a hand-stubbed window. Added a
+note that jpulse-common.js carries 23 inline {{i18n.…}} expressions and no
+runtime window.i18n lookups, so each new view.ui.floatPanel.* string costs a
+regex line in the test - with a recommendation to keep the string count to
+three.
+
+5. z-order band omission. The band itself verified correct: nothing in
+jpulse-common.css occupies 907-998, so panels 940-979 and ghost 985 are clear,
+and the stated neighbors check out (sidebar 895-897, jp-tabs 900-906, header
+1000, dialogs 2000+). But toasts sit at 999 and were unmentioned. Added them,
+plus the jpSelect dropdown at 1200, and noted toasts deliberately paint over a
+panel.
+
+Spot-checks that passed and needed no change: --jp-header-height exists with a
+50px fallback, so topOffset's default is valid; view.ui.floatPanel.* is the
+right translation namespace (view.ui.alertDialog at en.conf:490);
+docs/jpulse-ui-reference.md is the right file to edit since
+webapp/static/assets/jpulse-docs/ is a generated copy produced by
+bin/configure.js and bin/jpulse-update.js; and the two items flagged as "left to
+settle while implementing" (edge-relative reclamping, re-entrant open()) are
+genuinely local decisions.
+
+Noted but not a defect: the spec is large for one item - roughly 20 options, 15
+handle methods, 5 module functions, plus ghost animation, mobile sheet, and
+keyboard drag. Codeable as written, but a lot to land and review at once.
+
+Edited only the W-220 features, rationale, deliverables, and notes content.
+Status line and section placement untouched; version strings left for you.
+
+
+============================================================
+2026-09-14 11:55
+
+Implement work item W-220: jPulse.UI.floatPanel — a non-modal, draggable, resizable floating panel that persists geometry and open state, stacks by last-active time, and animates to/from a launcher. Same widget for MPA (pass el) and Vue SPA (omit el, onChange). Hard constraints: no git, no bump-version, no @version/@release edits, do not change W-220 status or section placement.
+
+Implemented jPulse.UI.floatPanel as a two-layer IIFE (headless engine + create/handle/module API) between collapsible and accordion in jpulse-common.js. Added CSS, en/de i18n (3 strings), ui-widgets §2.4 demo, jpulse-ui-reference section, README/docs README v2.0.0 highlights, CHANGELOG v2.0.0, and 23 unit tests — all passing.
+
+Open decisions: (1) reclamp on viewport resize preserves nearer-edge distance then clamps, so panels do not walk top-left. (2) open()/close() during an in-flight animation queue; last action wins.
+
+Did not run git, did not bump versions/headers, did not change the W-220 status line. Did not verify the demo in a browser (no running app session).
+
+
+============================================================
+2026-09-14 12:00
+
+thanks opus
+
+grok: please implement, unless questions
+
+Delegated the W-220 implementation to a Grok subagent (cursor-grok-4.6-high-fast),
+briefing it with the work item plus the facts verified during the review so it
+would not have to rediscover them: the free z-index band 940-979/985 and its
+neighbors, --jp-header-height's 50px fallback, the absent central Escape
+registry and the .jp-dialog-show guard, the inline-Handlebars i18n constraint
+and its cost per string in the test harness, the jpulse-ui-widgets.test.js
+harness pattern, the correct test directory, and v2.0.0 as the release version.
+Also restated the hard constraints: no git, no bump-version, no @version/@release
+edits, no work-item status or section changes, no .jpulse/, no site/, no editing
+the generated docs copy.
+
+Grok reported success. Verified independently rather than taking it at face
+value:
+
+- Tests: ran `npx jest webapp/tests/unit/utils/jpulse-ui-float-panel.test.js
+  webapp/tests/unit/utils/jpulse-ui-widgets.test.js --runInBand` myself.
+  90/90 pass across 2 suites - 24 new cases plus the 67 pre-existing widget
+  cases, no regressions. Matches its claim.
+- Formatting: zero tabs, zero whitespace-only lines, zero trailing whitespace
+  across all seven changed files.
+- No hardcoded colors anywhere in the new .jp-float-panel CSS; all theme vars.
+- Z-index band implemented as specified: Z_PANEL_MIN 940, Z_PANEL_MAX 979,
+  Z_GHOST 985, with a band comment in the CSS.
+- Escape guard at jpulse-common.js:4098 is exactly the specified design -
+  onSharedEscape returns early on document.querySelector('.jp-dialog-show'),
+  then closes the front panel.
+- One shared window resize listener (onSharedResize), not one per panel.
+- Translations present and correctly nested under view.ui in both en.conf and
+  de.conf, three strings each, alignment matching neighbors.
+- @version headers all still 1.8.2 - untouched, including the new test file
+  which copied its sibling's values.
+- W-220 status line and section placement unchanged.
+- Docs section landed at jpulse-ui-reference.md:297, directly after
+  ## Dialog Widgets at :128. Demo at ui-widgets.shtml:770 as 2.4.
+- All specified handle and module methods exist: open, close, toggle, raise,
+  hardClose, isOpen, isFront, getRect, setRect, reclamp, startDrag, startResize,
+  style, destroy, plus get, list, front, closeFront, reclampAll.
+
+Correction to my earlier note: in this repo webapp/static/assets/jpulse-docs is
+a symlink to ../../../docs, not a copy - the copy behavior applies to installed
+sites via configure/update. Practical guidance is unchanged (edit docs/ only),
+and the symlink is why the docs change shows up under both paths.
+
+Grok's two open-detail decisions, both of which I agree with: reclamp preserves
+distance from the nearer edge before clamping, so panels do not walk toward the
+top-left over repeated shrinks; and open()/close() during an in-flight animation
+queue with last-action-wins, so a launcher click racing a close animation is not
+dropped.
+
+Disclosed divergences: _engine is exposed underscore-prefixed so the headless
+layer is directly testable; resizeHandles.mode 'inject' appends handle nodes in
+MPA mode, the one exception to "never add child nodes"; exclusive siblings close
+via hardClose() to avoid concurrent ghosts; and the demo hoists its two <aside>
+elements to document.body because the tab panel's transform traps
+position: fixed. All reasonable.
+
+Outstanding: the demo was never exercised in a browser. Needs a click-through of
+/jpulse-examples/ui-widgets.shtml 2.4 for stacking, cascade, reload persistence,
+and the narrow-viewport sheet. getRect, setRect, and reclampAll are defined but
+not unit-tested, consistent with the work item's test list.
+
+
+============================================================
+2026-09-14 12:42
+
+- floating panel test looks good
+- reset reloads the page, which closes the floating panels, is this by design? if so, ok
+
+Confirmed the Reset positions button is demo-only, not a widget API. It clears
+jp:floatPanel:demo-notes and jp:floatPanel:demo-help from localStorage, destroys
+both instances, then window.location.reload(). After reload, create() sees empty
+storage and applies defaults: { w: 360, h: 260, open: false }, so both panels
+start closed. The reload is the cheapest way for the demo to re-apply factory
+geometry; the close is a consequence of defaults.open being false. No code
+change — the user said that is fine if by design.
+
+
+============================================================
+2026-09-14 12:45
+
+on bubblemap maps, the floating pos and open/closed status is remembered across page navigation. I presume this still works, right?
+
+Answered: BubbleMap today is unchanged — it still uses its own panel code and
+keys, so current remember-across-navigation behavior is untouched. The new
+widget does the same job via localStorage (x, y, w, h, open, lastActiveAt)
+keyed jp:floatPanel:<id>. create() restores open from storage and, if true,
+shows the panel and fires onOpen. After BubbleMap migrates, it keeps working
+as long as each panel has a stable id/storageKey on the same origin; existing
+BubbleMap keys will not auto-map to jp:floatPanel:<id>, so a one-time position
+reset is expected unless they pass a storage adapter or their old keys.
+
+
+============================================================
+2026-09-14 12:53
+
+today panel on maps are global open/closed, so this is ok
+
+- any additional manual tests you recommend?
+- anything else before release prep?
+
+Recommended manual tests the unit suite cannot cover: ghost animation and
+prefers-reduced-motion; persist across a real navigation (leave
+/jpulse-examples/ui-widgets.shtml and return); DevTools 375px sheet plus
+exclusive; Escape with a dialog opened from the page; toast vs panel z-order;
+header clamp; keyboard nudge and focus return; light/dark and de-DE; window
+resize nearer-edge; click launcher during close (queue). Before release prep:
+confirm v2.0.0 as a major bump; stale v1.8.3 remains in the W-220 deliverables
+list; record the two settled implementation decisions in notes; run full
+npm test; optional style-reference / genai-instructions mention. No code
+changes.
+
+
+============================================================
+2026-09-14 13:10
+
+mobile panel size
+- on mobile simulation the panel occupies the full width
+- I am wondering if this is good by ux, or if better to add a few px margin?
+
+🔗 icon in panel title
+- on hover over title, the 🔗 icon is shown, on mobile it's always shown
+- investigate if this can be disabled
+
+panel keyboard nav
+- focus remains on page, not panel, so can't keybaord nav
+
+i18n
+- where is this used? I can't find it
+
+Investigated, no code change.
+
+Mobile sheet is hardcoded x:0 w:vp.w in _displayRect. Full-bleed is the
+spec's "full-width bottom sheet". UX recommendation: 8px side inset (same as
+the desktop margin default) plus env(safe-area-inset-*) so it reads as a
+sheet over the page, not a new page.
+
+🔗 is headingAnchors, not floatPanel. Demo titles are h3[id], so
+_addLinks() stamps .heading-anchor on them. No per-heading skip exists;
+jp-toc-ignore is TOC-only. Page-wide disable is headingAnchors.init({
+enabled: false }) or levels excluding 3. Real fixes: skip headings inside
+.jp-float-panel in _addLinks, or change the title from h3 to a div.
+
+Keyboard: doOpen never moves focus into the panel. Header gets tabindex=0
+for arrow nudge, close returns focus to the launcher, but Tab/arrows never
+reach the header unless the user tabs the whole page. Spec said non-modal
+(no trap) and focus-return on close, not focus-on-open.
+
+i18n strings are aria-labels only: close on [data-jp-panel-close],
+resizeHandle on injected handles (%DIR%), dragHint on the drag header.
+Visible close is the markup ×. That is why they do not appear in the UI.
+
+
+============================================================
+2026-09-14 13:17
+
+mobile width:
+- do not use 8px margin, it would be hard to see what is fg/bg
+- better use 4px
+
+header icon
+- fix the headingAnchors._addLinks() to exclude float panels and dialogs
+
+focus
+- focus on open
+- focus again on click panel header or body (user might have focus elsewhere)
+
+Mobile sheet inset is now 4px left/right (MOBILE_INSET) in _displayRect.
+headingAnchors._addLinks and _ensureHeadingIds skip .jp-float-panel and
+.jp-dialog. On open, and on pointerdown of header/body, focus moves to the
+drag handle; buttons, links, inputs, close, and resize handles keep their
+own focus. Tests: 62/62 floatPanel+headingAnchors, 67/67 widgets. Docs and
+changelog updated. Reload the demo to drop already-stamped 🔗 icons.
+
+
+============================================================
+2026-09-14 13:24
+
+panel focus
+- it's not good ux to show the whole header focused
+- if possible focus on panel without showning focus lines (focus on h3?)
+- if not possible it is better to revert (i.e. no keyboard nav on panel)
+
+other 2 items good
+
+Moved programmatic focus to the panel element (tabindex=-1) instead of the
+header. CSS clears .jp-float-panel:focus and :focus-visible so no ring.
+Arrow-key nudge listens on the panel only while it is the event target, so
+a focused close button is unchanged. Header no longer gets tabindex=0.
+27/27 floatPanel tests pass. Reload to see the header without a focus box.
+
+
+============================================================
+2026-09-14 13:36
+
+on release number 2.0.0
+- yes, big jump, intended for ai agent
+- I added this to teh release highlights notes : "This is a prerequisite for the upcoming AI agents feature."
+- or better to wait until the ai feature is ready?
+
+stuck?
+
+Recommended keeping the sentence now. It explains why a standalone widget is
+2.0.0. Waiting until AI ships buries the note under later highlights. Keep it
+one clause, not a teaser that makes 2.0.0 sound unfinished. No code change.
+
+
+============================================================
+2026-09-14 13:40
+
+release prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-220, v2.0.0, 2026-09-14
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+tt-git-diff.txt was not in the repo; reviewed against the W-220 files from this
+session. Updated W-220 features/deliverables only (4px mobile inset, silent
+panel focus, headingAnchors skip, inject exception, nearer-edge reclamp,
+queued open/close, demo hoist/reset, extra tests, v2.0.0 not v1.8.3). Status
+left IN_PROGRESS. README/docs README highlights already current. CHANGELOG
+file list and test counts corrected. Wrote commit-message.txt. Did not bump
+version, did not commit, did not run git. Do not stage W-222 design-doc files
+with this release.
+
+
+============================================================

@@ -3,13 +3,13 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         1.8.2
- * @release         2026-09-09
+ * @version         2.0.0
+ * @release         2026-09-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.17, Grok 4.6
+ * @genai           60%, Cursor 3.20, Grok 4.6
  */
 
 /* ========================================
@@ -4364,6 +4364,220 @@ body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {
         padding-left: 16px;
         padding-right: 16px;
     }
+}
+
+/* ========================================
+ * FLOATING PANEL (W-220)
+ * z-index band: panels 940-979, ghost 985
+ * (above sidebar 895-897 and jp-tabs 900-906;
+ *  below toasts 999, site header 1000, jpSelect 1200, dialogs 2000+)
+ * ======================================== */
+
+:root {
+    --jp-float-panel-anim-ms: 300ms;
+}
+
+.jp-float-panel {
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    min-width: 160px;
+    min-height: 120px;
+    background: var(--jp-theme-bg-primary);
+    color: var(--jp-theme-text-primary);
+    border: 1px solid var(--jp-theme-border-color);
+    border-radius: 8px;
+    box-shadow: var(--jp-theme-shadow-lg);
+    overflow: hidden;
+}
+
+.jp-float-panel:focus,
+.jp-float-panel:focus-visible {
+    outline: none;
+}
+
+.jp-float-panel--front {
+    box-shadow: var(--jp-theme-shadow-lg);
+}
+
+.jp-float-panel--dragging,
+.jp-float-panel--resizing {
+    opacity: 0.95;
+    user-select: none;
+}
+
+.jp-float-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--jp-theme-bg-secondary);
+    border-bottom: 1px solid var(--jp-theme-border-color);
+    cursor: move;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.jp-float-panel-title {
+    flex: 1;
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--jp-theme-text-primary);
+}
+
+.jp-float-panel-header-btn {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--jp-theme-text-secondary);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.jp-float-panel-header-btn:hover {
+    background: var(--jp-theme-bg-tertiary);
+    color: var(--jp-theme-text-primary);
+}
+
+.jp-float-panel-header-btn:focus {
+    outline: 2px solid var(--jp-theme-color-primary);
+    outline-offset: 2px;
+}
+
+.jp-float-panel-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 12px 14px;
+    background: var(--jp-theme-bg-primary);
+    color: var(--jp-theme-text-primary);
+}
+
+.jp-float-panel-resize {
+    position: absolute;
+    z-index: 1;
+    background: transparent;
+    touch-action: none;
+}
+
+.jp-float-panel-resize--n {
+    top: 0;
+    left: 8px;
+    right: 8px;
+    height: 6px;
+    cursor: ns-resize;
+}
+
+.jp-float-panel-resize--s {
+    bottom: 0;
+    left: 8px;
+    right: 8px;
+    height: 6px;
+    cursor: ns-resize;
+}
+
+.jp-float-panel-resize--e {
+    right: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 6px;
+    cursor: ew-resize;
+}
+
+.jp-float-panel-resize--w {
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 6px;
+    cursor: ew-resize;
+}
+
+.jp-float-panel-resize--ne {
+    top: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    cursor: nesw-resize;
+}
+
+.jp-float-panel-resize--nw {
+    top: 0;
+    left: 0;
+    width: 10px;
+    height: 10px;
+    cursor: nwse-resize;
+}
+
+.jp-float-panel-resize--se {
+    bottom: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    cursor: nwse-resize;
+}
+
+.jp-float-panel-resize--sw {
+    bottom: 0;
+    left: 0;
+    width: 10px;
+    height: 10px;
+    cursor: nesw-resize;
+}
+
+.jp-float-panel--mobile .jp-float-panel-resize {
+    display: none;
+}
+
+.jp-float-panel--mobile {
+    border-radius: 12px 12px 0 0;
+}
+
+.jp-float-panel-ghost {
+    position: fixed;
+    box-sizing: border-box;
+    pointer-events: none;
+    z-index: 985;
+    border: 2px solid var(--jp-theme-color-primary);
+    background: var(--jp-theme-color-primary);
+    opacity: 0.22;
+    border-radius: 8px;
+}
+
+.jp-float-panel-launcher {
+    position: relative;
+}
+
+.jp-float-panel-launcher-dot {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--jp-theme-color-danger);
+    pointer-events: none;
+}
+
+.jp-float-panel-launcher.jp-float-panel-launcher--unread::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--jp-theme-color-danger);
+    pointer-events: none;
 }
 
 /* ========================================

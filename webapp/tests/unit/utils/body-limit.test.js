@@ -3,8 +3,8 @@
  * @tagline         Unit tests for per-route body size limit helpers
  * @description     parseBodyLimit, mountRouteBodyLimitParsers, handleBodyParserError
  * @file            webapp/tests/unit/utils/body-limit.test.js
- * @version         1.8.2
- * @release         2026-09-09
+ * @version         2.0.0
+ * @release         2026-09-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

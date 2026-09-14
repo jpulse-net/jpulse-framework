@@ -4,8 +4,8 @@
  * @description     Exercises CommonUtils.sendStream over Express + supertest so Node
  *                  enforces Content-Length and suppresses a 304 body.
  * @file            webapp/tests/integration/send-stream.test.js
- * @version         1.8.2
- * @release         2026-09-09
+ * @version         2.0.0
+ * @release         2026-09-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

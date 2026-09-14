@@ -1,4 +1,4 @@
-# jPulse Framework / WebApp / Tests / Manual / Cluster Tests v1.8.2
+# jPulse Framework / WebApp / Tests / Manual / Cluster Tests v2.0.0
 
 ## Overview
 

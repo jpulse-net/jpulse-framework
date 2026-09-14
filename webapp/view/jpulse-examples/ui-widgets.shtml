@@ -4,13 +4,13 @@
  * @tagline         Interactive UI widget examples and demonstrations
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
- * @version         1.8.2
- * @release         2026-09-09
+ * @version         2.0.0
+ * @release         2026-09-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.2, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.20, Grok 4.6
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -766,6 +766,77 @@ jPulse.url.redirect('/dashboard', {
             </div>
         </div>
 
+        <!-- Floating Panel Widget -->
+        <h3 class="local-heading-3">2.4 Floating Panel Widget</h3>
+        <div class="jp-info-box">
+            <p><strong>What you learn:</strong> How to add a non-modal, draggable, resizable panel that remembers its position and open state across reloads, stacks with other panels by last-active time, and animates to and from a launcher button. Narrow the viewport to see the mobile bottom sheet.</p>
+            <p><strong>Behind the scenes:</strong> <code>jPulse.UI.floatPanel.create()</code> owns geometry, persistence, z-order, and the ghost animation. The markup is yours — the widget writes position styles onto the element you pass (MPA) and never injects content into the panel body.</p>
+        </div>
+        <div id="float-panel-demo-tabs" class="jp-tabs"></div>
+        <div id="float-panel-example-panel" class="jp-panel">
+            <p>Open both panels, drag the headers, click to raise, then reload — geometry and open state persist in <code>localStorage</code>. The second panel cascades off the first when both start at the default position.</p>
+
+            <div class="jp-btn-group jp-flex-wrap jp-gap-10 jp-mb-15">
+                <button type="button" id="floatPanelNotesLauncher" class="jp-btn jp-btn-primary jp-float-panel-launcher">
+                    Notes
+                </button>
+                <button type="button" id="floatPanelHelpLauncher" class="jp-btn jp-btn-secondary jp-float-panel-launcher">
+                    Help
+                    <span class="jp-float-panel-launcher-dot" aria-hidden="true"></span>
+                </button>
+                <button type="button" id="floatPanelResetBtn" class="jp-btn jp-btn-outline">Reset positions</button>
+            </div>
+
+            <aside id="floatPanelNotes" class="jp-float-panel" role="dialog" aria-labelledby="floatPanelNotesTitle" hidden>
+                <div class="jp-float-panel-header" data-jp-panel-drag>
+                    <h3 id="floatPanelNotesTitle" class="jp-float-panel-title">Notes</h3>
+                    <button type="button" class="jp-float-panel-header-btn" data-jp-panel-close aria-label="Close">&times;</button>
+                </div>
+                <div class="jp-float-panel-body">
+                    <p>A notes panel. Drag the header, resize from any edge or corner, and leave it open while you use the page underneath.</p>
+                    <p>Escape closes the front-most panel. An open modal dialog still wins Escape.</p>
+                </div>
+            </aside>
+
+            <aside id="floatPanelHelp" class="jp-float-panel" role="dialog" aria-labelledby="floatPanelHelpTitle" hidden>
+                <div class="jp-float-panel-header" data-jp-panel-drag>
+                    <h3 id="floatPanelHelpTitle" class="jp-float-panel-title">Help</h3>
+                    <button type="button" class="jp-float-panel-header-btn" data-jp-panel-close aria-label="Close">&times;</button>
+                </div>
+                <div class="jp-float-panel-body">
+                    <p>A second panel in the same stack. Click this header to raise it above Notes. Both share the default group, so on a narrow viewport <code>mobile.exclusive</code> keeps only one sheet open.</p>
+                </div>
+            </aside>
+        </div>
+        <div id="float-panel-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
+&lt;button type="button" id="notesLauncher" class="jp-btn jp-btn-primary jp-float-panel-launcher"&gt;
+    Notes
+&lt;/button&gt;
+
+&lt;aside id="notesPanel" class="jp-float-panel" role="dialog" aria-labelledby="notesTitle"&gt;
+    &lt;div class="jp-float-panel-header" data-jp-panel-drag&gt;
+        &lt;h3 id="notesTitle" class="jp-float-panel-title"&gt;Notes&lt;/h3&gt;
+        &lt;button type="button" class="jp-float-panel-header-btn" data-jp-panel-close&gt;&amp;times;&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;div class="jp-float-panel-body"&gt;...&lt;/div&gt;
+&lt;/aside&gt;
+
+&lt;script&gt;
+const notes = jPulse.UI.floatPanel.create({
+    id: 'notes',
+    el: '#notesPanel',
+    launcher: '#notesLauncher',
+    cascade: true,
+    defaults: { w: 360, h: 260, open: false }
+});
+document.getElementById('notesLauncher').addEventListener('click', () =&gt; {
+    notes.toggle();
+});
+&lt;/script&gt;
+            </div>
+        </div>
+
         <!-- ========================================= -->
         <!-- CONTENT WIDGETS                          -->
         <!-- ========================================= -->
@@ -1330,6 +1401,60 @@ jPulse.UI.sourceCode.initAll();
                 ],
                 slideAnimation: true
             }, 'notification-example-tab');
+
+            jPulse.UI.tabs.register('float-panel-demo-tabs', {
+                tabs: [
+                    { id: 'float-panel-example-tab', label: 'Example', panelId: 'float-panel-example-panel' },
+                    { id: 'float-panel-source-tab', label: 'Source Code', panelId: 'float-panel-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'float-panel-example-tab');
+
+            const floatPanelNotesEl = document.getElementById('floatPanelNotes');
+            const floatPanelHelpEl = document.getElementById('floatPanelHelp');
+            if (floatPanelNotesEl && floatPanelHelpEl && jPulse.UI.floatPanel) {
+                // Tab panels use transform, which would trap position:fixed — hoist to body.
+                document.body.appendChild(floatPanelNotesEl);
+                document.body.appendChild(floatPanelHelpEl);
+                floatPanelNotesEl.removeAttribute('hidden');
+                floatPanelHelpEl.removeAttribute('hidden');
+                const notesPanel = jPulse.UI.floatPanel.create({
+                    id: 'demo-notes',
+                    el: floatPanelNotesEl,
+                    launcher: '#floatPanelNotesLauncher',
+                    cascade: true,
+                    defaults: { w: 360, h: 260, open: false },
+                    mobile: { breakpoint: 768, heightRatio: 0.55, exclusive: true }
+                });
+                const helpPanel = jPulse.UI.floatPanel.create({
+                    id: 'demo-help',
+                    el: floatPanelHelpEl,
+                    launcher: '#floatPanelHelpLauncher',
+                    cascade: true,
+                    defaults: { w: 360, h: 260, open: false },
+                    mobile: { breakpoint: 768, heightRatio: 0.55, exclusive: true }
+                });
+                const notesLauncher = document.getElementById('floatPanelNotesLauncher');
+                const helpLauncher = document.getElementById('floatPanelHelpLauncher');
+                if (notesLauncher) {
+                    notesLauncher.addEventListener('click', () => { notesPanel.toggle(); });
+                }
+                if (helpLauncher) {
+                    helpLauncher.addEventListener('click', () => { helpPanel.toggle(); });
+                }
+                const resetBtn = document.getElementById('floatPanelResetBtn');
+                if (resetBtn) {
+                    resetBtn.addEventListener('click', () => {
+                        try {
+                            localStorage.removeItem('jp:floatPanel:demo-notes');
+                            localStorage.removeItem('jp:floatPanel:demo-help');
+                        } catch (err) { /* ignore */ }
+                        notesPanel.destroy();
+                        helpPanel.destroy();
+                        window.location.reload();
+                    });
+                }
+            }
 
             jPulse.UI.tabs.register('button-demo-tabs', {
                 tabs: [

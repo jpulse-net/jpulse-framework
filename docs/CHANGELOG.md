@@ -1,6 +1,45 @@
-# jPulse Docs / Version History v1.8.2
+# jPulse Docs / Version History v2.0.0
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.0, W-220, 2026-09-14
+
+**Commit:** `W-220, v2.0.0, 2026-09-14: jPulse.UI: new floatPanel widget`
+
+**FEATURE RELEASE**: The framework had no floating panel primitive — every widget was in-flow, modal, or transient. `jPulse.UI.floatPanel` is a non-modal, draggable, resizable panel that persists geometry and open state per browser, stacks with N other panels by last-active time, and animates to and from a consumer-rendered launcher. One `create()` call works unchanged in a jPulse MPA page (widget writes position styles onto a passed element) and in a Vue SPA component (omit `el`; the widget touches no component DOM and reports rects through `onChange`).
+
+**Objective**: Absorb the entire panel lifecycle — load, clamp, persist, raise, stack, animate, drag, resize, mobile sheet — so a site writes one `create()` instead of forking ~290 lines per panel.
+
+**Key features**:
+- Uncontrolled MPA vs controlled SPA: pass `el` or omit it; the widget never stashes state on the element and never injects body markup (resize handles are opt-in `inject` on `el` only)
+- N-panel z-order in the 940–979 band (ghost at 985), below toasts (999) and dialogs (2000+)
+- Ghost animation with double-`requestAnimationFrame`, `transitionend` plus timeout, and `prefers-reduced-motion` bypass
+- `cascade: true` offsets a panel that would open exactly on top of one already at the default position
+- Mobile bottom sheet with a 4px side inset; `mobile.exclusive` is group-scoped
+- Programmatic focus goes to the panel (no visible ring) on open and on a click of the header or body; arrow keys nudge while the panel is focused
+- Heading-anchor 🔗 icons are not added inside `.jp-float-panel` or `.jp-dialog`
+- Shared Escape listener yields to `.jp-dialog-show`; one shared `window` resize listener
+- Viewport resize preserves distance from the nearer edge, then clamps (does not walk toward the top-left)
+- `open()` / `close()` during an in-flight animation queue; last action wins
+
+**Files changed**:
+- `webapp/view/jpulse-common.js`: `jPulse.UI.floatPanel` (headless engine + `create()` / handle / module API); `headingAnchors` skips `.jp-float-panel` and `.jp-dialog`
+- `webapp/view/jpulse-common.css`: `.jp-float-panel*` and `--jp-float-panel-anim-ms`
+- `webapp/translations/en.conf`, `webapp/translations/de.conf`: `view.ui.floatPanel.*`
+- `webapp/view/jpulse-examples/ui-widgets.shtml`: section 2.4 demo
+- `docs/jpulse-ui-reference.md`: Floating Panel Widget
+- `webapp/tests/unit/utils/jpulse-ui-float-panel.test.js`: new unit tests
+- `webapp/tests/unit/utils/jpulse-ui-heading-anchors.test.js`: skip headings inside panels and dialogs
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.0 / W-220
+- `docs/CHANGELOG.md`: this section
+
+Verified via `npx jest webapp/tests/unit/utils/jpulse-ui-float-panel.test.js webapp/tests/unit/utils/jpulse-ui-heading-anchors.test.js webapp/tests/unit/utils/jpulse-ui-widgets.test.js --runInBand`: 27 + heading-anchor skip cases + 67 widgets passing.
+
+**Release**:
+- Work Item: W-220
+- Version: v2.0.0
+- Release Date: 2026-09-14
 
 ________________________________________________
 ## v1.8.2, W-219, 2026-09-09

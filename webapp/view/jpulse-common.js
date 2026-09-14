@@ -3,13 +3,13 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         1.8.2
- * @release         2026-09-09
+ * @version         2.0.0
+ * @release         2026-09-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.15, Grok 4.6
+ * @genai           60%, Cursor 3.20, Grok 4.6
  */
 
 window.jPulse = {
@@ -3705,6 +3705,1268 @@ window.jPulse = {
                 }));
             }
         },
+
+        /**
+         * Floating panel widget: non-modal, draggable, resizable, persisted.
+         * Two layers: a closure-scoped headless engine (load / save / clamp /
+         * cascade / drag / resize / ghost) and the create() / handle surface.
+         */
+        floatPanel: (() => {
+            const Z_PANEL_MIN = 940;
+            const Z_PANEL_MAX = 979;
+            const Z_GHOST = 985;
+            const MOBILE_INSET = 4;
+            const DEFAULT_CASCADE = { offsetX: -48, offsetY: -48 };
+            const ALL_DIRS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
+            const I18N_CLOSE = '{{i18n.view.ui.floatPanel.close}}';
+            const I18N_RESIZE = '{{i18n.view.ui.floatPanel.resizeHandle}}';
+            const I18N_DRAG = '{{i18n.view.ui.floatPanel.dragHint}}';
+
+            const registry = new Map();
+            let sharedResizeBound = false;
+            let sharedEscapeBound = false;
+
+            const defaultStorage = () => {
+                try {
+                    if (typeof window !== 'undefined' && window.localStorage) {
+                        return window.localStorage;
+                    }
+                } catch (err) {
+                    // private mode / blocked storage
+                }
+                const mem = {};
+                return {
+                    getItem: (key) => (Object.prototype.hasOwnProperty.call(mem, key) ? mem[key] : null),
+                    setItem: (key, value) => { mem[key] = String(value); }
+                };
+            };
+
+            const toFinite = (value, fallback) => {
+                const n = Number(value);
+                return Number.isFinite(n) ? n : fallback;
+            };
+
+            const viewportSize = () => ({
+                w: (typeof window !== 'undefined' && window.innerWidth) ? window.innerWidth : 1024,
+                h: (typeof window !== 'undefined' && window.innerHeight) ? window.innerHeight : 768
+            });
+
+            const resolveTopOffset = (topOffset) => {
+                if (typeof topOffset === 'number' && Number.isFinite(topOffset)) {
+                    return Math.max(0, topOffset);
+                }
+                const name = (typeof topOffset === 'string' && topOffset)
+                    ? topOffset
+                    : '--jp-header-height';
+                const varName = name.startsWith('--') ? name : `--${name}`;
+                try {
+                    const raw = window.getComputedStyle(document.documentElement).getPropertyValue(varName);
+                    const px = parseFloat(raw);
+                    if (Number.isFinite(px)) {
+                        return Math.max(0, px);
+                    }
+                } catch (err) {
+                    // JSDOM or detached document
+                }
+                return 50;
+            };
+
+            const resolveEl = (ref) => {
+                if (!ref) {
+                    return null;
+                }
+                if (typeof ref === 'string') {
+                    try {
+                        return document.querySelector(ref);
+                    } catch (err) {
+                        return null;
+                    }
+                }
+                if (typeof Node !== 'undefined' && ref instanceof Node) {
+                    return ref;
+                }
+                if (ref.nodeType === 1) {
+                    return ref;
+                }
+                return null;
+            };
+
+            const prefersReducedMotion = () => {
+                try {
+                    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+                } catch (err) {
+                    return false;
+                }
+            };
+
+            /**
+             * Load persisted panel geometry. Empty, malformed, or throwing storage
+             * yields defaults. Legacy `openedAt` is read as `lastActiveAt`.
+             */
+            const loadState = (storage, key, defaults = {}) => {
+                const fallback = {
+                    x: defaults.x === undefined ? null : defaults.x,
+                    y: defaults.y === undefined ? null : defaults.y,
+                    w: toFinite(defaults.w, 360),
+                    h: toFinite(defaults.h, 280),
+                    open: !!defaults.open,
+                    lastActiveAt: 0,
+                    fromStorage: false
+                };
+                if (!storage || typeof storage.getItem !== 'function') {
+                    return { ...fallback };
+                }
+                let raw;
+                try {
+                    raw = storage.getItem(key);
+                } catch (err) {
+                    return { ...fallback };
+                }
+                if (raw == null || raw === '') {
+                    return { ...fallback };
+                }
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (!parsed || typeof parsed !== 'object') {
+                        return { ...fallback };
+                    }
+                    const lastActiveAt = toFinite(
+                        parsed.lastActiveAt,
+                        toFinite(parsed.openedAt, 0)
+                    );
+                    return {
+                        x: parsed.x === undefined ? fallback.x : parsed.x,
+                        y: parsed.y === undefined ? fallback.y : parsed.y,
+                        w: parsed.w === undefined ? fallback.w : toFinite(parsed.w, fallback.w),
+                        h: parsed.h === undefined ? fallback.h : toFinite(parsed.h, fallback.h),
+                        open: parsed.open === undefined ? fallback.open : !!parsed.open,
+                        lastActiveAt,
+                        fromStorage: true
+                    };
+                } catch (err) {
+                    return { ...fallback };
+                }
+            };
+
+            /**
+             * Persist x / y / w / h / open / lastActiveAt. Returns false if storage throws.
+             */
+            const saveState = (storage, key, state) => {
+                if (!storage || typeof storage.setItem !== 'function') {
+                    return false;
+                }
+                try {
+                    storage.setItem(key, JSON.stringify({
+                        x: state.x,
+                        y: state.y,
+                        w: state.w,
+                        h: state.h,
+                        open: !!state.open,
+                        lastActiveAt: toFinite(state.lastActiveAt, 0)
+                    }));
+                    return true;
+                } catch (err) {
+                    return false;
+                }
+            };
+
+            /**
+             * Clamp a rect into the viewport. A null x / y places the panel
+             * bottom-right. A viewport smaller than the minimum still yields a
+             * usable (shrunk) rect.
+             */
+            const clamp = (rect, options = {}, viewport) => {
+                const vp = viewport || viewportSize();
+                const margin = toFinite(options.margin, 8);
+                const minWidth = toFinite(options.minWidth, 240);
+                const minHeight = toFinite(options.minHeight, 160);
+                const topOff = resolveTopOffset(options.topOffset);
+                const minX = margin;
+                const minY = topOff + margin;
+                const availW = Math.max(1, vp.w - margin - minX);
+                const availH = Math.max(1, vp.h - margin - minY);
+                let w = toFinite(rect && rect.w, minWidth);
+                let h = toFinite(rect && rect.h, minHeight);
+                w = Math.min(Math.max(w, minWidth), availW);
+                h = Math.min(Math.max(h, minHeight), availH);
+                if (availW < minWidth) {
+                    w = availW;
+                }
+                if (availH < minHeight) {
+                    h = availH;
+                }
+                w = Math.max(1, w);
+                h = Math.max(1, h);
+                let x = rect && rect.x;
+                let y = rect && rect.y;
+                if (x == null || !Number.isFinite(Number(x))) {
+                    x = vp.w - margin - w;
+                } else {
+                    x = Number(x);
+                }
+                if (y == null || !Number.isFinite(Number(y))) {
+                    y = vp.h - margin - h;
+                } else {
+                    y = Number(y);
+                }
+                const maxX = Math.max(minX, vp.w - margin - w);
+                const maxY = Math.max(minY, vp.h - margin - h);
+                x = Math.min(Math.max(x, minX), maxX);
+                y = Math.min(Math.max(y, minY), maxY);
+                return { x, y, w, h };
+            };
+
+            /**
+             * Offset a rect that sits exactly on an occupied default position.
+             * Repeats until free or eight steps. Default offset matches the
+             * historical BubbleMap pair (-48, -48).
+             */
+            const cascade = (rect, occupiedRects = [], offset = DEFAULT_CASCADE) => {
+                const ox = toFinite(offset && offset.offsetX, DEFAULT_CASCADE.offsetX);
+                const oy = toFinite(offset && offset.offsetY, DEFAULT_CASCADE.offsetY);
+                let next = { x: rect.x, y: rect.y, w: rect.w, h: rect.h };
+                const taken = (candidate) => occupiedRects.some((other) => (
+                    other && other.x === candidate.x && other.y === candidate.y
+                ));
+                for (let step = 0; step < 8; step++) {
+                    if (!taken(next)) {
+                        break;
+                    }
+                    next = { ...next, x: next.x + ox, y: next.y + oy };
+                }
+                return next;
+            };
+
+            /**
+             * Preserve distance from the nearer edge when the viewport resizes,
+             * then clamp. Avoids the absolute-clamp walk toward the top-left.
+             */
+            const reclampPreservingEdges = (rect, options, oldVp, newVp) => {
+                if (!oldVp || !newVp || (oldVp.w === newVp.w && oldVp.h === newVp.h)) {
+                    return clamp(rect, options, newVp || viewportSize());
+                }
+                const leftGap = rect.x;
+                const rightGap = oldVp.w - (rect.x + rect.w);
+                const topGap = rect.y;
+                const bottomGap = oldVp.h - (rect.y + rect.h);
+                let x = rect.x;
+                let y = rect.y;
+                if (rightGap < leftGap) {
+                    x = newVp.w - rightGap - rect.w;
+                }
+                if (bottomGap < topGap) {
+                    y = newVp.h - bottomGap - rect.h;
+                }
+                return clamp({ x, y, w: rect.w, h: rect.h }, options, newVp);
+            };
+
+            const dragMove = (startRect, startPtr, ptr, options, viewport) => {
+                const dx = (ptr.clientX || 0) - (startPtr.clientX || 0);
+                const dy = (ptr.clientY || 0) - (startPtr.clientY || 0);
+                return clamp({
+                    x: startRect.x + dx,
+                    y: startRect.y + dy,
+                    w: startRect.w,
+                    h: startRect.h
+                }, options, viewport);
+            };
+
+            const resizeMove = (startRect, startPtr, ptr, dir, options, viewport) => {
+                const dx = (ptr.clientX || 0) - (startPtr.clientX || 0);
+                const dy = (ptr.clientY || 0) - (startPtr.clientY || 0);
+                const minW = toFinite(options.minWidth, 240);
+                const minH = toFinite(options.minHeight, 160);
+                let w = startRect.w;
+                let h = startRect.h;
+                if (dir.indexOf('e') !== -1) {
+                    w = startRect.w + dx;
+                }
+                if (dir.indexOf('w') !== -1) {
+                    w = startRect.w - dx;
+                }
+                if (dir.indexOf('s') !== -1) {
+                    h = startRect.h + dy;
+                }
+                if (dir.indexOf('n') !== -1) {
+                    h = startRect.h - dy;
+                }
+                w = Math.max(minW, w);
+                h = Math.max(minH, h);
+                let x = startRect.x;
+                let y = startRect.y;
+                if (dir.indexOf('w') !== -1) {
+                    x = startRect.x + startRect.w - w;
+                }
+                if (dir.indexOf('n') !== -1) {
+                    y = startRect.y + startRect.h - h;
+                }
+                return clamp({ x, y, w, h }, options, viewport);
+            };
+
+            const readElemRect = (el) => {
+                if (!el || typeof el.getBoundingClientRect !== 'function') {
+                    return null;
+                }
+                const r = el.getBoundingClientRect();
+                if (!r.width && !r.height) {
+                    return null;
+                }
+                return { x: r.left, y: r.top, w: r.width, h: r.height };
+            };
+
+            const applyRectStyles = (el, rect, zIndex) => {
+                if (!el || !el.style) {
+                    return;
+                }
+                el.style.position = 'fixed';
+                el.style.left = `${rect.x}px`;
+                el.style.top = `${rect.y}px`;
+                el.style.width = `${rect.w}px`;
+                el.style.height = `${rect.h}px`;
+                if (zIndex != null) {
+                    el.style.zIndex = String(zIndex);
+                }
+            };
+
+            const shouldIgnoreDrag = (target, ignore) => {
+                if (!target || !ignore) {
+                    return false;
+                }
+                if (typeof ignore === 'string') {
+                    return !!(target.closest && target.closest(ignore));
+                }
+                if (ignore.nodeType && ignore.contains) {
+                    return ignore.contains(target);
+                }
+                return false;
+            };
+
+            const isMobileViewport = (mobile) => {
+                if (!mobile || !mobile.breakpoint) {
+                    return false;
+                }
+                return viewportSize().w < toFinite(mobile.breakpoint, 768);
+            };
+
+            const centerScaleRect = () => {
+                const vp = viewportSize();
+                return {
+                    x: Math.max(0, Math.round(vp.w / 2) - 20),
+                    y: Math.max(0, Math.round(vp.h / 2) - 20),
+                    w: 40,
+                    h: 40
+                };
+            };
+
+            const assignZOrder = () => {
+                const open = [];
+                registry.forEach((inst) => {
+                    if (inst.state.open) {
+                        open.push(inst);
+                    }
+                });
+                open.sort((a, b) => a.state.lastActiveAt - b.state.lastActiveAt);
+                open.forEach((inst, index) => {
+                    inst.state.zIndex = Math.min(Z_PANEL_MAX, Z_PANEL_MIN + index);
+                    inst._applyDom();
+                });
+            };
+
+            const openInstsFrontFirst = () => {
+                const open = [];
+                registry.forEach((inst) => {
+                    if (inst.state.open) {
+                        open.push(inst);
+                    }
+                });
+                open.sort((a, b) => b.state.lastActiveAt - a.state.lastActiveAt);
+                return open;
+            };
+
+            const onSharedResize = () => {
+                registry.forEach((inst) => {
+                    if (inst.opts.autoResize === false) {
+                        return;
+                    }
+                    inst.reclamp({ fromViewport: true });
+                });
+            };
+
+            const onSharedEscape = (e) => {
+                if (!e || e.key !== 'Escape') {
+                    return;
+                }
+                if (document.querySelector('.jp-dialog-show')) {
+                    return;
+                }
+                const frontInst = openInstsFrontFirst()[0];
+                if (!frontInst) {
+                    return;
+                }
+                if (e.preventDefault) {
+                    e.preventDefault();
+                }
+                frontInst.handle.close();
+            };
+
+            const ensureSharedListeners = () => {
+                if (typeof window === 'undefined') {
+                    return;
+                }
+                if (!sharedResizeBound) {
+                    window.addEventListener('resize', onSharedResize);
+                    sharedResizeBound = true;
+                }
+                if (!sharedEscapeBound && typeof document !== 'undefined') {
+                    document.addEventListener('keydown', onSharedEscape);
+                    sharedEscapeBound = true;
+                }
+            };
+
+            const releaseSharedListeners = () => {
+                if (registry.size > 0) {
+                    return;
+                }
+                if (sharedResizeBound) {
+                    window.removeEventListener('resize', onSharedResize);
+                    sharedResizeBound = false;
+                }
+                if (sharedEscapeBound) {
+                    document.removeEventListener('keydown', onSharedEscape);
+                    sharedEscapeBound = false;
+                }
+            };
+
+            const normalizeResizeHandles = (value) => {
+                if (value === false) {
+                    return { mode: 'manual', dirs: [] };
+                }
+                const src = (value && typeof value === 'object') ? value : {};
+                return {
+                    mode: src.mode === 'manual' ? 'manual' : 'inject',
+                    dirs: Array.isArray(src.dirs) ? src.dirs.slice() : ALL_DIRS.slice()
+                };
+            };
+
+            const cascadeOffsetOf = (cascadeOpt) => {
+                if (cascadeOpt === true) {
+                    return DEFAULT_CASCADE;
+                }
+                if (cascadeOpt && typeof cascadeOpt === 'object') {
+                    return {
+                        offsetX: toFinite(cascadeOpt.offsetX, DEFAULT_CASCADE.offsetX),
+                        offsetY: toFinite(cascadeOpt.offsetY, DEFAULT_CASCADE.offsetY)
+                    };
+                }
+                return null;
+            };
+
+            const playGhost = (inst, direction, token) => {
+                const durationMs = toFinite(inst.opts.animate.durationMs, 300);
+                if (prefersReducedMotion() || durationMs <= 0) {
+                    return Promise.resolve();
+                }
+                const run = async () => {
+                    if (typeof inst.opts.nextTick === 'function') {
+                        try {
+                            await inst.opts.nextTick();
+                        } catch (err) {
+                            // consumer nextTick failed; continue with current DOM
+                        }
+                    }
+                    const panelRect = inst._displayRect();
+                    const launcherEl = resolveEl(inst.opts.launcher);
+                    const launchRect = readElemRect(launcherEl);
+                    const fallback = centerScaleRect();
+                    const from = direction === 'open' ? (launchRect || fallback) : panelRect;
+                    const to = direction === 'open' ? panelRect : (launchRect || fallback);
+                    const ghost = document.createElement('div');
+                    ghost.className = 'jp-float-panel-ghost';
+                    ghost.setAttribute('aria-hidden', 'true');
+                    applyRectStyles(ghost, from, Z_GHOST);
+                    ghost.style.transition = [
+                        `left ${durationMs}ms ease`,
+                        `top ${durationMs}ms ease`,
+                        `width ${durationMs}ms ease`,
+                        `height ${durationMs}ms ease`
+                    ].join(', ');
+                    document.body.appendChild(ghost);
+                    inst._ghost = ghost;
+                    await new Promise((resolve) => {
+                        let done = false;
+                        const finish = () => {
+                            if (done) {
+                                return;
+                            }
+                            done = true;
+                            clearTimeout(safety);
+                            ghost.removeEventListener('transitionend', onEnd);
+                            if (ghost.parentNode) {
+                                ghost.parentNode.removeChild(ghost);
+                            }
+                            if (inst._ghost === ghost) {
+                                inst._ghost = null;
+                            }
+                            resolve();
+                        };
+                        const onEnd = (evt) => {
+                            if (!evt || evt.target === ghost) {
+                                finish();
+                            }
+                        };
+                        ghost.addEventListener('transitionend', onEnd);
+                        const safety = setTimeout(finish, durationMs + 80);
+                        const commit = () => {
+                            if (token !== inst._animToken) {
+                                finish();
+                                return;
+                            }
+                            applyRectStyles(ghost, to, Z_GHOST);
+                        };
+                        if (typeof requestAnimationFrame === 'function') {
+                            requestAnimationFrame(() => {
+                                requestAnimationFrame(commit);
+                            });
+                        } else {
+                            setTimeout(commit, 16);
+                        }
+                    });
+                };
+                return run();
+            };
+
+            /**
+             * Create a floating panel handle.
+             * @param {Object} options - See docs/jpulse-ui-reference.md
+             * @returns {Object|null} Handle, or null when `id` is missing
+             */
+            const create = (options = {}) => {
+                const id = options.id;
+                if (!id) {
+                    console.warn('- jPulse.UI.floatPanel: id is required');
+                    return null;
+                }
+                const existing = registry.get(id);
+                if (existing) {
+                    console.warn(`- jPulse.UI.floatPanel: panel '${id}' already exists`);
+                    return existing.handle;
+                }
+
+                const defaults = {
+                    x: null,
+                    y: null,
+                    w: 360,
+                    h: 280,
+                    open: false,
+                    ...(options.defaults || {})
+                };
+                const mobile = options.mobile === false
+                    ? { breakpoint: 0, mode: 'sheet', heightRatio: 0.55, exclusive: false }
+                    : {
+                        breakpoint: 768,
+                        mode: 'sheet',
+                        heightRatio: 0.55,
+                        exclusive: false,
+                        ...(options.mobile || {})
+                    };
+                const opts = {
+                    id,
+                    storageKey: options.storageKey || `jp:floatPanel:${id}`,
+                    group: options.group || 'default',
+                    minWidth: toFinite(options.minWidth, 240),
+                    minHeight: toFinite(options.minHeight, 160),
+                    margin: toFinite(options.margin, 8),
+                    topOffset: options.topOffset === undefined ? '--jp-header-height' : options.topOffset,
+                    cascade: options.cascade,
+                    dragHandle: options.dragHandle || '[data-jp-panel-drag]',
+                    dragIgnore: options.dragIgnore || 'button, a, input, select, textarea, [data-jp-panel-close]',
+                    resizeHandles: normalizeResizeHandles(options.resizeHandles),
+                    mobile,
+                    animate: { durationMs: 300, ...(options.animate || {}) },
+                    persistDebounceMs: options.persistDebounceMs === undefined ? 300 : toFinite(options.persistDebounceMs, 300),
+                    autoResize: options.autoResize !== false,
+                    launcher: options.launcher,
+                    nextTick: options.nextTick,
+                    onChange: options.onChange,
+                    onOpen: options.onOpen,
+                    onClose: options.onClose,
+                    onRaise: options.onRaise
+                };
+                const clampOpts = {
+                    minWidth: opts.minWidth,
+                    minHeight: opts.minHeight,
+                    margin: opts.margin,
+                    topOffset: opts.topOffset
+                };
+                const storage = options.storage || defaultStorage();
+                const loaded = loadState(storage, opts.storageKey, defaults);
+                const vp0 = viewportSize();
+                let desktop = clamp({
+                    x: loaded.x,
+                    y: loaded.y,
+                    w: loaded.w,
+                    h: loaded.h
+                }, clampOpts, vp0);
+                const offset = cascadeOffsetOf(opts.cascade);
+                if (offset && !loaded.fromStorage) {
+                    const occupied = [];
+                    registry.forEach((other) => {
+                        occupied.push({ x: other.state.x, y: other.state.y });
+                    });
+                    desktop = clamp(cascade(desktop, occupied, offset), clampOpts, vp0);
+                }
+
+                const inst = {
+                    id,
+                    opts,
+                    storage,
+                    el: resolveEl(options.el),
+                    state: {
+                        x: desktop.x,
+                        y: desktop.y,
+                        w: desktop.w,
+                        h: desktop.h,
+                        open: !!loaded.open,
+                        lastActiveAt: toFinite(loaded.lastActiveAt, 0),
+                        zIndex: Z_PANEL_MIN,
+                        mobile: isMobileViewport(mobile),
+                        dragging: false,
+                        resizing: false
+                    },
+                    _prevVp: vp0,
+                    _surfaceVisible: !!loaded.open,
+                    _destroyed: false,
+                    _animToken: 0,
+                    _queue: null,
+                    _running: null,
+                    _ghost: null,
+                    _persistTimer: null,
+                    _dragSession: null,
+                    _injected: [],
+                    _closeBtns: [],
+                    _dragEl: null
+                };
+
+                inst._displayRect = () => {
+                    if (!inst.state.mobile) {
+                        return {
+                            x: inst.state.x,
+                            y: inst.state.y,
+                            w: inst.state.w,
+                            h: inst.state.h,
+                            zIndex: inst.state.zIndex
+                        };
+                    }
+                    const vp = viewportSize();
+                    const ratio = toFinite(inst.opts.mobile.heightRatio, 0.55);
+                    const h = Math.max(1, Math.round(vp.h * ratio));
+                    const inset = MOBILE_INSET;
+                    return {
+                        x: inset,
+                        y: Math.max(0, vp.h - h),
+                        w: Math.max(1, vp.w - inset * 2),
+                        h,
+                        zIndex: inst.state.zIndex
+                    };
+                };
+
+                inst._applyDom = () => {
+                    const el = inst.el;
+                    if (!el || !el.style) {
+                        return;
+                    }
+                    const rect = inst._displayRect();
+                    applyRectStyles(el, rect, inst.state.zIndex);
+                    el.style.display = (inst.state.open && inst._surfaceVisible) ? 'flex' : 'none';
+                    el.classList.add('jp-float-panel');
+                    el.classList.toggle('jp-float-panel--mobile', !!inst.state.mobile);
+                    el.classList.toggle('jp-float-panel--dragging', !!inst.state.dragging);
+                    el.classList.toggle('jp-float-panel--resizing', !!inst.state.resizing);
+                    el.classList.toggle('jp-float-panel--front', !!(inst.state.open && inst.handle && inst.handle.isFront()));
+                };
+
+                inst._emit = (reason) => {
+                    inst._applyDom();
+                    if (typeof inst.opts.onChange === 'function') {
+                        inst.opts.onChange(inst._displayRect(), {
+                            open: inst.state.open,
+                            front: !!(inst.handle && inst.handle.isFront()),
+                            mobile: inst.state.mobile,
+                            dragging: inst.state.dragging,
+                            resizing: inst.state.resizing,
+                            reason: reason || 'update'
+                        });
+                    }
+                };
+
+                inst._persist = (immediate) => {
+                    const write = () => {
+                        inst._persistTimer = null;
+                        saveState(inst.storage, inst.opts.storageKey, inst.state);
+                    };
+                    if (inst._persistTimer) {
+                        clearTimeout(inst._persistTimer);
+                        inst._persistTimer = null;
+                    }
+                    if (immediate || !inst.opts.persistDebounceMs) {
+                        write();
+                        return;
+                    }
+                    inst._persistTimer = setTimeout(write, inst.opts.persistDebounceMs);
+                };
+
+                inst._teardownGhost = () => {
+                    inst._animToken += 1;
+                    if (inst._ghost && inst._ghost.parentNode) {
+                        inst._ghost.parentNode.removeChild(inst._ghost);
+                    }
+                    inst._ghost = null;
+                };
+
+                inst._endPointerSession = () => {
+                    if (!inst._dragSession) {
+                        return;
+                    }
+                    const sess = inst._dragSession;
+                    inst._dragSession = null;
+                    document.removeEventListener('pointermove', sess.onMove);
+                    document.removeEventListener('pointerup', sess.onUp);
+                    document.removeEventListener('pointercancel', sess.onUp);
+                    document.removeEventListener('mousemove', sess.onMove);
+                    document.removeEventListener('mouseup', sess.onUp);
+                    inst.state.dragging = false;
+                    inst.state.resizing = false;
+                    inst._persist();
+                    inst._emit(sess.kind === 'resize' ? 'resize' : 'drag');
+                };
+
+                inst._setDesktop = (rect, reason) => {
+                    inst.state.x = rect.x;
+                    inst.state.y = rect.y;
+                    inst.state.w = rect.w;
+                    inst.state.h = rect.h;
+                    inst._emit(reason);
+                };
+
+                inst.reclamp = (flags = {}) => {
+                    if (inst._destroyed) {
+                        return inst._displayRect();
+                    }
+                    const vp = viewportSize();
+                    inst.state.mobile = isMobileViewport(inst.opts.mobile);
+                    const desktop = { x: inst.state.x, y: inst.state.y, w: inst.state.w, h: inst.state.h };
+                    const next = (flags.fromViewport && inst._prevVp)
+                        ? reclampPreservingEdges(desktop, clampOpts, inst._prevVp, vp)
+                        : clamp(desktop, clampOpts, vp);
+                    inst._prevVp = vp;
+                    inst.state.x = next.x;
+                    inst.state.y = next.y;
+                    inst.state.w = next.w;
+                    inst.state.h = next.h;
+                    inst._persist();
+                    inst._emit('reclamp');
+                    return inst._displayRect();
+                };
+
+                const closeOthersExclusive = () => {
+                    if (!inst.state.mobile || !inst.opts.mobile.exclusive) {
+                        return;
+                    }
+                    registry.forEach((other) => {
+                        if (other === inst) {
+                            return;
+                        }
+                        if (other.opts.group !== inst.opts.group) {
+                            return;
+                        }
+                        if (other.state.open) {
+                            other.handle.hardClose();
+                        }
+                    });
+                };
+
+                const doOpen = async () => {
+                    if (inst._destroyed) {
+                        return;
+                    }
+                    if (inst.state.open && inst._surfaceVisible) {
+                        inst.handle.raise();
+                        focusPanel();
+                        return;
+                    }
+                    const token = inst._animToken + 1;
+                    inst._animToken = token;
+                    inst.state.lastActiveAt = Date.now();
+                    inst.state.open = true;
+                    inst._surfaceVisible = false;
+                    inst.state.mobile = isMobileViewport(inst.opts.mobile);
+                    assignZOrder();
+                    closeOthersExclusive();
+                    inst._persist();
+                    inst._emit('open-start');
+                    await playGhost(inst, 'open', token);
+                    if (inst._destroyed || token !== inst._animToken) {
+                        return;
+                    }
+                    inst._surfaceVisible = true;
+                    inst._emit('open');
+                    focusPanel();
+                    if (typeof inst.opts.onOpen === 'function') {
+                        inst.opts.onOpen(inst.handle);
+                    }
+                };
+
+                const focusPanel = () => {
+                    const el = inst.el;
+                    if (!el || typeof el.focus !== 'function') {
+                        return;
+                    }
+                    if (!el.hasAttribute('tabindex')) {
+                        el.setAttribute('tabindex', '-1');
+                    }
+                    try {
+                        el.focus({ preventScroll: true });
+                    } catch (err) {
+                        try {
+                            el.focus();
+                        } catch (err2) {
+                            // not focusable
+                        }
+                    }
+                };
+
+                const focusLauncher = () => {
+                    const launcherEl = resolveEl(inst.opts.launcher);
+                    if (launcherEl && typeof launcherEl.focus === 'function') {
+                        try {
+                            launcherEl.focus();
+                        } catch (err) {
+                            // not focusable
+                        }
+                    }
+                };
+
+                const doClose = async () => {
+                    if (inst._destroyed || !inst.state.open) {
+                        return;
+                    }
+                    const token = inst._animToken + 1;
+                    inst._animToken = token;
+                    inst._surfaceVisible = false;
+                    inst._applyDom();
+                    await playGhost(inst, 'close', token);
+                    if (inst._destroyed || token !== inst._animToken) {
+                        return;
+                    }
+                    inst.state.open = false;
+                    assignZOrder();
+                    inst._persist(true);
+                    inst._emit('close');
+                    if (typeof inst.opts.onClose === 'function') {
+                        inst.opts.onClose(inst.handle);
+                    }
+                    focusLauncher();
+                };
+
+                const pump = async () => {
+                    if (inst._running) {
+                        return inst._running;
+                    }
+                    inst._running = (async () => {
+                        while (inst._queue && !inst._destroyed) {
+                            const action = inst._queue;
+                            inst._queue = null;
+                            if (action === 'open') {
+                                await doOpen();
+                            } else if (action === 'close') {
+                                await doClose();
+                            }
+                        }
+                    })();
+                    try {
+                        await inst._running;
+                    } finally {
+                        inst._running = null;
+                    }
+                };
+
+                const enqueue = (action) => {
+                    inst._queue = action;
+                    return pump();
+                };
+
+                const startPointer = (evt, kind, dir) => {
+                    if (inst._destroyed || inst.state.mobile || !inst.state.open) {
+                        return;
+                    }
+                    if (evt && evt.button != null && evt.button !== 0) {
+                        return;
+                    }
+                    if (kind === 'drag' && shouldIgnoreDrag(evt && evt.target, inst.opts.dragIgnore)) {
+                        return;
+                    }
+                    if (evt && evt.preventDefault) {
+                        evt.preventDefault();
+                    }
+                    inst.handle.raise();
+                    const startRect = {
+                        x: inst.state.x,
+                        y: inst.state.y,
+                        w: inst.state.w,
+                        h: inst.state.h
+                    };
+                    const startPtr = {
+                        clientX: evt && evt.clientX != null ? evt.clientX : 0,
+                        clientY: evt && evt.clientY != null ? evt.clientY : 0
+                    };
+                    inst._endPointerSession();
+                    inst.state.dragging = kind === 'drag';
+                    inst.state.resizing = kind === 'resize';
+                    inst._emit(kind === 'resize' ? 'resize-start' : 'drag-start');
+                    const onMove = (moveEvt) => {
+                        if (!inst._dragSession) {
+                            return;
+                        }
+                        const ptr = {
+                            clientX: moveEvt.clientX,
+                            clientY: moveEvt.clientY
+                        };
+                        const next = kind === 'resize'
+                            ? resizeMove(startRect, startPtr, ptr, dir, clampOpts, viewportSize())
+                            : dragMove(startRect, startPtr, ptr, clampOpts, viewportSize());
+                        inst._setDesktop(next, kind);
+                    };
+                    const onUp = () => {
+                        inst._endPointerSession();
+                    };
+                    inst._dragSession = { kind, onMove, onUp };
+                    document.addEventListener('pointermove', onMove);
+                    document.addEventListener('pointerup', onUp);
+                    document.addEventListener('pointercancel', onUp);
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                };
+
+                const bindDom = () => {
+                    const el = inst.el;
+                    if (!el) {
+                        return;
+                    }
+                    inst._onPanelDown = (e) => {
+                        if (!inst.state.open) {
+                            return;
+                        }
+                        inst.handle.raise();
+                        const target = e && e.target;
+                        if (target && target.closest && target.closest(
+                            'button, a, input, select, textarea, [data-jp-panel-close], [data-jp-panel-resize], [contenteditable="true"]'
+                        )) {
+                            return;
+                        }
+                        focusPanel();
+                    };
+                    if (!el.hasAttribute('tabindex')) {
+                        el.setAttribute('tabindex', '-1');
+                    }
+                    el.addEventListener('pointerdown', inst._onPanelDown);
+                    inst._onDragKey = (e) => {
+                        if (!e || !inst.state.open || inst.state.mobile) {
+                            return;
+                        }
+                        if (e.target !== el) {
+                            return;
+                        }
+                        const keys = {
+                            ArrowLeft: [-1, 0],
+                            ArrowRight: [1, 0],
+                            ArrowUp: [0, -1],
+                            ArrowDown: [0, 1]
+                        };
+                        const delta = keys[e.key];
+                        if (!delta) {
+                            return;
+                        }
+                        if (e.preventDefault) {
+                            e.preventDefault();
+                        }
+                        const step = e.shiftKey ? 32 : 8;
+                        const next = clamp({
+                            x: inst.state.x + delta[0] * step,
+                            y: inst.state.y + delta[1] * step,
+                            w: inst.state.w,
+                            h: inst.state.h
+                        }, clampOpts, viewportSize());
+                        inst.handle.raise();
+                        inst._setDesktop(next, 'nudge');
+                        inst._persist();
+                    };
+                    el.addEventListener('keydown', inst._onDragKey);
+
+                    const dragEl = (typeof inst.opts.dragHandle === 'string')
+                        ? el.querySelector(inst.opts.dragHandle)
+                        : resolveEl(inst.opts.dragHandle);
+                    if (dragEl) {
+                        if (!dragEl.getAttribute('aria-label')) {
+                            dragEl.setAttribute('aria-label', I18N_DRAG);
+                        }
+                        inst._onDragDown = (e) => {
+                            inst.handle.startDrag(e);
+                        };
+                        dragEl.addEventListener('pointerdown', inst._onDragDown);
+                        inst._dragEl = dragEl;
+                    }
+
+                    inst._onCloseClick = (e) => {
+                        if (e && e.preventDefault) {
+                            e.preventDefault();
+                        }
+                        if (e && e.stopPropagation) {
+                            e.stopPropagation();
+                        }
+                        inst.handle.close();
+                    };
+                    inst._closeBtns = Array.prototype.slice.call(
+                        el.querySelectorAll('[data-jp-panel-close]')
+                    );
+                    inst._closeBtns.forEach((btn) => {
+                        if (!btn.getAttribute('aria-label')) {
+                            btn.setAttribute('aria-label', I18N_CLOSE);
+                        }
+                        btn.addEventListener('click', inst._onCloseClick);
+                    });
+
+                    const dirs = opts.resizeHandles.dirs;
+                    if (opts.resizeHandles.mode === 'inject' && dirs.length) {
+                        dirs.forEach((dir) => {
+                            const handleEl = document.createElement('div');
+                            handleEl.className = `jp-float-panel-resize jp-float-panel-resize--${dir}`;
+                            handleEl.setAttribute('data-jp-panel-resize', dir);
+                            handleEl.setAttribute('data-jp-panel-resize-injected', '1');
+                            handleEl.setAttribute('role', 'separator');
+                            handleEl.setAttribute('aria-label', I18N_RESIZE.replace('%DIR%', dir));
+                            handleEl.addEventListener('pointerdown', (e) => {
+                                if (e.stopPropagation) {
+                                    e.stopPropagation();
+                                }
+                                inst.handle.startResize(e, dir);
+                            });
+                            el.appendChild(handleEl);
+                            inst._injected.push(handleEl);
+                        });
+                    } else {
+                        dirs.forEach((dir) => {
+                            const handleEl = el.querySelector(`[data-jp-panel-resize="${dir}"]`);
+                            if (!handleEl) {
+                                return;
+                            }
+                            const onDown = (e) => {
+                                if (e.stopPropagation) {
+                                    e.stopPropagation();
+                                }
+                                inst.handle.startResize(e, dir);
+                            };
+                            handleEl.addEventListener('pointerdown', onDown);
+                            inst._injected.push({ el: handleEl, onDown, manual: true });
+                        });
+                    }
+                };
+
+                const unbindDom = () => {
+                    const el = inst.el;
+                    if (el && inst._onPanelDown) {
+                        el.removeEventListener('pointerdown', inst._onPanelDown);
+                    }
+                    if (el && inst._onDragKey) {
+                        el.removeEventListener('keydown', inst._onDragKey);
+                    }
+                    if (inst._dragEl && inst._onDragDown) {
+                        inst._dragEl.removeEventListener('pointerdown', inst._onDragDown);
+                    }
+                    inst._closeBtns.forEach((btn) => {
+                        btn.removeEventListener('click', inst._onCloseClick);
+                    });
+                    inst._injected.forEach((item) => {
+                        if (item && item.manual) {
+                            item.el.removeEventListener('pointerdown', item.onDown);
+                            return;
+                        }
+                        if (item && item.parentNode) {
+                            item.parentNode.removeChild(item);
+                        }
+                    });
+                    inst._injected = [];
+                    inst._closeBtns = [];
+                    inst._dragEl = null;
+                };
+
+                const handle = {
+                    get state() {
+                        return inst.state;
+                    },
+                    open: () => {
+                        if (inst._destroyed) {
+                            return Promise.resolve();
+                        }
+                        if (inst.state.open && inst._surfaceVisible && !inst._running) {
+                            handle.raise();
+                            focusPanel();
+                            return Promise.resolve();
+                        }
+                        return enqueue('open');
+                    },
+                    close: () => {
+                        if (inst._destroyed || (!inst.state.open && !inst._running)) {
+                            return Promise.resolve();
+                        }
+                        return enqueue('close');
+                    },
+                    toggle: () => (inst.state.open ? handle.close() : handle.open()),
+                    raise: () => {
+                        if (inst._destroyed || !inst.state.open) {
+                            return;
+                        }
+                        inst.state.lastActiveAt = Date.now();
+                        assignZOrder();
+                        inst._persist();
+                        inst._emit('raise');
+                        if (typeof inst.opts.onRaise === 'function') {
+                            inst.opts.onRaise(handle);
+                        }
+                    },
+                    hardClose: () => {
+                        if (inst._destroyed) {
+                            return;
+                        }
+                        inst._queue = null;
+                        inst._teardownGhost();
+                        inst._endPointerSession();
+                        const wasOpen = inst.state.open;
+                        inst.state.open = false;
+                        inst._surfaceVisible = false;
+                        assignZOrder();
+                        inst._persist(true);
+                        inst._emit('hardClose');
+                        if (wasOpen && typeof inst.opts.onClose === 'function') {
+                            inst.opts.onClose(handle);
+                        }
+                        focusLauncher();
+                    },
+                    isOpen: () => !!inst.state.open,
+                    isFront: () => {
+                        if (!inst.state.open) {
+                            return false;
+                        }
+                        const frontInst = openInstsFrontFirst()[0];
+                        return !!(frontInst && frontInst.id === inst.id);
+                    },
+                    getRect: () => inst._displayRect(),
+                    setRect: (rect = {}) => {
+                        if (inst._destroyed) {
+                            return inst._displayRect();
+                        }
+                        const next = clamp({
+                            x: rect.x === undefined ? inst.state.x : rect.x,
+                            y: rect.y === undefined ? inst.state.y : rect.y,
+                            w: rect.w === undefined ? inst.state.w : rect.w,
+                            h: rect.h === undefined ? inst.state.h : rect.h
+                        }, clampOpts, viewportSize());
+                        inst._setDesktop(next, 'setRect');
+                        inst._persist();
+                        return inst._displayRect();
+                    },
+                    reclamp: (flags) => inst.reclamp(flags),
+                    startDrag: (evt) => {
+                        startPointer(evt, 'drag');
+                    },
+                    startResize: (evt, dir) => {
+                        startPointer(evt, 'resize', dir || 'se');
+                    },
+                    style: () => {
+                        const rect = inst._displayRect();
+                        return {
+                            position: 'fixed',
+                            left: `${rect.x}px`,
+                            top: `${rect.y}px`,
+                            width: `${rect.w}px`,
+                            height: `${rect.h}px`,
+                            zIndex: String(rect.zIndex),
+                            display: (inst.state.open && inst._surfaceVisible) ? 'flex' : 'none'
+                        };
+                    },
+                    destroy: () => {
+                        if (inst._destroyed) {
+                            return;
+                        }
+                        inst._queue = null;
+                        inst._teardownGhost();
+                        inst._endPointerSession();
+                        if (inst._persistTimer) {
+                            clearTimeout(inst._persistTimer);
+                            inst._persistTimer = null;
+                        }
+                        unbindDom();
+                        inst._destroyed = true;
+                        registry.delete(id);
+                        releaseSharedListeners();
+                    }
+                };
+
+                inst.handle = handle;
+                registry.set(id, inst);
+                ensureSharedListeners();
+                bindDom();
+                assignZOrder();
+                inst._applyDom();
+                if (inst.state.open) {
+                    inst._surfaceVisible = true;
+                    inst._applyDom();
+                    inst._emit('init');
+                    if (typeof inst.opts.onOpen === 'function') {
+                        inst.opts.onOpen(handle);
+                    }
+                } else {
+                    inst._emit('init');
+                }
+                return handle;
+            };
+
+            return {
+                create,
+                get: (id) => {
+                    const inst = registry.get(id);
+                    return inst ? inst.handle : null;
+                },
+                list: () => openInstsFrontFirst().map((inst) => inst.handle),
+                front: () => {
+                    const inst = openInstsFrontFirst()[0];
+                    return inst ? inst.handle : null;
+                },
+                closeFront: () => {
+                    const inst = openInstsFrontFirst()[0];
+                    if (!inst) {
+                        return Promise.resolve();
+                    }
+                    return inst.handle.close();
+                },
+                reclampAll: () => {
+                    registry.forEach((inst) => {
+                        inst.reclamp({ fromViewport: true });
+                    });
+                },
+                _engine: {
+                    loadState,
+                    saveState,
+                    clamp,
+                    cascade,
+                    dragMove,
+                    resizeMove,
+                    reclampPreservingEdges,
+                    Z_PANEL_MIN,
+                    Z_PANEL_MAX,
+                    Z_GHOST
+                }
+            };
+        })(),
 
         /**
          * Accordion component for grouped sections with mutual exclusion
@@ -8804,6 +10066,9 @@ window.jPulse = {
                 const selector = config.levels.map(n => `h${n}`).join(', ');
 
                 document.querySelectorAll(selector).forEach(heading => {
+                    if (heading.closest && heading.closest('.jp-float-panel, .jp-dialog')) {
+                        return;
+                    }
                     // Skip if already has ID
                     if (heading.id) return;
 
@@ -8840,6 +10105,9 @@ window.jPulse = {
                     .join(', ');
 
                 document.querySelectorAll(selector).forEach(heading => {
+                    if (heading.closest && heading.closest('.jp-float-panel, .jp-dialog')) {
+                        return;
+                    }
                     // Skip if already has anchor link
                     if (heading.querySelector('.heading-anchor')) return;
 

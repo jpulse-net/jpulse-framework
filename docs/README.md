@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v1.8.2
+# jPulse Docs / Site Administrator & Developer Documentation v2.0.0
 
 **For Site Administrators & Site Developers**
 
@@ -61,7 +61,7 @@ jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application f
 - Ships with `hello-world` demo plugin
 
 ### 🧪 **Testing & Quality**
-- 3300+ tests with 100% pass rate
+- 3400+ tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis
@@ -237,6 +237,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v2.0.0, W-220, 2026-09-14: jPulse.UI: new floatPanel widget**: Non-modal, draggable, resizable floating panel that persists geometry and open state in `localStorage`, stacks with N other panels by last-active time (z-index 940–979; ghost 985), and animates to and from a consumer-rendered launcher. One `create()` works in an MPA page (pass `el`) and a Vue SPA (omit `el`, bind `style()`). Mobile becomes a bottom sheet with a 4px side inset; `mobile.exclusive` is group-scoped. Escape closes the front panel and yields to an open dialog. Demo at `/jpulse-examples/ui-widgets.shtml` §2.4. Docs: `jpulse-ui-reference.md`. This is a prerequisite for the upcoming AI agents feature.
 - **v1.8.2, W-219, 2026-09-09: Deploy: nginx streaming location and a dedicated upload rate-limit zone**: Production nginx buffers the whole request body by default, so a `bodyMode: 'stream'` upload works and nothing streams. The scaffold now ships a live `uploads` zone (`10 r/s`) and a commented `location ^~ /api/1/your-upload-prefix/` with `proxy_request_buffering off`, `proxy_buffering off`, `client_max_body_size 100M`, and 300s send/read timeouts. A four-step checklist sits above the block. The zone isolates uploads from the `/api/` bucket (burst 20) that the page's other calls share; burst is 50. `npx jpulse configure` does not rewrite a live `deploy/nginx.prod.conf` — paste the zone and location from the current scaffold. Docs: `deployment.md`, `security-and-auth.md` (five zones), `api-reference.md`.
 - **v1.8.1, W-218, 2026-09-09: Controllers: `CommonUtils.sendStream` with ranges and RFC 5987 filenames**: Bytes with no path (GridFS, S3, a DB blob, generated output) go through one helper instead of each controller inventing headers. The third argument is a `({ start, end }) => Readable` factory (`end` inclusive), a `Buffer`, or a plain `Readable` (no ranges). A satisfiable `Range` is `206`; start past `size` is `416` with `bytes */size`, not a JSON error. `If-None-Match` / `If-Modified-Since` / `If-Range` follow RFC 7232. A German or Japanese `filename` gets the ASCII fallback plus `filename*=UTF-8''…`. Disposition defaults to `attachment`. Express now sends `X-Content-Type-Options: nosniff`. A site that iframes an inline PDF selects `Content-Security-Policy-Frameable` (`frame-ancestors 'self'`). On-disk files still use `res.sendFile`.
 - **v1.8.0, W-217, 2026-09-08: Controllers: streaming request bodies (`bodyMode: 'stream'`)**: A `static routes` entry may set `{ bodyMode: 'stream', bodyLimit: '50mb' }` so a large raw upload is never buffered by the JSON/urlencoded parsers. `bodyLimit` is the byte cap in every mode. `StreamBody.pipe(req, res, dest)` writes the unread body, returns the byte count, or sends the same 413 `{ code: 'PAYLOAD_TOO_LARGE' }` envelope as a parser limit and returns `null` (caller unlinks a partial file). Missing/`GET`/`HEAD`/unknown `bodyMode` throws at startup. A skip guard plus a boot assertion keep the route unread even if a later release sets the JSON parser to `type: '*/*'`. nginx still buffers until a streaming location is applied.

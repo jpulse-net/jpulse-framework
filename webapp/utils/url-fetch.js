@@ -11,8 +11,8 @@
  *                  const res = await UrlFetch.fetch(url, { as: 'json', allowedHosts: ['api.example.com'] });
  *                  const limits = UrlFetch.getEffectiveOptions({ maxBytes: 1048576 });
  * @file            webapp/utils/url-fetch.js
- * @version         1.8.2
- * @release         2026-09-09
+ * @version         2.0.0
+ * @release         2026-09-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

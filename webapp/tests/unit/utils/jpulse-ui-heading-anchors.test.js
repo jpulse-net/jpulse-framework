@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI.headingAnchors (W-118)
  * @description     Tests for heading anchor links feature: slugify, ID generation, link creation
  * @file            webapp/tests/unit/utils/jpulse-ui-heading-anchors.test.js
- * @version         1.8.2
- * @release         2026-09-09
+ * @version         2.0.0
+ * @release         2026-09-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -297,6 +297,34 @@ describe('jPulse.UI.headingAnchors (W-118)', () => {
             expect(h1.id).toBe('no-id');
             expect(anchor).toBeTruthy();
             expect(anchor.getAttribute('href')).toBe('#no-id');
+        });
+
+        test('skips headings inside .jp-float-panel and .jp-dialog', () => {
+            document.body.innerHTML = [
+                '<h2 id="page-heading">Page</h2>',
+                '<aside class="jp-float-panel"><h3 id="panel-title">Notes</h3></aside>',
+                '<div class="jp-dialog"><h3 id="dialog-title">Alert</h3></div>'
+            ].join('');
+
+            window.jPulse.UI.headingAnchors.init({ enabled: true, levels: [1, 2, 3] });
+
+            expect(document.querySelector('#page-heading .heading-anchor')).toBeTruthy();
+            expect(document.querySelector('#panel-title .heading-anchor')).toBeFalsy();
+            expect(document.querySelector('#dialog-title .heading-anchor')).toBeFalsy();
+        });
+
+        test('does not generate IDs for headings inside .jp-float-panel or .jp-dialog', () => {
+            document.body.innerHTML = [
+                '<aside class="jp-float-panel"><h3>Inside panel</h3></aside>',
+                '<div class="jp-dialog"><h3>Inside dialog</h3></div>',
+                '<h3>Outside</h3>'
+            ].join('');
+
+            window.jPulse.UI.headingAnchors.init({ enabled: true, levels: [3] });
+
+            expect(document.querySelector('.jp-float-panel h3').id).toBe('');
+            expect(document.querySelector('.jp-dialog h3').id).toBe('');
+            expect(document.querySelector('body > h3').id).toBe('outside');
         });
     });
 

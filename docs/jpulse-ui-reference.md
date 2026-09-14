@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v1.8.2
+# jPulse Docs / jPulse.UI Widget Reference v2.0.0
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -7,6 +7,7 @@ Complete reference documentation for all `jPulse.UI.*` widgets available in the 
 **💡 Quick Links:**
 - [Toast Notifications](#toast-notifications) - Non-blocking slide-down messages
 - [Dialog Widgets](#dialog-widgets) - Modal dialogs (alert, info, success, confirm)
+- [Floating Panel Widget](#floating-panel-widget) - Non-modal, draggable, resizable persisted panels
 - [Collapsible Components](#collapsible-components) - Expandable/collapsible sections
 - [Accordion Component](#accordion-component) - Grouped sections with mutual exclusion
 - [Tab Interface](#tab-interface) - Navigation and panel tabs
@@ -290,6 +291,173 @@ const result = await jPulse.UI.confirmDialog({
 - **Button shortcut underline**: the shortcut letter (first letter of label) is underlined in the button text
 - **i18n support**: Default titles and buttons from translation system
 - **Object-button callback errors**: If an object-style button callback throws or rejects, the dialog stays open (`shouldClose = false`, same as `{ dontClose: true }`), `console.error` is logged, and an error toast shows `error.message` (or the thrown string, or `Unexpected error`). The confirm promise stays pending until a later close or ESC. Array-style `buttons: ['Cancel', 'OK']` is unchanged.
+
+---
+
+## Floating Panel Widget
+
+A non-modal, draggable, resizable panel that remembers its geometry and open state in `localStorage`, stacks with other panels by last-active time, and animates to and from a consumer-rendered launcher button. The same `create()` call works in a jPulse MPA page and in a Vue SPA component.
+
+**Open state persists across page loads.** If storage is empty, `defaults.open` is used; a stored `false` stays closed. This matches the surprising-but-intended default: a panel the user left open is still open after reload.
+
+### Basic Usage
+
+```javascript
+const notes = jPulse.UI.floatPanel.create({
+    id: 'notes',
+    el: '#notesPanel',
+    launcher: '#notesLauncher',
+    cascade: true,
+    defaults: { x: null, y: null, w: 360, h: 260, open: false }
+});
+
+document.getElementById('notesLauncher').addEventListener('click', () => {
+    notes.toggle();
+});
+```
+
+`x: null` / `y: null` place the panel at the bottom-right (then clamped). `cascade: true` offsets a panel that would otherwise open exactly on top of one already at that default position.
+
+### HTML Structure
+
+The widget decorates existing markup. It never adds or removes child nodes in the panel body (resize handles are the only exception, and only when `resizeHandles.mode` is `'inject'`).
+
+```html
+<button type="button" id="notesLauncher" class="jp-btn jp-btn-primary jp-float-panel-launcher">
+    Notes
+    <!-- optional unread dot: <span class="jp-float-panel-launcher-dot"></span> -->
+</button>
+
+<aside id="notesPanel" class="jp-float-panel" role="dialog" aria-labelledby="notesTitle">
+    <div class="jp-float-panel-header" data-jp-panel-drag>
+        <h3 id="notesTitle" class="jp-float-panel-title">Notes</h3>
+        <button type="button" class="jp-float-panel-header-btn" data-jp-panel-close>&times;</button>
+    </div>
+    <div class="jp-float-panel-body">
+        Panel content
+    </div>
+</aside>
+```
+
+The launcher stays yours to render, style, and label. The widget only reads its bounding rect for the ghost animation and returns focus to it on close. Framework CSS ships `.jp-float-panel-launcher` and an unread-dot convention (`.jp-float-panel-launcher-dot` or `.jp-float-panel-launcher--unread`).
+
+Place the panel element where `position: fixed` is viewport-relative. An ancestor with `transform`, `filter`, or `perspective` (including a `.jp-panel` inside an animated tab strip) traps `fixed` positioning — append the panel to `document.body` if needed.
+
+### `create(options)`
+
+**API:** `jPulse.UI.floatPanel.create(options)` → handle | `null` (`id` is required)
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `id` | string | — | Required registry key |
+| `el` | Element \| selector | omitted | Uncontrolled (MPA): widget writes `left` / `top` / `width` / `height` / `z-index` and state classes. Omit for controlled (SPA) mode |
+| `launcher` | Element \| selector | — | Reference-only; used for the ghost animation and focus return |
+| `storageKey` | string | `jp:floatPanel:<id>` | Persistence key |
+| `group` | string | `'default'` | Scope for `mobile.exclusive` |
+| `defaults` | `{ x, y, w, h, open }` | `{ x: null, y: null, w: 360, h: 280, open: false }` | Used when storage is empty, malformed, or throws. Null `x` / `y` → bottom-right |
+| `minWidth` / `minHeight` | number | `240` / `160` | Resize floor; a viewport smaller than the minimum still yields a usable rect |
+| `margin` | number | `8` | Inset from all four viewport edges |
+| `topOffset` | string \| number | `'--jp-header-height'` | Extra top inset (CSS variable name or pixels). Falls back to `50` when the variable is missing |
+| `cascade` | boolean \| `{ offsetX, offsetY }` | `false` | Offset when another panel already occupies the default position. `true` uses `{ offsetX: -48, offsetY: -48 }` |
+| `dragHandle` | selector \| Element | `'[data-jp-panel-drag]'` | Pointer-drag target. Arrow-key nudge is listened on the panel itself while it has programmatic focus |
+| `dragIgnore` | selector | `'button, a, input, select, textarea, [data-jp-panel-close]'` | Suppresses a drag started on a matching descendant |
+| `resizeHandles` | `{ mode, dirs }` | `{ mode: 'inject', dirs: [n,ne,e,se,s,sw,w,nw] }` | `'inject'` appends handle nodes to `el` (MPA only). `'manual'` binds existing `[data-jp-panel-resize]` nodes. `false` disables handles |
+| `mobile` | `{ breakpoint, mode, heightRatio, exclusive }` | `{ breakpoint: 768, mode: 'sheet', heightRatio: 0.55, exclusive: false }` | Below `breakpoint`, a bottom sheet at `heightRatio` of the viewport with a 4px side inset so the page remains visible as background; drag and resize are suppressed. `exclusive` closes other **open panels in the same `group`**. `mobile: false` disables the sheet |
+| `animate` | `{ durationMs }` | `{ durationMs: 300 }` | Ghost animation length. Themeable via `--jp-float-panel-anim-ms` (default `300ms`). Bypassed under `prefers-reduced-motion` |
+| `persistDebounceMs` | number | `300` | Debounce for `localStorage` writes. `0` writes immediately |
+| `autoResize` | boolean | `true` | Participate in the shared `window` resize listener |
+| `storage` | `{ getItem, setItem }` | `localStorage` | Adapter for sites that disagree with device-local persistence |
+| `nextTick` | Function | — | Awaited before reading the launcher rect (Vue `nextTick`) |
+| `onChange` | `(rect, meta) => void` | — | Fires after geometry or state changes. `rect` is `{ x, y, w, h, zIndex }` |
+| `onOpen` / `onClose` / `onRaise` | Function | — | Lifecycle callbacks; receive the handle |
+
+### Handle API
+
+| Method | Returns | Description |
+|---|---|---|
+| `open()` | `Promise<void>` | Opens and raises. Settles after the ghost animation (immediately under `prefers-reduced-motion` or `durationMs: 0`). Calls during an in-flight animation are **queued** (last action wins) |
+| `close()` | `Promise<void>` | Closes; focus returns to the launcher. Also queue-aware |
+| `toggle()` | `Promise<void>` | `open()` or `close()` |
+| `raise()` | void | Updates `lastActiveAt` and restacks |
+| `hardClose()` | void | Closes immediately; removes an in-flight ghost |
+| `isOpen()` | boolean | Current open state |
+| `isFront()` | boolean | True when this is the front-most **open** panel |
+| `getRect()` | `{ x, y, w, h, zIndex }` | Display rect (the mobile sheet rect while in sheet mode) |
+| `setRect({ x, y, w, h })` | rect | Sets and clamps the desktop rect |
+| `reclamp()` | rect | Re-clamps. On a viewport resize, preserves distance from the nearer edge, then clamps |
+| `startDrag(evt)` | void | Begin a drag from a pointer event (no-op on mobile or non-primary button) |
+| `startResize(evt, dir)` | void | Begin a resize (`n` / `ne` / `e` / `se` / `s` / `sw` / `w` / `nw`) |
+| `style()` | object | `{ position, left, top, width, height, zIndex, display }` for `:style="panel.style()"` |
+| `state` | object | Live `{ x, y, w, h, open, lastActiveAt, zIndex, mobile, dragging, resizing }` (read-only by convention) |
+| `destroy()` | void | Removes listeners and the registry entry |
+
+### Module API
+
+| Method | Description |
+|---|---|
+| `jPulse.UI.floatPanel.get(id)` | Handle or `null` |
+| `jPulse.UI.floatPanel.list()` | Open panels, front-most first |
+| `jPulse.UI.floatPanel.front()` | Front-most open handle, or `null` |
+| `jPulse.UI.floatPanel.closeFront()` | Closes the front panel (used by the shared Escape listener). Returns a promise |
+| `jPulse.UI.floatPanel.reclampAll()` | Edge-preserving reclamp of every panel |
+
+One shared `window` resize listener serves all panels. One shared `document` keydown listener calls `closeFront()`, and returns early while `document.querySelector('.jp-dialog-show')` matches — so an open dialog wins Escape. There is no central Escape registry; listener order cannot express that rule.
+
+### MPA versus SPA
+
+**Uncontrolled (MPA):** pass `el`. The widget writes position styles and toggles `--mobile` / `--dragging` / `--resizing` / `--front`. It does not add or remove child nodes in the panel body and does not stash state on the element (unlike `jPulse.UI.accordion`).
+
+**Controlled (SPA):** omit `el` and pass `onChange(rect, meta)`. The widget touches no component DOM. The ghost `<div>` is appended to `document.body` (outside any component-managed subtree). Bind the returned style object:
+
+```javascript
+// Vue 3 example
+const panel = jPulse.UI.floatPanel.create({
+    id: 'chat',
+    launcher: '#chatLauncher',
+    onChange: () => { /* trigger render */ },
+    nextTick: () => vueApp.$nextTick()
+});
+```
+
+```html
+<aside class="jp-float-panel"
+       :class="{
+           'jp-float-panel--mobile': panel.state.mobile,
+           'jp-float-panel--front': panel.isFront()
+       }"
+       :style="panel.style()"
+       role="dialog"
+       aria-labelledby="chatTitle">
+    ...
+</aside>
+```
+
+`launcher` is still an element or selector — resolve it yourself if the button is inside the Vue tree. Pass `nextTick` so the widget waits for a flush before reading the launcher rect.
+
+### Z-index band
+
+| Layer | Z-index |
+|---|---|
+| Sidebar | 895 / 896 / 897 |
+| `jp-tabs` elevation | 900 / 901 / 905 / 906 |
+| **Floating panels** | **940–979** (assigned by `lastActiveAt`; older open panels sit lower) |
+| **Ghost animation** | **985** |
+| Toast messages | 999 |
+| Site header | 1000 |
+| `jpSelect` dropdown | 1200 |
+| Dialogs | 2000+ |
+
+Toasts deliberately paint above panels. Panels clamp below the header via `topOffset`, so they never need to paint over it. A dialog opened from a panel always covers it.
+
+### Features
+
+- **Non-modal**: no focus trap; the page underneath stays usable
+- **Persistence**: `localStorage` only (device-specific). The `storage` adapter covers a site that disagrees. Legacy `openedAt` is still read as `lastActiveAt`
+- **Ghost animation**: double-`requestAnimationFrame` commit, `transitionend` plus a timeout safety net, bypassed under `prefers-reduced-motion`. No launcher (or a launcher that has gone away) falls back to a center-scale animation
+- **N-panel stack**: adding a third panel needs no new code
+- **Mobile sheet**: 4px side inset, `heightRatio` of the viewport; group-scoped `exclusive`
+- **Keyboard**: programmatic focus goes to the panel element (no visible ring) on open and on a click of the header or body, so arrow keys can nudge it; interactive children keep their own focus. Escape closes the front panel (dialogs win)
+- **Accessibility**: consumer supplies `role="dialog"` and a label; the widget sets the close-button and resize-handle labels from i18n. Headings inside `.jp-float-panel` and `.jp-dialog` do not get heading-anchor 🔗 icons
 
 ---
 
@@ -1505,6 +1673,8 @@ Manually initialize heading anchors (usually automatic).
   - `enabled` (boolean): Enable/disable feature (default: `true`)
   - `levels` (number[]): Heading levels to process (default: `[1,2,3,4,5,6]`)
   - `icon` (string): Icon to display (default: `'🔗'`)
+
+Headings inside `.jp-float-panel` and `.jp-dialog` are skipped — a panel or dialog title is not a document section.
 
 **Example:**
 ```javascript

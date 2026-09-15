@@ -3,8 +3,8 @@
  * @tagline         Unit tests for refactored hello-todo MPA structure
  * @description     Tests for the 4-page hello-todo MPA structure (W-075 refactor)
  * @file            webapp/tests/unit/hello-todo-structure.test.js
- * @version         2.0.1
- * @release         2026-09-15
+ * @version         2.0.2
+ * @release         2026-09-16
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.1
+# jPulse Docs / Dev / Work Items v2.0.2
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -8532,19 +8532,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - the framework has no in-repo consumer to migrate; the demo page on `/jpulse-examples/ui-widgets.shtml` is the reference implementation, the same role it plays for the other widgets
   - prerequisite for the planned AI agent framework: its chat panel is a floating panel, and this item is the floor for that work. BubbleMap adopts the widget in its own repository after the framework release lands, collapsing `map-canvas-panel.tmpl` and roughly 580 lines of duplicated lifecycle into two `create()` calls, and retiring the `vm`-sandbox panel test
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-221, v2.0.1, 2026-09-15: plugins: bundle build and installation
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - let one npm package expand into several `plugins/<name>/` directories on install, so a site can install a related set of plugins in one command without the installer assuming one `plugin.json` per package
@@ -8655,6 +8644,17 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
+
+
+
+
+
 ### W-222, v2.0.2, 2026-09-16: i18n: site specific and plugin specific translations
 - status: 🚧 IN_PROGRESS
 - type: Feature
@@ -8679,7 +8679,11 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `webapp/utils/bootstrap.js`:
     - initialize i18n after PluginManager (framework, then plugins in `loadOrder`, then site)
   - `docs/plugins/creating-plugins.md`:
-    - Plugin translations paragraph: file location, merge order, English-only backfill. Do not mix bundle publish text into this commit
+    - Plugin translations paragraph: file location, merge order, English-only backfill
+  - `docs/site-customization.md`:
+    - `site/webapp/translations/` in the site tree; merge order (framework, then active plugins, then site); later source wins a leaf
+  - `docs/handlebars.md`:
+    - `{{i18n.*}}` consults the merged set, not only `webapp/translations/`
   - tests:
     - `webapp/tests/unit/translations/i18n-merge.test.js`
     - framework-only still loads (regression); a plugin `en.conf` adds a key; a site `en.conf` overrides that key and leaves sibling framework keys; a plugin without `translations/` does not fail; a plugin shipping only `en.conf` backfills into `de` even when the plugin file is not loaded first; assigning a whole language object is gone - merge is deep
@@ -8726,7 +8730,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-221, v2.0.1, 2026-09-15
+- assume W-222, v2.0.2, 2026-09-16
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -8738,12 +8742,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.1 2026-09-15
+node bin/bump-version.js 2.0.2 2026-09-16
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.1; git push origin main --tags
+git tag v2.0.2; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

@@ -3,8 +3,8 @@
  * @tagline         Unit tests for log docTypes caching and enhanced logging functionality
  * @description     Tests for docTypes caching, enhanced log format, and admin logs search functionality
  * @file            webapp/tests/unit/log/log-doctypes-caching.test.js
- * @version         2.0.1
- * @release         2026-09-15
+ * @version         2.0.2
+ * @release         2026-09-16
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

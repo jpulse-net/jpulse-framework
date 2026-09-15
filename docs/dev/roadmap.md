@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Roadmap v2.0.1
+# jPulse Docs / Dev / Roadmap v2.0.2
 
 Strategic roadmap for jPulse Framework development, targeting enterprise and government organizations with a focus on maintainability, scalability, and developer productivity.
 

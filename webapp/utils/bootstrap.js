@@ -3,8 +3,8 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         2.0.0
- * @release         2026-09-14
+ * @version         2.0.2
+ * @release         2026-09-16
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -127,14 +127,8 @@ export async function bootstrap(options = {}) {
         global.LogController = LogControllerModule.default;
         bootstrapLog('✅ LogController: Initialized');
 
-        // Step 4: Initialize i18n (depends on LogController being globally available)
-        const i18nModule = await import('./i18n.js');
-        bootstrapLog('i18n: Module loaded, ready for initialization');
-        const i18n = await i18nModule.initialize();  // No parameter needed!
-        global.i18n = i18n;
-        bootstrapLog('✅ i18n: Initialized');
-
-        // Step 5: Initialize Database (depends on LogController, can use i18n)
+        // Step 4: Initialize Database (depends on LogController)
+        // i18n waits until PluginManager so plugin translations merge in load order
         let database = null;
         if (!skipDatabase) {
             const databaseModule = await import('../database.js');
@@ -144,7 +138,7 @@ export async function bootstrap(options = {}) {
             bootstrapLog(`✅ Database: ${connected ? 'Connected' : 'Failed (continuing without)'}`);
             database = databaseModule.default;
 
-            // Step 5.1: Post-initialize LogController now that database is ready
+            // Step 5: Post-initialize LogController now that database is ready
             if (connected) {
                 await LogControllerModule.default.postInitialize();
                 bootstrapLog('✅ LogController: Post-initialized with database');
@@ -171,6 +165,14 @@ export async function bootstrap(options = {}) {
         const enabledPlugins = pluginStats?.stats?.enabled ?? 0;
         const disabledPlugins = pluginStats?.stats?.disabled ?? 0;
         bootstrapLog(`✅ PluginManager: Discovered ${discoveredPlugins} plugins (${enabledPlugins} enabled, ${disabledPlugins} disabled)`);
+
+        // Step 7.1.1: Initialize i18n after plugins so translations merge
+        // framework, then active plugins in loadOrder, then site
+        const i18nModule = await import('./i18n.js');
+        bootstrapLog('i18n: Module loaded, ready for initialization');
+        const i18n = await i18nModule.initialize();
+        global.i18n = i18n;
+        bootstrapLog('✅ i18n: Initialized');
 
         // Step 7.2: Load Plugin Model (W-045)
         const PluginModelModule = await import('../model/plugin.js');

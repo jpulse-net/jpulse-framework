@@ -24147,3 +24147,25 @@ run git.
 
 
 ============================================================
+2026-09-15 00:01
+
+W-221 release done, looks good
+
+W-222 release prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-222, v2.0.2, 2026-09-16
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+tt-git-diff.txt was not in the repo; reviewed i18n.js,
+bootstrap.js, i18n-merge.test.js, and creating-plugins
+against the work item. Features already matched. Added
+site-customization and handlebars deliverables. Wrote
+v2.0.2 highlights and CHANGELOG. Wrote commit-message.txt.
+Tests: 1 suite / 5 passing. Did not bump version, did not
+commit, did not run git.
+
+
+============================================================

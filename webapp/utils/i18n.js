@@ -3,18 +3,18 @@
  * @tagline         Internationalization for the jPulse Framework WebApp
  * @description     This is the i18n file for the jPulse Framework WebApp
  * @file            webapp/utils/i18n.js
- * @version         2.0.0
- * @release         2026-09-14
+ * @version         2.0.2
+ * @release         2026-09-16
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.14, Claude Sonnet 5
+ * @genai           60%, Cursor 3.20, Grok 4.6
  */
 
 // Load required modules for path resolution and file system operations
 import { join } from 'node:path';
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import cacheManager from './cache-manager.js';
 import { getValueByPath, setValueByPath } from './common.js';
 
@@ -124,8 +124,104 @@ function auditAndFixTranslations(defaultLang, targetLang, langCode) {
 }
 
 /**
+ * Deep-merge source into target. Objects merge recursively; arrays and leaves replace.
+ * Later sources win a leaf without wiping sibling keys.
+ * @param {*} target
+ * @param {*} source
+ * @returns {*}
+ */
+function deepMerge(target, source) {
+    if (source === undefined) {
+        return target;
+    }
+    if (source === null || typeof source !== 'object' || Array.isArray(source)) {
+        return source;
+    }
+    const out = (target && typeof target === 'object' && !Array.isArray(target))
+        ? { ...target }
+        : {};
+    for (const key of Object.keys(source)) {
+        out[key] = deepMerge(out[key], source[key]);
+    }
+    return out;
+}
+
+/**
+ * Read *.conf translation files from a directory. Missing dir is empty, not an error.
+ * @param {string} translationsDir
+ * @returns {object} langCode -> language object
+ */
+function readTranslationDir(translationsDir) {
+    const langs = {};
+    if (!translationsDir || !existsSync(translationsDir)) {
+        return langs;
+    }
+    const langFiles = readdirSync(translationsDir)
+        .filter(file => file.endsWith('.conf'))
+        .map(file => ({
+            filePath: join(translationsDir, file),
+            name: file
+        }));
+
+    for (const file of langFiles) {
+        try {
+            const content = translationCache.getFileSync(file.filePath);
+            if (content === null) {
+                global.LogController.logError(null, 'i18n', `warning: Translation file not found: ${file.filePath}`);
+                continue;
+            }
+            const fn = new Function(`return (
+                ${content}
+            )`);
+            const obj = fn();
+            const lang = Object.keys(obj)[0];
+            if (lang && obj[lang]) {
+                langs[lang] = obj[lang];
+            } else {
+                global.LogController.logError(null, 'i18n', `warning: Invalid structure in ${file.filePath}`);
+            }
+        } catch (fileError) {
+            global.LogController.logError(null, 'i18n', `error: Error loading translation file ${file.filePath}: ${fileError.message}`);
+        }
+    }
+    return langs;
+}
+
+/**
+ * Merge a language map into i18n.langs (deep, later wins a leaf).
+ * @param {object} i18n
+ * @param {object} langs
+ */
+function mergeLangs(i18n, langs) {
+    for (const lang of Object.keys(langs)) {
+        i18n.langs[lang] = deepMerge(i18n.langs[lang], langs[lang]);
+    }
+}
+
+/**
+ * Active plugin translation directories in load order.
+ * @param {object} config
+ * @returns {string[]}
+ */
+function getPluginTranslationDirs(config) {
+    if (global.PluginManager && global.PluginManager.initialized) {
+        const active = global.PluginManager.getActivePlugins() || [];
+        return active.map(plugin => join(plugin.path, 'webapp', 'translations'));
+    }
+    const projectRoot = config.system?.projectRoot;
+    if (!projectRoot) {
+        return [];
+    }
+    const pluginsDir = join(projectRoot, 'plugins');
+    if (!existsSync(pluginsDir)) {
+        return [];
+    }
+    return [];
+}
+
+/**
  * Function to dynamically discover and load all translation files
- * Automatically finds all *.conf files in the translations directory
+ * Framework (required), then active plugins in load order, then site.
  * W-079: Enhanced with simplified CacheManager for automatic refresh
  */
 async function loadTranslations() {
@@ -164,64 +260,43 @@ async function loadTranslations() {
             process.exit(1);
         }
 
-        // Read directory and filter for *.conf files
-        const allFiles = readdirSync(translationsDir);
-        const langFiles = allFiles
-            .filter(file => file.endsWith('.conf'))
-            .map(file => ({
-                filePath: join(translationsDir, file),
-                name: file
-            }));
-
-        if (langFiles.length === 0) {
+        const frameworkLangs = readTranslationDir(translationsDir);
+        if (Object.keys(frameworkLangs).length === 0) {
             global.LogController.logError(null, 'i18n', `error: No translation files found in ${translationsDir}`);
             process.exit(1);
         }
+        mergeLangs(i18n, frameworkLangs);
+        global.LogController.logInfo(null, 'i18n', `Loaded framework translations: ${Object.keys(frameworkLangs).join(', ')}`);
 
-        // Sort files to load default language first
-        const defaultFile = `${i18n.default}.conf`;
-        const sortedFiles = langFiles.sort((a, b) => {
-            if (a.name === defaultFile) return -1;
-            if (b.name === defaultFile) return 1;
-            return a.name.localeCompare(b.name);
-        });
+        for (const pluginDir of getPluginTranslationDirs(config)) {
+            const pluginLangs = readTranslationDir(pluginDir);
+            if (Object.keys(pluginLangs).length === 0) {
+                continue;
+            }
+            mergeLangs(i18n, pluginLangs);
+            global.LogController.logInfo(null, 'i18n', `Merged plugin translations from ${pluginDir}`);
+        }
 
-        global.LogController.logInfo(null, 'i18n', `Loading ${sortedFiles.length} translation files...`);
-        let defaultLangData = null;
+        const siteDir = config.system.siteDir;
+        if (siteDir) {
+            const siteLangs = readTranslationDir(join(siteDir, 'translations'));
+            if (Object.keys(siteLangs).length > 0) {
+                mergeLangs(i18n, siteLangs);
+                global.LogController.logInfo(null, 'i18n', 'Merged site translations');
+            }
+        }
 
-        // W-079: Load each translation file using simplified cache
-        for (const file of sortedFiles) {
-            try {
-                const content = translationCache.getFileSync(file.filePath);
-
-                if (content === null) {
-                    global.LogController.logError(null, 'i18n', `warning: Translation file not found: ${file.filePath}`);
+        // Audit after every source is merged, not while reading files. The old
+        // "sort default language first" loop existed because backfill ran inside
+        // that loop and needed en.conf already loaded. Plugin keys added only to
+        // the default language must be in this snapshot before de is backfilled.
+        const defaultLangData = i18n.langs[i18n.default] ? deepClone(i18n.langs[i18n.default]) : null;
+        if (defaultLangData) {
+            for (const lang of Object.keys(i18n.langs)) {
+                if (lang === i18n.default) {
                     continue;
                 }
-
-                // Safely evaluate the translation file content
-                const fn = new Function(`return (
-                    ${content}
-                )`); // extra newlines in case content ends in a // comment
-                const obj = fn();
-                const lang = Object.keys(obj)[0];
-
-                if (lang && obj[lang]) {
-                    i18n.langs[lang] = obj[lang];
-                    global.LogController.logInfo(null, 'i18n', `✓ Loaded language: ${lang} (${obj[lang].lang || lang})`);
-
-                    // Store default language data for auditing
-                    if (lang === i18n.default) {
-                        defaultLangData = deepClone(obj[lang]);
-                    } else if (defaultLangData) {
-                        // Audit and fix non-default languages
-                        auditAndFixTranslations(defaultLangData, i18n.langs[lang], lang);
-                    }
-                } else {
-                    global.LogController.logError(null, 'i18n', `warning: Invalid structure in ${file.filePath}`);
-                }
-            } catch (fileError) {
-                global.LogController.logError(null, 'i18n', `error: Error loading translation file ${file.filePath}: ${fileError.message}`);
+                auditAndFixTranslations(defaultLangData, i18n.langs[lang], lang);
             }
         }
         return i18n;
@@ -500,9 +575,20 @@ export function getInstance() {
 
 // Module is ready for initialization - call initialize() to set up i18n
 
+/**
+ * Reset cached instance (tests only).
+ */
+export function resetForTests() {
+    i18nInstance = null;
+    translationCache = null;
+}
+
+export { loadTranslations, deepMerge };
+
 export default {
     initialize,
-    getInstance
+    getInstance,
+    resetForTests
 };
 
 // EOF webapp/utils/i18n.js

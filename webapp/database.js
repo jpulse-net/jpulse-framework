@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the database interface for the jPulse Framework WebApp
  * @file            webapp/database.js
- * @version         2.0.1
- * @release         2026-09-15
+ * @version         2.0.2
+ * @release         2026-09-16
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

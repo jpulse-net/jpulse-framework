@@ -1,6 +1,41 @@
-# jPulse Docs / Version History v2.0.1
+# jPulse Docs / Version History v2.0.2
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.2, W-222, 2026-09-16
+
+**Commit:** `W-222, v2.0.2, 2026-09-16: i18n: site specific and plugin specific translations`
+
+**FEATURE RELEASE**: `loadTranslations()` read only `webapp/translations/` and assigned each language wholesale. A plugin could not ship `view.ui.*` strings, and a site could not override a framework or plugin string without editing framework-managed files. Startup now deep-merges framework, then each active plugin in load order, then `site/webapp/translations/`.
+
+**Objective**: Collect and deep-merge translation `*.conf` files from the framework, active plugins, and the site, while keeping the existing MPA `{{i18n.*}}` runtime.
+
+**Key features**:
+- Merge order so a later source wins a leaf: framework, then active plugins in `loadOrder`, then `site/webapp/translations/` if present
+- A missing plugin or site `translations/` directory is skipped, not an error; the framework directory is still required
+- Bootstrap initializes i18n after PluginManager so plugin directories and load order are known
+- `auditAndFixTranslations()` runs once after every source is merged, against a cloned default-language snapshot (no default-language-first file sort)
+- A plugin may ship only the default language; missing keys in other languages are backfilled from it
+- Vue SPA loading of the merged set is **not** in this release
+
+**Files changed**:
+- `webapp/utils/i18n.js`: collect framework + active-plugin + site `*.conf`; deep-merge per language; post-merge audit
+- `webapp/utils/bootstrap.js`: initialize i18n after PluginManager
+- `webapp/tests/unit/translations/i18n-merge.test.js`: new — framework-only, plugin add, site override, missing dir, English-only backfill
+- `docs/plugins/creating-plugins.md`: Plugin translations paragraph
+- `docs/site-customization.md`: site `translations/` path and merge order
+- `docs/handlebars.md`: `{{i18n.*}}` consults the merged set
+- `docs/dev/work-items.md`: W-222 features/deliverables (status unchanged)
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.2 / W-222
+- `docs/CHANGELOG.md`: this section
+
+Verified via `npx jest webapp/tests/unit/translations/i18n-merge.test.js --runInBand`: 1 suite / 5 tests passing.
+
+**Release**:
+- Work Item: W-222
+- Version: v2.0.2
+- Release Date: 2026-09-16
 
 ________________________________________________
 ## v2.0.1, W-221, 2026-09-15

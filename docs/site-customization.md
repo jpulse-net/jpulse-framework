@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v2.0.1
+# jPulse Docs / Site Customization Guide v2.0.2
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -35,7 +35,8 @@ my-jpulse-site/
 │       ├── controller/     # Custom controllers
 │       ├── model/          # Custom models
 │       ├── view/           # Custom templates
-│       └── static/         # Site assets
+│       ├── static/         # Site assets
+│       └── translations/   # Site translation overrides (optional)
 ├── plugins/                # Plugins (middle priority, v1.3.0+)
 │   └── hello-world/        # Example plugin
 │       ├── plugin.json     # Plugin metadata & config schema
@@ -44,15 +45,23 @@ my-jpulse-site/
 │           ├── controller/ # Plugin controllers
 │           ├── model/      # Plugin models
 │           ├── view/       # Plugin views
-│           └── static/     # Plugin assets (symlinked on start into
-│                           # webapp/static/plugins/{name}; runtime, do not commit)
+│           ├── static/     # Plugin assets (symlinked on start into
+│           │               # webapp/static/plugins/{name}; runtime, do not commit)
+│           └── translations/ # Plugin strings (optional)
 └── webapp/                 # Framework files (lowest priority, managed by jpulse update)
     ├── controller/         # Base controllers
     ├── model/              # Data models
     ├── view/               # Base templates
     ├── static/             # Framework assets
+    ├── translations/       # Framework strings
     └── utils/              # Framework utilities
 ```
+
+### Site translations
+
+Put overrides in `site/webapp/translations/` using the same `*.conf` shape as the framework files (`en.conf`, `de.conf`, …). At startup the framework deep-merges **framework, then each active plugin in load order, then the site**. A later source wins a leaf and does not wipe sibling keys. A missing plugin or site `translations/` directory is skipped. Restart the app after editing translation files.
+
+Do not edit `webapp/translations/` — those files are framework-managed and come back on `jpulse update`. Plugin authors ship `plugins/<name>/webapp/translations/`; see [Creating Plugins](plugins/creating-plugins.md).
 
 ________________________________________________
 ## Configuration System

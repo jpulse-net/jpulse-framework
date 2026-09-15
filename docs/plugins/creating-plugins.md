@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v2.0.0
+# jPulse Docs / Plugins / Creating Plugins v2.0.1
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -72,8 +72,30 @@ This is the only required file for a minimal plugin.
 - `author` - Author name and email
 - `autoEnable` - Enable plugin on first discovery (default: `true`)
 - `dependencies.npm` - npm packages required (auto-installed)
-- `dependencies.plugins` - Other plugins required
+- `dependencies.plugins` - Other plugins required. A version string (`"other-plugin": ">=1.0.0"`) is enough for load order and enable checks. Use `{ "version": ">=1.0.0", "npmPackage": "@scope/pkg" }` when install should fetch the package that provides that plugin (needed when the plugin lives inside a bundle)
+- `bundle.members` - On a **primary** plugin only: companion plugin names shipped in the same npm package. Publishing the primary publishes every member. The bump-version file list lives only on the primary
 - `config.schema` - Configuration fields (see below)
+
+### Plugin translations
+
+Ship `webapp/translations/en.conf` (and `de.conf` when you have German) using the same `view.ui.*` tree as the framework files. At startup the framework deep-merges **framework, then each active plugin in load order, then `site/webapp/translations/`**. A missing plugin or site translations directory is skipped. You may ship only the default language; missing keys in other languages are backfilled from it.
+
+### Plugin bundles
+
+Develop companions as ordinary sibling directories under `plugins/`. Declare membership on the primary:
+
+```json
+{
+    "name": "demo-primary",
+    "npmPackage": "@jpulse-net/plugin-demo-primary",
+    "version": "1.0.0",
+    "bundle": { "members": ["demo-secondary"] }
+}
+```
+
+The companion's `npmPackage` is the same package. It carries no `package.json` into that package and has no `webapp/bump-version.conf`. Run `node ../../bin/bump-version.js <version>` from the primary directory; it updates every member. `npx jpulse plugin publish demo-primary` assembles `package.json` + `plugins/<member>/` (no root `plugin.json`) and publishes that tree. Use `--dry-run` or `--pack-to <dir>` before the real publish. Installing the package copies every member into `plugins/`.
+
+A plain `npm publish` from the primary directory works too, once the primary's `package.json` has `"files": ["plugins"]` plus `prepack`/`postpack` scripts calling `jpulse plugin stage-bundle` / `unstage-bundle` — see [Publishing Plugins](publishing-plugins.md). A companion may keep a `private` `package.json` whose only job is a `prepublishOnly` script that refuses and names the primary; staging strips it from the packaged copy.
 
 ## Step 2: Add Configuration (Optional)
 
@@ -803,7 +825,7 @@ node ../../bin/bump-version.js 1.0.0
 node ../../bin/bump-version.js 1.0.1 2025-12-08  # with specific date
 ```
 
-The script auto-detects plugin context and uses `webapp/bump-version.conf`.
+The script auto-detects plugin context and uses `webapp/bump-version.conf`. For a bundle, only the primary has that file; bumping from the primary updates every member. Bumping from a companion is refused.
 
 **Note:** The `npx jpulse bump` command is for framework and site use only. Plugins should use the direct `node` command as shown above.
 

@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Managing Plugins via CLI v2.0.0
+# jPulse Docs / Plugins / Managing Plugins via CLI v2.0.1
 
 jPulse Framework provides a command-line interface for managing plugins. This guide covers installation, updates, and publishing.
 
@@ -108,7 +108,10 @@ npx jpulse plugin install /absolute/path/to/plugin
 npx jpulse plugin install auth-mfa --enable     # Enable after install
 npx jpulse plugin install auth-mfa --no-enable  # Keep disabled
 npx jpulse plugin install auth-mfa --force      # Overwrite existing
+npx jpulse plugin install auth-mfa --no-deps    # Do not fetch plugin dependencies
 ```
+
+A bundle package (root `package.json`, `plugins/<name>/plugin.json`, no root `plugin.json`) installs every member in one command. `npx jpulse plugin update <name>` of a bundle member re-fetches that package and re-expands every member. `remove` stays per plugin name.
 
 **Name Resolution:**
 

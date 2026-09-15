@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Architecture v2.0.0
+# jPulse Docs / Plugins / Plugin Architecture v2.0.1
 
 Understanding how the jPulse plugin system works under the hood.
 
@@ -9,6 +9,8 @@ The jPulse plugin system extends the framework's MVC architecture with:
 - **Priority-based path resolution** (Site → Plugins → Framework)
 - **Plugin hooks** for extending framework behavior (auth, user management)
 - **Dependency management** with topological sorting
+- **Bundle packages** that expand one npm package into several `plugins/<name>/` directories
+- **Translation merge** from framework, then active plugins, then the site
 - **Configuration storage** in MongoDB
 - **Symlink-based asset serving** for static files
 - **API-first design** for all management operations

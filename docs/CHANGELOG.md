@@ -1,6 +1,44 @@
-# jPulse Docs / Version History v2.0.0
+# jPulse Docs / Version History v2.0.1
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.1, W-221, 2026-09-15
+
+**Commit:** `W-221, v2.0.1, 2026-09-15: plugins: bundle build and installation`
+
+**FEATURE RELEASE**: Plugin install was one package → one `plugin.json` → one `plugins/<name>/` copy. That matches `auth-mfa` / `auth-oauth`. It does not match a related set of plugins that ship together (the upcoming AI bundle is `ai-core` + `ai-mock` in one package). This release lets a primary declare `bundle.members` so publish, install, update, and bump treat that set as one npm package and several plugin directories.
+
+**Objective**: Expand one npm package into several `plugins/<name>/` directories, and let `dependencies.plugins` name an installable package instead of only refusing at enable time.
+
+**Key features**:
+- Package shape: single plugin (root `plugin.json`) unchanged; bundle is `plugins/<name>/plugin.json` and no root `plugin.json`; both shapes in one package is an error
+- `npx jpulse plugin publish <primary>` assembles the bundle tree and runs `npm publish --ignore-scripts`; `--dry-run` and `--pack-to <dir>` show or write the tree first
+- Plain `npm publish` from the primary directory ships the same shape when `package.json` has `"files": ["plugins"]` plus `prepack` / `postpack` calling `jpulse plugin stage-bundle` / `unstage-bundle`
+- Companion publish is refused and names the primary; a source-only guard `package.json` is stripped from the packaged copy
+- Install and update expand every member; `--no-deps` skips fetching declared plugin packages; a version-only dependency is an error, not a guessed `@jpulse-net/plugin-<name>`
+- Bump from the primary applies that plugin's `webapp/bump-version.conf` to every member; bump from a companion is refused
+- Plugin/site translation merge is **not** in this release (v2.0.2 / W-222)
+
+**Files changed**:
+- `webapp/utils/plugin-package.js`: new — shape detect, bundle assemble/stage/unstage, dependency planning
+- `bin/plugin-manager-cli.js`: bundle install, publish, update, `stage-bundle` / `unstage-bundle`
+- `bin/bump-version.js`: primary applies the file list to every member; companion refused
+- `webapp/utils/plugin-manager.js`: object-form `dependencies.plugins`; enable error names `npmPackage`
+- `webapp/tests/unit/utils/plugin-package.test.js`, `webapp/tests/unit/bin/plugin-bundle-cli.test.js`, `webapp/tests/unit/bin/bump-version-bundle.test.js`, `webapp/tests/unit/utils/plugin-manager.test.js`
+- `docs/plugins/creating-plugins.md`, `docs/plugins/publishing-plugins.md`, `docs/plugins/managing-plugins.md`, `docs/plugins/plugin-api-reference.md`, `docs/plugins/plugin-architecture.md`, `docs/installation.md`
+- `docs/dev/work-items.md`: W-221 features/deliverables/notes (status unchanged)
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.1 / W-221
+- `docs/CHANGELOG.md`: this section
+
+Not in this commit (W-222 / v2.0.2): `webapp/utils/i18n.js`, `webapp/utils/bootstrap.js`, `webapp/tests/unit/translations/i18n-merge.test.js`, and the Plugin translations paragraph in `creating-plugins.md`.
+
+Verified via `npx jest webapp/tests/unit/utils/plugin-package.test.js webapp/tests/unit/bin/plugin-bundle-cli.test.js webapp/tests/unit/bin/bump-version-bundle.test.js webapp/tests/unit/utils/plugin-manager.test.js --runInBand`: 4 suites / 43 tests passing.
+
+**Release**:
+- Work Item: W-221
+- Version: v2.0.1
+- Release Date: 2026-09-15
 
 ________________________________________________
 ## v2.0.0, W-220, 2026-09-14

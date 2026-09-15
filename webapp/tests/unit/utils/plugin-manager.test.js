@@ -6,13 +6,13 @@
  *                   prevents one PM2 instance's stale in-memory registry from clobbering a peer
  *                   instance's more recent change
  * @file            webapp/tests/unit/utils/plugin-manager.test.js
- * @version         2.0.0
- * @release         2026-09-14
+ * @version         2.0.1
+ * @release         2026-09-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.15, Grok 4.6
+ * @genai           80%, Cursor 3.20, Grok 4.6
  */
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
@@ -265,6 +265,21 @@ describe('PluginManager (W-199 concurrency & persistence safety)', () => {
                 'plugin-a',
                 false
             );
+        });
+
+        test('enablePlugin names npmPackage when a required plugin is missing', async () => {
+            writePluginJson(pluginsDir, 'provider', {
+                autoEnable: false,
+                dependencies: {
+                    plugins: {
+                        'ai-core': { version: '>=1.0.0', npmPackage: '@jpulse-net/plugin-ai' }
+                    }
+                }
+            });
+            await PluginManager.initialize();
+            const result = await PluginManager.enablePlugin('provider');
+            expect(result.success).toBe(false);
+            expect(result.message).toBe('Missing required dependency: ai-core (install @jpulse-net/plugin-ai)');
         });
 
         test('enablePlugin reactivates definitions and registers controller hooks', async () => {

@@ -7,8 +7,8 @@
  *                   passwordResetSend() (admin, honest response) - plus the eligibility
  *                   classifier and the cross-path token invalidation
  * @file            webapp/tests/unit/controller/user-password-reset-endpoints.test.js
- * @version         2.0.0
- * @release         2026-09-14
+ * @version         2.0.1
+ * @release         2026-09-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

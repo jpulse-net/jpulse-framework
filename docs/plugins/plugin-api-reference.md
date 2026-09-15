@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v2.0.0
+# jPulse Docs / Plugins / Plugins API Reference v2.0.1
 
 Complete API reference for jPulse plugin developers.
 
@@ -71,9 +71,13 @@ Response: { success: true, data: {...} }
         "npm": {                        // Optional: npm packages
             "package-name": "^1.0.0"
         },
-        "plugins": {                    // Optional: Other plugins
-            "other-plugin": "^1.0.0"
+        "plugins": {                    // Optional: Other plugins (string or { version, npmPackage })
+            "other-plugin": "^1.0.0",
+            "ai-core": { "version": ">=1.0.0", "npmPackage": "@jpulse-net/plugin-ai" }
         }
+    },
+    "bundle": {                         // Optional: primary of a multi-plugin package
+        "members": ["companion-name"]
     },
     "config": {
         "schema": [...]                 // Optional: Configuration schema

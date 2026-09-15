@@ -23618,3 +23618,532 @@ with this release.
 
 
 ============================================================
+2026-09-14 14:19
+
+next: W-221: plugin bundle build and installation
+- write work item based on design doc @docs/dev/design/W-222-ai-agent.md
+
+Filled in the existing W-221 stub (kept heading version/date, PENDING status,
+and section placement). Three parts: bundle expand (single vs plugins/* vs
+both-shapes error), dependencies.plugins object form with npmPackage plus
+--no-deps and cycle guard, and i18n deep-merge of framework then plugins then
+site. Fixture plugins, not ai-core. Vue SPA i18n stays W-0.
+
+
+============================================================
+2026-09-14 15:16
+
+- is build/install/update of a single plugin like auth-oauth the same, i.e. no change?
+- I am not clear on build & publish. explain how this would work for
+  demo-primary and demo-secondary plugin bundle, where the former is the
+  primary one
+
+Single plugin path stays the same: publish from plugins/<name>/, install
+copies one dir, update fetches that plugin's own npmPackage. Bundle
+"build" is assemble-then-publish: sibling dirs stay as they are in
+plugins/; publish of the primary (bundle.members) writes a temp package
+with no root plugin.json and plugins/demo-primary + plugins/demo-secondary,
+then npm publish. Install of that package expands both. Offered to settle
+this in the work item if they want.
+
+
+============================================================
+2026-09-14 15:48
+
+looks good
+claude: review the work item, and see if the dx can be improved. ok if not
+
+Reviewed W-221 and applied DX improvements. Found one real bug in the
+sketched design: update compares npm view <pkg> version against the
+member's own plugin.json version, so diverging member versions break
+update - now "one package, one version", synced at publish. Replaced the
+--bundle/--package flags with declarative bundle.members on the primary.
+Added publish --dry-run and --pack-to <dir> for a local round trip before
+the irreversible publish. Missing-dep error now suggests the conventional
+install command but never auto-fetches a guessed package name
+(typosquat risk). Added bundle install summary, i18n default-language
+backfill note, validatePluginJson coverage for bundle.members and
+object-form deps (validation has no unknown-field allowlist), help text,
+matching tests, and a note that auth-oauth is untouched end to end.
+Status and section placement unchanged.
+
+
+============================================================
+2026-09-14 16:08
+
+thanks opus, looks better now
+grok: investigate how the bump script works. objectives:
+- define bump file list only in primary
+- it should bump version in all plugins of a bundle
+
+Investigated bin/bump-version.js: context is cwd-based (framework /
+plugin.json / site); discoverFiles('.') never leaves that tree; plugin
+patterns are already plugin-relative. A companion bump today cannot see
+siblings, and prefixing ../member in the primary conf would fail
+fileUpdateRules matching. Updated W-221: only the primary has
+webapp/bump-version.conf; plugin-context bump applies that conf to each
+bundle.members directory matching relative to the member; bump from a
+companion is refused by scanning siblings for the primary; auth-oauth
+and framework-root bump (hello-world) unchanged. Publish version sync
+stays the plugin.json safety net. Status and section placement unchanged.
+
+
+============================================================
+2026-09-14 16:30
+
+implement, unless questions
+
+Implemented W-221. New webapp/utils/plugin-package.js for shape detect,
+bundle.members / object-form dep validation, assemble, and dep planning.
+CLI install expands single vs bundle (both-shapes error), walks
+npmPackage deps with --no-deps and cycle guard, prints a bundle summary.
+Publish of a primary with bundle.members assembles and supports --dry-run
+and --pack-to; companion publish is refused. Update groups by npmPackage
+and re-expands a bundle. enablePlugin names npmPackage. i18n deep-merges
+framework then active plugins then site (bootstrap i18n after
+PluginManager). Bump from a primary applies its conf to every member;
+companion bump is refused. Tests in isolated temp dirs. Plugin docs
+updated. No README/CHANGELOG (release). Status unchanged. Did not run
+bump-version against this repo.
+
+
+============================================================
+2026-09-14 17:19
+
+why delete file sort to load default language first? @webapp/utils/i18n.js
+- this is code smell for regression bug unless I miss something
+
+Not a regression. The sort existed because auditAndFix ran inside the
+per-file load loop and needed en.conf already in memory. Audit now runs
+once after framework + plugins + site are merged, against a clone of the
+merged default language, so file order no longer matters and plugin-only
+en keys still backfill into de. Added a comment at that audit so the
+moved invariant is visible.
+
+
+============================================================
+2026-09-14 18:48
+
+proceed (create test-primary and test-secondary plugins for e2e)
+
+Added local fixtures plugins/test-primary and plugins/test-secondary.
+Primary owns bundle.members, package.json, and bump-version.conf;
+same npmPackage; secondary autoEnable false, object-form dep on
+primary, English-only translations. Dry-run publish assembles both
+members; publish of secondary is refused. Gitignored like other
+local plugins. Did not run bump-version or touch .jpulse/.
+
+
+============================================================
+2026-09-14 20:22
+
+- not sure what is supposed to show
+- see menu items
+- see plugins page
+
+Menu had two English primary entries (overview + page). Secondary
+was autoEnable false so it had no card, no menu item, and /test-
+secondary/ 404'd. Now one i18n menu item per plugin (overview only),
+secondary autoEnable true + de.conf without englishOnly. User must
+enable test-secondary in admin if it was already discovered disabled,
+then restart. Did not touch .jpulse/.
+
+
+============================================================
+2026-09-14 20:29
+
+- I had to enable the secondary
+- looks good now
+- startup log
+
+Confirmed e2e: both plugins enabled, menu Test Primär / Test
+Sekundär, secondary page shows German plus backfilled englishOnly.
+Startup merges both translation dirs then warns missing
+view.ui.testSecondary.englishOnly in de.conf — that warning is the
+audit before backfill, not a failure. Had to enable secondary
+because it was already in the registry from autoEnable false.
+
+
+============================================================
+2026-09-14 20:31
+
+- guide me through some tests, including publish
+- including install test on a site
+
+Walkthrough: dry-run + pack-to from this repo, refuse companion
+publish, then install the packed tree into an isolated temp site
+(not this working tree). Do not npm publish the fixture. Do not
+install --force here (this repo is detected as a site and already
+has the source plugins).
+
+
+============================================================
+2026-09-14 20:37
+
+before I run node bin/jpulse-framework.js plugin publish
+test-secondary, this is not the documented way - npm publish in
+the plugin home, or npx jpulse plugin publish from framework home
+
+Agreed. Use npx jpulse plugin publish from the framework home.
+npm publish in the plugin directory is the single-plugin path and
+must not be used for this bundle (it would publish only
+test-primary, wrong shape). Companion publish is still refused.
+
+
+============================================================
+2026-09-14 20:44
+
+opus: review options, let me know if there is a way to make
+"npm publish" for bundles (for "don't make me think" dx)
+
+Yes. Verified with a throwaway npm pack probe in /tmp (removed
+after): npm computes the tarball file list AFTER prepack runs, so
+a prepack script can stage plugins/<member>/ inside the primary
+dir, and "files": ["plugins"] excludes the root plugin.json and
+root source. postpack removes staging. Probe tarball had exactly
+package.json + plugins/primary + plugins/companion, no root
+plugin.json - the bundle shape detectPluginPackageShape() wants.
+npm pack and npm publish --dry-run both work with private:true,
+so the fixture can be tested without a registry. Presented three
+options (prepack staging, prepublishOnly guard, delegate-then-
+abort rejected) and asked which to implement. No code changed.
+
+
+============================================================
+2026-09-14 21:02
+
+Implemented Option A + companion guard, as part of W-221.
+
+plugin-package.js: copyDirRecursive gained a skipPaths option so a
+dest inside src cannot recurse. New resolveBundleMembers() (now
+shared with assembleBundlePackage), finalizeBundleMemberCopy()
+which strips a companion package.json from the packaged copy and
+syncs the member version, stageBundleForPack() and
+unstageBundleAfterPack(). Stage is a no-op for a single plugin and
+for an already-assembled tree (no root plugin.json). Unstage
+refuses to delete a plugins/ dir whose children do not match the
+bundle.
+
+plugin-manager-cli.js: new stage-bundle / unstage-bundle actions,
+_warnMissingPackWiring() warning when a bundle primary lacks
+files+prepack, _npmPublish() ignoreScripts param, and the
+assembled-bundle publish now passes --ignore-scripts so the
+primary's prepack cannot re-run in the temp tree. Help updated.
+
+Fixture: test-primary/package.json got "files": ["plugins"] plus
+prepack/postpack calling ../../bin/jpulse-framework.js (no
+node_modules/.bin/jpulse in this repo); .gitignore added.
+test-secondary/package.json is a guard whose prepublishOnly
+refuses and names the primary - verified prepublishOnly runs
+before npm's private check.
+
+Verified with npm pack on the fixture: tarball has package.json +
+plugins/test-primary/ + plugins/test-secondary/, no root
+plugin.json, no companion package.json, and postpack left no
+staging dir. CLI --pack-to still correct.
+
+Tests: 6 stage/unstage cases in plugin-package.test.js plus an
+npm pack tarball-shape test in plugin-bundle-cli.test.js. Full
+unit suite green (134 suites, 3305 tests), no lint errors.
+
+Docs: new "Publishing a bundle with plain npm publish" section in
+publishing-plugins.md, companion/package.json note corrected in
+creating-plugins.md, fixture READMEs updated with the npm pack
+check. Did not touch work-items.md.
+
+
+============================================================
+2026-09-14 21:06
+
+update the work item to reflect the latest spec
+
+Updated W-221 in docs/dev/work-items.md only: features, deliverables,
+and notes. Did not change status or section placement.
+
+Features now cover: CLI publish uses --ignore-scripts; companion
+source may keep a private prepublishOnly guard that staging strips;
+plain npm publish from the primary ships the bundle via
+files+prepack/postpack (stage-bundle/unstage-bundle); site vs
+framework-repo CLI path; i18n audit runs once after all merges
+(no default-language-first file sort).
+
+Deliverables now list plugin-package.js staging helpers, the new
+CLI actions and wiring warning, i18n post-merge audit, both
+publish paths in the plugin docs, and tests for stage/unstage plus
+npm pack tarball shape.
+
+Notes: test-primary/test-secondary are local gitignored fixtures;
+files field is load-bearing; prepack version sync is staging-only.
+
+
+============================================================
+2026-09-14 21:10
+
+please give me test steps again, with new commands
+
+Gave a sequential e2e checklist: UI/i18n recap, CLI publish
+--dry-run / --pack-to / companion refuse from the framework
+root, npm pack and npm publish --dry-run from
+plugins/test-primary, companion npm publish refuse, optional
+stage-bundle/unstage-bundle, and install of the packed tree on
+an isolated site (never this repo's .jpulse/). Bump left
+optional. No code changed.
+
+
+============================================================
+2026-09-14 21:20
+
+User pasted CLI/npm pack/publish-dry-run/companion-guard/stage
+results for test-primary and test-secondary.
+
+Reviewed: all those steps passed. Correct assembled tree, no
+root plugin.json, companion package.json stripped, npm pack and
+npm publish --dry-run both staged then unstaged the bundle
+shape, companion npm publish refused with the guard message.
+Noted leftover tarball in plugins/test-primary and that
+rm -rf tmp/* deleted their prior tmp/jpulse-site-test. Gave
+cleanup plus isolated-site install steps. No code changed.
+
+
+============================================================
+2026-09-14 21:26
+
+I am more interested in an actual publish to github test, and a
+real install in a site - after that we can cleanup
+
+Gave a real GitHub Packages publish + site install + cleanup
+checklist. Blocker: test-primary package.json is private:true,
+which fails both npm publish and CLI assemble (private is
+copied into the packed package.json). One publish only at
+1.0.0; recommended npm publish from the plugin dir to prove
+the new DX. Cleanup: plugin remove on the site, then gh api
+delete of the org npm package. No code changed, did not
+publish.
+
+
+============================================================
+2026-09-14 21:29
+
+what is the complication with private? publish like the existing
+plugins, such as auth-oauth
+
+No GitHub complication. private:true was only a local fixture
+guard we added so npm publish would refuse; auth-oauth has no
+private field and uses publishConfig for GitHub Packages.
+Removed private from test-primary/package.json and added the
+same author, repository (jpulse-framework, this is not a
+standalone plugin repo), and publishConfig as auth-oauth.
+Kept files+prepack/postpack. README note updated. User can
+now publish the same way as auth-oauth.
+
+
+============================================================
+2026-09-14 21:37
+
+I want to run the bump script first but before that we need to
+fix the git scope of the plugin, currently wrong (git status
+from test-primary showed the framework repo)
+
+Cause: fixtures were created in-tree with no .git, so git
+walked up to jpulse-framework. auth-oauth is a clone-within-
+clone. Ran git init -b main in plugins/test-primary and
+plugins/test-secondary. Status is now only those plugin files.
+No commit, no remote, did not run bump-version.
+
+
+============================================================
+2026-09-14 21:42
+
+node bin/bump-version.js from test-secondary crashed MODULE_NOT_FOUND;
+expected missing local bump-version.conf message
+
+Crash was Node looking for plugins/test-secondary/bin/bump-version.js
+(the framework-root command). Added thin bin/bump-version.js wrappers
+in both test plugins that import the framework script. loadBumpConfig
+now runs before resolveBumpRoots so a companion without a conf prints
+"Configuration file not found: webapp/bump-version.conf" and then
+names the primary (does not tell them to create a conf). Added
+type:module on the companion guard to silence the ESM warning. Tests
+4/4 green. Did not bump the live plugins.
+
+
+============================================================
+2026-09-14 21:49
+
+I removed the new bin/bump-version.js files, not standard, not
+documented. bump script still fails (node bin/bump-version.js
+from test-secondary)
+
+Agreed the wrappers were wrong. That command only works from
+the framework root; from a plugin it is a Node MODULE_NOT_FOUND
+before our script runs. Documented command is
+node ../../bin/bump-version.js. Verified from test-secondary:
+missing webapp/bump-version.conf plus companion-of-test-primary.
+Did not re-add wrappers. Did not bump the primary.
+
+
+============================================================
+2026-09-14 21:55
+
+User bumped from test-secondary (refused, missing conf + names
+primary) then from test-primary to 1.0.1 / 2026-09-14. 21 files
+updated across both members. Confirmed versions and headers
+look right. git status in test-primary is all untracked (no
+commit yet); companion lives in its own repo so those files
+do not show there. Gave GitHub publish, site install, and
+cleanup commands. Did not publish.
+
+
+============================================================
+2026-09-14 22:02
+
+npm publish of test-primary@1.0.1 succeeded (correct bundle
+tarball). Site install on jpulse.net failed: released CLI
+looks for a root plugin.json. W-221 is not released.
+
+Told them to run the checkout CLI against the site cwd (no
+copy), or copy just plugin-manager-cli.js + plugin-package.js
+into the site's node_modules framework package if they want
+npx jpulse on that site. Did not copy files onto jpulse.net.
+
+
+============================================================
+2026-09-14 22:14
+
+User installed the published bundle on jpulse.net via the
+checkout CLI. Confirmed: both members at 1.0.1, same
+npmPackage, companion package.json stripped, list --all shows
+both enabled from @jpulse-net/plugin-test-primary. Gave UI
+restart checks and cleanup (plugin remove, then gh delete).
+
+
+============================================================
+2026-09-14 22:17
+
+go on — verified jpulse.net after install. Pages 200:
+/jpulse-plugins/, both overviews, both app pages. Dashboard
+has both cards. Plugin i18n keys render as raw view.ui.*
+because the site still runs released i18n (expected). APIs
+401 without login. Told user install+serve is proven; next
+is cleanup on the site then delete the GitHub package.
+
+
+============================================================
+2026-09-14 22:20
+
+User confirmed site UI looks good: admin plugin list and
+installed-plugins docs show both members at 1.0.1 enabled;
+overview and app pages serve; raw view.ui.* keys expected on
+released i18n. Reminded cleanup (remove both plugins, delete
+GitHub package). No code changed.
+
+
+============================================================
+2026-09-14 22:29
+
+User: auth-mfa installed-plugins symlink deleted on every
+jpulse.net start.
+
+Explained: W-198-era runtime links. PluginManager creates docs
+symlinks only for enabled plugins and
+removeStalePluginSymlinks() unlinks the rest. auth-mfa is
+disabled so the committed symlink is deleted on start;
+hello-world is enabled so it stays. Site should git rm --cached
+the committed links and ignore installed-plugins/* except
+README.md. No code changed.
+
+
+============================================================
+2026-09-14 22:37
+
+User: shares jpulse.net code between dev and prod; MFA enabled
+on prod, disabled on dev; symlink issue started after our test.
+
+Explained: not W-221. Stale-link sweep is W-215 (in the site's
+2.0.0 webapp). Checkout CLI install/remove does not touch
+symlinks or .gitignore. .jpulse/ is gitignored so enable state
+is already per-environment. The conflict is the committed
+auth-mfa symlink. Untrack runtime links; prod start recreates
+MFA docs link, dev does not. Optional jpulse update on dev
+only to commit the ignore block. No code changed.
+
+
+============================================================
+2026-09-14 22:48
+
+User asked if the jpulse.net .gitignore diff is wrong. It is
+not: same four plugin-runtime patterns, only moved up and the
+comment rewritten. ensureSiteGitignore would not write that
+diff (it no-ops when those patterns exist, or appends the old
+comment at the end). Keep either placement; rules are correct.
+Already-tracked auth-mfa/hello-world links still need
+git rm --cached. No code changed.
+
+
+============================================================
+2026-09-14 22:59
+
+User: don't commit test-* (moved to tt-unused/plugins/); what's
+left for W-221; does it include W-0 i18n SPA item.
+
+Agreed: fixtures stay out of git. W-221 took the MPA half of
+W-0 (framework + plugin + site deep merge); Vue SPA stays W-0.
+Code/docs/tests for W-221 are in; leftover is release-prep
+README/CHANGELOG, optional installation.md one-liner, optional
+bundle-update test. No code changed.
+
+
+============================================================
+2026-09-14 23:16
+
+ok, lets do this: renamed design to W-223-ai-agent.md; two
+releases W-221 v2.0.1 bundle then W-222 v2.0.2 i18n; fix work
+items; W-221 partial commit excludes i18n
+
+W-221 title is bundle-only. Removed i18n objectives, features,
+deliverables, tests. Notes: out of scope W-222; v2.0.1 commit
+excludes i18n.js, bootstrap.js, i18n-merge.test.js, and the
+creating-plugins translations paragraph. Design cite drops
+§22.2. W-222 filled as the MPA merge item (status left
+IN_PROGRESS). W-0 SPA expanded; Potential next items no longer
+lists the combined W-0. Status/section placement unchanged.
+
+
+============================================================
+2026-09-14 23:34
+
+release prep for W-221 only (exclude W-222) :
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-221, v2.0.1, 2026-09-15
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Reviewed tt-git-diff.txt: W-221 code/docs/tests are present
+and match the work item; the same tree also has W-222 i18n
+files that must stay out of this commit. Work-item
+features/deliverables already document the work; left
+status and the rest of work-items.md unchanged. Added
+docs/installation.md §5 (bundle install may add every
+member). Wrote v2.0.1 / W-221 Latest Release Highlights
+and CHANGELOG. Wrote commit-message.txt. Tests: 4 suites /
+43 passing. Did not bump version, did not commit, did not
+run git. Exclude i18n.js, bootstrap.js, i18n-merge.test.js,
+and the creating-plugins translations paragraph.
+
+
+============================================================
+2026-09-14 23:41
+
+is there an easy way to git add all files, then un-add a
+select few?
+
+Yes: git add . then git restore --staged <files>. For this
+release unstage i18n.js, bootstrap.js, i18n-merge.test.js.
+creating-plugins.md is mixed hunks so unstaging the whole
+file would also drop the W-221 bundle sections. Did not
+run git.
+
+
+============================================================

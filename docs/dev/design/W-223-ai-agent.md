@@ -1,8 +1,8 @@
-# W-222 AI agent framework for sites
+# W-223 AI agent framework for sites
 
 **Status:** Design only. No implementation and no work item yet. W-220
 (`jPulse.UI.floatPanel`) and W-221 (plugin bundle build and installation) are
-prerequisites; §21 is the proposed split of W-222 itself.
+prerequisites; §21 is the proposed split of W-223 itself.
 
 
 ## Revision history
@@ -28,7 +28,7 @@ need re-reading in full:
 | §16 | `onAiSnapshot` becomes `onAiToolData`; quota hook purposes reworded |
 | §19 | Tests for fidelity, `host: 'auto'`, principals, and multi-subject quota removed |
 | §20 | **Restructured** as `### TD-01` … `### TD-11` sections with room to expand, referenced by number throughout |
-| §21 | Renumbered to the agreed sequence: W-220, W-221, W-222. W-221 gains plugin translation support |
+| §21 | Renumbered to the agreed sequence: W-220, W-221, W-222, W-223. W-222 gains plugin translation support |
 | §22 | **Restructured** into plugin files, framework files, and docs. Every client-side path corrected from `webapp/` to `plugins/ai-core/webapp/`. `hello-ai` ships **inside `ai-core`** rather than in the site template. New §22.2 answers "what framework files change": **exactly one**, `webapp/utils/i18n.js`, with the other seven mechanisms verified as already sufficient |
 | §23 | Questions 1, 2, 5, and 6 answered and removed |
 
@@ -1538,7 +1538,7 @@ and becoming MCP-exposable for free.
 
 ### TD-11 The `ai-openai` provider
 
-**State.** Not planned for W-222. `ai-anthropic` proves the contract against a
+**State.** Not planned for W-223. `ai-anthropic` proves the contract against a
 commercial provider and `ai-mock` proves it against none.
 
 **Why deferred.** A second commercial provider adds coverage, not design, and
@@ -1568,7 +1568,7 @@ release up to the first AI one. All three parts of it are general plugin
 infrastructure with no AI in them, and the translation part is the only
 framework source change this design needs at all.
 
-**W-222** is the AI agent itself and is expected to split further. The proposed
+**W-223** is the AI agent itself and is expected to split further. The proposed
 sub-items, in dependency order:
 
 | # | Sub-item | Contents |

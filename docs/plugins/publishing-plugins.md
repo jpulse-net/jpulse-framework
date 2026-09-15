@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Publishing Plugins v2.0.0
+# jPulse Docs / Plugins / Publishing Plugins v2.0.1
 
 Guide to packaging and publishing jPulse plugins for distribution.
 
@@ -105,6 +105,63 @@ The CLI automatically:
 1. Validates `plugin.json` and `package.json`
 2. Syncs version from `plugin.json` → `package.json`
 3. Runs `npm publish` from the plugin directory
+
+A single plugin is unchanged: publish from `plugins/<name>/` which has its own `package.json`.
+
+### Publishing a bundle
+
+If the primary's `plugin.json` has `bundle.members`, `npx jpulse plugin publish <primary>` assembles a package with a root `package.json` and `plugins/<member>/` for the primary and each companion — and **no** root `plugin.json`. Member `plugin.json` versions are synced to the primary's version. Companions do not need their own `package.json`.
+
+```bash
+npx jpulse plugin publish demo-primary --dry-run
+npx jpulse plugin publish demo-primary --pack-to ./dist/bundle
+npx jpulse plugin install ./dist/bundle          # local round trip before the registry
+npx jpulse plugin publish demo-primary --registry=https://npm.pkg.github.com
+```
+
+Publishing a companion is refused; publish the primary instead.
+
+### Publishing a bundle with plain `npm publish`
+
+A bundle primary can also be published with `npm publish` from its own directory, the same way a
+single plugin is. Add two npm lifecycle scripts and a `files` field to the primary's
+`package.json`:
+
+```json
+{
+    "name": "@jpulse-net/plugin-demo-primary",
+    "version": "1.4.0",
+    "files": ["plugins"],
+    "scripts": {
+        "prepack": "jpulse plugin stage-bundle",
+        "postpack": "jpulse plugin unstage-bundle"
+    }
+}
+```
+
+`prepack` copies the primary and every companion into a temporary `plugins/` directory inside the plugin, and `postpack` removes it. npm builds its file list after `prepack` runs, so the staged members are packed; `"files": ["plugins"]` keeps the primary's root `plugin.json` out of the tarball, which matters because a package containing both shapes is refused at install time.
+
+Verify the result before publishing for real — `npm pack` runs the same scripts:
+
+```bash
+cd plugins/demo-primary
+npm pack
+tar -tzf jpulse-net-plugin-demo-primary-1.4.0.tgz
+```
+
+You should see `package/package.json` plus `package/plugins/demo-primary/` and
+`package/plugins/demo-secondary/`, and no `package/plugin.json`.
+
+In a site, `jpulse` resolves from `node_modules/.bin` because npm puts every ancestor `node_modules/.bin` on `PATH`. Inside the framework repo there is no such link, so use the relative form there:
+
+```json
+"prepack": "node ../../bin/jpulse-framework.js plugin stage-bundle",
+"postpack": "node ../../bin/jpulse-framework.js plugin unstage-bundle"
+```
+
+Without this wiring, `npm publish` from a bundle primary silently ships the primary alone, with a root `plugin.json` and no companions. `npx jpulse plugin publish` warns when it sees a bundle primary that is not wired, and it does not depend on the scripts itself — it assembles the package and publishes with `--ignore-scripts`.
+
+Companions have no `package.json` of their own in the published package. During development a companion may carry a small `private` `package.json` whose only job is a `prepublishOnly` script that refuses and names the primary; staging strips it from the packaged copy.
 
 ### 1. Create package.json
 

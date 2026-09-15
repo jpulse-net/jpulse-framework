@@ -3,8 +3,8 @@
  * @tagline         Integration tests for application startup flow
  * @description     Tests for the complete application initialization process
  * @file            webapp/tests/integration/app-startup.test.js
- * @version         2.0.0
- * @release         2026-09-14
+ * @version         2.0.1
+ * @release         2026-09-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

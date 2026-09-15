@@ -1,4 +1,4 @@
-# jPulse Docs / Site Installation Guide v2.0.0
+# jPulse Docs / Site Installation Guide v2.0.1
 
 This guide covers creating and setting up jPulse sites for development and production environments.
 
@@ -137,6 +137,14 @@ npx jpulse validate
 ```
 
 **New in v0.7.3**: Comprehensive deployment validation suite that automatically detects your deployment type (development vs production) and runs appropriate tests.
+
+### 5. Install plugins
+
+```bash
+npx jpulse plugin install auth-mfa
+```
+
+A bundle package (root `package.json`, `plugins/<name>/plugin.json`, no root `plugin.json`) installs every member in one command. See [Managing Plugins](plugins/managing-plugins.md).
 
 ## Database Setup
 

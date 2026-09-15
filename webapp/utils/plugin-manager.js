@@ -3,13 +3,13 @@
  * @tagline         Plugin Discovery and Lifecycle Management
  * @description     Manages plugin discovery, validation, dependencies, and lifecycle
  * @file            webapp/utils/plugin-manager.js
- * @version         2.0.0
- * @release         2026-09-14
+ * @version         2.0.1
+ * @release         2026-09-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.15, Grok 4.6
+ * @genai           80%, Cursor 3.20, Grok 4.6
  */
 
 import fs from 'fs';
@@ -17,6 +17,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import SymlinkManager from './symlink-manager.js';
 import CommonUtils from './common.js';
+import {
+    normalizePluginDependency,
+    validatePluginDependencyEntry,
+    validateBundleMembers,
+    formatMissingPluginDependency
+} from './plugin-package.js';
 
 /**
  * Plugin Manager - handles plugin discovery, validation, and lifecycle
@@ -306,13 +312,21 @@ class PluginManager {
 
         // Validate dependencies
         if (pluginJson.dependencies) {
-            if (pluginJson.dependencies.plugins && typeof pluginJson.dependencies.plugins !== 'object') {
-                errors.push('dependencies.plugins must be an object');
+            if (pluginJson.dependencies.plugins) {
+                if (typeof pluginJson.dependencies.plugins !== 'object' || Array.isArray(pluginJson.dependencies.plugins)) {
+                    errors.push('dependencies.plugins must be an object');
+                } else {
+                    for (const [depName, depValue] of Object.entries(pluginJson.dependencies.plugins)) {
+                        errors.push(...validatePluginDependencyEntry(depName, depValue));
+                    }
+                }
             }
             if (pluginJson.dependencies.npm && typeof pluginJson.dependencies.npm !== 'object') {
                 errors.push('dependencies.npm must be an object');
             }
         }
+
+        errors.push(...validateBundleMembers(pluginJson));
 
         return {
             valid: errors.length === 0,
@@ -476,10 +490,13 @@ class PluginManager {
         const pluginData = this.discovered.get(name);
         if (pluginData) {
             const dependencies = pluginData.metadata.dependencies?.plugins || {};
-            for (const depName of Object.keys(dependencies)) {
+            for (const [depName, depValue] of Object.entries(dependencies)) {
                 const dep = this.registry.plugins.find(p => p.name === depName);
                 if (!dep || !dep.enabled) {
-                    return { success: false, message: `Missing required dependency: ${depName}` };
+                    const spec = normalizePluginDependency(depValue);
+                    const depMeta = this.discovered.get(depName)?.metadata;
+                    const npmPackage = spec.npmPackage || depMeta?.npmPackage || null;
+                    return { success: false, message: formatMissingPluginDependency(depName, npmPackage) };
                 }
             }
         }

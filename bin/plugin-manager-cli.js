@@ -4,19 +4,30 @@
  * @tagline         Plugin management commands for jPulse Framework
  * @description     Handles plugin install, update, remove, enable, disable, list, info, publish
  * @file            bin/plugin-manager-cli.js
- * @version         2.0.0
- * @release         2026-09-14
+ * @version         2.0.1
+ * @release         2026-09-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.0, Claude Opus 4
+ * @genai           80%, Cursor 3.20, Grok 4.6
  */
 
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import os from 'os';
 import path from 'path';
 import fs from 'fs';
+import {
+    validatePluginJson,
+    detectPluginPackageShape,
+    findBundlePrimaryForCompanion,
+    planPluginDependencyInstalls,
+    copyDirRecursive,
+    stageBundleForPack,
+    unstageBundleAfterPack,
+    assembleBundlePackage
+} from '../webapp/utils/plugin-package.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,54 +57,6 @@ class PluginError extends Error {
         this.code = code;
         this.suggestions = suggestions;
     }
-}
-
-/**
- * Validate plugin.json structure and required fields
- * @param {object} pluginJson - Parsed plugin.json
- * @param {string} pluginPath - Path to plugin (for error messages)
- * @returns {object} { valid: boolean, errors: string[], warnings: string[] }
- */
-function validatePluginJson(pluginJson, pluginPath) {
-    const errors = [];
-    const warnings = [];
-
-    // Required fields
-    if (!pluginJson.name) {
-        errors.push('Missing required field: name');
-    } else if (!/^[a-z0-9-]+$/.test(pluginJson.name)) {
-        errors.push('Invalid name: must be lowercase alphanumeric with hyphens');
-    }
-
-    if (!pluginJson.version) {
-        errors.push('Missing required field: version');
-    } else if (!/^\d+\.\d+\.\d+/.test(pluginJson.version)) {
-        warnings.push('Version should follow semver format (e.g., 1.0.0)');
-    }
-
-    // Recommended fields
-    if (!pluginJson.summary) {
-        warnings.push('Missing recommended field: summary');
-    }
-    if (!pluginJson.author) {
-        warnings.push('Missing recommended field: author');
-    }
-    if (!pluginJson.jpulseVersion) {
-        warnings.push('Missing recommended field: jpulseVersion');
-    }
-
-    // Validate config schema if present
-    if (pluginJson.config?.schema) {
-        if (!Array.isArray(pluginJson.config.schema)) {
-            errors.push('config.schema must be an array');
-        }
-    }
-
-    return {
-        valid: errors.length === 0,
-        errors,
-        warnings
-    };
 }
 
 /**
@@ -422,29 +385,6 @@ function saveRegistry(registryPath, registry) {
  * @param {string} src - Source directory
  * @param {string} dest - Destination directory
  */
-function copyDirRecursive(src, dest) {
-    if (!fs.existsSync(dest)) {
-        fs.mkdirSync(dest, { recursive: true });
-    }
-
-    const entries = fs.readdirSync(src, { withFileTypes: true });
-
-    for (const entry of entries) {
-        const srcPath = path.join(src, entry.name);
-        const destPath = path.join(dest, entry.name);
-
-        if (entry.isDirectory()) {
-            // Skip .git directories
-            if (entry.name === '.git') {
-                continue;
-            }
-            copyDirRecursive(srcPath, destPath);
-        } else {
-            fs.copyFileSync(srcPath, destPath);
-        }
-    }
-}
-
 /**
  * Check jPulse version compatibility
  * @param {string} requiredVersion - Required version string (e.g., ">=1.3.8")
@@ -527,6 +467,173 @@ function getFrameworkVersion(projectRoot) {
 }
 
 /**
+ * Fetch an npm package into projectRoot/node_modules (no save).
+ * @param {string} packageSpec - name or name@version
+ * @param {string} packageName - package name for node_modules path
+ * @param {string} projectRoot
+ * @param {object} options
+ * @returns {string} Path to the installed package
+ */
+function fetchNpmPackage(packageSpec, packageName, projectRoot, options) {
+    console.log(`  → Fetching ${packageSpec}...`);
+
+    let npmCmd = `npm install ${packageSpec} --no-save --legacy-peer-deps`;
+    if (options.registry) {
+        npmCmd += ` --registry=${options.registry}`;
+    }
+
+    try {
+        execSync(npmCmd, { cwd: projectRoot, stdio: 'pipe' });
+        console.log('  ✓ Downloaded via npm');
+    } catch (error) {
+        const stderr = error.stderr?.toString() || error.message;
+        const parsed = parseNpmError(stderr);
+        const suggestions = parsed.suggestion ? [parsed.suggestion] : [];
+        throw new PluginError(
+            `npm install failed: ${parsed.message}`,
+            parsed.code,
+            suggestions
+        );
+    }
+
+    const nodeModulesPath = path.join(projectRoot, 'node_modules', packageName);
+    if (!fs.existsSync(nodeModulesPath)) {
+        throw new PluginError(
+            `Package not found in node_modules after install: ${packageName}`,
+            ERROR_CODES.NPM_ERROR,
+            ['This may be an npm caching issue. Try: npm cache clean --force']
+        );
+    }
+    return nodeModulesPath;
+}
+
+/**
+ * Register one installed plugin in .jpulse/plugins.json
+ * @returns {{ name: string, version: string, enabled: boolean, autoEnable: boolean, destPath: string }}
+ */
+function registerInstalledMember(pluginJson, destPath, installedFrom, options, registry, now) {
+    const pluginName = pluginJson.name;
+    const autoEnable = pluginJson.autoEnable ?? true;
+    const shouldEnable = options.enable === true || (options.enable === null && autoEnable);
+
+    let registryEntry = registry.plugins.find(p => p.name === pluginName);
+    if (!registryEntry) {
+        registryEntry = {
+            name: pluginName,
+            version: pluginJson.version,
+            enabled: shouldEnable,
+            autoEnable: autoEnable,
+            source: installedFrom,
+            installedAt: now,
+            installedBy: 'cli',
+            enabledAt: shouldEnable ? now : null
+        };
+        registry.plugins.push(registryEntry);
+    } else {
+        registryEntry.version = pluginJson.version;
+        registryEntry.source = installedFrom;
+        registryEntry.installedAt = now;
+        if (shouldEnable && !registryEntry.enabled) {
+            registryEntry.enabled = true;
+            registryEntry.enabledAt = now;
+        }
+    }
+
+    return {
+        name: pluginName,
+        version: pluginJson.version,
+        enabled: registryEntry.enabled,
+        autoEnable: autoEnable,
+        destPath
+    };
+}
+
+/**
+ * Expand a single-plugin or bundle source into plugins/.
+ * @returns {{ installed: object[], skipped: object[], shape: object }}
+ */
+function expandPluginSource(sourceRoot, pluginsDir, installedFrom, options, registry, projectRoot, context) {
+    const shape = detectPluginPackageShape(sourceRoot);
+    if (shape.type === 'invalid') {
+        throw new PluginError(
+            shape.error,
+            ERROR_CODES.INVALID_PLUGIN,
+            [
+                'A single plugin has a root plugin.json',
+                'A bundle has plugins/<name>/plugin.json and no root plugin.json'
+            ]
+        );
+    }
+
+    const now = new Date().toISOString();
+    const installed = [];
+    const skipped = [];
+    const frameworkVersion = getFrameworkVersion(projectRoot);
+
+    for (const member of shape.members) {
+        const validation = validatePluginJson(member.pluginJson, member.path);
+        if (!validation.valid) {
+            throw new PluginError(
+                `Invalid plugin.json (${member.name}): ${validation.errors.join(', ')}`,
+                ERROR_CODES.VALIDATION_ERROR,
+                ['Fix the errors in plugin.json and try again']
+            );
+        }
+        if (validation.warnings.length > 0) {
+            for (const warning of validation.warnings) {
+                console.log(`⚠️  WARNING: ${warning} [${SCRIPT_FILE}]`);
+            }
+        }
+
+        if (installedFrom !== 'local' && member.pluginJson.jpulseVersion
+            && !checkVersionCompatibility(member.pluginJson.jpulseVersion, frameworkVersion)) {
+            throw new PluginError(
+                `Plugin '${member.name}' requires jPulse ${member.pluginJson.jpulseVersion}, current version is ${frameworkVersion}`,
+                ERROR_CODES.VERSION_MISMATCH,
+                [
+                    `Update jPulse framework to ${member.pluginJson.jpulseVersion} or later`,
+                    `Or install an older version of this plugin compatible with ${frameworkVersion}`
+                ]
+            );
+        }
+
+        const destPath = path.join(pluginsDir, member.name);
+        if (fs.existsSync(destPath) && !options.force) {
+            if (shape.type === 'single') {
+                throw new PluginError(
+                    `Plugin '${member.name}' already exists at plugins/${member.name}/`,
+                    ERROR_CODES.ALREADY_EXISTS,
+                    [
+                        `Use --force to overwrite the existing plugin`,
+                        `Or run 'npx jpulse plugin update ${member.name}' to update`
+                    ]
+                );
+            }
+            skipped.push({ name: member.name, destPath });
+            continue;
+        }
+
+        console.log(`  ✓ Copying to plugins/${member.name}/`);
+        copyDirRecursive(member.path, destPath, { skipDirNames: ['node_modules'] });
+        installPluginRuntimeDependencies(destPath, member.pluginJson, options, context);
+        installed.push(registerInstalledMember(member.pluginJson, destPath, installedFrom, options, registry, now));
+    }
+
+    if (shape.type === 'bundle' && installed.length === 0 && skipped.length === shape.members.length) {
+        throw new PluginError(
+            `All bundle members already exist. Use --force to overwrite.`,
+            ERROR_CODES.ALREADY_EXISTS,
+            [
+                `Use --force to overwrite the existing plugins`,
+                `Or run 'npx jpulse plugin update' to update`
+            ]
+        );
+    }
+
+    return { installed, skipped, shape };
+}
+
+/**
  * Plugin Manager CLI
  * Handles all `npx jpulse plugin` subcommands
  */
@@ -560,6 +667,10 @@ class PluginCLI {
                     return await this.disable(target, options);
                 case 'publish':
                     return await this.publish(target, options);
+                case 'stage-bundle':
+                    return this.stageBundle();
+                case 'unstage-bundle':
+                    return this.unstageBundle();
                 case 'help':
                 case '--help':
                 case '-h':
@@ -607,7 +718,10 @@ class PluginCLI {
             force: false,
             enable: null,      // null = use plugin default, true = force enable, false = force disable
             registry: null,
-            tag: null
+            tag: null,
+            noDeps: false,
+            dryRun: false,
+            packTo: null
         };
 
         for (let i = 0; i < args.length; i++) {
@@ -623,6 +737,14 @@ class PluginCLI {
                 options.enable = true;
             } else if (arg === '--no-enable') {
                 options.enable = false;
+            } else if (arg === '--no-deps') {
+                options.noDeps = true;
+            } else if (arg === '--dry-run') {
+                options.dryRun = true;
+            } else if (arg === '--pack-to' && args[i + 1]) {
+                options.packTo = args[++i];
+            } else if (arg.startsWith('--pack-to=')) {
+                options.packTo = arg.split('=').slice(1).join('=');
             } else if (arg === '--registry' && args[i + 1]) {
                 options.registry = args[++i];
             } else if (arg.startsWith('--registry=')) {
@@ -649,12 +771,14 @@ Usage: npx jpulse plugin <action> [name] [options]
 Actions:
   list [--all] [--json]     List installed plugins
   info <name>               Show detailed plugin information
-  install <source>          Install plugin from npm, git, or local path
+  install <source>          Install a plugin or bundle from npm, git, or local path
   update [name]             Update plugin(s) to latest version
   remove <name>             Remove an installed plugin
   enable <name>             Enable a disabled plugin
   disable <name>            Disable an enabled plugin
-  publish <name>            Publish plugin to npm registry
+  publish <name>            Publish plugin or bundle to npm registry
+  stage-bundle              npm prepack hook: stage bundle members (run in the plugin dir)
+  unstage-bundle            npm postpack hook: remove the staging directory
 
 Options:
   --help, -h                Show this help message
@@ -664,6 +788,9 @@ Options:
   --force, -f               Skip confirmations
   --enable                  Enable plugin after install
   --no-enable               Don't enable plugin after install
+  --no-deps                 Do not fetch declared plugin dependencies
+  --dry-run                 Assemble a bundle and print the tree without publishing
+  --pack-to=<dir>           Write the assembled bundle to a directory without publishing
   --registry=<url>          Use custom npm registry
   --tag=<tag>               Publish with specific tag
 
@@ -679,8 +806,15 @@ Examples:
   npx jpulse plugin disable auth-mfa
   npx jpulse plugin remove auth-mfa
   npx jpulse plugin publish auth-mfa
+  npx jpulse plugin publish demo-primary --dry-run
+  npx jpulse plugin publish demo-primary --pack-to ./dist/bundle
 
-Note: Plugins can also be managed via Admin UI at /admin/plugins
+Note: install of a bundle package adds every member plugin. Plugins can also be
+managed via Admin UI at /admin/plugins
+
+A bundle primary whose package.json has "files": ["plugins"] plus prepack/postpack
+scripts calling stage-bundle/unstage-bundle also ships correctly via a plain
+\`npm publish\` from the plugin directory. Verify with \`npm pack\` first.
 `);
     }
 
@@ -842,7 +976,7 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
     }
 
     /**
-     * Install a plugin
+     * Install a plugin or bundle
      * @param {string} source - Plugin source (name, npm package, git URL, or local path)
      * @param {object} options - Command options
      */
@@ -851,14 +985,25 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
             throw new Error('Plugin source is required. Usage: npx jpulse plugin install <source>');
         }
 
+        await this._installResolved(source, options);
+    }
+
+    /**
+     * Shared install used by the public command and the dependency walker.
+     * @param {string} source
+     * @param {object} options
+     * @returns {object[]} Installed member summaries
+     */
+    static async _installResolved(source, options) {
         const { projectRoot, pluginsDir, jpulseDir, registryPath, context } = detectPaths();
         const resolved = resolvePluginSource(source);
+        const installingPackages = options._installingPackages || new Set();
+        const pulledDeps = options._pulledDeps || [];
 
         console.log('');
         console.log(`Installing plugin from ${resolved.type}: ${resolved.packageName || resolved.localPath || source}`);
         console.log('');
 
-        // Ensure directories exist
         if (!fs.existsSync(pluginsDir)) {
             fs.mkdirSync(pluginsDir, { recursive: true });
         }
@@ -866,229 +1011,141 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
             fs.mkdirSync(jpulseDir, { recursive: true });
         }
 
-        let pluginJson;
-        let pluginName;
+        let sourceRoot;
         let installedFrom;
-        let destPath;
 
         if (resolved.type === 'local') {
-            // Local path install - copy directly to plugins/
-            const sourcePath = resolved.localPath;
-
-            if (!fs.existsSync(sourcePath)) {
+            sourceRoot = resolved.localPath;
+            if (!fs.existsSync(sourceRoot)) {
                 throw new PluginError(
-                    `Local path not found: ${sourcePath}`,
+                    `Local path not found: ${sourceRoot}`,
                     ERROR_CODES.PLUGIN_NOT_FOUND,
                     ['Check that the path exists and is accessible']
                 );
             }
-
-            const pluginJsonPath = path.join(sourcePath, 'plugin.json');
-            if (!fs.existsSync(pluginJsonPath)) {
-                throw new Error(`Not a valid plugin: missing plugin.json at ${sourcePath}`);
-            }
-
-            pluginJson = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
-
-            // Validate plugin.json
-            const validation = validatePluginJson(pluginJson, sourcePath);
-            if (!validation.valid) {
-                throw new PluginError(
-                    `Invalid plugin.json: ${validation.errors.join(', ')}`,
-                    ERROR_CODES.VALIDATION_ERROR,
-                    ['Fix the errors in plugin.json and try again']
-                );
-            }
-            if (validation.warnings.length > 0) {
-                for (const warning of validation.warnings) {
-                    console.log(`⚠️  WARNING: ${warning} [${SCRIPT_FILE}]`);
-                }
-            }
-
-            pluginName = pluginJson.name;
             installedFrom = 'local';
-
-            destPath = path.join(pluginsDir, pluginName);
-
-            console.log(`  ✓ Validated plugin.json`);
-
-            // Check if already exists
-            if (fs.existsSync(destPath) && !options.force) {
-                throw new PluginError(
-                    `Plugin '${pluginName}' already exists at plugins/${pluginName}/`,
-                    ERROR_CODES.ALREADY_EXISTS,
-                    [
-                        `Use --force to overwrite the existing plugin`,
-                        `Or run 'npx jpulse plugin update ${pluginName}' to update`
-                    ]
-                );
-            }
-
-            // Copy to plugins/
-            console.log(`  ✓ Copying to plugins/${pluginName}/`);
-            copyDirRecursive(sourcePath, destPath);
-
         } else {
-            // npm-based install (npm, github, git, tarball)
             const packageSpec = resolved.version
                 ? `${resolved.packageName}@${resolved.version}`
                 : resolved.packageName;
-
-            console.log(`  → Fetching ${packageSpec}...`);
-
-            // Build npm install command
-            // Use --legacy-peer-deps to avoid peer dependency issues
-            // (plugin peer deps on jpulse-framework may not be satisfiable during install)
-            let npmCmd = `npm install ${packageSpec} --no-save --legacy-peer-deps`;
-            if (options.registry) {
-                npmCmd += ` --registry=${options.registry}`;
-            }
-
-            try {
-                execSync(npmCmd, { cwd: projectRoot, stdio: 'pipe' });
-                console.log(`  ✓ Downloaded via npm`);
-            } catch (error) {
-                const stderr = error.stderr?.toString() || error.message;
-                const parsed = parseNpmError(stderr);
-                const suggestions = parsed.suggestion ? [parsed.suggestion] : [];
+            if (installingPackages.has(resolved.packageName)) {
                 throw new PluginError(
-                    `npm install failed: ${parsed.message}`,
-                    parsed.code,
-                    suggestions
-                );
-            }
-
-            // Find the installed package in node_modules
-            const nodeModulesPath = path.join(projectRoot, 'node_modules', resolved.packageName);
-
-            if (!fs.existsSync(nodeModulesPath)) {
-                throw new PluginError(
-                    `Package not found in node_modules after install: ${resolved.packageName}`,
-                    ERROR_CODES.NPM_ERROR,
-                    ['This may be an npm caching issue. Try: npm cache clean --force']
-                );
-            }
-
-            const pluginJsonPath = path.join(nodeModulesPath, 'plugin.json');
-            if (!fs.existsSync(pluginJsonPath)) {
-                throw new PluginError(
-                    `Not a valid jPulse plugin: missing plugin.json in ${resolved.packageName}`,
-                    ERROR_CODES.INVALID_PLUGIN,
-                    [
-                        'This npm package is not a jPulse plugin',
-                        'jPulse plugins must include a plugin.json file'
-                    ]
-                );
-            }
-
-            pluginJson = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
-
-            // Validate plugin.json
-            const validation = validatePluginJson(pluginJson, nodeModulesPath);
-            if (!validation.valid) {
-                throw new PluginError(
-                    `Invalid plugin.json: ${validation.errors.join(', ')}`,
+                    `Circular plugin package dependency: ${resolved.packageName}`,
                     ERROR_CODES.VALIDATION_ERROR,
-                    ['The plugin has an invalid plugin.json file']
+                    ['Remove the cycle in dependencies.plugins.npmPackage']
                 );
             }
-            if (validation.warnings.length > 0) {
-                for (const warning of validation.warnings) {
-                    console.log(`⚠️  WARNING: ${warning} [${SCRIPT_FILE}]`);
+            installingPackages.add(resolved.packageName);
+            sourceRoot = fetchNpmPackage(packageSpec, resolved.packageName, projectRoot, options);
+            installedFrom = resolved.packageName;
+        }
+
+        const registry = loadRegistry(registryPath);
+        const { installed, skipped, shape } = expandPluginSource(
+            sourceRoot, pluginsDir, installedFrom, options, registry, projectRoot, context
+        );
+
+        for (const member of installed) {
+            const jsonPath = path.join(member.destPath, 'plugin.json');
+            if (fs.existsSync(jsonPath)) {
+                const json = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+                if (json.npmPackage) {
+                    installingPackages.add(json.npmPackage);
                 }
             }
-
-            pluginName = pluginJson.name;
-            installedFrom = resolved.packageName;
-
-            console.log(`  ✓ Validated plugin.json`);
-
-            // Check jPulse version compatibility
-            const frameworkVersion = getFrameworkVersion(projectRoot);
-            if (pluginJson.jpulseVersion && !checkVersionCompatibility(pluginJson.jpulseVersion, frameworkVersion)) {
-                throw new PluginError(
-                    `Plugin requires jPulse ${pluginJson.jpulseVersion}, current version is ${frameworkVersion}`,
-                    ERROR_CODES.VERSION_MISMATCH,
-                    [
-                        `Update jPulse framework to ${pluginJson.jpulseVersion} or later`,
-                        `Or install an older version of this plugin compatible with ${frameworkVersion}`
-                    ]
-                );
-            }
-            console.log(`  ✓ Checked version compatibility (${pluginJson.jpulseVersion || 'any'})`);
-
-            // Sync to plugins/
-            destPath = path.join(pluginsDir, pluginName);
-
-            if (fs.existsSync(destPath) && !options.force) {
-                throw new PluginError(
-                    `Plugin '${pluginName}' already exists at plugins/${pluginName}/`,
-                    ERROR_CODES.ALREADY_EXISTS,
-                    [
-                        `Use --force to overwrite the existing plugin`,
-                        `Or run 'npx jpulse plugin update ${pluginName}' to update`
-                    ]
-                );
-            }
-
-            console.log(`  ✓ Syncing to plugins/${pluginName}/`);
-            copyDirRecursive(nodeModulesPath, destPath);
         }
 
-        // Install plugin runtime dependencies into the plugin directory (site installs only)
-        installPluginRuntimeDependencies(destPath, pluginJson, options, context);
-
-        // Load and update registry
-        const registry = loadRegistry(registryPath);
-        const now = new Date().toISOString();
-
-        // Check if plugin already in registry
-        let registryEntry = registry.plugins.find(p => p.name === pluginName);
-        const autoEnable = pluginJson.autoEnable ?? true;
-        const shouldEnable = options.enable === true || (options.enable === null && autoEnable);
-
-        if (!registryEntry) {
-            // New plugin
-            registryEntry = {
-                name: pluginName,
-                version: pluginJson.version,
-                enabled: shouldEnable,
-                autoEnable: autoEnable,
-                source: installedFrom,
-                installedAt: now,
-                installedBy: 'cli',
-                enabledAt: shouldEnable ? now : null
-            };
-            registry.plugins.push(registryEntry);
-        } else {
-            // Update existing
-            registryEntry.version = pluginJson.version;
-            registryEntry.source = installedFrom;
-            registryEntry.installedAt = now;
-            if (shouldEnable && !registryEntry.enabled) {
-                registryEntry.enabled = true;
-                registryEntry.enabledAt = now;
-            }
-        }
-
-        // Save registry
         saveRegistry(registryPath, registry);
-        console.log(`  ✓ Registered in database`);
+        console.log('  ✓ Registered in database');
 
+        if (!options.noDeps && !options._skipDepWalk) {
+            const pluginJsons = [...installed, ...skipped].map(m => {
+                const dest = m.destPath || path.join(pluginsDir, m.name);
+                return JSON.parse(fs.readFileSync(path.join(dest, 'plugin.json'), 'utf8'));
+            });
+            const plan = planPluginDependencyInstalls(pluginJsons, {
+                isInstalled: (name) => fs.existsSync(path.join(pluginsDir, name, 'plugin.json')),
+                inFlightPackages: installingPackages
+            });
+            if (plan.circular.length > 0) {
+                throw new PluginError(
+                    `Circular plugin package dependency: ${plan.circular.join(', ')}`,
+                    ERROR_CODES.VALIDATION_ERROR,
+                    ['Remove the cycle in dependencies.plugins.npmPackage']
+                );
+            }
+            if (plan.errors.length > 0) {
+                const depName = plan.errors[0];
+                throw new PluginError(
+                    `Missing required plugin dependency: ${depName}`,
+                    ERROR_CODES.PLUGIN_NOT_FOUND,
+                    [
+                        `Run 'npx jpulse plugin install ${depName}' to install it (maps to @jpulse-net/plugin-${depName})`,
+                        `Or add npmPackage to the dependency in plugin.json`
+                    ]
+                );
+            }
+            for (const fetch of plan.fetches) {
+                pulledDeps.push(fetch.npmPackage);
+                await this._installResolved(fetch.npmPackage, {
+                    ...options,
+                    _installingPackages: installingPackages,
+                    _pulledDeps: pulledDeps,
+                    _nested: true,
+                    _skipDepWalk: false
+                });
+            }
+        }
+
+        if (!options._nested) {
+            this._printInstallSummary(shape, installed, skipped, pulledDeps, options);
+        }
+        return installed;
+    }
+
+    /**
+     * Print install summary (one block for a bundle, today's block for a single plugin).
+     */
+    static _printInstallSummary(shape, installed, skipped, pulledDeps, options) {
+        if (shape.type === 'bundle') {
+            console.log('');
+            console.log('Bundle installed:');
+            console.log('');
+            for (const member of installed) {
+                console.log(`  ${member.name}  ${member.version}  ${member.enabled ? 'enabled' : 'disabled'} (autoEnable: ${member.autoEnable ? 'yes' : 'no'})`);
+                console.log(`    Location: plugins/${member.name}/`);
+            }
+            for (const member of skipped) {
+                console.log(`  ${member.name}  skipped (already installed; use --force to overwrite)`);
+            }
+            if (pulledDeps.length > 0) {
+                console.log('');
+                console.log(`  Dependencies fetched: ${pulledDeps.join(', ')}`);
+            }
+            console.log('');
+            console.log('  ⚠ Note: App restart may be required for full effect.');
+            console.log('');
+            return;
+        }
+
+        const member = installed[0];
+        if (!member) {
+            return;
+        }
         console.log('');
-        console.log(`Plugin '${pluginName}' installed successfully!`);
+        console.log(`Plugin '${member.name}' installed successfully!`);
         console.log('');
-        console.log(`  Version:     ${pluginJson.version}`);
-        console.log(`  Status:      ${shouldEnable ? 'enabled' : 'disabled'} (autoEnable: ${autoEnable ? 'yes' : 'no'})`);
-        console.log(`  Location:    plugins/${pluginName}/`);
+        console.log(`  Version:     ${member.version}`);
+        console.log(`  Status:      ${member.enabled ? 'enabled' : 'disabled'} (autoEnable: ${member.autoEnable ? 'yes' : 'no'})`);
+        console.log(`  Location:    plugins/${member.name}/`);
         console.log('');
 
-        if (!shouldEnable) {
+        if (!member.enabled) {
             console.log('  To enable:');
-            console.log(`    npx jpulse plugin enable ${pluginName}`);
+            console.log(`    npx jpulse plugin enable ${member.name}`);
             console.log('');
             console.log('  Or configure first at:');
-            console.log(`    /admin/plugins/${pluginName}`);
+            console.log(`    /admin/plugins/${member.name}`);
             console.log('');
         } else {
             console.log('  ⚠ Note: App restart may be required for full effect.');
@@ -1106,29 +1163,58 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
         const registry = loadRegistry(registryPath);
         const plugins = discoverPlugins(pluginsDir, registry);
 
-        // Determine which plugins to update
-        let pluginsToUpdate = [];
+        const packageGroups = new Map();
+
+        const addPluginToGroup = (plugin) => {
+            if (!plugin.npmPackage) {
+                return;
+            }
+            if (!packageGroups.has(plugin.npmPackage)) {
+                packageGroups.set(plugin.npmPackage, []);
+            }
+            packageGroups.get(plugin.npmPackage).push(plugin);
+        };
 
         if (name && !name.startsWith('-')) {
-            // Update specific plugin
-            const plugin = plugins.find(p => p.name === name);
-            if (!plugin) {
-                throw new PluginError(
-                    `Plugin '${name}' not found.`,
-                    ERROR_CODES.PLUGIN_NOT_FOUND,
-                    [
-                        `Run 'npx jpulse plugin list --all' to see installed plugins`,
-                        `Run 'npx jpulse plugin install ${name}' to install it first`
-                    ]
-                );
+            if (name.startsWith('@')) {
+                const match = name.match(/^(@[^@]+)(?:@(.+))?$/);
+                const packageName = match ? match[1] : name;
+                const members = plugins.filter(p => p.npmPackage === packageName);
+                if (members.length === 0) {
+                    throw new PluginError(
+                        `No installed plugin uses package '${packageName}'.`,
+                        ERROR_CODES.PLUGIN_NOT_FOUND,
+                        [`Run 'npx jpulse plugin list --all' to see installed plugins`]
+                    );
+                }
+                packageGroups.set(packageName, members);
+            } else {
+                const plugin = plugins.find(p => p.name === name);
+                if (!plugin) {
+                    throw new PluginError(
+                        `Plugin '${name}' not found.`,
+                        ERROR_CODES.PLUGIN_NOT_FOUND,
+                        [
+                            `Run 'npx jpulse plugin list --all' to see installed plugins`,
+                            `Run 'npx jpulse plugin install ${name}' to install it first`
+                        ]
+                    );
+                }
+                addPluginToGroup(plugin);
+                if (!plugin.npmPackage) {
+                    console.log('');
+                    console.log(`  ${plugin.name}: skipped (local plugin, no npm source)`);
+                    console.log('');
+                    return;
+                }
             }
-            pluginsToUpdate = [plugin];
         } else {
-            // Update all plugins that have npm source
-            pluginsToUpdate = plugins.filter(p => p.npmPackage);
+            for (const plugin of plugins) {
+                addPluginToGroup(plugin);
+            }
         }
 
-        if (pluginsToUpdate.length === 0) {
+        if (packageGroups.size === 0) {
             console.log('');
             console.log('No plugins to update.');
             console.log('');
@@ -1136,24 +1222,19 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
         }
 
         console.log('');
-        console.log(`Checking ${pluginsToUpdate.length} plugin(s) for updates...`);
+        console.log(`Checking ${packageGroups.size} package(s) for updates...`);
         console.log('');
 
         let updatedCount = 0;
         let failedCount = 0;
+        let unchangedCount = 0;
 
-        for (const plugin of pluginsToUpdate) {
-            console.log(`  ${plugin.name} (${plugin.version}):`);
-
-            // Skip if no npm package source
-            if (!plugin.npmPackage) {
-                console.log(`    ⏭ Skipped (local plugin, no npm source)`);
-                continue;
-            }
+        for (const [packageName, members] of packageGroups.entries()) {
+            const label = members.map(m => m.name).join(', ');
+            console.log(`  ${packageName} (${label}):`);
 
             try {
-                // Get latest version from npm
-                let npmCmd = `npm view ${plugin.npmPackage} version`;
+                let npmCmd = `npm view ${packageName} version`;
                 if (options.registry) {
                     npmCmd += ` --registry=${options.registry}`;
                 }
@@ -1168,80 +1249,62 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
                     continue;
                 }
 
-                // Compare versions
-                if (latestVersion === plugin.version) {
-                    console.log(`    ✓ Already up to date (${plugin.version})`);
+                const anyStale = members.some(m => m.version !== latestVersion);
+                if (!anyStale) {
+                    console.log(`    ✓ Already up to date (${latestVersion})`);
+                    unchangedCount++;
                     continue;
                 }
 
-                console.log(`    → Updating ${plugin.version} → ${latestVersion}`);
+                console.log(`    → Updating to ${latestVersion}`);
+                const packageSpec = `${packageName}@${latestVersion}`;
+                const nodeModulesPath = fetchNpmPackage(packageSpec, packageName, projectRoot, options);
+                const shape = detectPluginPackageShape(nodeModulesPath);
 
-                // Fetch and install
-                const packageSpec = `${plugin.npmPackage}@${latestVersion}`;
-                let installCmd = `npm install ${packageSpec} --no-save --legacy-peer-deps`;
-                if (options.registry) {
-                    installCmd += ` --registry=${options.registry}`;
-                }
-
-                execSync(installCmd, { cwd: projectRoot, stdio: 'pipe' });
-
-                // Get source path in node_modules
-                const nodeModulesPath = path.join(projectRoot, 'node_modules', plugin.npmPackage);
-                const pluginJsonPath = path.join(nodeModulesPath, 'plugin.json');
-
-                if (!fs.existsSync(pluginJsonPath)) {
-                    console.log(`    ✗ Invalid plugin package (no plugin.json)`);
+                if (shape.type === 'invalid') {
+                    console.log(`    ✗ ${shape.error}`);
                     failedCount++;
                     continue;
                 }
 
-                const newPluginJson = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
-
-                // Check version compatibility
-                const frameworkVersion = getFrameworkVersion(projectRoot);
-                if (newPluginJson.jpulseVersion && !checkVersionCompatibility(newPluginJson.jpulseVersion, frameworkVersion)) {
-                    console.log(`    ✗ Requires jPulse ${newPluginJson.jpulseVersion}, current: ${frameworkVersion}`);
-                    failedCount++;
-                    continue;
-                }
-
-                // Sync to plugins/ (respecting preserveOnUpdate)
-                const destPath = path.join(pluginsDir, plugin.name);
-                const preserveOnUpdate = newPluginJson.preserveOnUpdate || [];
-
-                // Build list of files to preserve
-                const preservedFiles = new Map();
-                for (const pattern of preserveOnUpdate) {
-                    const filePath = path.join(destPath, pattern);
-                    if (fs.existsSync(filePath)) {
-                        preservedFiles.set(pattern, fs.readFileSync(filePath));
+                const forceOptions = { ...options, force: true };
+                if (shape.type === 'single') {
+                    const member = shape.members[0];
+                    const destPath = path.join(pluginsDir, member.name);
+                    const preserveOnUpdate = member.pluginJson.preserveOnUpdate || [];
+                    const preservedFiles = new Map();
+                    for (const pattern of preserveOnUpdate) {
+                        const filePath = path.join(destPath, pattern);
+                        if (fs.existsSync(filePath)) {
+                            preservedFiles.set(pattern, fs.readFileSync(filePath));
+                        }
+                    }
+                    copyDirRecursive(member.path, destPath, { skipDirNames: ['node_modules'] });
+                    for (const [pattern, content] of preservedFiles) {
+                        fs.writeFileSync(path.join(destPath, pattern), content);
+                    }
+                    installPluginRuntimeDependencies(destPath, member.pluginJson, options, context);
+                    const registryEntry = registry.plugins.find(p => p.name === member.name);
+                    if (registryEntry) {
+                        registryEntry.version = member.pluginJson.version || latestVersion;
+                        registryEntry.updatedAt = new Date().toISOString();
+                    }
+                } else {
+                    expandPluginSource(
+                        nodeModulesPath, pluginsDir, packageName, forceOptions, registry, projectRoot, context
+                    );
+                    for (const member of shape.members) {
+                        const registryEntry = registry.plugins.find(p => p.name === member.name);
+                        if (registryEntry) {
+                            registryEntry.version = member.pluginJson.version || latestVersion;
+                            registryEntry.updatedAt = new Date().toISOString();
+                        }
                     }
                 }
 
-                // Copy new files
-                copyDirRecursive(nodeModulesPath, destPath);
-
-                // Restore preserved files
-                for (const [pattern, content] of preservedFiles) {
-                    const filePath = path.join(destPath, pattern);
-                    fs.writeFileSync(filePath, content);
-                }
-
-                // Ensure plugin runtime dependencies are installed after update (site installs only)
-                installPluginRuntimeDependencies(destPath, newPluginJson, options, context);
-
-                // Update registry
-                const registryEntry = registry.plugins.find(p => p.name === plugin.name);
-                if (registryEntry) {
-                    registryEntry.version = latestVersion;
-                    registryEntry.updatedAt = new Date().toISOString();
-                }
-
                 saveRegistry(registryPath, registry);
-
                 console.log(`    ✓ Updated to ${latestVersion}`);
                 updatedCount++;
-
             } catch (error) {
                 console.log(`    ✗ Failed: ${error.message}`);
                 failedCount++;
@@ -1249,7 +1312,7 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
         }
 
         console.log('');
-        console.log(`Update complete: ${updatedCount} updated, ${failedCount} failed, ${pluginsToUpdate.length - updatedCount - failedCount} unchanged`);
+        console.log(`Update complete: ${updatedCount} updated, ${failedCount} failed, ${unchangedCount} unchanged`);
         console.log('');
 
         if (updatedCount > 0) {
@@ -1459,7 +1522,7 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
     }
 
     /**
-     * Publish a plugin
+     * Publish a plugin or a bundle declared on the primary.
      * @param {string} name - Plugin name
      * @param {object} options - Command options
      */
@@ -1471,7 +1534,6 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
         const { pluginsDir } = detectPaths();
         const pluginPath = path.join(pluginsDir, name);
 
-        // Check plugin exists
         if (!fs.existsSync(pluginPath)) {
             throw new PluginError(
                 `Plugin '${name}' not found in plugins/ directory.`,
@@ -1481,24 +1543,46 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
         }
 
         const pluginJsonPath = path.join(pluginPath, 'plugin.json');
-        const packageJsonPath = path.join(pluginPath, 'package.json');
-
         if (!fs.existsSync(pluginJsonPath)) {
             throw new Error(`Plugin '${name}' is missing plugin.json.`);
         }
-        if (!fs.existsSync(packageJsonPath)) {
-            throw new Error(`Plugin '${name}' is missing package.json. Cannot publish without it.`);
+
+        const pluginJson = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
+        const validation = validatePluginJson(pluginJson, pluginPath);
+        if (!validation.valid) {
+            throw new PluginError(
+                `Invalid plugin.json: ${validation.errors.join(', ')}`,
+                ERROR_CODES.VALIDATION_ERROR,
+                ['Fix the errors in plugin.json and try again']
+            );
+        }
+
+        const primaryOf = findBundlePrimaryForCompanion(pluginsDir, pluginJson.name || name);
+        const isPrimary = Array.isArray(pluginJson.bundle?.members) && pluginJson.bundle.members.length > 0;
+        if (primaryOf && !isPrimary) {
+            throw new PluginError(
+                `Plugin '${name}' is a bundle companion of '${primaryOf}'. Publish the primary instead.`,
+                ERROR_CODES.VALIDATION_ERROR,
+                [`npx jpulse plugin publish ${primaryOf}`]
+            );
         }
 
         console.log('');
         console.log(`Publishing plugin: ${name}`);
         console.log('');
 
-        // Read and validate files
-        const pluginJson = JSON.parse(fs.readFileSync(pluginJsonPath, 'utf8'));
+        if (isPrimary) {
+            await this._publishBundle(name, pluginPath, pluginJson, pluginsDir, options);
+            return;
+        }
+
+        const packageJsonPath = path.join(pluginPath, 'package.json');
+        if (!fs.existsSync(packageJsonPath)) {
+            throw new Error(`Plugin '${name}' is missing package.json. Cannot publish without it.`);
+        }
+
         const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 
-        // Check for version mismatch and sync
         if (pluginJson.version !== packageJson.version) {
             console.log(`  ⚠ Version mismatch: plugin.json (${pluginJson.version}) vs package.json (${packageJson.version})`);
             console.log(`    → Syncing to plugin.json version: ${pluginJson.version}`);
@@ -1511,8 +1595,154 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
         console.log(`  Package: ${packageJson.name}`);
         console.log('');
 
-        // Build npm publish command
+        if (options.dryRun) {
+            console.log('  ✓ Dry run: would publish this single plugin from its directory');
+            console.log('');
+            return;
+        }
+        if (options.packTo) {
+            const dest = path.resolve(options.packTo);
+            copyDirRecursive(pluginPath, dest, { skipDirNames: ['node_modules'] });
+            console.log(`  ✓ Packed to ${dest}`);
+            console.log('');
+            return;
+        }
+
+        this._npmPublish(pluginPath, packageJson.name, pluginJson.version, name, options);
+    }
+
+    /**
+     * Assemble and publish (or pack / dry-run) a bundle from the primary plugin.
+     */
+    static async _publishBundle(name, pluginPath, pluginJson, pluginsDir, options) {
+        const memberNames = pluginJson.bundle.members;
+        console.log(`  Bundle members: ${name}, ${memberNames.join(', ')}`);
+        console.log(`  Version: ${pluginJson.version}`);
+        console.log('');
+        this._warnMissingPackWiring(pluginPath);
+
+        const packDir = options.packTo
+            ? path.resolve(options.packTo)
+            : fs.mkdtempSync(path.join(os.tmpdir(), 'jpulse-plugin-bundle-'));
+        const createdTemp = !options.packTo;
+
+        try {
+            if (options.packTo && fs.existsSync(packDir)) {
+                fs.rmSync(packDir, { recursive: true, force: true });
+            }
+            let assembled;
+            try {
+                assembled = assembleBundlePackage(
+                    pluginPath,
+                    pluginJson,
+                    memberNames,
+                    pluginsDir,
+                    packDir,
+                    { syncSourceVersions: !options.dryRun, log: (msg) => console.log(msg) }
+                );
+            } catch (error) {
+                throw new PluginError(
+                    error.message,
+                    ERROR_CODES.PLUGIN_NOT_FOUND,
+                    [`Create the missing member or remove it from bundle.members`]
+                );
+            }
+
+            console.log('  Assembled tree:');
+            console.log(`    package.json  (${assembled.packageJson.name}@${assembled.packageJson.version})`);
+            for (const memberName of assembled.members) {
+                console.log(`    plugins/${memberName}/`);
+            }
+            console.log('');
+
+            if (options.dryRun) {
+                console.log('  ✓ Dry run: bundle assembled (not published)');
+                console.log('');
+                return;
+            }
+            if (options.packTo) {
+                console.log(`  ✓ Packed to ${packDir}`);
+                console.log('');
+                return;
+            }
+
+            this._npmPublish(
+                packDir,
+                assembled.packageJson.name,
+                pluginJson.version,
+                name,
+                options,
+                true
+            );
+        } finally {
+            if (createdTemp && fs.existsSync(packDir)) {
+                fs.rmSync(packDir, { recursive: true, force: true });
+            }
+        }
+    }
+
+    /**
+     * npm prepack hook: stage bundle members inside the primary plugin directory
+     * so a plain `npm publish` / `npm pack` from that directory ships the bundle.
+     * npm runs lifecycle scripts with cwd set to the package directory.
+     */
+    static stageBundle() {
+        const primaryDir = process.cwd();
+        const result = stageBundleForPack(primaryDir, path.dirname(primaryDir));
+        if (!result) {
+            console.log('  ✓ Not a bundle primary: nothing to stage');
+            return;
+        }
+        console.log(`  ✓ Staged bundle for pack: ${result.members.join(', ')} (v${result.version})`);
+    }
+
+    /**
+     * npm postpack hook: remove the staging directory written by stageBundle().
+     */
+    static unstageBundle() {
+        const removed = unstageBundleAfterPack(process.cwd());
+        console.log(removed
+            ? '  ✓ Removed bundle staging directory'
+            : '  ✓ No bundle staging directory to remove');
+    }
+
+    /**
+     * Warn when a bundle primary is not wired for a plain `npm publish`.
+     * Without these, npm packs the primary alone (root plugin.json, no companions).
+     */
+    static _warnMissingPackWiring(pluginPath) {
+        const packageJsonPath = path.join(pluginPath, 'package.json');
+        if (!fs.existsSync(packageJsonPath)) {
+            return;
+        }
+        let packageJson;
+        try {
+            packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+        } catch (error) {
+            return;
+        }
+        const packsPluginsOnly = Array.isArray(packageJson.files)
+            && packageJson.files.includes('plugins');
+        const hasPrepack = Boolean(packageJson.scripts?.prepack);
+        if (packsPluginsOnly && hasPrepack) {
+            return;
+        }
+        console.log('  ⚠ package.json is not wired for a plain `npm publish` from this directory');
+        console.log('    Add "files": ["plugins"] plus prepack/postpack scripts,');
+        console.log('    or always publish this bundle with `npx jpulse plugin publish`');
+        console.log('');
+    }
+
+    /**
+     * Run npm publish from a directory.
+     * @param {boolean} [ignoreScripts] - Set for an already-assembled bundle tree,
+     *                                    where the primary's prepack must not re-run
+     */
+    static _npmPublish(cwd, packageName, version, pluginName, options, ignoreScripts = false) {
         let npmCmd = 'npm publish';
+        if (ignoreScripts) {
+            npmCmd += ' --ignore-scripts';
+        }
         if (options.registry) {
             npmCmd += ` --registry=${options.registry}`;
         }
@@ -1524,14 +1754,12 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
         console.log('');
 
         try {
-            // Run npm publish from plugin directory
             const output = execSync(npmCmd, {
-                cwd: pluginPath,
+                cwd,
                 stdio: 'pipe',
                 encoding: 'utf8'
             });
 
-            // Show npm output
             if (output) {
                 const lines = output.trim().split('\n');
                 for (const line of lines) {
@@ -1540,16 +1768,13 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
             }
 
             console.log('');
-            console.log(`  ✓ Published ${packageJson.name}@${pluginJson.version}`);
-
-            // Suggest git tag
+            console.log(`  ✓ Published ${packageName}@${version}`);
             console.log('');
             console.log('  To create a git tag:');
-            console.log(`    cd plugins/${name}`);
-            console.log(`    git tag -a v${pluginJson.version} -m "Release v${pluginJson.version}"`);
-            console.log(`    git push origin v${pluginJson.version}`);
+            console.log(`    cd plugins/${pluginName}`);
+            console.log(`    git tag -a v${version} -m "Release v${version}"`);
+            console.log(`    git push origin v${version}`);
             console.log('');
-
         } catch (error) {
             const stderr = error.stderr?.toString() || error.stdout?.toString() || error.message;
             const parsed = parseNpmError(stderr);
@@ -1563,8 +1788,22 @@ Note: Plugins can also be managed via Admin UI at /admin/plugins
     }
 }
 
-// Run CLI
-const args = process.argv.slice(2);
-PluginCLI.run(args);
+export {
+    PluginCLI,
+    PluginError,
+    validatePluginJson,
+    detectPluginPackageShape,
+    findBundlePrimaryForCompanion,
+    assembleBundlePackage,
+    expandPluginSource,
+    resolvePluginSource,
+    planPluginDependencyInstalls
+};
+
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+    const args = process.argv.slice(2);
+    PluginCLI.run(args);
+}
 
 // EOF bin/plugin-manager-cli.js

@@ -5,17 +5,18 @@
  * @tagline         Version bump script for jPulse Framework
  * @description     Updates version numbers and release dates across all source files
  * @file            bin/bump-version.js
- * @version         2.0.0
- * @release         2026-09-14
+ * @version         2.0.1
+ * @release         2026-09-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 3.20, Grok 4.6
  */
 
 import fs from 'fs';
 import path from 'path';
+import { findBundlePrimaryForCompanion } from '../webapp/utils/plugin-package.js';
 
 /**
  * Find bump-version configuration file based on context
@@ -102,6 +103,14 @@ function showConfigInstructions() {
 
     console.error(`\n❌ Configuration file not found: ${configPath}`);
     console.error('');
+    if (context === 'plugin') {
+        const companionOf = findCompanionPrimaryName();
+        if (companionOf) {
+            console.error(`This plugin is a bundle companion of '${companionOf}'.`);
+            console.error(`Run bump-version from plugins/${companionOf}/ (the file list lives only on the primary).`);
+            return;
+        }
+    }
     console.error('💡 Create the configuration file before using bump-version.');
     if (context === 'site') {
         console.error('📖 See https://your-domain/jpulse/getting-started#version-management for configuration file format.');
@@ -112,52 +121,61 @@ function showConfigInstructions() {
     }
 }
 
-const newVersion = process.argv[2];
-const providedDate = process.argv[3];
-const newDate = providedDate || new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-
-if (!newVersion) {
-  // Check if config exists first
-  const configPath = findBumpConfig();
-  if (!configPath) {
-      showConfigInstructions();
-      process.exit(1);
-  }
-
-  // Config exists but no version - show usage
-  console.error('❌ Please provide a new version number');
-  console.error('Usage: npx jpulse bump-version <new-version> [new-date]');
-  console.error('Example: npx jpulse bump-version 1.0.1');
-  console.error('Example: npx jpulse bump-version 1.0.1 2025-01-27');
-  console.error('Note: If no date is provided, today\'s date will be used automatically');
-  process.exit(1);
+/**
+ * If cwd is a bundle companion, return the primary's name; otherwise null.
+ * @returns {string|null}
+ */
+function findCompanionPrimaryName() {
+    if (!fs.existsSync('plugin.json')) {
+        return null;
+    }
+    try {
+        const pluginJson = JSON.parse(fs.readFileSync('plugin.json', 'utf8'));
+        const isPrimary = Array.isArray(pluginJson.bundle?.members) && pluginJson.bundle.members.length > 0;
+        if (isPrimary) {
+            return null;
+        }
+        return findBundlePrimaryForCompanion(path.resolve('..'), pluginJson.name);
+    } catch (error) {
+        return null;
+    }
 }
 
-// Validate version format (simple check)
-if (!/^\d+\.\d+\.\d+(-[a-z]+\.\d+)?$/.test(newVersion)) {
-  console.error('❌ Invalid version format. Use semantic versioning (e.g., 1.0.1, or 1.0.1-rc.1)');
-  process.exit(1);
+function parseBumpArgs(argv) {
+    const newVersion = argv[2];
+    const providedDate = argv[3];
+    const newDate = providedDate || new Date().toISOString().split('T')[0];
+
+    if (!newVersion) {
+        const configPath = findBumpConfig();
+        if (!configPath) {
+            showConfigInstructions();
+            process.exit(1);
+        }
+        console.error('❌ Please provide a new version number');
+        console.error('Usage: npx jpulse bump-version <new-version> [new-date]');
+        console.error('Example: npx jpulse bump-version 1.0.1');
+        console.error('Example: npx jpulse bump-version 1.0.1 2025-01-27');
+        console.error('Note: If no date is provided, today\'s date will be used automatically');
+        process.exit(1);
+    }
+
+    if (!/^\d+\.\d+\.\d+(-[a-z]+\.\d+)?$/.test(newVersion)) {
+        console.error('❌ Invalid version format. Use semantic versioning (e.g., 1.0.1, or 1.0.1-rc.1)');
+        process.exit(1);
+    }
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+        console.error('❌ Invalid date format. Use YYYY-MM-DD format (e.g., 2025-01-27)');
+        process.exit(1);
+    }
+
+    return { newVersion, providedDate, newDate };
 }
 
-// Validate date format (YYYY-MM-DD)
-if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
-  console.error('❌ Invalid date format. Use YYYY-MM-DD format (e.g., 2025-01-27)');
-  process.exit(1);
-}
-
-// Load configuration
-const conf = loadBumpConfig();
-if (!conf) {
-    process.exit(1);
-}
-
-// Show what date is being used
-if (!providedDate) {
-  console.log(`📅 No date provided, using today's date: ${newDate}`);
-}
-
-console.log(`🚀 Bumping version to ${newVersion} with release date ${newDate}...`);
-
+let conf;
+let newVersion;
+let newDate;
 let updatedFiles = 0;
 let errors = 0;
 
@@ -188,8 +206,12 @@ function isSiteSkipPath(filePath) {
     return SITE_SKIP_PATTERNS.some(pattern => matchesPattern(filePath, pattern));
 }
 
-// Function to discover files recursively
-function discoverFiles(dir = '.') {
+/**
+ * Discover files under rootDir. Patterns and rules match paths relative to that root.
+ * @param {string} rootDir
+ * @returns {{ absPath: string, relativePath: string }[]}
+ */
+function discoverFiles(rootDir = '.') {
     const configPath = findBumpConfig();
     const isSiteContext = configPath === 'site/webapp/bump-version.conf';
     const files = [];
@@ -198,18 +220,16 @@ function discoverFiles(dir = '.') {
             const entries = fs.readdirSync(currentDir, { withFileTypes: true });
             for (const entry of entries) {
                 const fullPath = path.join(currentDir, entry.name);
-                const relativePath = path.relative('.', fullPath).replace(/\\/g, '/'); // Normalize path separators
+                const relativePath = path.relative(rootDir, fullPath).replace(/\\/g, '/');
                 if (entry.isDirectory()) {
                     scanDirectory(fullPath);
                 } else if (entry.isFile()) {
-                    // Check if file matches any pattern
                     const shouldInclude = conf.filePatterns.some(pattern =>
                         matchesPattern(relativePath, pattern)
                     );
-                    // Skip framework-shipped site hello examples only when running on a site install
                     const skipSiteHello = isSiteContext && isSiteSkipPath(relativePath);
                     if (shouldInclude && !skipSiteHello) {
-                        files.push(relativePath);
+                        files.push({ absPath: fullPath, relativePath });
                     }
                 }
             }
@@ -217,8 +237,51 @@ function discoverFiles(dir = '.') {
             console.error(`❌ Error scanning directory ${currentDir}:`, error.message);
         }
     }
-    scanDirectory(dir);
+    scanDirectory(rootDir);
     return files;
+}
+
+/**
+ * Plugin-context roots: the primary (cwd) plus each bundle.members sibling.
+ * Refuses when cwd is a companion.
+ * @returns {string[]}
+ */
+function resolveBumpRoots() {
+    if (detectContext() !== 'plugin') {
+        return ['.'];
+    }
+    if (!fs.existsSync('plugin.json')) {
+        return ['.'];
+    }
+    let pluginJson;
+    try {
+        pluginJson = JSON.parse(fs.readFileSync('plugin.json', 'utf8'));
+    } catch (error) {
+        console.error(`❌ Error reading plugin.json: ${error.message}`);
+        process.exit(1);
+    }
+
+    const pluginsDir = path.resolve('..');
+    const primary = findBundlePrimaryForCompanion(pluginsDir, pluginJson.name);
+    const isPrimary = Array.isArray(pluginJson.bundle?.members) && pluginJson.bundle.members.length > 0;
+    if (primary && !isPrimary) {
+        console.error(`❌ Plugin '${pluginJson.name}' is a bundle companion of '${primary}'.`);
+        console.error(`   Run bump-version from plugins/${primary}/ (the file list lives only on the primary).`);
+        process.exit(1);
+    }
+
+    const roots = ['.'];
+    if (isPrimary) {
+        for (const member of pluginJson.bundle.members) {
+            const memberDir = path.join('..', member);
+            if (!fs.existsSync(path.join(memberDir, 'plugin.json'))) {
+                console.error(`❌ Bundle member '${member}' not found at ${path.resolve(memberDir)}`);
+                process.exit(1);
+            }
+            roots.push(memberDir);
+        }
+    }
+    return roots;
 }
 
 // Function to update file content based on rules
@@ -276,53 +339,86 @@ function updateFileHeaders(filePath, content) {
     return { content: updatedContent, hasChanges };
 }
 
-// Main processing function
-function processFiles() {
-    console.log('🔍 Discovering files...');
-    const discoveredFiles = discoverFiles();
-    console.log(`📁 Found ${discoveredFiles.length} files to process`);
-    for (const filePath of discoveredFiles) {
+function processFilesInRoot(rootDir) {
+    const discoveredFiles = discoverFiles(rootDir);
+    console.log(`📁 ${path.resolve(rootDir)}: ${discoveredFiles.length} files`);
+    for (const file of discoveredFiles) {
         try {
-            if (!fs.existsSync(filePath)) {
+            if (!fs.existsSync(file.absPath)) {
                 continue;
             }
-            const originalContent = fs.readFileSync(filePath, 'utf8');
-            let { content: updatedContent, hasChanges: contentChanged } = updateFileContent(filePath, originalContent);
-            let { content: finalContent, hasChanges: headerChanged } = updateFileHeaders(filePath, updatedContent);
+            const originalContent = fs.readFileSync(file.absPath, 'utf8');
+            let { content: updatedContent, hasChanges: contentChanged } = updateFileContent(file.relativePath, originalContent);
+            let { content: finalContent, hasChanges: headerChanged } = updateFileHeaders(file.relativePath, updatedContent);
             const hasAnyChanges = contentChanged || headerChanged;
             if (hasAnyChanges) {
-                fs.writeFileSync(filePath, finalContent, 'utf8');
-                console.log(`✅ Updated: ${filePath}`);
+                fs.writeFileSync(file.absPath, finalContent, 'utf8');
+                console.log(`✅ Updated: ${path.relative('.', file.absPath) || file.relativePath}`);
                 updatedFiles++;
             } else {
-                console.log(`ℹ️  No changes needed: ${filePath}`);
+                console.log(`ℹ️  No changes needed: ${path.relative('.', file.absPath) || file.relativePath}`);
             }
         } catch (error) {
-            console.error(`❌ Error processing ${filePath}:`, error.message);
+            console.error(`❌ Error processing ${file.absPath}:`, error.message);
             errors++;
         }
     }
 }
 
-// Execute the main process
-processFiles();
+/**
+ * Run a version bump. cwd determines framework / plugin / site context.
+ * @param {string} versionArg
+ * @param {string} [dateArg]
+ */
+export function runBump(versionArg, dateArg) {
+    const parsed = parseBumpArgs(['node', 'bump-version.js', versionArg, dateArg].filter(v => v !== undefined));
+    newVersion = parsed.newVersion;
+    newDate = parsed.newDate;
+    updatedFiles = 0;
+    errors = 0;
 
-console.log('\n📊 Summary:');
-console.log(`✅ Files updated: ${updatedFiles}`);
-if (errors > 0) {
-  console.log(`❌ Errors: ${errors}`);
+    conf = loadBumpConfig();
+    if (!conf) {
+        process.exit(1);
+    }
+
+    const roots = resolveBumpRoots();
+
+    if (!parsed.providedDate) {
+        console.log(`📅 No date provided, using today's date: ${newDate}`);
+    }
+
+    console.log(`🚀 Bumping version to ${newVersion} with release date ${newDate}...`);
+    console.log('🔍 Discovering files...');
+    for (const root of roots) {
+        processFilesInRoot(root);
+    }
+
+    console.log('\n📊 Summary:');
+    console.log(`✅ Files updated: ${updatedFiles}`);
+    if (errors > 0) {
+        console.log(`❌ Errors: ${errors}`);
+    }
+
+    if (errors === 0) {
+        console.log('\n🎉 Version bump completed successfully!');
+        console.log(`📝 Don't forget to:`);
+        console.log(`   - Run tests: npm test`);
+        console.log(`   - Update CHANGELOG.md (if you have one)`);
+        console.log(`   - Commit changes: git add . && git commit -m "Bump version to ${newVersion}"`);
+        console.log(`   - Tag release: git tag v${newVersion}`);
+    } else {
+        console.log('\n⚠️  Version bump completed with errors. Please review the output above.');
+        process.exit(1);
+    }
+
+    return { updatedFiles, errors };
 }
 
-if (errors === 0) {
-  console.log('\n🎉 Version bump completed successfully!');
-  console.log(`📝 Don't forget to:`);
-  console.log(`   - Run tests: npm test`);
-  console.log(`   - Update CHANGELOG.md (if you have one)`);
-  console.log(`   - Commit changes: git add . && git commit -m "Bump version to ${newVersion}"`);
-  console.log(`   - Tag release: git tag v${newVersion}`);
-} else {
-  console.log('\n⚠️  Version bump completed with errors. Please review the output above.');
-  process.exit(1);
+const invokedAs = process.argv[1] ? path.basename(process.argv[1]) : '';
+if (invokedAs === 'bump-version.js') {
+    const parsed = parseBumpArgs(process.argv);
+    runBump(parsed.newVersion, parsed.providedDate);
 }
 
 // EOF bin/bump-version.js

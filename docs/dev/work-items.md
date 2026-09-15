@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.0
+# jPulse Docs / Dev / Work Items v2.0.1
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -8458,19 +8458,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - the download direction belongs here too: `proxy_buffering off` on the same commented location, plus a note that `/api/`'s `proxy_read_timeout 30s` is tight for a slow first byte from GridFS or S3; a site copies the block onto its own byte-serving paths (the framework has none)
   - `limit_conn` is named in the deployment subsection only — nothing shipped
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-220, v2.0.0, 2026-09-14: jPulse.UI: new floatPanel widget - draggable, resizable, persisted floating panels
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - add `jPulse.UI.floatPanel` to `jpulse-common.js`: a non-modal panel the user can drag, resize, and leave open while working the page underneath, which remembers its geometry and open state per browser, takes its place in a managed z-order stack with other panels, and animates to and from a launcher button
@@ -8551,6 +8540,165 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-221, v2.0.1, 2026-09-15: plugins: bundle build and installation
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - let one npm package expand into several `plugins/<name>/` directories on install, so a site can install a related set of plugins in one command without the installer assuming one `plugin.json` per package
+  - let `dependencies.plugins` resolve to an installable npm package name, so installing a plugin that needs another plugin can fetch it (or tell the admin which package to install) instead of only refusing at enable time with `Missing required dependency: <name>`
+- rationale:
+  - plugin install (`bin/plugin-manager-cli.js`) is one package → one `plugin.json` → one `plugins/<name>/` copy. That matches `auth-mfa` / `auth-oauth`. It does not match a bundle whose members are useless or undemonstrable alone (the AI design's `@jpulse-net/plugin-ai` ships `ai-core` + `ai-mock` in one package; `hello-ai` is a view inside `ai-core`, not a third plugin)
+  - `dependencies.plugins` is already used by `resolveLoadOrder()`, `enablePlugin()`, and `disablePlugin()`. It is never used to *fetch*. A site that installs only the dependent plugin gets a correct enable refusal and no package name. `plugin.json` already has `npmPackage` for the plugin itself; a dependency that lives *inside a bundle* is not that plugin's own package (e.g. `ai-core` is installed by installing `@jpulse-net/plugin-ai`)
+  - bootstrap is not the gap. Load order, enable/disable integrity, and site-controller-before-plugin hook registration are already handled (W-223 design §5.1.1). This item does not change those paths
+  - plugin and site translation merge is W-222 (v2.0.2), not this item. A bundle can ship `webapp/translations/` files in v2.0.1; they are inert until W-222
+  - none of this is AI-specific. W-223 needs it to *ship* a bundle, not to develop one. The fixture that proves the installer is a pair of dummy plugins, not `ai-core`
+- features:
+  - install shape, detected from the fetched or local source root after today's `plugin.json` validation:
+    - **single plugin (unchanged):** a root `plugin.json` and no `plugins/*/plugin.json` - copy to `plugins/<name>/` as today
+    - **bundle:** one or more `plugins/<name>/plugin.json`, and **no** root `plugin.json` - copy each member to `plugins/<name>/`, register each, honor each member's `autoEnable`
+    - **both shapes in one package:** install fails with a message that says pick one. Silent "prefer bundle" would hide a misplaced `plugin.json`
+  - `npx jpulse plugin install <source>` walks the shape. Local-path install of a bundle directory works the same as npm. `--force` overwrites each member. A bundle that is already half-installed (one member present) still installs the rest unless `--force` is needed for a conflict
+  - `npx jpulse plugin update` of a bundle package (identified by `npmPackage` on any installed member, or by the package name the user passed) re-fetches and re-expands every member. Updating a single member by plugin name updates only that directory when its `npmPackage` is itself (today's `auth-*` case)
+  - `npx jpulse plugin remove` stays per plugin name. Members of a former bundle are independent once installed; removing one does not remove the others
+  - bundle *build* is declared, not passed as flags. One member is the **primary**: it names the companions in its own `plugin.json`, and publishing it publishes the bundle. Members stay ordinary sibling directories in `plugins/` during development - there is no separate source layout to maintain, and no build step for a single plugin:
+    ```
+    plugins/demo-primary/plugin.json    name: demo-primary
+                                        npmPackage: @jpulse-net/plugin-demo-primary
+                                        version: 1.0.0
+                                        bundle: { members: ["demo-secondary"] }
+    plugins/demo-secondary/plugin.json  name: demo-secondary
+                                        npmPackage: @jpulse-net/plugin-demo-primary
+    ```
+  - `npx jpulse plugin publish demo-primary` sees `bundle.members`, so instead of publishing that one directory it assembles a temp tree - `package.json` at the root (the primary's, or generated from its `plugin.json` when absent), plus `plugins/demo-primary/` and `plugins/demo-secondary/`, and **no root `plugin.json`** - then runs `npm publish --ignore-scripts` from it. `--ignore-scripts` is required: the primary's `package.json` is the package root of that temp tree, so without the flag its `prepack` would fire again in a directory where the relative CLI path does not exist. `publish demo-secondary` is refused with a message naming the primary
+  - a companion carries **no** `package.json` into the published package. During development it may keep a `private` `package.json` whose only job is a `prepublishOnly` script that refuses and names the primary (npm runs that script even when `private` is true, so the message appears instead of a bare `EPRIVATE`). Staging strips that file from the packaged copy, because `installPluginRuntimeDependencies()` runs `npm install` in any installed plugin directory that has a `package.json`
+  - **plain `npm publish` from the primary directory must ship the same bundle shape.** npm builds its tarball file list after `prepack` runs, so a bundle primary's `package.json` is wired with `"files": ["plugins"]` plus `prepack` / `postpack` scripts that call `jpulse plugin stage-bundle` / `unstage-bundle`. `prepack` copies the primary and every companion into a temporary `plugins/` directory inside the plugin (skipping that staging directory so the copy cannot recurse, and deleting any stale `plugins/` first). `postpack` removes it, but only when the children match this bundle - a plugin that legitimately ships a `plugins/` directory is never destroyed. `"files": ["plugins"]` keeps the primary's root `plugin.json` out of the tarball; a package containing both shapes is refused at install time. Without this wiring, `npm publish` silently ships the primary alone. `npx jpulse plugin publish` warns when it sees an unwired bundle primary, and does not depend on the scripts itself
+  - in a site, `jpulse` resolves from `node_modules/.bin` because npm puts every ancestor `node_modules/.bin` on `PATH`. Inside the framework repo there is no such link, so the primary uses the same relative form the plugin docs already use for bump-version: `node ../../bin/jpulse-framework.js plugin stage-bundle`. Verify with `npm pack` (and `npm publish --dry-run`) before a real publish - both run `prepack` and both work with `"private": true`
+  - `npx jpulse plugin publish <name> --dry-run` assembles and prints the tree without publishing, and `--pack-to <dir>` writes it so it can be round-tripped through `npx jpulse plugin install <dir>` before it ever reaches a registry. Without this the assembled layout is invisible until someone publishes it, which is the one irreversible step in the flow
+  - **one package, one version.** The writer is the bump script; publish's member-version sync is a safety net for `plugin.json` only. `update` compares `npm view <npmPackage> version` against the installed plugin's own `plugin.json` version, so a companion at `1.2.0` inside a `1.0.0` package reports "already up to date" or re-fetches forever. Diverging member versions would silently break update for every site
+  - bump file list lives **only on the primary**. A companion has no `webapp/bump-version.conf`. Today's plugin bump (`cd plugins/<name>` then `node ../../bin/bump-version.js <ver>`) detects plugin context from a cwd `plugin.json` and walks `.` against that plugin's `webapp/bump-version.conf`. Patterns and rules are already plugin-relative (`plugin.json`, `webapp/**/*.js`, `README.md`) - they do not name a plugin. So a primary with `bundle.members` applies that same conf to each member by treating the member directory as the scan root, matching patterns and `fileUpdateRules` against paths *relative to that member*, then writing the resolved files. Prefixing `../demo-secondary/**` in the primary's conf would hard-code companion names in two places (`plugin.json` and the bump list) and would fail anyway: `updateFileContent` matches `rule.pattern` against the path as discovered, and `plugin.json` does not match `../demo-secondary/plugin.json`
+  - `cd plugins/demo-primary && node ../../bin/bump-version.js 1.2.0` therefore updates `plugin.json`, `@version` / `@release` headers, and any matching README/docs in **both** `demo-primary` and `demo-secondary`. A listed member directory that is missing is an error. A glob that matches only a companion (tests only the secondary has) belongs on the primary's conf; no match in the primary is fine
+  - `cd plugins/demo-secondary && node ../../bin/bump-version.js …` is refused. The companion has no conf, and inventing one would reintroduce two sources of truth. Find the primary by scanning sibling `../*/plugin.json` for `bundle.members` containing this plugin's name, and name that primary in the error. `auth-oauth` has no `bundle.members` and no sibling that lists it, so its bump stays one directory
+  - framework-root bump (`bin/bump-version.conf`) is unchanged. It lists `plugins/hello-world/**` because that plugin ships *inside* the framework package and shares the framework version. A bundle has its own version; it is bumped from the primary's directory, not from the framework root
+  - `dependencies.plugins` values: keep the current string form (`"ai-core": ">=1.0.0"`) for load-order and enable/disable. Add an object form so install can fetch:
+    ```
+    "dependencies": {
+        "plugins": {
+            "other-plugin": ">=1.0.0",
+            "ai-core": { "version": ">=1.0.0", "npmPackage": "@jpulse-net/plugin-ai" }
+        }
+    }
+    ```
+    Version-only remains valid. Enable/disable keep using the plugin *name* and the version range. `npmPackage` is install-only
+  - on install, after the primary package is expanded, walk each newly installed member's `dependencies.plugins`. A missing dependency with `npmPackage` is installed (the fetched package may itself be a bundle). `--no-deps` skips the walk. Recursion is cycle-guarded by package name already in-flight
+  - a missing dependency *without* `npmPackage` is an error, not a guess. The message names the plugin, and - because `resolvePluginSource()` already maps a bare name to `@jpulse-net/plugin-<name>` - suggests `npx jpulse plugin install <name>` as the likely fix alongside "or add `npmPackage` to the dependency". The CLI does not silently fetch that guessed name: the convention is right for a standalone plugin and wrong for every bundle member, and auto-installing an inferred package name off a registry is how a typosquat gets pulled in
+  - bundle install prints one summary rather than repeating the single-plugin block per member: the package, each member with its version and resulting enabled/disabled state, and any dependency packages pulled in. An admin who typed one command should not have to infer from scrollback how many plugins they now have
+  - `enablePlugin()` missing-dependency message includes `npmPackage` when the disabled/absent plugin's `plugin.json` has one, or when the dependent declared it - so an admin who installed from the UI still sees which package to fetch
+- deliverables:
+  - `webapp/utils/plugin-package.js` (shared by the CLI and tests):
+    - `detectPluginPackageShape()`, `normalizePluginDependency()`, `validatePluginJson()` / `validateBundleMembers()`, `findBundlePrimaryForCompanion()`, `planPluginDependencyInstalls()`, `assembleBundlePackage()`, `copyDirRecursive()` with `skipPaths` so a dest inside src cannot recurse
+    - `stageBundleForPack(primaryDir, pluginsDir)`: no-op for a single plugin and for an already-assembled tree (no root `plugin.json`); deletes stale staging first; strips a companion `package.json`; syncs member versions into the staged copies only, never the source
+    - `unstageBundleAfterPack(primaryDir)`: removes staging only when its children match this bundle
+  - `bin/plugin-manager-cli.js`:
+    - detect single vs bundle vs invalid-both; expand each member; dependency walk with `--no-deps`; missing-dep error naming the plugin and the conventional install command
+    - `publish` bundle mode driven by `bundle.members` on the primary, with member version sync, generated root `package.json` when the primary has none, `--dry-run`, `--pack-to <dir>`, `--ignore-scripts` on the assembled publish, and a warning when the primary's `package.json` lacks `"files": ["plugins"]` plus a `prepack` script
+    - `stage-bundle` / `unstage-bundle` actions (npm `prepack` / `postpack` hooks; cwd is the plugin directory)
+    - `update` re-expands a bundle package
+    - bundle install summary output
+    - `validatePluginJson()`: validate `bundle.members` (array of plugin-name strings, no self-reference) and object-form `dependencies.plugins` entries (`version` required, `npmPackage` optional string). Validation is warning/error based, not an unknown-field allowlist, so both need explicit checks
+    - `showHelp()`: `--no-deps`, `--dry-run`, `--pack-to`, `stage-bundle` / `unstage-bundle`, a line that install may add more than one plugin, and a line that a wired primary also ships via a plain `npm publish`
+  - `bin/bump-version.js`:
+    - in plugin context, if cwd `plugin.json` has `bundle.members`, apply the primary's `webapp/bump-version.conf` to each member directory (match patterns/rules relative to that member, write the resolved path)
+    - in plugin context, if a sibling primary lists this plugin in `bundle.members`, refuse and name the primary
+    - missing listed member directory is an error
+    - framework and site context, and a plugin with no `bundle.members`, are unchanged
+  - `webapp/utils/plugin-manager.js`:
+    - accept object-form `dependencies.plugins`; validate `version` + optional `npmPackage`; enable-time error text includes the package name when known
+  - `docs/plugins/creating-plugins.md`, `docs/plugins/publishing-plugins.md`, `docs/plugins/plugin-architecture.md` (and `docs/plugins/plugin-api-reference.md` if the dependency schema is documented there):
+    - bundle layout, both publish paths (`npx jpulse plugin publish` and a wired `npm publish` from the primary directory), companion guard `package.json`, object-form `dependencies.plugins`, bump from the primary only
+  - `docs/installation.md` or the plugin-install section of the user docs: `npx jpulse plugin install @scope/pkg` may install more than one plugin
+  - tests (new and/or extensions of the existing plugin-cli suites):
+    - single-plugin install still copies one directory (regression)
+    - fixture bundle with two members expands to two `plugins/<name>/` and two registry entries; `autoEnable` honored per member
+    - root `plugin.json` plus `plugins/*/plugin.json` is an error
+    - dependent with `{ version, npmPackage }` fetches the declared package; `--no-deps` does not
+    - dependent with a version string only and no installed provider fails with a message that names the plugin, and does not install a guessed `@jpulse-net/plugin-<name>`
+    - circular `npmPackage` walk is refused
+    - publish of a primary with `bundle.members` assembles root `package.json` + `plugins/<member>/` and no root `plugin.json`; `--dry-run` publishes nothing; `--pack-to <dir>` output installs cleanly via a local-path install (the round trip is the real regression test for both halves)
+    - publish syncs a companion's version to the primary's; publish of a companion is refused
+    - `stageBundleForPack` stages both members without recursing into the staging directory, strips the companion guard `package.json`, syncs the companion version in the staged copy only, replaces a stale staging directory, and is a no-op for a single plugin and for an assembled tree
+    - `unstageBundleAfterPack` removes a matching staging directory and leaves an unrelated `plugins/` directory
+    - a missing listed member directory is an error on stage
+    - `npm pack` of a primary wired with `"files": ["plugins"]` plus `prepack` / `postpack` produces a tarball with `package.json` + `plugins/<member>/` and no root `plugin.json` / no root `webapp/`; after pack the source has no leftover `plugins/` subdirectory
+    - bump from a primary with `bundle.members` updates `plugin.json` and a `@version` header in every member; bump from a companion is refused and names the primary; a plugin with no `bundle.members` still updates only cwd (the `auth-oauth` regression)
+    - `update` of a bundle member, the primary, or the package name all re-expand every member
+    - `validatePluginJson()` rejects a `bundle.members` self-reference and a dependency object missing `version`
+  - `README.md`, `docs/README.md` — Latest Release Highlights — v2.0.1 / W-221 bullet
+  - `docs/CHANGELOG.md` — v2.0.1 / W-221 section
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md` §5.1, §5.1.1, §21. Plugin translation merge (§22.2) is W-222. This item does not create `plugins/ai-core/` or publish `@jpulse-net/plugin-ai`
+  - `hello-ai` is a view inside `ai-core`, not a third bundle member. The AI bundle is two plugin directories. Local e2e fixtures are `plugins/test-primary/` (wired for `npm pack`) and `plugins/test-secondary/` (companion guard `package.json`); they are gitignored with the rest of `plugins/*` except `hello-world` and are not shipped in the framework package
+  - a single plugin such as `auth-oauth` is untouched end to end: it has a root `plugin.json` and no `bundle.members`, so publish, install, and update all take today's path. Every change here is additive and keyed off a field that existing plugins do not set. The single-plugin regression tests exist to keep it that way
+  - the primary is whichever member owns the published `npmPackage` and the package version. For the AI bundle that is `ai-core`, with `ai-mock` as the companion. Declaring membership on the primary rather than passing `--bundle a,b --package @scope/pkg` keeps the package composition in version control next to the code, so publishing is reproducible and does not depend on someone remembering the right flags
+  - bump-version today: context from cwd (`bin/jpulse-framework.js` → framework, `plugin.json` → plugin, else site); `discoverFiles('.')` never leaves that tree. Plugin docs already say `cd plugins/<name>` then `node ../../bin/bump-version.js` (`npx jpulse bump-version` is framework/site). The bundle change is plugin-context only. Do not run the bump script against this repo while implementing - fixtures only
+  - out of scope: plugin/site translation merge (W-222); Vue SPA translation loading (W-0); an admin-UI "install missing dependency" button (the enable error string is enough); changing load-order or enable/disable graph logic; shipping any AI plugin
+  - v2.0.1 commit is a **partial file commit**: include the bundle files above; **exclude** `webapp/utils/i18n.js`, `webapp/utils/bootstrap.js`, `webapp/tests/unit/translations/i18n-merge.test.js`, and the Plugin translations paragraph in `docs/plugins/creating-plugins.md` (those are W-222 / v2.0.2). If `creating-plugins.md` already has both sections in the working tree, commit only the bundle hunks, or leave the translations paragraph for the W-222 commit
+  - do not edit `.jpulse/` in tests against the live working tree; use an isolated temp project or the existing plugin-cli test harness
+  - `"files": ["plugins"]` is load-bearing for the plain `npm publish` path. Forgetting it (or the lifecycle scripts) silently ships a single-plugin package missing the companion. The CLI warn is the guard; `validatePluginJson()` does not inspect `package.json`
+  - member-version sync on the `npm pack` / `prepack` path writes only into staging, never the source. The bump script remains the version writer; CLI `publish` (not `--dry-run`) still syncs companion `plugin.json` versions in the source as the safety net for a missed bump
+
+
+
+
+
+
+
+### W-222, v2.0.2, 2026-09-16: i18n: site specific and plugin specific translations
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - collect and deep-merge translation `*.conf` files from the framework, active plugins, and the site, so a plugin can ship `view.ui.*` strings and a site can override them - `loadTranslations()` today reads only `webapp/translations/` and assigns each language wholesale
+  - keep the existing MPA `{{i18n.*}}` runtime; no new i18n API
+- rationale:
+  - `webapp/utils/i18n.js` `loadTranslations()` joins `config.system.appDir` + `translations`, exits if the directory is missing, and sets `i18n.langs[lang] = obj[lang]` - a replace, not a merge. No plugin in the repo has a `translations/` directory; `hello-world` hardcodes English. A plugin with real UI text cannot ship strings, and a site cannot override a framework or plugin string without editing `webapp/translations/` (framework-managed)
+  - this is the MPA site+plugin half of the old standing W-0 i18n item. Vue SPA loading of the same merged set stays W-0. Live reload without restart is a separate W-0
+  - W-221 can ship a bundle that *contains* `webapp/translations/` files; they stay inert (raw `view.ui.*` keys) until this item. The `jpulse.net` e2e of the unpublished bundle showed that gap
+  - W-223 design §22.2 needs plugin strings for `hello-ai`; this item is the framework prerequisite, not the AI plugin
+- features:
+  - `loadTranslations()` still requires the framework `webapp/translations/` directory (same `process.exit(1)` if it is gone). It then deep-merges, per language, in this order so a later source wins a leaf: **framework, then each active plugin in `loadOrder`, then `site/webapp/translations/` if present**. A plugin or site with no `translations/` directory is skipped, not an error. Merge is deep at objects; a site key replaces a plugin key of the same path and does not wipe sibling framework keys
+  - bootstrap initializes i18n **after** `PluginManager` so plugin translation directories exist and `loadOrder` is known
+  - `auditAndFixTranslations()` runs **once after every source is merged**, against a cloned snapshot of the default language. The old "sort default language first" loop existed because backfill ran *inside* the file-read loop and needed `en.conf` already loaded. That sort is gone: plugin keys added only to the default language must be in the snapshot before `de` is backfilled, and running the audit after the merge is what makes file order irrelevant
+  - a plugin ships `plugins/<name>/webapp/translations/en.conf` (and `de.conf` when it has German), same `view.ui.*` tree shape as the framework files
+  - a plugin may ship only the default language. The post-merge audit backfills missing keys from the default language, so an English-only plugin appears in a German UI with English strings rather than blank or a crash - a plugin author is never forced to translate before shipping
+- deliverables:
+  - `webapp/utils/i18n.js`:
+    - collect framework + active-plugin + site `*.conf`; deep-merge per language; do not `process.exit` when a plugin or site dir is missing
+    - run `auditAndFixTranslations()` once after all sources are merged, against a cloned default-language snapshot (no default-language-first file sort)
+  - `webapp/utils/bootstrap.js`:
+    - initialize i18n after PluginManager (framework, then plugins in `loadOrder`, then site)
+  - `docs/plugins/creating-plugins.md`:
+    - Plugin translations paragraph: file location, merge order, English-only backfill. Do not mix bundle publish text into this commit
+  - tests:
+    - `webapp/tests/unit/translations/i18n-merge.test.js`
+    - framework-only still loads (regression); a plugin `en.conf` adds a key; a site `en.conf` overrides that key and leaves sibling framework keys; a plugin without `translations/` does not fail; a plugin shipping only `en.conf` backfills into `de` even when the plugin file is not loaded first; assigning a whole language object is gone - merge is deep
+  - `README.md`, `docs/README.md` — Latest Release Highlights — v2.0.2 / W-222 bullet
+  - `docs/CHANGELOG.md` — v2.0.2 / W-222 section
+- notes:
+  - ships the day after W-221 (v2.0.1 bundle, v2.0.2 i18n). Second commit of the pair; do not fold these files into the W-221 commit
+  - site translation path is `site/webapp/translations/`, matching file-resolution priority (site > plugins > framework). Do not invent a second site location
+  - out of scope: Vue SPA translation loading (W-0); live reload / admin "reload translations" without restart (W-0); bundle install/publish (W-221)
+  - no new i18n runtime API and no change to `{{i18n.*}}` handlebars
+  - local e2e fixtures (`test-primary` / `test-secondary`) are not committed; unit tests use isolated temp trees
+
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -8563,7 +8711,7 @@ old pending:
 - version history: label is not shown in history table
 
 ### Potential next items:
-- W-0: i18n: site specific and plugin specific translations & vue.js SPA support
+- W-0: i18n: vue.js SPA support
 - W-0: deployment: docker strategy
 - W-0: auth controller: authentication with LDAP (see W-109 for flow design)
 
@@ -8578,7 +8726,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-220, v2.0.0, 2026-09-14
+- assume W-221, v2.0.1, 2026-09-15
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -8590,18 +8738,18 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.0 2026-09-14
+node bin/bump-version.js 2.0.1 2026-09-15
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.0; git push origin main --tags
+git tag v2.0.1; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.6 2026-08-13
+node ../../bin/bump-version.js 1.0.1 2026-09-14
 git diff
 git status
 git add .
@@ -8898,11 +9046,13 @@ template:
 - when a new language file is added to webapp/translations, the app sould pick it up dynamically, or by an admin requesting a web-based resources reload
 - when a language file has been updated, the app should pick up the changes dynamically, or by an admin requesting a web-based resources reload
 
-### W-0: i18n: site specific and plugin specific translations & vue.js SPA support
+### W-0: i18n: vue.js SPA support
 - status: 🕑 PENDING
 - type: Feature
-- objective: allow site admins/developers define site-specific and plugin specific translations for MPA and SPA
-- how: deep merge of site/webapp/translations/* files into webapp/translations/
+- objective: let Vue SPAs use the same merged translation set as MPA (framework, then active plugins, then `site/webapp/translations/`)
+- MPA merge is W-222. This item is only the client-side loader / Vue i18n wiring so SPA strings are not a second copy
+- do not invent a second site or plugin translation path
+- out of scope: live reload without restart (separate W-0)
 
 ### W-0: config controller: nested site config
 - status: 🕑 PENDING

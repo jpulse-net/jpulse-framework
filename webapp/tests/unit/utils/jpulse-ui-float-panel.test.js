@@ -361,6 +361,52 @@ describe('jPulse.UI.floatPanel', () => {
             expect(rect.w).toBe(492);
         });
 
+        test('mobileSheetRect adds safe-area to the 4px inset and measures height in the safe viewport', () => {
+            const sheet = engine().mobileSheetRect(
+                { w: 390, h: 844 },
+                0.55,
+                { top: 47, right: 16, bottom: 34, left: 16 }
+            );
+            const safeH = 844 - 47 - 34;
+            expect(sheet.h).toBe(Math.round(safeH * 0.55));
+            expect(sheet.x).toBe(20);
+            expect(sheet.w).toBe(390 - 16 - 16 - 8);
+            expect(sheet.y).toBe(844 - 34 - sheet.h);
+            expect(sheet.y - 47).toBe(safeH - sheet.h);
+        });
+
+        test('mobile sheet getRect honors env(safe-area-inset-*) from the probe', () => {
+            setViewport(500, 800);
+            const orig = window.getComputedStyle.bind(window);
+            window.getComputedStyle = (el) => {
+                if (el && el.getAttribute && el.getAttribute('data-jp-safe-area-probe') !== null) {
+                    return {
+                        paddingTop: '47px',
+                        paddingRight: '0px',
+                        paddingBottom: '34px',
+                        paddingLeft: '0px'
+                    };
+                }
+                return orig(el);
+            };
+            try {
+                const handle = make({
+                    id: 'mobile-safe-area',
+                    topOffset: 50,
+                    defaults: { x: 20, y: 80, w: 260, h: 180, open: true },
+                    mobile: { breakpoint: 768, heightRatio: 0.5, exclusive: false }
+                });
+                const rect = handle.getRect();
+                const safeH = 800 - 47 - 34;
+                expect(rect.h).toBe(Math.round(safeH * 0.5));
+                expect(rect.x).toBe(4);
+                expect(rect.w).toBe(492);
+                expect(rect.y).toBe(800 - 34 - rect.h);
+            } finally {
+                window.getComputedStyle = orig;
+            }
+        });
+
         test('resize in all eight directions; nw / n / w move the origin and stop at the minimum', () => {
             const start = { x: 200, y: 200, w: 300, h: 220, open: true };
             const handle = make({

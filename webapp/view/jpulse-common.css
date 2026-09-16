@@ -4547,10 +4547,16 @@ body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {
     box-sizing: border-box;
     pointer-events: none;
     z-index: 985;
-    border: 2px solid var(--jp-theme-color-primary);
-    background: var(--jp-theme-color-primary);
-    opacity: 0.22;
+    border: 1px solid var(--jp-theme-border-color);
+    background: var(--jp-theme-bg-tertiary);
+    opacity: 0.45;
     border-radius: 8px;
+}
+
+[data-theme="dark"] .jp-float-panel-ghost {
+    border: 2px solid var(--jp-theme-color-primary-dark);
+    background: var(--jp-theme-bg-secondary);
+    opacity: 0.45;
 }
 
 .jp-float-panel-launcher {

@@ -3751,6 +3751,68 @@ window.jPulse = {
                 h: (typeof window !== 'undefined' && window.innerHeight) ? window.innerHeight : 768
             });
 
+            const normalizeInsets = (insets) => ({
+                top: Math.max(0, toFinite(insets && insets.top, 0)),
+                right: Math.max(0, toFinite(insets && insets.right, 0)),
+                bottom: Math.max(0, toFinite(insets && insets.bottom, 0)),
+                left: Math.max(0, toFinite(insets && insets.left, 0))
+            });
+
+            /**
+             * Read env(safe-area-inset-*) via a probe. Zero when the page has no
+             * viewport-fit=cover or the environment does not report insets.
+             */
+            const readSafeAreaInsets = () => {
+                const empty = { top: 0, right: 0, bottom: 0, left: 0 };
+                try {
+                    if (typeof document === 'undefined' || !document.body) {
+                        return empty;
+                    }
+                    const probe = document.createElement('div');
+                    probe.setAttribute('data-jp-safe-area-probe', '');
+                    probe.style.cssText = [
+                        'position:absolute',
+                        'visibility:hidden',
+                        'pointer-events:none',
+                        'padding-top:env(safe-area-inset-top, 0px)',
+                        'padding-right:env(safe-area-inset-right, 0px)',
+                        'padding-bottom:env(safe-area-inset-bottom, 0px)',
+                        'padding-left:env(safe-area-inset-left, 0px)'
+                    ].join(';');
+                    document.body.appendChild(probe);
+                    const cs = window.getComputedStyle(probe);
+                    const insets = normalizeInsets({
+                        top: parseFloat(cs.paddingTop),
+                        right: parseFloat(cs.paddingRight),
+                        bottom: parseFloat(cs.paddingBottom),
+                        left: parseFloat(cs.paddingLeft)
+                    });
+                    probe.remove();
+                    return insets;
+                } catch (err) {
+                    return empty;
+                }
+            };
+
+            /**
+             * Mobile bottom-sheet rect. heightRatio is of the safe viewport
+             * (window minus top/bottom insets). Side inset is 4px plus left/right
+             * safe-area. The sheet sits on top of safe-area-inset-bottom.
+             */
+            const mobileSheetRect = (vp, ratio, insets) => {
+                const safe = normalizeInsets(insets);
+                const viewW = toFinite(vp && vp.w, 0);
+                const viewH = toFinite(vp && vp.h, 0);
+                const safeH = Math.max(1, viewH - safe.top - safe.bottom);
+                const h = Math.max(1, Math.round(safeH * toFinite(ratio, 0.55)));
+                return {
+                    x: safe.left + MOBILE_INSET,
+                    y: Math.max(0, viewH - safe.bottom - h),
+                    w: Math.max(1, viewW - safe.left - safe.right - MOBILE_INSET * 2),
+                    h
+                };
+            };
+
             const resolveTopOffset = (topOffset) => {
                 if (typeof topOffset === 'number' && Number.isFinite(topOffset)) {
                     return Math.max(0, topOffset);
@@ -4358,14 +4420,16 @@ window.jPulse = {
                         };
                     }
                     const vp = viewportSize();
-                    const ratio = toFinite(inst.opts.mobile.heightRatio, 0.55);
-                    const h = Math.max(1, Math.round(vp.h * ratio));
-                    const inset = MOBILE_INSET;
+                    const sheet = mobileSheetRect(
+                        vp,
+                        inst.opts.mobile.heightRatio,
+                        readSafeAreaInsets()
+                    );
                     return {
-                        x: inset,
-                        y: Math.max(0, vp.h - h),
-                        w: Math.max(1, vp.w - inset * 2),
-                        h,
+                        x: sheet.x,
+                        y: sheet.y,
+                        w: sheet.w,
+                        h: sheet.h,
                         zIndex: inst.state.zIndex
                     };
                 };
@@ -4961,6 +5025,8 @@ window.jPulse = {
                     dragMove,
                     resizeMove,
                     reclampPreservingEdges,
+                    readSafeAreaInsets,
+                    mobileSheetRect,
                     Z_PANEL_MIN,
                     Z_PANEL_MAX,
                     Z_GHOST

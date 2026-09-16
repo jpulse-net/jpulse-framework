@@ -8679,19 +8679,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - no new i18n runtime API and no change to `{{i18n.*}}` handlebars
   - local e2e fixtures (`test-primary` / `test-secondary`) are not committed; unit tests use isolated temp trees
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-223, v1.0.0, 2026-09-17: ai: ai-core plugin for agent server core, ai-mock plugin as provider
-- status: 🕑 PENDING
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - stand up the server half of the AI agent as a plugin bundle: a site registers scope and tools through hooks and runs complete turns against a mock provider over plain HTTP - tool authorization, per-turn budgets, quota, thread and turn persistence, live streaming, admin config, and a usage page
@@ -8798,6 +8787,84 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **no framework files at all** — not source, not docs, not tests. If an implementation appears to need a framework source change, that is a design finding worth raising rather than a patch: §22.2 lists the eight mechanisms already verified sufficient
   - do not run the bump-version script against this repo while implementing, and do not edit `.jpulse/` in tests - use an isolated temp project or the plugin-cli test harness
   - collections are plugin-owned from the start. The reference site's existing `aiThreads` / `aiTurns` / `aiUsage` data is that site's migration problem (design §18); a one-time rename or a drop-and-recreate are both acceptable there, and neither is framework machinery
+
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-224, v1.0.0, 2026-09-17: ai: ai-anthropic plugin for Claude models
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - stand up `@jpulse-net/plugin-ai-anthropic` against the published W-223 provider contract so the same HTTP turns that run on `ai-mock` run on Claude
+  - finish the model-selection surface W-223 started: the capability-probe menu filtered by plugin availability **and** key presence, the chosen pair persisted on the thread, a write that does not start a turn, and vision gating for the picker
+  - prove the contract is public: a provider in its own package, written against `onAiProviderRegister` / `onAiComplete`, with no import from `plugins/ai-core/`
+  - hand-over item: this entry plus `docs/dev/design/W-223-ai-agent.md` §9.2–§9.5, §17, §21.4. Port from `tmp-bubblemap-app/plugins/ai-anthropic`; the contract diffs in §21.4 are load-bearing
+- prerequisites:
+  - W-223, `@jpulse-net/plugin-ai-core` 1.0.0: the turn loop, the array `tool_use` contract, four-way `computeCost` in $/MTok, `filterAllowedModels` / `pickDefaultModel`, `AiThreadModel.setProviderModel`, the AI tab allowed-list fields, and `GET /api/1/ai/capability`
+  - W-210, v1.7.14: `type: 'password'` + `PluginModel.getSecret` / `isSensitiveMask` — Verify uses the unsaved field the same way `EmailController` resolves a test SMTP password
+  - W-221, v2.0.1: `dependencies.plugins` may name `npmPackage: '@jpulse-net/plugin-ai-core'` so installing the provider alone pulls the bundle
+  - W-222, v2.0.2: only if this plugin ships `webapp/translations/`; the BubbleMap source does not
+- rationale:
+  - the reference site already streams Claude into a turn loop (`tmp-bubblemap-app/plugins/ai-anthropic`, BubbleMap 1.6.6). The wire work — SSE, Messages API, prompt cache, four-way tokens, stop-reason map, key redaction, unsaved Verify, price override — is done. What is not done is speaking the contract W-223 published. A literal copy would register, stream text, and **never execute tools**: the loop only honors `event.calls`, and BubbleMap emits the first tool as `{ type: 'tool_use', id, name, args }`
+  - two more silent cost bugs in the same file: usage fields are `cacheWriteTokens` / `cacheReadTokens` (`addUsage` does not alias them, so cache tokens settle at $0) and `priceTable` is pre-divided per-token (`computeCost` divides by 1e6 again, under-charging by a million). Both are why a provider written against the published contract is the honest test that the contract is public (design §5.1)
+  - a commercial provider is its own package because it churns, it carries a credential and a price table a site may not want, and bundling it with `ai-core` would make every mock-only install carry Anthropic. `ai-openai` stays TD-11
+  - W-223 already shipped the admin allowed list and the probe menu. Phase 2 is what that menu still cannot do until a second provider exists: hide a plugin that has no key, remember a mid-thread switch on the thread (today only the turn records it; `setProviderModel` is unused), and grey out non-vision models when the thread has images
+- features:
+  - **phase 1 - the provider** (`@jpulse-net/plugin-ai-anthropic` 1.0.0). Port `tmp-bubblemap-app/plugins/ai-anthropic`, then apply the §21.4 diffs:
+    - `onAiProviderRegister` descriptor: `{ plugin: 'ai-anthropic', label, models, capabilities: { vision: true }, priceTable, maxTokens, configured }`. `configured` is true when `PluginModel.getSecret('ai-anthropic', 'apiKey')` returns a non-empty, non-mask value; a failed `getSecret` registers unconfigured instead of throwing. Models and built-in $/MTok prices (verified 2026-09-15): Sonnet 5, Haiku 4.5, Opus 5, Fable 5.1 — no dated Haiku snapshot
+    - `onAiComplete` streams `POST {endpoint}/v1/messages`. Keep `consumeSse` (split and malformed chunks), `toAnthropicMessages` / `toAnthropicTools` (ephemeral cache on the system prompt and the last tool), `mapStopReason` (`tool_use` → `tool`, `max_tokens` → `length`, else `end`), `sanitizeError` (`sk-ant-…`). `abortSignal` returns silently (the loop treats a provider error as failed before cancel); the plugin timer emits `AI_TIMEOUT`. `anthropic-version: 2023-06-01`. 429/529 → `AI_RATE_LIMIT` `retryable: true`. Tool calls emit only after `content_block_stop`
+    - **emit the published events.** Collect every completed `tool_use` block and emit **one** `{ type: 'tool_use', calls: [ { id, name, args }, … ] }`. A block whose JSON never parses is `{ type: 'tool_use_truncated', id, name, jsonLen }` — do not drop the valid siblings. Usage is `{ type: 'usage', tokensIn, tokensOut, cacheWrite, cacheRead }` (not `cacheWriteTokens`). `done.stopReason` is the normalized trio
+    - **price table in $/MTok**, same four keys `computeCost` reads. Plugin-config `priceTableOverride` merges on top; a row is kept only when all four rates are finite numbers; invalid JSON keeps the built-in table. An unknown model leaves cost `null`, never zero
+    - plugin config (W-210): `apiKey` password, Verify button (`jPulse.plugins.aiAnthropic.verifyApiKey`) that POSTs the **form** key and endpoint so unsaved works, `model` / `endpoint` / `timeoutMs` / `maxTokens`, Pricing tab override. Completions use `getSecret`. Verify and errors never return the key. `global.PluginModel` is never assigned — import `webapp/model/plugin.js` the way `ai-core` `loadSettings` does
+    - `dependencies.plugins: { 'ai-core': { version: '>=1.0.0', npmPackage: '@jpulse-net/plugin-ai-core' } }`, `jpulseVersion: '>=2.0.2'`, `autoEnable: true` (the site chose to install it). Single-plugin package like `auth-mfa`, not a bundle
+  - **phase 2 - selection surface** (`@jpulse-net/plugin-ai-core` 1.0.1 — leftover §9.5, now that the menu has two entries):
+    - `filterAllowedModels` drops a registered row whose provider has `configured === false`. `ai-mock` stays `configured: true`. Missing/disabled plugins already disappear because they never register
+    - `runTurn` calls `setProviderModel` when the chosen pair differs from the thread, so a mid-thread switch survives the next find-or-create. Accept `provider` / `model` on the existing `PUT /api/1/ai/thread/:id` (alongside `label`) so the panel can change the pair without starting a turn; a pair not on the live menu is 400 `AI_MODEL_NOT_ALLOWED`
+    - `gateModelsForVision(menu, { hasImages })` marks non-vision rows `{ available: false, reason: 'vision' }` when `hasImages` is true. The probe takes `?hasImages=1`. Attachments are W-227; this is the seam the picker uses
+    - `pickDefaultModel`: exact admin pair if both match a live row; else first live row of `defaultProvider`; else `menu[0]`. Empty allowed list keeps every configured provider (including mock)
+    - `/jpulse-plugins/ai-core.shtml` loads the capability probe (stats, models, quota, tools) and links to `/api/1/ai/capability`. The AI tab and plugin-config help link to that page, usage, plugin-local configuration, the guide, and plugin management
+    - no per-role allowed lists (TD-08). No `ai-openai`
+- deliverables:
+  - `plugins/ai-anthropic/plugin.json`, `package.json`:
+    - `name: 'ai-anthropic'`, `npmPackage: '@jpulse-net/plugin-ai-anthropic'`, `version: '1.0.0'`, `jpulseVersion: '>=2.0.2'`, `autoEnable: true`, the plugin dependency on `ai-core`, Provider + Pricing schema ported from the BubbleMap `plugin.json` (help text without map / T-092 vocabulary), SVG icon (not an emoji, not the retired Gemini-like star)
+  - `plugins/ai-anthropic/webapp/controller/aiAnthropic.js`:
+    - exported helpers the tests import: `consumeSse`, `mapUsage`, `mapStopReason`, `sanitizeError`, `toAnthropicTools`, `toAnthropicMessages`, `mergePriceTable`, `resolveVerifyApiKey`, `completeAnthropic`, `pingModels`. Hooks + `POST /api/1/aiAnthropic/verify-api-key` (`auth: 'admin'`)
+  - `plugins/ai-anthropic/webapp/view/jpulse-common.js`:
+    - `jPulse.plugins.aiAnthropic.verifyApiKey` — form values, toast, never logs the key
+  - `plugins/ai-anthropic/webapp/tests/unit/`:
+    - SSE parser against a split chunk and a malformed `data:` line (rest stays in the buffer; bad JSON is skipped)
+    - `mapUsage` four-way mapping; `mapStopReason` for `tool_use` / `max_tokens` / other
+    - `sanitizeError` redacts `sk-ant-…` and never echoes the key from an HTTP error body
+    - `completeAnthropic` with a fake `fetch`: a text-only stream; a round with **two** `tool_use` blocks emitted as one `calls` array; a truncated tool JSON; 429 retryable; missing key → `AI_NO_API_KEY`; `abortSignal` cancels the in-flight request and returns without a provider error
+    - `priceTable` stays in $/MTok through register; an override JSON merges; invalid JSON is ignored; unknown model → `null` rates
+    - `resolveVerifyApiKey`: unsaved non-mask wins; mask/empty falls back to `getSecret`; empty both → not configured
+    - descriptor: `plugin`, `capabilities.vision === true`, `configured` follows the stored key
+  - `plugins/ai-anthropic/docs/README.md`, `README.md`:
+    - install `npx jpulse plugin install @jpulse-net/plugin-ai-anthropic` (pulls `ai-core`), enable, paste key, Verify then Save, set Site Configuration → AI default / allowed list, `jpulseVersion`, hooks used, 1.0.0 note. Guide URL `/jpulse-docs/installed-plugins/ai-anthropic/README` (trailing slash 404s)
+  - `plugins/ai-anthropic/webapp/bump-version.conf`, `jest.config.cjs`:
+    - single-plugin list (`plugin.json`, `package.json`, `jest.config.cjs`, `webapp/**/*.js`, `README.md`, `docs/**`, `webapp/tests/**`). `npm test` from this directory chdirs to the framework checkout
+  - `plugins/ai-core/` (1.0.1, published `@jpulse-net/plugin-ai-core`; companion `ai-mock` 1.0.1 in its own repo, same package):
+    - `filterAllowedModels` honors `configured === false`; `runTurn` persists the pair; `PUT /api/1/ai/thread/:id` accepts `provider` / `model`; `gateModelsForVision` + probe `hasImages`; `pickDefaultModel` provider-only fallback; capability overview page; tests in `providers.test.js` / threads / turn-loop. `ai-mock` descriptor gains `configured: true`. Same `jest.config.cjs` + `npm test` wiring; bump list includes the Jest config
+  - framework-repo docs are **not** part of this item's plugin commits — see notes
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md` §21.4 (this item), §9.2–§9.5 (contract and selection), §17 (config split as built), As Built items 5–12. TD-08 and TD-11 stay deferred
+  - **port source, not a submodule:** `tmp-bubblemap-app/plugins/ai-anthropic` — `plugin.json`, `webapp/controller/aiAnthropic.js`, `webapp/view/jpulse-common.js`, `docs/README.md`. That tree is a BubbleMap site plugin (proprietary license, `jpulseVersion: '>=1.7.14'`, empty plugin deps, emoji icon, map-agent copy). Rewrite headers, license (BSL 1.1 like `ai-core`), author/repo, and user-facing words. Do not copy T-092, "map AI Agent", or "Allow AI Agent to read this map"
+  - **repo layout: `ai-anthropic` is its own git repo and its own commit**, sibling under `plugins/` (gitignored by the framework except `hello-world`), same as `auth-mfa`. Phase 2 is a second commit in the **ai-core** repo plus the `configured: true` commit in **ai-mock**. Two publishes, one work item: `@jpulse-net/plugin-ai-anthropic` 1.0.0 and `@jpulse-net/plugin-ai-core` 1.0.1 (GitHub Packages, 2026-09-17). The header `v1.0.0` is the Anthropic package; the bundle header is `v1.0.1`
+  - `global.AiCore` is for site code. This plugin must not import from `plugins/ai-core/`. Completions go through the hooks; cost is computed by the loop from the descriptor's `priceTable` plus the `usage` event
+  - `PluginModel.getSecret` / `isSensitiveMask` — `global.PluginModel` is never assigned; import `webapp/model/plugin.js`. Same pattern as `ai-core` `loadSettings`
+  - out of scope: the chat panel and `hello-ai` (W-225); propose/apply (W-226); attachments and actually sending images (W-227 — phase 2 only gates the menu); `ai-openai` (TD-11); the reference site's migration of its own `ai-anthropic` copy
+  - **no framework source.** Framework-repo work for this item is the design + this work-item text. Latest Release Highlights / `docs/CHANGELOG.md` / hook-catalog mention wait for the framework release that accompanies the plugin publish
+  - do not run the bump-version script against this repo while implementing, and do not edit `.jpulse/` in tests
+  - Verify never receives the stored-only value from the button callback — only the form field (mask or newly typed). That is the W-210 rule; do not "fix" it by reading `getSecret` in the browser
+  - no `LICENSE` file on either package (same as `ai-core` 1.0.0)
 
 
 

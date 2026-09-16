@@ -1,14 +1,40 @@
 # W-223 AI agent framework for sites
 
-**Status:** Implemented as W-223 (`@jpulse-net/plugin-ai-core` 1.0.0). All three
-prerequisites are released — W-220 `jPulse.UI.floatPanel` (v2.0.0), W-221
-plugin bundle build and installation (v2.0.1), and W-222 plugin and site
-translation merge (v2.0.2) — so **no framework source change remains**
-(§22.2). §21 splits the agent itself into five items, W-223 through W-227.
-Deviations from this document are under `### As Built`.
+**Status:** W-223 is published (`@jpulse-net/plugin-ai-core` 1.0.0, 2026-09-17).
+W-224 is published (`@jpulse-net/plugin-ai-anthropic` 1.0.0 and
+`@jpulse-net/plugin-ai-core` 1.0.1, 2026-09-17). All three prerequisites are
+released — W-220 `jPulse.UI.floatPanel` (v2.0.0), W-221 plugin bundle build
+and installation (v2.0.1), and W-222 plugin and site translation merge
+(v2.0.2) — so **no framework source change remains** (§22.2). Next item is
+W-225 (chat panel, client-host tools, `hello-ai`). §21 splits the agent into
+five items, W-223 through W-227. Deviations from this document are under
+`### As Built`.
 
 
 ## Revision history
+
+### Rev 6 — 2026-09-16 — as built after W-224 publish
+
+No design change. Anthropic 1.0.0 and `ai-core` 1.0.1 shipped; As Built and
+§9.5 / §17 / §21.4 now describe the code.
+
+| Section | Change |
+|---|---|
+| Header | W-224 published; W-225 is next |
+| §9.5, §17, §21.4 | Selection surface and the Anthropic port are as shipped |
+| As Built | Items 6–9 updated; items 10–12 |
+
+### Rev 5 — 2026-09-15 — as built after 1.0.0 publish
+
+No design change. The published bundle and the admin surfaces it grew during
+release prep are recorded so W-224 ports against the code, not the sketch.
+
+| Section | Change |
+|---|---|
+| Header | W-223 published; W-224 is next |
+| §5.1 | Published package is `ai-core` + `ai-mock` only; `hello-ai` stays W-225 |
+| §9.5, §17, §21.4 | Allowed-list fields and the probe menu shipped in W-223; remaining selection work and the Anthropic port are W-224 |
+| As Built | Items 5–9 |
 
 ### Rev 4 — 2026-09-15 — as built after manual testing
 
@@ -22,7 +48,7 @@ move once they met Node 24, MongoDB upserts, and bootstrap globals.
 
 ### As Built
 
-Four things ended up different from the spec below. None changes a
+These ended up different from the spec below. None changes a
 decision; each is the shape the code wanted once it existed.
 
 1. **Cancel is `POST /api/1/ai/thread/:id/cancel`, not HTTP close.**
@@ -42,6 +68,56 @@ decision; each is the shape the code wanted once it existed.
 4. **Quota after SSE headers is an `error` event.** `openSseTurn`
    writes headers before `onAiQuotaCheck`. An exceeded cap is
    `AI_QUOTA_EXCEEDED` on the stream, not a JSON HTTP 429.
+5. **The published bundle is `ai-core` + `ai-mock` only.**
+   `@jpulse-net/plugin-ai-core` 1.0.0 does not contain `hello-ai`. That
+   view is W-225. The package was renamed from `@jpulse-net/plugin-ai`
+   before first publish so later `@jpulse-net/plugin-ai-anthropic` /
+   `plugin-ai-openai` sit as peers of the primary, not of a catch-all
+   `plugin-ai`.
+6. **The AI tab already has the allowed-list fields.** W-223 shipped
+   `defaultProvider`, `defaultModel`, and `allowedModels` (JSON textarea
+   of `{ provider, model, label }`; empty means every registered model).
+   `GET /api/1/ai/capability` returns that menu filtered by providers
+   that actually registered, plus `defaultModel`. W-224 1.0.1 added the
+   rest of §9.5: `configured === false` drops a row, `runTurn` persists
+   the pair via `setProviderModel`, `PUT /api/1/ai/thread/:id` accepts
+   `provider`/`model` (400 `AI_MODEL_NOT_ALLOWED` if the pair is not on
+   the live menu), and `?hasImages=1` greys non-vision rows
+   `{ available: false, reason: 'vision' }`.
+7. **Debug dumps are the plugin-config checkbox, not an `app.conf`
+   primary.** `loadSettings` still OR's `appConfig.ai.debugDumps`, but
+   the supported control is Admin → Plugins → ai-core. The AI tab
+   description and the plugin-config help are HTML with links to the
+   AI Core overview, usage, plugin-local configuration (including
+   dumps), the guide, and plugin management.
+8. **AI Core is in the site menu.** `jpulse-navigation.js` registers
+   `jPulsePlugins.pages.aiCore` → `/jpulse-plugins/ai-core.shtml`.
+   That page loads the capability probe (default model, menu, quota,
+   tools) and links to `/api/1/ai/capability`. `ai-mock` is not in that
+   menu (overkill; linked from the AI Core overview). Installed-plugin
+   guide URLs must be `/jpulse-docs/installed-plugins/<name>/README` —
+   a trailing slash is rewritten to `index.shtml` before markdown
+   routing and 404s.
+9. **The Anthropic plugin is a port, not a copy.**
+   `tmp-bubblemap-app/plugins/ai-anthropic` (BubbleMap 1.6.6) was the
+   source for SSE, Verify, and the password key. `@jpulse-net/plugin-ai-anthropic`
+   1.0.0 emits the published shape (array `tool_use`, `cacheWrite` /
+   `cacheRead`, `$/MTok`). Models and prices were refreshed 2026-09-15
+   (Sonnet 5, Haiku 4.5, Opus 5, Fable 5.1) — not the dated BubbleMap
+   snapshot. `anthropic-version` stays `2023-06-01`. No `LICENSE` file
+   (same as `ai-core` 1.0.0).
+10. **`pickDefaultModel` does not require both admin fields.** Exact
+    pair if both match a live row; else the first live row of
+    `defaultProvider`; else `menu[0]`. An empty allowed list keeps
+    every configured provider, including `ai-mock`.
+11. **Provider abort is silent; plugin timeout is `AI_TIMEOUT`.**
+    Emitting `AI_CANCELED` on abort made the loop fail the turn before
+    cancel could win. A failed `getSecret` registers `configured:
+    false` instead of throwing. A price override is ignored unless
+    every merged row has four finite rates.
+12. **Plugin Jest is a root `jest.config.cjs`.** `npm test` from
+    `plugins/ai-core` or `plugins/ai-anthropic` chdirs to the framework
+    checkout. Both bump-version lists include that file.
 
 ### Rev 3 — 2026-09-15 — prerequisites released, work split
 
@@ -441,7 +517,7 @@ The bundle is drawn tightly:
 
 | Package | Contains | Why |
 |---|---|---|
-| `@jpulse-net/plugin-ai-core` | `ai-core` + `ai-mock` + `hello-ai` | Everything needed to stand the feature up and see it work, with no API key and no spend |
+| `@jpulse-net/plugin-ai-core` | `ai-core` + `ai-mock` | Everything needed to stand the server core up and see it work, with no API key and no spend. `hello-ai` is a view inside `ai-core` when W-225 lands, not a third plugin and not in 1.0.0 |
 | `@jpulse-net/plugin-ai-anthropic` | `ai-anthropic` | Depends on `ai-core`; installed only by a site that uses Anthropic |
 | *(deferred)* | `ai-openai` | TD-11 |
 
@@ -1019,6 +1095,13 @@ user choosing an expensive model exhausts their own quota faster rather than
 escaping it. Per-role allowed lists, so power users get the larger models, are
 a natural extension and are tracked in TD-08.
 
+**As built.** W-223 shipped the admin fields and the probe menu
+(As Built item 6). W-224 1.0.1 shipped the rest of this section: key
+presence (`configured`), persisting the thread's choice, a write that
+does not start a turn, and vision gating (`?hasImages=1`). The default
+picker also accepts a provider-only admin setting (As Built item 10).
+The panel that *shows* the picker is W-225.
+
 ### 9.6 System prompt assembly
 
 The framework owns assembly and the order; the site owns the words.
@@ -1368,19 +1451,29 @@ the prompt and in authorization flows from it.
 
 `ai-core` contributes a config tab through `ConfigModel.extendSchema()` — the
 `static async initialize()` call site W-207 provides, which is what the
-reference site already uses. Settings split cleanly:
+reference site already uses. Settings split as shipped in 1.0.0:
 
-- **app.conf** — provider and model defaults, debug dumps (deliberately not on
-  the admin tab, where they are easy to leave on), and prompt fragment
-  overrides.
-- **Admin tab** — the master switch, allowed roles, the allowed provider/model
-  list and its default (§9.5), quota caps (§10.1), loop limits (rounds,
-  timeouts, context size), tool and docs-topic policy, retention, and
-  auto-titling.
-- **Provider plugin config** — API key as `type: 'password'` with `getSecret`
-  on the server path and an unsaved-value Verify button, endpoint, timeout, max
-  tokens, and a price-table override. The reference site's Anthropic provider
-  is the reference and needs no rework.
+- **Admin tab (Site Configuration → AI)** — the master switch, allowed roles,
+  `defaultProvider` / `defaultModel` / `allowedModels` (§9.5), quota caps
+  (§10.1), loop limits (rounds, timeouts, context size), tool policy
+  (`disabledTools` / `reviewedTools`), retention, auto-titling, and site
+  instructions. The tab description is HTML with links to the AI Core
+  overview, usage, plugin-local configuration (dumps live there), the
+  guide, and plugin management. An empty `defaultModel` uses the first
+  model of `defaultProvider` (As Built item 10).
+- **Plugin config (Admin → Plugins → ai-core)** — `debugDumps` only, plus the
+  same cross-links (including `/jpulse-plugins/ai-core.shtml`). Deliberately
+  not on the AI tab, where they are easy to leave on. `loadSettings` reads
+  `PluginModel` by import; `global.PluginModel` is never assigned.
+- **app.conf (optional overrides)** — `ai.defaultProvider`, `ai.defaultModel`,
+  `ai.promptOverride`, and `ai.debugDumps` (OR'd with the checkbox). Not the
+  supported home for dumps.
+- **Provider plugin config** — shipped on `@jpulse-net/plugin-ai-anthropic`
+  1.0.0: API key as `type: 'password'` with `getSecret` on the server path
+  and an unsaved-value Verify button, endpoint, timeout, max tokens, and a
+  price-table override that must supply four finite rates per row. The
+  BubbleMap tree was the port source; the published plugin speaks the
+  `ai-core` 1.0.0 contract (As Built item 9).
 
 An admin usage page reports per-subject requests, tokens, and cost by period,
 with over-quota and `costUnknown` flagging — the reference site's AI usage page
@@ -1768,16 +1861,38 @@ no turn loop at all, which is testable but not demonstrable.
 
 ### 21.4 W-224 — ai: Anthropic provider and model selection
 
+**Shipped** 2026-09-17: `@jpulse-net/plugin-ai-anthropic` 1.0.0 and
+`@jpulse-net/plugin-ai-core` 1.0.1.
+
 | # | Phase | Contents |
 |---|---|---|
-| 1 | The provider | `@jpulse-net/plugin-ai-anthropic` on the revised contract: SSE parsing against split and malformed chunks, four-way token accounting, stop-reason normalization, the price table, API-key redaction in errors, and the config tab with the unsaved-value Verify button (§17) |
-| 2 | Selection surface | Admin allowed list of `{ provider, model, label }` and its default, capability-probe filtering by plugin availability and key presence, per-thread choice recorded on thread and turn, and vision gating in the picker (§9.5) |
+| 1 | The provider | `@jpulse-net/plugin-ai-anthropic` 1.0.0 on the **published** contract: SSE parsing against split and malformed chunks, four-way token accounting (`tokensIn` / `tokensOut` / `cacheWrite` / `cacheRead`), `emit({ type: 'tool_use', calls: […] })` for **every** tool block in the round, stop-reason normalization, the price table in **$/MTok**, API-key redaction in errors, silent abort / `AI_TIMEOUT`, and the plugin-config tab with the unsaved-value Verify button (§17) |
+| 2 | Selection surface | Remaining §9.5 work in `ai-core` 1.0.1: probe filtering by key presence (`configured` on the descriptor), persist the chosen pair on the thread when a turn or a write uses a different one, a write path that does not start a turn, vision gating in the menu (`?hasImages=1`), and a provider-only site default. The admin allowed list and the probe menu already shipped in W-223. The overview page shows the live probe. |
 
 Separate from W-223 because it is a separate npm package with its own release
 cadence, and because a provider written against the published contract is the
 honest test that the contract is public (§5.1). Phase 2 needs two entries in
-the menu — `ai-mock` and Anthropic — which is why it lands here rather than in
-W-223.
+the menu — `ai-mock` and Anthropic — which is why the leftover selection work
+lands here rather than in W-223.
+
+**Port source.** `tmp-bubblemap-app/plugins/ai-anthropic` (BubbleMap 1.6.6):
+`webapp/controller/aiAnthropic.js` (SSE, Messages API, Verify, prices) and
+`webapp/view/jpulse-common.js` (Verify button). Keep the wire work; do not
+copy the license, the T-092 / map vocabulary, or the unpublished event
+shape. Contract diffs the port must make:
+
+| BubbleMap 1.6.6 | Published `ai-core` 1.0.0 |
+|---|---|
+| Emits the **first** `tool_use` only, as `{ type: 'tool_use', id, name, args }` | `{ type: 'tool_use', calls: [ { id, name, args }, … ] }` for every completed tool block; `tool_use_truncated` for a block whose JSON never parses |
+| Usage fields `cacheWriteTokens` / `cacheReadTokens` | `cacheWrite` / `cacheRead` — `addUsage` does not alias the old names, so cache tokens would silently cost $0 |
+| `priceTable` registered as **per-token** rates (`$/MTok / 1e6`) | `$/MTok` — `computeCost` divides by 1e6 itself; registering pre-divided rates under-charges by a million |
+| Descriptor `id` + `supportsVision: true` | `plugin` + `capabilities: { vision: true }` (`normalizeProvider` still accepts the old shape; new code uses the map) |
+| Empty `dependencies.plugins` | `{ 'ai-core': { version: '>=1.0.0', npmPackage: '@jpulse-net/plugin-ai-core' } }` |
+| Proprietary site plugin | Own repo `jpulse-net/plugin-ai-anthropic`, BSL like the other `@jpulse-net` plugins |
+
+The loop ignores a `tool_use` event that has no `calls` array, so a literal
+copy of the BubbleMap emit would run a "successful" text-less turn and never
+execute tools. That is the honest-test failure this item exists to catch.
 
 ### 21.5 W-225 — ai: chat panel, client-host tools, and `hello-ai`
 
@@ -1905,7 +2020,7 @@ this answer:
 | Correct load order ahead of provider plugins | `resolveLoadOrder()` topological sort (§5.1.1) |
 | Guest/anonymous-safe turn leases | existing `RedisManager` lease, used unchanged |
 | Translatable plugin UI text, overridable by a site | W-222 translation merge (v2.0.2) |
-| One package installing `ai-core` + `ai-mock` + `hello-ai` | W-221 bundle install and publish (v2.0.1) |
+| One package installing `ai-core` + `ai-mock` | W-221 bundle install and publish (v2.0.1). `hello-ai` is a later view inside `ai-core`, W-225 |
 
 ### 22.3 Documentation
 

@@ -24754,11 +24754,7 @@ ownership, quota, dumps.
 
 re-login, tools, ownership 403, 429 attempt
 
-Session restored. [mock:tools] ran two unknown tools then
-a second text round. ptester16 got AI_THREAD_FORBIDDEN.
-The 429 turn completed because the daily cap is still 200
-(used ~21). Lower maxRequestsPerDay below used first.
-Quota after SSE headers is an error event, not HTTP 429.
+Session restored. [mock:tools] ran two unknown tools then a second text round. ptester16 got AI_THREAD_FORBIDDEN. The 429 turn completed because the daily cap is still 200 (used ~21). Lower maxRequestsPerDay below used first. Quota after SSE headers is an error event, not HTTP 429.
 
 
 ============================================================
@@ -24766,10 +24762,7 @@ Quota after SSE headers is an error event, not HTTP 429.
 
 429 still completed; capability limit still 200
 
-used 23 / limit 200. Cap was not saved. ptest10 is role
-user and cannot edit Site Configuration. Change
-maxRequestsPerDay as admin, then capability must show
-limit below used before retrying the turn.
+used 23 / limit 200. Cap was not saved. ptest10 is role user and cannot edit Site Configuration. Change maxRequestsPerDay as admin, then capability must show limit below used before retrying the turn.
 
 
 ============================================================
@@ -24777,9 +24770,7 @@ limit below used before retrying the turn.
 
 quota 429 confirmed
 
-limit 1 / used 24 → SSE AI_QUOTA_EXCEEDED, no turn_start.
-Cap restored to 200 → turn completes. Remaining: debug
-dumps and a new hang+cancel with cancelRequested true.
+limit 1 / used 24 → SSE AI_QUOTA_EXCEEDED, no turn_start. Cap restored to 200 → turn completes. Remaining: debug dumps and a new hang+cancel with cancelRequested true.
 
 
 ============================================================
@@ -24787,12 +24778,7 @@ dumps and a new hang+cancel with cancelRequested true.
 
 debug dumps missing; hang completed after cancel POST
 
-Dump turn logged only "completed" — debugDumps was off
-(plugin checkbox not saved). Hang showed ping then
-"(hung until cancel)"; cancel from a second shell
-always returns canceled:true even after the turn ends.
-Retry: save plugin dump flag, cancel immediately after
-turn_start.
+Dump turn logged only "completed" — debugDumps was off (plugin checkbox not saved). Hang showed ping then "(hung until cancel)"; cancel from a second shell always returns canceled:true even after the turn ends. Retry: save plugin dump flag, cancel immediately after turn_start.
 
 
 ============================================================
@@ -24800,11 +24786,7 @@ turn_start.
 
 debug dumps enabled but no prompt/response log lines
 
-Root cause: loadSettings read global.PluginModel, which
-bootstrap never sets (ConfigModel is global; PluginModel
-is not). The checkbox saved; the turn never saw it. Now
-imports webapp/model/plugin.js like hello-world. Restart
-and retry the dump turn. 4 new settings tests passed.
+Root cause: loadSettings read global.PluginModel, which bootstrap never sets (ConfigModel is global; PluginModel is not). The checkbox saved; the turn never saw it. Now imports webapp/model/plugin.js like hello-world. Restart and retry the dump turn. 4 new settings tests passed.
 
 
 ============================================================
@@ -24812,10 +24794,7 @@ and retry the dump turn. 4 new settings tests passed.
 
 dump still missing after restart
 
-Import path was one level too high
-(../../../../../../webapp → Dev/webapp) and the catch
-swallowed it. Corrected to five levels. Restart again
-and retry dump check.
+Import path was one level too high (../../../../../../webapp → Dev/webapp) and the catch swallowed it. Corrected to five levels. Restart again and retry dump check.
 
 
 ============================================================
@@ -24823,10 +24802,7 @@ and retry dump check.
 
 debug dumps confirmed after path fix
 
-prompt: and response: lines logged for turn
-6aa9f1d268274a821f662f32. priorCount=49 is the clipped
-history. Turn the checkbox off. Remaining: hang+cancel
-with cancelRequested true.
+prompt: and response: lines logged for turn 6aa9f1d268274a821f662f32. priorCount=49 is the clipped history. Turn the checkbox off. Remaining: hang+cancel with cancelRequested true.
 
 
 ============================================================
@@ -24834,10 +24810,7 @@ with cancelRequested true.
 
 hang+cancel interrupted immediately
 
-turn 6aa9f27768274a821f662f35: turn_start then canceled,
-no hung-until-cancel text. Cancel POST returned
-canceled:true. Still need turns list to confirm
-cancelRequested persisted true.
+turn 6aa9f27768274a821f662f35: turn_start then canceled, no hung-until-cancel text. Cancel POST returned canceled:true. Still need turns list to confirm cancelRequested persisted true.
 
 
 ============================================================
@@ -24845,9 +24818,7 @@ cancelRequested persisted true.
 
 cancel persist confirmed
 
-turn 6aa9f27768274a821f662f35: canceled True. W-223
-manual gates we listed are done: scripts, hang/cancel,
-quota, ownership, dumps, AI_DISABLED.
+turn 6aa9f27768274a821f662f35: canceled True. W-223 manual gates we listed are done: scripts, hang/cancel, quota, ownership, dumps, AI_DISABLED.
 
 
 ============================================================
@@ -24855,11 +24826,7 @@ quota, ownership, dumps, AI_DISABLED.
 
 what is left before release prep?
 
-Manual gates done. Before plugin release prep: As Built
-in the design and work item (cancel is POST, not HTTP
-close; dumps on plugin config; usage upsert). Optional
-usage-page look and npm pack shape. Framework docs are
-a later framework release, not this item.
+Manual gates done. Before plugin release prep: As Built in the design and work item (cancel is POST, not HTTP close; dumps on plugin config; usage upsert). Optional usage-page look and npm pack shape. Framework docs are a later framework release, not this item.
 
 
 ============================================================
@@ -24867,11 +24834,7 @@ a later framework release, not this item.
 
 plugin-config links, README tests, As Built docs
 
-plugin.json help now links Site Configuration, AI usage,
-the guide, and plugins. README documents jest from the
-framework root. Guide covers POST cancel and SSE quota
-errors. Design As Built + work-item features updated;
-status unchanged. Usage page day/month + costUnknown ok.
+plugin.json help now links Site Configuration, AI usage, the guide, and plugins. README documents jest from the framework root. Guide covers POST cancel and SSE quota errors. Design As Built + work-item features updated; status unchanged. Usage page day/month + costUnknown ok.
 
 
 ============================================================
@@ -24881,26 +24844,15 @@ status unchanged. Usage page day/month + costUnknown ok.
 - cross-links in ai-core plugin config is good
 - actually, it would be helpful to have some cross-links in settings => ai tab as well
 
-AI Core and AI Mock now register jPulse Plugins menu
-entries (MFA-style). New ai-core overview page with
-links to Site Config, usage, debug dumps, mock, and
-the guide. AI tab description is a matching HTML
-list (usage, dumps, guide, plugin management). Restart
-to pick up the new i18n strings on the KI tab.
+AI Core and AI Mock now register jPulse Plugins menu entries (MFA-style). New ai-core overview page with links to Site Config, usage, debug dumps, mock, and the guide. AI tab description is a matching HTML list (usage, dumps, guide, plugin management). Restart to pick up the new i18n strings on the KI tab.
 
 
 ============================================================
 2026-09-15 19:14
 
-- Installed-plugin guide in /jpulse-plugins/ai-mock.shtml
-leads to 404 with /jpulse-docs/installed-plugins/ai-mock/
-(should be .../README but I do not understand why)
+- Installed-plugin guide in /jpulse-plugins/ai-mock.shtml leads to 404 with /jpulse-docs/installed-plugins/ai-mock/ (should be .../README but I do not understand why)
 
-Trailing-slash docs URLs 404 because view.js turns them
-into a missing index.shtml and skips SPA fallback. The
-markdown API also cannot read a directory. Link now
-points at /ai-mock/README, matching ai-core and the
-docs viewer.
+Trailing-slash docs URLs 404 because view.js turns them into a missing index.shtml and skips SPA fallback. The markdown API also cannot read a directory. Link now points at /ai-mock/README, matching ai-core and the docs viewer.
 
 
 ============================================================
@@ -24908,23 +24860,15 @@ docs viewer.
 
 do we need the ai-mock in the site menu? maybe overkill
 
-Removed the AI Mock jPulse-Plugins menu entry. The
-overview page and dashboard card stay; AI Core still
-links to it. AI Core remains in the site menu.
+Removed the AI Mock jPulse-Plugins menu entry. The overview page and dashboard card stay; AI Core still links to it. AI Core remains in the site menu.
 
 
 ============================================================
 2026-09-15 19:21
 
-guide me through github prep, what do I need to do
-for the new repos?
+guide me through github prep, what do I need to do for the new repos?
 
-Two GitHub repos (plugin-ai-core + plugin-ai-mock),
-one npm package (@jpulse-net/plugin-ai). Framework
-repo stays untouched. Create empty org repos, git
-init in each plugins/ dir, first-commit + push,
-then bump/tag/publish only from ai-core. ai-mock
-is source-only and must not be published.
+Two GitHub repos (plugin-ai-core + plugin-ai-mock), one npm package (@jpulse-net/plugin-ai). Framework repo stays untouched. Create empty org repos, git init in each plugins/ dir, first-commit + push, then bump/tag/publish only from ai-core. ai-mock is source-only and must not be published.
 
 
 ============================================================
@@ -24932,44 +24876,31 @@ is source-only and must not be published.
 
 git init + status for ai-core and ai-mock
 
-Both trees look complete. Next: empty GitHub repos
-if not created, then first commit and push in each
-plugin directory. No framework commit.
+Both trees look complete. Next: empty GitHub repos if not created, then first commit and push in each plugin directory. No framework commit.
 
 
 ============================================================
 2026-09-15 19:41
 
-publish succeeded; ask about test-primary, private
-vs public, and plugin-ai vs plugin-ai-core name
+publish succeeded; ask about test-primary, private vs public, and plugin-ai vs plugin-ai-core name
 
-Keep @jpulse-net/plugin-ai. Public like MFA. Delete
-GitHub package plugin-test-primary (W-221 fixture).
-Tag v1.0.0 still missing on the git repos.
+Keep @jpulse-net/plugin-ai. Public like MFA. Delete GitHub package plugin-test-primary (W-221 fixture). Tag v1.0.0 still missing on the git repos.
 
 
 ============================================================
 2026-09-15 19:55
 
-please guide me through renaming the package from
-plugin-ai to plugin-ai-core
+please guide me through renaming the package from plugin-ai to plugin-ai-core
 
-Renamed @jpulse-net/plugin-ai to @jpulse-net/plugin-ai-core
-in both plugin trees, design, work-item notes, API
-example, and bundle tests. User still commits, publishes
-plugin-ai-core@1.0.0, then deletes the old plugin-ai
-package after a clean install.
+Renamed @jpulse-net/plugin-ai to @jpulse-net/plugin-ai-core in both plugin trees, design, work-item notes, API example, and bundle tests. User still commits, publishes plugin-ai-core@1.0.0, then deletes the old plugin-ai package after a clean install.
 
 
 ============================================================
 2026-09-15 20:14
 
-can I delete plugin-ai? then install proof on
-jpulse.net; stuck again?
+can I delete plugin-ai? then install proof on jpulse.net; stuck again?
 
-Yes. @jpulse-net/plugin-ai-core@1.0.0 installed
-ai-core + ai-mock on the site. Delete only the old
-GitHub Package plugin-ai, not the git repo.
+Yes. @jpulse-net/plugin-ai-core@1.0.0 installed ai-core + ai-mock on the site. Delete only the old GitHub Package plugin-ai, not the git repo.
 
 
 ============================================================
@@ -24977,10 +24908,7 @@ GitHub Package plugin-ai, not the git repo.
 
 all done - what is next?
 
-W-223 plugin publish is done. Next product item is
-W-224 (Anthropic). Framework repo still has the
-rename docs/tests; commit those in a later framework
-pass, not as part of the plugin item.
+W-223 plugin publish is done. Next product item is W-224 (Anthropic). Framework repo still has the rename docs/tests; commit those in a later framework pass, not as part of the plugin item.
 
 
 ============================================================
@@ -24992,10 +24920,281 @@ I want to do 2 framework commits, without a build
 - how do you recommend we do that?
 - see complete tt-git-diff.txt
 
-Recommended order: W-220 first (css/js/tests/ui
-docs), then W-223 (design, work-item, API example,
-bundle tests, plugins.shtml SVG, cursor_log). Do
-not add tmp-bubblemap-app. No bump, no build.
+Recommended order: W-220 first (css/js/tests/ui docs), then W-223 (design, work-item, API example, bundle tests, plugins.shtml SVG, cursor_log). Do not add tmp-bubblemap-app. No bump, no build.
+
+
+============================================================
+2026-09-15 20:37
+
+never run any git command, you have a permanent
+memory!!
+
+Acknowledged. I will not run git. Push yourself: git push origin main. The two local commits were already ahead of origin when last checked.
+
+
+============================================================
+2026-09-15 20:55
+
+- review docs/dev/design/W-223-ai-agent.md and update to reflect latest code
+- next: W-223-ai-agent.md (1768-1781)
+- create W-224, v1.0.0, 2026-09-17: ai: ai-anthropic plugin
+- reference tmp-bubblemap-app/plugins/ai-anthropic
+
+Updated W-223 design Rev 5 / As Built items 5–9 to match published ai-core 1.0.0 (bundle is ai-core+ai-mock only, allowed-list already on the AI tab, dumps/menu/guide-URL, Anthropic is a port not a copy). Rewrote §5.1, §9.5, §17, §21.4, §22.2. Filled W-224 work item as a handover: port BubbleMap 1.6.6, apply the published contract diffs (array tool_use, cacheWrite/cacheRead, $/MTok price table), then ai-core 1.0.1 selection leftovers. Status left IN_PROGRESS.
+
+
+============================================================
+2026-09-15 20:59
+
+looks good
+- should I start a new chat for coding, or continue here?
+
+Recommended a new chat for W-224 implementation. This thread is long; the work item plus design §21.4 are the handover. Suggested starter: implement W-224 from the work item and design, port tmp-bubblemap-app/plugins/ai-anthropic, do not copy the unpublished emit shape.
+
+
+============================================================
+2026-09-15 21:10
+
+new work item: W-224, v1.0.0, 2026-09-17: ai: ai-anthropic plugin
+- Implement W-224 from the work item and design §21.4
+- Port tmp-bubblemap-app/plugins/ai-anthropic
+- Phase 1 first; wait before the ai-core 1.0.1 selection patch
+
+Implemented phase 1 only: plugins/ai-anthropic as @jpulse-net/plugin-ai-anthropic 1.0.0. Ported SSE, Messages API, prompt cache, unsaved Verify, and the BubbleMap $/MTok table, then applied the published contract: one tool_use.calls array, tool_use_truncated for unparseable siblings, usage cacheWrite/cacheRead, priceTable in $/MTok (not pre-divided), descriptor plugin + capabilities.vision + configured. No import from plugins/ai-core/. 25 unit tests passed. Did not touch ai-core 1.0.1. Did not git init the new plugin repo.
+
+
+============================================================
+2026-09-15 21:20
+
+- remove dated model
+- use latest model & pricelist from claude website
+
+Dropped claude-haiku-4-5-20251001 and claude-fable-5. Current lineup from Anthropic (2026-09-15): Sonnet 5, Haiku 4.5, Opus 5, Fable 5.1 (claude-fable-5-1, cacheRead $0.25). Skipped Mythos (limited) and legacy 4.x. Tests still 25 pass.
+
+
+============================================================
+2026-09-15 21:30
+
+grok: please fix the identified issues
+
+Fixed the review findings in plugins/ai-anthropic: abort returns silently so the loop records canceled (timeout is AI_TIMEOUT); mergePriceTable requires four finite rates so a partial new-model row cannot price at $0; content_block_stop gates completed tools; RATE_LIMIT → AI_RATE_LIMIT; hook no longer takes test-only deps; Verify sendError fallback + logRequest text; *.tgz in .gitignore. Added tests for tools/messages/ping/request shape. 37 pass. Left LICENSE off (same as ai-core).
+
+
+============================================================
+2026-09-15 21:40
+
+what is next? any manual tests I could do?
+
+Next is W-224 phase 2 in ai-core 1.0.1 (configured filter, persist pair on thread, PUT provider/model, vision gate). Phase 1 is done; wait for go-ahead. Suggested manual smoke: restart, enable plugin, Verify unsaved key then Save, capability menu, HTTP thread+turn with provider ai-anthropic, usage/cost, POST cancel, docs page. No chat panel yet. Anthropic still listed without a key until phase 2.
+
+
+============================================================
+2026-09-15 21:46
+
+let's first fix test issues: npx jest from plugins/ai-anthropic fails on import (not a module)
+
+The suite is ESM and needs the framework Babel/globalSetup/.jpulse config. Running npx jest from the plugin dir used default CommonJS Jest. Added jest.config.cjs (chdir to ../.., same transform/setup) and npm test. 37 pass from the plugin dir and from the framework root.
+
+
+============================================================
+2026-09-15 21:47
+
+while at it, please fix also ai-core: npm test missing script
+
+Same pattern as ai-anthropic: jest.config.cjs delegates to the framework checkout; package.json now has "test". npm test from plugins/ai-core: 53 passed.
+
+
+============================================================
+2026-09-15 21:49
+
+plugins/ai-core/jest.config.cjs and plugins/ai-anthropic/jest.config.cjs
+- add standard file header and // EOF footer
+
+Added the standard @name/@file/@version header and // EOF footer to both Jest configs. Logic unchanged.
+
+
+============================================================
+2026-09-15 21:53
+
+since we already made changes to ai-core, proceed with planned enhancements
+
+W-224 phase 2 in ai-core: filterAllowedModels drops configured:false (ai-mock sets configured:true); runTurn persists the chosen pair via setProviderModel and reuses the thread pair on the next turn; PUT /api/1/ai/thread/:id accepts provider/model (400 if not on the live menu); GET capability ?hasImages=1 greys non-vision rows. 66 unit tests pass. Did not bump versions or work-item status.
+
+
+============================================================
+2026-09-15 23:04
+
+app start log + plugins screenshot + capability before/after anthropic key
+
+Confirmed: boot registered all three AI plugins; capability before key is mock-only; after key all four Claude models appear. defaultModel stays mock-echo until Site Configuration → AI is changed. Did not treat the screenshot OCR (missing spaces) as a UI bug.
+
+
+============================================================
+2026-09-15 23:10
+
+with hasImages=1: capability JSON
+
+Vision gate is correct: mock rows are available:false / reason:vision; Claude rows are unmarked. defaultModel is still the site default (mock-echo), now also greyed. Confirmed; did not change pickDefaultModel.
+
+
+============================================================
+2026-09-15 23:12
+
+dummy q: how is the default model selected?
+
+Explained pickDefaultModel: Site Configuration → AI defaultProvider+defaultModel if that pair is still on the live menu; otherwise menu[0] (first configured provider's first model, today mock-echo). Capability uses that on the gated menu and does not skip greyed rows. A turn uses chooseProviderModel (explicit pair, then thread, then the same default). Anthropic's own plugin "Default model" is only the provider fallback, not the site default.
+
+
+============================================================
+2026-09-15 23:16
+
+set default to ai-anthropic but capability still lists mock as defaultModel
+
+Cause: model id was empty; pickDefaultModel required both fields. Now a provider-only default picks that provider's first live model (claude-sonnet-5). The models array still includes mock because Allowed models is empty. Restart needed. Tests 14 pass.
+
+
+============================================================
+2026-09-15 23:18
+
+setting both worked; after restart, empty model id picked anthropic default
+
+Confirmed both paths: exact pair (ai-anthropic + claude-sonnet-5) and provider-only (ai-anthropic, empty model) both return defaultModel claude-sonnet-5. Mock still listed because Allowed models is empty. No code change.
+
+
+============================================================
+2026-09-15 23:28
+
+missing ai-core functionality: capability stats on /jpulse-plugins/ai-core.shtml; AI tab should list that page; is /admin/plugins.shtml needed?
+
+Added live capability stats (default model, counts, models table, quota, tools) plus a link to /api/1/ai/capability on the AI Core overview. AI tab and plugin-config help now link to that page. Kept Plugin management: it enables/disables plugins; the overview does not. Restart or view/i18n cache refresh needed to see the new links.
+
+
+============================================================
+2026-09-15 23:36
+
+ai-core.shtml should start with status panels then help/links (like system status); AI tab debug-dumps link should be configure ai-core
+
+Reordered the overview: header, four stat panels, models/quota/tools, then help and links. AI tab and the overview now say AI Core configuration (plugin-local settings, including debug dumps) instead of leading with Debug dumps.
+
+
+============================================================
+2026-09-15 23:41
+
+AI-Core-Anleitung and Plugin-Verwaltung should have help text as well
+
+Added em-dash blurbs on both: guide is installed-plugin documentation / Dokumentation des installierten Plugins; plugin management is enable and disable AI plugins / KI-Plugins aktivieren und deaktivieren. Same on the plugin-config help list.
+
+
+============================================================
+2026-09-15 23:46
+
+what is next?
+
+W-224 code is done (Anthropic + selection + overview/AI-tab polish). Remaining is close-out you own: optional Claude turn / PUT pair checks, bump-version, two publishes (ai-anthropic 1.0.0, ai-core 1.0.1), mark the item done. Next product item is W-225 (panel, client-host tools, hello-ai); no work-item entry yet. Did not start it.
+
+
+============================================================
+2026-09-15 23:49
+
+bump missed jest.config.cjs (still 1.0.0)
+
+Added jest.config.cjs to filePatterns in ai-anthropic and ai-core bump-version.conf. Did not run bump-version or rewrite the Jest header; re-run the bump to update it.
+
+
+============================================================
+2026-09-15 23:52
+
+guide me through commit of ai-anthropic
+
+Walked through committing in plugins/ai-anthropic (own repo, not the framework). Headers are 1.0.0 again. Did not run git; asked before inspect/commit. Draft message: first release of the Claude provider on the published ai-core contract.
+
+
+============================================================
+2026-09-15 23:54
+
+it needs to be git init first; empty GitHub repo already created
+
+Confirmed plugins/ai-anthropic has no .git, so status was the framework repo. Gave init, first-commit, and remote steps. Did not run git.
+
+
+============================================================
+2026-09-15 23:55
+
+git init succeeded; status shows only plugin files
+
+Confirmed the new repo is isolated. Next: git add the listed files and the first-release commit. Did not run git add/commit.
+
+
+============================================================
+2026-09-15 23:56
+
+guide me through adding a tag
+
+Gave v1.0.0 annotated-tag steps for the ai-anthropic repo only. Did not run git.
+
+
+============================================================
+2026-09-15 23:59
+
+oops: git push origin failed, no origin remote
+
+The tag exists locally. They still need git remote add origin, then push main and v1.0.0. Did not run git.
+
+
+============================================================
+2026-09-16 00:00
+
+worked now (push main + v1.0.0); next: publish
+
+Guided single-plugin publish: dry-run then npx jpulse plugin publish ai-anthropic to GitHub Packages (or npm publish from the plugin dir). Did not run publish.
+
+
+============================================================
+2026-09-16 00:07
+
+stuck again with reconnecting? next: ai-core and ai-mock
+
+Not stuck. Guide: bump 1.0.1 from ai-core only (updates both members); commit configured:true in the ai-mock repo; commit phase 2 in the ai-core repo; tag/push; publish the bundle from ai-core only. Do not npm publish from ai-mock.
+
+
+============================================================
+2026-09-16 00:12
+
+review tt-git-diff.txt for accuracy and completeness before commit
+
+Phase 2 code matches the work item. Must add untracked jest.config.cjs and providers.test.js. Header-only files are the 1.0.1 bump. Soft gaps: no README 1.0.1 section; mock docs still say anthropic is a later item; no controller PUT-400 test. Did not change files.
+
+
+============================================================
+2026-09-16 00:21
+
+fix ai-core/ai-mock READMEs and other docs from the review
+
+Filled 1.0.1 release notes; mock docs now name published ai-anthropic and configured:true; admin guide mentions the overview link; pack example uses 1.0.1.tgz; DE guide blurb is singular.
+
+
+============================================================
+2026-09-16 00:32
+
+update W-223 design and W-224 work item to reflect the actual code
+
+Rev 6 + As Built 6–12, §9.5/§17/§21.4 as shipped. Work-item features/deliverables/notes match Anthropic 1.0.0 and ai-core 1.0.1. Status left IN_PROGRESS.
+
+
+============================================================
+2026-09-16 00:44
+
+hello!
+
+Greeted. W-224 is published; design and work-item text updated; status still IN_PROGRESS. Ready for the next ask.
+
+
+============================================================
+2026-09-16 00:49
+
+review tt-git-diff.txt; guide framework commit for W-224
+
+Diff is design + work-items + cursor_log only — accurate for a docs commit. Do not add tmp-bubblemap-app. Note: work-items also marks W-223 DONE and moves IN_PROGRESS; W-224 rationale still reads as unshipped. No changelog/bump. Did not run git.
 
 
 ============================================================

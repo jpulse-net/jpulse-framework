@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v2.0.2
+# jPulse Docs / Site Administrator & Developer Documentation v2.0.3
 
 **For Site Administrators & Site Developers**
 
@@ -238,6 +238,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v2.0.3, W-225, 2026-09-17: WebSocket: await `onCreate` so a namespace can refuse a connection asynchronously**: `onCreate` may be async; the upgrade path awaits it before the handshake. A returned Promise was previously installed as the connection `ctx`, so an async handler that meant to reject was accepted instead. Bounded by `controller.websocket.onCreateTimeoutMs` (default 5000). Docs: `websockets.md`.
 - **v2.0.2, W-222, 2026-09-16: i18n: site specific and plugin specific translations**: Startup deep-merges translation `*.conf` files from the framework, then each active plugin in load order, then `site/webapp/translations/`. A later source wins a leaf and does not wipe sibling keys. A plugin may ship only the default language; missing keys in other languages are backfilled from it. `{{i18n.*}}` is unchanged. Vue SPA loading of the merged set stays a later item. Docs: `creating-plugins.md`, `site-customization.md`, `handlebars.md`.
 - **v2.0.1, W-221, 2026-09-15: Plugins: bundle build and installation**: One npm package can expand into several `plugins/<name>/` directories. A primary declares `bundle.members`; `npx jpulse plugin publish <primary>` (or a wired `npm publish` from that directory) ships root `package.json` plus `plugins/<member>/` and no root `plugin.json`. Install and update re-expand every member; remove stays per plugin name. `dependencies.plugins` may be `{ version, npmPackage }` so install can fetch the package that provides a plugin (no guessed `@jpulse-net/plugin-<name>`). Bump from the primary applies that plugin's file list to every member; bump from a companion is refused. Docs: `creating-plugins.md`, `publishing-plugins.md`, `managing-plugins.md`, `installation.md`.
 - **v2.0.0, W-220, 2026-09-14: jPulse.UI: new floatPanel widget**: Non-modal, draggable, resizable floating panel that persists geometry and open state in `localStorage`, stacks with N other panels by last-active time (z-index 940–979; ghost 985), and animates to and from a consumer-rendered launcher. One `create()` works in an MPA page (pass `el`) and a Vue SPA (omit `el`, bind `style()`). Mobile becomes a bottom sheet with a 4px side inset; `mobile.exclusive` is group-scoped. Escape closes the front panel and yields to an open dialog. Demo at `/jpulse-examples/ui-widgets.shtml` §2.4. Docs: `jpulse-ui-reference.md`. This is a prerequisite for the upcoming AI agents feature.

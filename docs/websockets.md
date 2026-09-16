@@ -1,4 +1,4 @@
-# jPulse Docs / WebSocket Real-Time Communication v2.0.2
+# jPulse Docs / WebSocket Real-Time Communication v2.0.3
 
 > **Need multi-server broadcasting instead?** If you're running multiple server instances and need to synchronize state changes across all servers (like collaborative editing), see [Application Cluster Communication](application-cluster.md) which uses REST API + Redis broadcasts for simpler state synchronization.
 
@@ -145,7 +145,7 @@ ns.onConnect(fn).onMessage(fn).onDisconnect(fn)  // chainable; each returns the 
 - `options` (object, optional):
   - `requireAuth` (boolean): Require user authentication (default: `false`)
   - `requireRoles` (array): Required user roles (default: `[]`)
-  - `onCreate` (function): For dynamic namespaces only — called when a namespace is created from a pattern; see [Dynamic Namespaces](#dynamic-namespaces-per-resource-rooms).
+  - `onCreate` (function): For dynamic namespaces only — called when a namespace is created from a pattern; may be sync or async and is awaited. See [Dynamic Namespaces](#dynamic-namespaces-per-resource-rooms).
   - `messageLimits` (object): Per-namespace overrides for `{ maxSize, interval, maxMessages }`. Each field falls back to `app.conf` → `controller.websocket.messageLimits`. Same name as the config key — one concept, one name.
 
 **Handlers** (set via chainable setters):
@@ -219,7 +219,9 @@ ns.onConnect(({ clientId, ctx }) => { /* ... */ })
   .onDisconnect(({ clientId, ctx }) => { /* ... */ });
 ```
 
-**onCreate(req, ctx):** Called when a new namespace is created for a matched path. **ctx** includes `params` (e.g. `{ roomName: 'lobby' }`). Return **ctx** to accept the connection, **null** to reject, or a **number** to close with a custom close code.
+**onCreate(req, ctx):** Called for each connection to a matched path, before the handshake. **ctx** includes `params` (e.g. `{ roomName: 'lobby' }`). The handler may be sync or async; the framework awaits the result. Return **ctx** to accept the connection, **null** to reject, or a **number** to close with a custom close code. A throw or a rejected Promise closes the connection. `controller.websocket.onCreateTimeoutMs` (default 5000) bounds how long an un-upgraded socket may wait; a handler that exceeds it is treated as a rejection.
+
+Connect-time authorization belongs in `onCreate` because it gates the handshake. A check performed after the upgrade does not — a namespace client can already receive broadcasts.
 
 **Lifecycle:** Namespaces are created on first connect. When a namespace has zero clients, you can remove it so the next connect creates a fresh one: use **removeNamespace** or **namespace.removeIfEmpty()** (see below). The framework does not require sticky sessions for multi-instance; use Redis (or similar) for cross-instance counts or broadcasts.
 

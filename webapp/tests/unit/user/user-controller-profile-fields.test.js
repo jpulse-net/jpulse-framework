@@ -6,8 +6,8 @@
  *                   computed `initials` (a derived, session-only value never persisted on the DB
  *                   document), so admin/users.shtml's list fell back to '?' for every row.
  * @file            webapp/tests/unit/user/user-controller-profile-fields.test.js
- * @version         2.0.2
- * @release         2026-09-16
+ * @version         2.0.3
+ * @release         2026-09-17
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

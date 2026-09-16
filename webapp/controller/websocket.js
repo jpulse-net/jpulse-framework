@@ -3,8 +3,8 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         2.0.2
- * @release         2026-09-16
+ * @version         2.0.3
+ * @release         2026-09-17
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -155,6 +155,7 @@ class WebSocketController {
         this.websocketConf.reconnectBaseInterval ??= 5000;
         this.websocketConf.reconnectMaxInterval ??= 30000;
         this.websocketConf.instanceRegistryInterval ??= 30000;
+        this.websocketConf.onCreateTimeoutMs ??= 5000;
     }
 
     /**
@@ -220,7 +221,10 @@ class WebSocketController {
      * Handlers receive single conn: onConnect(conn), onMessage(conn), onDisconnect(conn). W-155: conn = { clientId, ctx }; onMessage conn also has message.
      *
      * W-155: For dynamic namespaces, provide path with :param placeholders (e.g. /api/1/ws/bubblemap/:mapId).
-     * Set options.onCreate = (req, ctx) => ctx | null | number for per-connect authz and ctx amendment.
+     * Set options.onCreate = (req, ctx) => ctx | null | number | Promise<...> for per-connect
+     * authz and ctx amendment. onCreate may be sync or async; the result is awaited before the
+     * handshake. A handler that does not settle within controller.websocket.onCreateTimeoutMs
+     * (default 5000) is treated as a rejection.
      *
      * @param {string} path - Namespace path (must start with /api/1/ws/). May include :param placeholders for dynamic namespaces.
      * @param {Object} options - { requireAuth?, requireRoles?, onCreate?, messageLimits? }
@@ -634,7 +638,13 @@ class WebSocketController {
                 const user = req.session?.user || null;
                 const username = user?.username || '';
 
-                this._completeUpgrade(req, socket, head, namespace, patternMatch, extractedParams, user, username, query, pathname);
+                this._completeUpgrade(req, socket, head, namespace, patternMatch, extractedParams, user, username, query, pathname)
+                    .catch((error) => {
+                        LogController.logError(req, 'websocket._handleUpgrade', `error: ${error.message}`);
+                        if (!socket.destroyed) {
+                            socket.destroy();
+                        }
+                    });
             });
 
         } catch (error) {
@@ -644,11 +654,61 @@ class WebSocketController {
     }
 
     /**
-     * Complete WebSocket upgrade after session is parsed
-     * W-155: Enhanced with onCreate hook and dynamic namespace creation
+     * Await a value and reject if it does not settle in time.
+     * @param {*} value
+     * @param {number} timeoutMs
+     * @returns {Promise<*>}
      * @private
      */
-    static _completeUpgrade(req, socket, head, namespace, patternMatch, extractedParams, user, username, query, pathname) {
+    static _awaitWithTimeout(value, timeoutMs) {
+        const ms = Number.isFinite(timeoutMs) ? timeoutMs : 5000;
+        if (ms <= 0) {
+            return Promise.resolve(value);
+        }
+        let timer;
+        return Promise.race([
+            Promise.resolve(value).finally(() => {
+                if (timer) {
+                    clearTimeout(timer);
+                }
+            }),
+            new Promise((_, reject) => {
+                timer = setTimeout(() => {
+                    const error = new Error(`onCreate timed out after ${ms}ms`);
+                    error.code = 'ONCREATE_TIMEOUT';
+                    reject(error);
+                }, ms);
+            })
+        ]);
+    }
+
+    /**
+     * True when the upgrade socket can still complete the handshake.
+     * @param {object} socket
+     * @returns {boolean}
+     * @private
+     */
+    static _socketAcceptsUpgrade(socket) {
+        if (!socket) {
+            return false;
+        }
+        if (socket.destroyed === true) {
+            return false;
+        }
+        if (socket.writable === false) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Complete WebSocket upgrade after session is parsed
+     * W-155: Enhanced with onCreate hook and dynamic namespace creation.
+     * onCreate is awaited so an async handler can authorize against a database
+     * before the handshake; a returned Promise is never installed as ctx.
+     * @private
+     */
+    static async _completeUpgrade(req, socket, head, namespace, patternMatch, extractedParams, user, username, query, pathname) {
         try {
 
             // W-155: If pattern match, get-or-create literal namespace
@@ -712,10 +772,18 @@ class WebSocketController {
                 ctx.isPublic = !AuthController.isAuthorized(req, adminRoles);
             }
 
-            // W-155: Call onCreate hook if present (pattern namespaces)
+            // W-155: Call onCreate hook if present (pattern namespaces).
+            // Await so an async handler's decision is honored; a Promise is an
+            // object and must not be installed as ctx.
             if (namespace.onCreate) {
                 try {
-                    const onCreateResult = namespace.onCreate(req, ctx);
+                    const timeoutMs = Number.isFinite(global.appConfig?.controller?.websocket?.onCreateTimeoutMs)
+                        ? global.appConfig.controller.websocket.onCreateTimeoutMs
+                        : (this.websocketConf.onCreateTimeoutMs ?? 5000);
+                    const onCreateResult = await this._awaitWithTimeout(
+                        namespace.onCreate(req, ctx),
+                        timeoutMs
+                    );
                     if (onCreateResult === null) {
                         // Reject with default code
                         LogController.logError(req, 'websocket._completeUpgrade', `onCreate rejected connection for ${namespace.path}`);
@@ -735,6 +803,11 @@ class WebSocketController {
                     socket.destroy();
                     return;
                 }
+            }
+
+            if (!this._socketAcceptsUpgrade(socket)) {
+                LogController.logInfo(req, 'websocket._completeUpgrade', `Socket closed before upgrade for ${namespace.path}`);
+                return;
             }
 
             // Complete WebSocket handshake

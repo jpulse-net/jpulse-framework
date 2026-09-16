@@ -25198,3 +25198,77 @@ Diff is design + work-items + cursor_log only — accurate for a docs commit. Do
 
 
 ============================================================
+2026-09-16 00:56
+
+next: W-225 - best a new chat?
+
+Yes. This thread is spent on W-224; W-225 is four phases and a stub work item. Gave a paste-ready opener pointing at design §21.5. Do not start W-225 here.
+
+
+============================================================
+2026-09-16 01:24
+
+Next work item: W-225, ai-core chat panel, client-host tools, hello-ai. Review design §21.5 (+ §8.2, §11.2, §12.1, §22.1, §22.3), ask if unclear, suggest spec changes for DX/usability, plan, update §21.5, write the work item, wait for go-ahead on code. Then: needs discussion not multiple choice; I think threadId contains user, so ideally use this for ws; we can add a framework work item if needed. Then: do it the proper way - W-225 becomes a framework item, ai-core panel renamed W-226, propose/attachments shift to W-227/W-228; two stub work items created.
+
+Read design §8, §11, §12, §19, §21, §22 and the shipped ai-core 1.0.1 code, then traced the framework surfaces the panel needs. Five findings, four decided by you (plg-ai-* over jp-ai-*; purity enforced at load/serve plus exported scanner; ai-mock targeted tool script; hello-ai carries both hosts). Fifth discussed: onCreate is called synchronously and dispatched on result type, so an async handler's returned Promise is installed as the connection ctx - its rejection is discarded and the connection is ACCEPTED. docs/websockets.md already shows onCreate: async, and onMessage is already awaited, so it is a defect in a documented contract. Corrected your premise: threadId is a plain ObjectId and carries no identity; the owner is createdBy on the document, so the check is a database read. Also ruled out authorizing after the upgrade (broadcast reaches every client in a namespace and a client joins at handshake), an HMAC ticket (extra endpoint + expiry + second authz concept), owner-in-path, and an in-process threadId->owner memo (breaks under clustering).
+
+Design doc updated: header and new Rev 7; §8.2 purity enforcement, manifest url, resolution order and replace-not-append; §11.2 gained namespace authorization, turn-starts-over-socket, oversize reply, removeIfEmpty; §12.1 one client API over both transports and the accepted reload limit; §19 test list; §21.1 now four prerequisites incl. W-225 with why §22.2 missed it; §21.2/§21.5-§21.7 renumbered to W-226/W-227/W-228; §22.1 plg-ai-*; §22.2 corrected to two framework files with three new rows. Filled both stubs: W-225 as type Bugfix, v2.0.3 (async _completeUpgrade, awaited onCreate, onCreateTimeoutMs, post-await socket check, eight tests incl. the seven existing call sites needing await, docs); W-226 as the four-phase panel item, jpulseVersion >=2.0.3, bundle 1.0.2. Statuses left 🕑 PENDING and nothing moved. No code written - waiting for your go-ahead. Did not run git, bump-version, or touch .jpulse/. Flagged but did not edit: DONE entries W-223/W-224 still cross-reference the old W-225/W-226/W-227 numbers.
+
+
+============================================================
+2026-09-16 01:51
+
+I fixed the work item refs in W-223 and W-224. Lets do W-225 first, then all phases of W-226. grok: do the bugfix W-225 unless questions.
+
+Implemented the framework bugfix: `_completeUpgrade` is async and awaits `onCreate` with `onCreateTimeoutMs` (default 5000); `_handleUpgrade` attaches `.catch()`; a destroyed/non-writable socket is not upgraded after the await. Added `onCreateTimeoutMs` to `app.conf`. Tests: seven existing `_completeUpgrade` call sites now `await`; new cases for async accept (asserts `ctx.username` is a string, not a Promise), null, number, reject, throw, timeout (fake timers), socket gone mid-await, and sync ctx/null/number/undefined. Docs: `websockets.md` (no W-xxx), W-155 design amendment, CHANGELOG v2.0.3, Latest Release Highlights in README and docs/README. `npx jest webapp/tests/unit/controller/websocket.test.js --runInBand`: 1 suite / 68 tests passing. Did not run git, bump-version, or touch .jpulse/. Did not change work-item status. Left `@version`/`@release` headers as found. Ready for W-226 after you bump/release v2.0.3.
+
+
+============================================================
+2026-09-16 01:53
+
+review app start log ... do you recommend any manual tests?
+
+Start log is clean. Config regen picked up `onCreateTimeoutMs: 5000`. No websocket errors. All existing namespaces registered, including the only live `onCreate` consumer (`/api/1/ws/hello-rooms/:roomName`). Package still reports 2.0.2, expected until bump. Recommended manual: Dynamic Rooms accept/reject; one no-onCreate hello-ws demo; optional admin ws stats. Async onCreate is unit-covered; no live consumer until W-226.
+
+
+============================================================
+2026-09-16 02:00
+
+visually hello-websocket looks ok. Logs for hello-todo connect+create; HTTP /api/1/ws/hello-rooms/paris is NOT_FOUND; health/metrics dump; websocket-status screenshots.
+
+Verdict: no-onCreate path is good — `_onConnection` logged `(siteadmin)` as a string, emoji/todo connected, broadcasts and admin stats page work. HTTP GET of a ws path is expected 404, not an onCreate reject. Dynamic Rooms UI only offers Amsterdam/Berlin/Cairo; reject test needs a WebSocket client to `/api/1/ws/hello-rooms/paris`. Metrics `websocket.status: error` is pre-existing (idle namespaces count as red). No W-225 defect in what was tested.
+
+
+============================================================
+2026-09-16 02:03
+
+const ws = new WebSocket('ws://localhost:8080/api/1/ws/hello-rooms/paris'); ... closed 1006, handshake never completed
+
+That is the expected onCreate reject: hook returns null, `_completeUpgrade` destroys the socket before the handshake, browser reports 1006. Live reject smoke for W-225 passed.
+
+
+============================================================
+2026-09-16 02:04
+
+fyi, server logs for paris WS: pattern match, literal namespace created, onCreate for paris, Rejected unknown room, onCreate rejected connection.
+
+Matches the expected reject sequence. Identity is `siteadmin` (string). Pre-existing W-155 quirk: the literal `/api/1/ws/hello-rooms/paris` namespace is created before onCreate and is not removed on reject, so it may appear as a red idle card on admin status.
+
+
+============================================================
+2026-09-16 02:07
+
+Amsterdam WS: pattern match, literal namespace, onCreate accepted, `_onConnection` (siteadmin), rooms.onConnect joined amsterdam, broadcast + Redis.
+
+That is the expected accept path. Client handlers were attached after `new WebSocket()`, so `opened` may have been missed; server proves the handshake completed. Live W-225 accept+reject smoke is done.
+
+
+============================================================
+2026-09-16 02:11
+
+release prep: review tt-git-diff.txt for W-225, v2.0.3, 2026-09-17; update features/deliverables, release docs, commit-message.txt
+
+W-225 implementation is complete and matches the work item. Documented helpers (`_awaitWithTimeout`, `_socketAcceptsUpgrade`) in features/deliverables; aligned W-155 body signature; refreshed CHANGELOG verification; wrote commit-message.txt. Highlights already present. Tests: 1 suite / 68 passing. Extra in the tree (not the bugfix): W-223-ai-agent.md Rev 7, work-items W-226 stub + W-223/W-224 renumber, tmp-bubblemap-app — do not add the tmp dir. Status left IN_PROGRESS. Did not commit.
+
+
+============================================================

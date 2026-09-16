@@ -3,8 +3,8 @@
  * @tagline         Unit tests for WebSocket Controller
  * @description     Tests for WebSocket infrastructure, authentication, broadcasting, and lifecycle
  * @file            webapp/tests/unit/controller/websocket.test.js
- * @version         2.0.2
- * @release         2026-09-16
+ * @version         2.0.3
+ * @release         2026-09-17
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -72,7 +72,7 @@ describe('WebSocketController - High Priority Tests', () => {
 
     describe('Authentication & Authorization', () => {
 
-        test('should use AuthController.isAuthenticated() for authentication check', () => {
+        test('should use AuthController.isAuthenticated() for authentication check', async () => {
             // Arrange
             const namespace = {
                 path: '/api/1/ws/test',
@@ -94,7 +94,7 @@ describe('WebSocketController - High Priority Tests', () => {
             AuthController.isAuthorized = jest.fn().mockReturnValue(true);
 
             // W-155: New signature with patternMatch, extractedParams, pathname
-            WebSocketController._completeUpgrade(
+            await WebSocketController._completeUpgrade(
                 mockRequest,
                 mockSocket,
                 mockHead,
@@ -111,7 +111,7 @@ describe('WebSocketController - High Priority Tests', () => {
             expect(AuthController.isAuthenticated).toHaveBeenCalledWith(mockRequest);
         });
 
-        test('should use AuthController.isAuthorized() for role check', () => {
+        test('should use AuthController.isAuthorized() for role check', async () => {
             // Arrange
             const namespace = {
                 path: '/api/1/ws/test',
@@ -133,7 +133,7 @@ describe('WebSocketController - High Priority Tests', () => {
             AuthController.isAuthorized = jest.fn().mockReturnValue(true);
 
             // W-155: New signature
-            WebSocketController._completeUpgrade(
+            await WebSocketController._completeUpgrade(
                 mockRequest,
                 mockSocket,
                 mockHead,
@@ -150,7 +150,7 @@ describe('WebSocketController - High Priority Tests', () => {
             expect(AuthController.isAuthorized).toHaveBeenCalledWith(mockRequest, ['admin']);
         });
 
-        test('should block connection when auth required but not present', () => {
+        test('should block connection when auth required but not present', async () => {
             // Arrange
             const namespace = {
                 path: '/api/1/ws/test',
@@ -170,7 +170,7 @@ describe('WebSocketController - High Priority Tests', () => {
             AuthController.isAuthenticated = jest.fn().mockReturnValue(false);
 
             // Act
-            WebSocketController._completeUpgrade(
+            await WebSocketController._completeUpgrade(
                 mockRequest,
                 mockSocket,
                 mockHead,
@@ -186,7 +186,7 @@ describe('WebSocketController - High Priority Tests', () => {
             expect(WebSocketController.wss).toBeNull();
         });
 
-        test('should allow connection when auth present and required', () => {
+        test('should allow connection when auth present and required', async () => {
             // Arrange
             const namespace = {
                 path: '/api/1/ws/test',
@@ -217,7 +217,7 @@ describe('WebSocketController - High Priority Tests', () => {
             };
 
             // W-155: New signature
-            WebSocketController._completeUpgrade(
+            await WebSocketController._completeUpgrade(
                 mockRequest,
                 mockSocket,
                 mockHead,
@@ -235,7 +235,7 @@ describe('WebSocketController - High Priority Tests', () => {
             expect(handleUpgradeMock).toHaveBeenCalled();
         });
 
-        test('should block connection when role not satisfied', () => {
+        test('should block connection when role not satisfied', async () => {
             // Arrange
             const namespace = {
                 path: '/api/1/ws/admin',
@@ -256,7 +256,7 @@ describe('WebSocketController - High Priority Tests', () => {
             AuthController.isAuthorized = jest.fn().mockReturnValue(false);
 
             // W-155: New signature
-            WebSocketController._completeUpgrade(
+            await WebSocketController._completeUpgrade(
                 mockRequest,
                 mockSocket,
                 mockHead,
@@ -275,7 +275,7 @@ describe('WebSocketController - High Priority Tests', () => {
             expect(WebSocketController.wss).toBeNull();
         });
 
-        test('should allow connection when role satisfied', () => {
+        test('should allow connection when role satisfied', async () => {
             // Arrange
             const namespace = {
                 path: '/api/1/ws/admin',
@@ -307,7 +307,7 @@ describe('WebSocketController - High Priority Tests', () => {
             };
 
             // W-155: New signature
-            WebSocketController._completeUpgrade(
+            await WebSocketController._completeUpgrade(
                 mockRequest,
                 mockSocket,
                 mockHead,
@@ -325,7 +325,7 @@ describe('WebSocketController - High Priority Tests', () => {
             expect(handleUpgradeMock).toHaveBeenCalled();
         });
 
-        test('should allow connection without auth when not required', () => {
+        test('should allow connection without auth when not required', async () => {
             // Arrange
             const namespace = {
                 path: '/api/1/ws/public',
@@ -353,7 +353,7 @@ describe('WebSocketController - High Priority Tests', () => {
             };
 
             // W-155: New signature
-            WebSocketController._completeUpgrade(
+            await WebSocketController._completeUpgrade(
                 mockRequest,
                 mockSocket,
                 mockHead,
@@ -369,6 +369,174 @@ describe('WebSocketController - High Priority Tests', () => {
             // Assert
             expect(mockSocket.destroyed).not.toBe(true); // Should not be destroyed
             expect(handleUpgradeMock).toHaveBeenCalled();
+        });
+    });
+
+    // =========================================================================
+    // onCreate AWAIT / TIMEOUT (async authorization before handshake)
+    // =========================================================================
+
+    describe('onCreate await and timeout', () => {
+
+        afterEach(() => {
+            jest.useRealTimers();
+        });
+
+        function setupOnCreateUpgrade(onCreate) {
+            const namespace = {
+                path: '/api/1/ws/rooms/lobby',
+                requireAuth: false,
+                requireRoles: [],
+                clients: new Map(),
+                onCreate,
+                _onConnect: jest.fn()
+            };
+            WebSocketController.namespaces.set(namespace.path, namespace);
+            const mockRequest = WebSocketTestUtils.createMockUpgradeRequest({
+                url: namespace.path,
+                session: WebSocketTestUtils.createAuthenticatedSession()
+            });
+            const mockSocket = WebSocketTestUtils.createMockSocket();
+            const handleUpgradeMock = jest.fn((req, socket, head, callback) => {
+                const ws = new WebSocketTestUtils.MockWebSocket();
+                callback(ws);
+            });
+            WebSocketController.wss = {
+                handleUpgrade: handleUpgradeMock
+            };
+            return { namespace, mockRequest, mockSocket, handleUpgradeMock };
+        }
+
+        async function completeOnCreateUpgrade(onCreate) {
+            const setup = setupOnCreateUpgrade(onCreate);
+            await WebSocketController._completeUpgrade(
+                setup.mockRequest,
+                setup.mockSocket,
+                {},
+                setup.namespace,
+                null,
+                { roomName: 'lobby' },
+                setup.mockRequest.session.user,
+                setup.mockRequest.session.user.username,
+                {},
+                setup.namespace.path
+            );
+            return setup;
+        }
+
+        test('async onCreate resolving to ctx completes upgrade with resolved ctx, not a Promise', async () => {
+            const setup = await completeOnCreateUpgrade(async (req, ctx) => ctx);
+
+            expect(setup.mockSocket.destroyed).not.toBe(true);
+            expect(setup.handleUpgradeMock).toHaveBeenCalled();
+            expect(setup.namespace._onConnect).toHaveBeenCalled();
+            const conn = setup.namespace._onConnect.mock.calls[0][0];
+            expect(conn.ctx.username).toBe('testuser');
+            expect(typeof conn.ctx.username).toBe('string');
+            expect(conn.ctx.then).toBeUndefined();
+        });
+
+        test('async onCreate resolving null destroys the socket and never upgrades', async () => {
+            const setup = await completeOnCreateUpgrade(async () => null);
+
+            expect(setup.mockSocket.destroyed).toBe(true);
+            expect(setup.handleUpgradeMock).not.toHaveBeenCalled();
+        });
+
+        test('async onCreate resolving a number destroys the socket and never upgrades', async () => {
+            const setup = await completeOnCreateUpgrade(async () => 1008);
+
+            expect(setup.mockSocket.destroyed).toBe(true);
+            expect(setup.handleUpgradeMock).not.toHaveBeenCalled();
+        });
+
+        test('rejected onCreate Promise destroys the socket and never upgrades', async () => {
+            const setup = await completeOnCreateUpgrade(() => Promise.reject(new Error('denied')));
+
+            expect(setup.mockSocket.destroyed).toBe(true);
+            expect(setup.handleUpgradeMock).not.toHaveBeenCalled();
+        });
+
+        test('thrown onCreate error destroys the socket and never upgrades', async () => {
+            const setup = await completeOnCreateUpgrade(async () => {
+                throw new Error('boom');
+            });
+
+            expect(setup.mockSocket.destroyed).toBe(true);
+            expect(setup.handleUpgradeMock).not.toHaveBeenCalled();
+        });
+
+        test('onCreate that never settles is destroyed after onCreateTimeoutMs', async () => {
+            jest.useFakeTimers();
+            const setup = setupOnCreateUpgrade(() => new Promise(() => {}));
+            const pending = WebSocketController._completeUpgrade(
+                setup.mockRequest,
+                setup.mockSocket,
+                {},
+                setup.namespace,
+                null,
+                { roomName: 'lobby' },
+                setup.mockRequest.session.user,
+                setup.mockRequest.session.user.username,
+                {},
+                setup.namespace.path
+            );
+
+            await jest.advanceTimersByTimeAsync(5000);
+            await pending;
+
+            expect(setup.mockSocket.destroyed).toBe(true);
+            expect(setup.handleUpgradeMock).not.toHaveBeenCalled();
+        });
+
+        test('socket destroyed while onCreate is pending does not reach handleUpgrade', async () => {
+            let resolveOnCreate;
+            const setup = setupOnCreateUpgrade(() => new Promise((resolve) => {
+                resolveOnCreate = resolve;
+            }));
+            const pending = WebSocketController._completeUpgrade(
+                setup.mockRequest,
+                setup.mockSocket,
+                {},
+                setup.namespace,
+                null,
+                { roomName: 'lobby' },
+                setup.mockRequest.session.user,
+                setup.mockRequest.session.user.username,
+                {},
+                setup.namespace.path
+            );
+
+            setup.mockSocket.destroy();
+            resolveOnCreate(setup.mockRequest.session ? {
+                username: 'testuser',
+                ip: '127.0.0.1',
+                roles: ['user'],
+                firstName: 'Test',
+                lastName: 'User',
+                initials: 'TU',
+                params: { roomName: 'lobby' }
+            } : {});
+            await pending;
+
+            expect(setup.handleUpgradeMock).not.toHaveBeenCalled();
+        });
+
+        test.each([
+            ['ctx', (req, ctx) => ctx, false],
+            ['null', () => null, true],
+            ['number', () => 1008, true],
+            ['undefined', () => undefined, false]
+        ])('synchronous onCreate returning %s behaves as before', async (_label, onCreate, expectDestroyed) => {
+            const setup = await completeOnCreateUpgrade(onCreate);
+
+            if (expectDestroyed) {
+                expect(setup.mockSocket.destroyed).toBe(true);
+                expect(setup.handleUpgradeMock).not.toHaveBeenCalled();
+            } else {
+                expect(setup.mockSocket.destroyed).not.toBe(true);
+                expect(setup.handleUpgradeMock).toHaveBeenCalled();
+            }
         });
     });
 

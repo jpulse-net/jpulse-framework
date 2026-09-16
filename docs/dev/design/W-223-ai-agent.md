@@ -2,16 +2,35 @@
 
 **Status:** W-223 is published (`@jpulse-net/plugin-ai-core` 1.0.0, 2026-09-17).
 W-224 is published (`@jpulse-net/plugin-ai-anthropic` 1.0.0 and
-`@jpulse-net/plugin-ai-core` 1.0.1, 2026-09-17). All three prerequisites are
+`@jpulse-net/plugin-ai-core` 1.0.1, 2026-09-17). Three prerequisites are
 released — W-220 `jPulse.UI.floatPanel` (v2.0.0), W-221 plugin bundle build
 and installation (v2.0.1), and W-222 plugin and site translation merge
-(v2.0.2) — so **no framework source change remains** (§22.2). Next item is
-W-225 (chat panel, client-host tools, `hello-ai`). §21 splits the agent into
-five items, W-223 through W-227. Deviations from this document are under
-`### As Built`.
+(v2.0.2). A fourth surfaced when the WebSocket path was designed against the
+code rather than the docs: **`onCreate` is called synchronously**, so a
+namespace cannot authorize a connection against the database, which is what
+per-thread AI namespaces need. That is **W-225**, one framework item, and it
+corrects §22.2's earlier "no framework source change" finding. Next AI item is
+**W-226** (chat panel, client-host tools, `hello-ai`). §21 splits the agent
+into five items, W-223, W-224, and W-226 through W-228, on four framework
+prerequisites. Deviations from this document are under `### As Built`.
 
 
 ## Revision history
+
+### Rev 7 — 2026-09-16 — panel item designed against the code; W-225 split out
+
+Designing the panel item against the shipped framework rather than the docs
+turned up one blocking defect and four contract gaps. The item numbering moved
+to make room: the framework fix is W-225, and the panel becomes W-226.
+
+| Section | Change |
+|---|---|
+| Header, §21.1, §22.2 | **`onCreate` is synchronous.** A returned Promise is installed as the connection `ctx`, so an async handler's rejection is ignored and the connection is accepted. `docs/websockets.md` already advertises `onCreate: async`. This is W-225, a framework prerequisite, and §22.2's "no framework source file needs a change" no longer holds |
+| §21.2, §21.5–§21.8 | Renumbered: panel is **W-226**, propose/apply **W-227**, attachments **W-228**. §21.5 is now the panel item's phase list against the four decisions below |
+| §11.2 | **New:** namespace authorization. Per-thread `/api/1/ws/ai/:threadId` with ownership verified in an `await`ed `onCreate`, plus `removeIfEmpty()` on the last disconnect — pattern namespaces are never reclaimed automatically |
+| §8.2 | Purity is **enforced**, not only tested: a module whose imports fall outside the allowlist is refused at import and at serve, and the scanner is exported so a site writes a one-line test. A plugin test cannot cover `site/webapp/ai-tools/`, which is exactly what gets served to a browser. The manifest returns `url`, and module resolution order and the collision rule are stated |
+| §22.1 | `jp-ai-*` → **`plg-ai-*`**. `jp-*` is framework-only, and the documented plugin convention is `plg-<name>-*` (`auth-oauth` ships `plg-oauth-*`) |
+| §21.5 | `ai-mock` gains a targeted tool script so `hello-ai` can drive a **named** client-host tool with real arguments; `[mock:tools]` only calls whatever happens to be first on the list |
 
 ### Rev 6 — 2026-09-16 — as built after W-224 publish
 
@@ -70,7 +89,7 @@ decision; each is the shape the code wanted once it existed.
    `AI_QUOTA_EXCEEDED` on the stream, not a JSON HTTP 429.
 5. **The published bundle is `ai-core` + `ai-mock` only.**
    `@jpulse-net/plugin-ai-core` 1.0.0 does not contain `hello-ai`. That
-   view is W-225. The package was renamed from `@jpulse-net/plugin-ai`
+   view is W-226. The package was renamed from `@jpulse-net/plugin-ai`
    before first publish so later `@jpulse-net/plugin-ai-anthropic` /
    `plugin-ai-openai` sit as peers of the primary, not of a catch-all
    `plugin-ai`.
@@ -517,7 +536,7 @@ The bundle is drawn tightly:
 
 | Package | Contains | Why |
 |---|---|---|
-| `@jpulse-net/plugin-ai-core` | `ai-core` + `ai-mock` | Everything needed to stand the server core up and see it work, with no API key and no spend. `hello-ai` is a view inside `ai-core` when W-225 lands, not a third plugin and not in 1.0.0 |
+| `@jpulse-net/plugin-ai-core` | `ai-core` + `ai-mock` | Everything needed to stand the server core up and see it work, with no API key and no spend. `hello-ai` is a view inside `ai-core` when W-226 lands, not a third plugin and not in 1.0.0 |
 | `@jpulse-net/plugin-ai-anthropic` | `ai-anthropic` | Depends on `ai-core`; installed only by a site that uses Anthropic |
 | *(deferred)* | `ai-openai` | TD-11 |
 
@@ -902,20 +921,39 @@ removes the `.tmpl` and `vm` workarounds.
 
 - **Location.** Tool modules live at a conventional path —
   `site/webapp/ai-tools/` for a site, `webapp/ai-tools/` inside a plugin — as
-  plain ES modules with a `.js` extension. Not templates.
+  plain ES modules with a `.js` extension. Not templates. Resolution is the
+  framework's usual order, site first and then each active plugin in load
+  order, so a site can override a plugin's module by name. Unlike
+  `view/jpulse-common.js` this is *replace*, not append: a module is one
+  function, and concatenating two of them is meaningless.
 - **Server.** Ordinary `import`. Ordinary unit tests, in Node, with no `vm`
   sandbox and no Handlebars stripping.
 - **Browser.** `ai-core` serves each module at a content-hashed URL and the
   panel loads it with dynamic `import()`. A real module: real source maps, real
   breakpoints, real stack traces.
 - **Version pinning.** The capability probe returns a manifest of
-  `{ name, hash }`. A tab whose loaded hash no longer matches the server's
-  refuses to run the tool and prompts a reload, rather than silently running
-  yesterday's logic against today's server. This matters more than it sounds —
-  a long-lived tab is the normal case for a chat panel.
-- **Purity enforcement.** A scan test asserts these modules import nothing
-  outside a small allowlist. Purity is what makes them safe to serve to a
-  browser and cheap to test, and it is the only rule the site has to obey.
+  `{ name, hash, url }` — the `url` so the client never assembles a route, and
+  the route can change without a client change. A tab whose loaded hash no
+  longer matches the server's refuses to run the tool and prompts a reload,
+  rather than silently running yesterday's logic against today's server. This
+  matters more than it sounds — a long-lived tab is the normal case for a chat
+  panel.
+- **Purity is enforced, not merely tested.** A module whose import list falls
+  outside the allowlist is refused — at server `import` and at serve — and the
+  refusal is logged and surfaced as an unavailable tool rather than a broken
+  page. The allowlist is deliberately the smallest one that is still useful:
+  **relative imports of siblings inside the `ai-tools/` directory, and nothing
+  else.** No bare specifiers at all, so `fs` cannot be reached and neither can
+  a helper that transitively reaches it.
+
+  A scan test is not sufficient on its own, which is worth stating because
+  §8.2 originally called for one. A test living in `ai-core` can only scan
+  `ai-core`'s own modules; `site/webapp/ai-tools/` is never covered by it, and
+  those are precisely the modules being shipped to a browser. So `ai-core`
+  also **exports the scanner** — `AiCore.scanToolModules()` — for a site to
+  assert over its own directory in one line, and refuses at runtime for the
+  site that never writes that line. Purity is the only rule the site has to
+  obey, so it is the one worth enforcing rather than documenting.
 
 A descriptor opts in by naming the module:
 
@@ -1100,7 +1138,7 @@ a natural extension and are tracked in TD-08.
 presence (`configured`), persisting the thread's choice, a write that
 does not start a turn, and vision gating (`?hasImages=1`). The default
 picker also accepts a provider-only admin setting (As Built item 10).
-The panel that *shows* the picker is W-225.
+The panel that *shows* the picker is W-226.
 
 ### 9.6 System prompt assembly
 
@@ -1262,7 +1300,41 @@ transport failures mapped onto the result envelope (`CONNECTION_LOST` and
 recovery hints).
 
 The 256 KB message cap stays, and oversized client replies remain the tab's
-problem to report rather than the server's to discover.
+problem to report rather than the server's to discover. The framework's client
+`send()` returns false rather than throwing when a payload exceeds the
+negotiated `maxSize`, so the bridge checks the size itself and answers with
+`AI_RESULT_TOO_LARGE` and a narrowing hint. A tool result that silently fails
+to send would otherwise read to the server as a timeout.
+
+**A turn starts over the socket, not over HTTP.** The process holding the
+origin tab has to be the one that calls back into it, and an HTTP POST can
+land on a different instance. On this path `POST .../turn` is not used; cancel
+stays the HTTP route for both transports, because it must work from a tab that
+is not the origin.
+
+**Namespace authorization.** `requireAuth` and the allowed-role check already
+run before `onCreate`, which disposes of anonymous and wrong-role connections.
+What remains is thread ownership, and that is a database read: the owner is
+`createdBy` on the thread document, not something recoverable from the
+`threadId`, which is an ObjectId with no identity in it. So `onCreate` reads
+the thread, compares the owner against the session, and rejects a mismatch —
+and **this is why W-225 exists**, because `onCreate` is called synchronously
+today and an `async` handler's rejection is discarded rather than honored.
+
+Getting this wrong is not a small leak. `broadcast()` delivers to every client
+in the namespace, and a client joins the namespace at handshake, so any check
+that finishes *after* the upgrade has already let the socket receive another
+user's conversation. The check has to gate the upgrade, not follow it.
+
+Per-message ownership is still verified in the message handler, the same way
+the HTTP routes verify it. The namespace check decides who may listen; the
+handler check decides who may act.
+
+**Namespaces are reclaimed explicitly.** A namespace created from a pattern
+stays in the registry for the process's lifetime unless the application removes
+it, so the last disconnect from a thread calls `removeIfEmpty()`. Without it
+the registry grows by one entry per conversation ever opened, which the admin
+WebSocket page would eventually make obvious and nothing else would.
 
 
 ---
@@ -1285,6 +1357,21 @@ The framework owns everything that is not about the site's data:
 - attachment chips for file, paste, and URL sources, and staged images
 - the URL-intercept card
 - the client-host tool bridge and the tool-module loader (§8.4)
+
+**Both transports sit behind one client API.** The probe says `http` or `ws`
+(§11.1) and the panel asks for a turn without knowing which it got; the two
+implementations converge on the same event stream, so every feature above is
+written once. A panel that branched on transport would grow two of everything
+and only one of them would stay tested.
+
+**A reload cannot recover partial text, and that is accepted.** Token deltas
+are unicast and nothing persists them mid-turn — only the finalized
+`agentText` is stored (§9.7). So a reloaded tab reconnects, sees a turn still
+running, says so, and renders the reply when the turn-level completion event
+arrives. Persisting deltas to recover a few seconds of streaming would put a
+write on the hot path of every token. If the turn was waiting on a client-host
+tool in the tab that went away, the call answers `NOT_CONNECTED`, which sets
+`stall` and ends the turn — the designed behavior rather than a special case.
 
 The site supplies an adapter object rather than mixing methods into a
 component:
@@ -1511,7 +1598,7 @@ The migration is sequenced per layer rather than attempted at once. Rough shape:
 
 Each step is independently shippable, and the mock provider makes each cutover
 testable without spending tokens. Mapped onto §21: steps 1 and 2 follow W-223
-and W-224, step 3 follows W-225, and step 4 follows W-225 through W-227.
+and W-224, step 3 follows W-226, and step 4 follows W-226 through W-228.
 
 
 ---
@@ -1524,7 +1611,10 @@ and W-224, step 3 follows W-225, and step 4 follows W-225 through W-227.
 - **Shared tool modules** — a module tested once as a plain function against
   hand-built data; the same module against data missing a field, asserting it
   degrades the way its author intended rather than throwing; the purity scan
-  test; a stale module hash refusing to execute and prompting a reload.
+  over the plugin's own modules, plus an impure fixture refused at import and
+  at serve rather than merely reported; a stale module hash refusing to execute
+  and prompting a reload; the same module run in Node and named by a
+  client-host descriptor, which is the two-host claim of §8.3.
 - **Turn loop** — rounds to completion; tool-call round trip with the array
   contract and more than one call; retryable versus fatal provider errors;
   cancel by flag and by broadcast; timeout; lease refusal rolling back the
@@ -1549,10 +1639,14 @@ and W-224, step 3 follows W-225, and step 4 follows W-225 through W-227.
   errors.
 - **Transport** — HTTP/SSE path chosen when no client-host tool is offered;
   WebSocket path when one is; transport failures mapped onto the envelope with
-  `stall` set only for a lost connection.
-- **Panel** — adapter contract with a stub adapter; reconnect and turn
-  reconciliation after a simulated reload; no framework code reaching into site
-  state.
+  `stall` set only for a lost connection; a namespace connect refused for a
+  thread the session does not own, asserted *before* the upgrade rather than
+  after; an oversized client reply reported as `AI_RESULT_TOO_LARGE` rather
+  than left to time out.
+- **Panel** — adapter contract with a stub adapter; the same panel driven over
+  both transports through the one client API; reconnect and turn
+  reconciliation after a simulated reload, including a running turn whose text
+  arrives only on completion; no framework code reaching into site state.
 - **MCP readiness** — the tools layer exercised through a synthetic non-web
   actor, asserting client-host tools are filtered and server-host tools
   execute.
@@ -1711,7 +1805,7 @@ and becoming MCP-exposable for free.
 
 ### TD-11 The `ai-openai` provider
 
-**State.** Not planned for W-223 … W-227. `ai-anthropic` proves the contract
+**State.** Not planned for W-223 … W-228. `ai-anthropic` proves the contract
 against a commercial provider and `ai-mock` proves it against none.
 
 **Why deferred.** A second commercial provider adds coverage, not design, and
@@ -1790,20 +1884,33 @@ rather than "the thread for this scope".
 
 ## 21. Work items and phases
 
-### 21.1 Prerequisites — all released
+### 21.1 Framework prerequisites
 
-None of the three contained any AI, and all are useful on their own:
+None of the four contains any AI, and all are useful on their own:
 
 | Item | Release | Scope |
 |---|---|---|
 | **W-220** | v2.0.0 | `jPulse.UI.floatPanel` — the chat panel is a floating panel (§12.1) |
 | **W-221** | v2.0.1 | Plugin bundle build and installation — one npm package expanding into several plugin directories, and a declared plugin dependency resolving to an installable package name (§5.1.1) |
 | **W-222** | v2.0.2 | Plugin and site translation merge — `ai-core` can ship translatable UI text (§22.2) |
+| **W-225** | v2.0.3 | Awaitable `onCreate` — a WebSocket namespace can authorize a connection against the database before the upgrade (§11.2) |
 
-So this work starts with **no framework source change pending**. Everything
-below lives in the AI bundle and its provider packages, plus docs.
+The first three are released, so W-223 and W-224 shipped with no framework
+source change. W-225 is the one that did not exist yet.
 
-### 21.2 The five items
+It was missed because §22.2 checked each mechanism for *existence* and
+`createNamespace` does support `onCreate` with `:param` namespaces. What
+existence does not tell you is that the hook is invoked as
+`const result = namespace.onCreate(req, ctx)` and dispatched on the result's
+type, so a Promise — being an object — is installed as the connection context.
+An `async` handler therefore does not fail loudly: its authorization decision
+is discarded and **the connection is accepted**. `docs/websockets.md` already
+shows `onCreate: async (req, ctx) => …`, and the sibling `onMessage` is already
+awaited, so this reads as a defect in a documented contract rather than a
+missing feature — which is why it is a framework item on its own merits and not
+a patch inside the AI work.
+
+### 21.2 The five AI items
 
 Grouped so that each item ends at a state someone can use and test, and so
 that no item spans two repositories. The reference site's migration (§18) is
@@ -1813,12 +1920,12 @@ separate work in its own repository.
 |---|---|---|
 | **W-223** | ai: agent server core — tools and agent layers, mock provider | A controller-centric site runs complete turns over plain HTTP against `ai-mock`: tool authorization, quota, threads, streaming, admin config and usage |
 | **W-224** | ai: Anthropic provider and model selection | The same turns run against a real model, and an admin publishes a menu of models the user picks from |
-| **W-225** | ai: chat panel, client-host tools, and `hello-ai` | The §1.1 one-liner works, a view-centric site works, and `hello-ai` demonstrates all of it on the mock |
-| **W-226** | ai: propose and apply | A write-capable agent proposes, and the user applies or undoes |
-| **W-227** | ai: attachments — sources, URL ingest, conversion, vision | Files, pasted text, URLs, and images join a conversation |
+| **W-226** | ai: chat panel, client-host tools, and `hello-ai` | The §1.1 one-liner works, a view-centric site works, and `hello-ai` demonstrates all of it on the mock |
+| **W-227** | ai: propose and apply | A write-capable agent proposes, and the user applies or undoes |
+| **W-228** | ai: attachments — sources, URL ingest, conversion, vision | Files, pasted text, URLs, and images join a conversation |
 
-W-223 through W-225 are the "first release" referred to throughout: server
-core, a real provider, and the panel. W-226 and W-227 are each independently
+W-223, W-224, and W-226 are the "first release" referred to throughout: server
+core, a real provider, and the panel. W-227 and W-228 are each independently
 valuable, and neither blocks the other.
 
 Where this splits differently from a layer-by-layer reading of §5.2: the
@@ -1826,7 +1933,7 @@ HTTP/SSE turn path (§11.1) lands in **W-223**, not with the rest of the
 transport layer. It is what makes the server core demonstrable — a turn over
 `curl`, with no browser in the picture — and it is the whole transport story
 for a controller-centric site. The WebSocket and the client bridge (§11.2) go
-with the panel in W-225, because nothing needs them until a client-host tool
+with the panel in W-226, because nothing needs them until a client-host tool
 executes.
 
 ### 21.3 W-223 — ai: agent server core
@@ -1847,7 +1954,7 @@ demonstrable, and the mock is what makes it demonstrable without an API key or
 any spend.
 
 Deliberately out: every client-host execution path. Phase 1 accepts and
-filters `host: 'client'` descriptors; nothing runs one until W-225.
+filters `host: 'client'` descriptors; nothing runs one until W-226.
 
 Two seams land in this item that are free now and awkward to retrofit: named
 capabilities and a single tool-resolution function in phase 1 (TD-12), and
@@ -1894,20 +2001,38 @@ The loop ignores a `tool_use` event that has no `calls` array, so a literal
 copy of the BubbleMap emit would run a "successful" text-less turn and never
 execute tools. That is the honest-test failure this item exists to catch.
 
-### 21.5 W-225 — ai: chat panel, client-host tools, and `hello-ai`
+### 21.5 W-226 — ai: chat panel, client-host tools, and `hello-ai`
+
+Needs W-225 (v2.0.3) for phase 1, so `jpulseVersion` becomes `>=2.0.3`.
 
 | # | Phase | Contents |
 |---|---|---|
-| 1 | WebSocket and the client bridge | Per-thread namespace, token deltas unicast to the origin tab, turn events broadcast to the user's other tabs, and `WebSocketController.request()` with transport failures mapped onto the result envelope and `stall` set only for a lost connection (§11.2) |
-| 2 | Shared tool modules | The conventional path, content-hash serving, dynamic `import()`, the manifest, stale-hash refusal with a reload prompt, `dataScope`, and the purity scan test (§8.2) |
-| 3 | The panel | `jPulse.ai.panel` on `jPulse.UI.floatPanel`, the adapter contract (§12.1), conversation list, compose and slash commands, streaming, markdown with pinned copy buttons, reconnect and turn reconciliation, the model picker, and the quota and error surfaces |
-| 4 | `hello-ai` and docs | The demo view and its tool modules, shipped inside the plugin (§22.1), plus the panel and tool-module sections of `plugins/ai-core/docs/` (§22.3) |
+| 1 | WebSocket and the client bridge | Per-thread namespace with ownership checked in an `await`ed `onCreate` and `removeIfEmpty()` on the last disconnect, the turn started over the socket, token deltas unicast to the origin tab, turn events broadcast to the user's other tabs, and `WebSocketController.request()` with transport failures mapped onto the result envelope and `stall` set only for a lost connection (§11.2) |
+| 2 | Shared tool modules | The conventional path and its resolution order, content-hash serving, dynamic `import()`, the `{ name, hash, url }` manifest, stale-hash refusal with a reload prompt, `dataScope`, and purity enforced at import and at serve with the scanner exported (§8.2) |
+| 3 | The panel | `jPulse.ai.panel` on `jPulse.UI.floatPanel`, the adapter contract (§12.1), one client API over both transports, conversation list, compose and slash commands, streaming, markdown with pinned copy buttons, reconnect and turn reconciliation, the model picker, and the quota and error surfaces |
+| 4 | `hello-ai` and docs | The demo view and its tool modules, shipped inside the plugin (§22.1), the `ai-mock` targeted tool script, plus the panel and tool-module sections of `plugins/ai-core/docs/` (§22.3) |
 
 Phase 3 is validated against `hello-ai` and deliberately **not** against the
 reference site. An adapter contract proven only against the application it was
 extracted from is not a contract.
 
-### 21.6 W-226 — ai: propose and apply
+**`hello-ai` carries both hosts.** A client-host tool over state that genuinely
+only the browser has, so the bridge is exercised rather than described, and a
+server-host tool beside it so the demo shows the ordinary case too. The
+"one module, two hosts" claim of §8.3 is proven by a plugin test running the
+same module in Node against fixture data — which is also the claim being made,
+that these modules are testable as plain functions. Registering one module
+twice under two tool names would show it in the UI at the cost of a
+registration no real site would write.
+
+**`ai-mock` gains a targeted tool script.** `[mock:tools]` calls whichever
+tools happen to be first and second on the offered list, with empty arguments,
+which is enough to drive the loop and not enough to demonstrate a tool. A
+script naming a tool and its arguments, then summarizing the result in a second
+round, is what makes `hello-ai` show a specific client-host call crossing the
+bridge and coming back. Same package, so it ships in the same version.
+
+### 21.6 W-227 — ai: propose and apply
 
 | # | Phase | Contents |
 |---|---|---|
@@ -1917,7 +2042,7 @@ extracted from is not a contract.
 Opt-in throughout: a read-only agent registers no write tool and never
 encounters any of it.
 
-### 21.7 W-227 — ai: attachments
+### 21.7 W-228 — ai: attachments
 
 | # | Phase | Contents |
 |---|---|---|
@@ -1932,7 +2057,7 @@ Each its own item, written when wanted rather than scheduled now:
 
 | Follow-on | Depends on | Note |
 |---|---|---|
-| `ai-mcp-server` | W-223 phase 1 only | The controller-centric case that validates the layer boundary (§15.1). Its own plugin, and it needs nothing from W-224 … W-227 — which is the whole point of drawing the boundary first (§5.2) |
+| `ai-mcp-server` | W-223 phase 1 only | The controller-centric case that validates the layer boundary (§15.1). Its own plugin, and it needs nothing from W-224 … W-228 — which is the whole point of drawing the boundary first (§5.2) |
 | `ai-openai` | W-224 | TD-11. A standalone package needing no `ai-core` change |
 | Reference-site migration | per layer, §18 | The site's own repository, sequenced against the items above |
 
@@ -1967,8 +2092,11 @@ the only directory that publish and bump are run from (§5.1, W-221).
 - `plugins/ai-core/webapp/model/` — `aiThreads`, `aiTurns`, `aiUsage` (§9.7)
 - `plugins/ai-core/webapp/view/jpulse-common.js` — the `jPulse.ai` namespace:
   panel, transport, tool-module loader
-- `plugins/ai-core/webapp/view/jpulse-common.css` — `jp-ai-*` chat classes over
-  W-220's `jp-float-panel-*`
+- `plugins/ai-core/webapp/view/jpulse-common.css` — `plg-ai-*` chat classes over
+  W-220's `jp-float-panel-*`. Not `jp-ai-*`: `jp-*` is framework-owned and
+  read-only to everything else, and the documented plugin convention is
+  `plg-<name>-*`, which `auth-oauth` already ships as `plg-oauth-*`. The panel
+  reuses `jp-*` classes freely and creates none
 - `plugins/ai-core/webapp/view/jpulse-navigation.js` — the `hello-ai` nav entry
 - `plugins/ai-core/webapp/view/admin/` — the usage page (§17)
 - `plugins/ai-core/webapp/view/hello-ai/` plus
@@ -1992,10 +2120,19 @@ the only directory that publish and bump are run from (§5.1, W-221).
 
 ### 22.2 Framework files that change
 
-Checked against the code rather than assumed. **No framework source file needs
-a change.**
+Checked against the code rather than assumed. **Two framework source files
+need a change, one released and one not.**
 
-The one that did was `webapp/utils/i18n.js`: `loadTranslations()` read a single
+`webapp/controller/websocket.js` is the open one, and it is W-225 (§21.1):
+`onCreate` is invoked without `await` and its result dispatched on type, so an
+`async` handler's authorization decision is silently discarded and the
+connection accepted. The AI panel needs a namespace authorized against the
+database (§11.2), so it needs this. Worth recording how the earlier revision of
+this section got it wrong: it asked whether each mechanism *existed*, and
+`onCreate` does. Existence and being usable for the purpose are different
+questions, and only building the caller distinguishes them.
+
+The released one was `webapp/utils/i18n.js`: `loadTranslations()` read a single
 directory, `join(config.system.appDir, 'translations')`, and assigned each
 language wholesale, so a plugin could not ship UI text and a site could not
 override a string without editing framework-managed files. That shipped in
@@ -2004,7 +2141,7 @@ the framework, then each active plugin in load order, then
 `site/webapp/translations/`, and a plugin shipping only its default language is
 backfilled rather than blank. `ai-core` is the first real consumer.
 
-The only remaining framework-repo deliverable is docs, listed in §22.3.
+Beyond W-225, the remaining framework-repo deliverable is docs, listed in §22.3.
 
 Everything else `ai-core` needs already exists, which is the useful half of
 this answer:
@@ -2016,11 +2153,13 @@ this answer:
 | `/api/1/ai/*` routes | `SiteControllerRegistry` scans plugin controller dirs and auto-registers `api*` methods |
 | Its own hooks, owned and introspectable | `static hookDefinitions` (W-209); `HookManager` gains no AI strings |
 | An admin config tab | `ConfigModel.extendSchema()`, which `bootstrap.js` documents as callable by plugins |
-| A per-thread WebSocket namespace | `WebSocketController.createNamespace()`, public and already supporting `:param` pattern namespaces |
+| A per-thread WebSocket namespace | `WebSocketController.createNamespace()`, public and already supporting `:param` pattern namespaces. **Authorizing** one against the database is W-225 |
+| Calling a tool in the origin tab | `WebSocketController.request()` (W-208), whose `NOT_CONNECTED` / `CONNECTION_LOST` / `REQUEST_TIMEOUT` codes map straight onto the envelope (§11.2) |
+| Serving tool modules at a content-hashed URL | `static routes` on the plugin controller, which `SiteControllerRegistry` honors ahead of `api*` discovery — no static-asset machinery needed |
 | Correct load order ahead of provider plugins | `resolveLoadOrder()` topological sort (§5.1.1) |
 | Guest/anonymous-safe turn leases | existing `RedisManager` lease, used unchanged |
 | Translatable plugin UI text, overridable by a site | W-222 translation merge (v2.0.2) |
-| One package installing `ai-core` + `ai-mock` | W-221 bundle install and publish (v2.0.1). `hello-ai` is a later view inside `ai-core`, W-225 |
+| One package installing `ai-core` + `ai-mock` | W-221 bundle install and publish (v2.0.1). `hello-ai` is a later view inside `ai-core`, W-226 |
 
 ### 22.3 Documentation
 

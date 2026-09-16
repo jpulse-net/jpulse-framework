@@ -10,8 +10,8 @@
  *                   indexes on email/username, skipping (not crashing) when pre-existing
  *                   duplicates are found.
  * @file            webapp/tests/unit/model/user-uniqueness-db.test.js
- * @version         2.0.2
- * @release         2026-09-16
+ * @version         2.0.3
+ * @release         2026-09-17
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

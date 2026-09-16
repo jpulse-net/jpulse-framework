@@ -1,6 +1,38 @@
-# jPulse Docs / Version History v2.0.2
+# jPulse Docs / Version History v2.0.3
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.3, W-225, 2026-09-17
+
+**Commit:** `W-225, v2.0.3, 2026-09-17: websocket: await onCreate so a namespace can authorize a connection asynchronously`
+
+**BUGFIX RELEASE**: `onCreate` was invoked without `await` and its result dispatched on type. A Promise is an object, so an async handler's authorization decision was discarded and the connection was accepted — with the pending Promise installed as `ctx`. The upgrade path now awaits `onCreate` before the handshake.
+
+**Objective**: Let a dynamic WebSocket namespace authorize a connection against a database (or anything else asynchronous) before the handshake completes, matching the documented `onCreate: async` contract.
+
+**Key features**:
+- `_completeUpgrade` is async; `onCreate` is awaited and the existing result dispatch (`ctx` / `null` / number / `undefined`) is unchanged
+- `_handleUpgrade` attaches `.catch()` so a rejected upgrade never leaves a half-open socket
+- `controller.websocket.onCreateTimeoutMs` (default 5000) bounds a hung handler; expiry is a rejection
+- After the await, a destroyed or non-writable socket is not upgraded
+- Synchronous handlers keep today's behavior
+
+**Files changed**:
+- `webapp/controller/websocket.js`: async `_completeUpgrade`; `_awaitWithTimeout` (`ONCREATE_TIMEOUT`); `_socketAcceptsUpgrade`; call-site `.catch()`; `websocketConf.onCreateTimeoutMs ??= 5000`; JSDoc
+- `webapp/app.conf`: `onCreateTimeoutMs: 5000`
+- `webapp/tests/unit/controller/websocket.test.js`: await the seven existing `_completeUpgrade` call sites; async accept / reject / throw / timeout / gone-socket / sync-compat cases
+- `docs/websockets.md`: `onCreate` may be async and is awaited; timeout; connect-time authz belongs in `onCreate`
+- `docs/dev/design/W-155-websocket-dynamic-namespace.md`: v2.0.3 signature amendment
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.3 / W-225
+- `docs/CHANGELOG.md`: this section
+
+Verified via `npx jest webapp/tests/unit/controller/websocket.test.js --runInBand`: 1 suite / 68 tests passing. Live smoke: `hello-rooms/paris` rejected before handshake (browser close `1006`); `hello-rooms/amsterdam` accepted as `siteadmin`.
+
+**Release**:
+- Work Item: W-225
+- Version: v2.0.3
+- Release Date: 2026-09-17
 
 ________________________________________________
 ## v2.0.2, W-222, 2026-09-16

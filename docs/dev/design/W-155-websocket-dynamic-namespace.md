@@ -2,6 +2,7 @@
 
 ## Status
 - **Done** — Dynamic namespaces (one per resource) + WebSocket conn refactor (ctx-only identity). User-facing docs: [WebSocket Real-Time Communication](../../websockets.md) (dynamic namespaces, conn/ctx, onCreate, removeNamespace, reconnect, multi-instance).
+- **Amendment (v2.0.3):** The original design specified `onCreate(req, ctx) => ctx | null` as synchronous, and that is what shipped. The hook is now `onCreate(req, ctx) => ctx | null | number | Promise<…>`. The upgrade path awaits the result. A rejection, a throw, or a handler that exceeds `controller.websocket.onCreateTimeoutMs` closes the connection. A returned Promise is no longer installed as `ctx`.
 
 ## Overview
 
@@ -55,14 +56,16 @@ After W-155, **ctx** has flat structure (no nesting) and includes:
 
 ## onCreate Hook (Option 2b)
 
-**Signature:** `onCreate(req, ctx) => ctx | null`
+**Signature:** `onCreate(req, ctx) => ctx | null | number | Promise<…>` (v2.0.3: the result is awaited; the original design was synchronous)
 
 - **Input:**
   - `req` — Express request object from the WebSocket upgrade (session available).
   - `ctx` — Context object built by framework with user fields (username, ip, roles, firstName, lastName, initials) and `params` (extracted from path pattern).
 - **Output:**
   - Return `ctx` (or modified ctx) to accept the connection and create the namespace.
-  - Return `null` to reject the connection (socket destroyed with close code; no namespace created).
+  - Return `null` to reject the connection (socket destroyed; no handshake).
+  - Return a **number** to reject with a custom close code.
+  - A throw or a rejected Promise closes the connection. A handler that exceeds `controller.websocket.onCreateTimeoutMs` is treated as a rejection.
 - **Use cases:**
   - Validate resource access (e.g. check if user has permission to access this mapId by comparing `ctx.roles` vs cached map required roles).
   - Amend `ctx` with resource-specific data if needed (e.g. add `mapName` from a cache).

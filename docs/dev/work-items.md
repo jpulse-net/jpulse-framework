@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.2
+# jPulse Docs / Dev / Work Items v2.0.3
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -8692,18 +8692,18 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - W-222, v2.0.2: plugin and site translation merge - `plugins/ai-core/webapp/translations/` is live and a site can override any string
   - W-209, v1.7.13: `static hookDefinitions` so the plugin owns its hooks and `HookManager` never learns an AI name; `static hooks` auto-registration; registration against a not-yet-defined hook recorded and retro-validated, which is what lets a site controller load before the plugin
   - W-147 / W-207: `ConfigModel.extendSchema()` for the admin config tab, called from `static async initialize()`
-  - not needed by this item: W-220 floatPanel (W-225), `UrlFetch` (W-227)
+  - not needed by this item: W-220 floatPanel (W-225), `UrlFetch` (W-228)
 - rationale:
   - the reference site (bubblemap) runs a working agent in ~17,000 lines of site code, and the hard architecture there is already generic - the provider contract is domain-free, persistence is already keyed `(scopeType, scopeId, createdBy)`, and every tool already declares `host: 'server' | 'client'`. Nothing is packaged, so a second site re-derives turn loops, quota, tool authorization, and streaming
   - what is fused and must come apart here: the tool layer is welded to the turn loop (`executeTool(name, args, turnCtx)` reads `turnCtx.settings.docsTopics`, `turnCtx.supportsVision`, `turnCtx.selectionId`, `turnCtx.linkedMapNewFetchSpent`), authorization takes an Express `req` that two call sites already fabricate, three per-turn budgets are hardcoded with an `isSourceTextRead()` predicate deciding which calls count, and quota is hardcoded to the requesting user
   - two provider-contract defects are corrected now because both are breaking to retrofit once a third-party provider exists: only the first tool call per round is emitted (both Anthropic and OpenAI emit parallel calls), and `emit` pushes into an array the loop drains *after* the completion resolves, so tokens reach the client one burst per round
   - `ai-mock` ships inside the same package as `ai-core` rather than separately: a core with no provider cannot be demonstrated or tested, and the mock is how the bundle is testable at all - no API key, no spend, deterministic in CI
-  - HTTP/SSE lands in this item rather than with the rest of the transport layer. It is what makes the server core demonstrable on its own (a turn over `curl`), and it is the entire transport story for a controller-centric site. WebSocket and client-host execution wait for W-225, because nothing needs them until a client-host tool actually runs
+  - HTTP/SSE lands in this item rather than with the rest of the transport layer. It is what makes the server core demonstrable on its own (a turn over `curl`), and it is the entire transport story for a controller-centric site. WebSocket and client-host execution wait for W-226, because nothing needs them until a client-host tool actually runs
 - features:
   - **phase 1 - tools layer.** Usable with no thread, no turn, no provider, no browser:
     - directory layout `plugins/ai-core/webapp/utils/{tools,agent,transport}/` (jPulse plugin `webapp/utils/` convention); imports point **downward only** (`tools` imports neither `agent` nor `transport`; `agent` does not import `transport`), enforced by a scan test in the same spirit as W-209's fire-site scan. Without the test the boundary erodes in the first bug fix
     - actor context replaces the fabricated request: `{ username, roles, onBehalfOf, origin: 'web'|'ws'|'mcp'|'api', scopeType, scopeId, req }`. `req` stays available for the minority of tools that want request state; no framework path requires one. Every gate takes the actor, never a `req`
-    - tool descriptor, defaults for everything but `name` / `description` / `schema`: `host` (`'server'`), `module` (`null`, W-225), `dataScope` (`'call'`, W-225), `requires` (capability name or `null`), `mutates` (`false`), `timeoutMs` (`5000`), `group`, `budget` (`null`), `dedupeArgs` (`false`), `exposeToMcp` (`true`, ignored for `host: 'client'`), `owner` (stamped from the registering plugin or site, never supplied). `schema` is plain JSON Schema, passed through untranslated
+    - tool descriptor, defaults for everything but `name` / `description` / `schema`: `host` (`'server'`), `module` (`null`, W-226), `dataScope` (`'call'`, W-226), `requires` (capability name or `null`), `mutates` (`false`), `timeoutMs` (`5000`), `group`, `budget` (`null`), `dedupeArgs` (`false`), `exposeToMcp` (`true`, ignored for `host: 'client'`), `owner` (stamped from the registering plugin or site, never supplied). `schema` is plain JSON Schema, passed through untranslated
     - four gates, in order, all server-side, all before execution: **existence** (`AI_UNKNOWN_TOOL`), **capability** (the tool's `requires` against the actor's capabilities for this scope from `onAiScopeResolve`), **admin policy** (the tool is in the enabled list), **turn budget**
     - capabilities are **named**, not a boolean pair. `canRead` / `canWrite` from an `onAiScopeResolve` handler are sugar for `scope:read` / `scope:write`; a site needing a finer per-scope rule declares its own name and grants it in its own handler. Do not add a per-scope tool list - that is deliberately deferred (design TD-12)
     - the offered tool list is computed by **one** exported function taking an actor, called by the turn loop **every round** (permissions change mid-conversation) and by the capability probe, and by MCP `tools/list` later. One function is the whole reason TD-12 stays cheap; three copies of "which tools does this actor get" is the failure mode to avoid
@@ -8712,7 +8712,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - result envelope, unchanged from the reference site: `{ ok, data, summary, error, code, hint, ms, media, stall }`. `hint` is load-bearing - a failed tool that tells the model what to do instead recovers inside the turn. `media` is stripped from the turn record and **never** accepted from a client. `stall` means the connection is gone: end the turn, do not retry
     - hardcoded result size cap, no pagination and no cursor (design TD-01): oversize returns `AI_RESULT_TOO_LARGE` with a `hint` telling the model to narrow its request
     - `global.AiCore` published from `static async initialize()`, same idiom as `LogController` / `CommonUtils` / `HookManager`: `registerTools()`, `resolveTools(actor)`, `executeTool()`, `runTurn()`, `listProviders()`. Site code must never import from `plugins/`
-    - `static hookDefinitions` for the full catalog, all owned by `ai-core`: `onAiProviderRegister` (execute / continue - one broken provider is not no providers), `onAiComplete` (executeForPlugin / abort), `onAiToolRegister` (execute / continue), `onAiToolExecute` (executeForPlugin / abort), `onAiToolData` (executeFirst / abort, W-225), `onAiScopeResolve` (executeFirst / abort), `onAiPromptFragment` (execute / continue), `onAiQuotaCheck` (executeFirst / abort), `onAiQuotaSettle` (execute / continue), `onAiTurnBefore` (execute / abort), `onAiTurnAfter` (execute / continue)
+    - `static hookDefinitions` for the full catalog, all owned by `ai-core`: `onAiProviderRegister` (execute / continue - one broken provider is not no providers), `onAiComplete` (executeForPlugin / abort), `onAiToolRegister` (execute / continue), `onAiToolExecute` (executeForPlugin / abort), `onAiToolData` (executeFirst / abort, W-226), `onAiScopeResolve` (executeFirst / abort), `onAiPromptFragment` (execute / continue), `onAiQuotaCheck` (executeFirst / abort), `onAiQuotaSettle` (execute / continue), `onAiTurnBefore` (execute / abort), `onAiTurnAfter` (execute / continue)
   - **phase 2 - persistence and quota:**
     - three collections, plugin-owned: `aiThreads` keyed `(scopeType, scopeId, createdBy)` with a **partial** unique index on `status: 'active'`; `aiTurns` keyed `threadId` + `seq`; `aiUsage` keyed `<subject>:<period>` unique
     - one active thread per scope per user, any number of archived ones. Find-or-create lives in **exactly one** model method, and every route and (later) namespace is keyed by `threadId`, never by `(scope, user)`. Relaxing this to several live threads is deferred (design TD-13) and stays cheap only if nothing else keys on the pair
@@ -8724,7 +8724,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - retention purges turns by age
   - **phase 3 - agent layer:**
     - turn loop, adopted from `aiTurnLoop.js` with the domain knowledge removed: reserve quota, acquire the lease, create the turn record, then loop rounds until the model returns text with no tool call, up to `maxRoundsPerTurn`, checking cancellation and timeout each round, retrying retryable provider errors with backoff, finalizing with usage, cost, and status. Statuses stay `completed` / `failed` / `canceled` / `stalled`
-    - what does **not** go in the loop, and is not in this item at all: the `propose_` name prefix, proposal counting, `claimsApplyWithoutProposal()`, and the two system notes about undone and falsely-claimed proposals. Those belong to W-226 and subscribe to `onAiTurnAfter` rather than living in the loop
+    - what does **not** go in the loop, and is not in this item at all: the `propose_` name prefix, proposal counting, `claimsApplyWithoutProposal()`, and the two system notes about undone and falsely-claimed proposals. Those belong to W-227 and subscribe to `onAiTurnAfter` rather than living in the loop
     - single-flight lease keyed by thread, plus cancellation as both a `cancelRequested` flag and a broadcast so any process can stop a turn running in another. Use `RedisManager.publishBroadcast()` / `registerBroadcastCallback()` for the cancel channel
     - **the lease is plugin code.** `RedisManager` has no lease primitive, and `cacheSet()` is not one: its `nx` option is only honored on the `ttl: 0` path (the `ttl > 0` path calls `setex`, which ignores it) and it returns `true` for "command sent", not "I won the race". Use `RedisManager.getClient('cache')` and a real `set(key, val, 'PX', ms, 'NX')`, checking the reply. Define and test the `isRedisAvailable() === false` path too - single process, no cross-instance cancel
     - provider contract adopted as-is except the three changes: `emit({ type: 'tool_use', calls: [ { id, name, args }, … ] })` is an **array** from day one (serial execution is fine - TD-06 - but widening the contract later breaks every provider plugin); `emit` **forwards immediately** to the sink instead of batching per round, with the loop still accumulating for the turn record; and the descriptor carries `capabilities: { vision }` as a **map**, not sibling `supportsVision` booleans, so unknown keys read false and a provider built against an older core keeps working
@@ -8782,25 +8782,14 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - the header `v1.0.0` is the **bundle** version, `@jpulse-net/plugin-ai-core` — same convention as W-211, whose `v1.0.6` is the `auth-mfa` plugin, not a framework release. Bump with `cd plugins/ai-core && node ../../bin/bump-version.js 1.0.0`, which per W-221 rewrites `plugin.json` and the `@version` / `@release` headers in **both** member directories; a bump run from `plugins/ai-mock/` is refused and names `ai-core`. One package, one version — a companion whose version drifts makes `update` report "already up to date" forever for every site
   - the guide lives in `plugins/ai-core/docs/`, not in the framework's `docs/`. `docs/plugins/` holds only the how-to guides (creating, managing, publishing, architecture, API reference) and has no per-plugin page for `auth-mfa` or `auth-oauth`; a plugin's own `docs/` surfaces at runtime under the gitignored `docs/installed-plugins/<name>/`. Design §22.3 was corrected to match
   - framework-repo docs are a **separate pass under a framework release**, never part of a plugin commit: Latest Release Highlights, a `docs/CHANGELOG.md` entry, a `docs/hooks.md` note that a plugin now owns the `onAi*` hooks, and any `docs/genai-instructions.md` / `docs/security-and-auth.md` cross-links
-  - out of scope, each with its own item: the Anthropic provider and the model-selection surface (W-224); the WebSocket namespace, client-host execution, shared tool modules, `jPulse.ai.panel`, and `hello-ai` (W-225); propose and apply (W-226); attachments, URL ingest, document conversion, and vision (W-227); `ai-mcp-server` and `ai-openai` (standalone); the reference site's migration, which is that site's repository
-  - phase 1 accepts and filters `host: 'client'` descriptors but executes none - a site registering one before W-225 gets it withheld from the model with the same "withheld" sentence as any other, not an error
+  - out of scope, each with its own item: the Anthropic provider and the model-selection surface (W-224); the WebSocket namespace, client-host execution, shared tool modules, `jPulse.ai.panel`, and `hello-ai` (W-226); propose and apply (W-227); attachments, URL ingest, document conversion, and vision (W-228); `ai-mcp-server` and `ai-openai` (standalone); the reference site's migration, which is that site's repository
+  - phase 1 accepts and filters `host: 'client'` descriptors but executes none - a site registering one before W-226 gets it withheld from the model with the same "withheld" sentence as any other, not an error
   - **no framework files at all** — not source, not docs, not tests. If an implementation appears to need a framework source change, that is a design finding worth raising rather than a patch: §22.2 lists the eight mechanisms already verified sufficient
   - do not run the bump-version script against this repo while implementing, and do not edit `.jpulse/` in tests - use an isolated temp project or the plugin-cli test harness
   - collections are plugin-owned from the start. The reference site's existing `aiThreads` / `aiTurns` / `aiUsage` data is that site's migration problem (design §18); a one-time rename or a drop-and-recreate are both acceptable there, and neither is framework machinery
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-224, v1.0.0, 2026-09-17: ai: ai-anthropic plugin for Claude models
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - stand up `@jpulse-net/plugin-ai-anthropic` against the published W-223 provider contract so the same HTTP turns that run on `ai-mock` run on Claude
@@ -8828,7 +8817,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **phase 2 - selection surface** (`@jpulse-net/plugin-ai-core` 1.0.1 — leftover §9.5, now that the menu has two entries):
     - `filterAllowedModels` drops a registered row whose provider has `configured === false`. `ai-mock` stays `configured: true`. Missing/disabled plugins already disappear because they never register
     - `runTurn` calls `setProviderModel` when the chosen pair differs from the thread, so a mid-thread switch survives the next find-or-create. Accept `provider` / `model` on the existing `PUT /api/1/ai/thread/:id` (alongside `label`) so the panel can change the pair without starting a turn; a pair not on the live menu is 400 `AI_MODEL_NOT_ALLOWED`
-    - `gateModelsForVision(menu, { hasImages })` marks non-vision rows `{ available: false, reason: 'vision' }` when `hasImages` is true. The probe takes `?hasImages=1`. Attachments are W-227; this is the seam the picker uses
+    - `gateModelsForVision(menu, { hasImages })` marks non-vision rows `{ available: false, reason: 'vision' }` when `hasImages` is true. The probe takes `?hasImages=1`. Attachments are W-228; this is the seam the picker uses
     - `pickDefaultModel`: exact admin pair if both match a live row; else first live row of `defaultProvider`; else `menu[0]`. Empty allowed list keeps every configured provider (including mock)
     - `/jpulse-plugins/ai-core.shtml` loads the capability probe (stats, models, quota, tools) and links to `/api/1/ai/capability`. The AI tab and plugin-config help link to that page, usage, plugin-local configuration, the guide, and plugin management
     - no per-role allowed lists (TD-08). No `ai-openai`
@@ -8860,13 +8849,180 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **repo layout: `ai-anthropic` is its own git repo and its own commit**, sibling under `plugins/` (gitignored by the framework except `hello-world`), same as `auth-mfa`. Phase 2 is a second commit in the **ai-core** repo plus the `configured: true` commit in **ai-mock**. Two publishes, one work item: `@jpulse-net/plugin-ai-anthropic` 1.0.0 and `@jpulse-net/plugin-ai-core` 1.0.1 (GitHub Packages, 2026-09-17). The header `v1.0.0` is the Anthropic package; the bundle header is `v1.0.1`
   - `global.AiCore` is for site code. This plugin must not import from `plugins/ai-core/`. Completions go through the hooks; cost is computed by the loop from the descriptor's `priceTable` plus the `usage` event
   - `PluginModel.getSecret` / `isSensitiveMask` — `global.PluginModel` is never assigned; import `webapp/model/plugin.js`. Same pattern as `ai-core` `loadSettings`
-  - out of scope: the chat panel and `hello-ai` (W-225); propose/apply (W-226); attachments and actually sending images (W-227 — phase 2 only gates the menu); `ai-openai` (TD-11); the reference site's migration of its own `ai-anthropic` copy
+  - out of scope: the chat panel and `hello-ai` (W-226); propose/apply (W-227); attachments and actually sending images (W-228 — phase 2 only gates the menu); `ai-openai` (TD-11); the reference site's migration of its own `ai-anthropic` copy
   - **no framework source.** Framework-repo work for this item is the design + this work-item text. Latest Release Highlights / `docs/CHANGELOG.md` / hook-catalog mention wait for the framework release that accompanies the plugin publish
   - do not run the bump-version script against this repo while implementing, and do not edit `.jpulse/` in tests
   - Verify never receives the stored-only value from the button callback — only the form field (mask or newly typed). That is the W-210 rule; do not "fix" it by reading `getSecret` in the browser
   - no `LICENSE` file on either package (same as `ai-core` 1.0.0)
 
 
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-225, v2.0.3, 2026-09-17: websocket: await onCreate so a namespace can authorize a connection asynchronously
+- status: 🚧 IN_PROGRESS
+- type: Bugfix
+- objectives:
+  - `await` the `onCreate` result in the WebSocket upgrade path so a dynamic namespace can authorize a connection against the database - or a cache, an HTTP call, or anything else asynchronous - **before** the handshake completes
+  - close a silent-failure trap: an `async onCreate` today has its returned Promise installed as the connection `ctx`, so its authorization decision is discarded and the connection is **accepted**
+  - keep every existing synchronous handler byte-for-byte compatible, and bound how long an un-upgraded socket may be held by a slow or hung handler
+  - make the code match `docs/websockets.md`, which already documents the hook with `onCreate: async (req, ctx) => …`
+- prerequisites:
+  - W-155, v1.6.12: dynamic namespaces, the `onCreate` hook, pattern matching with `:param`, and `removeNamespace` / `removeIfEmpty` - this item changes only how the hook's result is consumed
+  - nothing else. No new dependency, no config migration, no client-side change
+- rationale:
+  - `_completeUpgrade` calls `const onCreateResult = namespace.onCreate(req, ctx)` and then dispatches on the result's type: `null` rejects, a number rejects with a close code, and **any object** is taken as the amended `ctx`. A Promise is an object. So an `async` handler is not merely unsupported - it fails in the worst available direction: the framework installs the pending Promise as the connection context and completes the handshake, which means the handler's `return null` never rejects anything, and `ctx.username` and friends are `undefined` for the life of the connection
+  - this is a defect in a documented contract rather than a missing feature, which is why it is worth its own item. `docs/websockets.md` shows `onCreate: async (req, ctx) => { … return ctx; }` in the Dynamic Namespaces section, and the sibling handler is already documented as "**Async onMessage:** the handler may be async... if it returns a Promise, the framework awaits it". `onCreate` is the odd one out, and it is the one hook whose whole purpose is authorization
+  - the W-155 design specified the signature as `onCreate(req, ctx) => ctx | null`, synchronous, and the shipped demo (`site/webapp/controller/helloWebsocket.js`, `hello-rooms`) is synchronous, so nothing in the repo currently trips over it. It was found by designing an actual async consumer, not by a test
+  - **the consumer that found it:** W-226's per-thread AI namespace `/api/1/ws/ai/:threadId`. Thread ownership is `createdBy` on the thread document, so deciding whether this session may listen to this conversation is a database read. Nothing else about the AI panel needs a framework change, and this is not a change the plugin can work around: authorizing after the upgrade is not equivalent, because `broadcast()` reaches every client in the namespace and a client joins at handshake - so a check that finishes after the upgrade has already let the socket receive another user's conversation
+  - the alternatives considered for the plugin, and why they lose to fixing this: an HMAC ticket verified synchronously in `onCreate` works but adds an endpoint, an expiry, and a second authorization concept a site has to understand; putting the owner in the namespace path makes the socket's identity depend on a routing convention; and memoizing `threadId → owner` in process for a synchronous lookup breaks the moment the site runs more than one instance, because the HTTP call that populates the memo and the upgrade can land on different ones
+  - the fix is small and additive: `await` on a non-Promise is a no-op, so a handler returning `ctx`, `null`, or a number behaves exactly as before. What is not free is that this is a security-critical path and it now has a suspension point in it, which is why the timeout and the socket-already-gone check below are part of the item rather than a follow-up
+- features:
+  - **`_completeUpgrade` becomes async and its one caller handles rejection.** `_handleUpgrade` invokes it from inside the `sessionMiddleware` callback, which ignores return values, so the call gets an explicit `.catch()` that logs and destroys the socket. An unhandled rejection in the upgrade path must never leave a half-open socket
+  - **`onCreate` is awaited**, and the existing result dispatch is unchanged: `null` rejects, a number rejects with that close code, an object amends `ctx`, `undefined` accepts with the framework's `ctx`. A rejected Promise or a thrown error is treated exactly as today's `catch` treats a synchronous throw - log and destroy, fail closed
+  - **a timeout bounds the suspension.** A hung `onCreate` must not pin an un-upgraded socket indefinitely, and an authorization handler that talks to a database is exactly the handler that can hang. New `controller.websocket.onCreateTimeoutMs`, default 5000, applied per connection; on expiry log and destroy. Documented in `app.conf` alongside the other `controller.websocket` keys. Implemented as `_awaitWithTimeout` (`Promise.race`; timeout rejects with `ONCREATE_TIMEOUT`). The value is `appConfig.controller.websocket.onCreateTimeoutMs` when finite, else `websocketConf.onCreateTimeoutMs` (initialize sets `??= 5000`); `<= 0` disables the race
+  - **the socket may be gone by the time the handler resolves.** After the await, bail out if the socket is already destroyed or no longer writable rather than calling `wss.handleUpgrade` on it. A client that gave up during an authorization round trip is normal, not an error. Implemented as `_socketAcceptsUpgrade` (missing / `destroyed` / `writable === false`)
+  - **the literal namespace is still created before `onCreate` runs**, as today, so a rejected first connection leaves an empty namespace behind. That is pre-existing behavior and `removeIfEmpty()` already covers it; do not change creation order in this item, because doing so changes what `ctx.params` is available to
+  - **no signature change and no new option.** `onCreate` keeps `(req, ctx)`; the only difference is that returning a Promise now works instead of silently misbehaving. A site that never writes `async` sees no change at all
+  - out of scope: making `onConnect` / `onDisconnect` awaitable (nothing needs it, and `onDisconnect` in particular runs during socket teardown where awaiting is a different problem); rate-limiting connection attempts; any change to `requireAuth` / `requireRoles`, which already run before `onCreate` and stay there
+- deliverables:
+  - `webapp/controller/websocket.js`:
+    - `static async _completeUpgrade(...)`; `await` of `onCreate` via `_awaitWithTimeout`; post-await `_socketAcceptsUpgrade`; `.catch()` on the call site in `_handleUpgrade`; `websocketConf.onCreateTimeoutMs ??= 5000` in initialize; JSDoc on `createNamespace` stating that `onCreate` may be async and is awaited, and what the timeout does
+  - `webapp/app.conf`:
+    - `controller.websocket.onCreateTimeoutMs: 5000` with a comment saying it bounds an asynchronous `onCreate`, and that a handler exceeding it is treated as a rejection
+  - `webapp/tests/unit/controller/websocket.test.js`:
+    - the seven existing `_completeUpgrade` call sites become `await`ed - they pass today only because the function is synchronous
+    - an async `onCreate` resolving to `ctx` completes the upgrade, and `ctx` is the resolved object rather than a Promise (the regression test for this bug - assert `ctx.username`, not just that the socket survived)
+    - an async `onCreate` resolving `null` destroys the socket and never calls `handleUpgrade`
+    - an async `onCreate` resolving a number destroys the socket
+    - a rejected Promise and a thrown error both destroy the socket
+    - a handler that never settles is destroyed after `onCreateTimeoutMs` with fake timers, and `handleUpgrade` is not called
+    - a socket destroyed while `onCreate` is pending does not reach `handleUpgrade`
+    - a synchronous handler returning each of `ctx` / `null` / a number / `undefined` behaves as before - the backward-compatibility guard
+    - live smoke (hello-rooms): `paris` rejected before handshake (browser 1006); `amsterdam` accepted as `siteadmin` with `_onConnection` / `onConnect` / broadcast
+  - `docs/websockets.md`:
+    - state plainly in the Dynamic Namespaces section that `onCreate` may be sync or async and is awaited, that a rejection or a throw closes the connection, and that `onCreateTimeoutMs` bounds it. The section's example is already `async`, so this is the sentence that makes the example true
+    - one line in the authorization guidance: connect-time authorization belongs in `onCreate` because it gates the handshake, and a check performed after the upgrade does not - a namespace client can already receive broadcasts
+  - `docs/dev/design/W-155-websocket-dynamic-namespace.md`:
+    - a short amendment noting the signature is now `onCreate(req, ctx) => ctx | null | number | Promise<…>`; the original design specified synchronous and that is what shipped
+  - `docs/CHANGELOG.md`, `README.md` / `docs/README.md` Latest Release Highlights:
+    - v2.0.3 entry, described as the bugfix it is: an async `onCreate` was accepting connections it meant to reject
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md` §11.2 (why the AI panel needs it) and §21.1 (how §22.2's "no framework source change" finding missed it - the check asked whether the mechanism existed, and `onCreate` does exist). The W-155 design doc is the original contract
+  - **this is a framework item, not part of the AI bundle.** It ships as v2.0.3 in the framework repo and nothing in `plugins/` is touched. W-226 then declares `jpulseVersion: '>=2.0.3'`
+  - the failure mode is worth stating once more because it is counter-intuitive and a reviewer should look for it: the bug does not make an async handler fail, it makes an async handler **succeed at accepting**. Any site that followed the documented example has a namespace that admits every connection its `requireAuth` / `requireRoles` options do not already stop
+  - do not "fix" this by rejecting a Promise return with an error. The documented contract is async; honor it
+  - no client-side change. `jPulse.ws` never sees this - the connection either upgrades or it does not, and a rejected upgrade already surfaces as a failed connect with the existing reconnect behavior
+
+
+
+
+
+
+### W-226, v1.0.2, 2026-09-17: ai: ai-core plugin with chat panel, client-host tools, hello-ai
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - build the client half of the agent: `jPulse.ai.panel` on `jPulse.UI.floatPanel`, the site adapter contract, and the WebSocket bridge that lets the model call a tool inside the user's tab
+  - make a tool **one shared pure module** that both hosts run - ordinary `import` on the server, content-hashed dynamic `import()` in the browser - retiring the `.tmpl` and `vm`-sandbox workarounds the reference site needs today
+  - ship `hello-ai` **inside the plugin**, running on `ai-mock`, so an install can be evaluated and smoke-tested with no API key and no site-template regeneration
+  - keep the §1.1 site unaware that any of this exists: with no client-host tool offered, the transport stays HTTP and the panel behaves identically
+  - hand-over item: written to be implemented from this entry plus `docs/dev/design/W-223-ai-agent.md`, which is the authority wherever this entry is thinner
+- prerequisites:
+  - W-223, `@jpulse-net/plugin-ai-core` 1.0.0: the tools layer with `host: 'client'` already accepted, filtered, and withheld at execute; `module` and `dataScope` already on the normalized descriptor; `chooseTransport()` already answering `ws` when a client tool is offered; `runTurn` already driving an injected `sink`; the capability probe already the one place a client asks what it may do
+  - W-224, `@jpulse-net/plugin-ai-core` 1.0.1: the live model menu, `pickDefaultModel`, and `PUT /api/1/ai/thread/:id` accepting `provider` / `model` - which is what the panel's model picker writes to
+  - **W-225, v2.0.3: awaitable `onCreate`.** Phase 1 cannot authorize the per-thread namespace without it, and authorizing after the upgrade is not equivalent. `jpulseVersion` becomes `>=2.0.3`
+  - W-220, v2.0.0: `jPulse.UI.floatPanel` - drag, resize, persistence, stacking, mobile sheet, ghost animation, and the shared Escape rule are all already done and must not be re-implemented
+  - W-208, v1.7.12: `WebSocketController.request()` server→client with its `NOT_CONNECTED` / `CONNECTION_LOST` / `REQUEST_TIMEOUT` envelope, client `conn.reply` / `replyError`, and per-namespace `messageLimits`
+  - W-155, v1.6.12: pattern namespaces with `:param` and `removeIfEmpty()`
+  - W-098 append mode: a plugin's `view/jpulse-common.js` and `.css` concatenate onto the framework's, which is how `jPulse.ai` and `plg-ai-*` ship without a framework edit
+  - already vendored, no new dependency: `marked` at `/common/marked/` and `Prism` at `/common/prism/`, the same pair `jPulse.UI.docs` renders markdown with
+- rationale:
+  - W-223 and W-224 built a complete server-side agent that no browser uses. Every turn so far has been driven by `curl`. The panel is what turns an API into a feature, and it is the largest single piece of what a site would otherwise write itself - the reference site's panel, conversation list, streaming, markdown, reconnect, and error surfaces are thousands of lines that have nothing to do with its domain
+  - **client-host tools are the whole reason a WebSocket exists here.** A tool whose data lives only in the browser - the current selection, unsaved edits, a computed view the server cannot reproduce - cannot be executed server-side at any price. The turn therefore has to be able to call back into the originating tab, which means the process holding that socket must be the one running the turn. Sites without such a tool pay none of this: `chooseTransport()` already answers `http` and the probe already tells the client which to use
+  - **shared tool modules are where the measurable win is.** The reference site writes several tools twice - an 882-line server-side proposal validator beside a 1,000-line browser mirror, plus parallel projection and source implementations - roughly 2,000 lines kept in sync by hand, and three `vm`-sandbox harnesses to test the browser copies. One module imported two ways deletes all of it and makes the tests ordinary Node tests
+  - the mechanism is deliberately not general (design TD-07). "One module, two runtimes" is not AI-specific and will be promoted to the framework if a second consumer appears; designing that API now, with one imagined user, is how it gets the wrong shape
+  - **`hello-ai` lives inside the plugin, not the site template.** The feature is large enough that onboarding needs something that runs; inside the plugin it installs into an existing site for evaluation, arrives and updates with the code it demonstrates, and needs no site-template regeneration. It runs on `ai-mock`, which also makes it the fastest check that an install actually worked. `hello-world` is the precedent - it already ships a view, its own navigation, and its own CSS from inside a plugin
+  - **the adapter is validated against `hello-ai`, deliberately not against the reference site.** An adapter contract proven only against the application it was extracted from is not a contract; it is that application's method list with a new name
+  - three limits are accepted rather than engineered around, and each is cheaper than its alternative. A reloaded tab cannot replay partial text, because deltas are unicast and persisting them would put a database write on the hot path of every token - it reconnects, says a turn is running, and renders the reply on completion. An oversized client reply is the tab's problem to report, because the framework's `send()` returns false rather than throwing and a silently dropped reply reads to the server as a timeout. A turn waiting on a tool in a tab that went away ends `stalled`, which is the designed behavior and not a special case
+- features:
+  - **phase 1 - WebSocket and the client bridge:**
+    - per-thread namespace `/api/1/ws/ai/:threadId`, `requireAuth: true`, roles from the AI settings. `onCreate` is **async** (W-225): load the thread, reject when AI is disabled, the thread is unknown, or `createdBy` is not the session's owner. It gates the handshake because `broadcast()` reaches every client in a namespace and a client joins at handshake - a check that lands after the upgrade has already leaked
+    - `removeIfEmpty()` on the last disconnect. A namespace created from a pattern is never reclaimed automatically, so without this the registry grows by one entry per conversation ever opened
+    - **the turn starts over the socket**, not over `POST .../turn`: the process holding the origin tab has to be the one that calls back into it, and an HTTP request can land on another instance. `{ type: 'turn', data: { text, provider, model, context, target } }`, with `conn.clientId` recorded as the origin. **Cancel stays the HTTP route** for both transports - it has to work from a tab that is not the origin, and it is already proven
+    - token deltas `sendToClient` to the origin tab; turn-level events (`turn_start`, `tool_result`, `completed` / `canceled` / `stalled`, `error`) `broadcast` so the user's other tabs stay in sync, and so they cross instances via Redis, which unicast does not
+    - client execution in the transport layer: `WebSocketController.request(originClientId, nsPath, { type: 'tool_call', data: { id, name, args, moduleHash } }, { timeoutMs: tool.timeoutMs })`. Transport codes map onto the existing envelope - `NOT_CONNECTED` and `CONNECTION_LOST` set `stall`, `REQUEST_TIMEOUT` and the oversize codes get a narrowing `hint`. `stall` is set for a lost connection **only**; a timeout is retryable advice, not a dead turn
+    - `executeTool` grows the client path it currently refuses. Today `host: 'client'` returns `AI_CLIENT_HOST` unconditionally; now it dispatches when the caller supplied a client executor and still returns `AI_CLIENT_HOST` when it did not - which is exactly the HTTP transport, so a client tool reached over SSE keeps today's honest refusal instead of hanging
+    - **the four gates still run server-side, before the tab is asked.** A client-host tool is authorized, budgeted, and deduped on the server; the tab is asked only to compute. Anything coming back is `stripMedia`'d and size-capped, both of which `executeTool` already does behind its `fromClient` flag
+    - per-namespace `messageLimits` set explicitly so the 256 KB result cap is a stated property of this namespace rather than whatever the global default happens to be
+  - **phase 2 - shared tool modules:**
+    - conventional path `site/webapp/ai-tools/` for a site and `webapp/ai-tools/` inside a plugin, plain ES modules exporting `run(data, args)`. Resolution is the framework's usual order, site first then each active plugin in load order, and it is **replace, not append** - a module is one function and concatenating two is meaningless
+    - content hash per module (sha256, truncated), served by `GET /api/1/ai/tool-module/:hash/:name.js` with `Cache-Control: immutable`. The hash is in the path, so the URL is safely cacheable forever, and a **request for a hash the server no longer has is a 409, never a different body** - a stale tab must be told, not quietly upgraded
+    - the capability probe returns `{ name, hash, url }` per module. The `url` so the client never assembles a route and the route can change without a client change
+    - **purity is enforced, not merely tested.** Allowlist is the smallest useful one: relative imports of siblings inside `ai-tools/`, no bare specifiers at all, so `fs` is unreachable and so is a helper that transitively reaches it. A violation is refused at server `import` and at serve, logged, and surfaced as a withheld tool with a reason - not a broken page. `AiCore.scanToolModules()` is exported so a site asserts over its own directory in one line, because a scan test living in `ai-core` cannot cover `site/webapp/ai-tools/`, which is precisely what gets shipped to a browser
+    - server-side data comes from `onAiToolData` (already in the hook catalog, unused until now); browser-side from `adapter.toolData(name)`. `dataScope: 'call'` rebuilds per call and is the default because it is always correct; `'turn'` builds once and reuses, cached per turn beside the budget state
+    - a `module` named on a `host: 'server'` tool bypasses `onAiToolExecute` entirely - the descriptor already carries the field, nothing needed to change to allow it
+  - **phase 3 - the panel:**
+    - `jPulse.ai.panel.create({ scopeType, scopeId, adapter })`, adapter optional - a site with no client-host tool omits it, which is the §1.1 case. `toolData` plus the three `describe*` methods are all a read-only agent needs; `executeTool` stays an escape hatch for a client tool not worth making a module, not the interface
+    - **the namespace is `jPulse.ai`, not `jPulse.plugins.aiCore`.** Deliberate: this is the site-facing client API, the mirror of `global.AiCore` on the server, and site code should no more write `jPulse.plugins.aiCore.panel` than it writes `global.plugins.aiCore.runTurn`. Note it in the guide so the deviation from the plugin convention reads as a decision
+    - **both transports behind one client API.** `jPulse.ai.transport` reads the probe, opens SSE or the socket, and emits one event stream; the panel never branches on transport. A panel that did would grow two of everything and keep only one of them tested
+    - conversation list with rename, archive, resume, and new-conversation; compose box with slash-command picker and keyboard handling; send and cancel; the model picker when more than one model is allowed, writing through `PUT /api/1/ai/thread/:id`
+    - streaming with scroll-to-bottom and the stuck-turn prompt; reconnect and turn reconciliation, which for a reloaded tab means "a turn is running" and then the finalized text on the completion event - partial text is not recoverable and the panel says so rather than pretending
+    - markdown by the vendored `marked` + `Prism`, copy buttons pinned to code blocks so they survive re-render during streaming; quota and error surfaces; the retention notice
+    - `plg-ai-*` classes over W-220's `jp-float-panel-*`, in the plugin's `view/jpulse-common.css`. **Not `jp-ai-*`** as design §22.1 originally said: `jp-*` is framework-owned and read-only to everything else, and the documented plugin convention is `plg-<name>-*` (`auth-oauth` ships `plg-oauth-*`). Reuse `jp-*` classes freely, create none. Colors from `--jp-theme-*` only
+    - all UI text through `webapp/translations/`, `en.conf` and `de.conf`. A chat panel is heavy on strings and W-222 is what makes a plugin able to ship and a site able to override them
+    - **not in this item, and the panel is built with the gaps left open:** attachment chips and staged images, and the URL-intercept card, are W-228; the Apply card and the false-claim guard are W-227. Design §12.1 lists them in the panel's eventual surface, which is why they are named here as absent rather than forgotten
+  - **phase 4 - `hello-ai`, the mock script, and docs:**
+    - `hello-ai` carries **both hosts**: a client-host tool over state only the browser has, so the bridge is exercised rather than described, and a server-host tool beside it so the ordinary case is visible too. The "one module, two hosts" claim of design §8.3 is proven by a plugin test running the same module in Node against fixture data - which is also the claim being made, that these modules are testable as plain functions. Registering one module twice under two tool names would show it in the UI at the cost of a registration no real site would write
+    - **`ai-mock` gains a targeted tool script**, `[mock:tool:<name>:<jsonArgs>]`, calling a named tool with given arguments and summarizing the result in a second round. `[mock:tools]` calls whichever tools happen to be first and second on the offered list with empty arguments - enough to drive the loop, not enough to demonstrate a tool. Same package, same version
+    - guide sections for the panel, the adapter, and tool modules, plus the `hello-ai` walkthrough
+- deliverables:
+  - `plugins/ai-core/plugin.json`, `package.json`:
+    - `jpulseVersion: '>=2.0.3'` (W-225 is a hard requirement for the namespace), version 1.0.2 for both bundle members
+  - `plugins/ai-core/webapp/utils/transport/ws.js`, `index.js`:
+    - namespace registration with the async `onCreate` ownership check and `removeIfEmpty()`; origin-tab tracking; the turn message; delta unicast and turn-event broadcast; `executeClientTool` mapping `WebSocketController.request()` codes onto the envelope with `stall` only for a lost connection. `chooseTransport` unchanged
+  - `plugins/ai-core/webapp/utils/tools/execute.js`, `modules.js`:
+    - `executeTool` dispatches `host: 'client'` through an injected executor and keeps `AI_CLIENT_HOST` when there is none; `modules.js` owns discovery, resolution order, hashing, the purity scan, the refusal, `run()` invocation, and the `dataScope` cache. Tools layer imports neither agent nor transport - the boundary test already enforces it
+  - `plugins/ai-core/webapp/controller/aiCore.js`:
+    - `GET /api/1/ai/tool-module/:hash/:name.js` with immutable caching and a 409 on a hash the server no longer has; the module manifest on the capability probe; namespace registration from `initialize()`; `scanToolModules` on `global.AiCore`
+  - `plugins/ai-core/webapp/utils/agent/turnLoop.js`:
+    - the client executor threaded through to `executeTool`, and per-turn module data cached for `dataScope: 'turn'`. No other change - the loop already recomputes the offered list every round and already forwards `emit` immediately
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - the `jPulse.ai` namespace: `panel`, `transport` (SSE and WebSocket behind one event stream), the tool-module loader with hash pinning and the reload prompt, and the client bridge that answers `tool_call` - including the size pre-check that replies `AI_RESULT_TOO_LARGE` rather than letting `send()` return false and the request time out
+  - `plugins/ai-core/webapp/view/jpulse-common.css`:
+    - `plg-ai-*` chat classes over `jp-float-panel-*`; `--jp-theme-*` variables only, no literal colors
+  - `plugins/ai-core/webapp/view/hello-ai/index.shtml`, `plugins/ai-core/webapp/ai-tools/`:
+    - the demo view with a launcher and the panel, its adapter, its browser-only state, and the tool modules; the server-host tool via `onAiToolRegister` / `onAiToolData`
+  - `plugins/ai-core/webapp/view/jpulse-navigation.js`:
+    - the `hello-ai` entry alongside the existing AI usage and AI Core entries
+  - `plugins/ai-core/webapp/translations/en.conf`, `de.conf`:
+    - panel strings: conversation list and its actions, compose and slash commands, model picker, streaming and stuck-turn, reconnect, quota, retention, and every error surface
+  - `plugins/ai-mock/webapp/controller/aiMock.js`:
+    - the `[mock:tool:<name>:<jsonArgs>]` script - one `tool_use` naming that tool with those arguments, then a text round summarizing the result it gets back
+  - `plugins/ai-core/webapp/tests/unit/`:
+    - namespace authorization: a non-owner refused **before** the upgrade; an unknown thread refused; AI disabled refused; the owner accepted with a resolved `ctx`
+    - the bridge: a client tool executed through a fake `request()`; `NOT_CONNECTED` and `CONNECTION_LOST` setting `stall`; `REQUEST_TIMEOUT` not setting it; an oversized reply reported as `AI_RESULT_TOO_LARGE`; media stripped and the size cap applied to anything from a client; gates denying a client tool with no round trip at all
+    - modules: hashing stable across reads; site overriding a plugin module by name; an impure fixture refused at import **and** at serve, not merely reported; the exported scanner over the plugin's own directory; a stale hash refused with a reload prompt; `dataScope: 'turn'` building once and `'call'` building per call; the same module run in Node against fixture data while a client-host descriptor names it, which is the two-host claim
+    - transport selection: `http` with no client tool offered, `ws` with one, and a client tool over the HTTP path still answering `AI_CLIENT_HOST`
+    - the panel's adapter contract against a stub adapter, and a scan asserting no panel code reaches into site state
+  - `plugins/ai-core/docs/README.md`, `plugins/ai-core/README.md`, `plugins/ai-mock/README.md`:
+    - panel and adapter sections, the tool-module section including the purity rule and the one-line site test, the `hello-ai` walkthrough, the `jPulse.ai` naming decision, and what is still absent (attachments, apply cards). `ai-mock`'s README documents the new script
+  - framework-repo docs are **not** part of this item's commits — see notes
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md`. Read §21.5 for this item's phases, then §8 (shared modules), §11.2 (the socket and its authorization), §12.1 (the adapter), §22.1 (plugin files). Rev 7 records the five decisions this entry implements, and TD-07, TD-10, TD-12, and TD-13 are the deliberate omissions - do not "fix" them
+  - **repo layout: each plugin is its own git repo and its own commit**, sibling under `plugins/` (gitignored by the framework except `hello-world`), as `auth-mfa` already is. Two commits in two repos, one publish: `@jpulse-net/plugin-ai-core` 1.0.2 carrying `ai-mock` 1.0.2. The header `v1.0.2` is the bundle version, not a framework release
+  - `ai-core` is the primary: it owns `bundle.members`, the published package name and version, and the only `webapp/bump-version.conf`, and is the only directory publish and bump are run from. A bump from `plugins/ai-mock/` is refused and names `ai-core`
+  - **no framework source files in this item.** W-225 is the framework change and it is a separate item and release. If anything else here appears to need one, that is a design finding worth raising rather than a patch - §22.2 lists what was verified sufficient, and it was wrong once already about `onCreate`, so a second finding is credible and should be written up rather than worked around
+  - the panel must not re-implement any of W-220. Drag, resize, clamping, persistence, stacking, the mobile sheet, the ghost animation, and the Escape rule are the widget's, and the item is only the chat content inside it
+  - out of scope, each with its own item: propose and apply (W-227); attachments, URL ingest, document conversion, and vision (W-228); `ai-mcp-server` and `ai-openai` (standalone); the reference site's migration, which is that site's repository and is what design §18 step 3 sequences against this item
+  - do not run the bump-version script against this repo while implementing, and do not touch `.jpulse/` in tests - use an isolated temp project or the plugin-cli harness
 
 
 
@@ -8899,7 +9055,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-222, v2.0.2, 2026-09-16
+- assume W-225, v2.0.3, 2026-09-17
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -8911,12 +9067,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.2 2026-09-17
+node bin/bump-version.js 2.0.3 2026-09-17
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.2; git push origin main --tags
+git tag v2.0.3; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

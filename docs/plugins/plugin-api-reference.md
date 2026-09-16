@@ -73,7 +73,7 @@ Response: { success: true, data: {...} }
         },
         "plugins": {                    // Optional: Other plugins (string or { version, npmPackage })
             "other-plugin": "^1.0.0",
-            "ai-core": { "version": ">=1.0.0", "npmPackage": "@jpulse-net/plugin-ai" }
+            "ai-core": { "version": ">=1.0.0", "npmPackage": "@jpulse-net/plugin-ai-core" }
         }
     },
     "bundle": {                         // Optional: primary of a multi-plugin package

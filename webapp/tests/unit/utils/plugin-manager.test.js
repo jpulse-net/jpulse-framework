@@ -272,14 +272,14 @@ describe('PluginManager (W-199 concurrency & persistence safety)', () => {
                 autoEnable: false,
                 dependencies: {
                     plugins: {
-                        'ai-core': { version: '>=1.0.0', npmPackage: '@jpulse-net/plugin-ai' }
+                        'ai-core': { version: '>=1.0.0', npmPackage: '@jpulse-net/plugin-ai-core' }
                     }
                 }
             });
             await PluginManager.initialize();
             const result = await PluginManager.enablePlugin('provider');
             expect(result.success).toBe(false);
-            expect(result.message).toBe('Missing required dependency: ai-core (install @jpulse-net/plugin-ai)');
+            expect(result.message).toBe('Missing required dependency: ai-core (install @jpulse-net/plugin-ai-core)');
         });
 
         test('enablePlugin reactivates definitions and registers controller hooks', async () => {

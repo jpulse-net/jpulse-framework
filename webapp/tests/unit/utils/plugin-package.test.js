@@ -61,7 +61,7 @@ describe('plugin-package', () => {
                 version: '1.0.0',
                 dependencies: {
                     plugins: {
-                        'ai-core': { npmPackage: '@jpulse-net/plugin-ai' }
+                        'ai-core': { npmPackage: '@jpulse-net/plugin-ai-core' }
                     }
                 }
             });
@@ -79,7 +79,7 @@ describe('plugin-package', () => {
                 dependencies: {
                     plugins: {
                         'other-plugin': '>=1.0.0',
-                        'ai-core': { version: '>=1.0.0', npmPackage: '@jpulse-net/plugin-ai' }
+                        'ai-core': { version: '>=1.0.0', npmPackage: '@jpulse-net/plugin-ai-core' }
                     }
                 }
             });
@@ -144,7 +144,7 @@ describe('plugin-package', () => {
                 name: 'provider',
                 dependencies: {
                     plugins: {
-                        'ai-core': { version: '>=1.0.0', npmPackage: '@jpulse-net/plugin-ai' }
+                        'ai-core': { version: '>=1.0.0', npmPackage: '@jpulse-net/plugin-ai-core' }
                     }
                 }
             }], {
@@ -152,7 +152,7 @@ describe('plugin-package', () => {
                 inFlightPackages: new Set()
             });
             expect(plan.fetches).toEqual([
-                { depName: 'ai-core', npmPackage: '@jpulse-net/plugin-ai' }
+                { depName: 'ai-core', npmPackage: '@jpulse-net/plugin-ai-core' }
             ]);
             expect(plan.errors).toEqual([]);
         });
@@ -318,8 +318,8 @@ describe('plugin-package', () => {
         });
 
         test('enable message includes the package name when known', () => {
-            expect(formatMissingPluginDependency('ai-core', '@jpulse-net/plugin-ai'))
-                .toBe('Missing required dependency: ai-core (install @jpulse-net/plugin-ai)');
+            expect(formatMissingPluginDependency('ai-core', '@jpulse-net/plugin-ai-core'))
+                .toBe('Missing required dependency: ai-core (install @jpulse-net/plugin-ai-core)');
             expect(formatMissingPluginDependency('ai-core', null))
                 .toBe('Missing required dependency: ai-core');
         });

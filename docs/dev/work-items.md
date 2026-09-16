@@ -8539,8 +8539,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - let one npm package expand into several `plugins/<name>/` directories on install, so a site can install a related set of plugins in one command without the installer assuming one `plugin.json` per package
   - let `dependencies.plugins` resolve to an installable npm package name, so installing a plugin that needs another plugin can fetch it (or tell the admin which package to install) instead of only refusing at enable time with `Missing required dependency: <name>`
 - rationale:
-  - plugin install (`bin/plugin-manager-cli.js`) is one package → one `plugin.json` → one `plugins/<name>/` copy. That matches `auth-mfa` / `auth-oauth`. It does not match a bundle whose members are useless or undemonstrable alone (the AI design's `@jpulse-net/plugin-ai` ships `ai-core` + `ai-mock` in one package; `hello-ai` is a view inside `ai-core`, not a third plugin)
-  - `dependencies.plugins` is already used by `resolveLoadOrder()`, `enablePlugin()`, and `disablePlugin()`. It is never used to *fetch*. A site that installs only the dependent plugin gets a correct enable refusal and no package name. `plugin.json` already has `npmPackage` for the plugin itself; a dependency that lives *inside a bundle* is not that plugin's own package (e.g. `ai-core` is installed by installing `@jpulse-net/plugin-ai`)
+  - plugin install (`bin/plugin-manager-cli.js`) is one package → one `plugin.json` → one `plugins/<name>/` copy. That matches `auth-mfa` / `auth-oauth`. It does not match a bundle whose members are useless or undemonstrable alone (the AI design's `@jpulse-net/plugin-ai-core` ships `ai-core` + `ai-mock` in one package; `hello-ai` is a view inside `ai-core`, not a third plugin)
+  - `dependencies.plugins` is already used by `resolveLoadOrder()`, `enablePlugin()`, and `disablePlugin()`. It is never used to *fetch*. A site that installs only the dependent plugin gets a correct enable refusal and no package name. `plugin.json` already has `npmPackage` for the plugin itself; a dependency that lives *inside a bundle* is not that plugin's own package (e.g. `ai-core` is installed by installing `@jpulse-net/plugin-ai-core`)
   - bootstrap is not the gap. Load order, enable/disable integrity, and site-controller-before-plugin hook registration are already handled (W-223 design §5.1.1). This item does not change those paths
   - plugin and site translation merge is W-222 (v2.0.2), not this item. A bundle can ship `webapp/translations/` files in v2.0.1; they are inert until W-222
   - none of this is AI-specific. W-223 needs it to *ship* a bundle, not to develop one. The fixture that proves the installer is a pair of dummy plugins, not `ai-core`
@@ -8576,7 +8576,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     "dependencies": {
         "plugins": {
             "other-plugin": ">=1.0.0",
-            "ai-core": { "version": ">=1.0.0", "npmPackage": "@jpulse-net/plugin-ai" }
+            "ai-core": { "version": ">=1.0.0", "npmPackage": "@jpulse-net/plugin-ai-core" }
         }
     }
     ```
@@ -8627,7 +8627,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `README.md`, `docs/README.md` — Latest Release Highlights — v2.0.1 / W-221 bullet
   - `docs/CHANGELOG.md` — v2.0.1 / W-221 section
 - notes:
-  - design source: `docs/dev/design/W-223-ai-agent.md` §5.1, §5.1.1, §21. Plugin translation merge (§22.2) is W-222. This item does not create `plugins/ai-core/` or publish `@jpulse-net/plugin-ai`
+  - design source: `docs/dev/design/W-223-ai-agent.md` §5.1, §5.1.1, §21. Plugin translation merge (§22.2) is W-222. This item does not create `plugins/ai-core/` or publish `@jpulse-net/plugin-ai-core`
   - `hello-ai` is a view inside `ai-core`, not a third bundle member. The AI bundle is two plugin directories. Local e2e fixtures are `plugins/test-primary/` (wired for `npm pack`) and `plugins/test-secondary/` (companion guard `package.json`); they are gitignored with the rest of `plugins/*` except `hello-world` and are not shipped in the framework package
   - a single plugin such as `auth-oauth` is untouched end to end: it has a root `plugin.json` and no `bundle.members`, so publish, install, and update all take today's path. Every change here is additive and keyed off a field that existing plugins do not set. The single-plugin regression tests exist to keep it that way
   - the primary is whichever member owns the published `npmPackage` and the package version. For the AI bundle that is `ai-core`, with `ai-mock` as the companion. Declaring membership on the primary rather than passing `--bundle a,b --package @scope/pkg` keeps the package composition in version control next to the code, so publishing is reproducible and does not depend on someone remembering the right flags
@@ -8638,25 +8638,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `"files": ["plugins"]` is load-bearing for the plain `npm publish` path. Forgetting it (or the lifecycle scripts) silently ships a single-plugin package missing the companion. The CLI warn is the guard; `validatePluginJson()` does not inspect `package.json`
   - member-version sync on the `npm pack` / `prepack` path writes only into staging, never the source. The bump script remains the version writer; CLI `publish` (not `--dry-run`) still syncs companion `plugin.json` versions in the source as the safety net for a missed bump
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
-
-
-
-
-
-
 ### W-222, v2.0.2, 2026-09-16: i18n: site specific and plugin specific translations
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - collect and deep-merge translation `*.conf` files from the framework, active plugins, and the site, so a plugin can ship `view.ui.*` strings and a site can override them - `loadTranslations()` today reads only `webapp/translations/` and assigns each language wholesale
@@ -8703,6 +8686,125 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-223, v1.0.0, 2026-09-17: ai: ai-core plugin for agent server core, ai-mock plugin as provider
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - stand up the server half of the AI agent as a plugin bundle: a site registers scope and tools through hooks and runs complete turns against a mock provider over plain HTTP - tool authorization, per-turn budgets, quota, thread and turn persistence, live streaming, admin config, and a usage page
+  - draw the tools/agent layer boundary in code and enforce it in CI, so the tools layer runs with no thread, no turn, no provider, and no browser - that surface is what an MCP server binds to later
+  - ship without touching framework source: all code lives in `plugins/ai-core/` and `plugins/ai-mock/`, published together as `@jpulse-net/plugin-ai-core`
+  - hand-over item: written to be implemented from this entry plus `docs/dev/design/W-223-ai-agent.md`, which is the authority wherever this entry is thinner
+- prerequisites:
+  - W-221, v2.0.1: plugin bundle build and installation - one npm package expands into `ai-core` + `ai-mock`, and `dependencies.plugins` can name the package supplying a dependency
+  - W-222, v2.0.2: plugin and site translation merge - `plugins/ai-core/webapp/translations/` is live and a site can override any string
+  - W-209, v1.7.13: `static hookDefinitions` so the plugin owns its hooks and `HookManager` never learns an AI name; `static hooks` auto-registration; registration against a not-yet-defined hook recorded and retro-validated, which is what lets a site controller load before the plugin
+  - W-147 / W-207: `ConfigModel.extendSchema()` for the admin config tab, called from `static async initialize()`
+  - not needed by this item: W-220 floatPanel (W-225), `UrlFetch` (W-227)
+- rationale:
+  - the reference site (bubblemap) runs a working agent in ~17,000 lines of site code, and the hard architecture there is already generic - the provider contract is domain-free, persistence is already keyed `(scopeType, scopeId, createdBy)`, and every tool already declares `host: 'server' | 'client'`. Nothing is packaged, so a second site re-derives turn loops, quota, tool authorization, and streaming
+  - what is fused and must come apart here: the tool layer is welded to the turn loop (`executeTool(name, args, turnCtx)` reads `turnCtx.settings.docsTopics`, `turnCtx.supportsVision`, `turnCtx.selectionId`, `turnCtx.linkedMapNewFetchSpent`), authorization takes an Express `req` that two call sites already fabricate, three per-turn budgets are hardcoded with an `isSourceTextRead()` predicate deciding which calls count, and quota is hardcoded to the requesting user
+  - two provider-contract defects are corrected now because both are breaking to retrofit once a third-party provider exists: only the first tool call per round is emitted (both Anthropic and OpenAI emit parallel calls), and `emit` pushes into an array the loop drains *after* the completion resolves, so tokens reach the client one burst per round
+  - `ai-mock` ships inside the same package as `ai-core` rather than separately: a core with no provider cannot be demonstrated or tested, and the mock is how the bundle is testable at all - no API key, no spend, deterministic in CI
+  - HTTP/SSE lands in this item rather than with the rest of the transport layer. It is what makes the server core demonstrable on its own (a turn over `curl`), and it is the entire transport story for a controller-centric site. WebSocket and client-host execution wait for W-225, because nothing needs them until a client-host tool actually runs
+- features:
+  - **phase 1 - tools layer.** Usable with no thread, no turn, no provider, no browser:
+    - directory layout `plugins/ai-core/webapp/utils/{tools,agent,transport}/` (jPulse plugin `webapp/utils/` convention); imports point **downward only** (`tools` imports neither `agent` nor `transport`; `agent` does not import `transport`), enforced by a scan test in the same spirit as W-209's fire-site scan. Without the test the boundary erodes in the first bug fix
+    - actor context replaces the fabricated request: `{ username, roles, onBehalfOf, origin: 'web'|'ws'|'mcp'|'api', scopeType, scopeId, req }`. `req` stays available for the minority of tools that want request state; no framework path requires one. Every gate takes the actor, never a `req`
+    - tool descriptor, defaults for everything but `name` / `description` / `schema`: `host` (`'server'`), `module` (`null`, W-225), `dataScope` (`'call'`, W-225), `requires` (capability name or `null`), `mutates` (`false`), `timeoutMs` (`5000`), `group`, `budget` (`null`), `dedupeArgs` (`false`), `exposeToMcp` (`true`, ignored for `host: 'client'`), `owner` (stamped from the registering plugin or site, never supplied). `schema` is plain JSON Schema, passed through untranslated
+    - four gates, in order, all server-side, all before execution: **existence** (`AI_UNKNOWN_TOOL`), **capability** (the tool's `requires` against the actor's capabilities for this scope from `onAiScopeResolve`), **admin policy** (the tool is in the enabled list), **turn budget**
+    - capabilities are **named**, not a boolean pair. `canRead` / `canWrite` from an `onAiScopeResolve` handler are sugar for `scope:read` / `scope:write`; a site needing a finer per-scope rule declares its own name and grants it in its own handler. Do not add a per-scope tool list - that is deliberately deferred (design TD-12)
+    - the offered tool list is computed by **one** exported function taking an actor, called by the turn loop **every round** (permissions change mid-conversation) and by the capability probe, and by MCP `tools/list` later. One function is the whole reason TD-12 stays cheap; three copies of "which tools does this actor get" is the failure mode to avoid
+    - admin policy seeding is union-with-reviewed-names, carried over from the reference site: a tool added after the admin last saved is enabled by default, but one they explicitly unchecked stays off. Without it every new tool is silently hidden on every existing deployment
+    - declarative per-turn budgets replace the three hardcoded counters: `budget: { key, max: '<settingsKey>', countWhen: (args) => …, overMessage, overHint }` plus `dedupeArgs`. The loop enforces budgets and argument-identical dedupe generically
+    - result envelope, unchanged from the reference site: `{ ok, data, summary, error, code, hint, ms, media, stall }`. `hint` is load-bearing - a failed tool that tells the model what to do instead recovers inside the turn. `media` is stripped from the turn record and **never** accepted from a client. `stall` means the connection is gone: end the turn, do not retry
+    - hardcoded result size cap, no pagination and no cursor (design TD-01): oversize returns `AI_RESULT_TOO_LARGE` with a `hint` telling the model to narrow its request
+    - `global.AiCore` published from `static async initialize()`, same idiom as `LogController` / `CommonUtils` / `HookManager`: `registerTools()`, `resolveTools(actor)`, `executeTool()`, `runTurn()`, `listProviders()`. Site code must never import from `plugins/`
+    - `static hookDefinitions` for the full catalog, all owned by `ai-core`: `onAiProviderRegister` (execute / continue - one broken provider is not no providers), `onAiComplete` (executeForPlugin / abort), `onAiToolRegister` (execute / continue), `onAiToolExecute` (executeForPlugin / abort), `onAiToolData` (executeFirst / abort, W-225), `onAiScopeResolve` (executeFirst / abort), `onAiPromptFragment` (execute / continue), `onAiQuotaCheck` (executeFirst / abort), `onAiQuotaSettle` (execute / continue), `onAiTurnBefore` (execute / abort), `onAiTurnAfter` (execute / continue)
+  - **phase 2 - persistence and quota:**
+    - three collections, plugin-owned: `aiThreads` keyed `(scopeType, scopeId, createdBy)` with a **partial** unique index on `status: 'active'`; `aiTurns` keyed `threadId` + `seq`; `aiUsage` keyed `<subject>:<period>` unique
+    - one active thread per scope per user, any number of archived ones. Find-or-create lives in **exactly one** model method, and every route and (later) namespace is keyed by `threadId`, never by `(scope, user)`. Relaxing this to several live threads is deferred (design TD-13) and stays cheap only if nothing else keys on the pair
+    - reserve-then-settle usage counters, writing both a daily (`YYYY-MM-DD`) and a monthly (`YYYY-MM`) document on every settle, as the reference site already does
+    - caps are a list of `{ dimension, period, limit }` over named counters - `requests`, `tokens` (in + out), `cost`, `toolCalls` - with `day` and `month` periods produced by a named function so adding `week` is additive (TD-09). Shipped default is one `requests`/`day` and one `tokens`/`day` cap
+    - **one subject per turn, defaulting to the username.** The usage key is `<subject>:<period>`, not `<username>:<period>`, and `onAiQuotaCheck` *returns* `{ subject, caps }` rather than the framework assuming it. `ai-core` registers the shipped period policy on its own `onAiQuotaCheck` / `onAiQuotaSettle`, so there is one code path and a site replacing it is not on a special branch. No multi-subject charging, no grants, no pools (TD-03)
+    - `costUnknown`: an unknown model records `null` cost, never zero, and the usage page flags it - a cost cap cannot be honestly enforced against a partly unknown total
+    - enforcement is **turn-start only and permissive** (TD-02): a turn that starts under its caps runs to completion even if it ends over. No mid-turn abort. The overrun is bounded by `maxRoundsPerTurn` and the provider's `maxTokens`, and is recorded truthfully rather than clamped. This differs from the reference site, which checks from round two onward - do not port that behavior
+    - retention purges turns by age
+  - **phase 3 - agent layer:**
+    - turn loop, adopted from `aiTurnLoop.js` with the domain knowledge removed: reserve quota, acquire the lease, create the turn record, then loop rounds until the model returns text with no tool call, up to `maxRoundsPerTurn`, checking cancellation and timeout each round, retrying retryable provider errors with backoff, finalizing with usage, cost, and status. Statuses stay `completed` / `failed` / `canceled` / `stalled`
+    - what does **not** go in the loop, and is not in this item at all: the `propose_` name prefix, proposal counting, `claimsApplyWithoutProposal()`, and the two system notes about undone and falsely-claimed proposals. Those belong to W-226 and subscribe to `onAiTurnAfter` rather than living in the loop
+    - single-flight lease keyed by thread, plus cancellation as both a `cancelRequested` flag and a broadcast so any process can stop a turn running in another. Use `RedisManager.publishBroadcast()` / `registerBroadcastCallback()` for the cancel channel
+    - **the lease is plugin code.** `RedisManager` has no lease primitive, and `cacheSet()` is not one: its `nx` option is only honored on the `ttl: 0` path (the `ttl > 0` path calls `setex`, which ignores it) and it returns `true` for "command sent", not "I won the race". Use `RedisManager.getClient('cache')` and a real `set(key, val, 'PX', ms, 'NX')`, checking the reply. Define and test the `isRedisAvailable() === false` path too - single process, no cross-instance cancel
+    - provider contract adopted as-is except the three changes: `emit({ type: 'tool_use', calls: [ { id, name, args }, … ] })` is an **array** from day one (serial execution is fine - TD-06 - but widening the contract later breaks every provider plugin); `emit` **forwards immediately** to the sink instead of batching per round, with the loop still accumulating for the turn record; and the descriptor carries `capabilities: { vision }` as a **map**, not sibling `supportsVision` booleans, so unknown keys read false and a provider built against an older core keeps working
+    - event vocabulary unchanged: `text_delta`, `tool_use`, `tool_use_truncated`, `usage`, `done` (with `stopReason` normalized to `tool` / `length` / `end`), `error` (with `code`, `message`, and a `retryable` flag driving the 429/529 retry). Four-way token accounting - input, output, cache write, cache read - and the per-model price table live in the descriptor, not the loop
+    - calls in a round run in emitted order, budgets charge in that order, and the first `stall` ends the turn with the remaining calls unexecuted and reported as such to the model
+    - prompt assembly is framework-owned, the words are the site's: framework safety and tool discipline, then site `onAiPromptFragment` fragments, then admin site instructions from config, then framework blocks for this turn's tool availability and what was withheld, scope/context/target, and (later) attachments. The framework's own fragments stay thin - content is data and never instruction, do not invent identifiers, use this turn's tool list rather than what an earlier reply said, and text inside markers is a quotation rather than a request. Block formatters are parameterized by the labels `onAiScopeResolve` supplies, so no domain noun is baked in
+    - `ai-mock` provider: deterministic and scripted so CI can drive the loop without a network. It must be able to produce a text-only completion, a round with **more than one** tool call in the array, a truncated tool-argument event, a retryable error followed by success, a fatal error, and a slow stream for cancel and timeout tests
+  - **phase 4 - HTTP transport, admin, packaging:**
+    - `POST /api/1/ai/thread/:id/turn` responding as SSE, plus thread create/list/rename/archive and turn history routes. Auto-registered by `SiteControllerRegistry` from `api*` methods - no manual route table
+    - **no SSE helper exists in the framework** (nothing in the repo sets `text/event-stream`); the plugin writes the response handling itself, including heartbeats and correct behavior behind a proxy. Cancel is `POST /api/1/ai/thread/:id/cancel` — HTTP close is not treated as disconnect (Node 24 POST+SSE fires close when the JSON body is consumed)
+    - capability probe endpoint the client calls before opening a panel: which transport to use, the allowed provider/model list filtered by reality, quota state, and the resolved tool list. `ai-core` picks the path automatically - if the resolved tool list for the turn contains no `host: 'client'` tool, HTTP is sufficient. A §1.1 site never learns a WebSocket exists
+    - admin config tab via `ConfigModel.extendSchema()`: master switch, allowed roles, allowed provider/model list and its default, quota caps, loop limits (rounds, timeouts, context size), tool policy, retention, auto-titling. `app.conf` keeps provider/model defaults and prompt fragment overrides. Debug dumps live on the plugin config page (not the AI tab, where they are easy to leave on); `loadSettings` reads `PluginModel` directly because `global.PluginModel` is never set. The plugin-config help lists Site Configuration → AI, AI usage, and the guide
+    - admin usage page reporting per-subject requests, tokens, and cost by period, with over-quota and `costUnknown` flags - the reference site's page generalized, subject column replacing its username column
+    - logging on every user-facing action, `LogController.logRequest` / `logInfo` / `logError` tagged `[controller].[method]`, and **`onBehalfOf` included unconditionally in every AI log line when set** rather than left to each call site
+    - bundle packaging per W-221: `ai-core` is the primary (`bundle.members: ["ai-mock"]`, `npmPackage: "@jpulse-net/plugin-ai-core"`, `"files": ["plugins"]` plus the `prepack` / `postpack` staging scripts); `ai-mock` is the companion carrying the guard `package.json`. Verify with `npm pack` and a local-path round-trip install before any publish
+- deliverables:
+  - `plugins/ai-core/plugin.json`, `package.json`:
+    - manifest, `autoEnable`, config schema, `bundle.members: ["ai-mock"]`, `npmPackage: "@jpulse-net/plugin-ai-core"`, `jpulseVersion: ">=2.0.2"` (the translation merge is a hard requirement), and the W-221 publish wiring: `"files": ["plugins"]` plus `prepack` / `postpack` calling `node ../../bin/jpulse-framework.js plugin stage-bundle` / `unstage-bundle`
+  - `plugins/ai-core/webapp/bump-version.conf`:
+    - the bundle's only bump file list, applied by the primary to **both** member directories; patterns stay member-relative (`plugin.json`, `webapp/**/*.js`, `README.md`, `docs/**`, `webapp/tests/**`), never `../ai-mock/**`
+  - `plugins/ai-core/webapp/utils/tools/`:
+    - registry and descriptor normalization with defaults and `owner` stamping; actor context; the four gates; `resolveTools(actor)`; budget and dedupe enforcement; result envelope and the size cap; tool execution dispatch for `host: 'server'` via `onAiToolExecute`
+  - `plugins/ai-core/webapp/utils/agent/`:
+    - turn loop; thread lease and cancel broadcast; provider registry and the normalized event contract; prompt assembly and the framework fragments; quota policy registered on `onAiQuotaCheck` / `onAiQuotaSettle`
+  - `plugins/ai-core/webapp/utils/transport/`:
+    - SSE response handling, heartbeat, and the sink the loop's `emit` forwards to. Cancel is the POST route, not HTTP close
+  - `plugins/ai-core/webapp/controller/aiCore.js`:
+    - `static hookDefinitions` for all eleven hooks; `static async initialize()` publishing `global.AiCore` and calling `ConfigModel.extendSchema()`; `api*` methods for turn, threads, turn history, capability probe, and admin usage
+  - `plugins/ai-core/webapp/model/aiThread.js`, `aiTurn.js`, `aiUsage.js`:
+    - collections and indexes (partial unique on the active thread); the single find-or-create; reserve/settle with daily and monthly documents (`$setOnInsert` identity only — never the same field as `$inc`); `costUnknown` as `null`; retention purge
+  - `plugins/ai-core/webapp/view/admin/ai-usage.shtml`, `plugins/ai-core/webapp/view/jpulse-navigation.js`:
+    - usage page and its admin nav entry
+  - `plugins/ai-core/webapp/translations/en.conf`, `de.conf`:
+    - `view.ui.*` strings for the admin tab, usage page, and the error and quota messages the server emits
+  - `plugins/ai-mock/plugin.json`, `webapp/controller/aiMock.js`:
+    - `onAiProviderRegister` descriptor with a zero price table and `capabilities: { vision: false }`; `onAiComplete` driving every scripted case in phase 3; companion guard `package.json`; `dependencies.plugins` on `ai-core`
+  - `plugins/ai-core/webapp/tests/unit/`:
+    - tools layer with a plain actor object and no Express request: unknown tool, capability denial, admin-policy denial, budget exhaustion, argument dedupe, oversize result hinting
+    - the layer-boundary scan test (no `tools` import of `agent` or `transport`, no `agent` import of `transport`)
+    - turn loop: rounds to completion; a tool round trip with **more than one** call in the array; retryable vs fatal provider errors; cancel by flag and by broadcast; timeout; lease refusal rolling back the reservation; empty completion; truncated tool arguments
+    - streaming: a text delta is observable at the sink **before** the provider hook resolves - this is the regression test for the batching defect and the one that will actually catch a reversion
+    - quota: each dimension and period; a reservation rolled back when the turn fails to start; turn-start-only enforcement letting a turn overrun; `costUnknown` never recorded as zero; a site handler returning a subject other than the username; a site handler replacing the shipped policy entirely
+    - actor: `onBehalfOf` present in every AI log line when set, and thread ownership following it
+    - threads: the partial unique index rejects a second active thread for the same `(scope, user)` and permits archived ones
+    - MCP readiness: the tools layer exercised through a synthetic `origin: 'mcp'` actor with no request, asserting `host: 'client'` tools are filtered out and server-host tools execute
+  - `plugins/ai-core/docs/README.md`:
+    - the guide, server half, surfaced at runtime under `docs/installed-plugins/ai-core/` the same way `auth-mfa` is. Open with the simple case from design §1.1 - the one site controller and what it buys - then the tool descriptor, the four gates and named capabilities, quota and the subject, the hook catalog, and the admin settings. Panel, shared tool modules, propose/apply, and attachments sections arrive with their own items
+  - `plugins/ai-core/README.md`, `plugins/ai-mock/README.md`:
+    - install, enable, configure, hooks used, requirements (`>=2.0.2`), and the 1.0.0 release note. `ai-mock`'s README says plainly that it answers with no network and no spend, because it doubles as the smoke test that an install succeeded
+  - framework-repo docs are **not** part of this item's commits — see notes
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md`. Read §1.1 first (it is the yardstick - everything a simple site writes), then §5.2, §6, §7, §9, §10, §11.1, §16, §17. §21.3 is this item's phase list. TD-01, TD-02, TD-03, TD-06, TD-09, TD-12, and TD-13 are the deliberate omissions - each records why, so do not "fix" them
+  - **repo layout: each plugin is its own git repo and its own commit**, sitting as sibling directories under `plugins/` (gitignored by the framework repo except `hello-world`), exactly as `plugins/auth-mfa/` does today. Two commits, in two repos, for this one item. Nothing in the framework repo is committed as part of it
+  - **`ai-core` is the primary and `ai-mock` the companion.** The primary declares `bundle.members`, owns the published `npmPackage` and the package version, carries the only `webapp/bump-version.conf`, and is the sole directory that `publish`, `stage-bundle`, and `bump-version` are run from. The companion has no bump conf and keeps a `private` guard `package.json` whose `prepublishOnly` refuses and names the primary; W-221 staging strips that file from the packaged copy
+  - the header `v1.0.0` is the **bundle** version, `@jpulse-net/plugin-ai-core` — same convention as W-211, whose `v1.0.6` is the `auth-mfa` plugin, not a framework release. Bump with `cd plugins/ai-core && node ../../bin/bump-version.js 1.0.0`, which per W-221 rewrites `plugin.json` and the `@version` / `@release` headers in **both** member directories; a bump run from `plugins/ai-mock/` is refused and names `ai-core`. One package, one version — a companion whose version drifts makes `update` report "already up to date" forever for every site
+  - the guide lives in `plugins/ai-core/docs/`, not in the framework's `docs/`. `docs/plugins/` holds only the how-to guides (creating, managing, publishing, architecture, API reference) and has no per-plugin page for `auth-mfa` or `auth-oauth`; a plugin's own `docs/` surfaces at runtime under the gitignored `docs/installed-plugins/<name>/`. Design §22.3 was corrected to match
+  - framework-repo docs are a **separate pass under a framework release**, never part of a plugin commit: Latest Release Highlights, a `docs/CHANGELOG.md` entry, a `docs/hooks.md` note that a plugin now owns the `onAi*` hooks, and any `docs/genai-instructions.md` / `docs/security-and-auth.md` cross-links
+  - out of scope, each with its own item: the Anthropic provider and the model-selection surface (W-224); the WebSocket namespace, client-host execution, shared tool modules, `jPulse.ai.panel`, and `hello-ai` (W-225); propose and apply (W-226); attachments, URL ingest, document conversion, and vision (W-227); `ai-mcp-server` and `ai-openai` (standalone); the reference site's migration, which is that site's repository
+  - phase 1 accepts and filters `host: 'client'` descriptors but executes none - a site registering one before W-225 gets it withheld from the model with the same "withheld" sentence as any other, not an error
+  - **no framework files at all** — not source, not docs, not tests. If an implementation appears to need a framework source change, that is a design finding worth raising rather than a patch: §22.2 lists the eight mechanisms already verified sufficient
+  - do not run the bump-version script against this repo while implementing, and do not edit `.jpulse/` in tests - use an isolated temp project or the plugin-cli test harness
+  - collections are plugin-owned from the start. The reference site's existing `aiThreads` / `aiTurns` / `aiUsage` data is that site's migration problem (design §18); a one-time rename or a drop-and-recreate are both acceptable there, and neither is framework machinery
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -8742,7 +8844,7 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.2 2026-09-16
+node bin/bump-version.js 2.0.2 2026-09-17
 git diff
 git status
 git add .
@@ -8753,12 +8855,12 @@ git tag v2.0.2; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.1 2026-09-14
+node ../../bin/bump-version.js 1.0.0 2026-09-17
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.6; git push origin main --tags
+git tag v1.0.0; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

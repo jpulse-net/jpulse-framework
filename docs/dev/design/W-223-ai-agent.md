@@ -1,11 +1,61 @@
 # W-223 AI agent framework for sites
 
-**Status:** Design only. No implementation and no work item yet. W-220
-(`jPulse.UI.floatPanel`) and W-221 (plugin bundle build and installation) are
-prerequisites; §21 is the proposed split of W-223 itself.
+**Status:** Implemented as W-223 (`@jpulse-net/plugin-ai-core` 1.0.0). All three
+prerequisites are released — W-220 `jPulse.UI.floatPanel` (v2.0.0), W-221
+plugin bundle build and installation (v2.0.1), and W-222 plugin and site
+translation merge (v2.0.2) — so **no framework source change remains**
+(§22.2). §21 splits the agent itself into five items, W-223 through W-227.
+Deviations from this document are under `### As Built`.
 
 
 ## Revision history
+
+### Rev 4 — 2026-09-15 — as built after manual testing
+
+No design change. The server core is implemented. A few contracts had to
+move once they met Node 24, MongoDB upserts, and bootstrap globals.
+
+| Section | Change |
+|---|---|
+| Header | Status is implemented; As Built records the deviations |
+| §11.1, §17 | See As Built: cancel is POST, dumps are plugin-config |
+
+### As Built
+
+Four things ended up different from the spec below. None changes a
+decision; each is the shape the code wanted once it existed.
+
+1. **Cancel is `POST /api/1/ai/thread/:id/cancel`, not HTTP close.**
+   POST+SSE on Node 24 often fires `req`/`res`/`socket` `close` or
+   `aborted` when `express.json()` finishes the body, not when the
+   client drops. Auto-aborting there would cancel every provider that
+   honors `abortSignal`. The in-process flag plus Redis broadcast still
+   abort the attached `AbortController`. Closing curl does not cancel.
+2. **Debug dumps live on the plugin config page, not `app.conf`.** The
+   checkbox is `debugDumps` on Admin → Plugins → ai-core. `loadSettings`
+   imports `webapp/model/plugin.js` (the `hello-world` pattern).
+   `global.PluginModel` is never assigned; `global.ConfigModel` is.
+3. **Usage upsert cannot `$setOnInsert` and `$inc` the same counter.**
+   MongoDB rejects that on insert. Identity fields go in `$setOnInsert`;
+   counters only in `$inc`. A conflicting upsert threw after SSE
+   `: connected` and looked like an immediate hang return.
+4. **Quota after SSE headers is an `error` event.** `openSseTurn`
+   writes headers before `onAiQuotaCheck`. An exceeded cap is
+   `AI_QUOTA_EXCEEDED` on the stream, not a JSON HTTP 429.
+
+### Rev 3 — 2026-09-15 — prerequisites released, work split
+
+No design change. The three prerequisites shipped, and §21 became a concrete
+split rather than a sketch.
+
+| Section | Change |
+|---|---|
+| Header, §5.1.1, §22.2 | W-220 / W-221 / W-222 are released; **zero** framework source files remain to change. `ai-core` ships translatable strings and the bundle installs in one command |
+| §4.1, §12.1, §12.2, §18 | The reference site now uses `jPulse.UI.floatPanel` for both chat panels, so the panel *lifecycle* is already retired there; what remains for §12 is the chat content and the adapter |
+| §21 | **Rewritten** as five work items (W-223 … W-227) with phases inside each, plus the standalone follow-ons |
+| §7.5, §9.7, §23 | Open questions 3 and 4 decided: stay simple — per-scope gating is a named capability, and one active thread per scope stands. Expansion path and erosion risk recorded as **TD-12** and **TD-13** |
+| §22.1, §22.3 | Each plugin directory is its own repository and its own commit, `ai-core` the primary. The guide therefore ships **inside the plugin** (`plugins/ai-core/docs/`), not as `docs/ai-agent.md` with `docs/plugins/` entries — the framework repo has no per-plugin pages |
+| TD-11 | Renumbered against the split |
 
 ### Rev 2 — 2026-09-14 — simplification pass
 
@@ -76,8 +126,9 @@ Initial design from the brainstorming sessions.
 - A tool written for both hosts is **one shared pure module**, with each host
   passing it whatever data it has. No declared contract, no fidelity markers
   (§8).
-- The **first release covers server core, providers, and the generic chat
-  panel**. Propose/apply and attachments follow (§21).
+- The **first three items cover server core, a provider, and the generic chat
+  panel** — together they are the §1.1 experience. Propose/apply and
+  attachments follow (§21).
 - The two-host tool split (`host: 'server' | 'client'`) is the answer to
   view-centric versus controller-centric, and it is **per tool, not per site**
   (§7.2). A controller-centric site additionally gets an HTTP/SSE turn path so
@@ -137,7 +188,7 @@ Install and enable, then set the API key and pick a model on the admin config
 tab:
 
 ```
-npx jpulse plugin install @jpulse-net/plugin-ai
+npx jpulse plugin install @jpulse-net/plugin-ai-core
 npx jpulse plugin install @jpulse-net/plugin-ai-anthropic
 ```
 
@@ -278,6 +329,11 @@ Scanned 2026-09-13 against the reference site v1.6.6.
 | Admin | 286 | `view/admin/ai-usage.shtml` |
 | Providers | ~700 | the Anthropic provider plugin (~550), the mock provider plugin |
 
+The browser counts predate the site's adoption of `jPulse.UI.floatPanel`
+(W-220), which has since retired the per-panel drag, resize, persist, and ghost
+lifecycle in both of its chat panels. The chat content those numbers are mostly
+made of is unchanged.
+
 ### 4.2 What is already framework-shaped
 
 **The provider contract.** `onAiProviderRegister` returns
@@ -385,7 +441,7 @@ The bundle is drawn tightly:
 
 | Package | Contains | Why |
 |---|---|---|
-| `@jpulse-net/plugin-ai` | `ai-core` + `ai-mock` + `hello-ai` | Everything needed to stand the feature up and see it work, with no API key and no spend |
+| `@jpulse-net/plugin-ai-core` | `ai-core` + `ai-mock` + `hello-ai` | Everything needed to stand the feature up and see it work, with no API key and no spend |
 | `@jpulse-net/plugin-ai-anthropic` | `ai-anthropic` | Depends on `ai-core`; installed only by a site that uses Anthropic |
 | *(deferred)* | `ai-openai` | TD-11 |
 
@@ -441,12 +497,14 @@ own gets a plugin that discovers correctly, refuses to enable, and says
 `Missing required dependency: ai-core` — accurate, and unhelpful, because
 nothing tells the admin which npm package supplies it.
 
-That is **W-221**, a framework item on the plugin CLI and `PluginManager`: let
-one npm package expand into several plugin directories (which the bundle needs
-regardless, since it ships three), and let a plugin's declared dependency
-resolve to an installable package name so the CLI can offer or perform the
-install. It gates *shipping* the bundle, not developing it, and it is useful
-independently of AI.
+That was **W-221**, released in v2.0.1: one npm package expands into several
+plugin directories (which the bundle needs regardless, since it ships three),
+and a plugin's declared dependency may name the npm package that supplies it,
+which install then fetches. Nothing in the install path remains to build. What
+it asks of these plugins is one line: `ai-anthropic` declares
+`dependencies.plugins: { 'ai-core': { version: '>=…', npmPackage:
+'@jpulse-net/plugin-ai-core' } }`, so installing the provider alone pulls in the
+bundle that provides `ai-core` instead of refusing at enable time.
 
 ### 5.2 The three layers and the one-way rule
 
@@ -697,9 +755,19 @@ Four gates, in order, all server-side, all before execution:
    hidden on every existing deployment.
 4. **Turn budget** — §7.4.
 
+Capabilities are **named**, and the `canRead` / `canWrite` an
+`onAiScopeResolve` handler returns are shipped sugar for `scope:read` and
+`scope:write`. A site needing a narrower per-scope rule than read-versus-write
+declares its own capability name in `requires` and grants or withholds it in
+its own handler, rather than the framework growing a second, per-scope tool
+list (TD-12).
+
 The offered tool list is recomputed **every round**, not once per turn, because
 permissions can change mid-conversation. The system prompt says so explicitly,
-and that sentence should survive into the framework's default fragment.
+and that sentence should survive into the framework's default fragment. It is
+computed in **one** function, which the turn loop's per-round call, the
+capability probe, and MCP `tools/list` all go through; TD-12 is why that
+matters later.
 
 
 ---
@@ -985,6 +1053,13 @@ Three collections, framework-owned (§18), structurally as today.
 | `aiTurns` | `threadId`, `seq` | userText, agentText, toolCalls, proposals, usage, rates, cost, provider/model, status |
 | `aiUsage` | `<subject>:<period>` unique | named counters, `costUnknown` (§10.2) |
 
+The `aiThreads` uniqueness is partial and deliberately narrow. Any number of
+*archived* threads already coexist per scope and user — the panel lists,
+resumes, and archives them (§12.1) — and only the active one is constrained,
+which is what makes the guard against a two-tab or double-click duplicate cost
+one index. Relaxing it to allow several live conversations on one scope is
+TD-13.
+
 Retention purges turns by age, and guest threads would get a shorter retention
 than user threads once guests exist (TD-04).
 
@@ -1113,8 +1188,9 @@ problem to report rather than the server's to discover.
 
 ### 12.1 Chat panel and the site adapter
 
-Built on `jPulse.UI.floatPanel` (W-220). The framework owns everything that is
-not about the site's data:
+Built on `jPulse.UI.floatPanel` (W-220), which the reference site already runs
+for both of its chat panels — so the shell is proven before this item starts.
+The framework owns everything that is not about the site's data:
 
 - conversation list, rename, archive, resume, and the new-conversation flow
 - compose box, slash-command picker, keyboard handling, send and cancel
@@ -1163,12 +1239,14 @@ The data the tools operate on, the computation engines a tool module needs,
 proposal preview rendering and the apply itself, and the labels for scope,
 context, and target.
 
-The migration cost to the reference site is real and worth stating: its panel
-is currently a set of Vue methods mixed into the canvas component, reaching
-directly into the component's bubble list, synapse list, title cache, formula
-evaluator, and page config. Becoming an adapter is a genuine refactor. It is
-also what makes the panel reusable, and it is confined to one repository and
-one work item.
+The migration cost to the reference site is real and worth stating, and it is
+now smaller than it was. The panel *shell* is already `jPulse.UI.floatPanel`,
+so drag, resize, persistence, stacking, and the ghost animation are no longer
+site code. What remains is the chat itself: a set of Vue methods mixed into the
+canvas component, reaching directly into the component's bubble list, synapse
+list, title cache, formula evaluator, and page config. Becoming an adapter is a
+genuine refactor. It is also what makes the panel reusable, and it is confined
+to one repository and one work item.
 
 
 ---
@@ -1266,7 +1344,7 @@ All defined by `ai-core` via `static hookDefinitions`. The framework's
 | `onAiToolRegister` | execute | continue | Contribute tool descriptors |
 | `onAiToolExecute` | executeForPlugin | abort | Execute an owner's server-host tool |
 | `onAiToolData` | executeFirst | abort | Supply a shared tool module's data on the server (§8.1) |
-| `onAiScopeResolve` | executeFirst | abort | Resolve scope, labels, and read/write capability |
+| `onAiScopeResolve` | executeFirst | abort | Resolve scope, labels, and the actor's capabilities in it (§7.5) |
 | `onAiPromptFragment` | execute | continue | Contribute system-prompt fragments |
 | `onAiQuotaCheck` | executeFirst | abort | Resolve the subject and its caps, and reserve; veto by throwing |
 | `onAiQuotaSettle` | execute | continue | Apply actual usage |
@@ -1333,12 +1411,14 @@ The migration is sequenced per layer rather than attempted at once. Rough shape:
 2. Adopt the turn loop, models, quota, and transport; delete the turn loop, the
    three models, the AI WebSocket controller, and most of the AI controller.
 3. Adopt the chat panel; convert the Vue mixin to an adapter and delete the
-   generic two-thirds of the panel template.
+   generic remainder of the panel template. The drag, resize, and persist
+   lifecycle is already gone — it moved to `jPulse.UI.floatPanel`.
 4. Adopt shared tool modules, propose/apply, and attachments; collapse the
    mirror modules (§4.4) and retire the `vm`-sandbox harnesses.
 
 Each step is independently shippable, and the mock provider makes each cutover
-testable without spending tokens.
+testable without spending tokens. Mapped onto §21: steps 1 and 2 follow W-223
+and W-224, step 3 follows W-225, and step 4 follows W-225 through W-227.
 
 
 ---
@@ -1538,8 +1618,8 @@ and becoming MCP-exposable for free.
 
 ### TD-11 The `ai-openai` provider
 
-**State.** Not planned for W-223. `ai-anthropic` proves the contract against a
-commercial provider and `ai-mock` proves it against none.
+**State.** Not planned for W-223 … W-227. `ai-anthropic` proves the contract
+against a commercial provider and `ai-mock` proves it against none.
 
 **Why deferred.** A second commercial provider adds coverage, not design, and
 it would extend the work item without testing anything the first does not. The
@@ -1551,51 +1631,202 @@ format before declaring it stable. It is a standalone package
 (`@jpulse-net/plugin-ai-openai`) and therefore a standalone work item that
 needs no change to `ai-core`.
 
+### TD-12 Per-scope tool policy
+
+**State.** The admin enables tools site-wide (gate 3, §7.5), and the per-scope
+decision is expressed as a *capability* (gate 2) rather than as a tool list.
+`onAiScopeResolve` cannot narrow which tools are offered.
+
+**Why deferred.** The motivating case is already covered twice over. The
+reference site gates writes per map, and that is precisely gate 2:
+`canWrite: false` withdraws every tool declaring `requires: 'scope:write'`.
+Beyond read-versus-write, capabilities are **named**, so a site wanting a
+finer per-scope rule declares its own name on the tool and grants or withholds
+it in its own handler — no framework change, no second policy surface, and the
+withheld tool is reported to the model by the same sentence as every other
+withheld tool (§9.6). Adding a per-scope tool list now would mean two ways to
+express one decision, and a site would have to learn which one wins.
+
+**Trigger.** A site needing to narrow tools per scope where a capability name
+is the wrong way to say it — most plausibly an admin-facing per-scope
+override, since a capability is code and an override is data.
+
+**Cost when it lands.** One filter. An optional `ctx.scope.toolsDenied` (or
+`toolsAllowed`) read alongside the four gates, additive because a handler that
+does not set it gets today's behavior. No hook signature changes, no new hook,
+no stored state, and no index. The list is already recomputed every round and
+already varies by actor and scope, so nothing downstream assumes a static set
+— §15.2 requires that independently.
+
+**What must not erode.** The offered list is computed by **one** function
+(§7.5), which the turn loop, the capability probe, and MCP `tools/list` all
+call. Three separate answers to "which tools does this actor get" is what
+turns one filter into an archaeology exercise.
+
+### TD-13 Several concurrent threads on one scope
+
+**State.** One *active* thread per `(scopeType, scopeId, createdBy)`, enforced
+by the partial unique index (§9.7). Archived threads are already unlimited and
+the panel already lists, resumes, renames, and archives them (§12.1).
+
+**Why deferred.** One live conversation per user per thing is what the
+reference site does and what a chat panel with a conversation list reads as.
+The index is also the cheapest available guard against two tabs or a
+double-click creating a duplicate active thread.
+
+**Trigger.** A site wanting several live conversations on one scope — a long
+research thread beside a quick question.
+
+**Cost when it lands.** Small, and the migration runs in the *safe* direction:
+dropping a unique index rewrites no documents, whereas adding one later would
+require deduping first. Unlike `onBehalfOf` (§6.3), the asymmetry does not
+argue for building it now. The change is the index, plus find-or-create
+becoming list-and-select, plus an optional `threadId` on
+`jPulse.ai.panel.create()`. Concurrency semantics do not change either: the
+Redis single-flight lease is already keyed by thread, so "one turn at a time"
+simply becomes per-thread instead of per-scope-and-user.
+
+**What must not erode.** Nothing may key on `(scope, user)` as a stand-in for
+the thread. The turn route and the WebSocket namespace already carry a
+`threadId` (§11.1, §11.2) and must keep doing so, find-or-create lives in
+exactly one model method, and anything the panel persists holds a `threadId`
+rather than "the thread for this scope".
+
 
 ---
 
-## 21. Phases and work items
+## 21. Work items and phases
 
-Two prerequisites, both useful on their own and neither containing any AI:
+### 21.1 Prerequisites — all released
 
-| Item | Scope |
-|---|---|
-| **W-220** | `jPulse.UI.floatPanel` — the chat panel is a floating panel |
-| **W-221** | Plugin bundle build and installation — one npm package expanding into several plugin directories, a declared plugin dependency resolving to an installable package name (§5.1.1), and plugin translation files collected and merged by `i18n.js` (§22.2) |
+None of the three contained any AI, and all are useful on their own:
 
-W-221 gates *shipping* the bundle, not developing it, so it can land in any
-release up to the first AI one. All three parts of it are general plugin
-infrastructure with no AI in them, and the translation part is the only
-framework source change this design needs at all.
-
-**W-223** is the AI agent itself and is expected to split further. The proposed
-sub-items, in dependency order:
-
-| # | Sub-item | Contents |
+| Item | Release | Scope |
 |---|---|---|
-| 1 | `ai-core` tools layer | Registry, actor context, four gates, budgets, envelope, `global.AiCore`, hook definitions, the layer-boundary scan test |
-| 2 | `ai-core` agent layer | Turn loop with array tool calls and live streaming, three models, quota dimensions and subject resolution, prompt assembly, admin config tab and usage page, `ai-mock` |
-| 3 | `ai-anthropic` | The provider, plus the allowed-list and model-selection surface (§9.5) proven against mock-plus-Anthropic |
-| 4 | Transport and shared tool modules | HTTP/SSE turn path, WebSocket namespace, module serving, hashing, manifest, and pinning |
-| 5 | Chat panel and `hello-ai` | `jPulse.ai.panel` on W-220, the adapter contract, and the demo view |
-| 6 | Propose and apply | Proposal records, apply and undo endpoints, card chrome, the false-claim guard |
-| 7 | Attachments | Sources, `UrlFetch`-based ingest, document conversion, image staging and vision |
+| **W-220** | v2.0.0 | `jPulse.UI.floatPanel` — the chat panel is a floating panel (§12.1) |
+| **W-221** | v2.0.1 | Plugin bundle build and installation — one npm package expanding into several plugin directories, and a declared plugin dependency resolving to an installable package name (§5.1.1) |
+| **W-222** | v2.0.2 | Plugin and site translation merge — `ai-core` can ship translatable UI text (§22.2) |
 
-Sub-items 1 through 3 are the "first release" referred to throughout: server
-core, a real provider, and a mock. Sub-item 5 completes the §1.1 experience.
-`ai-mcp-server` slots in any time after sub-item 1, which is the whole point of
-drawing the layer boundary first (§5.2).
+So this work starts with **no framework source change pending**. Everything
+below lives in the AI bundle and its provider packages, plus docs.
 
-Sub-item 5 is validated against `hello-ai` and deliberately **not** against the
+### 21.2 The five items
+
+Grouped so that each item ends at a state someone can use and test, and so
+that no item spans two repositories. The reference site's migration (§18) is
+separate work in its own repository.
+
+| Item | Title | Ends at |
+|---|---|---|
+| **W-223** | ai: agent server core — tools and agent layers, mock provider | A controller-centric site runs complete turns over plain HTTP against `ai-mock`: tool authorization, quota, threads, streaming, admin config and usage |
+| **W-224** | ai: Anthropic provider and model selection | The same turns run against a real model, and an admin publishes a menu of models the user picks from |
+| **W-225** | ai: chat panel, client-host tools, and `hello-ai` | The §1.1 one-liner works, a view-centric site works, and `hello-ai` demonstrates all of it on the mock |
+| **W-226** | ai: propose and apply | A write-capable agent proposes, and the user applies or undoes |
+| **W-227** | ai: attachments — sources, URL ingest, conversion, vision | Files, pasted text, URLs, and images join a conversation |
+
+W-223 through W-225 are the "first release" referred to throughout: server
+core, a real provider, and the panel. W-226 and W-227 are each independently
+valuable, and neither blocks the other.
+
+Where this splits differently from a layer-by-layer reading of §5.2: the
+HTTP/SSE turn path (§11.1) lands in **W-223**, not with the rest of the
+transport layer. It is what makes the server core demonstrable — a turn over
+`curl`, with no browser in the picture — and it is the whole transport story
+for a controller-centric site. The WebSocket and the client bridge (§11.2) go
+with the panel in W-225, because nothing needs them until a client-host tool
+executes.
+
+### 21.3 W-223 — ai: agent server core
+
+The whole server side, ending at a working headless agent.
+
+| # | Phase | Contents |
+|---|---|---|
+| 1 | Tools layer | Registry, actor context (§6.2), the four gates (§7.5), declarative budgets and argument dedupe (§7.4), result envelope (§7.3), `static hookDefinitions` for the catalog (§16), `global.AiCore`, the layer-boundary scan test (§5.2) |
+| 2 | Persistence and quota | `aiThreads` / `aiTurns` / `aiUsage` (§9.7), reserve-then-settle, named dimensions over periods, subject resolution, and `ai-core`'s own shipped policy registered on `onAiQuotaCheck` / `onAiQuotaSettle` (§10) |
+| 3 | Agent layer | Turn loop with rounds, cancel, timeout, retry, and the Redis lease (§9.1); provider contract with array tool calls (§9.3), immediate emit (§9.4), and the capability map (§9.2); prompt assembly (§9.6); `ai-mock` |
+| 4 | HTTP transport, admin, packaging | `POST /api/1/ai/thread/:id/turn` with SSE and the capability probe (§11.1); admin config tab and usage page (§17); `@jpulse-net/plugin-ai-core` bundle packaging on W-221 |
+
+Phase 1 is the item's architectural floor and is also exactly the surface an
+MCP server binds to, so it is built and tested with no thread, no turn, no
+provider, and no browser in the picture. Phases 3 and 4 are what make the item
+demonstrable, and the mock is what makes it demonstrable without an API key or
+any spend.
+
+Deliberately out: every client-host execution path. Phase 1 accepts and
+filters `host: 'client'` descriptors; nothing runs one until W-225.
+
+Two seams land in this item that are free now and awkward to retrofit: named
+capabilities and a single tool-resolution function in phase 1 (TD-12), and
+threadId-keyed routes with find-or-create in exactly one model method in
+phase 2 (TD-13). Neither is extra work — both are a choice of where to put
+code that gets written either way.
+
+This is the largest of the five. If it wants to be smaller, the seam is
+between phases 2 and 3 — phases 1 and 2 are the tools layer plus storage with
+no turn loop at all, which is testable but not demonstrable.
+
+### 21.4 W-224 — ai: Anthropic provider and model selection
+
+| # | Phase | Contents |
+|---|---|---|
+| 1 | The provider | `@jpulse-net/plugin-ai-anthropic` on the revised contract: SSE parsing against split and malformed chunks, four-way token accounting, stop-reason normalization, the price table, API-key redaction in errors, and the config tab with the unsaved-value Verify button (§17) |
+| 2 | Selection surface | Admin allowed list of `{ provider, model, label }` and its default, capability-probe filtering by plugin availability and key presence, per-thread choice recorded on thread and turn, and vision gating in the picker (§9.5) |
+
+Separate from W-223 because it is a separate npm package with its own release
+cadence, and because a provider written against the published contract is the
+honest test that the contract is public (§5.1). Phase 2 needs two entries in
+the menu — `ai-mock` and Anthropic — which is why it lands here rather than in
+W-223.
+
+### 21.5 W-225 — ai: chat panel, client-host tools, and `hello-ai`
+
+| # | Phase | Contents |
+|---|---|---|
+| 1 | WebSocket and the client bridge | Per-thread namespace, token deltas unicast to the origin tab, turn events broadcast to the user's other tabs, and `WebSocketController.request()` with transport failures mapped onto the result envelope and `stall` set only for a lost connection (§11.2) |
+| 2 | Shared tool modules | The conventional path, content-hash serving, dynamic `import()`, the manifest, stale-hash refusal with a reload prompt, `dataScope`, and the purity scan test (§8.2) |
+| 3 | The panel | `jPulse.ai.panel` on `jPulse.UI.floatPanel`, the adapter contract (§12.1), conversation list, compose and slash commands, streaming, markdown with pinned copy buttons, reconnect and turn reconciliation, the model picker, and the quota and error surfaces |
+| 4 | `hello-ai` and docs | The demo view and its tool modules, shipped inside the plugin (§22.1), plus the panel and tool-module sections of `plugins/ai-core/docs/` (§22.3) |
+
+Phase 3 is validated against `hello-ai` and deliberately **not** against the
 reference site. An adapter contract proven only against the application it was
 extracted from is not a contract.
+
+### 21.6 W-226 — ai: propose and apply
+
+| # | Phase | Contents |
+|---|---|---|
+| 1 | Server | Proposal records on the turn with `applied` / `undone`, the apply and undo endpoints, the history notes fed back to the model, and the turn-lifecycle subscription that keeps all of it out of the loop (§9.1, §13) |
+| 2 | Panel | Apply card chrome, several cards per turn, and the false-claim guard generalized from the reference site's hardcoded regex list into phrases the site configures |
+
+Opt-in throughout: a read-only agent registers no write tool and never
+encounters any of it.
+
+### 21.7 W-227 — ai: attachments
+
+| # | Phase | Contents |
+|---|---|---|
+| 1 | Sources | File, paste, and URL text on a thread, the prompt manifest, read through a tool rather than dumped into context, and the untrusted-content markers |
+| 2 | URL ingest | Rebuilt on the framework's `UrlFetch` rather than the site's partial re-implementation |
+| 3 | Document conversion | `onDocumentConvertRegister` / `onDocumentConvert`, and whether the site's PDF and Office converters move up to framework plugins on the same contract |
+| 4 | Images and vision | Staging with a TTL, a MIME allowlist, edge and byte caps, and `capabilities.vision` gating from the provider descriptor |
+
+### 21.8 Standalone follow-ons
+
+Each its own item, written when wanted rather than scheduled now:
+
+| Follow-on | Depends on | Note |
+|---|---|---|
+| `ai-mcp-server` | W-223 phase 1 only | The controller-centric case that validates the layer boundary (§15.1). Its own plugin, and it needs nothing from W-224 … W-227 — which is the whole point of drawing the boundary first (§5.2) |
+| `ai-openai` | W-224 | TD-11. A standalone package needing no `ai-core` change |
+| Reference-site migration | per layer, §18 | The site's own repository, sequenced against the items above |
 
 
 ---
 
 ## 22. Deliverables
 
-Sketch only; each sub-item carries its own list.
+Sketch only; each item in §21 carries its own list.
 
 ### 22.1 Plugin files — where essentially all the code lives
 
@@ -1604,12 +1835,20 @@ append mode concatenates framework, site, and plugin copies of any `.js` or
 `.css` under `view/`, so a plugin's `jpulse-common.js` extends the client
 namespace with no framework involvement.
 
+Each plugin directory is its own git repository and its own commit, as
+`plugins/auth-mfa/` already is — `plugins/*` is gitignored by the framework
+repo except `hello-world`. The bundle is therefore two repositories with
+`ai-core` as the **primary**: it declares `bundle.members`, owns the published
+package name and version, carries the only `webapp/bump-version.conf`, and is
+the only directory that publish and bump are run from (§5.1, W-221).
+
 - `plugins/ai-core/plugin.json` — manifest, `autoEnable`, config schema pointer
 - `plugins/ai-core/webapp/controller/` — `static hookDefinitions` for the hook
   catalog (§16), `api*` methods for the routes, `static async initialize()` for
   `global.AiCore` and the config tab
-- `plugins/ai-core/webapp/{tools,agent,transport}/` — the three layers as
-  separate directories with the import boundary scan-enforced (§5.2)
+- `plugins/ai-core/webapp/utils/{tools,agent,transport}/` — the three layers as
+  separate directories under the plugin `utils/` convention, with the import
+  boundary scan-enforced (§5.2)
 - `plugins/ai-core/webapp/model/` — `aiThreads`, `aiTurns`, `aiUsage` (§9.7)
 - `plugins/ai-core/webapp/view/jpulse-common.js` — the `jPulse.ai` namespace:
   panel, transport, tool-module loader
@@ -1629,25 +1868,28 @@ namespace with no framework involvement.
   it the fastest smoke test that an install succeeded
 - `plugins/ai-mock/` — bundled with `ai-core` (§5.1)
 - `plugins/ai-anthropic/` — separate package
-- bundle packaging metadata, and the W-221 CLI and `PluginManager` change
+- `plugins/ai-core/webapp/translations/` — `en.conf` and `de.conf`; a chat
+  panel is heavy on UI text, and since v2.0.2 a plugin's strings merge into the
+  framework set and a site can override any of them (W-222)
+- bundle packaging on W-221: `bundle.members` on `ai-core`, `"files":
+  ["plugins"]` plus the `prepack` / `postpack` staging scripts, and
+  `dependencies.plugins` on `ai-anthropic` naming `@jpulse-net/plugin-ai-core`
 
 ### 22.2 Framework files that change
 
-Checked against the code rather than assumed. **Exactly one framework source
-file needs a change, and it is not AI-specific:**
+Checked against the code rather than assumed. **No framework source file needs
+a change.**
 
-- `webapp/utils/i18n.js` — `loadTranslations()` reads a single directory,
-  `join(config.system.appDir, 'translations')`, and exits if it is missing.
-  There is no site or plugin merge, no plugin in the repo has a `translations/`
-  directory, and `hello-world` sidesteps the question by hardcoding English. A
-  chat panel is heavy on UI text, so `ai-core` either gets plugin translations
-  or ships untranslatable strings. The fix is to collect and merge `*.conf`
-  from framework, site, and active plugins, the way
-  `PathResolver.collectAllFiles()` already does for view assets — a **general
-  plugin capability that belongs with W-221**, not inside `ai-core`. Merge
-  order follows the file-resolution priority, so a site can override a
-  plugin's string
-- docs, listed in §22.3
+The one that did was `webapp/utils/i18n.js`: `loadTranslations()` read a single
+directory, `join(config.system.appDir, 'translations')`, and assigned each
+language wholesale, so a plugin could not ship UI text and a site could not
+override a string without editing framework-managed files. That shipped in
+v2.0.2 (W-222) — translation `*.conf` files are collected and deep-merged from
+the framework, then each active plugin in load order, then
+`site/webapp/translations/`, and a plugin shipping only its default language is
+backfilled rather than blank. `ai-core` is the first real consumer.
+
+The only remaining framework-repo deliverable is docs, listed in §22.3.
 
 Everything else `ai-core` needs already exists, which is the useful half of
 this answer:
@@ -1662,26 +1904,42 @@ this answer:
 | A per-thread WebSocket namespace | `WebSocketController.createNamespace()`, public and already supporting `:param` pattern namespaces |
 | Correct load order ahead of provider plugins | `resolveLoadOrder()` topological sort (§5.1.1) |
 | Guest/anonymous-safe turn leases | existing `RedisManager` lease, used unchanged |
+| Translatable plugin UI text, overridable by a site | W-222 translation merge (v2.0.2) |
+| One package installing `ai-core` + `ai-mock` + `hello-ai` | W-221 bundle install and publish (v2.0.1) |
 
 ### 22.3 Documentation
 
-- `docs/ai-agent.md` — the guide, opening with §1.1's simple case and keeping
-  the same order as this document: the tool descriptor, the two hosts, shared
-  tool modules, the adapter contract, quota, and writing a provider plugin
-- `docs/plugins/` entries for `ai-core`, `ai-mock`, and `ai-anthropic`;
-  `docs/.markdown` publish list and sidebar
-- cross-links from `docs/hooks.md` (the new hook owner),
-  `docs/genai-instructions.md`, `docs/security-and-auth.md`, and
-  `docs/url-fetch.md`
+The guide ships **inside the plugin**, for the same reason the code does: each
+plugin is its own repository and its own release, so its documentation travels
+with the version it describes. That also matches how the framework already
+handles plugin docs — `docs/plugins/` holds only the how-to guides (creating,
+managing, publishing, architecture, API reference), there is no per-plugin page
+for `auth-mfa` or `auth-oauth`, and a plugin's own `docs/` surfaces at runtime
+under the gitignored `docs/installed-plugins/<name>/`.
+
+- `plugins/ai-core/docs/README.md` — the guide, opening with §1.1's simple case
+  and keeping the same order as this document: the tool descriptor, the two
+  hosts, shared tool modules, the adapter contract, quota, and writing a
+  provider plugin. It grows a section per item rather than landing at once
+- `plugins/<name>/README.md` for `ai-core`, `ai-mock`, and `ai-anthropic` —
+  install, enable, configure, hooks used, requirements, release notes
+- in the framework repo, on whichever framework release accompanies a bundle
+  release: cross-links from `docs/hooks.md` (a plugin now owns the `onAi*`
+  hooks), `docs/genai-instructions.md`, `docs/security-and-auth.md`, and
+  `docs/url-fetch.md`, plus the usual Latest Release Highlights and
+  `docs/CHANGELOG.md` entries. These are a framework commit, never part of a
+  plugin commit
 
 
 ---
 
 ## 23. Open Questions
 
-Four remain. Tool-data caching (§8.2), the merged-data case (§8.1),
-`hello-ai`'s home (§22), and bundle granularity (§5.1) were also open and are
-now decided.
+Two remain, and both are answered in substance — what is still open is a
+default that may want revisiting and a rule that may not be enforceable.
+`hello-ai`'s home (§22), bundle granularity (§5.1), per-scope tool policy
+(now TD-12), and thread scope granularity (now TD-13) were also open and are
+decided.
 
 1. **Tool data caching.** When a turn makes several calls against the same
    data, is that data built once per turn or once per call? Once per turn is
@@ -1700,10 +1958,3 @@ now decided.
    needs the site to have declared enough for the check to be possible — with
    §8's simplification there is no field declaration, so this may reduce to a
    documented rule rather than an enforced one.
-3. **Per-scope versus per-site tool policy.** The admin enables tools
-   site-wide, and the reference site gates writes per map. Should
-   `onAiScopeResolve` be able to narrow the *tool list* as well as the
-   capability, or is capability enough?
-4. **Thread scope granularity.** One active thread per `(scope, user)` matches
-   the reference site. Does a site need several concurrent threads on one
-   scope, and if so does the unique index become advisory?

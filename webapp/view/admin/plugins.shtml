@@ -44,6 +44,14 @@
         font-size: 24px;
     }
 
+    .local-plugin-icon-cell svg {
+        width: 24px;
+        height: 24px;
+        display: block;
+        margin: 0 auto;
+        color: inherit;
+    }
+
     .local-plugin-summary {
         color: var(--jp-color-text-secondary);
         font-size: 0.9em;

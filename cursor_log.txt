@@ -24169,3 +24169,833 @@ commit, did not run git.
 
 
 ============================================================
+2026-09-15 01:17
+
+W-222 is realeased, looks good
+
+request from bubblemap cursor chat:
+Expected fix for jPulse.UI.floatPanel mobile sheet: honor
+safe-area insets.
+
+Mobile sheet now reads env(safe-area-inset-*) via a probe.
+heightRatio is of the safe viewport; sides are 4px plus
+left/right insets; the sheet sits above inset-bottom.
+Desktop, Vue/inject, and Escape unchanged. Tests 29/29.
+Docs: jpulse-ui-reference.md. Did not change viewport
+metas (iOS insets stay 0 without viewport-fit=cover).
+
+
+============================================================
+2026-09-15 01:42
+
+small animation issue in floating panel:
+- dark mode shows animation rectangle in bluish bg color
+- light mode shows animation rectangle in bluish bg color
+- better in lightmode: show white or very light bg color
+  and a faint border
+
+Ghost default (light) is now --jp-theme-bg-primary at 0.85
+with a 1px --jp-theme-border-color border. Dark keeps the
+primary fill at 0.22. No JS change. Dev server was not
+running so not verified in the browser.
+
+
+============================================================
+2026-09-15 01:47
+
+- make light theme bg a bit darker (border not visible with
+  fast animation, so we need to rely on bg color)
+- make dark theme bg color a bit darker
+
+Light ghost fill is --jp-theme-bg-tertiary at 0.92. Dark
+ghost fill is --jp-theme-color-primary-dark at 0.28. Still
+theme variables only.
+
+
+============================================================
+2026-09-15 01:55
+
+I tweaked further, now anime in both themes look good
+
+Acknowledged. User settled light ghost at bg-tertiary /
+opacity 0.45 and dark at bg-secondary / opacity 0.45 with
+a primary-dark border. No further change.
+
+
+============================================================
+2026-09-15 13:05
+
+- bubblemap site is updated, already using the
+  jPulse.UI.floatPanel for both chats panels
+- review @docs/dev/design/W-223-ai-agent.md one more time,
+- tweak as needed
+- propose distinct work items for the ai agent framework
+  @W-223-ai-agent.md (1556-1592)
+- not too many work items, phases within work item as
+  needed, logically grouped work items
+
+Reviewed the design doc end to end and reconciled it with
+the three released prerequisites, then rewrote section 21
+as the work-item split. Only file changed:
+docs/dev/design/W-223-ai-agent.md.
+
+Tweaks:
+- header: all three prerequisites released (W-220 v2.0.0,
+  W-221 v2.0.1, W-222 v2.0.2), so zero framework source
+  changes remain pending
+- new Rev 3 entry in the revision history
+- 4.1: noted the browser line counts predate the site's
+  floatPanel adoption
+- 5.1.1: W-221 past tense, plus the concrete ask on the AI
+  plugins -- ai-anthropic declares dependencies.plugins
+  with npmPackage '@jpulse-net/plugin-ai'
+- 12.1, 12.2, 18: the reference site's panel shell is
+  already floatPanel, so drag/resize/persist/ghost is no
+  longer site code; what remains is the chat content and
+  the adapter refactor
+- 22.1, 22.2: rewrote "framework files that change" from
+  "exactly one" (i18n.js) to "none" -- that shipped in
+  v2.0.2; added plugin translations and bundle packaging
+  to the deliverables and the already-provided table
+- TD-11 renumbered against the split
+
+Section 21 replaced the 7 flat sub-items with 5 work items,
+phases inside each:
+- W-223 ai: agent server core -- tools and agent layers,
+  mock provider. 4 phases: tools layer; persistence and
+  quota; agent layer with the turn loop and the revised
+  provider contract plus ai-mock; HTTP/SSE turn route,
+  admin config tab and usage page, bundle packaging
+- W-224 ai: Anthropic provider and model selection. 2
+  phases: the provider package; the allowed-list and
+  per-thread model selection surface
+- W-225 ai: chat panel, client-host tools, hello-ai. 4
+  phases: WebSocket and client bridge; shared tool
+  modules; the panel on floatPanel with the adapter
+  contract; hello-ai and docs/ai-agent.md
+- W-226 ai: propose and apply. 2 phases: server records
+  and endpoints; panel cards and the false-claim guard
+- W-227 ai: attachments. 4 phases: sources; UrlFetch
+  ingest; document conversion; images and vision
+
+One deliberate regrouping versus the old sub-item list:
+the HTTP/SSE turn path moved from the transport sub-item
+into W-223 phase 4, so the server core is demonstrable
+over curl on its own; WebSocket stays with the panel in
+W-225. Standalone follow-ons named but not scheduled:
+ai-mcp-server (needs only W-223 phase 1), ai-openai
+(TD-11), and the reference-site migration in its own repo.
+
+Did not touch docs/dev/work-items.md -- the W-223 stub
+there is still "ai: FIXME" and filling it in, numbering
+W-224..W-227, and any status change are the user's call.
+
+
+============================================================
+2026-09-15 13:25
+
+Per-scope versus per-site tool policy:
+- simple is ok for now
+- is it easy to expand in case needed in the future?
+Thread scope granularity:
+- same here, start simple
+- is it easy to expand in case multiple treads per user is
+  needed in the future?
+
+Both decided: stay simple, and both expand cheaply. Only
+file changed: docs/dev/design/W-223-ai-agent.md.
+
+Per-scope tool policy -- expansion is mostly already there.
+Capabilities are named, not a read/write boolean pair, so
+canRead/canWrite are just shipped sugar for scope:read and
+scope:write. A site wanting a finer per-scope rule declares
+its own capability name in the tool's requires and grants
+it in its own onAiScopeResolve handler -- no framework
+change at all. If an admin-facing per-scope override is
+ever wanted (data rather than code), it is one optional
+ctx.scope.toolsDenied read alongside the four gates:
+additive, no hook signature change, no stored state, no
+index. The list is already recomputed every round and
+already varies by actor and scope. The one erosion risk is
+three copies of "which tools does this actor get", so the
+offered list must be computed in one function that the turn
+loop, the capability probe, and MCP tools/list all call.
+
+Thread scope granularity -- the storage already holds many
+threads per scope and user; only the active one is
+constrained, by a partial unique index. Dropping a unique
+index rewrites no documents, so unlike onBehalfOf the
+asymmetry does not argue for building it now. Expansion is
+the index, plus find-or-create becoming list-and-select,
+plus an optional threadId on jPulse.ai.panel.create().
+Concurrency is unaffected: the Redis lease is already keyed
+by thread, so "one turn at a time" becomes per-thread. The
+erosion risk is keying anything on (scope, user) as a
+stand-in for the thread -- the turn route and the WS
+namespace already carry threadId and must keep doing so.
+
+Doc edits:
+- 7.5: capabilities are named, canRead/canWrite are sugar;
+  the offered list is computed in one function
+- 9.7: note that the uniqueness is partial and narrow
+- 16: onAiScopeResolve row reworded to "capabilities"
+- 20: new TD-12 (per-scope tool policy) and TD-13 (several
+  concurrent threads on one scope), each with state, why
+  deferred, trigger, cost when it lands, and what must not
+  erode
+- 21.3: the two seams land in W-223 phases 1 and 2, and
+  neither is extra work -- just where the code goes
+- 23: questions 3 and 4 removed, two remain
+- Rev 3 history row updated
+
+
+============================================================
+2026-09-15 13:45
+
+- write W-223 @work-items.md (8693-8704)
+- objective: hand over to grok for implementation
+
+Filled in the W-223 stub in docs/dev/work-items.md, 11
+lines to 207. Title is now "ai: agent server core - tools
+and agent layers, mock provider". Status line, section
+placement, and the v2.0.3 / 2026-09-17 header values left
+exactly as found. No other file changed.
+
+Matched the W-221 level of detail since this is a handover
+spec: objectives, prerequisites, rationale, features
+grouped under the four phases from design section 21.3,
+deliverables file by file, and notes. Features carry the
+concrete shapes an implementer would otherwise have to
+re-derive -- the actor context object, the full tool
+descriptor with defaults, the four gates in order, the
+budget declaration, the result envelope, the eleven hook
+definitions with their mode and onError policies, the
+three collections and their indexes, the caps list, and
+the prompt assembly order.
+
+Verified against the code rather than asserted, and
+written into the item:
+- ConfigModel.extendSchema() exists (W-147), so the admin
+  tab needs no framework change
+- there is no SSE anywhere in the framework -- nothing
+  sets text/event-stream -- so the plugin writes the SSE
+  response handling itself, heartbeat and
+  disconnect-to-cancel included
+- RedisManager has no lease primitive, and cacheSet() is
+  not one: its nx option is only honored on the ttl:0 path
+  because ttl>0 calls setex, and it returns true for
+  "command sent" not "won the race". The lease must use
+  getClient('cache') with a real SET PX NX and check the
+  reply. Also flagged the isRedisAvailable()===false path
+- cancel broadcast uses publishBroadcast /
+  registerBroadcastCallback, which do exist
+- W-211 (auth-mfa) is the precedent for a plugin work item
+  living in its own repo, gitignored from the framework
+
+Two things flagged for the user to decide:
+- repo layout: a bundle is two sibling dirs under
+  plugins/, and plugins/* is gitignored except
+  hello-world, so ai-core and ai-mock cannot share one
+  repo rooted where they sit. Either one repo per member
+  (mirrors plugins/auth-mfa/.git) or a plugin-ai repo
+  elsewhere with both dirs symlinked in. Recorded as
+  "decide before the first commit"
+- version: W-211 put the plugin version in the header
+  (v1.0.6). This item kept the user's v2.0.3, with a note
+  that the framework release carries only the docs and the
+  code ships as @jpulse-net/plugin-ai 1.0.0
+
+
+============================================================
+2026-09-15 14:05
+
+ah, indeed, I renamed the work item to:
+W-223, v1.0.0, 2026-09-17: ai: ai-core plugin for agent
+server core, ai-mock plugin as provider
+- each plugins is committed separately,
+- version bump is defined/done in ai-core as primary plugin
+- bundle/package done in ai-core as primary plugin
+
+Folded the three decisions into W-223 and back into the
+design doc. The repo-layout note changed from "decide
+before the first commit" to the decision.
+
+docs/dev/work-items.md, W-223 (header left as renamed):
+- notes: each plugin is its own git repo and its own
+  commit, sibling dirs under plugins/, mirroring
+  plugins/auth-mfa/. Two commits in two repos for this one
+  item, nothing committed in the framework repo
+- notes: ai-core is primary -- declares bundle.members,
+  owns npmPackage and the version, carries the only
+  bump-version.conf, and is the sole directory publish,
+  stage-bundle, and bump run from. ai-mock is the
+  companion with the private guard package.json that
+  W-221 staging strips
+- notes: v1.0.0 in the header is the bundle version, same
+  convention as W-211's v1.0.6 for auth-mfa. Bump from
+  ai-core rewrites both members; a bump from ai-mock is
+  refused. Warned that a drifting companion version makes
+  update report "already up to date" forever
+- deliverables: added plugins/ai-core/webapp/
+  bump-version.conf with member-relative patterns, and
+  spelled out the publish wiring on package.json
+- notes: "no framework source changes" strengthened to no
+  framework files at all -- not source, not docs
+
+Docs location, checked rather than assumed: docs/plugins/
+holds only the how-to guides and there is no per-plugin
+page for auth-mfa or auth-oauth. Per-plugin docs live in
+plugins/<name>/docs/ and surface at runtime under the
+gitignored docs/installed-plugins/<name>/. So the guide
+moved from the framework's docs/ai-agent.md into
+plugins/ai-core/docs/README.md, and the framework-repo
+docs (highlights, CHANGELOG, hooks.md cross-link) became
+a separate pass under a framework release.
+
+docs/dev/design/W-223-ai-agent.md:
+- 22.1: each plugin directory is its own repo and commit,
+  ai-core the primary
+- 22.3: rewritten -- guide ships inside the plugin, with
+  the framework-repo cross-links called out as a framework
+  commit, never a plugin commit
+- 21.5: W-225 phase 4 doc path updated to match
+- Rev 3 history row added for both
+
+
+============================================================
+2026-09-15 14:25
+
+is one shared repo with separate commits possible
+without symlink magic?
+
+Answered only, no file change besides this log. Plugin
+discovery is one-level: plugins/<name>/plugin.json, no
+recursion. Bump and W-221 sibling lookup also assume
+that layout, and bump's ../../bin path assumes the
+plugin sits two levels under the framework root.
+
+Without symlinks, a shared repo can own both members
+only if its working tree is an ancestor of both
+plugins/ai-core and plugins/ai-mock -- in practice
+that means a git repo rooted at
+jpulse-framework/plugins/, tracking those two dirs
+and ignoring hello-world, auth-mfa, and every other
+local plugin. Discovery, bump, and publish keep
+working. A standalone ~/Dev/plugin-ai checkout with
+ai-core/ and ai-mock/ at its root cannot also be those
+two framework paths at once without a symlink, a copy
+step, or a PluginManager change.
+
+"Separate commits" in one repo is just history, not
+isolation -- one remote, one clone, one version. No
+mechanical reason to split the commits once they share
+a repo, because bump and publish already treat them as
+one package. Two repos remains the layout that needs
+no extra rule.
+
+
+============================================================
+2026-09-15 14:42
+
+start to implement unless questions
+agreed: 2 separate repos, one bump, one package
+
+Implemented W-223 in plugins/ai-core and plugins/ai-mock.
+No framework files. Did not git init (needs approval) and
+did not run bump-version.
+
+ai-core: tools layer (actor, descriptor, registry, policy,
+gates, budgets, envelope, resolve, execute), models
+(aiThreads / aiTurns / aiUsage with injectable collections
+and the partial unique active-thread index), agent (quota
+policy at priority 1000, SET PX NX lease with in-process
+fallback, cancel broadcast, prompt assembly, provider
+menu, turn loop with live emit and array tool calls),
+transport (SSE + heartbeat + disconnect-to-cancel),
+controller (eleven hookDefinitions, ConfigModel AI tab,
+global.AiCore, HTTP routes), admin usage page, en/de
+translations, bump-version.conf, docs/README.md.
+
+ai-mock: companion plugin.json with dependencies.plugins
+naming @jpulse-net/plugin-ai, guard package.json,
+scripted onAiComplete ([mock:text|tools|truncated|retry|
+fatal|slow]).
+
+Tests: 8 suites, 33 passed
+npx jest plugins/ai-core/webapp/tests/unit --runInBand
+
+
+============================================================
+2026-09-15 15:16
+
+I have not yet tested, but after reviewing:
+- plugins/ai-core/webapp/agent does not follow jpulse dir pattern
+  - better under plugins/ai-core/webapp/utils ?
+- plugins/ai-core/webapp/tools does not follow jpulse dir pattern
+  - better under plugins/ai-core/bin ?
+- plugins/ai-core/webapp/transport does not follow jpulse dir pattern
+  - better under plugins/ai-core/webapp/utils ?
+- fyi, for reference of bubblemap plugins, see tmp-bubblemap-app
+- added plugins/ai-mock/docs/README.md from bubblemap — review and fix
+
+Moved the three layers under plugins/ai-core/webapp/utils/{tools,agent,transport}.
+Did not put tools in bin/ — that is CLI, not a plugin runtime home.
+auth-mfa and BubbleMap keep helpers in webapp/utils. Layer scan still
+works as sibling dirs. Updated imports, headers, layer-boundary test,
+bump-version.conf, design §22.1, and work-item path strings. Rewrote
+plugins/ai-mock/docs/README.md for jPulse: [mock:…] scripts, mock-echo,
+autoEnable false, HTTP until the panel ships, ai-core hooks. Removed
+map/@mock:/T-092/get_docs content. Tests: 8 suites, 33 passed.
+
+
+============================================================
+2026-09-15 15:36
+
+compare the core and mock plugin with tmp-bubblemap-app, and fix/enhance in case needed
+
+Compared plugins/ai-core and plugins/ai-mock to BubbleMap site agent +
+ai-mock. Ported in-scope gaps only (not map tools, panel, WS, propose,
+attachments, or LLM auto-title).
+
+Fixes: debug dumps actually log; SSE abortSignal on disconnect; abort
+and cancel checked together; provider throw caught; usage.cost settled;
+onAiToolRegister stamps owner from the handler plugin; tool timeoutMs
+enforced; auto-title from user text on first unlabeled turn; max-rounds
+emits AI_MAX_ROUNDS; provider id accepted as plugin alias.
+
+Mock gained [mock:hang|throw|unpriced], flattenContent, mock-unpriced,
+and abort-aware slow/hang. Added plugin overview pages, usage
+over-quota flag and admin card. Tests: 8 suites, 38 passed.
+
+
+============================================================
+2026-09-15 15:43
+
+in plugin.json of both plugins, autoEnable is false
+- better true? any downsize?
+
+Recommended both true. autoEnable is first-discovery only; no API key
+is required (unlike auth-mfa / auth-oauth). Site still has the AI
+master switch and role list. Downsides: mock stays in the model menu
+until disabled; a fresh checkout or wiped plugins.json turns AI on
+without a Plugins-page click; existing registry rows are unchanged
+until rediscovery. Did not flip the flags.
+
+
+============================================================
+2026-09-15 15:48
+
+changed both plugins to autoEnable: true
+review ai-* plugins if they are properly configured for bump and publish,
+compare to plugins/test-primary and plugins/test-secondary
+
+Packaging already matched the tested bundle: primary bundle.members,
+shared npmPackage, files+prepack/postpack, companion has no bump conf.
+Aligned the companion guard package.json and primary .gitignore with
+the fixtures. Updated docs for autoEnable true. Verified:
+publish --dry-run assembles @jpulse-net/plugin-ai with both members;
+companion publish is refused; npm pack listing has root package.json
+plus plugins/ai-core and plugins/ai-mock, no root plugin.json, no
+companion package.json; postpack removes the staging dir. Did not
+run bump-version.
+
+
+============================================================
+2026-09-15 15:58
+
+I am testing the bump - verify if everything correct, no missed files, wrong numbers
+
+Checked both plugin trees against the 1.2.3 bump. Companion refuse and
+primary 49-file pass are correct. Every @version/@release and both
+plugin.json/package.json titles are 1.2.3 / 2026-09-15. Leftover 1.0.0
+strings are hook since, changelog section, dependency range, quota
+fixture dates, and README command examples — not missed headers.
+.gitignore has no version and was correctly skipped. Did not bump.
+
+
+============================================================
+2026-09-15 16:03
+
+now restored to 1.0.0 — give me some manual tests
+
+Confirmed restore: no leftover 1.2.3; both plugin trees are 1.0.0 /
+2026-09-17. Gave a 10-step manual runbook: session, plugin/admin UI,
+capability, thread CRUD, mock SSE scripts, cancel/hang, optional site
+controller for tools, quota/usage, ownership 403, debug dumps. Did not
+run the app or change files.
+
+
+============================================================
+2026-09-15 16:32
+
+verify app start; hang returned immediately; missing AI tab;
+disabled on first start; Gemini-like icon; SVG is supported
+
+Start log is healthy. Plugins were disabled because they were already
+in the registry from an earlier discovery while autoEnable was false;
+the AI tab and plugin docs only appear after enable + restart.
+Hang returned immediately because req 'close' fires when the POST body
+is consumed. Cancel now listens on res 'close', attaches the turn
+AbortController so POST /cancel aborts the hang, and uses Redis channel
+controller:ai-core:turn:cancel. Replaced the sparkle with a Lucide bot
+SVG. 42 unit tests passed. Restart and re-check hang + AI tab.
+
+
+============================================================
+2026-09-15 16:43
+
+app start after enable; hang still returns immediately; KI tab ok;
+ai-mock icon should be the robot without eyes
+
+Start log is correct: 7 enabled including ai-core/ai-mock, AI routes
+registered, cancel channel accepted. KI tab is expected. Hang still
+failed because res 'close' also fires when the POST body is consumed.
+Disconnect now listens only to socket close / req aborted, and the
+stream writes : connected so curl stays open. ai-mock uses the same
+bot SVG without the eye strokes. 45 unit tests passed.
+
+
+============================================================
+2026-09-15 16:52
+
+now it shows : connected, but returns immediately
+- in case this is just a mock issue we can leave it at that
+- in case a bug for actual provider plugins, it needs to be fixed
+
+Not mock-only. POST+SSE was aborting abortSignal when Node
+consumed the JSON body (req aborted / socket close). That would
+cancel every real provider that waits on the signal. SSE no
+longer auto-aborts on HTTP events; cancel is POST /cancel.
+Redis cancel subscribe uses omitSelf so a local echo cannot
+kill the next turn. 46 unit tests passed. Restart and re-run hang.
+
+
+============================================================
+2026-09-15 16:58
+
+still no change, it returns immediately
+
+Not the hang script. Every turn died on the first quota
+reserve: MongoDB rejects $setOnInsert and $inc on the same
+path (reservedRequests). Headers were already sent, so curl
+only saw : connected. Same failure for a real provider.
+Reserve/settle now set identity fields only; quota/lease
+errors are written as SSE events. 48 unit tests passed.
+Restart and re-run hang.
+
+
+============================================================
+2026-09-15 17:02
+
+hang ~20s then completed; second hang canceled from other terminal
+
+Both streams are the intended contract. Uncanceled
+[mock:hang:20000] stayed open (heartbeat ping) and finished
+with text/usage/done/completed. POST /cancel aborted the
+in-flight wait and the SSE ended with canceled. No code
+change.
+
+
+============================================================
+2026-09-15 17:03
+
+I did some of the manual tests, let me know more
+
+Gave the remaining runbook: mock scripts (text/retry/fatal/
+throw/truncated/unpriced/slow), turns list and autoTitle,
+single-flight lease, optional site tools, gates/quota/usage,
+other-user 403, debug dumps. Disconnect no longer cancels
+(POST /cancel only). No code change.
+
+
+============================================================
+2026-09-15 17:17
+
+manual script results: text/retry/fatal/throw/truncated/
+unpriced/slow, turns list, lease, anon 401
+
+Scripts, unpriced costUnknown, and AI_LEASE_HELD are correct.
+Fatal/throw/lease repeated the same error 2-3 times; now one
+SSE error. Canceled turns now persist cancelRequested.
+Anon 401 is unauthenticated capability, not AI_DISABLED.
+48 unit tests passed. Restart to re-check fatal/throw/lease.
+
+
+============================================================
+2026-09-15 17:21
+
+after restart: AI_DISABLED, capability, mock scripts,
+turns list
+
+AI_DISABLED and enabled capability are correct. Quota
+requests 13 / tokens 200 / costUnknown true is expected
+after unpriced turns. Fatal and throw now emit one error
+each. Seq 2 canceled still has cancelRequested false
+because that turn predates the persist fix. Remaining:
+tools, site controller, quota 429, ownership 403, debug
+dumps, new cancel persist.
+
+
+============================================================
+2026-09-15 17:31
+
+401s and debug dump 404s on remaining manual tests
+
+Session cookie is stale or unset; CK2 was never set.
+There is no /api/1/ai/debug/dump route. Dumps are the
+ai-core plugin debugDumps checkbox, which logs prompt
+and response lines. hello-todo has no AI hooks; skip
+the fake site-controller context. Re-login, then tools,
+ownership, quota, dumps.
+
+
+============================================================
+2026-09-15 18:12
+
+re-login, tools, ownership 403, 429 attempt
+
+Session restored. [mock:tools] ran two unknown tools then
+a second text round. ptester16 got AI_THREAD_FORBIDDEN.
+The 429 turn completed because the daily cap is still 200
+(used ~21). Lower maxRequestsPerDay below used first.
+Quota after SSE headers is an error event, not HTTP 429.
+
+
+============================================================
+2026-09-15 18:17
+
+429 still completed; capability limit still 200
+
+used 23 / limit 200. Cap was not saved. ptest10 is role
+user and cannot edit Site Configuration. Change
+maxRequestsPerDay as admin, then capability must show
+limit below used before retrying the turn.
+
+
+============================================================
+2026-09-15 18:21
+
+quota 429 confirmed
+
+limit 1 / used 24 → SSE AI_QUOTA_EXCEEDED, no turn_start.
+Cap restored to 200 → turn completes. Remaining: debug
+dumps and a new hang+cancel with cancelRequested true.
+
+
+============================================================
+2026-09-15 18:25
+
+debug dumps missing; hang completed after cancel POST
+
+Dump turn logged only "completed" — debugDumps was off
+(plugin checkbox not saved). Hang showed ping then
+"(hung until cancel)"; cancel from a second shell
+always returns canceled:true even after the turn ends.
+Retry: save plugin dump flag, cancel immediately after
+turn_start.
+
+
+============================================================
+2026-09-15 18:30
+
+debug dumps enabled but no prompt/response log lines
+
+Root cause: loadSettings read global.PluginModel, which
+bootstrap never sets (ConfigModel is global; PluginModel
+is not). The checkbox saved; the turn never saw it. Now
+imports webapp/model/plugin.js like hello-world. Restart
+and retry the dump turn. 4 new settings tests passed.
+
+
+============================================================
+2026-09-15 18:32
+
+dump still missing after restart
+
+Import path was one level too high
+(../../../../../../webapp → Dev/webapp) and the catch
+swallowed it. Corrected to five levels. Restart again
+and retry dump check.
+
+
+============================================================
+2026-09-15 18:33
+
+debug dumps confirmed after path fix
+
+prompt: and response: lines logged for turn
+6aa9f1d268274a821f662f32. priorCount=49 is the clipped
+history. Turn the checkbox off. Remaining: hang+cancel
+with cancelRequested true.
+
+
+============================================================
+2026-09-15 18:36
+
+hang+cancel interrupted immediately
+
+turn 6aa9f27768274a821f662f35: turn_start then canceled,
+no hung-until-cancel text. Cancel POST returned
+canceled:true. Still need turns list to confirm
+cancelRequested persisted true.
+
+
+============================================================
+2026-09-15 18:37
+
+cancel persist confirmed
+
+turn 6aa9f27768274a821f662f35: canceled True. W-223
+manual gates we listed are done: scripts, hang/cancel,
+quota, ownership, dumps, AI_DISABLED.
+
+
+============================================================
+2026-09-15 18:38
+
+what is left before release prep?
+
+Manual gates done. Before plugin release prep: As Built
+in the design and work item (cancel is POST, not HTTP
+close; dumps on plugin config; usage upsert). Optional
+usage-page look and npm pack shape. Framework docs are
+a later framework release, not this item.
+
+
+============================================================
+2026-09-15 18:48
+
+plugin-config links, README tests, As Built docs
+
+plugin.json help now links Site Configuration, AI usage,
+the guide, and plugins. README documents jest from the
+framework root. Guide covers POST cancel and SSE quota
+errors. Design As Built + work-item features updated;
+status unchanged. Usage page day/month + costUnknown ok.
+
+
+============================================================
+2026-09-15 19:05
+
+- the ai plugins are missing in the site menu
+- cross-links in ai-core plugin config is good
+- actually, it would be helpful to have some cross-links in settings => ai tab as well
+
+AI Core and AI Mock now register jPulse Plugins menu
+entries (MFA-style). New ai-core overview page with
+links to Site Config, usage, debug dumps, mock, and
+the guide. AI tab description is a matching HTML
+list (usage, dumps, guide, plugin management). Restart
+to pick up the new i18n strings on the KI tab.
+
+
+============================================================
+2026-09-15 19:14
+
+- Installed-plugin guide in /jpulse-plugins/ai-mock.shtml
+leads to 404 with /jpulse-docs/installed-plugins/ai-mock/
+(should be .../README but I do not understand why)
+
+Trailing-slash docs URLs 404 because view.js turns them
+into a missing index.shtml and skips SPA fallback. The
+markdown API also cannot read a directory. Link now
+points at /ai-mock/README, matching ai-core and the
+docs viewer.
+
+
+============================================================
+2026-09-15 19:19
+
+do we need the ai-mock in the site menu? maybe overkill
+
+Removed the AI Mock jPulse-Plugins menu entry. The
+overview page and dashboard card stay; AI Core still
+links to it. AI Core remains in the site menu.
+
+
+============================================================
+2026-09-15 19:21
+
+guide me through github prep, what do I need to do
+for the new repos?
+
+Two GitHub repos (plugin-ai-core + plugin-ai-mock),
+one npm package (@jpulse-net/plugin-ai). Framework
+repo stays untouched. Create empty org repos, git
+init in each plugins/ dir, first-commit + push,
+then bump/tag/publish only from ai-core. ai-mock
+is source-only and must not be published.
+
+
+============================================================
+2026-09-15 19:29
+
+git init + status for ai-core and ai-mock
+
+Both trees look complete. Next: empty GitHub repos
+if not created, then first commit and push in each
+plugin directory. No framework commit.
+
+
+============================================================
+2026-09-15 19:41
+
+publish succeeded; ask about test-primary, private
+vs public, and plugin-ai vs plugin-ai-core name
+
+Keep @jpulse-net/plugin-ai. Public like MFA. Delete
+GitHub package plugin-test-primary (W-221 fixture).
+Tag v1.0.0 still missing on the git repos.
+
+
+============================================================
+2026-09-15 19:55
+
+please guide me through renaming the package from
+plugin-ai to plugin-ai-core
+
+Renamed @jpulse-net/plugin-ai to @jpulse-net/plugin-ai-core
+in both plugin trees, design, work-item notes, API
+example, and bundle tests. User still commits, publishes
+plugin-ai-core@1.0.0, then deletes the old plugin-ai
+package after a clean install.
+
+
+============================================================
+2026-09-15 20:14
+
+can I delete plugin-ai? then install proof on
+jpulse.net; stuck again?
+
+Yes. @jpulse-net/plugin-ai-core@1.0.0 installed
+ai-core + ai-mock on the site. Delete only the old
+GitHub Package plugin-ai, not the git repo.
+
+
+============================================================
+2026-09-15 20:17
+
+all done - what is next?
+
+W-223 plugin publish is done. Next product item is
+W-224 (Anthropic). Framework repo still has the
+rename docs/tests; commit those in a later framework
+pass, not as part of the plugin item.
+
+
+============================================================
+2026-09-15 20:24
+
+I want to do 2 framework commits, without a build
+- W-223 work item
+- W-220 jPulse.UI.floatPanel follow-up
+- how do you recommend we do that?
+- see complete tt-git-diff.txt
+
+Recommended order: W-220 first (css/js/tests/ui
+docs), then W-223 (design, work-item, API example,
+bundle tests, plugins.shtml SVG, cursor_log). Do
+not add tmp-bubblemap-app. No bump, no build.
+
+
+============================================================

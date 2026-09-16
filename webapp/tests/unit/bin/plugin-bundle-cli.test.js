@@ -145,7 +145,7 @@ describe('plugin bundle CLI', () => {
         makeSiteProject(site);
         const src = path.join(tmpDir, 'provider-nodeps');
         writePlugin(src, 'provider-nodeps', {
-            pluginDeps: { 'ai-core': { version: '>=1.0.0', npmPackage: '@jpulse-net/plugin-ai' } }
+            pluginDeps: { 'ai-core': { version: '>=1.0.0', npmPackage: '@jpulse-net/plugin-ai-core' } }
         });
 
         const result = runCli(site, ['install', src, '--no-deps']);

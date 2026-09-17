@@ -2,25 +2,86 @@
 
 **Status:** W-223 is published (`@jpulse-net/plugin-ai-core` 1.0.0, 2026-09-17).
 W-224 is published (`@jpulse-net/plugin-ai-anthropic` 1.0.0 and
-`@jpulse-net/plugin-ai-core` 1.0.1, 2026-09-17). Three prerequisites are
-released — W-220 `jPulse.UI.floatPanel` (v2.0.0), W-221 plugin bundle build
-and installation (v2.0.1), and W-222 plugin and site translation merge
-(v2.0.2). A fourth surfaced when the WebSocket path was designed against the
-code rather than the docs: **`onCreate` is called synchronously**, so a
-namespace cannot authorize a connection against the database, which is what
-per-thread AI namespaces need. That is **W-225**, one framework item, and it
-corrects §22.2's earlier "no framework source change" finding. **W-226** (chat
-panel, client-host tools, `hello-ai`) is published
+`@jpulse-net/plugin-ai-core` 1.0.1, 2026-09-17). **W-226** (chat panel,
+client-host tools, `hello-ai`) is published
 (`@jpulse-net/plugin-ai-core` 1.0.2 carrying `ai-mock` 1.0.2, 2026-09-17).
-Next AI item is **W-227**. §21 splits the agent into five items, W-223,
-W-224, and W-226 through W-228, on four framework prerequisites. Deviations
-from this document are under `### As Built`. W-226 was specified against
-shipped `ai-core` 1.0.1 and framework v2.0.3; Rev 8 recorded the work-item
-clarifications, Rev 9 the panel chrome, and Rev 10 the as-built after
-implementation.
+**W-227** (propose and apply) is implemented as `@jpulse-net/plugin-ai-core`
+1.0.3 (bundle still carries `ai-mock` at the same version; mock has no
+product change). Four framework prerequisites are released — W-220
+`jPulse.UI.floatPanel` (v2.0.0), W-221 plugin bundle build and installation
+(v2.0.1), W-222 plugin and site translation merge (v2.0.2), and W-225
+awaitable `onCreate` (v2.0.3). Next AI item is **W-228** (attachments).
+§21 splits the agent into five items, W-223, W-224, and W-226 through W-228,
+on those four prerequisites. Deviations from this document are under
+`### As Built`. Rev 12 specified W-227 against shipped 1.0.2; Rev 13 is the
+as-built after implementation.
 
 
 ## Revision history
+
+### Rev 13 — 2026-09-16 — W-227 as built
+
+No new product decision. Propose/apply shipped in `@jpulse-net/plugin-ai-core`
+1.0.3. These lines are what the code wanted once it ran.
+
+| Section | Change |
+|---|---|
+| Header, §21.6 | W-227 is 1.0.3; `ai-mock` is a version lockstep only; next item is W-228 |
+| §13.2 | Persist still writes nothing on a read-only turn; the one extra write is `proposingOffered: true` when a proposing tool was offered and the reply claimed a card |
+| §13.3 | Applied / undone flags go through `setProposals` via `applyProposalRecord` / `undoProposalRecord`, not `AiTurnModel.markApplied` / `markUndone` |
+| §13.4 | The framework prompt sentence also says several proposing calls in one turn each get a card and every pending card stays applyable |
+| §12.1 | Apply cards, Apply all, and the guard are 1.0.3 chrome. Transcript pins to the bottom on render, after layout, and on float-panel open. User prompts are right-aligned pills. `/tools` names render as `<code>` because local slash replies are plain text, not markdown |
+| As Built | Items 20–24 |
+
+### Rev 12 — 2026-09-16 — W-227 specified against the shipped code
+
+Propose/apply was designed against `ai-core` 1.0.2 rather than against §13's
+sketch, and the code answered two questions the sketch left open. First, two
+of the three things §9.1 removes from the loop already exist in the tools
+layer: the proposal counter is `budget: { key: 'proposals', max }` and the
+"already carded" refusal is `dedupeArgs`, both from 1.0.0, so only the
+false-claim guard and the two notes need a new home. Second, `onAiTurnAfter`
+fires in the loop's `finally`, *after* the `completed` event has reached the
+tab — and the panel answers `completed` by re-fetching the turn list. A
+subscriber that were the only writer of proposal records would be racing the
+request that renders them. So the record is **derived** by one pure function
+over the turn's `toolCalls`, which the read path, both endpoints, and the
+history notes all call; the subscription persists that list rather than
+being the only source of it.
+
+The AI plugins are new in this release train, so the spec was changed where
+it improves DX rather than preserved: no name-prefix detection, no flat
+proposal mirror on the turn, no `maxProposalsPerTurn` setting, and notes
+computed on read instead of written into stored text. §18 already records
+that the reference site has no supported upgrade path to preserve;
+equivalence with what that site does today is tracked feature by feature in
+the work item.
+
+| Section | Change |
+|---|---|
+| §13 | **Rewritten** as the contract: `proposes: true` on the descriptor plus `data.proposal` in the envelope; framework-minted proposal ids; one derivation function over `toolCalls`; `onAiTurnAfter` persists rather than being the only writer; the endpoints are bookkeeping and the site's own write path is the enforcement point; the guard splits into a model-facing history note and user-facing panel chrome; the phrases are admin config with a shipped default |
+| §9.1 | Where each removed piece landed: counting and dedupe are declarations on the site's tool, the notes are computed at history assembly, and a test asserts the loop source stays free of proposal vocabulary |
+| §12.1 | The three `*Proposal` adapter methods land in 1.0.3. Apply calls the adapter *before* it records; a preview returns a node or plain text; Apply cards join the list of panel surfaces with the release that carries them |
+| §16 | `onAiTurnAfter` gets its first consumer, which is also the check that defining a lifecycle hook ahead of its use was worth doing |
+| §17 | The AI tab gains the false-claim phrase list |
+| §19 | Propose/apply tests, including the loop-purity assertion and the read-only agent producing no record, card, or note |
+| §20 | **New TD-14:** a hook for site-authored history notes |
+| §21.6 | Three phases — server, panel, then `hello-ai` and docs. `hello-ai` grows one proposing tool, as a **pure module**, because proposing is read-plus-validate and only `applyProposal` writes |
+
+### Rev 11 — 2026-09-16 — W-226 published; W-225 no longer open
+
+No product change. Header, §21.1, and §22.2 now say both framework
+prerequisites and the panel item are shipped. §5.1 records that `hello-ai`
+is in 1.0.2. §12.1 marks attachments / URL-intercept as W-228 and the
+proposal adapter methods as W-227 so they are not read as 1.0.2 surface.
+The reload notice is the running-turn string, not a separate stuck prompt.
+
+| Section | Change |
+|---|---|
+| Header, §21.1, §22.2 | W-225 is v2.0.3; `onCreate` is awaited. No open framework source change for the remaining AI items |
+| §5.1, As Built 5 | `hello-ai` shipped in 1.0.2 |
+| §11.1 | Opening sentence is the reference site, not jPulse 1.0.2 |
+| §12.1 | Attachment / URL-intercept bullets are W-228; `*Proposal` adapter methods are W-227 |
 
 ### Rev 10 — 2026-09-16 — W-226 as built
 
@@ -137,7 +198,7 @@ decision; each is the shape the code wanted once it existed.
    `AI_QUOTA_EXCEEDED` on the stream, not a JSON HTTP 429.
 5. **The published bundle is `ai-core` + `ai-mock` only.**
    `@jpulse-net/plugin-ai-core` 1.0.0 does not contain `hello-ai`. That
-   view is W-226. The package was renamed from `@jpulse-net/plugin-ai`
+   view is W-226 and shipped in 1.0.2. The package was renamed from `@jpulse-net/plugin-ai`
    before first publish so later `@jpulse-net/plugin-ai-anthropic` /
    `plugin-ai-openai` sit as peers of the primary, not of a catch-all
    `plugin-ai`.
@@ -203,7 +264,7 @@ decision; each is the shape the code wanted once it existed.
 16. **`hello-ai` has no scripted buttons.** `panel.create({ examples })`
     feeds `/help`. The structured `script` field remains for `curl` and
     sites. User-facing copy says scratch pad only (tool ids stay
-    `read_draft` / `append_draft`). The pad is page-local `.local-*`,
+    `read_draft` / `append_draft` / `propose_draft_rewrite`). The pad is page-local `.local-*`,
     `resize: both`, block-stacked under its label; the default layout
     is full width.
 17. **A `tool_use` is followed by `role: 'tool'`.** Anthropic requires
@@ -216,6 +277,27 @@ decision; each is the shape the code wanted once it existed.
 19. **`read_draft` returns the pad, not only an excerpt.** `data.text`
     is capped at 32 KB (`truncated` when clipped); `data.excerpt` is
     a 160-character preview.
+20. **`onAiTurnAfter` persist writes `proposingOffered` on a claiming
+    no-card turn.** A turn with no `data.proposal` still needs the
+    guard and the history note; the flag is that mark. A read-only
+    turn stays byte-identical to 1.0.2.
+21. **Applied / undone are helpers, not model methods.**
+    `AiTurnModel.setProposals` and `markProposingOffered` are the
+    writes. `applyProposalRecord` / `undoProposalRecord` live in
+    `utils/proposals/` with `applyThenRecord` / `undoThenRecord` so
+    the panel and the tests share the adapter-first order.
+22. **Local `/tools` is not markdown.** Slash replies go through
+    `renderPlain`, so tool names become `<code>` after HTML escape.
+    User prompts are right-aligned pills (`plg-ai-user`) with a
+    primary inset bar.
+23. **The transcript pins to the bottom after layout.** Setting
+    `scrollTop` in the same turn as `innerHTML` lost the pin while
+    the float panel still had no height. `onOpen` plus a double
+    `requestAnimationFrame` is the open / switch / reload path.
+24. **`hello-ai` 1.0.3 adds `propose_draft_rewrite`.** Pure module
+    `proposeRewrite`, `proposes: true`, budget 3, `dedupeArgs`.
+    User-facing copy still says scratch pad; the prompt fragment
+    names propose versus append.
 
 ### Rev 3 — 2026-09-15 — prerequisites released, work split
 
@@ -303,6 +385,11 @@ Initial design from the brainstorming sessions.
 - The **first three items cover server core, a provider, and the generic chat
   panel** — together they are the §1.1 experience. Propose/apply and
   attachments follow (§21).
+- Propose/apply is **declared, not named**: `proposes: true` on the descriptor
+  plus a proposal in the result envelope, never a `propose_` prefix. The record
+  is derived from the finished turn, the apply endpoint is bookkeeping while the
+  site's own write path stays the enforcement point, and the false-claim guard
+  takes its phrases from site configuration (§13).
 - The two-host tool split (`host: 'server' | 'client'`) is the answer to
   view-centric versus controller-centric, and it is **per tool, not per site**
   (§7.2). A controller-centric site additionally gets an HTTP/SSE turn path so
@@ -615,7 +702,7 @@ The bundle is drawn tightly:
 
 | Package | Contains | Why |
 |---|---|---|
-| `@jpulse-net/plugin-ai-core` | `ai-core` + `ai-mock` | Everything needed to stand the server core up and see it work, with no API key and no spend. `hello-ai` is a view inside `ai-core` when W-226 lands, not a third plugin and not in 1.0.0 |
+| `@jpulse-net/plugin-ai-core` | `ai-core` + `ai-mock` | Everything needed to stand the server core up and see it work, with no API key and no spend. `hello-ai` is a view inside `ai-core` as of 1.0.2, not a third plugin and not in 1.0.0 |
 | `@jpulse-net/plugin-ai-anthropic` | `ai-anthropic` | Depends on `ai-core`; installed only by a site that uses Anthropic |
 | *(deferred)* | `ai-openai` | TD-11 |
 
@@ -1109,6 +1196,23 @@ counting, `claimsApplyWithoutProposal()`, and the two system notes about undone
 and falsely-claimed proposals. Those move to the propose/apply layer (§13),
 which subscribes to turn lifecycle events rather than living inside the loop.
 
+Where each removed piece ends up, since "moved to §13" is not the same as
+"rewritten there":
+
+- the **prefix check** is replaced by `proposes: true` on the descriptor
+  (§13). A name prefix is a naming convention pretending to be a contract —
+  the same objection §9.2 raises against flat capability booleans.
+- the **counter** and the "you already carded that" refusal are the tools
+  layer's declarative `budget` and `dedupeArgs`, shipped in 1.0.0. They are
+  declarations on the site's own tool, with the tool's own wording, so no
+  framework code counts anything.
+- the **two notes** are computed when history is assembled for the next
+  prompt, from the persisted records — not appended to a turn while it runs.
+
+The loop therefore gains nothing at all in W-227, and a test asserts it:
+`turnLoop.js` source contains no proposal vocabulary. That makes the rule
+above something CI enforces rather than something a reviewer must remember.
+
 Statuses stay `completed` / `failed` / `canceled` / `stalled`.
 
 ### 9.2 Provider contract
@@ -1371,10 +1475,11 @@ TD-02.
 
 ### 11.1 HTTP/SSE for controller-centric sites
 
-Today every turn starts over the WebSocket, because the process holding the
-origin tab must be the one to call back into it for client-host tools. A site
-with only server-host tools has no such constraint, and forcing it through a
-per-thread WebSocket namespace is a large adoption tax for no benefit.
+On the reference site every turn starts over the WebSocket, because the
+process holding the origin tab must be the one to call back into it for
+client-host tools. A site with only server-host tools has no such constraint,
+and forcing it through a per-thread WebSocket namespace is a large adoption
+tax for no benefit.
 
 `POST /api/1/ai/thread/:id/turn` with an SSE response gives that site the whole
 feature over plain HTTP. `ai-core` picks the path automatically: if the resolved
@@ -1459,11 +1564,12 @@ The framework owns everything that is not about the site's data:
 - compose box, slash-command picker, keyboard handling, send and cancel
 - `/model` to view and set the thread pair when more than one model is allowed (§9.5); not a header picker
 - transport connect, reconnect, and turn reconciliation after a reload
-- token streaming, jumping dots while waiting for the first token, the outgoing prompt kept visible, scroll-to-bottom, the stuck-turn prompt
+- token streaming, jumping dots while waiting for the first token, the outgoing prompt kept visible as a right-aligned pill, scroll-to-bottom on render / after layout / on float-panel open, a running-turn notice after reload
 - markdown rendering with pinned copy buttons
 - quota and error surfaces, retention notices
-- attachment chips for file, paste, and URL sources, and staged images
-- the URL-intercept card
+- attachment chips for file, paste, and URL sources, and staged images — **W-228**, not in 1.0.2
+- the URL-intercept card — **W-228**, not in 1.0.2
+- Apply cards, several per turn, "Apply all", and the false-claim guard — **W-227**, shipped in 1.0.3
 - the client-host tool bridge and the tool-module loader (§8.4)
 
 **Both transports sit behind one client API.** The probe says `http` or `ws`
@@ -1494,16 +1600,24 @@ jPulse.ai.panel.create({
         describeContext() { … },
         describeTarget()  { … },
         contextOptions()  { … },
-        renderProposalPreview(proposal) { … },   // §13
-        applyProposal(proposal) { … },
-        undoProposal(proposal)  { … }
+        renderProposalPreview(proposal) { … },   // §13, W-227
+        applyProposal(proposal) { … },           // W-227
+        undoProposal(proposal)  { … }            // W-227
     }
 });
 ```
 
 `toolData` and the three `describe*` methods are the only ones a read-only
 agent needs, and `adapter` may be omitted entirely by a site with no
-client-host tools — which is the §1.1 case.
+client-host tools — which is the §1.1 case. `executeTool` shipped in 1.0.2
+as the escape hatch for an impure client tool. The three `*Proposal` methods
+are W-227, land in 1.0.3, and are called only when the site registered a
+tool that proposes. `renderProposalPreview` may return a DOM node, or a
+string that the panel escapes as text — a site wanting markup returns a
+node, so no adapter injects markup by accident. `applyProposal` and
+`undoProposal` perform the site's real write and resolve truthy on success;
+the panel records the outcome **after** the adapter resolves, so a failed
+write never marks a card applied (§13).
 
 Note what is *not* required on the adapter: `executeTool`. When a client-host
 tool names a shared module (§8.2), the site supplies the data and the
@@ -1522,7 +1636,8 @@ the mirror of `global.AiCore`, not `jPulse.plugins.aiCore`. W-220's
 the element's `click` to `handle.toggle()`.
 
 **Slash commands are local and never sent to the model.** The catalog is
-`/help`, `/tools` (offered tools with host, plus withheld and why),
+`/help`, `/tools` (offered tools with host, plus withheld and why; names
+render as `<code>` because local slash replies are plain text, not markdown),
 `/model` (prints the current pair and the allowed list; `/model <provider>/<model>`
 sets the pair), `/new`, and `/cancel`. A leading `//` escapes, so `//help`
 is literal text. The picker expands as you type `/`; Enter executes the
@@ -1580,6 +1695,153 @@ own schema, and the apply and undo execution.
 
 This is opt-in. A read-only agent never registers a write tool and never sees
 any of it.
+
+### 13.1 Declaring a proposal
+
+Two declarations, and a site writes nothing else to join the pattern:
+
+```js
+{
+    name:       'propose_draft_rewrite',
+    description: '…',
+    schema:     { … },
+    host:       'client',
+    module:     'proposeRewrite',   // pure: read and validate, never write
+    requires:   'scope:write',
+    proposes:   true,               // this call creates a card, not a change
+    dedupeArgs: true,               // identical args twice is one card
+    budget:     { key: 'proposals', max: 3, overMessage: '…%MAX%…' }
+}
+```
+
+```js
+// the tool's successful envelope
+{ ok: true, data: { proposal: { kind, payload, preview } }, summary: '…' }
+```
+
+`proposes` sits beside `mutates` on the descriptor and travels with
+`publicTool`, so the capability probe, `/tools`, the prompt, and the guard all
+learn from one flag that this turn *offered* a way to propose. A result cannot
+carry that information, which is why the flag exists in addition to the
+envelope. And `mutates` stays **false** on a proposing tool, because the call
+changes nothing — the contrast is the clearest one-line statement of the
+pattern and belongs in the guide rather than being smoothed away.
+
+`kind` is the site's own label, echoed back on the card and in the notes.
+`payload` is whatever the site needs at apply time and is never interpreted by
+the framework. `preview` is optional structured data for a site that would
+rather hand the card content over than render a node.
+
+The cap and the duplicate refusal are the tools layer's existing declarative
+budget and argument dedupe (§7.4), which is what the reference site's loop was
+counting by hand. A proposing tool that wants no cap simply declares no budget.
+
+### 13.2 The record is derived, then persisted
+
+One pure function is the source of truth: a persisted `turn.proposals` wins,
+and otherwise the list is derived from the turn's `toolCalls` — successful
+results carrying `data.proposal`, in call order — with each id minted from the
+turn id and the provider's tool-call id. The read path, both endpoints, and the
+history notes call that one function, which is §7.5's "one function answers
+this question" rule applied to cards.
+
+Deriving rather than writing mid-round is what keeps §9.1 honest, and it also
+removes a race that the obvious implementation has. `onAiTurnAfter` fires in
+the loop's `finally`, after `completed` has already reached the tab, and the
+panel answers `completed` by re-fetching the turn list — so a subscriber that
+were the *only* writer would be racing the request that renders its own cards,
+and an Apply click could land on a turn with no `proposals` array yet. With
+derivation available on every read path, ordering stops being a correctness
+question: the subscription persists the list once, idempotently, and writes
+nothing at all for a turn that produced no proposals — except
+`proposingOffered: true` when a proposing tool was offered and the reply
+matched a claim phrase, so the next prompt and the panel guard can see it
+without rewriting `agentText`. A read-only agent's turns stay byte-identical
+to 1.0.2.
+
+Ids are minted by the framework rather than by the site because they must be
+stable across re-derivation, which is exactly what a deterministic id from
+`(turnId, toolCallId)` gives, and because it is code no site should have to
+write. Flags live on each record; the reference site's flat mirror of the first
+proposal on the turn document was its own backward compatibility and is not
+carried forward (§18).
+
+### 13.3 Apply is the site's write; the endpoint is bookkeeping
+
+The order is fixed and worth stating, because the tempting order is wrong:
+
+1. the panel calls `adapter.applyProposal(proposal)`, which performs the real
+   write through the site's own authenticated API
+2. only on success, the panel posts `POST /api/1/ai/turn/:id/applied` with the
+   proposal id, and the framework marks the record
+
+So `/applied` and `/undone` record *that the user applied it*. They are not the
+enforcement point, and the guide says so plainly, because a reader will assume
+otherwise. The framework cannot authorize a write it does not understand;
+putting that decision in the layer with the least information would be
+security theater. What the endpoints do enforce is theirs to enforce: the turn
+exists, the session owns it — the same ownership check the WebSocket
+`onCreate` makes (§11.2) — the proposal id is known, and repeating the call
+changes nothing. A site needing an idempotency token puts it on its own write,
+where it matters.
+
+Undo is the same shape through `undoProposal`, and the framework never
+reverses anything itself: it does not know what the change was.
+
+Both endpoints are transport-neutral, so a controller-centric site (§11.1) gets
+records, endpoints, and notes with no panel at all — what it does not get is
+the card, which is panel chrome by definition.
+
+### 13.4 What the model is told, and when
+
+Three notes, all computed when history is assembled for the next prompt, from
+the persisted records:
+
+- per proposal turn, which of its cards were applied, which were not, and
+  which were undone
+- one note when the **latest** proposal's latest card was undone. An older undo
+  must not read as if a later Apply had been rolled back, which is the whole
+  reason this is a rule and not a per-card flag dump
+- one note when the last claiming turn produced no card (§13.5)
+
+Computing on read means stored `agentText` is never rewritten. The reference
+site appended its missing-card note into the stored reply; post-turn that is
+both too late for the tab, which already rendered the text, and destructive to
+the record, and it freezes one phrase list into history forever. Computed
+notes take effect on the next prompt and need no migration.
+
+During the turn, the model learns the pattern from one framework sentence in
+§9.6's tool-availability block, added when any offered tool declares
+`proposes: true`: a proposing tool creates a card the user must apply; several
+proposing calls in one turn are allowed; each success is its own card and every
+pending card stays applyable; never claim a change was made, or that a card
+exists, unless a proposing tool succeeded in this turn. Framework wording about
+framework machinery is exactly what §9.6 reserves the framework's own fragments
+for.
+
+### 13.5 The false-claim guard
+
+A model with a proposing tool on its list will sometimes say "I've proposed the
+change — click Apply" in a turn where no card was created. That is worse than a
+wrong answer: the user waits for a card that never arrives, and on the next turn
+the model reads its own claim as history.
+
+The guard is a **phrase policy the site configures** — a multi-line field on the
+AI admin tab, each line a plain phrase or `/regex/flags`, shipped with a short
+domain-neutral English default so it works before an admin thinks about it. A
+non-English site replaces the list; that is the point of it being configuration.
+The reference site's hardcoded list is the default's ancestor and nothing more.
+
+It surfaces in two places, deliberately, and neither touches the stored reply:
+
+- **to the model**, as the third history note above, so the next turn is told
+  the claim was false and to propose again rather than repeat it
+- **to the user**, as panel chrome under the claiming reply, since the note the
+  user needs is "no card was created" at the place they are looking for one
+
+The check runs only for a turn where a proposing tool was offered, which is what
+keeps a read-only agent — or a site whose reply happens to contain the word
+"apply" — entirely outside it.
 
 
 ---
@@ -1664,7 +1926,10 @@ All defined by `ai-core` via `static hookDefinitions`. The framework's
 Four of these are what §1.1 uses; the rest are entered only by a site with the
 matching problem. `ai-core` registers itself on `onAiQuotaCheck` and
 `onAiQuotaSettle`, so those have a working default and a site overriding them
-replaces a real implementation rather than filling a hole.
+replaces a real implementation rather than filling a hole. From 1.0.3 it also
+registers itself on `onAiTurnAfter`, where the propose/apply layer persists a
+turn's proposal records (§13.2) — the hook was defined in 1.0.0 with no
+consumer, and this is the check that defining it ahead of its use was right.
 
 `onAiScopeResolve` is the one to get right: it is where a site says "this
 thread is about document X, this user may read it, may not write it, and the
@@ -1683,11 +1948,14 @@ reference site already uses. Settings split as shipped in 1.0.0:
 - **Admin tab (Site Configuration → AI)** — the master switch, allowed roles,
   `defaultProvider` / `defaultModel` / `allowedModels` (§9.5), quota caps
   (§10.1), loop limits (rounds, timeouts, context size), tool policy
-  (`disabledTools` / `reviewedTools`), retention, auto-titling, and site
-  instructions. The tab description is HTML with links to the AI Core
-  overview, usage, plugin-local configuration (dumps live there), the
-  guide, and plugin management. An empty `defaultModel` uses the first
-  model of `defaultProvider` (As Built item 10).
+  (`disabledTools` / `reviewedTools`), retention, auto-titling, site
+  instructions, and — from 1.0.3 — the false-claim phrase list (§13.5),
+  which is on this tab rather than in code because it is the kind of
+  setting an admin tunes after reading one bad transcript. The tab
+  description is HTML with links to the AI Core overview, usage,
+  plugin-local configuration (dumps live there), the guide, and plugin
+  management. An empty `defaultModel` uses the first model of
+  `defaultProvider` (As Built item 10).
 - **Plugin config (Admin → Plugins → ai-core)** — `debugDumps` only, plus the
   same cross-links (including `/jpulse-plugins/ai-core.shtml`). Deliberately
   not on the AI tab, where they are easy to leave on. `loadSettings` reads
@@ -1787,6 +2055,17 @@ and W-224, step 3 follows W-226, and step 4 follows W-226 through W-228.
   both transports through the one client API; reconnect and turn
   reconciliation after a simulated reload, including a running turn whose text
   arrives only on completion; no framework code reaching into site state.
+- **Propose and apply** — records derived from a finished turn's `toolCalls`
+  in call order, with ids stable across re-derivation and a persisted list
+  winning; an apply endpoint refusing a turn the session does not own,
+  idempotent on repeat, and self-healing on a turn whose records were never
+  persisted; the cards note wording; only the latest proposal's undo
+  producing the undone note; the false-claim note firing on a configured
+  phrase and staying silent when no proposing tool was offered; a card that
+  posts nothing when the site's `applyProposal` fails; and the loop-purity
+  assertion that `turnLoop.js` contains no proposal vocabulary. The
+  read-only case is a test rather than an assumption: no proposing tool
+  means no record written, no card rendered, and no note added.
 - **MCP readiness** — the tools layer exercised through a synthetic non-web
   actor, asserting client-host tools are filtered and server-host tools
   execute.
@@ -2020,6 +2299,26 @@ the thread. The turn route and the WebSocket namespace already carry a
 exactly one model method, and anything the panel persists holds a `threadId`
 rather than "the thread for this scope".
 
+### TD-14 Site-authored history notes
+
+**State.** The framework computes the three propose/apply notes when history is
+assembled (§13.4), and the phrase list that triggers one of them is site
+configuration. A site cannot add a note of its own — say "this document was
+edited outside the conversation since that reply" — without an `onAiPromptFragment`
+handler, which lands in the system prompt rather than in the message history
+where a note about a specific past turn belongs.
+
+**Why deferred.** There is one consumer, and it is the framework's own. A hook
+designed for an imagined second consumer gets the wrong shape, which is the
+same argument TD-07 makes about shared modules. The notes are also the part of
+propose/apply most likely to be re-worded as real transcripts accumulate, and a
+public hook would freeze the surface early.
+
+**Trigger.** A site with a note that has to sit beside a particular turn rather
+than in the system prompt. Shape: one `execute`-mode hook over the assembled
+messages, with the framework's own annotator registered on it like
+`onAiQuotaCheck` — so a site adds notes rather than replacing the shipped ones.
+
 
 ---
 
@@ -2036,20 +2335,21 @@ None of the four contains any AI, and all are useful on their own:
 | **W-222** | v2.0.2 | Plugin and site translation merge — `ai-core` can ship translatable UI text (§22.2) |
 | **W-225** | v2.0.3 | Awaitable `onCreate` — a WebSocket namespace can authorize a connection against the database before the upgrade (§11.2) |
 
-The first three are released, so W-223 and W-224 shipped with no framework
-source change. W-225 is the one that did not exist yet.
+The first three were released before W-223, so W-223 and W-224 shipped with
+no framework source change. W-225 was the missing one; it shipped as v2.0.3
+before W-226.
 
 It was missed because §22.2 checked each mechanism for *existence* and
 `createNamespace` does support `onCreate` with `:param` namespaces. What
-existence does not tell you is that the hook is invoked as
+existence did not tell you is that the hook was invoked as
 `const result = namespace.onCreate(req, ctx)` and dispatched on the result's
-type, so a Promise — being an object — is installed as the connection context.
-An `async` handler therefore does not fail loudly: its authorization decision
-is discarded and **the connection is accepted**. `docs/websockets.md` already
-shows `onCreate: async (req, ctx) => …`, and the sibling `onMessage` is already
-awaited, so this reads as a defect in a documented contract rather than a
-missing feature — which is why it is a framework item on its own merits and not
-a patch inside the AI work.
+type, so a Promise — being an object — was installed as the connection
+context. An `async` handler therefore did not fail loudly: its authorization
+decision was discarded and **the connection was accepted**.
+`docs/websockets.md` already showed `onCreate: async (req, ctx) => …`, and
+the sibling `onMessage` was already awaited, so this was a defect in a
+documented contract rather than a missing feature — which is why it was a
+framework item on its own merits and not a patch inside the AI work.
 
 ### 21.2 The five AI items
 
@@ -2144,7 +2444,8 @@ execute tools. That is the honest-test failure this item exists to catch.
 
 ### 21.5 W-226 — ai: chat panel, client-host tools, and `hello-ai`
 
-Needs W-225 (v2.0.3) for phase 1, so `jpulseVersion` becomes `>=2.0.3`.
+**Shipped** 2026-09-17: `@jpulse-net/plugin-ai-core` 1.0.2 carrying
+`ai-mock` 1.0.2. Required W-225 (v2.0.3), so `jpulseVersion` is `>=2.0.3`.
 
 | # | Phase | Contents |
 |---|---|---|
@@ -2207,11 +2508,30 @@ version.
 
 | # | Phase | Contents |
 |---|---|---|
-| 1 | Server | Proposal records on the turn with `applied` / `undone`, the apply and undo endpoints, the history notes fed back to the model, and the turn-lifecycle subscription that keeps all of it out of the loop (§9.1, §13) |
-| 2 | Panel | Apply card chrome, several cards per turn, and the false-claim guard generalized from the reference site's hardcoded regex list into phrases the site configures |
+| 1 | Server | `proposes: true` on the descriptor and `data.proposal` in the envelope (§13.1); records derived by one function and persisted by the `onAiTurnAfter` subscription (§13.2); the apply and undo endpoints (§13.3); the three history notes and the one prompt sentence (§13.4); the phrase policy (§13.5). No loop edit, asserted by a test |
+| 2 | Panel | Apply card chrome, several cards per turn with "Apply all", per-card states, the adapter-then-endpoint ordering, and the user-facing half of the false-claim guard |
+| 3 | `hello-ai` and docs | One proposing tool as a **pure module**, the adapter trio on the demo's scratch pad, and the guide's propose/apply and direct-write-versus-proposal sections |
 
 Opt-in throughout: a read-only agent registers no write tool and never
-encounters any of it.
+encounters any of it — no record is written, no card renders, and no note is
+added to its history.
+
+Phase 3 exists for the reason phase 4 of W-226 existed. Three adapter members
+proven only against a stub adapter are not a validated contract, and card
+chrome cannot be developed without something that renders inside it. The demo
+tool is `host: 'client'` with a **module**, not `executeTool`, which makes the
+architectural point in the place a developer will copy from: proposing is a
+read plus a validation, so it is pure, and the only write in the whole pattern
+is `adapter.applyProposal`. Set against `append_draft` on the same scratch pad,
+the pair says what the guide would otherwise have to argue — a direct write is
+for a change the user is watching and can undo by hand, propose/apply is for a
+change that needs consent first. W-226 recorded that pedagogical risk when it
+shipped the direct write first; this is where it is paid off.
+
+`ai-mock` needs no product change: the structured `script.steps` with
+`$prior.<dotted.path>` from 1.0.2 already drives "read the pad, then propose a
+rewrite of what you read". The 1.0.3 bump on that member is version lockstep
+only.
 
 ### 21.7 W-228 — ai: attachments
 
@@ -2260,6 +2580,10 @@ the only directory that publish and bump are run from (§5.1, W-221).
 - `plugins/ai-core/webapp/utils/{tools,agent,transport}/` — the three layers as
   separate directories under the plugin `utils/` convention, with the import
   boundary scan-enforced (§5.2)
+- `plugins/ai-core/webapp/utils/proposals/` — propose/apply (§13), a peer of
+  the three layers rather than a part of one: it reads finished turn records,
+  annotates history, and subscribes to `onAiTurnAfter`, so it belongs to no
+  layer's dependency chain and the turn loop stays unaware of it
 - `plugins/ai-core/webapp/model/` — `aiThreads`, `aiTurns`, `aiUsage` (§9.7)
 - `plugins/ai-core/webapp/view/jpulse-common.js` — the `jPulse.ai` namespace:
   panel, transport, tool-module loader
@@ -2295,13 +2619,13 @@ the only directory that publish and bump are run from (§5.1, W-221).
 ### 22.2 Framework files that change
 
 Checked against the code rather than assumed. **Two framework source files
-need a change, one released and one not.**
+needed a change; both are released.**
 
-`webapp/controller/websocket.js` is the open one, and it is W-225 (§21.1):
-`onCreate` is invoked without `await` and its result dispatched on type, so an
-`async` handler's authorization decision is silently discarded and the
-connection accepted. The AI panel needs a namespace authorized against the
-database (§11.2), so it needs this. Worth recording how the earlier revision of
+`webapp/controller/websocket.js` was W-225 (§21.1) and shipped in v2.0.3:
+`onCreate` used to be invoked without `await` and its result dispatched on
+type, so an `async` handler's authorization decision was silently discarded
+and the connection accepted. The AI panel authorizes a namespace against the
+database in that hook (§11.2). Worth recording how the earlier revision of
 this section got it wrong: it asked whether each mechanism *existed*, and
 `onCreate` does. Existence and being usable for the purpose are different
 questions, and only building the caller distinguishes them.
@@ -2315,7 +2639,8 @@ the framework, then each active plugin in load order, then
 `site/webapp/translations/`, and a plugin shipping only its default language is
 backfilled rather than blank. `ai-core` is the first real consumer.
 
-Beyond W-225, the remaining framework-repo deliverable is docs, listed in §22.3.
+No further framework source change is required for W-227 or W-228. The
+remaining framework-repo deliverable is docs, listed in §22.3.
 
 Everything else `ai-core` needs already exists, which is the useful half of
 this answer:
@@ -2327,13 +2652,13 @@ this answer:
 | `/api/1/ai/*` routes | `SiteControllerRegistry` scans plugin controller dirs and auto-registers `api*` methods |
 | Its own hooks, owned and introspectable | `static hookDefinitions` (W-209); `HookManager` gains no AI strings |
 | An admin config tab | `ConfigModel.extendSchema()`, which `bootstrap.js` documents as callable by plugins |
-| A per-thread WebSocket namespace | `WebSocketController.createNamespace()`, public and already supporting `:param` pattern namespaces. **Authorizing** one against the database is W-225 |
+| A per-thread WebSocket namespace | `WebSocketController.createNamespace()`, public and already supporting `:param` pattern namespaces. **Authorizing** one against the database is W-225 (v2.0.3) |
 | Calling a tool in the origin tab | `WebSocketController.request()` (W-208), whose `NOT_CONNECTED` / `CONNECTION_LOST` / `REQUEST_TIMEOUT` codes map straight onto the envelope (§11.2) |
 | Serving tool modules at a content-hashed URL | `static routes` on the plugin controller, which `SiteControllerRegistry` honors ahead of `api*` discovery — no static-asset machinery needed |
 | Correct load order ahead of provider plugins | `resolveLoadOrder()` topological sort (§5.1.1) |
 | Guest/anonymous-safe turn leases | existing `RedisManager` lease, used unchanged |
 | Translatable plugin UI text, overridable by a site | W-222 translation merge (v2.0.2) |
-| One package installing `ai-core` + `ai-mock` | W-221 bundle install and publish (v2.0.1). `hello-ai` is a later view inside `ai-core`, W-226 |
+| One package installing `ai-core` + `ai-mock` | W-221 bundle install and publish (v2.0.1). `hello-ai` is a view inside `ai-core`, shipped in W-226 1.0.2 |
 
 ### 22.3 Documentation
 

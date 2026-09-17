@@ -8910,19 +8910,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - do not "fix" this by rejecting a Promise return with an error. The documented contract is async; honor it
   - no client-side change. `jPulse.ws` never sees this - the connection either upgrades or it does not, and a rejected upgrade already surfaces as a failed connect with the existing reconnect behavior
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-226, v1.0.2, 2026-09-17: ai: ai-core plugin with chat panel, client-host tools, hello-ai
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - build the client half of the agent: `jPulse.ai.panel` on `jPulse.UI.floatPanel`, the site adapter contract, and the WebSocket bridge that lets the model call a tool inside the user's tab
@@ -9054,6 +9043,120 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-227, v1.0.3, 2026-09-17: ai: ai-core plugin with propose and apply
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - ship "the agent proposes, the user applies" as framework machinery: proposal records on the turn, the apply and undo endpoints, the Apply card chrome, the false-claim guard, and the history notes that tell the model what became of its cards
+  - keep all of it **out of the turn loop** (design §9.1). The loop stays the provider-neutral skeleton it is today: the propose/apply layer subscribes to `onAiTurnAfter`, derives its records from what the turn already stored, and annotates history on the way back into the next prompt. No `propose_` name prefix, no proposal counter, and no `claimsApplyWithoutProposal()` anywhere near a round
+  - draw the ownership line where design §12.1 and §13 draw it: the framework owns records, endpoints, card chrome, the guard, and the notes; the site owns preview rendering, validation against its own schema, and the apply and undo execution, through `adapter.renderProposalPreview` / `applyProposal` / `undoProposal`
+  - **opt-in throughout:** a read-only agent registers no proposing tool, and then no record, no card, no guard note, and no history note ever exists. That is a property to test rather than assume, the same way W-226 tested that `hello-ai` does not flip every site to the WebSocket transport
+  - validate the three new adapter methods against `hello-ai`, for the reason W-226 gave about `executeTool`: an adapter member the bundle defines but cannot demonstrate is not a validated contract, and card chrome is not developable without something that renders in it
+  - hand-over item: written to be implemented from this entry plus `docs/dev/design/W-223-ai-agent.md`, which is the authority wherever this entry is thinner
+- prerequisites:
+  - W-226, `@jpulse-net/plugin-ai-core` 1.0.2: the panel and its transcript render, the adapter, the client-host bridge, and the tool-module loader. The Apply card is chrome inside a panel that already exists, and the panel already re-reads `GET /api/1/ai/thread/:id/turns` on `completed`, which is what makes a server-rendered card list the natural source
+  - W-223, 1.0.0, **declarative budgets and argument dedupe already in the tools layer.** `checkBudgetAndDedupe()` plus `budget: { key, max, overMessage }` and `dedupeArgs: true` are exactly what the reference loop's proposal counter and its "already carded" refusal were, so this item adds no counter and no `maxProposalsPerTurn` setting
+  - W-223, 1.0.0, `onAiTurnAfter`: defined in the hook catalog and deliberately unused since 1.0.0. This item is its first consumer, which is also the check that a lifecycle hook with no consumer was worth defining
+  - W-223, 1.0.0, the turn record: `toolCalls` already stores `{ id, name, args, result }` per call, which is what makes a proposal derivable from a finished turn instead of needing a second write path inside the round
+  - W-223, 1.0.0, the four gates: `requires: 'scope:write'` already withdraws a proposing tool from a scope the actor may not write, so nothing new gates the propose side
+  - no framework source change (design §22.2). W-225 (v2.0.3) stays the floor and `jpulseVersion` remains `>=2.0.3`
+- rationale:
+  - a direct write is right when the user is looking at the thing that changed and can undo it by hand - `hello-ai`'s `append_draft` is that case and stays that case. Anything with consequences needs consent *before* the write, and every write-capable agent worth trusting arrives at the same pattern, which is why it belongs in the framework and not in each site
+  - the reference site's version of this is spread across its turn loop, its turn model, its controller, and its panel, and the domain-free part outnumbers the bubble-specific part. Records, endpoints, cards, multi-card layout, guard, and notes are generic; only the preview, the schema check, and the write itself are not
+  - **the guard exists because models claim things.** With a proposing tool on the list, a reply that says "I've proposed the change - click Apply" when no card was created is worse than a wrong answer: the user waits for a card that never arrives, and on the next turn the model reads its own claim as history and doubles down. The reference site answered it with a hardcoded regex list of English phrases about Apply cards, which is the right behavior and the wrong home - a framework has to take the phrases from the site
+  - **deriving the records rather than writing them mid-round is what keeps the loop clean, and it also removes a race.** `onAiTurnAfter` runs in the loop's `finally`, after the `completed` event has already reached the tab - and the panel's reaction to `completed` is to re-fetch the turn list. A subscriber that were the only writer would be racing the very request that renders its cards, and an Apply click could land on a turn whose `proposals` array did not exist yet. One pure derivation function used by the read path, the endpoints, and the subscriber has no ordering assumption to get wrong
+  - **`hello-ai` grows exactly one proposing tool**, and it is the pedagogical answer to the risk W-226 recorded when it shipped a direct write first. Two tools on one scratch pad, side by side, say the thing a paragraph of guide prose cannot: `append_draft` writes because the user can see and undo it, `propose_draft_rewrite` proposes because replacing someone's text is not a change to make on their behalf. The propose tool is also a *pure module*, which makes the second point - proposing is read-plus-validate, and the write only happens in `adapter.applyProposal`
+  - W-228 (attachments) does not block this and is not blocked by it, per design §21.2
+- features:
+  - **phase 1 - server:**
+    - **`proposes: true` on the tool descriptor**, normalized beside `mutates` and exposed by `publicTool`, so it reaches the capability probe and `/tools`. Deliberately *not* a name prefix: design §9.1 removes the `propose_` check, and a prefix is a naming convention pretending to be a contract - the same argument §9.2 makes against flat capability booleans. `mutates` stays false on a proposing tool, because the tool call itself changes nothing; that contrast is a documented teaching point rather than an accident
+    - **the envelope carries the record.** A successful result from a proposing tool sets `data.proposal = { kind, payload, preview?, targetId? }`. `kind` is the site's own label, `payload` is whatever the site needs at apply time and is never interpreted by the framework, and `preview` is optional structured data for the card when the site would rather not render a node itself
+    - **the framework mints the id**, deterministically, from the turn id and the provider's tool-call id. The site writes no id code, and re-derivation is stable, which is what lets derivation and persistence be the same list rather than two lists that have to agree
+    - **`proposalsFromTurn(turn)` is the single source of truth:** a persisted `turn.proposals` wins, and otherwise the list is derived from `toolCalls` - ok-results carrying `data.proposal`, in call order. The read path (`apiListTurns`), both endpoints, and the history notes all call it, which is the §7.5 "one function answers this question" rule applied to cards
+    - **the `onAiTurnAfter` subscription** persists that list once per turn, idempotently, and writes nothing at all for a turn that produced no proposals **except** `proposingOffered: true` when a proposing tool was offered and the reply matched a claim phrase (so the next prompt and the panel guard can see it without rewriting `agentText`). A read-only agent's turns stay byte-identical to today's
+    - **`POST /api/1/ai/turn/:id/applied` and `/undone`**, `auth: 'user'`, ownership checked against `turn.createdBy` the way the WebSocket `onCreate` checks thread ownership, unknown turn or unknown proposal answered 404, and both idempotent. They take `proposalId` and nothing else
+    - **the endpoints are bookkeeping, not enforcement**, and that is stated in the guide rather than left to be discovered: the real write goes through the site's own authenticated API from `adapter.applyProposal`, which is the only party that can authorize it. The framework cannot authorize a write it does not understand, and pretending otherwise would put a security decision in the layer with the least information. A site needing an idempotency token for its write puts it on its own call, where it matters - the framework endpoint has no use for the reference site's `clientOpId`
+    - **the history notes are computed on read, from the records**, inside `historyToMessages`: one note per proposal turn listing its cards as applied / not applied / undone, one note when the latest proposal's latest card was undone, and one note when the last claiming turn produced no card. Only the *latest* proposal's undo matters - an older undo must not read as if a later Apply had been rolled back
+    - **stored `agentText` is never rewritten.** The reference appended its missing-card note into the stored text; post-turn that is both too late for the tab and destructive to the record, and it freezes today's phrase list into history. Computing on read means a phrase-list change takes effect on the next prompt and no migration exists
+    - **the false-claim phrases are site configuration:** a multi-line field on the AI admin tab, each line a plain phrase or `/regex/flags`, shipped with a short domain-neutral English default list so the guard works before an admin thinks about it. The phrase check only runs for a turn where a proposing tool was actually offered
+    - **one framework prompt sentence**, added to §9.6's tool-availability block when any offered tool declares `proposes: true`: a proposing tool creates a card the user must apply; several proposing calls in one turn each get a card and every pending card stays applyable; never claim a change was made unless a proposing tool succeeded. That is framework wording about framework machinery, which is exactly what §9.6 says the framework's own fragments are for
+    - **the cap and the duplicate refusal are declarations on the site's tool**, not framework code: `budget: { key: 'proposals', max: N, overMessage }` refuses the N+1st propose in one turn with the tool's own words, and `dedupeArgs: true` refuses a second card for identical arguments. Both already work; this item only documents the convention
+    - **the turn loop is not edited**, and a test asserts it: `turnLoop.js` source contains no proposal vocabulary at all. That turns the §9.1 rule into something CI enforces instead of something a reviewer has to remember
+  - **phase 2 - panel:**
+    - Apply cards render from the `proposals` the server returns with each turn, so a live turn and a reloaded tab take the identical path and there is no client-side derivation to keep in sync
+    - **several cards per turn** render in call order, each with its kind label, the site's preview, and its own state - pending, applied, undone, or failed. Two or more pending cards add "Apply all", which applies in order and stops on the first failure rather than plowing on
+    - **the adapter is called first and the endpoint second.** Apply awaits `adapter.applyProposal(proposal)` and posts `/applied` only on success, so a failed site write never records an applied card; Undo mirrors it. A rejected promise or a falsy result surfaces on the card, not in a toast that outlives the transcript
+    - a card is not applyable while a turn is running on that thread (the model may still be proposing), and renders read-only with a reason when the scope no longer grants `scope:write`
+    - `renderProposalPreview` may return a DOM node, or a string, which is escaped as text - a site wanting markup returns a node, so no adapter can inject markup by accident
+    - **the guard note** is panel chrome under a completed reply that matched a configured phrase, created no card, and ran in a turn where a proposing tool was offered. The reply itself is left exactly as the model wrote it
+    - `plg-ai-card-*` classes in the plugin's `view/jpulse-common.css`, `--jp-theme-*` colors only, no new `jp-*`; every string through `webapp/translations/`
+    - the transcript **pins to the bottom** on render, after layout, and on float-panel open, so a reload or a conversation switch lands on the latest cards
+    - **user prompts are right-aligned pills** (`plg-ai-user`) with a primary inset bar, so they read as "me" the way the reference panel does
+    - **`/tools` names render as `<code>`** after HTML escape — local slash replies go through `renderPlain`, not markdown, so backticks would otherwise stay literal
+  - **phase 3 - `hello-ai` and docs:**
+    - **`propose_draft_rewrite`** - `host: 'client'`, `module: 'proposeRewrite'`, `requires: 'scope:write'`, `proposes: true`, `dedupeArgs: true`, `budget: { key: 'proposals', max: 3 }`. A **pure module**: it reads the pad through `toolData`, validates the proposed text against the same 32 KB cap `read_draft` uses, and returns a proposal whose payload is the replacement text plus the length it expected to replace. It writes nothing, which is the point
+    - the demo adapter gains the trio: `renderProposalPreview` shows what replaces what, `applyProposal` stashes the previous pad text under the proposal id and sets the new text, `undoProposal` restores it. Undo of a textarea is small enough to read in one screen and complete enough to demonstrate the pattern, including two cards in one turn
+    - `examples` and the demo prompt fragment grow the propose case, and the fragment names the difference between the two write shapes so the model does not offer to "append" a rewrite
+    - **`ai-mock` needs no product change:** the structured `script.steps` with `$prior.<path>` from 1.0.2 already drives "read the pad, then propose a rewrite of what you read". Its 1.0.3 bump is version lockstep with the bundle; do not publish that directory
+    - guide sections for propose/apply: the descriptor flag and the envelope, the adapter trio, framework-versus-site ownership, the bookkeeping-not-enforcement note, the phrase policy, and when to choose a direct write over a proposal - which is the guide paragraph W-226 deferred to this item
+- deliverables:
+  - `plugins/ai-core/webapp/utils/proposals/index.js`:
+    - the whole layer, and the only new directory: `proposalsFromTurn()` derivation and id minting, `annotateHistory()` with the cards / undone / false-claim notes, `claimsWithoutCard()` and phrase compilation accepting plain text and `/regex/flags`, `persistTurnProposals()` for `onAiTurnAfter`, `applyProposalRecord` / `undoProposalRecord` (idempotent flags on each record), and `applyThenRecord` / `undoThenRecord` / `canApplyCard` / `pendingCards` so the panel and the tests share the same apply-then-record order. Imports no transport and no provider
+  - `plugins/ai-core/webapp/model/aiTurn.js`:
+    - `proposals: []` on create, plus `setProposals` and `markProposingOffered`. Applied / undone flags are written through `setProposals` by the proposals helpers rather than as model methods named `markApplied` / `markUndone`. The reference site's flat `proposalId` / `proposalKind` / `proposalPreview` / `proposalTargetId` mirror and its turn-level `applied` / `undone` are **not** ported - they were its own back-compat, and this collection has no history to be compatible with. No new index: every lookup is by `_id`
+  - `plugins/ai-core/webapp/controller/aiCore.js`:
+    - `POST /api/1/ai/turn/:id/applied` and `POST /api/1/ai/turn/:id/undone` with the ownership check, the derive-if-missing self-heal, idempotent marking, and the logging trio; `onAiTurnAfter` registered in `static hooks`; `proposals` on the `apiListTurns` payload; the phrase list and `proposes` per tool on the capability probe; the `proposalClaimPhrases` field on the AI config tab
+  - `plugins/ai-core/webapp/utils/tools/descriptor.js`:
+    - `proposes` normalized and carried by `publicTool`
+  - `plugins/ai-core/webapp/utils/agent/prompt.js`:
+    - the propose sentence in the availability block when a proposing tool is offered, and the `annotateHistory` step inside `historyToMessages`
+  - `plugins/ai-core/webapp/utils/agent/settings.js`:
+    - `proposalClaimPhrases` merged and normalized, with the shipped default list
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - card chrome in the transcript render, several cards per turn, "Apply all", the apply-then-record ordering, per-card states and failure surface, the running-turn and read-only-scope rules, the guard note, local `/tools` names as `<code>`, and `pinMessages` (render + double rAF + `floatPanel.onOpen`)
+  - `plugins/ai-core/webapp/view/jpulse-common.css`:
+    - `plg-ai-card-*` over the existing chat classes; right-aligned `plg-ai-user` pills; `.plg-ai-plain code`; `--jp-theme-*` only
+  - `plugins/ai-core/webapp/translations/en.conf`, `de.conf`:
+    - card strings: apply, undo, apply all, applied, undone, apply failed, the no-card guard note, the running-turn and read-only reasons
+  - `plugins/ai-core/webapp/utils/ai-tools/proposeRewrite.js`, `plugins/ai-core/webapp/controller/helloAi.js`, `plugins/ai-core/webapp/view/hello-ai/index.shtml`:
+    - the pure propose module; the descriptor registered beside the existing three and still gated on `scopeType === 'hello-ai'`; the adapter trio, the new example, and the updated prompt fragment
+  - `plugins/ai-core/webapp/tests/unit/proposals.test.js` (plus additions to the existing suites):
+    - derivation: proposals from `toolCalls` in call order, ids stable across re-derivation, a persisted array winning, non-ok results and results without `data.proposal` ignored
+    - endpoints: a non-owner refused; an unknown turn and an unknown proposal id refused; apply idempotent; undo after apply; the derive-if-missing path when `onAiTurnAfter` has not run yet
+    - notes: the cards note wording for applied / not applied / undone; only the latest proposal's undo producing the undone note; the false-claim note when a phrase matches and no card exists; **no note of any kind for a turn where no proposing tool was offered**; a configured phrase list replacing the default, including a `/regex/` entry
+    - budgets: the N+1st propose refused with the tool's own `overMessage`, and a second propose with identical arguments deduped - asserting the existing machinery covers what the reference loop counted by hand
+    - loop purity: `turnLoop.js` contains no proposal vocabulary
+    - panel: `applyThenRecord` calls the adapter before it records, an adapter failure records nothing, two pending cards and apply-all stop on first failure, running / read-only reasons via `canApplyCard`, and a read-only phrase match produces no guard note. Card chrome itself is in `jpulse-common.js` and is not driven through a jsdom suite
+    - `hello-ai`: `proposeRewrite.js` run in Node against fixture data (the two-host claim again), and the apply/undo round trip against a stub pad
+  - `plugins/ai-core/docs/README.md`, `plugins/ai-core/README.md`:
+    - the propose/apply guide section, the adapter trio, the ownership split, the bookkeeping-not-enforcement note, the phrase policy, the direct-write-versus-proposal guidance, and the `hello-ai` walkthrough for the second write shape. Version numbers, never work-item numbers
+  - framework-repo docs are **not** part of this item's commits - see notes
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md`. Read §13 for the layer, §9.1 for what must stay out of the loop, §21.6 for the phases, and §12.1 for the adapter. Rev 12 records this item's decisions
+  - **repo layout: `plugins/ai-core` is its own git repo and its own commit**, gitignored by the framework repo. `ai-mock` has no product change; its tree still gets the 1.0.3 header bump as a bundle member. Publish only from `plugins/ai-core`. Add the untracked `webapp/utils/proposals/`, `webapp/utils/ai-tools/proposeRewrite.js`, and `webapp/tests/unit/proposals.test.js` — they are the layer and are not in a `git diff` of tracked files
+  - **five spec decisions taken before implementation**, each with the alternative that was rejected:
+    - *detection*: `proposes: true` on the descriptor **and** `data.proposal` in the envelope. Envelope-only was rejected because the prompt sentence, `/tools`, and the guard all need to know a proposing tool was *offered*, which a result cannot tell them; descriptor-only was rejected because the payload has to come from somewhere
+    - *ids*: framework-minted from turn id plus tool-call id. Site-supplied ids were the reference site's way and would make every site write id code for something the framework can derive deterministically
+    - *phrases*: an admin field with a shipped English default. An empty default was rejected because a guard nobody configures is a guard that never fires, and a code-only hook was rejected because phrases are the kind of thing an admin should be able to tune after reading one bad transcript
+    - *guard placement*: a history note to the model plus a panel note to the user, with the stored reply untouched. Porting the reference's `agentText` rewrite was rejected for the reasons in features/phase 1
+    - *the demo*: one proposing tool in `hello-ai` as a pure module. Tests-and-chrome-only was rejected because it ships three adapter members proven against nothing, which is a weaker standard than the one W-226 set for itself
+  - **as-built:** implementation is in `plugins/ai-core` 1.0.3. Applied/undone flags live on each record via `applyProposalRecord` / `undoProposalRecord` and `setProposals`, not as `AiTurnModel.markApplied` / `markUndone`. Persist still writes nothing on a read-only turn; the one extra write is `proposingOffered: true` on a claiming turn with no card. Panel tests cover the shared helpers rather than a jsdom render of `jpulse-common.js`. `turnLoop.js` is header-only in the 1.0.3 diff. Manual hello-ai: propose → Apply → Undo; two and three cards plus Apply all; budget refuses the 4th propose in one turn; identical args dedupe to one card; reload keeps pending cards. `/tools` names render as `<code>`. Prompt/tool copy says several proposing calls in one turn all stay applyable. Panel pins the transcript to the bottom on render, after layout, and on float-panel open. User prompts are right-aligned pills with a primary accent bar. False-claim guard was not forced in the browser (needs a reply that claims a card and creates none)
+  - **equivalent functionality to the reference site**, feature by feature, since design §18 step 4 migrates that site onto this: proposal records → derived and persisted per turn; `maxProposalsPerTurn` → `budget: { key: 'proposals' }`; the propose-args dedupe → `dedupeArgs: true`; `claimsApplyWithoutProposal()`'s regex list → configured phrases; its undone and false-proposal system notes → the same two notes computed at history assembly; the missing-card note appended to `agentText` → the panel's guard note; "Apply all" for two or more pending cards → framework chrome; its six proposal kinds and their validators and previews → the site's own modules behind `renderProposalPreview` and its propose tools, since the framework passes `kind` through as a label and never interprets it. Nothing the reference site does is lost; what changes is which side of the line each piece sits on
+  - **compatibility is deliberately unconstrained.** The AI plugins are new in this release train, so the spec was changed where it improved DX rather than preserved: `proposes` beside `mutates`, framework-minted ids, no flat proposal mirror, no `maxProposalsPerTurn` setting, and notes computed on read. Design §18 already states that the reference site has no supported upgrade path to preserve
+  - out of scope, each with its own item or number: attachments, URL ingest, document conversion, and vision (W-228); `ai-mcp-server` and `ai-openai` (standalone); a hook letting a site contribute its own history notes (design TD-14); re-applying an undone card, which the model is told to propose again instead; the reference site's migration, which is that site's repository
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests - use an isolated temp project or the plugin-cli harness
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -9104,7 +9207,7 @@ git tag v2.0.3; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.2 2026-09-17
+node ../../bin/bump-version.js 1.0.3 2026-09-17
 git diff
 git status
 git add .
@@ -9163,9 +9266,7 @@ template:
 - deliverables:
   - FIXME `path/file`:
     - FIXME summary
-- notes:            // optional
-- tests:            // optional
-- tech-debt:        // optional
+- notes:
 
 ### W-202, v1.7.6, 2026-08-xx: auth: add locked status
 - status: 🕑 PENDING

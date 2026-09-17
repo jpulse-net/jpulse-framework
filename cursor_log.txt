@@ -25592,3 +25592,131 @@ Reviewed the framework tree against published @jpulse-net/plugin-ai-core 1.0.2. 
 
 
 ============================================================
+2026-09-16 20:46
+
+Compare docs/dev/design/W-223-ai-agent.md W-226 claims against the SHIPPED plugin implementation under plugins/ai-core and plugins/ai-mock. [... full user query ...]
+
+Reported design-vs-code mismatches only: stale W-225/onCreate/§22.2 present tense vs framework 2.0.3 websocket.js; §11.1/§12.1/§21.3/§22 unshipped-or-historical claims (attachments, URL card, client-host until W-226, hello-ai when W-226 lands); Rev 7 §8.2 typo site/webapp/ai-tools/; §12.1/§13 proposal adapter and endpoints absent in 1.0.2 code; §13 endpoints not in aiCore routes; plugin.json 1.0.2 >=2.0.3 matches; no webapp/ai-tools/ in plugins; W-226 panel/hello-ai/mock items aligned with As Built 13–19 where checked.
+
+
+============================================================
+2026-09-16 20:46
+
+release done
+- review docs/dev/design/W-223-ai-agent.md if it matches actual implementation
+- fix if needed
+- give me a summary I can carry over to a new chat for W-227
+
+W-226 as-built matches shipped 1.0.2. Rev 11: W-225/onCreate and hello-ai are published; §12.1 marks attachments and *Proposal as later items; §11.1 is the reference site; §22.2 has no open framework source change. Left W-227 work-item stub untouched. Handoff written for the next chat.
+
+
+============================================================
+2026-09-16 21:18
+
+Next: W-227, v1.0.3, 2026-09-17: ai: propose and apply [... full handoff: released baseline, what 1.0.2 has, what §21.6 builds, constraints, the open spec question about a second hello-ai tool ...] Please: review work item stub + design §13 / §9.1 / §21.6, ask if unclear, suggest spec/DX, plan implementation. Wait for go-ahead before coding.
+Then: looks good. on compat: no concern with ai plugins, all new, we can tweak spec for better dx and ux; no concern with bubblemap app, as long as equivalent functionality is provided. write the work item; expand on design doc
+
+Reviewed the stub, design §13/§9.1/§21.6/§12.1, the shipped 1.0.2 code, and the reference site's propose/apply (aiProposal.js, aiTurnLoop.js notes, aiAgentTurn.js, aiAgent.js endpoints, map-canvas-ai.tmpl cards). Findings: the tools layer's budget + dedupeArgs from 1.0.0 already replace the reference loop's proposal counter and "already carded" refusal; onAiTurnAfter fires after the completed event that makes the panel re-fetch turns, so records are derived by one pure function over toolCalls and the subscription only persists them; publicTool already carries mutates so proposes rides along; the guard splits into a computed history note plus panel chrome instead of rewriting stored agentText. Five spec decisions confirmed: descriptor proposes + data.proposal, framework-minted ids from turn+call id, admin phrase list with a shipped English default, split guard, and one proposing tool in hello-ai as a pure module. Wrote the W-227 work item (title, objectives, prerequisites, rationale, three phases, deliverables, notes including the reference-site equivalence map and the rejected alternatives); status and section left as found. Expanded the design doc: header, Rev 12, §9.1 (where each removed piece landed), §12.1 (adapter trio and the Apply-card bullet), §13 rewritten with §13.1-§13.5, §16, §17 (phrase list), §19 (propose/apply tests), new TD-14, §21.6 (three phases), §22.1 (utils/proposals/), and a Decisions-taken bullet. No plugin code yet.
+
+
+============================================================
+2026-09-16 21:49
+
+go on
+Then: grok: implement phase 1; proceed with phase 2 and 3 unless questions
+
+Implemented W-227 propose/apply in plugins/ai-core (no version bump, no turn-loop edit). Phase 1: utils/proposals/index.js (derive, persist, notes, apply-then-record), turn.proposals + markProposingOffered, proposes on the descriptor, prompt sentence + history annotation, proposalClaimPhrases settings/config, POST /applied and /undone. Phase 2: Apply card chrome, Apply all, guard note, plg-ai-card-* CSS, en/de strings. Phase 3: proposeRewrite module, hello-ai adapter trio, guide section. 129 unit tests passed. Did not browser-verify hello-ai (no running server). Plugin commit/publish still with the user.
+
+
+============================================================
+2026-09-16 21:54
+
+go on
+
+Started the app on 8080. /hello-ai/ shows the Apply-card copy; /help lists "Propose a shorter rewrite of the scratch pad"; .plg-ai-card CSS is loaded. Live propose → Apply → Undo still needs a signed-in session (panel: Authentication required). Folded as-built into W-227: applied/undone via proposals helpers + setProposals, persist writes proposingOffered on a claiming no-card turn, panel tests cover helpers not jsdom. Status left PENDING. App left running on 8080.
+
+
+============================================================
+2026-09-16 22:14
+
+Briefly inform the user about the task result (npm start on 8080 finished)
+
+The local jPulse process exited cleanly after SIGTERM (exit 0). Port 8080 is no longer serving.
+
+
+============================================================
+2026-09-16 22:21
+
+- first test ok
+- /tools shows markdown backticks. use html instead?
+- german translation claim + now.The
+- let me know some manual tests
+
+/tools is a local slash reply rendered with renderPlain, so markdown backticks stayed literal. convert `name` to <code> after escapeHtml; theme-colored .plg-ai-plain code. now.The is model/stream text with no whitespace, not a join bug. Write-claim ("has been added") is outside the Apply-card guard. Listed manual tests for propose/apply, false claim, append vs propose, undo, apply-all.
+
+
+============================================================
+2026-09-16 22:51
+
+see ss; Propose two different shorter rewrites — model said one shot / only latest card active, then two cards + Apply all
+
+Framework was correct (two cards, Alle übernehmen, apply/undo both). Model invented a one-active-card rule. Tightened PROPOSE_PROMPT, hello-ai fragment, and propose_draft_rewrite description: several proposing calls per turn, every pending card stays applyable. Guide sentence added. /tools code styling confirmed in ss.
+
+
+============================================================
+2026-09-16 22:57
+
+I am not clear about "a reply that says click Apply with no card (guard note), a fourth propose in one turn (budget)"
+
+Explained: guard is opportunistic — fires only if the model claims an Apply card in text and created none (German note: Es wurde keine Übernehmen-Karte erzeugt.). Budget: one message asking for four different rewrites; the 4th propose_draft_rewrite call is refused with "This turn already made 3 proposals." Latest ss show two-card apply one-by-one working.
+
+
+============================================================
+2026-09-16 23:01
+
+Propose four… — three cards + budget refusal; what else to test?
+
+Budget test passed. Remaining worth a click: reload with pending cards, Alle übernehmen on the three, same-text dedupe, new conversation isolation. Skip guard-forcing, ownership, read-only unless they have a no-write user handy. Usage page is unrelated.
+
+
+============================================================
+2026-09-16 23:06
+
+reload shows the 3 proposals but I have to scroll; always scroll to bottom on panel load / switch chat; other tests ok
+
+renderTurns already set scrollTop, but that ran before the float panel had a height (closed or still opening). pinMessages now: immediate + double rAF, and floatPanel onOpen. Hard-refresh to pick up the JS.
+
+
+============================================================
+2026-09-16 23:21
+
+stuck again... make user prompts more obvious like a text message; indent own message; reference panel ss
+
+User bubbles now sit on the right (margin-left: auto, max-width calc 100%-36px), pill radius, tertiary bg, inset primary accent bar — same idea as the reference pill.
+
+
+============================================================
+2026-09-16 23:27
+
+looks good; anything else before commit and publish?
+
+Nothing blocking. Folded late UX into W-227 as-built (status left PENDING). plugin.json summary now mentions propose/apply. Publish is from plugins/ai-core only: user runs bump 1.0.3, commit that repo, dry-run then publish. ai-mock unchanged. I do not bump or change work-item status.
+
+
+============================================================
+2026-09-16 23:37
+
+review tt-git-diff.txt; update W-227, design W-223, both tt-commit.txt; assume W-227 v1.0.3 2026-09-17
+
+Diff is two repos: ai-mock version-only lockstep; ai-core is the feature. Untracked proposals/, proposeRewrite.js, proposals.test.js are listed but not in hunks — must git add. turnLoop.js header-only. Work item and design Rev 13 as-built aligned. Commit notes written. Status left PENDING.
+
+
+============================================================
+2026-09-16 23:47
+
+commits done; publish done (@jpulse-net/plugin-ai-core@1.0.3); give W-228 new-chat summary
+
+Publish tarball included proposals/, proposeRewrite.js, proposals.test.js. Wrote W-228 handoff: baseline 1.0.3, design §14 / §21.7 / §12.1 gaps, four phases, existing vision-gate seam, UrlFetch, no W-227 dependency. Status of W-227 left as found.
+
+
+============================================================

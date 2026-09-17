@@ -9039,17 +9039,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - the multi-round argument is **not** a reason for the write: `read_draft` then `get_hello_clock` is also two rounds. The mock's step sequence earns its place independently of which tools it names
   - **one deliberate spec extension**, recorded in phase 4: the mock's step sequence. Design §21.5 specifies a single targeted call plus a summary, and "summarize the draft and append the summary" is inherently two calls. Everything else in this entry is a clarification of §21.5, §8.2, §11.2, §12.1, and §22.1 rather than a departure from them. Design Rev 8 carries the same amendment; Rev 10 is as-built after implementation
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-227, v1.0.3, 2026-09-17: ai: ai-core plugin with propose and apply
-- status: 🕑 PENDING
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - ship "the agent proposes, the user applies" as framework machinery: proposal records on the turn, the apply and undo endpoints, the Apply card chrome, the false-claim guard, and the history notes that tell the model what became of its cards
@@ -9150,6 +9141,149 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **compatibility is deliberately unconstrained.** The AI plugins are new in this release train, so the spec was changed where it improved DX rather than preserved: `proposes` beside `mutates`, framework-minted ids, no flat proposal mirror, no `maxProposalsPerTurn` setting, and notes computed on read. Design §18 already states that the reference site has no supported upgrade path to preserve
   - out of scope, each with its own item or number: attachments, URL ingest, document conversion, and vision (W-228); `ai-mcp-server` and `ai-openai` (standalone); a hook letting a site contribute its own history notes (design TD-14); re-applying an undone card, which the model is told to propose again instead; the reference site's migration, which is that site's repository
   - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests - use an isolated temp project or the plugin-cli harness
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-228, v1.0.4, 2026-09-17: ai: ai-core plugin with attachments, URL ingest, document conversion, and vision
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - let a file, a pasted block of text, a URL, and an image join a conversation, as framework machinery: the source strip and its chips, the prompt manifest, the read tool, URL ingest on the framework's own `UrlFetch`, the document-conversion call path, and image staging that actually reaches a vision model
+  - **read through a tool, never injected.** Source text stays out of the prompt and out of the turn record; the prompt carries a metadata manifest and the model asks for an outline, a section, or a character window. That is what makes a 200-page document usable at all, and it is also what keeps untrusted text inside `<<<SOURCE …>>>` markers where the framework's own safety fragment already calls it a quotation rather than a request
+  - **keep it out of the turn loop** (design §9.1, §14). Sources, ingest, and conversion never touch `turnLoop.js`; images touch it once, as tolerance for an array `content` where a string used to be pushed. Everything about staging, MIME, caps, and base64 lives in `webapp/utils/attachments/`, the same way propose/apply lives in `webapp/utils/proposals/` - and the same loop-purity test asserts it
+  - **text sources live in the tab**, behind a client-host pure module (design §8.2, §14.1). No collection, no upload, no retention policy, and no quota surface for data that one drop or one paste re-creates. What survives a reload is the evidence rather than the text: `sourceRefs` on the turn plus a badge on the transcript
+  - **document conversion is not an AI feature.** The two hooks are framework-owned and AI-free (W-229), `ai-core` only calls them, and no converter ships here. A PDF drop on a bare install is a clean refusal naming what to install
+  - **bytes stream.** The convert upload and the image upload are `bodyMode: 'stream'` routes with a byte cap, not base64 inside a JSON envelope - which is what `docs/genai-instructions.md` already tells every site to do, and W-228 is the first consumer of W-217 / W-219 anywhere in the tree
+  - **opt-in throughout:** a site that never enables sources gets no chips, no manifest, no tool, and no endpoint traffic; a site whose models have no vision gets no image affordance. Both are properties to test rather than assume, the same way W-227 tested that a read-only agent never meets a proposal
+  - leave the door open for the site features that start where this item stops: the panel keeps the user's original `File` reachable, and source ids stay opaque, so "attach the document you just read onto my own object" and "a source that outlives the tab" are additive later (design TD-16) instead of a reshaping
+  - hand-over item: written to be implemented from this entry plus `docs/dev/design/W-223-ai-agent.md`, which is the authority wherever this entry is thinner
+- prerequisites:
+  - W-226, `@jpulse-net/plugin-ai-core` 1.0.2: the panel, the site adapter, the client-host bridge, and the tool-module loader with its content-hashed module route. Chips are chrome inside a panel that exists, and the source tool is a module the loader already knows how to run in the tab
+  - W-223, 1.0.0, **declarative budgets already in the tools layer.** `budget: { max: 'maxSourceReadsPerTurn', countWhen }` is exactly the reference site's hardcoded read counter plus its `isSourceTextRead()` predicate - an outline listing is free, a text window counts. `settings.maxSourceReadsPerTurn` already normalizes. No counter is written in this item
+  - W-223, 1.0.0, the result envelope and `onAiPromptFragment`: `data.media` is a normalizer change on an envelope that already normalizes fields, and the manifest is a framework fragment in a slot design §9.6 reserved for it
+  - W-224, 1.0.1: `gateModelsForVision(menu, { hasImages })` and `GET /api/1/ai/capability?hasImages=1`. This item wires `hasImages` to real staged images instead of the query flag, and adds nothing to the menu
+  - W-224, `@jpulse-net/plugin-ai-anthropic` 1.0.0: already maps `{ type: 'image', mimeType, data }` content parts onto Anthropic's base64 image blocks, so **no provider release is needed** for vision. Design §9.2 now states the part shape as contract rather than leaving it an accident of the port
+  - v2.0.3 `UrlFetch` (`docs/url-fetch.md`): private-address guard, per-redirect re-validation, encoded and decoded byte caps, stall and total timeouts, rate-limit key, and the code vocabulary the panel messages map from. Callers narrow and cannot widen
+  - v1.8.0 W-217 `bodyMode: 'stream'` + `StreamBody.pipe`, and v1.8.2 W-219's nginx streaming location and `uploads` rate-limit zone. `SiteControllerRegistry` collects `bodyMode` / `bodyLimit` from plugin controllers the same way it does for site controllers, and `StreamBody` is on `global`
+  - Redis, for image staging only. Threads, turns, and sources work without it; images do not, and the capability probe says so rather than failing at paste time
+  - W-229 (framework document-conversion hook definitions) is **not** a blocker in either direction: an undefined hook still executes under its mode's default error policy, so phase 3 works before W-229 ships and W-229 needs no consumer to ship (design §16, §21.1)
+  - `jpulseVersion` stays `>=2.0.3`. No framework source change in this item
+- rationale:
+  - the reference site runs all four features and the domain-free part outnumbers the domain part again: the source module, the manifest formatters, the ingest mapping, the convert call path, the staging mailbox, and the chip strip are generic; the propose-onto-a-bubble steering, the extract rule, and the bubble metadata copy are not. Roughly 80% of its source and image *prompt* text is domain steering, which belongs to sites through `onAiPromptFragment` and must not be ported
+  - **the shape of phase 1 came from reading the reference site rather than from design §14's bullets.** There, `get_source` is `host: 'client'`, ids are tab-scoped, and the outline / section / window / caps / delimiter logic is already a pure module loaded both in the browser and under Jest. That is `ai-core`'s shared-module shape exactly, so the framework's share is a module, a manifest, chips, and a reserved data path - not a storage subsystem
+  - **panel-owned tool data is the difference between attachments that work and attachments that look like they work.** Every other client-host tool gets its data from `adapter.toolData(name)`; a source tool that did the same would silently return nothing on a site with no adapter, which is the one-liner case the whole design is built around. So the bridge consults a panel-internal provider first, and `ai-core`'s own client tool names are reserved
+  - **design §14 was wrong about the convert hooks and the correction is worth the item.** `onDocumentConvertRegister` / `onDocumentConvert` are defined by the *reference site's* AI controller and consumed by two of its plugins; the framework has never heard of them. Defining them inside `ai-core` would work identically and say the wrong thing - a PDF-to-markdown converter would depend on an AI package, and document conversion has obvious non-AI consumers (preview, export, search indexing). Two `HookManager` facts make the framework option cheap: an undefined hook executes under its mode default, and an identical second definition is a deliberate no-op, so definer and caller are decoupled and the releases are unordered
+  - **base64-in-JSON was the reference site's only option and is no longer ours.** W-217 / W-219 shipped streaming request bodies and the nginx location for them, and nothing in the tree uses either; the framework's own gen-AI instructions say not to buffer a file as base64 JSON. A 4 MB image costs ~5.5 MB of buffered string on the old path. Using the new one also gives that capability its first real exercise
+  - **images are the only part that reaches a provider message, and that reach is deliberately one line.** The reference loop pushes staged image content as extra user messages and pushes a tool-returned image the same way; both are content-part tolerance rather than attachment logic, so the module builds the parts and the loop only accepts an array. `data.media` is the mirror of `data.proposal` - lifted out of `data` by the envelope normalizer so the tool-result message the model reads stays text and the bytes are not sent twice
+  - **`ai-mock` needs a real product change this time**, unlike W-227's version-lockstep bump: it declares `capabilities: { vision: false }` and its content flattener drops non-text parts, so with only the bundle installed the vision path cannot be exercised at all - no row is ever greyed and no test can assert an image arrived. A second model row that advertises vision and names the images it was handed fixes both and makes `hello-ai`'s gate demonstrable
+  - **gating at send rather than at attach** is a correction, not a port: the reference refuses an image when the *site default* provider lacks vision, which blocks a user who has explicitly picked a vision model on that thread. The thread carries its own pair since 1.0.1, and the menu already greys the rows that cannot see
+  - the reference site's own reasoning for memory-only sources holds here and is worth restating rather than re-deciding: a mirror in `sessionStorage` writes source text to the user's disk, survives logout on a shared machine, needs a user-and-thread stamp checked on every read, and buys one re-add gesture - while the part users actually need across a reload is the record that external text entered a past turn, which is durable
+- features:
+  - **phase 1 - sources:**
+    - **one pure module** (`webapp/utils/ai-tools/sources.js`) with the whole read surface: outline extraction with headings and sizes, a section read, a character window with `offset` / `limit`, per-source and total character caps, name derivation for a paste, and the `<<<SOURCE …>>>` / `<<<END SOURCE>>>` wrap. Runs in the tab through the module loader and in Jest against fixture data, which is the two-host claim W-226 made and this item re-tests
+    - **`get_source` and `list_sources` registered by `ai-core` itself**, `host: 'client'`, `module: 'sources'`, `requires: 'scope:read'`, offered only when sources are enabled and the thread has at least one. `list_sources` returns ids, names, origins, types, sizes, and section counts and never text; `get_source` on a bare id returns the outline, and text only with a section or a window
+    - **panel-owned tool data.** The client bridge consults a panel-internal provider before `adapter.toolData`, so a site with no adapter still gets working sources. `ai-core`'s own client tool names are reserved and documented as such
+    - **the read budget is a declaration:** `budget: { key: 'sourceReads', max: 'maxSourceReadsPerTurn', countWhen }`, where an outline listing does not count and a text read does. `dedupeArgs` is not set - re-reading the same window is legitimate paging behavior
+    - **the prompt manifest** goes in the slot design §9.6 reserved: one line per source with id, name, type, size, section count, and the URL when it has one, plus the sentence naming the read tool. Metadata only. The formatter takes its labels from `onAiScopeResolve` so nothing domain-shaped is baked in
+    - **chips in the panel:** add by drop on the panel, by file picker, by paste, or by URL (phase 2); each chip shows a type icon (file / URL / image), name, and a hover tooltip, and click opens a compact details card (copy for name and URL). The strip states its own lifetime - sources end with this tab and this conversation - so a reload does not teach it by surprise. `/new` and a conversation switch clear it, as they already clear cards and the stream buffer. **(+)** wraps on the same row as the last chip. Refuse a type the panel cannot read (PDF with no converter) by a red drop hover; a toast names the reason when useful
+    - **`sourceRefs` on the turn record** (id, name, origin, type per source or image present when the turn ran) plus a small badge after the prompt in the transcript listing them. That is the durable half of memory-only: it survives a reload and appears in the user's other tabs even though the sources do not
+    - **ids are opaque.** No prefix is validated anywhere in the framework, so a site-resolved source can later join the same manifest and the same tool (design TD-16)
+    - **the original bytes stay reachable:** the panel retains the `File` or pasted `Blob` behind a chip and exposes `handle.sources()` and `handle.sourceFile(id)`; `adapter.sourceAttachable(source)` is optional and decides which sources the site would accept on one of its own objects, defaulting to file-origin only. This is what a site needs to attach a document the agent just read onto its own object, and it costs nothing to a site that does not
+    - **caps and the enable switch on the AI admin tab:** `sourcesEnabled`, `sourceMimeTypes`, `maxSourcesPerConversation`, `maxSourceChars`, `maxTotalSourceChars`, `maxSourceReadChars`, `maxSourceReadsPerTurn`
+    - **no loop edit**, asserted by the same style of test W-227 used: `turnLoop.js` contains no source vocabulary
+  - **phase 2 - URL ingest:**
+    - **`POST /api/1/ai/source/fetch`** on `UrlFetch`, narrowing rather than widening: an accept list of `text/plain`, `text/markdown`, `text/csv`, `text/html` (extended by registered converter types once phase 3 lands), a byte cap under the site ceiling, a rate-limit key, and `req` passed so an SSRF attempt names who tried it
+    - **a small HTML extractor** - readability-lite, no DOM library, no headless browser: main-content heuristic falling back to `<body>`, headings and lists to markdown, `<script>` / `<style>` contents never emitted, entity decoding, a `<title>` with the site-name suffix trimmed for the source name, and text that itself contains `<<<SOURCE` left harmless. Fixtures are small and hand-written so they do not rot
+    - **an empty-shell verdict** for a client-rendered page: below a text-to-bytes threshold the answer is the paste instruction, not a shell of navigation text
+    - **provenance** on the source: requested URL, final URL, fetch time, content type, decoded byte count, digest, and redirect count, shown on the chip and carried in `sourceRefs`
+    - **one user-facing message per `UrlFetch` code**, each naming what to do - which host to allow, which type is supported, that the page is over the cap, that only http and https are accepted
+    - **the URL-intercept card**: a URL in the compose box offers to fetch it before the turn starts. Accept ingests and sends; cancel puts the prompt back and spends no turn; send-as-is skips the fetch. Hidden when the prompt is a question *about* the link rather than a request to read it (`what` / `describe` / `is this the link`, plus the German question words), and never an agent-callable fetch - that would reintroduce the outbound channel exfiltration mitigation relies on not existing. Add-URL uses `jPulse.UI.confirmDialog` (Enter and the default button close on a real URL; `true` from an object-style button is `dontClose`)
+    - admin keys: `urlIngestEnabled`, `urlMaxBytes`, `urlTimeoutMs`, `urlAllowedHosts`, `urlBlockedHosts`
+  - **phase 3 - document conversion:**
+    - **`POST /api/1/ai/source/convert`** as a **streaming route**: `bodyMode: 'stream'`, `bodyLimit` as the byte cap, raw bytes with the metadata in headers or query, `StreamBody.pipe` into a capped buffer, and a 413 in the framework's own envelope when it overflows. The converted markdown comes back as an ordinary in-tab source chip, so phase 1's memory-only rule holds for a converted document too
+    - **`listConverters()` over `onDocumentConvertRegister`**, and conversion over `onDocumentConvert` - both called without being defined here (W-229 owns the definitions). Per-MIME registration; a descriptor may declare its own page ceiling, a unit label (`page` / `sheet` / `slide`) that drives truncation copy, and formats it explicitly refuses
+    - **ordered retry across converters claiming one type:** `executeForPlugin` dispatches to a single plugin, so `ai-core` tries the registered claimants in order until one returns text. That is what makes "extract first, OCR when the text comes back empty" a plugin install rather than a code change
+    - **caps are the caller's:** the site page limit merged with the converter's, the source character cap, and a convert timeout. Truncation is reported in the converter's own unit
+    - **an empty extract is a refusal that names the reason** - a scanned PDF has no text layer, so its message must not offer the paste workaround; an encrypted or image-only file says that instead
+    - the panel's accept list and its chip type labels follow the live descriptor list, so a disabled or absent converter never offers a type it cannot read
+    - **no converter ships.** A PDF drop on a bare install is a clean refusal naming what to install. Whether the reference site's PDF and Office converters become published framework plugins is a separate item on the same hooks, and needs no change here
+  - **phase 4 - images and vision:**
+    - **`POST /api/1/ai/image/stage`**, a streaming route like convert: raw bytes, MIME allowlist (`image/png`, `image/jpeg`, `image/webp`, `image/gif`, with `image/jpg` normalized), a byte cap, and a client-side resize to a maximum edge before upload. Bytes are parked in Redis under a key scoped to user, thread, and image id with a short TTL. **Redis only** - no fallback to process memory, Mongo, or disk, because an image that outlives its turn is a copy of a user's file somewhere nobody manages
+    - **park-on-send / read-once / delete:** the turn reads each key once and deletes it; chip removal, `/new`, and a conversation switch delete it too
+    - **gating at send, against the thread's pair.** Staging is always allowed; the send either carries the images or says why it cannot. `gateModelsForVision` already greys the rows that cannot see, and `hasImages` on the capability probe now comes from real staged images rather than only the query flag
+    - **the capability probe reports images unavailable when Redis is absent**, and the panel hides the affordance rather than failing at paste time
+    - **content parts:** the attachments module builds `[ { type: 'text', … }, { type: 'image', mimeType, data } ]` and the loop tolerates an array `content` where it used to push a string. The images manifest lists id, name, pixel size, and format; the turn record and the persisted tool call keep metadata only
+    - **`data.media` for a tool that returns an image:** the envelope normalizer lifts it out of `data` at execute time so the tool-result message stays text, and the parts become a follow-up user message. How many images one turn may pull in is an ordinary `budget` on the site's tool, not a loop counter. This is what a site needs to hand the model a picture stored on its own object
+    - **`ai-mock` gains a vision model row** that advertises `capabilities.vision` and names the images it was handed, so the gate is demonstrable in `hello-ai` and the whole path is assertable in CI with no API key and no spend
+    - admin keys: `imagesEnabled`, `imageMimeTypes`, `maxImageBytes`, `maxImageEdge`, `imageStageTtlSec`
+    - **`hello-ai` grows the paste case:** drop or paste an image on the panel, ask what it says, and watch the model pick a vision row - with the mock's non-vision row greyed beside it. Plus one source dropped and read end to end, which is the phase 1 demo
+- deliverables:
+  - `plugins/ai-core/webapp/utils/attachments/` (`index.js`, `ingest.js`, `html.js`, `convert.js`, `images.js`, `stream.js`, `tools.js`):
+    - the layer: manifest formatters for sources and images (plus the empty-sources policy block), `UrlFetch` ingest mapping and per-code messages, the HTML extractor and its empty-shell verdict, provenance, the converter registry call path with cap merge and ordered retry, the Redis image mailbox (stage, take-once, delete), the content-part builder, and the `list_sources` / `get_source` descriptors. Imports no transport and no provider
+  - `plugins/ai-core/webapp/utils/ai-tools/sources.js`:
+    - the pure read module: outline, section, window, caps, delimiter wrap, paste naming
+  - `plugins/ai-core/webapp/utils/agent/inputs.js`:
+    - the thin loop-facing wrapper: `openUserContent`, `refsForTurn`, `turnExtras`, `followFromResult`. Keeps MIME, Redis, and staging vocabulary out of `turnLoop.js`
+  - `plugins/ai-core/webapp/controller/aiCore.js`:
+    - `POST /api/1/ai/source/fetch`; `POST /api/1/ai/source/convert` and `POST /api/1/ai/image/stage` as `bodyMode: 'stream'` entries in `static routes`; `list_sources` / `get_source` registration; `sourceRefs` on the turn payload; real `hasImages` on the capability probe plus an images-available flag; the new admin fields; the logging trio on every endpoint
+  - `plugins/ai-core/webapp/utils/tools/execute.js`:
+    - `data.media` lifted out of `data` at normalize time (`liftMedia`); `stripMedia` leaves the stored tool-result text-only
+  - `plugins/ai-core/webapp/utils/agent/prompt.js`:
+    - the sources and images manifest fragments in §9.6's slot, parameterized by `onAiScopeResolve` labels; the empty-sources policy when those tools are withheld as `no-sources`
+  - `plugins/ai-core/webapp/utils/agent/turnLoop.js`:
+    - user `content` may be an array of parts; `sourceRefs` written on create; `followFromResult` extras become follow-up user messages. No staging, MIME, or base64 vocabulary — those stay in `inputs.js` / `attachments/`
+  - `plugins/ai-core/webapp/utils/agent/settings.js`:
+    - the source, URL, convert, and image keys merged and normalized with defaults
+  - `plugins/ai-core/webapp/model/aiTurn.js`:
+    - `sourceRefs: []` on create, written once per turn. No new index
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - the chip strip and its add paths (drop, picker, paste, URL), chip tooltip and click-details pop, compact compose (Send beside the prompt), drop hover, toasts, the intercept card, staged-image chips, the panel-internal tool-data provider, `handle.sources()` / `handle.sourceFile(id)`, the `sourceRefs` badge in the transcript, and the images-unavailable and vision-gated surfaces (gate clears `pendingUser` so the dots stop)
+  - `plugins/ai-core/webapp/view/jpulse-common.css`:
+    - `plg-ai-chip-*` (including pop and icon), `plg-ai-strip-*` (`display: contents` on the chip wrap so **(+)** stays with the last chip), `plg-ai-intercept-*`, `plg-ai-compose-row`, drop hover; `--jp-theme-*` colors only, no new `jp-*`
+  - `plugins/ai-core/webapp/translations/en.conf`, `de.conf`:
+    - chip, strip, outline, intercept-card, refusal, and cap strings, plus the every-`UrlFetch`-code message set and the lifetime notice
+  - `plugins/ai-core/webapp/view/hello-ai/index.shtml`, `plugins/ai-core/webapp/controller/helloAi.js`:
+    - the source and image demo, the vision-gate walkthrough, and the prompt fragment that forbids "I have no web/file access" as a capability. Nav: Hello AI under site hello demos only (breadcrumb matches `/hello-plugin/`)
+  - `plugins/ai-mock/webapp/controller/aiMock.js`:
+    - a second model row advertising `capabilities.vision`. Default vision reply is `I can see <file>.` (not the flattened safety caption). The **only** product change to the mock
+  - `plugins/ai-core/webapp/tests/unit/attachments.test.js` (plus additions to the existing suites):
+    - module: outline from headings, section read, window paging, caps and truncation flags, delimiter wrap, a source whose text contains `<<<SOURCE`, CJK at maximum size
+    - manifest: metadata only and never text; labels from scope resolution; empty sources add no block
+    - budget: an outline listing free, the N+1st text read refused with the tool's own message
+    - ingest: each `UrlFetch` code mapped to its message; HTML to markdown on hand-written fixtures; the empty-shell verdict; provenance fields; a converter type widening the accept list only when a converter is registered
+    - convert: cap merge between site and descriptor, ordered retry when the first claimant returns empty, empty-extract refusal wording, oversize body 413, and the hooks executing while undefined
+    - images: MIME normalization and rejection, byte cap, TTL, take-once deletes the key, Redis absent reports unavailable rather than throwing at send, send-time gating against the thread's model rather than the site default, content parts assembled in order
+    - `data.media`: lifted out of `data`, the tool-result message left text-only, the follow-up user message carrying the parts, and the budget refusing the N+1st media call
+    - loop purity: `turnLoop.js` contains no attachment vocabulary
+    - opt-in: sources disabled means no tool offered, no manifest block, and no endpoint route taken; no vision means no image affordance and no image parts
+  - `plugins/ai-core/docs/README.md`, `plugins/ai-core/README.md`:
+    - the attachments guide: the source lifetime and why it is what it is, the read tool and its windows, the manifest, what a site adds through `onAiPromptFragment` versus what the framework says, URL ingest and its caps, installing a converter, the vision path and its Redis requirement, `data.media`, and the `handle.sources()` / `sourceAttachable` pair for attaching a source onto a site object. Version numbers, never work-item numbers
+  - framework-repo docs are **not** part of this item's commits - see notes
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md`. Read §14 for the layer, §21.7 for the phases, §9.2 for the content-part contract, §9.6 for the manifest slot, §12.1 for the panel and adapter surface, and §16 for the two hooks `ai-core` executes but does not own. Rev 14 records this item's decisions; TD-15 and TD-16 are the deliberate omissions
+  - **repo layout: `plugins/ai-core` and `plugins/ai-mock` are their own git repos and their own commits**, gitignored by the framework repo. Two commits, one publish, from `plugins/ai-core` only. `ai-mock` has a real product change this time (the vision row), so its commit is not a header-only bump
+  - **W-229 is a separate framework item and a separate release**, and neither item blocks the other (design §21.1). Do not fold the hook definitions into this item, and do not define those names inside `ai-core`
+  - **six spec decisions taken before implementation**, each with the alternative that was rejected:
+    - *where source text lives*: the tab, behind a client-host pure module. A server-side source store was rejected because it adds a collection, retention, and a quota surface for text one gesture re-creates, and a `sessionStorage` mirror was rejected for the reasons the reference site recorded - disk copy, shared-machine survival, and a stamp check on every read, in exchange for one re-add
+    - *who owns the convert hooks*: the framework, AI-free (W-229). Defining them in `ai-core` was rejected because it makes a PDF converter a dependent of an AI package; leaving them undefined entirely was rejected because a published converter needs one canonical contract to be written against, not one per site
+    - *byte transport*: raw bytes on `bodyMode: 'stream'` routes. Base64 in a JSON body was the reference site's only option and is rejected here - the framework's own guidance says not to, and it buffers ~1.37× the file as a string
+    - *vision gate placement*: at send, against the thread's pair. Refusing at attach against the site default was rejected because it blocks a user who has picked a vision model
+    - *tool-returned images*: `data.media`, lifted out of `data` by the envelope normalizer. A sibling of `data` was considered and rejected as blunter; leaving tool-returned media out entirely was rejected because reading a picture stored on a site's own object is the obvious second case after pasting one, and the loop tolerance is the same line either way
+    - *the original `File`*: retained by the panel and exposed on the handle, with an optional `adapter.sourceAttachable` predicate. Handing the site only the panel's resized or clipped copy was rejected as a quiet dishonesty - a user who drops a 4000px image and gets a 2048px one on their object was never told
+  - **as-built:** implementation is in `plugins/ai-core` 1.0.4 and `plugins/ai-mock` 1.0.4. Chip chrome is a `jp-tooltip` plus a click details card, not an outline expander. Compose is one row (prompt + Send). Drop hover is green/red; refusals toast. Add-URL is `confirmDialog` (object-button `true` means dontClose). Intercept hides on question-about-link wording. `formatSourcesEmptyBlock` plus the hello-ai fragment stop "I have no web access" when a URL is already attached, and after reload they ask the user to re-attach rather than claiming a missing capability. `sourceAttachable` is documented and the panel never calls it (no attach-to-object chrome). `data.media` is lifted in `execute.js`, not `envelope.js`. `turnLoop.js` grew `inputs.js` imports, `sourceRefs` on create, and `stripMedia` / `followFromResult` — still no MIME, Redis, or base64 in that file. Hello AI lives only under `siteHelloExamples` so the breadcrumb is Hello World Site Demos. Manual: drop txt / image; PDF refuse; URL fetch + chip; intercept on `fetch https://…` and hidden on `what is https://…`; describe URL proposes a pad rewrite and does not write the pad; Mock Echo + image toasts the gate and stops the dots; Mock Vision replies `I can see <file>.`; reload clears chips and keeps the Used badge; Apply / Undo on a rewrite card
+  - **equivalent functionality to the reference site**, feature by feature, since design §18 step 4 migrates that site onto this: its tab-local source module → the framework's pure module and panel state; its manifest formatters → framework formatters parameterized by scope labels; its hardcoded read counter and `isSourceTextRead()` → one `budget` declaration; its URL ingest → the same mapping over framework `UrlFetch` with the code messages preserved; its convert endpoint and converter registry → the framework call path with ordered retry added; its Redis image mailbox → the same mailbox, minus the default-provider refusal; its `get_image` on a stored object → `data.media` on a site tool; its `attachable` manifest flag and retained `File` → `adapter.sourceAttachable` plus `handle.sourceFile`. What that site keeps is everything domain-shaped: the bubble-placement steering, the extract rule, the metadata copy, and its own propose tools
+  - **two ownership shifts to expect in that migration**, neither a defect: cross-card ordering for a dependent proposal chain is now a change in the framework's "Apply all" walk rather than in site code, and mobile panel layout is now plugin CSS interacting with `floatPanel` geometry rather than site CSS
+  - **compatibility is deliberately unconstrained.** The AI plugins are new in this release train, so the spec was changed where it improved DX rather than preserved: streaming byte routes, send-time vision gating, panel-owned tool data, opaque source ids, and `data.media` are all departures from the reference implementation
+  - out of scope, each with its own item or number: the PDF and Office converters as published framework plugins (a separate item on W-229's hooks); OCR (a further converter, no design change); citations and page anchors; an agent-callable URL fetch; server-resolved or cross-tab sources (design TD-16); a conversation-scoped tool cache (design TD-15); image generation; `ai-mcp-server` and `ai-openai`; the reference site's migration, which is that site's repository
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests - use an isolated temp project or the plugin-cli harness
+  - the nginx streaming location is **optional**: without it production nginx buffers the whole body and the routes still work, with `client_max_body_size` as the outer gate. Say so in the guide rather than making a plugin install depend on an nginx edit
 
 
 
@@ -9267,6 +9401,187 @@ template:
   - FIXME `path/file`:
     - FIXME summary
 - notes:
+
+### W-229, vX.X.X, YYYY-MM-DD: hooks: framework-owned document conversion hooks
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - define `onDocumentConvertRegister` and `onDocumentConvert` in the framework hook catalog as **generic, AI-free** hooks, so "turn these bytes into text" is a framework contract a converter plugin can be written against, and a PDF or Office converter is a framework plugin rather than a dependent of an AI plugin
+  - ship the definitions, the catalog entry, and the documentation - **no converter and no caller**. The framework does not convert anything and does not call these hooks; the first caller is `ai-core` (W-228), and the first converters are separate items
+  - keep the contract the one the reference implementation already proved: per-MIME-type registration, one descriptor per format, and a convert call that takes bytes plus caps and returns text or markdown with truncation and empty-extract metadata
+- prerequisites:
+  - W-209, v1.7.13: `HookManager.defineHooks()`, per-hook `onError` / `contextKeys` / `stability`, and the introspection surface these definitions appear in
+- rationale:
+  - **the names exist in the wild, defined in the wrong place.** The reference site (bubblemap) declares both hooks in its own AI controller and two of its plugins register against them. That works for one site and cannot work for a published converter: the contract is invisible outside that repository, and every other site that wants a PDF reader would write its own slightly different definition
+  - **document conversion is not an AI feature.** Its obvious consumers are document preview, export, search indexing, and an agent reading an attachment - the agent just happens to be first. A hook named and owned by an AI plugin would force every one of those consumers to install an AI package to get a contract that has nothing to do with models
+  - **the definition is not permission to call, which is what makes this cheap and unordered.** `HookManager` executes an undefined hook under the mode's historical default (`continue` for `execute`, `abort` for `executeForPlugin`), so `ai-core` calls both names before this item ships and this item ships with nothing calling it. What the definition adds is the catalog row, the documented context keys, the explicit error policy, and one canonical wording - not the ability to work
+  - **an identical second definition is a deliberate no-op**, so a plugin family may define defensively; a *differing* second definition keeps the first and logs a conflict. That is the mechanism that lets this item land whenever it lands without breaking anything already calling the hooks
+  - the framework already defines hooks ahead of any implementation - `onUserBeforeDelete`, `onUserAfterDelete`, and `onUserSyncProfile` are `stability: 'planned'` - so this is an established pattern rather than a new one
+- features:
+  - **two definitions in `webapp/utils/hook-definitions.js`:**
+    - `onDocumentConvertRegister` - `description: 'Contribute a document converter descriptor'`, `contextKeys: ['converters']`, `canModify: true`, `onError: 'continue'` (one broken converter must not remove the others)
+    - `onDocumentConvert` - `description: 'Convert document bytes to text or markdown'`, `mode: 'executeForPlugin'`, `contextKeys: ['bytes', 'mimeType', 'maxChars', 'maxPages', 'timeoutMs']`, `canModify: true`, `onError: 'abort'` (a failed conversion is the caller's error to report, not something to swallow)
+    - both `stability: 'planned'`, because no framework code calls them yet. The trigger for `stable` is a framework-side consumer, not a plugin-side one
+  - **the descriptor shape is documented, not enforced:** one descriptor per MIME type, with the extensions it claims, a display label, its own page ceiling and unit label (`page` / `sheet` / `slide`), the formats it explicitly refuses, and whatever host prerequisite it needs. Registration is per type on purpose, so two plugins may claim `application/pdf` and the *caller* decides how to order them - `executeForPlugin` dispatches to one plugin, so chaining is deliberately not hook behavior
+  - **the convert result shape is documented:** text or markdown, plus truncation state in the converter's own unit and an empty-extract reason (no text layer, encrypted, image-only) so the caller can compose a refusal that tells the user something true. A scanned PDF is the case that matters - its message must not promise a copy-and-paste workaround, because there is no text to select
+  - **`docs/hooks.md`** gains the two rows and a short section: what a converter plugin implements, what a caller is responsible for (caps, timeout, ordering, and the user-facing refusal), and the note that these are defined ahead of any framework consumer
+  - **tests** in the existing hook-manager suite: both definitions present and normalized; the register hook surviving one throwing handler; the convert hook aborting and naming the plugin; an identical re-definition by a plugin being a no-op; a differing re-definition keeping the framework's and recording the conflict; and execution of both names with no handler registered returning cleanly
+- deliverables:
+  - `webapp/utils/hook-definitions.js`:
+    - the two definitions
+  - `docs/hooks.md`:
+    - two catalog rows plus the converter/caller responsibilities section. Version numbers, never work-item numbers
+  - `webapp/tests/unit/utils/hook-manager.test.js` (or the hook-definitions suite):
+    - the cases above
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md` §14.3 (the contract and why the framework owns it), §16 (two hooks `ai-core` executes but does not own), §21.1 (why this is a prerequisite in name only), §22.2 (the third framework source file, and why ownership rather than capability made it an item). Rev 14 records the decision
+  - **this item ships no converter.** The reference site's PDF converter needs `poppler-utils` on the host with an `unpdf` fallback, and its Office converter parses OOXML in process; publishing either as a framework plugin is a separate item with its own host-prerequisite documentation
+  - **W-228 does not wait for this and this does not wait for W-228** - see the rationale. If W-228 ships first, the hooks run with an `unverified` row in the catalog until this lands
+  - **when the reference site adopts this, it deletes its own two definitions.** If it does not, the framework's definition wins (it is defined at bootstrap, before plugins and site controllers) and the site's is recorded as a conflict with a logged error - harmless but noisy, and worth one line in that site's migration notes
+  - do not add an `onDocumentConvert*` name to the AI hook family or the `onAi*` prefix. The whole point of the item is that these two are not AI hooks
+
+### W-230, v1.0.5, YYYY-MM-DD: ai: generalize the panel interface - site-owned regions and slash commands
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - stop `ai-core` deciding the whole panel UI. A site contributes its own stacked **regions** at framework-named anchors, and owns the **complete slash-command list** - keeping framework implementations available by name so opting in costs one word and overriding costs one function
+  - **the framework owns order and placement, the site owns content.** That is not a new pattern in this plugin: `assemblePrompt` already fixes the fragment order and lets the site fill the slots through `onAiPromptFragment`. The panel gets the same split, so panel layout stays the framework's to change and no two plugins fight over a position
+  - **presence-gated, like the rest of the adapter.** Every adapter member is called behind `typeof adapter.X === 'function'`; a site that wants no context row, no extra command, and no region implements none of it and sees none of it. Nothing in this item is on by default
+  - **the context row is the first real consumer**, gated on `adapter.contextOptions()`. Context and target are already framework concepts - the panel sends `context` / `target` on every turn and the prompt names them in the scope block - so the chrome for them belongs to the framework, and the labels belong to the site
+  - retire the dead ends this exposes: one slash catalog instead of two copies, `options.examples` subsumed by `/help` delegation, and `adapter.describeScope()` either wired or removed from the contract
+  - do this **before** the reference site's migration and before more sites adopt `panel.create`. It changes that function's contract, which is cheap now (design §18 preserves no upgrade path) and expensive once several sites depend on it
+- prerequisites:
+  - W-226, `@jpulse-net/plugin-ai-core` 1.0.2: the panel, `jPulse.ai.panel.create`, the adapter contract, the five-command slash picker, and the local-reply rows that a site command will post into
+  - W-227, 1.0.3: Apply cards and `renderProposalPreview`, which already proved the node-or-escaped-text return this item reuses for region content
+  - W-228, 1.0.4: the attachment strip, chip pop, and URL-intercept card - the rows a new anchor has to sit beside without disturbing them, and the pin-to-bottom behavior a region render must not break
+  - W-220, v2.0.0 `jPulse.UI.floatPanel`: panel geometry. A region changes the transcript's available height, so the existing pin pass is the seam this item leans on rather than replaces
+  - `jpulseVersion` stays `>=2.0.3`. **No framework source change**, and no server change: regions and commands are panel-side, and `context` / `target` already travel on the turn
+- rationale:
+  - **the slash catalog is closed, and the reference site proves the cost.** `SLASH_COMMANDS = ['help', 'tools', 'model', 'new', 'cancel']` is a constant in the panel; `parseSlashCommand` returns `null` for anything else, so typing `/context` is answered locally with "Unknown command. Try /help." The panel reserves the entire `/name` namespace and then refuses to share it. That site's catalog is nine commands with aliases (`quota`, `conversations`/`resume`, `status`, `context`, `sources`, plus `clear`), and four of them have nowhere to go
+  - **the same list exists twice** - inline in `webapp/view/jpulse-common.js` and again in `webapp/utils/panel/slash.js`, which is the copy the unit tests exercise. The parser under test is not the parser that runs
+  - **the adapter is already the right shape and should be the model for the rest.** Duck-typed, optional, one presence check per call site. Chrome, by contrast, is gated only by the server capability probe (`sourcesEnabled`, `imagesEnabled`, `urlIngestEnabled`), so a *page* with nothing attachable still shows the strip unless an admin disables the feature site-wide. Site-level opt-out is the gap
+  - **anchors rather than a free stack.** If a site chooses absolute positions, the framework can never reorder its own rows again and two plugins collide on one page. Framework-declared anchor *names* describing intent - not today's DOM - keep both sides free: the site's region stays put while the framework moves the internals
+  - **content is a DOM node or plain text, never an HTML string.** `renderProposalPreview` already made this decision for the same reason: a site wanting markup returns a node, so no site injects markup by accident and no site quietly couples to plugin CSS internals
+  - **context must not become a site region.** The turn payload and the prompt already carry it; asking every site to hand-roll a `<select>` for a field the framework already sends, and already describes to the model, is the wrong split. Regions are for what the framework has no concept of
+  - **chrome without a caller rots, which is the argument for shipping the seam and one consumer together.** `adapter.describeScope()` is documented and implemented in `hello-ai` and the panel never calls it; `adapter.sourceAttachable` is documented and never called. Two dead contract members in three releases is the pattern this item must not repeat
+- features:
+  - **named regions:**
+    - **framework-declared anchors, fixed order, intent-named:** `header` (below the conversation row), `transcriptTop`, `transcriptBottom`, `composeAbove` (where the intercept card and the strip already live), `composeBelow`. Anchor names are the stable contract; the DOM under them is not
+    - **a region is `{ name, anchor, priority, render, on }`.** `name` is a stable id used for the CSS hook and for refresh; `priority` orders site regions inside an anchor, with framework rows in reserved bands so a site cannot displace them; `render(ctx)` returns a DOM node, a string the panel escapes as text, or `null` to hide the region entirely
+    - **the framework wraps each region** in `<div class="plg-ai-region" data-region="<name>">` and owns that frame - padding, border, theme variables - so the site styles only the inside and a region cannot break panel layout
+    - **re-render on declared events plus on demand.** `on: ['thread', 'turn', 'capability', 'sources']` re-renders from framework state changes; `handle.regions.refresh(name)` covers what the framework cannot observe, which is the common case - the reference site's context row changes when the user clicks a bubble on its canvas
+    - **the transcript is re-pinned after any region render**, because a region above the compose box changes the available height. Reuse the existing pin pass rather than adding a second one
+    - a region may not suppress framework chrome. A site that wants no attachment strip uses the panel flag or the admin capability, not a region
+  - **site-owned slash commands:**
+    - **`commands` on `panel.create` is the complete list.** A bare string names a framework implementation (`'help'`, `'tools'`, `'model'`, `'new'`, `'cancel'`); an object adds or overrides. Omitting a command hides it, deliberately - a site with one allowed model should not show `/model`
+    - **an entry is `{ name, aliases, hint, when, hidden, run }`:** `aliases` (the reference site has `clear` and `resume`), `hint` for the picker and `/help`, `when(ctx)` for conditional availability, `hidden` for runnable-but-unlisted, and `run(ctx)` returning a string, a node, or `null` when the command handled its own UI. `run` may be async
+    - **delegation, not only override.** `ctx.framework()` runs the framework implementation of that name when one exists, so `/help` becomes "framework help plus my examples" and `/tools` becomes "framework list plus my note" without reimplementing either. Override-only would have made every site copy code to add one line
+    - **`jPulse.ai.commands.defaults` is exported** so a site spreads rather than retypes, and so a framework command added later is one array entry away
+    - **one catalog drives everything** - the picker, the parser, alias resolution, `/help`, and the unknown-command reply. `webapp/utils/panel/slash.js` becomes that single source and the panel's inline copy is deleted
+    - unchanged invariants: commands are **local and never sent to the model**, `//` escapes to literal text, Enter runs the highlighted command and posts it into the transcript, and Esc dismisses the picker without closing the panel
+    - **`options.examples` is retired.** A site that wants examples in `/help` overrides `help` and delegates. One way to say it, not two
+  - **the context row, gated on `adapter.contextOptions()`:**
+    - a framework row above the compose box: a label and a select built from `contextOptions()`, which returns `[{ value, label, unavailable? }]`. Absent adapter method means no row, no persistence, and no command
+    - **selection is thread-scoped and stable until the user changes it**, and is not the send-time target. `describeContext()` / `describeTarget()` keep their current meaning on the turn payload; the row only changes what `describeContext()` will report
+    - **`/context` ships with the row and is gated the same way**, the way `/model` mirrors the thread pair: it prints the current context, the target, and the option list
+    - an option may declare itself `unavailable` so a site can name a context whose object is gone - the reference site's "Bubble (unavailable) + children" - without the framework knowing what a bubble is
+    - **`adapter.describeScope()` is wired into the same payload assembly** or removed from the contract and the docs. Both are acceptable; carrying a documented member nobody calls is not
+  - **`hello-ai` demonstrates both seams, one each:** a small site region (pad statistics, refreshed on typing through `handle.regions.refresh`) and one site command that delegates (`/help` with the pad's examples) plus one that does not exist in the framework (`/pad` printing size and selection). No context row - the demo is the proof that a site without context gets no row
+  - **tests** in a new panel-extension suite, following W-227's pattern of testing the shared helpers rather than a jsdom render of the panel: anchor ordering and reserved bands; a region returning a node, a string (escaped), and `null` (hidden); refresh by name; an unknown anchor refused with a message naming the valid ones; catalog merge with strings, objects, aliases, `when()`, and `hidden`; a site override reaching `ctx.framework()`; a site command with no framework twin; `//` still literal; unknown command still answered locally; the picker and the parser reading one catalog; no context row and no `/context` without `contextOptions`; and the row's option list rendering an `unavailable` entry
+- deliverables:
+  - `plugins/ai-core/webapp/utils/panel/regions.js`:
+    - the anchor list, merge and ordering with the framework's reserved bands, and content normalization (node passes through, string is escaped, `null` hides). No DOM ownership beyond the wrapper contract
+  - `plugins/ai-core/webapp/utils/panel/slash.js`:
+    - the catalog: normalize strings and objects, resolve aliases, evaluate `when()`, filter for the picker, parse against the merged list, and expose the framework defaults. This file becomes the only slash catalog in the plugin
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - anchor containers in the panel DOM; region render, refresh, and the re-pin after render; command dispatch through the merged catalog with `ctx.framework()`; the context row and `/context` gated on `adapter.contextOptions()`; `handle.regions`; `jPulse.ai.commands.defaults`; the inline `SLASH_COMMANDS` copy and the `options.examples` path removed
+  - `plugins/ai-core/webapp/view/jpulse-common.css`:
+    - `plg-ai-region*` frame and `plg-ai-context-*` row; `--jp-theme-*` colors only, no new `jp-*`
+  - `plugins/ai-core/webapp/translations/en.conf`, `de.conf`:
+    - context row label and `/context` hint; the unknown-command and picker strings kept in one place. Site regions and site commands carry their own strings
+  - `plugins/ai-core/webapp/view/hello-ai/index.shtml`:
+    - the one region and the two commands above, plus the `/help` delegation replacing the `examples` option
+  - `plugins/ai-core/webapp/tests/unit/panel-extension.test.js` (plus edits where existing suites assert the old five-command list):
+    - the cases above
+  - `plugins/ai-core/docs/README.md`, `plugins/ai-core/README.md`:
+    - the extension surface: anchors and what each is for, the region contract and why content is a node or text, the command catalog with delegation, the context row and its adapter gate, and the migration line for a site that passed `examples`. Version numbers, never work-item numbers
+  - `docs/dev/design/W-223-ai-agent.md`:
+    - §12.1 rewritten from "the framework owns everything that is not about the site's data" to the region and command contract, with `contextOptions()` moved from a sketched adapter member to shipped chrome; §12.2 gains the site's side. A new Rev entry records the decisions. **Framework-repo change, not part of this item's `ai-core` commit**
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md` §12.1 (panel surface and the adapter, including the unbuilt `contextOptions()`), §12.2 (what stays site code), and §9.6 (the prompt-fragment slots this item copies for the panel)
+  - **repo layout: `plugins/ai-core` is its own git repo and its own commit**, gitignored by the framework repo. `ai-mock` has no product change and takes the version lockstep bump as a bundle member. `hello-ai` is still a view inside `ai-core` at this point - W-231 extracts it afterwards, on purpose, so the extracted demo carries the final public API instead of needing a follow-up release to use it
+  - **six spec decisions taken before implementation**, each with the alternative that was rejected:
+    - *placement*: framework-named anchors with framework-owned order. A site-ordered stack was rejected because it freezes panel layout forever and gives two plugins on one page no way to coexist
+    - *content*: a DOM node, or a string the panel escapes. An HTML string was rejected for the reason `renderProposalPreview` already rejected it - accidental markup injection and an unversioned coupling to plugin CSS
+    - *commands*: the site declares the complete list, framework implementations stay addressable by name, and `ctx.framework()` allows delegation. Framework-list-plus-extras was rejected because a site with one model cannot then hide `/model`; override-only was rejected because adding one example to `/help` would mean reimplementing it
+    - *context*: framework chrome gated on `adapter.contextOptions()`. A pure site region was rejected because the turn payload and the prompt already carry context and target; an always-on row was rejected because not every site has a context to choose
+    - *existing chrome*: the notice, strip, chip pop, intercept card, and Apply cards stay framework features and are **not** reimplemented as regions. Doing so is a rewrite with no user-visible gain and would put framework state behind a site-shaped contract
+    - *`examples`*: subsumed into `/help` delegation rather than kept beside it. Two ways to say one thing is what the closed catalog already cost us once
+  - **the reference site is the acceptance test on paper:** after this item that site expresses `/quota`, `/status`, `/sources`, and `/conversations` as site commands, its context row through `contextOptions()`, and keeps every bubble-shaped label in its own code. If any of those four still cannot be expressed, the seam is wrong and it is cheaper to learn it here than after the migration
+  - **do not add a server route.** Thread-scoped context persistence, if a site wants it, is that site's own endpoint plus `describeContext()`; the reference site's `POST /api/1/ai/thread/:id/context` is not being ported into the framework in this item
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests - use an isolated temp project or the plugin-cli harness
+  - out of scope, each its own polish item or already deferred: the quota footer, the empty-transcript hint, multi-tab "another tab is running" state and the launcher unread dot, `/new` confirmation when chips are attached, a richer source badge popover in the transcript, wiring `adapter.sourceAttachable` and the attach-to-object chip menu (W-228 surface), site-authored history notes (TD-14), a conversation-scoped tool cache (TD-15), server-resolved or cross-tab sources (TD-16), document converters (W-229 hooks), an agent-callable URL fetch, and citations
+
+### W-231, v1.0.6, YYYY-MM-DD: ai: extract hello-ai into a bundled companion plugin
+- status: 🕑 PENDING
+- type: Refactoring
+- objectives:
+  - split the scratch-pad sample out of `ai-core` into its own plugin, `hello-ai`, so a site author opening `plugins/ai-core` sees only what a site needs (hooks, panel, attachments, propose/apply) and opening `plugins/hello-ai` sees the worked example
+  - keep one install and one publish: `@jpulse-net/plugin-ai-core` expands to `ai-core` + `ai-mock` + `hello-ai`. `autoEnable: true` so first-run is still "install, open `/hello-ai/`". The win over today's gated view is that an admin can disable the demo without disabling AI
+  - **no framework source change.** `jpulseVersion` stays `>=2.0.3`. W-221 already walks N bundle members; views, controllers, nav, and i18n are existing plugin seams; `ai-core`'s module scanner already lists every active plugin's `webapp/utils/ai-tools/`
+  - do not rewrite the scratch-pad page. This item is the extract, the bundle membership, and the doc cut
+- prerequisites:
+  - W-221, v2.0.1: bundle install, publish, stage, and bump already treat `bundle.members` as a list. Adding a third name is plugin.json only
+  - W-222, v2.0.2: plugin translation merge, so `hello-ai` can carry its own `webapp/translations/`
+  - W-226, `@jpulse-net/plugin-ai-core` 1.0.2: `/hello-ai/` as a view inside `ai-core`, the demo hooks, `readDraft`, and the nav/card entries this item relocates
+  - W-227, 1.0.3: `proposeRewrite` and the proposing tool on the demo, still gated on `scopeType === 'hello-ai'`
+  - W-228, 1.0.4: attachments landed on that same demo (source drop, vision paste, prompt fragment). Extract the post-attachments tree, not a mid-flight one. W-229 is not a prerequisite and does not wait for this
+- rationale:
+  - **`ai-core` currently conflates two products.** `helloAi.js` sits next to `aiCore.js`, `readDraft.js` / `proposeRewrite.js` sit next to `sources.js`, and the installed-plugin guide says both "one controller, one `panel.create` line" and "open `/hello-ai/`". A site author cannot tell which files they must write and which are the sample
+  - **design §5.1 and W-221 said `hello-ai` is a view inside `ai-core`, not a third plugin.** That was right when the goal was "do not invent a third package to stand up a demo." The bundle machinery now exists and already ships a companion (`ai-mock`). A third *member of the same package* is cheap, and it is a different kind of companion: `ai-mock` is a no-key provider; `hello-ai` is a worked site. Different reasons to disable
+  - **a gated view cannot be turned off.** Today the only way to hide `/hello-ai/` is to edit or disable `ai-core`. After this item, plugin admin disables `hello-ai` and the page, its nav entries, its dashboard card, and its two tool modules disappear, while turns, quota, and the panel stay
+  - **the loader already expected this.** `defaultRoots()` in `plugins/ai-core/webapp/utils/tools/modules.js` walks `site/webapp/utils/ai-tools/` and then every active plugin's `webapp/utils/ai-tools/`. Moving `readDraft` and `proposeRewrite` is using that seam, not adding one
+- features:
+  - **new plugin `plugins/hello-ai/`** as a bundle companion, same shape as `ai-mock`:
+    - `plugin.json`: `name: hello-ai`, `npmPackage: "@jpulse-net/plugin-ai-core"`, version lockstep with the primary, `autoEnable: true`, `jpulseVersion: ">=2.0.3"`, `dependencies.plugins.ai-core` with `version: ">=1.0.4"` and the same `npmPackage` (in-package, no extra fetch)
+    - companion guard `package.json` (`private`, `prepublishOnly` refuses and names `ai-core`), stripped at stage the same way `ai-mock`'s is
+    - no `webapp/bump-version.conf` — bump stays on the primary
+  - **`ai-core` `bundle.members` becomes `["ai-mock", "hello-ai"]`.** Publish, stage, pack, and bump from `plugins/ai-core` visit three trees. An existing site that updates the package gets the new member on expand; `autoEnable: true` enables it unless the admin already disabled it after a previous expand
+  - **what moves** (and nothing else):
+    - `webapp/controller/helloAi.js` — demo hooks only, still gated on `scopeType === 'hello-ai'`
+    - `webapp/view/hello-ai/index.shtml` — scratch pad, launcher, dashboard card
+    - `webapp/utils/ai-tools/readDraft.js` and `proposeRewrite.js`
+    - hello-ai nav entries and the site-examples card (leave the AI Core / AI usage entries on `ai-core`)
+    - hello-ai strings in `en.conf` / `de.conf` that exist only for that page
+    - `webapp/tests/unit/hello-ai.test.js` and the `readDraft` / `proposeRewrite` cases that only prove the demo (today they live in `modules.test.js` / `proposals.test.js` and hard-code `plugins/ai-core/webapp/utils/ai-tools`)
+  - **what stays in `ai-core`:** `aiCore.js`, the panel, attachments, `sources.js`, the propose/apply layer, admin AI tab, usage, capability page, and the site-facing docs that teach the one-liner
+  - **docs cut, version numbers never work-item numbers:**
+    - `plugins/ai-core/README.md` and `plugins/ai-core/docs/README.md` describe core only and point at the Hello AI plugin for the sample
+    - `plugins/hello-ai/README.md` and `plugins/hello-ai/docs/README.md` say this is the sample, how to disable it, and that a site copies the pattern rather than depending on these tools
+    - `ai-core` `plugin.json` help may still link to `/hello-ai/`; `hello-ai` `plugin.json` help owns the demo walkthrough
+  - **design note in the framework repo:** `docs/dev/design/W-223-ai-agent.md` §5.1 / §22.1 currently say `hello-ai` is a view inside `ai-core`. Record the reversal (third bundle member, same package) so the next item does not re-litigate it
+  - **tests:** install/pack still expands every member; `hello-ai` disabled ⇒ `/hello-ai/` gone and `readDraft` / `proposeRewrite` absent from the module catalog; `ai-core` still serves the panel and `sources`; bump from `hello-ai/` is refused and names `ai-core`
+- deliverables:
+  - `plugins/hello-ai/plugin.json`, `package.json` (companion guard), `README.md`, `docs/README.md`:
+    - the member manifest, `autoEnable: true`, in-package `ai-core` dependency, and the sample-not-product wording
+  - `plugins/hello-ai/webapp/controller/helloAi.js`, `webapp/view/hello-ai/index.shtml`, `webapp/utils/ai-tools/readDraft.js`, `webapp/utils/ai-tools/proposeRewrite.js`, `webapp/view/jpulse-navigation.js`, `webapp/translations/en.conf`, `de.conf`:
+    - the relocated demo, behavior unchanged
+  - `plugins/hello-ai/webapp/tests/unit/`:
+    - the relocated hello / readDraft / proposeRewrite cases, paths relative to this plugin
+  - `plugins/ai-core/plugin.json`:
+    - `bundle.members: ["ai-mock", "hello-ai"]`; help text that names Hello AI as a bundled plugin rather than as a view of ai-core
+  - `plugins/ai-core/README.md`, `plugins/ai-core/docs/README.md`, `plugins/ai-core/webapp/view/jpulse-navigation.js`, `webapp/translations/*`, and the tests that hard-coded the old `ai-tools` path:
+    - sample files and sample strings removed; core docs no longer teach `/hello-ai/` as if it were ai-core
+  - `docs/dev/design/W-223-ai-agent.md`:
+    - §5.1 / §22.1 (and the package table) updated: `hello-ai` is a third bundle member, not a view inside `ai-core`
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md` §5.1 (today: two members, hello-ai is a view), §21.5 / §22.1 (demo files inside `ai-core`). This item revises that on purpose; attachments, convert hooks, and the panel do not move
+  - **repo layout:** `plugins/ai-core` is its own git repo and the publish root. `hello-ai` is a new sibling directory, gitignored by the framework repo the same way `ai-core` and `ai-mock` are. Commit the extract in the ai-core repo (it owns the bundle). The design-doc hunk is a framework-repo change
+  - **`autoEnable: true`** is a product decision, not a default to revisit in implementation: first-run keeps `/hello-ai/`; production disables the `hello-ai` plugin in admin
+  - **do not change `hello-ai` product behavior** (tools, pad, examples, attachment demo copy) except where a path or plugin name must change
+  - **do not add framework files, do not bump `jpulseVersion`, do not run bump-version, do not touch `.jpulse/`**
+  - out of scope: rewriting the scratch-pad page; a fourth bundle member; making `hello-ai` a separate npm package; W-229 hook definitions; shipping a converter
+
 
 ### W-202, v1.7.6, 2026-08-xx: auth: add locked status
 - status: 🕑 PENDING

@@ -25720,3 +25720,186 @@ Publish tarball included proposals/, proposeRewrite.js, proposals.test.js. Wrote
 
 
 ============================================================
+2026-09-17 00:42
+
+W-228 review (design §14 / §21.7 / §12.1, ask questions, suggest spec/DX, plan phases), then: please write the work items and udpate the design doc
+
+Review findings, verified in code before deciding: (1) onDocumentConvertRegister / onDocumentConvert do NOT exist in the framework - they are defined by the reference site's own aiAgent controller and consumed by its two doc-convert plugins, so §14's "already hook-shaped" was about that site; (2) sources are already client-hosted there - get_source is host:'client', text never leaves the tab, and the outline/window/caps logic is a pure module loaded in the browser and under Jest, i.e. ai-core's §8.2 shape, so phase 1 needs no collection, no upload, and no loop change; (3) the read budget seam already ships - budget.max accepts a settings key name, countWhen is the old isSourceTextRead(), and settings.maxSourceReadsPerTurn already normalizes; (4) ai-anthropic 1.0.0 already maps {type:'image',mimeType,data} content parts, so vision needs no provider release, but ai-mock declares vision:false and drops non-text parts, so it needs a real product change; (5) HookManager executes an undefined hook under the mode's default onError and treats an identical re-definition as a no-op, which decouples definer from caller; (6) bodyMode:'stream' + StreamBody (W-217/W-219) has zero consumers in the tree and the framework's own guidance says not to buffer files as base64 JSON.
+
+Decisions taken with you: data.media lifted out of data by the envelope normalizer; framework owns the two convert hooks as generic AI-free definitions (own item, W-229); memory-only sources plus durable sourceRefs; mock gains a vision model row; vision gated at send against the thread's pair, not at attach against the site default; raw-byte streaming routes for both byte endpoints; panel retains the original File and exposes handle.sources() / handle.sourceFile(id) with optional adapter.sourceAttachable, in phase 1, because BubbleMap's document/image attach features start there. Shallow TD sweep over T-092 and T-100: done/neutral for most, improved for reply language, consent-card fetch, and OCR (ordered converter retry makes OCR an install), friction on the retained-File point above, on the missing conversation-scoped cache, and on two ownership shifts (Apply-all ordering and mobile panel layout are now framework/plugin, not site).
+
+Wrote: W-228 filled in place in the IN_PROGRESS section (title only, FIXME replaced; status 🕑 PENDING and v1.0.4/2026-09-17 header left exactly as found) with objectives, 9 prerequisites, rationale, four phases, deliverables, and notes incl. six spec decisions and the reference-site equivalence map. Added W-229 to the PENDING section (vX.X.X / YYYY-MM-DD placeholders for you to fill): two definitions in webapp/utils/hook-definitions.js with stability 'planned', docs/hooks.md entry, tests, no converter and no caller. Design W-223-ai-agent.md: new Rev 14; header; Decisions taken bullet; §9.2 content-part contract; §9.6 manifest slot; §9.7 sourceRefs; §12.1 chips/intercept card/sourceAttachable/handle.sourceFile; §14 rewritten as §14.1-§14.5; §16 two hooks ai-core executes but does not own; §17 attachment admin keys; §19 attachment test list; §20 TD-15 thread cache and TD-16 server-resolved sources; §21.1 W-229 as a fifth prerequisite that blocks nothing; §21.7 expanded phases plus scope traps; §22.1 attachments/ directory; §22.2 third framework source file and why ownership rather than capability made it an item.
+
+No code written. No git commands, no bump-version, no @version/@release edits, no .jpulse/ changes, no status changes and nothing moved between sections. DONE entries W-223/W-224/W-226/W-227 still say "attachments ... (W-228)" in their out-of-scope lines, which stays accurate; left untouched.
+
+
+============================================================
+2026-09-17 01:09
+
+groc: review W-228 — implement, unless questions. Sequence: W-228 first, then W-229. W-229 can later add framework docs pointing at AI via plugins.
+
+Reviewed W-228 against design Rev 14 and shipped 1.0.3 seams. No blocking questions. Implemented all four phases in plugins/ai-core (and the mock vision row in plugins/ai-mock):
+
+- Phase 1: pure sources.js module (outline / section / window / <<<SOURCE>>> wrap), list_sources + get_source registered by ai-core (client-host, reserved names), panel-owned toolData before adapter.toolData, declarative sourceReads budget, prompt manifest in the reserved slot, chip strip, sourceRefs on the turn + transcript badge, opaque ids, handle.sources() / handle.sourceFile(id), admin source keys. Loop never names sources.
+- Phase 2: POST /api/1/ai/source/fetch on UrlFetch (narrowed accept list, SSRF via req), HTML extractor + empty-shell verdict, provenance, per-code messages, URL intercept card.
+- Phase 3: POST /api/1/ai/source/convert as bodyMode:stream; listConverters / convertDocument call undefined W-229 hooks; ordered retry; no converter ships.
+- Phase 4: POST /api/1/ai/image/stage stream + Redis mailbox (park / take-once / delete), send-time vision gate against the thread pair, content parts via inputs.js wrapper, data.media lifted out of data, ai-mock mock-vision row that names images, hello-ai demo copy.
+
+ai-core unit suite: 149 passed. Status and section placement of W-228/W-229 left unchanged. No git, no bump-version, no .jpulse/. Framework-repo user docs left for W-229.
+
+============================================================
+2026-09-17 01:28
+
+Manual W-228 test: browse/drop txt and image ok; PDF drop is a silent nop. Discuss (no code): drop-zone hover highlight, error highlight for PDF, toast vs panel notice.
+
+Discussed only. Recommended: highlight compose+strip on drag (accept vs refuse when MIME is known; neutral highlight when the browser hides type). Notice bar stays for lasting state (retention, running, reconnect). Toasts for just-happened failures (unsupported type, fetch, convert, stage). Success is the chip — no success toast. Silent PDF drop is the thing toasts would fix.
+
+============================================================
+2026-09-17 01:52
+
+looks good, implement (drop hover + toasts); then compact compose vs reference; IDE reload interrupted verification
+
+Implemented in plugins/ai-core panel: compose+strip drop highlight (accept primary / known-refuse danger / unknown treated as accept; dragenter depth counter). Notice bar stays for retention / running / reconnect. One-off failures (unsupported type, fetch, convert, stage, vision gate, load/rename) go through jPulse.UI.toast. PDF hover is visual-only as you confirmed.
+
+Then compacted the compose chrome to match the reference: Send sits beside the prompt; lifetime copy moved to a jPulse tooltip on the (+) button; Add file / Add URL are a (+) pulldown; chip strip is one row (wraps only with multiple chips). Hard-refresh /hello-ai/ to pick up JS/CSS. Browser verification was interrupted by IDE reloads.
+
+
+============================================================
+2026-09-17 12:46
+
+chip layout much better; hello-ai conflates core vs sample — discuss split to hello-ai plugin bundled in ai-core; W-228 vs new W-230
+
+Discussed only. Recommended W-230, not fold into W-228: W-228 is attachments 1.0.4; W-221/§5.1 had hello-ai as a view on purpose; reversing that is packaging/DX. Move helloAi.js, /hello-ai/ view, readDraft/proposeRewrite, nav/card, hello tests; keep panel/attachments/sources/propose layer. Bundle members become ai-mock + hello-ai; disable-demo-without-disable-AI is the win. autoEnable true for first-run unless you prefer off. W-229 independent. No work item written yet.
+
+
+============================================================
+2026-09-17 12:49
+
+there are no framework dependency when splitting out hello-ai, right?
+
+Confirmed: no framework source change. W-221 already walks N bundle members; views/controllers/nav/i18n are existing plugin seams; ai-core modules.js defaultRoots() already scans every active plugin's webapp/utils/ai-tools/, so readDraft/proposeRewrite can move with hello-ai. jpulseVersion stays >=2.0.3. Work is plugin-tree only.
+
+
+============================================================
+2026-09-17 12:51
+
+autoEnable true; write W-230 work item at the PENDING stub
+
+Filled W-230 in place (v1.0.5, YYYY-MM-DD, status left PENDING): extract hello-ai into a bundled companion, autoEnable true, no framework source change, W-228 is a prerequisite so the extract is post-attachments. Title was a pasted W-229 leftover; replaced. W-229 and section placement untouched. Design §5.1/§22.1 listed as a later deliverable, not edited now.
+
+
+============================================================
+2026-09-17 12:54
+
+what is pending for W-228?
+
+Code for the four phases plus late compose UX is in. Still pending: as-built notes (work item + design Rev) for compact strip/tooltip/toasts/no outline expander; remaining manual paths you have not signed off (URL intercept/fetch, mock-vision send, source read through a turn); release hygiene (you bump 1.0.4, commits in ai-core + ai-mock, publish from ai-core). sourceAttachable is documented and handle.sources/sourceFile exist; the panel never calls the adapter predicate (no attach-to-object chrome). W-229/W-230 are not W-228 leftovers.
+
+
+============================================================
+2026-09-17 12:58
+
+walk me through URL intercept + fetch, send with Mock Vision vs Mock Echo
+
+Walkthrough only. Intercept: short prompt containing http(s) URL, three buttons (fetch+send / skip / cancel); skip hides on "is this the link" questions. Vision: default Mock Echo + image toasts the gate and keeps the chip; /model ai-mock/mock-vision then send; mock replies I can see <filename>. No code.
+
+
+============================================================
+2026-09-17 13:27
+
+fetch also fills pad; chip tooltip+details pop; jPulse URL dialog; mock-echo dots hang; mock-vision echoed safety caption
+
+Vision gate now clears pendingUser and re-renders so dots stop. Mock Vision replies "I can see <file>." and no longer uses the default echo of the attached-image safety text. URL add uses confirmDialog. Chip hover is jp-tooltip; click toggles a details card with copy. hello-ai onSourceAdded writes fetched URL text into the scratch pad. hello-ai + providers tests 28 passed.
+
+
+============================================================
+2026-09-17 13:43
+
+- (+) url dialog is stuck: enter does nothing, add url does nothing, cancel cancels -- bug
+- me: "what is https://example.com/?" or "describe https://example.com/",
+  - ai: replaces scratch pad text with website content -- bug
+  - actually, I had mock-vision active
+  - changed to claude-sonnet-5,
+  - now describes (good), but still replaces scratch pad without asking (bug)
+  - expected: replace scratch pad only when asked
+- chip detail on click:
+  - looks good
+  - reduce the vertical spacing/margin/padding between lines
+
+confirmDialog treats a button callback return of true as dontClose, so Add URL never closed or fetched; it now closes on a valid URL and Enter clicks the default button. hello-ai no longer writes fetched URL text into the pad; intercept also skips what/describe/question prompts so those go to the model. Chip detail rows use tighter padding, no row margin, and a compact copy button.
+
+============================================================
+2026-09-17 13:48
+
+- chip popup is good
+- any other test I should do?
+
+Chip details signed off. Suggested remaining manual checks: (+) URL dialog after the close/Enter fix; intercept card on a bare fetch-this-URL prompt vs hidden on what/describe; get_source read of an attached file without pad write; Apply then Undo on the rewrite card; reload clears chips but keeps the Used badge; optional Echo+image gate recheck.
+
+============================================================
+2026-09-17 14:14
+
+no access to web or files:
+- now it pretends it has no web access, why? ss 5
+  - model is claude-sonnet-5
+  - however, https://twiki.org/robots.txt was fetched properly,
+  - so maybe it simply went for what it had in memory? if so ok, but message could be tweaked to be more accurate
+  - same with file, first time it could read test.txt, page reload, same chat, it pretends it can't read files
+
+location of hello-ai
+- now at /hello-ai/ -- correct, matches /hello-plugin/ uri
+- breadcrumb "Startseite ❯ jPulse-Plugins ❯ Hello AI", but hello-plugin has "Startseite ❯ Hello World Site Demos ❯ Hello World Plugin
+- I think we should fix the breadcrumb
+- the /hello/ dashboard already lists hello-ai as its own hello page -- good
+
+The model has no outbound fetch tool (panel ingest only). After reload, chips are gone so get_source is withheld and it over-claims no file access. Prompt now: an attached URL is already ingested — read it; if none are attached, ask to re-attach, do not say you lack web/file access. Hello AI nav entry removed from jPulse Plugins so the breadcrumb is Hello World Site Demos like hello-plugin. Attachments + hello-ai tests 33 passed.
+
+============================================================
+2026-09-17 14:19
+
+- looks good now
+- enhance the chips: prefix chip with unicode icon by type file or url
+
+Chips now prefix 📄 for file/paste, 🔗 for URL, and 🖼 for images. Hard-refresh to see them.
+
+============================================================
+2026-09-17 14:23
+
+- on line wrap if too many chips, the (+) occupies a new row
+  - expected: on same row next to last chip
+
+Chip wrapper used display:flex and grew to full width when chips wrapped, so (+) dropped alone. Wrapper is now display:contents so chips and (+) wrap in one row together.
+
+============================================================
+2026-09-17 14:27
+
+next: review reference site code if we are ready
+- look for feature we missed in the ai framework
+- for example the ref site has a "context" row in the ai panel
+
+Reviewed BubbleMap map-canvas-ai vs ai-core. Ready for the review: W-228 attachment core is in. Largest designed gap is adapter.contextOptions + Context row (W-226 leftover, not W-228). Also thinner: context dividers, /context, describeScope unused, quota footer unused, sourceAttachable unused. Domain tools and TDs stay out. No code.
+
+============================================================
+2026-09-17 15:26
+
+grok:
+- review tt-git-diff.txt for completeness and accuracy
+- assume W-228, v1.0.4, 2026-09-17
+- fix W-228 work item and design doc as needed
+- I ran the version bump already
+- walk me through release and publish
+
+Reviewed tt-git-diff: four attachment phases are in ai-core; dump omitted images.js body (file exists, imported from index.js) and all of ai-mock (separate repo). Work item features/deliverables + as-built updated; design Rev 15 / As Built 25–31 / §21.7. Plugin README + docs as-built notes. commit-message.txt written in both plugin repos. Status left PENDING. Tests: attachments + hello-ai 33 passed.
+
+============================================================
+2026-09-17 15:43
+
+releases and package done
+framework release
+- review tt-git-diff.txt for accuracy and completeness
+- give me git command
+- see below prior commits for reference (W-226 / W-227 doc commits)
+
+Publish tarball is complete: images.js, inputs.js, sources.js, attachments.test.js, and ai-mock are in @jpulse-net/plugin-ai-core@1.0.4. Framework diff is docs only (work-items, design, cursor_log). Aligned §12.1 sourceAttachable with As Built (documented, unused). Wrote framework commit-message.txt. Do not add tmp-bubblemap-app. No framework tag. Status left PENDING.
+
+============================================================

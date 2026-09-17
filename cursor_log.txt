@@ -25272,3 +25272,323 @@ W-225 implementation is complete and matches the work item. Documented helpers (
 
 
 ============================================================
+2026-09-16 02:17
+
+build done; site update to v2.0.3 succeeded; asked about bcrypt@6.0.0 allowScripts warning
+
+Update itself is fine. The warning is npm 11 gating bcrypt's node-gyp rebuild on the site package, not a v2.0.3 defect. No action unless a clean install; optional `npm install-scripts approve bcrypt` on the site. Do not run npm audit fix --force.
+
+
+============================================================
+2026-09-16 02:24
+
+all good now; new chat for W-226 or continue here?
+
+New chat. This thread is spent on W-225 (implement, smoke, release, site update). W-226 is four plugin phases. Gave a paste-ready opener.
+
+
+============================================================
+2026-09-16 02:40
+
+Next: W-226, v1.0.2, 2026-09-17: ai: ai-core chat panel, client-host tools, hello-ai. Review work item and design, suggest spec/DX, plan four phases, wait for go-ahead.
+
+Reviewed W-226 plus design §21.5, §8.2, §11.2, §12.1, §22.1, §22.3 against shipped ai-core 1.0.1 and framework v2.0.3. No new framework gap (W-225 onCreate await is present; marked.js is not in the header but the plugin can lazy-load it). Main spec/DX notes: scope-gate hello-ai tools so §1.1 stays HTTP; live role/disabled check in onCreate; helloAi.js controller; probe grows modules + retentionDays; slash catalog `/new` `/cancel`; scratch-pad demo; mock tool script plus structured `script` from buttons. Four-phase plan written. Waiting for go-ahead. No code.
+
+
+============================================================
+2026-09-16 12:15
+
+scratch-pad good; shall we add an append write, e.g. summarize the text and add the summary to the scratch pad; slash commands: add /help, /tools, /model; update work item with clarification before coding; wait with coding
+
+Wrote the clarifications into docs/dev/work-items.md W-226 (features, deliverables, notes only - status and section placement untouched). No code, no framework source, no other file changed.
+
+Append write accepted, and it lands on a seam the read path does not touch: appending to a textarea is a DOM write, and a tool module is pure by definition, so `append_draft` cannot be a module and must go through the adapter's `executeTool` escape hatch (design §12.1). hello-ai therefore carries three tools, one per shape a site can write: `read_draft` (client + module, scope:read), `append_draft` (client, no module, scope:write, mutates: true, budget writes/max 3), `get_hello_clock` (server hook). Verified against code first: capabilitiesFromScope already maps canWrite -> scope:write, budget.overMessage already substitutes %MAX%, runTurn already forwards params.script - so no framework change and no new gate.
+
+"Summarize the draft and append the summary" is inherently two client-host calls in two rounds, which design §21.5's single targeted mock call cannot express. Recorded as the one deliberate spec extension: `script: { type: 'tool', steps: [ { name, args }, ... ] }`, one tool_use per round, with `$prior.<dotted.path>` resolving a step argument from the previous round's result. ai-mock stays domain-free (resolves a path, knows nothing about drafts). Also noted the bracket form's limitation - the [mock:...] regex stops at the first ], so a JSON array argument cannot be typed; buttons use the structured field instead.
+
+Slash catalog is now five, all local, none sent to the model: /help, /tools (offered tools with host, plus withheld and why - the probe already computes it), /model (opens picker; /model provider/model sets the pair, AI_MODEL_NOT_ALLOWED when off-menu), /new, /cancel, with `//` as the literal escape. Also folded in: append_draft not being propose/apply (W-227 untouched, mutates has been on the descriptor since 1.0.0); marked.js loaded on demand since only Prism is in jpulse-header.tmpl; module route auth: 'user' with immutable caching; tests for the write path, hello-ai scope isolation, the mock sequence, and the slash catalog.
+
+Offered but did not make: a design-doc Rev 8 amendment for the mock step sequence. Holding for go-ahead before phase 1.
+
+
+============================================================
+2026-09-16 12:20
+
+I am wondering if we should defer write to W-227 (design 1923-1926), or alternatively merge W-227 into W-226?
+
+Recommended keeping the write in W-226 and not merging. No files changed this turn.
+
+Deciding fact, which I had underweighted: the adapter escape hatch cannot be demonstrated by any read. A client-host read takes data from adapter.toolData() and logic from a pure module - that is the designed path for every pure computation over browser state, including reading a selection. adapter.executeTool exists only because some client tools have side effects. So a read-only hello-ai would leave W-226 defining an adapter member it cannot honestly show, in the item whose job is validating the adapter against hello-ai. Corrected one claim from the prior turn: the multi-round argument is not write-specific (read_draft then get_hello_clock is also two rounds), so the mock step sequence stands on its own.
+
+Verified before answering: `mutates` is declarative only (normalized in descriptor.js, exposed by publicTool, gated nowhere); `scope:write` exists only as the sugar mapping in actor.js and nothing in the bundle sets or requires it; W-227 and W-228 have no work-item entries at all, only design §21.6/§21.7.
+
+Against merging: W-227 phase 2 is Apply card chrome inside a panel that does not exist until W-226 phase 3, so merging builds the card into a surface still being written rather than a shipped tested one; W-227 also carries a config surface (false-claim guard becomes site-configured phrases) and would have to be specified from scratch inside an already four-phase item; design §21.2 groups items so each ends usable and testable, and calls W-227/W-228 independently valuable.
+
+Named the coherent alternative if read-only W-226 is preferred: defer adapter.executeTool together with the write, so W-226's adapter is toolData plus the three describe* methods and W-227 owns side-effecting client tools as one lesson (escape hatch + proposal + Apply card). Cost is a recorded deviation from §12.1 and hello-ai shipping without a write for one release. The pedagogical risk of teaching a direct write before propose/apply is better handled in the guide - append_draft is local, visible, unpersisted, and §13 makes propose/apply opt-in, so implying every write needs a card would misrepresent it.
+
+Decision: keep the write in W-226 as specced. Recorded the rationale and both rejected alternatives (defer executeTool with the write; merge W-227) in the W-226 notes, so the next reader does not re-litigate it, plus the correction that multi-round is not a write-specific argument. Still no code - holding for phase 1 go-ahead.
+
+
+============================================================
+2026-09-16 12:32
+
+- update desig doc to match the W-226 work item
+- implement
+
+Design Rev 8 written into docs/dev/design/W-223-ai-agent.md to match the W-226 work item: role/disabled checks inside onCreate, script on the socket turn, module route auth:user + 409, retentionDays on the probe, five local slash commands, panel defaults, marked on demand, hello-ai scratch pad with three tools, mock steps + $prior, helloAi.js, write stays in W-226. Work-item status and section placement left untouched.
+
+Implemented all four phases in the plugin repos (no framework source): per-thread /api/1/ws/ai/:threadId, clientExecutor + AI_CLIENT_HOST fallback, shared ai-tools/ modules, jPulse.ai.panel on floatPanel, plg-ai-* CSS, en/de strings, hello-ai scratch pad, ai-mock [mock:tool:…] plus script.steps. Plugin docs and READMEs now open with the one-liner. Versions 1.0.2, jpulseVersion >=2.0.3.
+
+Two client/mock fixes after review against shipped wire format: the panel unwraps { success, data } so tool_call and text_delta match, and waits for the socket to open before sending a turn; $prior resolves against the turn-loop result shape ({ data }) as well as the wrapped test shape. ai-core unit suite 15/15, 98/98. No server was listening, so /hello-ai/ was not browser-smoked. No git, no bump-version, no .jpulse/.
+
+
+============================================================
+2026-09-16 12:38
+
+- plugins/ai-core/webapp/ai-tools is not jpulse directory standard,
+- maybe better plugins/ai-core/webapp/utils/ai-tools ?
+- or any valid reason to introduce this new dir structure?
+
+No valid reason for a new top-level webapp/ai-tools/. jPulse webapp dirs stay controller, model, view, utils, tests, translations. The invented path was only a catalog name, not a framework convention. Moved readDraft.js to webapp/utils/ai-tools/; discovery now looks at site/webapp/utils/ai-tools/ then each plugin's webapp/utils/ai-tools/. Purity root remains that catalog directory so a module cannot import the rest of utils/. Dropped the extra bump-version pattern (already covered by webapp/utils/**/*.js). Updated design §8.2, W-226 paths, and plugin docs. Module/hello-ai tests 17/17.
+
+
+============================================================
+2026-09-16 12:53
+
+hello-ai in site menu good; missing hello dashboard card needs helloCards.ai; scratch-pad textarea needs padding; Open chat ghost but no panel, later clicks do nothing; WS Unknown namespace /api/1/ws/ai/:threadId
+
+Two root causes. (1) floatPanel does not append el to the document — ghost animates on body, the panel node stayed detached, so later clicks were no-ops on an already-open invisible panel. Append root to document.body before create; add data-jp-panel-close. (2) registerAiNamespace() ran in aiCore.initialize() before bootstrap sets global.WebSocketController, so createNamespace was a silent no-op and upgrade logged Unknown namespace. Import WebSocketController the same way hello-world imports LogController. Dashboard: {{#component "helloCards.ai" order=80}}. Scratch pad uses jp-form-textarea plus 12px padding. Restart required so initialize registers the pattern. WS/layer tests 14/14.
+
+
+============================================================
+2026-09-16 12:57
+
+chat panel opened after restart; after close it disappeared forever; removeNamespace on /api/1/ws/ai/:threadId
+
+floatPanel launcher is only ghost geometry and focus-return — it does not bind a click. First open was persisted open:true from the prior session; after close that flag is false and Open chat had no handler. createPanel now binds the launcher to handle.toggle(). removeIfEmpty() was called on the pattern template (path :threadId), which is never in the namespaces map; onDisconnect now removes the concrete /api/1/ws/ai/:id instance. JS reload is enough for the button; restart to pick up the WS disconnect fix.
+
+
+============================================================
+2026-09-16 13:15
+
+open/close works; /help stuck; layout too busy vs bubblemap; no header model/new; thread row; remove side panel
+
+Slash picker now expands while typing `/`. Enter runs the command and posts it as a local chat turn; Esc dismisses the picker (stopPropagation so the panel stays open). Header is title + close. Thread select, rename, and new sit on the next row. Side list and header model picker are gone; `/model` views and sets the pair. Cancel no longer leaks through `.jp-btn { display }` overriding `[hidden]`. Slash tests 11/11.
+
+
+============================================================
+2026-09-16 14:52
+
+initial / and summarize bubbles confusing; /help missing newlines; send stays disabled; broadcast on :threadId; tool_use without tool_result
+
+Those first bubbles were failed user turns (demo buttons plus a lone `/` sent as a message), not starter examples. `/` is no longer sent to the model; hello-ai examples now live under /help. Slash replies render as pre-wrap so each command is its own line. Send stuck because ns.broadcast used the pattern path; events now go to the instance. Anthropic failed because the loop posted tool results as a user JSON string; it now emits role:tool, which toAnthropicMessages already maps. History skips user-only turns so the old empties do not poison the next request. Restart for WS/loop; hard-reload the page. Tests 41/41.
+
+
+============================================================
+2026-09-16 15:16
+
+send works but own prompt disappears; scratch pad / summary / draft mismatch
+
+The prompt vanished because send cleared the compose box and never painted a pending user bubble; streaming only showed the agent, and slash locals sat between history and the live reply. sendText now sets pendingUser and renders it with the stream at the bottom; openThread clears it after reload. Hello-ai user-facing copy uses scratch pad only (examples, buttons, textarea, adapter labels, prompt fragment). Tool ids stay read_draft / append_draft.
+
+
+============================================================
+2026-09-16 15:25
+
+submit a task but /help shows at the end
+
+Slash replies were always painted after every server turn, so an earlier /help jumped below the new reply. Locals now carry a timestamp and merge with turns by createdAt, with the in-flight prompt still last. Hard-reload the page.
+
+
+============================================================
+2026-09-16 15:43
+
+explain first what the page is about; are the three buttons needed?
+
+Intro now leads with what Hello AI is: a chat-panel demo over an in-tab scratch pad, then /help for examples. The three buttons only forced the same prompts as a scripted send; /help already lists them, so they added no extra lesson on the page. Removed the buttons and their handlers. Guide now says type /help examples; structured script remains a turn field for sites and curl.
+
+
+============================================================
+2026-09-16 16:52
+
+is there a size limit? change scratch pad text to the Jedi/Empire paragraph
+
+Yes: read_draft's excerpt was 160 characters, which is why the model stopped at "Galactic…". Tool results are also capped at 256KB. The module now returns data.text (full pad, 32KB cap) plus the short excerpt. Default scratch pad text updated to the provided paragraph.
+
+
+============================================================
+2026-09-16 17:00
+
+I did /new, and the prev chat is no longer available
+
+/new archives the current thread because only one active thread is allowed per scope. The picker asked for status=active, so the archived chat vanished. The list now includes archived threads, labeled (archived), and they stay selectable.
+
+
+============================================================
+2026-09-16 17:10
+
+- why the distinction with archived?
+- why not simply keep track of all chats,
+- listed in reverse chronological order,
+- capped to 20
+
+Archive is only an internal slot so /new can insert a new row (one active thread per page/user). The picker no longer labels or filters by that. It lists the last 20 chats, newest first. Hard-reload the page.
+
+
+============================================================
+2026-09-16 17:17
+
+I pressed the [+] to start a new chat
+- it first switched to the other existing chat
+- pressing one more time created a new chat
+
+[+] archived only the open chat, then find-or-create returned the leftover active one. It now asks the server to start a new conversation, which frees the active slot and always inserts a new row. Restart the app and hard-reload.
+
+
+============================================================
+2026-09-16 17:33
+
+- for better ux: add jumping dots into the chat history while the ai is busy (for reference see reference implementation)
+- pressing [+] hangs the system with "Verbindung wird hergestellt…"
+- actually, it does not hang, the send button is enabled, so it seems like a state display bug
+
+[+] disconnects the old socket; that was treated as a reconnect and the banner never cleared. A thread switch now ignores that disconnect and clears the notice when the new socket is up. While a turn is waiting (before the first token), three jumping dots show in the transcript. Hard-reload the page.
+
+
+============================================================
+2026-09-16 17:45
+
+the jumping dots are now shown
+- can you reduce the size and/or boldness?
+
+Dots are now 4px, muted theme color, tighter gap. Hard-reload to see the lighter indicator.
+
+
+============================================================
+2026-09-16 17:48
+
+can you make the textarea resizable also left/right, not just vertical?
+
+.jp-form-textarea is vertical-only. The panel compose box now uses resize: both, capped at the panel width. Hard-reload.
+
+
+============================================================
+2026-09-16 17:50
+
+sorry, I was not specific, I meant the Scratch pad textarea
+- reason: so that I can see Scratch pad and ai panel side by side (don't do that by default)
+
+Reverted the chat compose resize. The hello-ai scratch pad now resizes both ways so it can be narrowed beside the floating panel. Default layout is unchanged. Hard-reload.
+
+
+============================================================
+2026-09-16 17:54
+
+the textarea jumps to the right when resizing!
+
+The pad is inline-level, so a narrower width sat beside the label and looked like a jump. Label and textarea are now stacked as blocks; it shrinks from the right. Hard-reload.
+
+
+============================================================
+2026-09-16 17:59
+
+- looks good now
+- why are so many .plg-* defined in plugins/ai-core/webapp/view/jpulse-common.css?
+- a jpulse-common.css is meant for multiple pages that need the same style
+- if only used by one page better to define in that page as .local-* styles
+
+Those plg-ai-* rules style the shared chat panel (jPulse.ai.panel), which any page can open, so they belong in the plugin's jpulse-common.css. Hello-ai's scratch pad is already .local-* on that page. Nothing in the plugin CSS is hello-ai-only.
+
+
+============================================================
+2026-09-16 18:34
+
+ah, good, my misunderstanding
+
+what is pending?
+
+W-226 code and live UX bugs are in. Still open: you decide DONE; plugin-repo commits and 1.0.2 publish; optional work-item/design sync for the 20-chat list and removed demo buttons. Later items (propose/apply, attachments) are not this item.
+
+
+============================================================
+2026-09-16 18:46
+
+- review @tt-git-diff.txt for accuracy and completeness
+- update W-226 work item and docs/dev/design/W-223-ai-agent.md to reflect implementation
+
+Reviewed the two plugin diffs. They match the 1.0.2 working tree except three untracked tests have status only (no body), mock curl still uses scopeId pad vs hello-ai demo, and unused archive/resume i18n. Updated the W-226 work item (status unchanged) and design Rev 10 / As Built 13-19 to the as-built panel, startNew, and hello-ai.
+
+
+============================================================
+2026-09-16 18:53
+
+fix the gaps (tests will be tracked, so ignore)
+
+Mock curl now uses scopeId demo to match /hello-ai/. Unused archive/resume i18n and the unused I18N.archive binding are gone. slash.js stays as the Node test module; the panel IIFE cannot import it.
+
+
+============================================================
+2026-09-16 18:56
+
+guide me through commit and publish
+
+Walked the 1.0.2 path: user runs bump from plugins/ai-core, two plugin-repo commits (ai-mock then ai-core), dry-run/pack, then publish ai-core only. Framework docs are a separate commit. I will not run git, bump-version, or publish unless asked.
+
+
+============================================================
+2026-09-16 19:52
+
+oh, one change please:
+- all hello pages have a custom svg icon
+- change hello-ai icon from icon: '💬' to the robot icon we use for ai-core
+
+Hello-ai nav, dashboard card, and page title now use the same robot SVG as ai-core. Hard-reload.
+
+
+============================================================
+2026-09-16 20:09
+
+- hello-ai icon looks good now
+- while at it, please use the lucide "plug" icon for the hello-plugin demo
+
+Hello-plugin now uses jpIcons.pluginSvg (Lucide plug) on the Hello examples card, page titles, both nav entries, and plugin.json. Hard-reload.
+
+
+============================================================
+2026-09-16 20:18
+
+give me commit messages for both plugins starting with:
+W-226, v1.0.2, 2026-09-17: ai: ...
+
+Suggested ai-mock and ai-core commit subjects in the W-226 header form. hello-world plug icon is a separate commit.
+
+
+============================================================
+2026-09-16 20:20
+
+actually with some more details. initial for reference:
+[W-223 ai-mock first-release commit]
+
+Longer two-line bodies in that style for ai-mock 1.0.2 and ai-core 1.0.2.
+
+
+============================================================
+2026-09-16 20:28
+
+done: [ai-core commit e46298d, tag v1.0.2, npm publish @jpulse-net/plugin-ai-core@1.0.2]
+
+Confirmed the tarball has both members and no companion package.json. Commit subject was flattened to one line (need a blank line after the subject in tt-commit.txt). Left framework-repo docs and work-item status for them.
+
+
+============================================================
+2026-09-16 20:37
+
+next: framework commit
+- review tt-git-diff.txt for accuracy and completeness
+- sample prior plugin related commit 8964fa6
+- no CHANGELOG / README highlights in this commit
+
+Reviewed the framework tree against published @jpulse-net/plugin-ai-core 1.0.2. W-226 features/deliverables/notes and design Rev 8–10 / As Built 13–19 match the shipped panel. No CHANGELOG, README, or docs/README. Fixed the design header from unpublished working tree to published 1.0.2. Stage design, work-items, cursor_log, and hello-world plug SVG; exclude tmp-bubblemap-app. Flagged leftover W-225 DONE/section move and Misc cookbook 1.0.2 bump. Drafted the 8964fa6-style message. Did not commit or change W-226 status.
+
+
+============================================================

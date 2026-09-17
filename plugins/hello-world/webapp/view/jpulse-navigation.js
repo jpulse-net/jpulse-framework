@@ -23,7 +23,7 @@ if (window.jPulseNavigation?.site?.siteHelloExamples) {
     window.jPulseNavigation.site.siteHelloExamples.pages.helloPlugin = {
         label: 'Hello World Plugin',
         url: '/hello-plugin/',
-        icon: '🔌'
+        icon: '{{components.jpIcons.pluginSvg size="24" _inline=true}}'
     };
 }
 
@@ -33,7 +33,7 @@ if (window.jPulseNavigation?.site?.jPulsePlugins) {
     window.jPulseNavigation.site.jPulsePlugins.pages.helloPlugin = {
         label: 'Hello World Plugin',
         url: '/jpulse-plugins/hello-world.shtml',
-        icon: '🔌'
+        icon: '{{components.jpIcons.pluginSvg size="24" _inline=true}}'
     };
 }
 

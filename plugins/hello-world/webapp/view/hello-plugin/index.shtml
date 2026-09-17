@@ -73,7 +73,7 @@
     {{#component "helloCards.helloPlugin" order=60}}
         {{!-- This card is automatically included in the dashboard at hello/index.shtml --}}
         <a href="/hello-plugin/" class="jp-card-dashboard jp-icon-btn">
-            <div class="jp-icon-container">🔌</div>
+            <div class="jp-icon-container">{{components.jpIcons.pluginSvg size="64"}}</div>
             <h3 class="jp-card-title">Hello World Plugin</h3>
             <p class="jp-card-description">
                 Learn plugin development with this interactive tutorial
@@ -84,7 +84,7 @@
     <div class="jp-main">
         <div class="jp-container-1000">
             <div class="jp-page-header">
-                <h1>🔌 Hello World Plugin Tutorial</h1>
+                <h1>{{components.jpIcons.pluginSvg size="26"}} Hello World Plugin Tutorial</h1>
                 <span class="jp-subtitle">Interactive demonstration of the jPulse plugin system</span>
             </div>
 

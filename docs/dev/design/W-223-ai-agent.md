@@ -9,13 +9,61 @@ and installation (v2.0.1), and W-222 plugin and site translation merge
 code rather than the docs: **`onCreate` is called synchronously**, so a
 namespace cannot authorize a connection against the database, which is what
 per-thread AI namespaces need. That is **W-225**, one framework item, and it
-corrects §22.2's earlier "no framework source change" finding. Next AI item is
-**W-226** (chat panel, client-host tools, `hello-ai`). §21 splits the agent
-into five items, W-223, W-224, and W-226 through W-228, on four framework
-prerequisites. Deviations from this document are under `### As Built`.
+corrects §22.2's earlier "no framework source change" finding. **W-226** (chat
+panel, client-host tools, `hello-ai`) is published
+(`@jpulse-net/plugin-ai-core` 1.0.2 carrying `ai-mock` 1.0.2, 2026-09-17).
+Next AI item is **W-227**. §21 splits the agent into five items, W-223,
+W-224, and W-226 through W-228, on four framework prerequisites. Deviations
+from this document are under `### As Built`. W-226 was specified against
+shipped `ai-core` 1.0.1 and framework v2.0.3; Rev 8 recorded the work-item
+clarifications, Rev 9 the panel chrome, and Rev 10 the as-built after
+implementation.
 
 
 ## Revision history
+
+### Rev 10 — 2026-09-16 — W-226 as built
+
+No new product decision. The panel, client-host bridge, shared modules, and
+`hello-ai` shipped in `@jpulse-net/plugin-ai-core` 1.0.2. These lines are
+what the code wanted once it ran.
+
+| Section | Change |
+|---|---|
+| §9.7, TD-13, §12.1 | The picker lists the last 20 threads, newest first. There is no archive/resume chrome. Archive remains the internal slot that `startNew` / `forceNew` frees so a new row can insert against the partial unique index |
+| §11.2 | `broadcast` / `sendToClient` / `removeIfEmpty` must use the **instance** path, not the pattern-namespace template. Switching threads disconnects the old socket; that is not a reconnect |
+| §12.1 | W-220's launcher is ghost geometry and focus-return only — the panel binds click → `toggle()`. Jumping dots while a turn waits for the first token. The outgoing prompt stays visible (`pendingUser`). Slash/local rows merge with turns by timestamp. `/model` is the only model surface |
+| §21.5 | `hello-ai` has no scripted buttons; `/help` lists `examples`. `read_draft` returns `data.text` (32 KB) plus a 160-character excerpt. The turn loop emits `role: 'tool'` after `tool_use`. `historyToMessages` skips turns with no `agentText` |
+| As Built | Items 13–19 |
+
+### Rev 9 — 2026-09-16 — panel chrome matches the reference site's chat
+
+| Section | Change |
+|---|---|
+| §12.1 | No model picker and no new-conversation button in the header. Conversation title, select, rename, and new sit on one row under the title; there is no thread side list. `/model` views and sets the pair in the transcript. The slash picker expands as you type; Enter executes and posts the command into the chat; Esc dismisses the picker without closing the panel |
+
+### Rev 8 — 2026-09-16 — W-226 specified against the shipped code
+
+The panel item was written against `ai-core` 1.0.1 and framework v2.0.3
+rather than against this document alone. Most of what follows is a
+clarification of Rev 7, not a new decision. One extension is deliberate:
+the mock's targeted script takes a step sequence, because the demo turn
+cannot be expressed as a single call.
+
+| Section | Change |
+|---|---|
+| §11.2 | Role and disabled checks are read **inside** `onCreate`, not frozen into `requireRoles` at `initialize()`. The socket turn message carries `script` so it stays at parity with `POST .../turn` |
+| §8.2 | Module route is `auth: 'user'` with immutable caching and a 409 on an unknown hash. The capability probe grows `retentionDays` beside the module manifest. Catalog path is `webapp/utils/ai-tools/` (site: `site/webapp/utils/ai-tools/`), not a new top-level `webapp/ai-tools/` — jPulse webapp dirs stay controller, model, view, utils, tests, translations. The purity root is still that catalog directory, not the rest of `utils/` |
+| §12.1 | Slash catalog is five local commands (`/help`, `/tools`, `/model`, `/new`, `/cancel`) with `//` as the literal escape. Panel `id` is `ai-panel-<scopeType>-<scopeId>`; last thread id persists under its own key. `marked.min.js` is loaded on demand — it is not in `jpulse-header.tmpl` |
+| §21.5 | `hello-ai` is a scratch pad with three tools, one per shape a site can write. Demo registrations are gated on `scopeType === 'hello-ai'`. A direct `mutates: true` write is not propose/apply. `ai-mock` gains `script.steps` with `$prior.<path>` |
+| §22.1 | Demo hooks live in `helloAi.js`, not `aiCore.js` |
+
+The write stays in W-226. `adapter.executeTool` exists because some client
+tools have side effects, and a write is the plainest one; a read-only demo
+would leave this item defining an adapter member it cannot show. Merging
+W-227 was rejected: its Apply card targets a panel that does not exist
+until phase 3 here, and §21.2 groups items so each ends usable and
+testable.
 
 ### Rev 7 — 2026-09-16 — panel item designed against the code; W-225 split out
 
@@ -137,6 +185,37 @@ decision; each is the shape the code wanted once it existed.
 12. **Plugin Jest is a root `jest.config.cjs`.** `npm test` from
     `plugins/ai-core` or `plugins/ai-anthropic` chdirs to the framework
     checkout. Both bump-version lists include that file.
+13. **Pattern-namespace emit uses the instance path.**
+    `createNamespace('/api/1/ws/ai/:threadId')` returns a template whose
+    `.path` is the pattern. The registry lookup for `broadcast`,
+    `sendToClient`, and `removeIfEmpty` is by path, so a call on the
+    template logs `Namespace not found`. The first connect creates the
+    literal instance; turn events go to that path.
+14. **W-220's launcher is not a click binding.** It is ghost geometry
+    and focus-return. `jPulse.ai.panel` binds the launcher `click` to
+    `handle.toggle()`.
+15. **The conversation picker is last-20, newest first.** `GET
+    /api/1/ai/thread?limit=20` with no status filter. Archive is not a
+    user-facing mailbox: `POST /api/1/ai/thread` with `forceNew: true`
+    calls `startNew`, which archives every active row for the scope and
+    inserts. `findOrCreateActive` stays the first-open path. Selecting
+    an older row opens it; there is no resume API and no archive button.
+16. **`hello-ai` has no scripted buttons.** `panel.create({ examples })`
+    feeds `/help`. The structured `script` field remains for `curl` and
+    sites. User-facing copy says scratch pad only (tool ids stay
+    `read_draft` / `append_draft`). The pad is page-local `.local-*`,
+    `resize: both`, block-stacked under its label; the default layout
+    is full width.
+17. **A `tool_use` is followed by `role: 'tool'`.** Anthropic requires
+    `tool_result` immediately after `tool_use`. The turn loop pushes
+    those rows; `ai-mock` reads them (and still accepts a legacy user
+    JSON array).
+18. **`historyToMessages` skips turns with no `agentText`.** A failed
+    or empty turn must not become a consecutive user role on the next
+    request.
+19. **`read_draft` returns the pad, not only an excerpt.** `data.text`
+    is capped at 32 KB (`truncated` when clipped); `data.excerpt` is
+    a 160-character preview.
 
 ### Rev 3 — 2026-09-15 — prerequisites released, work split
 
@@ -919,9 +998,13 @@ data requirements (§7.1); a tool that returned degraded data says so in its own
 The boring half, and where essentially all the value is — it is the part that
 removes the `.tmpl` and `vm` workarounds.
 
-- **Location.** Tool modules live at a conventional path —
-  `site/webapp/ai-tools/` for a site, `webapp/ai-tools/` inside a plugin — as
-  plain ES modules with a `.js` extension. Not templates. Resolution is the
+- **Location.** Tool modules live under the existing `utils/` tree —
+  `site/webapp/utils/ai-tools/` for a site, `webapp/utils/ai-tools/` inside a
+  plugin — as plain ES modules with a `.js` extension. Not templates, and not
+  a new top-level `webapp/` directory. jPulse webapp dirs are `controller`,
+  `model`, `view`, `utils`, `tests`, and `translations`; a dedicated
+  `utils/ai-tools/` catalog keeps the purity root to siblings in that folder
+  so a module cannot import the rest of `utils/` (or `fs`). Resolution is the
   framework's usual order, site first and then each active plugin in load
   order, so a site can override a plugin's module by name. Unlike
   `view/jpulse-common.js` this is *replace*, not append: a module is one
@@ -948,12 +1031,21 @@ removes the `.tmpl` and `vm` workarounds.
 
   A scan test is not sufficient on its own, which is worth stating because
   §8.2 originally called for one. A test living in `ai-core` can only scan
-  `ai-core`'s own modules; `site/webapp/ai-tools/` is never covered by it, and
+  `ai-core`'s own modules; `site/webapp/utils/ai-tools/` is never covered by it, and
   those are precisely the modules being shipped to a browser. So `ai-core`
   also **exports the scanner** — `AiCore.scanToolModules()` — for a site to
   assert over its own directory in one line, and refuses at runtime for the
   site that never writes that line. Purity is the only rule the site has to
   obey, so it is the one worth enforcing rather than documenting.
+
+- **Serving.** `GET /api/1/ai/tool-module/:hash/:name.js` is `auth: 'user'`,
+  `Content-Type: text/javascript`, `Cache-Control: public, max-age=31536000,
+  immutable`. A request for a hash the server no longer has is a **409**,
+  never a different body. These modules are site logic, not anonymous static
+  assets.
+- **Probe.** The capability probe returns `{ name, hash, url }` per module
+  and also `retentionDays`, which the panel's retention notice needs and
+  which is otherwise a second settings round trip.
 
 A descriptor opts in by naming the module:
 
@@ -961,7 +1053,7 @@ A descriptor opts in by naming the module:
 {
     name:      'get_tree',
     host:      'client',            // the site's judgment, §7.2
-    module:    'getTree',           // site/webapp/ai-tools/getTree.js
+    module:    'getTree',           // site/webapp/utils/ai-tools/getTree.js
     dataScope: 'call',              // 'call' | 'turn' — when to rebuild the data
     …
 }
@@ -1115,8 +1207,8 @@ The design keeps the admin in control of the *menu* and gives the user the
   plugin is disabled or missing an API key disappears from the menu rather than
   failing at send time.
 - The user chooses **per thread**, not per turn, and the choice is recorded on
-  the thread. The panel shows a model picker only when the filtered list has
-  more than one entry.
+  the thread. The panel exposes that choice through `/model`, not a header
+  picker, and only when the filtered list has more than one entry.
 - **Switching mid-thread is allowed** and is safe, because the stored message
   history is provider-neutral: normalized roles, normalized tool calls, no
   provider-specific blocks. What it costs is the provider's prompt cache, so
@@ -1175,11 +1267,12 @@ Three collections, framework-owned (§18), structurally as today.
 | `aiUsage` | `<subject>:<period>` unique | named counters, `costUnknown` (§10.2) |
 
 The `aiThreads` uniqueness is partial and deliberately narrow. Any number of
-*archived* threads already coexist per scope and user — the panel lists,
-resumes, and archives them (§12.1) — and only the active one is constrained,
-which is what makes the guard against a two-tab or double-click duplicate cost
-one index. Relaxing it to allow several live conversations on one scope is
-TD-13.
+*archived* threads already coexist per scope and user. The panel lists the
+last 20 for the scope, newest first, without archive/resume chrome (§12.1).
+`startNew` archives the active slot so a new row can insert. Only the active
+one is constrained, which is what makes the guard against a two-tab or
+double-click duplicate cost one index. Relaxing it to allow several live
+conversations on one scope is TD-13.
 
 Retention purges turns by age, and guest threads would get a shorter retention
 than user threads once guests exist (TD-04).
@@ -1310,16 +1403,21 @@ to send would otherwise read to the server as a timeout.
 origin tab has to be the one that calls back into it, and an HTTP POST can
 land on a different instance. On this path `POST .../turn` is not used; cancel
 stays the HTTP route for both transports, because it must work from a tab that
-is not the origin.
+is not the origin. The socket turn payload is `{ type: 'turn', data: { text,
+provider, model, context, target, script } }` — `script` is on the message
+because `POST .../turn` already accepts it and the two transports have to
+stay at parity.
 
-**Namespace authorization.** `requireAuth` and the allowed-role check already
-run before `onCreate`, which disposes of anonymous and wrong-role connections.
-What remains is thread ownership, and that is a database read: the owner is
-`createdBy` on the thread document, not something recoverable from the
-`threadId`, which is an ObjectId with no identity in it. So `onCreate` reads
-the thread, compares the owner against the session, and rejects a mismatch —
-and **this is why W-225 exists**, because `onCreate` is called synchronously
-today and an `async` handler's rejection is discarded rather than honored.
+**Namespace authorization.** `requireAuth: true` disposes of anonymous
+connections before `onCreate`. The allowed-role check and the master switch
+are **not** frozen into `requireRoles` at `initialize()`: `createNamespace`
+runs once, so a role list captured there goes stale the moment an admin
+edits the AI tab, and it would diverge from the HTTP path, which calls
+`roleAllowed()` per request. `onCreate` loads settings, rejects when AI is
+disabled or the role is not allowed, then reads the thread and compares
+`createdBy` to the session — and **this is why W-225 exists**, because
+`onCreate` used to be called synchronously and an `async` handler's
+rejection was discarded rather than honored.
 
 Getting this wrong is not a small leak. `broadcast()` delivers to every client
 in the namespace, and a client joins the namespace at handshake, so any check
@@ -1336,6 +1434,15 @@ it, so the last disconnect from a thread calls `removeIfEmpty()`. Without it
 the registry grows by one entry per conversation ever opened, which the admin
 WebSocket page would eventually make obvious and nothing else would.
 
+**Emit on the instance path, not the pattern template.**
+`createNamespace('/api/1/ws/ai/:threadId')` returns a template whose `.path`
+is the pattern. `broadcast`, `sendToClient`, and `removeIfEmpty` look up by
+path. Calling them on the template logs `Namespace not found` and the origin
+tab never sees `completed`. The first connect creates the literal instance;
+every turn event uses that path. Switching threads disconnects the previous
+socket; that `disconnected` status is not a reconnect and must not show the
+reconnecting notice.
+
 
 ---
 
@@ -1347,11 +1454,12 @@ Built on `jPulse.UI.floatPanel` (W-220), which the reference site already runs
 for both of its chat panels — so the shell is proven before this item starts.
 The framework owns everything that is not about the site's data:
 
-- conversation list, rename, archive, resume, and the new-conversation flow
+- conversation title, select, rename, and new-conversation on one row under the panel title — no thread side list
+- the select lists the last 20 threads for the scope, newest first; archive is an internal slot, not chrome
 - compose box, slash-command picker, keyboard handling, send and cancel
-- the model picker, when more than one model is allowed (§9.5)
+- `/model` to view and set the thread pair when more than one model is allowed (§9.5); not a header picker
 - transport connect, reconnect, and turn reconciliation after a reload
-- token streaming, scroll-to-bottom, the stuck-turn prompt
+- token streaming, jumping dots while waiting for the first token, the outgoing prompt kept visible, scroll-to-bottom, the stuck-turn prompt
 - markdown rendering with pinned copy buttons
 - quota and error surfaces, retention notices
 - attachment chips for file, paste, and URL sources, and staged images
@@ -1401,7 +1509,39 @@ Note what is *not* required on the adapter: `executeTool`. When a client-host
 tool names a shared module (§8.2), the site supplies the data and the
 framework's loader runs the module against it. A site with a client tool that
 is not worth making a module still provides `executeTool` as an escape hatch,
-but it is the exception rather than the interface.
+but it is the exception rather than the interface. A missing `executeTool`
+on a no-module client tool is a failed envelope naming the method, not a
+timeout.
+
+Panel defaults that keep the one-liner honest: `id` is
+`ai-panel-<scopeType>-<scopeId>`; the default size is larger than
+`floatPanel`'s 360×280; the last thread id persists under its own key
+rather than inside the panel geometry. The client namespace is `jPulse.ai`,
+the mirror of `global.AiCore`, not `jPulse.plugins.aiCore`. W-220's
+`launcher` option is ghost geometry and focus-return only; the panel binds
+the element's `click` to `handle.toggle()`.
+
+**Slash commands are local and never sent to the model.** The catalog is
+`/help`, `/tools` (offered tools with host, plus withheld and why),
+`/model` (prints the current pair and the allowed list; `/model <provider>/<model>`
+sets the pair), `/new`, and `/cancel`. A leading `//` escapes, so `//help`
+is literal text. The picker expands as you type `/`; Enter executes the
+highlighted command and posts it into the transcript; Esc dismisses the
+picker and does not close the panel. Slash and other local replies carry a
+timestamp and merge with server turns by `createdAt`, so `/help` does not
+jump below a later model reply.
+
+**`/new` always inserts.** The unique index still allows one active thread
+per scope and user. `POST /api/1/ai/thread` without `forceNew` is
+`findOrCreateActive` (first send, empty list). With `forceNew: true` the
+server archives the active slot and inserts. The picker does not filter by
+status and does not label archived rows.
+
+**`marked` is loaded on demand.** `jpulse-header.tmpl` includes Prism but
+not `marked.min.js`. The panel injects `/common/marked/marked.min.js` once
+when `window.marked` is absent, and falls back to escaped plain text if
+that load fails. Asking the site to add a script tag would break the §1.1
+one-liner; adding it to the framework header would be a framework edit.
 
 ### 12.2 What stays site code
 
@@ -1853,8 +1993,9 @@ turns one filter into an archaeology exercise.
 ### TD-13 Several concurrent threads on one scope
 
 **State.** One *active* thread per `(scopeType, scopeId, createdBy)`, enforced
-by the partial unique index (§9.7). Archived threads are already unlimited and
-the panel already lists, resumes, renames, and archives them (§12.1).
+by the partial unique index (§9.7). Archived threads are already unlimited.
+The panel lists the last 20 (newest first), renames, and starts a new one
+via `startNew`; there is no archive/resume chrome (§12.1).
 
 **Why deferred.** One live conversation per user per thing is what the
 reference site does and what a chat panel with a conversation list reads as.
@@ -2009,19 +2150,36 @@ Needs W-225 (v2.0.3) for phase 1, so `jpulseVersion` becomes `>=2.0.3`.
 |---|---|---|
 | 1 | WebSocket and the client bridge | Per-thread namespace with ownership checked in an `await`ed `onCreate` and `removeIfEmpty()` on the last disconnect, the turn started over the socket, token deltas unicast to the origin tab, turn events broadcast to the user's other tabs, and `WebSocketController.request()` with transport failures mapped onto the result envelope and `stall` set only for a lost connection (§11.2) |
 | 2 | Shared tool modules | The conventional path and its resolution order, content-hash serving, dynamic `import()`, the `{ name, hash, url }` manifest, stale-hash refusal with a reload prompt, `dataScope`, and purity enforced at import and at serve with the scanner exported (§8.2) |
-| 3 | The panel | `jPulse.ai.panel` on `jPulse.UI.floatPanel`, the adapter contract (§12.1), one client API over both transports, conversation list, compose and slash commands, streaming, markdown with pinned copy buttons, reconnect and turn reconciliation, the model picker, and the quota and error surfaces |
+| 3 | The panel | `jPulse.ai.panel` on `jPulse.UI.floatPanel`, the adapter contract (§12.1), one client API over both transports, conversation row (last 20, newest first), compose and slash commands, streaming with jumping dots, markdown with pinned copy buttons, reconnect and turn reconciliation, `/model` for the thread pair, and the quota and error surfaces |
 | 4 | `hello-ai` and docs | The demo view and its tool modules, shipped inside the plugin (§22.1), the `ai-mock` targeted tool script, plus the panel and tool-module sections of `plugins/ai-core/docs/` (§22.3) |
 
 Phase 3 is validated against `hello-ai` and deliberately **not** against the
 reference site. An adapter contract proven only against the application it was
 extracted from is not a contract.
 
-**`hello-ai` carries both hosts.** A client-host tool over state that genuinely
-only the browser has, so the bridge is exercised rather than described, and a
-server-host tool beside it so the demo shows the ordinary case too. The
-"one module, two hosts" claim of §8.3 is proven by a plugin test running the
-same module in Node against fixture data — which is also the claim being made,
-that these modules are testable as plain functions. Registering one module
+**`hello-ai` is a scratch pad.** A textarea whose contents never reach the
+server — unsaved edits and the current selection, the honest §7.2 case.
+`scopeType` is `hello-ai`. Registrations are gated on that scope type: an
+unconditional `onAiToolRegister` push would make `chooseTransport()` answer
+`ws` for every page of every site that installed the bundle. Demo hooks
+live in `helloAi.js`, not `aiCore.js`.
+
+**Three tools, one per shape a site can write:**
+
+| Tool | Host | Path |
+|---|---|---|
+| `read_draft` | client | module `readDraft`, `requires: 'scope:read'`. `data.text` is the pad (32 KB cap); `data.excerpt` is a 160-character preview |
+| `append_draft` | client | no module, `adapter.executeTool`, `requires: 'scope:write'`, `mutates: true`, `budget: { key: 'writes', max: 3 }` |
+| `get_hello_clock` | server | ordinary `onAiToolExecute` |
+
+`append_draft` cannot be a module: appending to a textarea is a DOM write,
+and a tool module is pure. That is why the write is in this item and not
+deferred to W-227 — `executeTool` exists for side effects, and a read-only
+demo would leave the adapter member undemonstrated. A direct write is not
+propose/apply: it records no proposal and shows no Apply card.
+
+The "one module, two hosts" claim of §8.3 is proven by a plugin test
+running `readDraft.js` in Node against fixture data. Registering one module
 twice under two tool names would show it in the UI at the cost of a
 registration no real site would write.
 
@@ -2030,7 +2188,20 @@ tools happen to be first and second on the offered list, with empty arguments,
 which is enough to drive the loop and not enough to demonstrate a tool. A
 script naming a tool and its arguments, then summarizing the result in a second
 round, is what makes `hello-ai` show a specific client-host call crossing the
-bridge and coming back. Same package, so it ships in the same version.
+bridge and coming back.
+
+The targeted script also takes a **sequence**, which is a deliberate
+extension of the single-call form above. "Summarize the draft and append
+the summary" is a read then a write. The structured form is
+`script: { type: 'tool', steps: [ { name, args }, … ] }` — one `tool_use`
+per round in order, then a final text round. A step argument whose value is
+`$prior.<dotted.path>` resolves against the previous round's first tool
+result. `ai-mock` stays domain-free: it resolves a path against a result it
+was handed. `hello-ai` has no scripted buttons: `/help` lists `examples`
+from `panel.create`. The structured `script` field stays for `curl` and
+sites; the `[mock:tool:…]` bracket form cannot carry a `]` inside the JSON
+(objects and scalars are fine). Same package, so it ships in the same
+version.
 
 ### 21.6 W-227 — ai: propose and apply
 
@@ -2099,8 +2270,11 @@ the only directory that publish and bump are run from (§5.1, W-221).
   reuses `jp-*` classes freely and creates none
 - `plugins/ai-core/webapp/view/jpulse-navigation.js` — the `hello-ai` nav entry
 - `plugins/ai-core/webapp/view/admin/` — the usage page (§17)
+- `plugins/ai-core/webapp/controller/helloAi.js` — demo hooks only,
+  gated on `scopeType === 'hello-ai'`. Product code and the worked example
+  are not the same file
 - `plugins/ai-core/webapp/view/hello-ai/` plus
-  `plugins/ai-core/webapp/ai-tools/` — the demo, shipped **inside the plugin**
+  `plugins/ai-core/webapp/utils/ai-tools/` — the demo, shipped **inside the plugin**
   rather than in the site template. The feature is complex enough that
   onboarding needs something that runs, and in the plugin it is installable
   into an existing site for evaluation, arrives and updates with the code it

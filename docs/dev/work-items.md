@@ -9276,17 +9276,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests - use an isolated temp project or the plugin-cli harness
   - the nginx streaming location is **optional**: without it production nginx buffers the whole body and the routes still work, with `client_max_body_size` as the outer gate. Say so in the guide rather than making a plugin install depend on an nginx edit
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-229, v2.0.4, 2026-09-17: hooks: jPulse-owned document conversion and preview hooks
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - define **four** hooks in the framework hook catalog as **generic, AI-free** contracts - `onDocumentConvertRegister` / `onDocumentConvert` ("turn these bytes into text") and `onDocumentPreviewRegister` / `onDocumentPreview` ("turn these bytes into a thumbnail") - so a PDF, Office, or preview plugin is a framework plugin rather than a dependent of an AI plugin
@@ -9353,6 +9344,114 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-230, v1.0.5, 2026-09-17: ai: generalize the panel interface - site-owned regions and slash commands
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - stop `ai-core` deciding the whole panel UI. A site contributes its own stacked **regions** at framework-named anchors, and owns the **complete slash-command list** - keeping framework implementations available by name so opting in costs one word and overriding costs one function
+  - **the framework owns order and placement, the site owns content.** That is not a new pattern in this plugin: `assemblePrompt` already fixes the fragment order and lets the site fill the slots through `onAiPromptFragment`. The panel gets the same split, so panel layout stays the framework's to change and no two plugins fight over a position
+  - **presence-gated, like the rest of the adapter.** Every adapter member is called behind `typeof adapter.X === 'function'`; a site that wants no context row, no extra command, and no region implements none of it and sees none of it. No seam a site has to author is on by default. The framework's own additions to the command catalog are the exception, and they are gated on data the panel already holds rather than on site code
+  - **the context row is the first real consumer**, gated on `adapter.contextOptions()`. Context and target are already framework concepts - the panel sends `context` / `target` on every turn and the prompt names them in the scope block - so the chrome for them belongs to the framework, and the labels belong to the site
+  - **a command that reports framework state is a framework command.** Quota, the attached-source list, transport and thread status, and the conversation list are already in the panel's own state or in the capability probe, so shipping them as gated defaults costs ten lines each in one place instead of ten lines in every site. That, more than the seam alone, is what shrinks the reference site's nine-command catalog
+  - retire the dead ends this exposes: the closed five-name `SLASH_COMMANDS` list is gone, and `adapter.describeScope()` is removed from the contract - it was documented, implemented in `hello-ai`, never called, and wiring it would need a new turn field this item rules out. `options.examples` is **kept**, as the content slot of `/help` rather than a second way to write it, and gains clickable `[[label]]` rows. The catalog algorithm lives in `slash.js` (Jest); the panel IIFE ports the same functions because it cannot import ESM
+  - do this **before** the reference site's migration and before more sites adopt `panel.create`. It changes that function's contract, which is cheap now (design §18 preserves no upgrade path) and expensive once several sites depend on it
+- prerequisites:
+  - W-226, `@jpulse-net/plugin-ai-core` 1.0.2: the panel, `jPulse.ai.panel.create`, the adapter contract, the five-command slash picker, and the local-reply rows that a site command will post into
+  - W-227, 1.0.3: Apply cards and `renderProposalPreview`, which already proved the node-or-escaped-text return this item reuses for region content
+  - W-228, 1.0.4: the attachment strip, chip pop, and URL-intercept card - the rows a new anchor has to sit beside without disturbing them, and the pin-to-bottom behavior a region render must not break
+  - W-220, v2.0.0 `jPulse.UI.floatPanel`: panel geometry. A region changes the transcript's available height, so the existing pin pass is the seam this item leans on rather than replaces
+  - `jpulseVersion` stays `>=2.0.3`. **No framework source change**, and no server change: regions and commands are panel-side, and `context` / `target` already travel on the turn
+- rationale:
+  - **the slash catalog is closed, and the reference site proves the cost.** `SLASH_COMMANDS = ['help', 'tools', 'model', 'new', 'cancel']` is a constant in the panel; `parseSlashCommand` returns `null` for anything else, so typing `/context` is answered locally with "Unknown command. Try /help." The panel reserves the entire `/name` namespace and then refuses to share it. That site's catalog is nine commands with aliases (`quota`, `conversations`/`resume`, `status`, `context`, `sources`, plus `clear`), and four of them have nowhere to go
+  - **four of those nine are framework state, not site data.** `GET /api/1/ai/capability` already returns `quota` as `{ subject, rows: [{ dimension, period, limit, used, costUnknown }] }`, and the panel stores it and renders it nowhere - `I18N.quota` is a loaded string with no call site. The panel likewise owns `state.sources` / `state.images` with every cap, `state.threads` (the last 20, newest first), and the transport, thread, pair, and running state. Leaving `/quota`, `/sources`, `/status`, and `/conversations` to each site would mean publishing three more handle getters and then duplicating the formatting behind them per site
+  - **the same list exists twice** - inline in `webapp/view/jpulse-common.js` and again in `webapp/utils/panel/slash.js`, which is the copy the unit tests exercise. The parser under test is not the parser that runs
+  - **the adapter is already the right shape and should be the model for the rest.** Duck-typed, optional, one presence check per call site. Chrome, by contrast, is gated only by the server capability probe (`sourcesEnabled`, `imagesEnabled`, `urlIngestEnabled`), so a *page* with nothing attachable still shows the strip unless an admin disables the feature site-wide. Site-level opt-out is the gap
+  - **anchors rather than a free stack.** If a site chooses absolute positions, the framework can never reorder its own rows again and two plugins collide on one page. Framework-declared anchor *names* describing intent - not today's DOM - keep both sides free: the site's region stays put while the framework moves the internals
+  - **content is a DOM node or plain text, never an HTML string.** `renderProposalPreview` already made this decision for the same reason: a site wanting markup returns a node, so no site injects markup by accident and no site quietly couples to plugin CSS internals
+  - **context must not become a site region.** The turn payload and the prompt already carry it; asking every site to hand-roll a `<select>` for a field the framework already sends, and already describes to the model, is the wrong split. Regions are for what the framework has no concept of
+  - **chrome without a caller rots, which is the argument for shipping the seam and one consumer together.** `adapter.describeScope()` is documented and implemented in `hello-ai` and the panel never calls it; `adapter.sourceAttachable` is documented and never called. Two dead contract members in three releases is the pattern this item must not repeat
+- features:
+  - **named regions:**
+    - **framework-declared anchors, fixed order, intent-named:** `header` (below the conversation row), `transcriptTop`, `transcriptBottom`, `composeAbove` (where the intercept card and the strip already live), `composeBelow`. Anchor names are the stable contract; the DOM under them is not
+    - **a region is `{ name, anchor, priority, render, on }`.** `name` is a stable id used for the CSS hook and for refresh; `priority` orders site regions inside an anchor and defaults to 100; `render(ctx)` returns a DOM node, a string the panel escapes as text, or `null` to hide the region entirely
+    - **framework rows are siblings in fixed slots, not participants in that ordering**, so a site never competes with the strip, the intercept card, or the context row and no reserved-band table has to be published or learned
+    - **the framework wraps each region** in `<div class="plg-ai-region" data-region="<name>">` and owns that frame - block layout, small padding, theme variables, and deliberately no border or card styling, because a one-line statistics row must not read as an alert - so the site styles only the inside and a region cannot break panel layout
+    - **re-render on declared events plus on demand.** `on: ['thread', 'turn', 'capability', 'sources']` re-renders from framework state changes and defaults to none, manual only; `handle.regions.refresh(name)` covers what the framework cannot observe, which is the common case - the reference site's context row changes when the user clicks a bubble on its canvas. `refresh()` with no name re-renders every region
+    - **the transcript is re-pinned after any region render**, because a region above the compose box changes the available height. Reuse the existing pin pass rather than adding a second one
+    - a region may not suppress framework chrome. A site that wants no attachment strip uses the panel flag or the admin capability, not a region
+  - **site-owned slash commands:**
+    - **the defaults are generic and gated, and `commands` omitted keeps every applicable one.** A plain chatbot with no adapter gets a useful catalog without writing a line, which is the opposite of the 1.0.4 position where four obvious commands were impossible and none of the useful framework state was reachable
+    - the framework catalog is ten: `/help` (carrying the site's examples), `/tools`, `/model`, `/new` (alias `clear`), `/cancel`, `/conversations` (alias `resume`; `/conversations <n>` opens one), `/quota`, `/sources`, `/status`, and `/context`. Every one reports framework state or performs a framework action; nothing in it names a site concept
+    - **`/model` and `/status` are always listed.** A site with one allowed model still shows `/model`, because "what is available" is the question the command answers and a user who cannot ask cannot learn that the answer is one. `/status` leads with conversation count and turns in the current chat, then transport, thread, pair, and idle or running
+    - **`when(ctx)` gates the three that depend on data rather than on taste:** `/quota` when the probe returns caps, `/sources` when sources or images are enabled, `/context` when `adapter.contextOptions` is a function. A gated-off command is absent from the picker *and* from the parser - it does not exist on that panel. `/cancel` is deliberately **not** gated: it stays listed and replies "no turn is running" when idle, because answering a real command with "Unknown command" is the worse reply
+    - **`commands` on `panel.create` is the complete list.** A bare string names a framework implementation; an object adds or overrides; **the last entry with a given name wins**, so an override is one object after the spread rather than a filter over the defaults. Omitting a name hides that command - a kiosk that must not let the user start a conversation drops `/new`
+    - **an entry is `{ name, aliases, hint, when, hidden, run }`:** `aliases` resolve in the parser and match in the picker without adding a second row, `hint` feeds the picker and `/help`, `when(ctx)` is availability, `hidden` is runnable-but-unlisted, and `run(ctx)` returns a string, a node, or `null` when the command drew its own UI. `run` may be async
+    - **`ctx` is small and named:** `{ name, arg, framework(), thread, capability, adapter, handle }`. `ctx.framework()` runs the framework implementation of that name when one exists, so `/tools` becomes "framework list plus my note" and `/help` becomes "framework help plus my heading" without reimplementing either. Override-only would have made every site copy code to add one line
+    - **`jPulse.ai.commands.defaults` is exported** so a site spreads rather than retypes, and so a framework command added later is one array entry away
+    - **one catalog drives everything** - the picker, the parser, alias resolution, `/help`, and the unknown-command reply. `webapp/utils/panel/slash.js` is the testable source. The panel IIFE ports the same functions and exports `jPulse.ai.commands` (`defaults`, `normalizeCatalog`, `parseSlashCommand`, `filterSlashCommands`, `parseExampleRow`); it does not `import` the ESM file
+    - **the picker scrolls.** Ten commands do not fit a 420px panel at once, so the list gets a max height and keeps the arrow-key highlight in view
+    - unchanged invariants: commands are **local and never sent to the model**, `//` escapes to literal text, Enter runs the highlighted command and posts it into the transcript, and Esc dismisses the picker without closing the panel
+  - **`/help` examples, site-configurable per row:**
+    - **`options.examples` stays** and is the content slot inside `/help`: the framework owns the layout and the translated `Examples` heading, the site owns the words. That is §9.6's split applied to one command rather than a second way to write `/help` - a site wanting different *behavior* still overrides `help` and delegates through `ctx.framework()`
+    - **a row is clickable where it contains `[[label]]`**, anywhere in the line. Click inserts that label. Text after the brackets is a note, not a second syntax: `[[Translate this text into "Yoda-speak"]] (for Star Wars fans)` and `[[Shorten it]] — propose a shorter rewrite`. A whole-row prompt with no brackets stays plain. A single `[docs]` stays plain. There is no `[[label]](other prompt)` form
+    - **the same linker is used for `/help` command names** (`[[/status]] — hint`), **`/model` pairs** (`[[/model provider/model]] — Label`), and **`/conversations` rows** (`[[/conversations 3]] Title — date`)
+    - **clicking fills the compose box and focuses it; it never sends.** The user edits before spending a turn, and a mis-clicked example costs nothing
+    - this is the first consumer of the node return from `run`, which is why the two ship together rather than one waiting for the other
+  - **the context row, gated on `adapter.contextOptions()`:**
+    - a framework row above the compose box: a label and a select built from `contextOptions()`, which returns `[{ value, label, unavailable? }]`. Absent adapter method means no row, no persistence, and no command
+    - **selection is thread-scoped and stable until the user changes it**, and is not the send-time target. The framework owns the selected *value* and remembers it per thread in `localStorage`; `describeContext(value)` turns it into the sentence the model sees and `describeTarget()` keeps its current meaning. A `describeContext()` that ignores the new argument still works, so `hello-ai` and any shipped site need no edit
+    - **`handle.context` is the site's half: `{ get, set, refresh }`.** The row is framework chrome but the gesture that changes context is site code - a click on the reference site's canvas - so without a setter the select and the page drift apart. `refresh()` re-reads `contextOptions()` when the option list itself changed
+    - **`/context` ships with the row and is gated the same way**, the way `/model` mirrors the thread pair: it prints the current context, the target, and the option list
+    - an option may declare itself `unavailable` so a site can name a context whose object is gone - the reference site's "Bubble (unavailable) + children" - without the framework knowing what a bubble is. An `unavailable` option stays selectable and is never auto-selected
+    - **`adapter.describeScope()` is removed** from the contract, from `hello-ai`, and from the guide. Server-side scope labels already come from `onAiScopeResolve`, and wiring the adapter member would mean a new turn field this item rules out
+  - **`hello-ai` demonstrates every seam once:** a site region (pad statistics, refreshed on typing through `handle.regions.refresh`, copy `Scratch pad has N characters, M selected`), clickable `/help` examples through `options.examples`, a site command with no framework twin (`/pad`, same sentence), and a `hidden` one (`/padreset`, restoring the demo text - useful to have, not something to put in the picker). No `contextOptions`, so no context row and no `/context`: the demo is the proof that a site without context gets neither. `describeScope` comes out
+  - **tests** in a new panel-extension suite, following W-227's pattern of testing the shared helpers rather than a jsdom render of the panel: anchor ordering and priority, with framework slots unaffected by a site priority; a region returning a node, a string (escaped), and `null` (hidden); refresh by name and refresh-all; an unknown anchor refused with a message naming the valid ones; catalog merge with strings, objects, last-wins override, aliases, `when()`, and `hidden`; `commands` omitted equalling the applicable defaults; `/quota`, `/sources`, and `/context` absent when their data is, and absent from the parser as well as the picker; `/cancel` and `/model` present regardless; `/conversations <n>` resolving to a thread; a site override reaching `ctx.framework()`; a site command with no framework twin; the examples parser over `[[label]]` anywhere, suffix notes, `[[/conversations n]]` / `[[/status]]` help-row shapes, and a single-bracket sentence left plain; `//` still literal; unknown command still answered locally; the picker and the parser reading one catalog; and the row's option list rendering an `unavailable` entry
+- deliverables:
+  - `plugins/ai-core/webapp/utils/panel/regions.js`:
+    - the anchor list, merge and priority ordering, and content normalization (node passes through, string is escaped, `null` hides). No DOM ownership beyond the wrapper contract
+  - `plugins/ai-core/webapp/utils/panel/slash.js`:
+    - the catalog: the ten defaults with their `when` gates and aliases, normalize strings and objects with last-wins, resolve aliases, evaluate `when()`, filter for the picker, parse against the merged list, and parse an examples row into `[[label]]` parts. This file is the Jest source. The panel IIFE ports the same functions and exposes them on `jPulse.ai.commands`
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - anchor containers in the panel DOM; region render, refresh, and the re-pin after render; command dispatch through the merged catalog with `ctx.framework()`; the formatters behind `/quota` (cost-unknown only on the cost dimension), `/sources`, `/status` (chats and turns first), and `/conversations` over state the panel already holds; clickable `/help` command names and example rows that fill the compose box; `/model` and `/conversations` lists as the same links; named `%MODEL%` / `%DAYS%` / `%LABEL%` view tokens; the context row, `/context`, and `handle.context` gated on `adapter.contextOptions()`; `handle.regions`; `jPulse.ai.commands.defaults`; the closed five-name `SLASH_COMMANDS` list and the `describeScope` call site removed
+  - `plugins/ai-core/webapp/view/jpulse-common.css`:
+    - `plg-ai-region*` quiet slot, `plg-ai-context-*` row, the picker max height, and the clickable example row; `--jp-theme-*` colors only, no new `jp-*`
+  - `plugins/ai-core/webapp/translations/en.conf`, `de.conf`:
+    - hints and labels for the five new commands, the context row label, the idle `/cancel` reply, and the row labels the quota, sources, and status replies print; `modelSet` / `retention` / `conversationsOpened` use `%MODEL%` / `%DAYS%` / `%LABEL%` (not `{{pair}}`, which the JS view compiler eats); the unknown-command, picker, and `Examples` strings kept in one place. Site regions and site commands carry their own strings
+  - `plugins/ai-core/webapp/view/hello-ai/index.shtml`:
+    - the one region, `/pad` and footer copy `Scratch pad has N characters, M selected`, the hidden `/padreset`, and `examples` as `[[label]]` rows; `describeScope` removed
+  - `plugins/ai-core/webapp/tests/unit/panel-extension.test.js` (plus edits where existing suites assert the old five-command list or the adapter key set):
+    - the cases above
+  - `plugins/ai-core/docs/README.md`, `plugins/ai-core/README.md`:
+    - the extension surface: anchors and what each is for, the region contract and why content is a node or text, the ten defaults with their gates, the command catalog with delegation and last-wins override, the examples row syntax, the context row with `handle.context` and its adapter gate, and the migration line for a site that implemented `describeScope`. Version numbers, never work-item numbers
+  - `docs/dev/design/W-223-ai-agent.md`:
+    - §12.1 rewritten from "the framework owns everything that is not about the site's data" to the region and command contract, with the ten defaults and their gates replacing the five-command sentence, `contextOptions()` moved from a sketched adapter member to shipped chrome beside `handle.context`, and `describeScope()` struck from the adapter sketch; §12.2 gains the site's side. A new Rev entry records the eight decisions, including why `examples` was kept after Rev 12's style of preferring one way to say a thing. **Framework-repo change, not part of this item's `ai-core` commit**
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md` §12.1 (panel surface and the adapter, including the unbuilt `contextOptions()`), §12.2 (what stays site code), and §9.6 (the prompt-fragment slots this item copies for the panel)
+  - **repo layout: `plugins/ai-core` is its own git repo and its own commit**, gitignored by the framework repo. `ai-mock` has no product change and takes the version lockstep bump as a bundle member. `hello-ai` is still a view inside `ai-core` at this point - W-231 extracts it afterwards, on purpose, so the extracted demo carries the final public API instead of needing a follow-up release to use it
+  - **eight spec decisions taken before implementation**, each with the alternative that was rejected:
+    - *placement*: framework-named anchors with framework-owned order. A site-ordered stack was rejected because it freezes panel layout forever and gives two plugins on one page no way to coexist
+    - *content*: a DOM node, or a string the panel escapes. An HTML string was rejected for the reason `renderProposalPreview` already rejected it - accidental markup injection and an unversioned coupling to plugin CSS
+    - *commands*: the site declares the complete list, framework implementations stay addressable by name, last-wins resolves a collision, and `ctx.framework()` allows delegation. Override-only was rejected because adding one example to `/help` would mean reimplementing it; framework-list-plus-extras was rejected because a site must be able to *remove* a command it cannot honor, such as `/new` on a kiosk
+    - *defaults*: ten generic commands, gated, and `commands` omitted keeps every applicable one. Leaving `/quota`, `/sources`, `/status`, and `/conversations` to each site was rejected because the panel already holds every field they print, so the alternative is three more published handle getters plus the same formatting written once per site
+    - *discovery*: `/model` and `/status` are always listed. Auto-hiding `/model` on a one-model site was rejected because the command answers "what is available", and a user who cannot ask cannot find out that the answer is one
+    - *context*: framework chrome gated on `adapter.contextOptions()`, with `handle.context` for the site's own gesture. A pure site region was rejected because the turn payload and the prompt already carry context and target; an always-on row was rejected because not every site has a context to choose; a read-only row was rejected because the selection changes from the page, not only from the select
+    - *existing chrome*: the notice, strip, chip pop, intercept card, and Apply cards stay framework features and are **not** reimplemented as regions. Doing so is a rewrite with no user-visible gain and would put framework state behind a site-shaped contract
+    - *`examples`*: kept as the content slot of `/help`, with per-row `[[label]]` links (suffix text is a note; no `[[label]](other prompt)` form). Retiring it for `/help` delegation was rejected because the common case - three example prompts - would cost four lines of ceremony and would hardcode an `Examples` heading the site then cannot translate; a content slot beside a behavior override is the same split `hint` and `run` already have, not two ways to say one thing
+  - **as built (1.0.5):** `slash.js` and the panel IIFE both carry the catalog algorithm (IIFE cannot import ESM). Clickable `[[label]]` is shared by `/help` commands, examples, `/model` pairs, and `/conversations` rows. `/quota` annotates cost-unknown only on `dimension === 'cost'`. View interpolation uses `%TOKEN%`, not `{{name}}` inside `jpulse-common.js`
+  - **the reference site is the acceptance test on paper:** after this item `/quota`, `/status`, `/sources`, and `/conversations` are framework defaults that site deletes rather than ports, `clear` and `resume` are shipped aliases, its context row is `contextOptions()` plus `handle.context`, and every bubble-shaped label stays in its own code. What remains for it to author is genuinely site-shaped; if any of that cannot be expressed, the seam is wrong and it is cheaper to learn it here than after the migration
+  - **do not add a server route.** The selected context lives in the tab - `localStorage`, keyed by thread - and a site that needs it durable writes its own endpoint from `handle.context.set`. The reference site's `POST /api/1/ai/thread/:id/context` is not being ported into the framework in this item
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests - use an isolated temp project or the plugin-cli harness
+  - out of scope, each its own polish item or already deferred: the quota footer (the `/quota` command ships; persistent footer chrome does not), the empty-transcript hint, multi-tab "another tab is running" state and the launcher unread dot, `/new` confirmation when chips are attached, a richer source badge popover in the transcript, wiring `adapter.sourceAttachable` and the attach-to-object chip menu (W-228 surface), site-authored history notes (TD-14), a conversation-scoped tool cache (TD-15), server-resolved or cross-tab sources (TD-16), document converters (W-229 hooks), an agent-callable URL fetch, and citations
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -9380,7 +9479,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-229, v2.0.4, 2026-09-17
+- assume W-230, v1.0.5, 2026-09-17
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -9403,12 +9502,12 @@ git tag v2.0.4; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.3 2026-09-17
+node ../../bin/bump-version.js 1.0.5 2026-09-17
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.2; git push origin main --tags
+git tag v1.0.5; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 
@@ -9463,88 +9562,6 @@ template:
   - FIXME `path/file`:
     - FIXME summary
 - notes:
-
-### W-230, v1.0.5, YYYY-MM-DD: ai: generalize the panel interface - site-owned regions and slash commands
-- status: 🕑 PENDING
-- type: Feature
-- objectives:
-  - stop `ai-core` deciding the whole panel UI. A site contributes its own stacked **regions** at framework-named anchors, and owns the **complete slash-command list** - keeping framework implementations available by name so opting in costs one word and overriding costs one function
-  - **the framework owns order and placement, the site owns content.** That is not a new pattern in this plugin: `assemblePrompt` already fixes the fragment order and lets the site fill the slots through `onAiPromptFragment`. The panel gets the same split, so panel layout stays the framework's to change and no two plugins fight over a position
-  - **presence-gated, like the rest of the adapter.** Every adapter member is called behind `typeof adapter.X === 'function'`; a site that wants no context row, no extra command, and no region implements none of it and sees none of it. Nothing in this item is on by default
-  - **the context row is the first real consumer**, gated on `adapter.contextOptions()`. Context and target are already framework concepts - the panel sends `context` / `target` on every turn and the prompt names them in the scope block - so the chrome for them belongs to the framework, and the labels belong to the site
-  - retire the dead ends this exposes: one slash catalog instead of two copies, `options.examples` subsumed by `/help` delegation, and `adapter.describeScope()` either wired or removed from the contract
-  - do this **before** the reference site's migration and before more sites adopt `panel.create`. It changes that function's contract, which is cheap now (design §18 preserves no upgrade path) and expensive once several sites depend on it
-- prerequisites:
-  - W-226, `@jpulse-net/plugin-ai-core` 1.0.2: the panel, `jPulse.ai.panel.create`, the adapter contract, the five-command slash picker, and the local-reply rows that a site command will post into
-  - W-227, 1.0.3: Apply cards and `renderProposalPreview`, which already proved the node-or-escaped-text return this item reuses for region content
-  - W-228, 1.0.4: the attachment strip, chip pop, and URL-intercept card - the rows a new anchor has to sit beside without disturbing them, and the pin-to-bottom behavior a region render must not break
-  - W-220, v2.0.0 `jPulse.UI.floatPanel`: panel geometry. A region changes the transcript's available height, so the existing pin pass is the seam this item leans on rather than replaces
-  - `jpulseVersion` stays `>=2.0.3`. **No framework source change**, and no server change: regions and commands are panel-side, and `context` / `target` already travel on the turn
-- rationale:
-  - **the slash catalog is closed, and the reference site proves the cost.** `SLASH_COMMANDS = ['help', 'tools', 'model', 'new', 'cancel']` is a constant in the panel; `parseSlashCommand` returns `null` for anything else, so typing `/context` is answered locally with "Unknown command. Try /help." The panel reserves the entire `/name` namespace and then refuses to share it. That site's catalog is nine commands with aliases (`quota`, `conversations`/`resume`, `status`, `context`, `sources`, plus `clear`), and four of them have nowhere to go
-  - **the same list exists twice** - inline in `webapp/view/jpulse-common.js` and again in `webapp/utils/panel/slash.js`, which is the copy the unit tests exercise. The parser under test is not the parser that runs
-  - **the adapter is already the right shape and should be the model for the rest.** Duck-typed, optional, one presence check per call site. Chrome, by contrast, is gated only by the server capability probe (`sourcesEnabled`, `imagesEnabled`, `urlIngestEnabled`), so a *page* with nothing attachable still shows the strip unless an admin disables the feature site-wide. Site-level opt-out is the gap
-  - **anchors rather than a free stack.** If a site chooses absolute positions, the framework can never reorder its own rows again and two plugins collide on one page. Framework-declared anchor *names* describing intent - not today's DOM - keep both sides free: the site's region stays put while the framework moves the internals
-  - **content is a DOM node or plain text, never an HTML string.** `renderProposalPreview` already made this decision for the same reason: a site wanting markup returns a node, so no site injects markup by accident and no site quietly couples to plugin CSS internals
-  - **context must not become a site region.** The turn payload and the prompt already carry it; asking every site to hand-roll a `<select>` for a field the framework already sends, and already describes to the model, is the wrong split. Regions are for what the framework has no concept of
-  - **chrome without a caller rots, which is the argument for shipping the seam and one consumer together.** `adapter.describeScope()` is documented and implemented in `hello-ai` and the panel never calls it; `adapter.sourceAttachable` is documented and never called. Two dead contract members in three releases is the pattern this item must not repeat
-- features:
-  - **named regions:**
-    - **framework-declared anchors, fixed order, intent-named:** `header` (below the conversation row), `transcriptTop`, `transcriptBottom`, `composeAbove` (where the intercept card and the strip already live), `composeBelow`. Anchor names are the stable contract; the DOM under them is not
-    - **a region is `{ name, anchor, priority, render, on }`.** `name` is a stable id used for the CSS hook and for refresh; `priority` orders site regions inside an anchor, with framework rows in reserved bands so a site cannot displace them; `render(ctx)` returns a DOM node, a string the panel escapes as text, or `null` to hide the region entirely
-    - **the framework wraps each region** in `<div class="plg-ai-region" data-region="<name>">` and owns that frame - padding, border, theme variables - so the site styles only the inside and a region cannot break panel layout
-    - **re-render on declared events plus on demand.** `on: ['thread', 'turn', 'capability', 'sources']` re-renders from framework state changes; `handle.regions.refresh(name)` covers what the framework cannot observe, which is the common case - the reference site's context row changes when the user clicks a bubble on its canvas
-    - **the transcript is re-pinned after any region render**, because a region above the compose box changes the available height. Reuse the existing pin pass rather than adding a second one
-    - a region may not suppress framework chrome. A site that wants no attachment strip uses the panel flag or the admin capability, not a region
-  - **site-owned slash commands:**
-    - **`commands` on `panel.create` is the complete list.** A bare string names a framework implementation (`'help'`, `'tools'`, `'model'`, `'new'`, `'cancel'`); an object adds or overrides. Omitting a command hides it, deliberately - a site with one allowed model should not show `/model`
-    - **an entry is `{ name, aliases, hint, when, hidden, run }`:** `aliases` (the reference site has `clear` and `resume`), `hint` for the picker and `/help`, `when(ctx)` for conditional availability, `hidden` for runnable-but-unlisted, and `run(ctx)` returning a string, a node, or `null` when the command handled its own UI. `run` may be async
-    - **delegation, not only override.** `ctx.framework()` runs the framework implementation of that name when one exists, so `/help` becomes "framework help plus my examples" and `/tools` becomes "framework list plus my note" without reimplementing either. Override-only would have made every site copy code to add one line
-    - **`jPulse.ai.commands.defaults` is exported** so a site spreads rather than retypes, and so a framework command added later is one array entry away
-    - **one catalog drives everything** - the picker, the parser, alias resolution, `/help`, and the unknown-command reply. `webapp/utils/panel/slash.js` becomes that single source and the panel's inline copy is deleted
-    - unchanged invariants: commands are **local and never sent to the model**, `//` escapes to literal text, Enter runs the highlighted command and posts it into the transcript, and Esc dismisses the picker without closing the panel
-    - **`options.examples` is retired.** A site that wants examples in `/help` overrides `help` and delegates. One way to say it, not two
-  - **the context row, gated on `adapter.contextOptions()`:**
-    - a framework row above the compose box: a label and a select built from `contextOptions()`, which returns `[{ value, label, unavailable? }]`. Absent adapter method means no row, no persistence, and no command
-    - **selection is thread-scoped and stable until the user changes it**, and is not the send-time target. `describeContext()` / `describeTarget()` keep their current meaning on the turn payload; the row only changes what `describeContext()` will report
-    - **`/context` ships with the row and is gated the same way**, the way `/model` mirrors the thread pair: it prints the current context, the target, and the option list
-    - an option may declare itself `unavailable` so a site can name a context whose object is gone - the reference site's "Bubble (unavailable) + children" - without the framework knowing what a bubble is
-    - **`adapter.describeScope()` is wired into the same payload assembly** or removed from the contract and the docs. Both are acceptable; carrying a documented member nobody calls is not
-  - **`hello-ai` demonstrates both seams, one each:** a small site region (pad statistics, refreshed on typing through `handle.regions.refresh`) and one site command that delegates (`/help` with the pad's examples) plus one that does not exist in the framework (`/pad` printing size and selection). No context row - the demo is the proof that a site without context gets no row
-  - **tests** in a new panel-extension suite, following W-227's pattern of testing the shared helpers rather than a jsdom render of the panel: anchor ordering and reserved bands; a region returning a node, a string (escaped), and `null` (hidden); refresh by name; an unknown anchor refused with a message naming the valid ones; catalog merge with strings, objects, aliases, `when()`, and `hidden`; a site override reaching `ctx.framework()`; a site command with no framework twin; `//` still literal; unknown command still answered locally; the picker and the parser reading one catalog; no context row and no `/context` without `contextOptions`; and the row's option list rendering an `unavailable` entry
-- deliverables:
-  - `plugins/ai-core/webapp/utils/panel/regions.js`:
-    - the anchor list, merge and ordering with the framework's reserved bands, and content normalization (node passes through, string is escaped, `null` hides). No DOM ownership beyond the wrapper contract
-  - `plugins/ai-core/webapp/utils/panel/slash.js`:
-    - the catalog: normalize strings and objects, resolve aliases, evaluate `when()`, filter for the picker, parse against the merged list, and expose the framework defaults. This file becomes the only slash catalog in the plugin
-  - `plugins/ai-core/webapp/view/jpulse-common.js`:
-    - anchor containers in the panel DOM; region render, refresh, and the re-pin after render; command dispatch through the merged catalog with `ctx.framework()`; the context row and `/context` gated on `adapter.contextOptions()`; `handle.regions`; `jPulse.ai.commands.defaults`; the inline `SLASH_COMMANDS` copy and the `options.examples` path removed
-  - `plugins/ai-core/webapp/view/jpulse-common.css`:
-    - `plg-ai-region*` frame and `plg-ai-context-*` row; `--jp-theme-*` colors only, no new `jp-*`
-  - `plugins/ai-core/webapp/translations/en.conf`, `de.conf`:
-    - context row label and `/context` hint; the unknown-command and picker strings kept in one place. Site regions and site commands carry their own strings
-  - `plugins/ai-core/webapp/view/hello-ai/index.shtml`:
-    - the one region and the two commands above, plus the `/help` delegation replacing the `examples` option
-  - `plugins/ai-core/webapp/tests/unit/panel-extension.test.js` (plus edits where existing suites assert the old five-command list):
-    - the cases above
-  - `plugins/ai-core/docs/README.md`, `plugins/ai-core/README.md`:
-    - the extension surface: anchors and what each is for, the region contract and why content is a node or text, the command catalog with delegation, the context row and its adapter gate, and the migration line for a site that passed `examples`. Version numbers, never work-item numbers
-  - `docs/dev/design/W-223-ai-agent.md`:
-    - §12.1 rewritten from "the framework owns everything that is not about the site's data" to the region and command contract, with `contextOptions()` moved from a sketched adapter member to shipped chrome; §12.2 gains the site's side. A new Rev entry records the decisions. **Framework-repo change, not part of this item's `ai-core` commit**
-- notes:
-  - design source: `docs/dev/design/W-223-ai-agent.md` §12.1 (panel surface and the adapter, including the unbuilt `contextOptions()`), §12.2 (what stays site code), and §9.6 (the prompt-fragment slots this item copies for the panel)
-  - **repo layout: `plugins/ai-core` is its own git repo and its own commit**, gitignored by the framework repo. `ai-mock` has no product change and takes the version lockstep bump as a bundle member. `hello-ai` is still a view inside `ai-core` at this point - W-231 extracts it afterwards, on purpose, so the extracted demo carries the final public API instead of needing a follow-up release to use it
-  - **six spec decisions taken before implementation**, each with the alternative that was rejected:
-    - *placement*: framework-named anchors with framework-owned order. A site-ordered stack was rejected because it freezes panel layout forever and gives two plugins on one page no way to coexist
-    - *content*: a DOM node, or a string the panel escapes. An HTML string was rejected for the reason `renderProposalPreview` already rejected it - accidental markup injection and an unversioned coupling to plugin CSS
-    - *commands*: the site declares the complete list, framework implementations stay addressable by name, and `ctx.framework()` allows delegation. Framework-list-plus-extras was rejected because a site with one model cannot then hide `/model`; override-only was rejected because adding one example to `/help` would mean reimplementing it
-    - *context*: framework chrome gated on `adapter.contextOptions()`. A pure site region was rejected because the turn payload and the prompt already carry context and target; an always-on row was rejected because not every site has a context to choose
-    - *existing chrome*: the notice, strip, chip pop, intercept card, and Apply cards stay framework features and are **not** reimplemented as regions. Doing so is a rewrite with no user-visible gain and would put framework state behind a site-shaped contract
-    - *`examples`*: subsumed into `/help` delegation rather than kept beside it. Two ways to say one thing is what the closed catalog already cost us once
-  - **the reference site is the acceptance test on paper:** after this item that site expresses `/quota`, `/status`, `/sources`, and `/conversations` as site commands, its context row through `contextOptions()`, and keeps every bubble-shaped label in its own code. If any of those four still cannot be expressed, the seam is wrong and it is cheaper to learn it here than after the migration
-  - **do not add a server route.** Thread-scoped context persistence, if a site wants it, is that site's own endpoint plus `describeContext()`; the reference site's `POST /api/1/ai/thread/:id/context` is not being ported into the framework in this item
-  - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests - use an isolated temp project or the plugin-cli harness
-  - out of scope, each its own polish item or already deferred: the quota footer, the empty-transcript hint, multi-tab "another tab is running" state and the launcher unread dot, `/new` confirmation when chips are attached, a richer source badge popover in the transcript, wiring `adapter.sourceAttachable` and the attach-to-object chip menu (W-228 surface), site-authored history notes (TD-14), a conversation-scoped tool cache (TD-15), server-resolved or cross-tab sources (TD-16), document converters (W-229 hooks), an agent-callable URL fetch, and citations
 
 ### W-231, v1.0.6, YYYY-MM-DD: ai: extract hello-ai into a bundled companion plugin
 - status: 🕑 PENDING

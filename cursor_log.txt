@@ -25828,6 +25828,7 @@ Vision gate now clears pendingUser and re-renders so dots stop. Mock Vision repl
 
 confirmDialog treats a button callback return of true as dontClose, so Add URL never closed or fetched; it now closes on a valid URL and Enter clicks the default button. hello-ai no longer writes fetched URL text into the pad; intercept also skips what/describe/question prompts so those go to the model. Chip detail rows use tighter padding, no row margin, and a compact copy button.
 
+
 ============================================================
 2026-09-17 13:48
 
@@ -25835,6 +25836,7 @@ confirmDialog treats a button callback return of true as dontClose, so Add URL n
 - any other test I should do?
 
 Chip details signed off. Suggested remaining manual checks: (+) URL dialog after the close/Enter fix; intercept card on a bare fetch-this-URL prompt vs hidden on what/describe; get_source read of an attached file without pad write; Apply then Undo on the rewrite card; reload clears chips but keeps the Used badge; optional Echo+image gate recheck.
+
 
 ============================================================
 2026-09-17 14:14
@@ -25854,6 +25856,7 @@ location of hello-ai
 
 The model has no outbound fetch tool (panel ingest only). After reload, chips are gone so get_source is withheld and it over-claims no file access. Prompt now: an attached URL is already ingested — read it; if none are attached, ask to re-attach, do not say you lack web/file access. Hello AI nav entry removed from jPulse Plugins so the breadcrumb is Hello World Site Demos like hello-plugin. Attachments + hello-ai tests 33 passed.
 
+
 ============================================================
 2026-09-17 14:19
 
@@ -25861,6 +25864,7 @@ The model has no outbound fetch tool (panel ingest only). After reload, chips ar
 - enhance the chips: prefix chip with unicode icon by type file or url
 
 Chips now prefix 📄 for file/paste, 🔗 for URL, and 🖼 for images. Hard-refresh to see them.
+
 
 ============================================================
 2026-09-17 14:23
@@ -25870,6 +25874,7 @@ Chips now prefix 📄 for file/paste, 🔗 for URL, and 🖼 for images. Hard-re
 
 Chip wrapper used display:flex and grew to full width when chips wrapped, so (+) dropped alone. Wrapper is now display:contents so chips and (+) wrap in one row together.
 
+
 ============================================================
 2026-09-17 14:27
 
@@ -25878,6 +25883,7 @@ next: review reference site code if we are ready
 - for example the ref site has a "context" row in the ai panel
 
 Reviewed BubbleMap map-canvas-ai vs ai-core. Ready for the review: W-228 attachment core is in. Largest designed gap is adapter.contextOptions + Context row (W-226 leftover, not W-228). Also thinner: context dividers, /context, describeScope unused, quota footer unused, sourceAttachable unused. Domain tools and TDs stay out. No code.
+
 
 ============================================================
 2026-09-17 15:26
@@ -25891,6 +25897,7 @@ grok:
 
 Reviewed tt-git-diff: four attachment phases are in ai-core; dump omitted images.js body (file exists, imported from index.js) and all of ai-mock (separate repo). Work item features/deliverables + as-built updated; design Rev 15 / As Built 25–31 / §21.7. Plugin README + docs as-built notes. commit-message.txt written in both plugin repos. Status left PENDING. Tests: attachments + hello-ai 33 passed.
 
+
 ============================================================
 2026-09-17 15:43
 
@@ -25901,6 +25908,7 @@ framework release
 - see below prior commits for reference (W-226 / W-227 doc commits)
 
 Publish tarball is complete: images.js, inputs.js, sources.js, attachments.test.js, and ai-mock are in @jpulse-net/plugin-ai-core@1.0.4. Framework diff is docs only (work-items, design, cursor_log). Aligned §12.1 sourceAttachable with As Built (documented, unused). Wrote framework commit-message.txt. Do not add tmp-bubblemap-app. No framework tag. Status left PENDING.
+
 
 ============================================================
 2026-09-17 15:55
@@ -25914,6 +25922,7 @@ next: W-229, v2.0.4, 2026-09-17: hooks: framework-owned document conversion hook
 
 Reviewed W-229 against design §14.3/§16/§21.1/§22.2 and the live ai-core 1.0.4 convert caller. Ownership, planned stability, and unordered releases are sound. Spec nits for DX: add text/markdown/meta to convert contextKeys; pin plugin as the join key; document mimeTypes as an array with one-row-per-format guidance; pin emptyCode no-text-layer; add since 2.0.4; copy-paste converter/caller examples in docs/hooks.md. No hostPrerequisite phantom field. Tests must update the planned-hooks exact list. Waiting for go-ahead.
 
+
 ============================================================
 2026-09-17 16:05
 
@@ -25921,6 +25930,7 @@ Reviewed W-229 against design §14.3/§16/§21.1/§22.2 and the live ai-core 1.0
 claude: anything to add to this? opinions on questions?
 
 Read the actual reference site (/Users/peterthoeny/Dev/bubblemap-app) instead of inferring. Finding that changes scope: the convert pair is half of a four-hook family already shipped there. bubbleFile.js (a non-AI file-attachment controller) defines onDocumentPreviewRegister/onDocumentPreview with identical shape/policies, and doc-convert-pdf registers all four; doc-preview-text is preview-only. That is the item's "not an AI feature" rationale demonstrated rather than argued. Answers from code: descriptor extra field is engine (no hostPrerequisite anywhere); rejects rows are { extensions, reason, suggest }, both used for user-facing copy; req is not passed by either caller; pages is a real output both converters set and aiAgent.js reads, which ai-core ignores; neither converter ever writes markdown, only text. Correction to the item's rationale: "identical re-definition is a no-op" can never fire outside the framework because _isSameDefinition compares owner. Also found doc-preview-text returns a PNG in a field named jpegBase64 plus previewMime, so canonizing that name would canonize a defect.
+
 
 ============================================================
 2026-09-17 16:25
@@ -25932,6 +25942,7 @@ Read the actual reference site (/Users/peterthoeny/Dev/bubblemap-app) instead of
 
 Rewrote W-229 for four hooks (title, objectives, rationale, features, deliverables, notes). Convert contextKeys gain text/markdown/pages/meta; preview gains originalName plus imageBase64/previewMime/width/height, with jpegBase64 renamed and "first-page JPEG" dropped from the description. All four canModify, planned, since 2.0.4. Added the three named corrections to the reference contract, both descriptor shapes, the empty-vs-throw rule, and the convert/preview selection asymmetry (exact + ordered retry vs wildcard + single pick). Rationale now cites the real definers and plugins and drops the unreachable identical-no-op claim. Reference site migration is documented in notes as non-blocking, not scheduled. Noted the design doc still says two hooks and needs a revision. Status and section placement untouched. No code written.
 
+
 ============================================================
 2026-09-17 16:30
 
@@ -25940,6 +25951,7 @@ thanks opus
 grok: fix estimate in docs, implement
 
 W-223 design Rev 16: W-229 is four hooks, not two; §22.2 estimate is four definitions plus a docs/hooks.md section (was "roughly a dozen lines"). Header, §14.3, §16, §21.1, §22.2 updated. Implemented four planned definitions in hook-definitions.js (since 2.0.4; convert contextKeys include text/markdown/pages/meta; preview uses imageBase64 not jpegBase64). docs/hooks.md: onDocument* naming row, catalog table, converter/previewer skeletons, descriptor/result/meta tables, empty-vs-throw and selection asymmetry. hook-manager tests: all four normalized, register survives a throw, executeForPlugin aborts with pluginName, identical framework redef is a no-op, site redef conflicts, no-handler is clean; planned list is seven names. Tests: 73 passed. Work item status left IN_PROGRESS. No converter, no caller.
+
 
 ============================================================
 2026-09-17 16:42
@@ -25956,6 +25968,7 @@ W-223 design Rev 16: W-229 is four hooks, not two; §22.2 estimate is four defin
 
 Recommended no manual tests for W-229 (catalog-only; optional Admin → Plugins Hooks glance). Term: AI agent; chat panel is the UI. New page belongs at top level as docs/ai-agent.md (not plugins/, not *framework*), a discovery/orientation page that links to the plugin guide. Existing genai-*.md is vibe-coding, not this product. Wait for go-ahead to write it.
 
+
 ============================================================
 2026-09-17 16:46
 
@@ -25963,12 +25976,14 @@ yes, create doc as stated
 
 Added docs/ai-agent.md: orientation (what an agent is, capabilities table, install, configure, simple-case controller + panel.create). Linked from docs/README.md Key Features and Documentation Resources, docs/.markdown publish-list (title AI Agent), hooks.md See Also, genai-development.md (not the in-site agent), and plugins/ai-core/docs/README.md. No W-numbers. Title version left for bump.
 
+
 ============================================================
 2026-09-17 16:52
 
 @docs/genai-instructions.md should have a short note and pointer to new ai-agent page
 
 Added the same one-line distinction under the existing AI-consumption note: this is not the in-site agent; see AI Agent.
+
 
 ============================================================
 2026-09-17 16:56
@@ -25981,12 +25996,14 @@ genai-instructions:
 
 Added AI Agent to Advanced Examples, When to Look Where, and When User Asks How Do I. Directory Layout gained site/plugin translations/ and utils/ (site utils/ai-tools/ for client-host modules). Top note unchanged.
 
+
 ============================================================
 2026-09-17 17:02
 
 looks good. what is left to do?
 
 W-229 implementation is done (defs, hooks.md, tests, design Rev 16). Left for the user: mark the item DONE, bump-version, changelog/highlights, commit. Optional: stale work-item note that the design still says two hooks. Not this item: converters/previewers, reference-site migration, ai-core contract page. Manual test optional (Admin Hooks panel).
+
 
 ============================================================
 2026-09-17 17:12
@@ -25999,6 +26016,7 @@ I realize we have a doc gap:
 
 Added docs/i18n.md (overview, *.conf format, merge framework→plugins→site, views, translate/translateForUser, site/plugin examples, adding a language). Linked from docs/.markdown, README, site-customization, creating-plugins, handlebars, template-reference, and genai-instructions (How Do I, When to Look Where, Advanced Examples). View placeholders use {{user.firstName}}; controller context stays {{token}}.
 
+
 ============================================================
 2026-09-17 17:24
 
@@ -26006,6 +26024,7 @@ I renamed the page to internationalization.md and fixed the links
 - verify
 
 Verified: docs/i18n.md is gone; docs/internationalization.md is the live page. All inbound links point at internationalization.md (README, .markdown, site-customization, creating-plugins, handlebars, template-reference, genai-instructions How Do I / When to Look Where / Advanced Examples). No leftover i18n.md links in docs or code. Only historical mention is this log. docs/dev/README.md still lists a proposed implementation-guides/internationalization.md (unrelated, never a live link).
+
 
 ============================================================
 2026-09-17 17:33
@@ -26019,6 +26038,132 @@ release prep:
 - append to cursor_log.txt
 
 Reviewed tt-git-diff.txt against W-229. Hook work matches the spec (four planned defs, hooks.md, 72 hook-manager tests). Extra in the same tree: design Rev 16, docs/ai-agent.md, docs/internationalization.md, and pointers. Updated W-229 features/deliverables only (status unchanged). Highlights, CHANGELOG, commit-message.txt for v2.0.4 / 2026-09-17. Did not bump version, did not commit, did not include tmp-bubblemap-app.
+
+
+============================================================
+2026-09-17 17:53
+
+release done, all good
+
+review design doc @docs/dev/design/W-223-ai-agent.md and update as needed so that it reflects the actual implemention
+
+Rev 17 (W-229 as built): header and §21.1 mark W-229 as v2.0.4; §14.3 records the three field corrections, empty-vs-throw, convert retry vs preview pick, and owner-compared identical-redef; §16/§22.2 past tense; §22.3 adds docs/ai-agent.md; As Built items 32–34. Historical Rev 14–16 “pending” notes left as-is.
+
+
+============================================================
+2026-09-17 17:57
+
+next: W-230, v1.0.5, 2026-09-17: ai: generalize the panel interface - site-owned regions and slash commands
+- review work item @work-items.md (9349-9431)
+- review design doc @docs/dev/design/W-223-ai-agent.md
+- ask questions if unclear
+- suggest change of spec if any, goal is a good DX; use the "don't make me think" paradigm
+- plan how to implement (wait for my go ahead)
+
+Reviewed W-230 and §12.1/§12.2/§9.6 plus the shipped 1.0.4 panel, slash.js, hello-ai, and adapter. Spec is sound (anchors, complete command list, context as gated chrome, node-or-text). Proposed DX tweaks: omit `commands` keeps today's five; last-wins override; `/context` via `when()`; drop public reserved bands; add `handle.context`; remove dead `describeScope`; quiet region frames. Plan written; waiting for go-ahead. No code changes.
+
+
+============================================================
+2026-09-17 18:33
+
+- hmm, why make 'pad' a default command
+- we should not have defaults that are hello-ai specific
+- defaults should be genericly useful for a simple site aai agent, such as a chatbot
+- /model should not be hidden, it is essential to find out what is available, even if only one
+- examples text in /help should be configurable by site
+- commands omitted -> keep the five
+... then: I feel /status should be visible by default; examples as clickable rows, optional per row, md-like link for flexibility
+... then: you are an agent now, update the work item
+
+Clarified `/pad` was always hello-ai site code, never a default. Checked the capability probe: it already returns a quota snapshot the panel never renders, and the panel owns sources/images with caps, the last-20 thread list, and transport/thread/pair/running state - so `/quota`, `/sources`, `/status`, `/conversations` are framework state, not site data. Updated W-230 (features/deliverables/notes only; status and placement untouched): ten generic gated defaults with `clear`/`resume` aliases and `/conversations <n>`; `/model` and `/status` always listed; `/cancel` never gated (replies "no turn is running"); `when()` gates only `/quota`, `/sources`, `/context`; last-wins override; `ctx` shape with `framework()`; picker scrolls; `options.examples` kept as the `/help` content slot with per-row markdown-like clickable rows that fill the compose box without sending; `handle.context` {get,set,refresh} and `describeContext(value)`; `describeScope` removed; reserved bands dropped for plain priority plus fixed framework slots; quiet region frame; hello-ai adds hidden `/padreset`; tests, i18n, docs, and design-doc deliverables updated; six decisions became eight.
+
+
+============================================================
+2026-09-17 19:30
+
+do full implementation
+
+Implemented W-230 in plugins/ai-core and the framework design doc. Catalog: ten gated defaults in slash.js (aliases, last-wins, when, hidden, examples parser). Regions: anchors, priority, node/text/null. Panel: anchor slots, context row + handle.context, handle.regions, command dispatch with ctx.framework(), clickable /help rows, node local replies, describeScope removed. hello-ai: pad-stats region, /pad, hidden /padreset, clickable examples. Tests: panel-extension.test.js 28/28 with hello-ai. Plugin docs + design Rev 18 / §12.1–§12.2 / §21.8. Did not bump version, did not change work-item status, did not commit. Browser not verified (no running server).
+
+
+============================================================
+2026-09-17 20:10
+
+- reduce the vertical spacing of examples
+- change text insert syntax to [[double-square brackets]],
+- all accept [[]] anywhere in the text
+- Yoda-speak example currently broken
+- /model and /conversations should [[link]] switch commands (conversations by number, click fills compose)
+- /quota should not say cost unknown on requests/tokens
+- /status: start with chats and turns
+- /pad and footer: "Scratch pad has N characters, M selected"; less footer margin
+
+Switched example/linker syntax to [[label]] and [[label]](prompt) anywhere in a row (single [docs] stays plain). /help, /model, and /conversations share the linker; a click fills the compose box and does not send. /quota shows "cost unknown" only on the cost dimension. /status leads with conversation and turn counts. hello-ai /pad and pad-stats use the specific sentence; example and composeBelow spacing tightened. Tests 28/28.
+
+
+============================================================
+2026-09-17 20:39
+
+- spacing & text issue with new model info! "ai-mock/mock-visionModell gesetzt: ."
+- questioning [[text]](label) custom-label syntax; just [[]] is enough; any args against it?
+
+Fixed /model confirmation: {{pair}} was eaten when the JS view compiled, so the German string became "Modell gesetzt: ." and the pair was glued on. Translations now use %s (also retention and /conversations opened). Dropped [[label]](prompt); only [[label]] is a link, suffix text is a note. hello-ai Shorten-it row uses that form. Tests 28/28.
+
+
+============================================================
+2026-09-17 20:42
+
+how about linking the slash commands in the /help as well?
+
+/help command names now use the same [[/name]] linker as examples, /model, and /conversations. A click fills the compose box with /status (or /pad, etc.) and does not send.
+
+
+============================================================
+2026-09-17 20:45
+
+oops en.conf (93-101)
+- 'Model set to %s.'
+- this is non-standard for view translations
+- better: 'Model set to %MODEL%.' or 'Model set to %VALUE%.'
+
+Replaced %s with named view tokens: %MODEL% (modelSet), %DAYS% (retention), %LABEL% (conversationsOpened) in en/de. fillToken now substitutes the named token. /help command-name links from the previous prompt are in place.
+
+
+============================================================
+2026-09-17 20:54
+
+looks good now, ready for release prep?
+
+Product signed off. Ready for release prep of ai-core 1.0.5 (W-230): two commits (plugin, then framework design-doc). Did not start bump, status change, or commit. Noted work-item examples syntax still stale vs [[label]], and the IIFE still ports the catalog (slash.js is the Jest source).
+
+
+============================================================
+2026-09-17 21:02
+
+- review tt-git-diff.txt for accuracy and completeness
+- update work item to reflect code
+- update plugins/ai-core/commit-message.txt and plugins/ai-mock/commit-message.txt
+
+Reviewed the combined ai-mock + ai-core diff: product hunks match W-230; most files are the 1.0.5 header bump. Completeness gap: regions.js and panel-extension.test.js are untracked and must be added. Updated W-230 features/deliverables/notes to as-built ([[label]], IIFE catalog port, /status chats/turns, %TOKEN%). Rewrote both commit-message.txt files. Status and section placement untouched.
+
+
+============================================================
+2026-09-17 21:25
+
+- add the releases to both READMEs
+- update plugins/ai-core/docs/README.md with proper /status doc
+
+Added 1.0.5 and missing 1.0.4 to ai-core README Plugin releases; added 1.0.5, 1.0.4, and missing 1.0.3 to ai-mock README. /status in ai-core docs/README.md now lists chats, turns, transport, thread, pair, and idle or running.
+
+
+============================================================
+2026-09-17 21:34
+
+- release both plugins, build bundle
+- review tt-git-diff.txt for framework commit
+- update tt-commit.txt
+
+ai-core 1.0.5 already committed, tagged, pushed, and npm published (bundle includes ai-mock). Framework diff is docs only: design, work-items, cursor_log. Do not add tmp-bubblemap-app. Updated design header and §21.8 to record 1.0.5 as published. Wrote tt-commit.txt. Work-item status left IN_PROGRESS. No framework tag.
 
 
 ============================================================

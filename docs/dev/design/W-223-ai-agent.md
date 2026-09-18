@@ -9,21 +9,51 @@ client-host tools, `hello-ai`) is published
 1.0.3 (bundle carries `ai-mock` 1.0.3; mock had no product change). **W-228**
 (attachments, URL ingest, conversion call path, vision) is published as
 `@jpulse-net/plugin-ai-core` 1.0.4 (bundle carries `ai-mock` 1.0.4; mock gained
-a vision row). Four framework prerequisites are released — W-220
+a vision row). Five framework prerequisites are released — W-220
 `jPulse.UI.floatPanel` (v2.0.0), W-221 plugin bundle build and installation
-(v2.0.1), W-222 plugin and site translation merge (v2.0.2), and W-225
-awaitable `onCreate` (v2.0.3). A fifth, **W-229** (document-conversion and
-preview hook definitions), is pending and blocks nothing (§21.1). Next AI
-items are **W-230** (panel regions and site-owned slash commands) then
-**W-231** (extract `hello-ai`). §21 splits the agent into five items, W-223,
-W-224, and W-226 through W-228, on those prerequisites. Deviations from this
-document are under `### As Built`. Rev 12 specified W-227 against shipped
-1.0.2, Rev 13 is the as-built after implementation, Rev 14 specifies W-228,
-Rev 15 is the as-built after 1.0.4, and Rev 16 records that W-229 is four
-hooks, not two.
+(v2.0.1), W-222 plugin and site translation merge (v2.0.2), W-225
+awaitable `onCreate` (v2.0.3), and **W-229** document-conversion and
+preview hook definitions (v2.0.4, blocks nothing, §21.1). **W-230**
+(panel regions and site-owned slash commands) is published as
+`@jpulse-net/plugin-ai-core` 1.0.5 (bundle carries `ai-mock` 1.0.5; mock
+had no product change). Next AI item is **W-231** (extract `hello-ai`).
+§21 splits the agent into five items, W-223, W-224, and W-226 through
+W-228, on those prerequisites. Deviations from this document are under
+`### As Built`. Rev 12 specified W-227 against shipped 1.0.2, Rev 13 is
+the as-built after implementation, Rev 14 specifies W-228, Rev 15 is the
+as-built after 1.0.4, Rev 16 records that W-229 is four hooks, not two,
+Rev 17 is the as-built after v2.0.4, and Rev 18 is W-230 (specified and
+shipped as 1.0.5).
 
 
 ## Revision history
+
+### Rev 18 — 2026-09-17 — W-230 panel regions and site-owned slash commands
+
+The panel stops owning the whole surface. A site fills named anchors and
+owns the complete command list; the framework keeps implementations
+addressable by name. Defaults are generic and gated on data the panel
+already holds. `examples` stays as the content slot of `/help`.
+`describeScope()` is removed from the adapter.
+
+| Section | Change |
+|---|---|
+| Header, §12.1, §12.2 | Named region anchors; ten gated defaults; last-wins catalog; clickable `/help` examples; context row plus `handle.context`; `describeScope` struck |
+| §21 | W-230 is published as 1.0.5; next is W-231 |
+
+### Rev 17 — 2026-09-17 — W-229 as built
+
+No AI product change. The four hook definitions shipped in framework
+v2.0.4. These lines are what the catalog and `docs/hooks.md` actually
+contain.
+
+| Section | Change |
+|---|---|
+| Header, §21.1, §22.2 | W-229 is v2.0.4; all five framework prerequisites are released |
+| §14.3 | Output keys, `originalName`, `imageBase64` / `previewMime`; empty extract vs throw; convert retry vs preview single pick; `_isSameDefinition` includes `owner` |
+| §16 | The four names are catalog rows, not future work |
+| §22.3 | `docs/ai-agent.md` is framework orientation; the plugin guide stays the contract |
+| As Built | Items 32–34 |
 
 ### Rev 16 — 2026-09-17 — W-229 is four hooks, not two
 
@@ -401,6 +431,18 @@ decision; each is the shape the code wanted once it existed.
 31. **Mock Vision replies `I can see <file>.`** unless
     `script.type === 'vision'`. It does not echo the flattened
     attached-image safety caption.
+32. **Identical re-definition is a no-op only for the same owner.**
+    `_isSameDefinition()` compares `owner`, so a site or plugin that
+    re-defines `onDocument*` always conflicts, even word-for-word.
+    The framework row wins; the loser is logged.
+33. **Three field corrections vs the reference site.** Convert
+    context includes `text`, `markdown`, `pages`, `meta`. Preview
+    takes `originalName` and returns `imageBase64` plus `previewMime`,
+    not `jpegBase64`.
+34. **`docs/ai-agent.md` is framework orientation.** Install,
+    configure, one-controller case. The versioned contract stays in
+    `plugins/ai-core/docs/README.md`. Rev 3 said the guide would not
+    be a framework page; both exist, for different readers.
 
 ### Rev 3 — 2026-09-15 — prerequisites released, work split
 
@@ -1734,10 +1776,9 @@ jPulse.ai.panel.create({
     scopeId:   mapId,
     adapter: {
         toolData(toolName) { … },  // data for client-host tools, §8.1
-        describeScope()   { … },   // labels for the prompt blocks
-        describeContext() { … },
+        describeContext(value) { … },
         describeTarget()  { … },
-        contextOptions()  { … },
+        contextOptions()  { … },   // gates the context row and /context
         renderProposalPreview(proposal) { … },   // §13, W-227
         applyProposal(proposal) { … },           // W-227
         undoProposal(proposal)  { … },           // W-227
@@ -1746,10 +1787,12 @@ jPulse.ai.panel.create({
 });
 ```
 
-`toolData` and the three `describe*` methods are the only ones a read-only
-agent needs, and `adapter` may be omitted entirely by a site with no
-client-host tools — which is the §1.1 case. `executeTool` shipped in 1.0.2
-as the escape hatch for an impure client tool. The three `*Proposal` methods
+`toolData` plus `describeContext` / `describeTarget` are the only methods a
+read-only agent needs, and `adapter` may be omitted entirely by a site with
+no client-host tools — which is the §1.1 case. Scope labels live on
+`onAiScopeResolve`; `describeScope()` was a documented adapter member the
+panel never called and is removed. `executeTool` shipped in 1.0.2 as the
+escape hatch for an impure client tool. The three `*Proposal` methods
 are W-227, land in 1.0.3, and are called only when the site registered a
 tool that proposes. `renderProposalPreview` may return a DOM node, or a
 string that the panel escapes as text — a site wanting markup returns a
@@ -1757,6 +1800,31 @@ node, so no adapter injects markup by accident. `applyProposal` and
 `undoProposal` perform the site's real write and resolve truthy on success;
 the panel records the outcome **after** the adapter resolves, so a failed
 write never marks a card applied (§13).
+
+`contextOptions()` is W-230 and optional: a site that implements it gets a
+framework row above the compose box and `/context`. The panel owns the
+selected value, thread-scoped in the tab. `handle.context` is
+`{ get, set, refresh }` so a page gesture can keep the select in sync.
+`describeContext(value)` turns the value into the sentence on the turn; a
+method that ignores the argument still works. An `unavailable` option stays
+selectable and is never auto-picked.
+
+The panel also accepts `regions` and `commands`. Regions sit at named
+anchors (`header`, `transcriptTop`, `transcriptBottom`, `composeAbove`,
+`composeBelow`) with site `priority` ordering only inside an anchor.
+Framework chrome stays in fixed sibling slots. `render` returns a node, a
+string the panel escapes, or `null`. `handle.regions.refresh(name)` covers
+what the framework cannot observe. `commands` omitted keeps every applicable
+default; passing the array is the complete list, last entry wins, and
+`ctx.framework()` runs the builtin of that name. Defaults are generic:
+`/help`, `/tools`, `/model`, `/new` (`clear`), `/cancel`, `/conversations`
+(`resume`), `/quota`, `/sources`, `/status`, `/context`. `/model` and
+`/status` are always listed. `when()` gates `/quota`, `/sources`, and
+`/context` on data the panel already holds. `examples` is the content slot
+of `/help`: `[[label]]` anywhere in a row is clickable and fills the
+compose box without sending. Text after the brackets is a note, not a
+second syntax. `/help` command names, `/model` pairs, and
+`/conversations` rows use the same links.
 
 `sourceAttachable` is W-228 and optional: a site implements it as a predicate
 for which attached sources it would accept on one of its own objects, defaulting
@@ -1785,15 +1853,19 @@ the mirror of `global.AiCore`, not `jPulse.plugins.aiCore`. W-220's
 the element's `click` to `handle.toggle()`.
 
 **Slash commands are local and never sent to the model.** The catalog is
-`/help`, `/tools` (offered tools with host, plus withheld and why; names
-render as `<code>` because local slash replies are plain text, not markdown),
-`/model` (prints the current pair and the allowed list; `/model <provider>/<model>`
-sets the pair), `/new`, and `/cancel`. A leading `//` escapes, so `//help`
-is literal text. The picker expands as you type `/`; Enter executes the
-highlighted command and posts it into the transcript; Esc dismisses the
-picker and does not close the panel. Slash and other local replies carry a
-timestamp and merge with server turns by `createdAt`, so `/help` does not
-jump below a later model reply.
+site-owned as of W-230. The framework defaults are `/help`, `/tools`
+(offered tools with host, plus withheld and why; names render as `<code>`
+because local slash replies are plain text, not markdown), `/model`
+(prints the current pair and the allowed list; `/model <provider>/<model>`
+sets the pair), `/new` (alias `/clear`), `/cancel`, `/conversations`
+(alias `/resume`; `/conversations <n>` opens one), `/quota`, `/sources`,
+`/status`, and `/context`. A leading `//` escapes, so `//help` is literal
+text. The picker expands as you type `/`; Enter executes the highlighted
+command and posts it into the transcript; Esc dismisses the picker and does
+not close the panel. Slash and other local replies carry a timestamp and
+merge with server turns by `createdAt`, so `/help` does not jump below a
+later model reply. `run` may return a node; `/help` uses that for clickable
+example rows.
 
 **`/new` always inserts.** The unique index still allows one active thread
 per scope and user. `POST /api/1/ai/thread` without `forceNew` is
@@ -1810,8 +1882,13 @@ one-liner; adding it to the framework header would be a framework edit.
 ### 12.2 What stays site code
 
 The data the tools operate on, the computation engines a tool module needs,
-proposal preview rendering and the apply itself, and the labels for scope,
-context, and target.
+proposal preview rendering and the apply itself, the labels for context and
+target, any site region, and any command that is not a report of framework
+state. Scope labels stay on `onAiScopeResolve`. The reference site's
+bubble-shaped copy, `/pad`-class commands, and canvas-driven context
+changes (`handle.context.set`) stay there. `/quota`, `/status`, `/sources`,
+and `/conversations` are framework defaults that site deletes rather than
+ports.
 
 The migration cost to the reference site is real and worth stating, and it is
 now smaller than it was. The panel *shell* is already `jPulse.UI.floatPanel`,
@@ -2097,30 +2174,58 @@ is in the same item because the reference site already ships it from a
 file-attachment controller with no AI near it, and one converter plugin
 registers all four.
 
-**Definer and caller are decoupled, so the two releases are unordered.** A hook
-executes whether or not it is defined — `HookManager` falls back to the mode's
-default error policy for an undefined name, which is `continue` for the
-`execute`-mode register hook and `abort` for the `executeForPlugin`-mode convert
-hook, exactly the policies wanted here. The definition supplies the catalog
-entry, the documented context keys, and the policy; it is not a gate. So
-`ai-core` calls both names without defining either, and a site running an older
-framework gets working conversion with an `unverified` row in the hook catalog
-rather than a failure.
+**Definer and caller are decoupled, and the two releases landed independently.**
+A hook still executes when it is undefined — `HookManager` falls back to the
+mode's default error policy, which is `continue` for the `execute`-mode
+register hooks and `abort` for the `executeForPlugin`-mode convert and
+preview hooks, exactly the policies on the catalog rows. The definition
+supplies the catalog entry, the documented context keys, and the policy; it
+is not a gate. `ai-core` still calls the convert pair without defining
+either. A site on a framework older than v2.0.4 still gets working
+conversion with an `unverified` row; from v2.0.4 the four names are
+`stability: 'planned'` framework rows (`since: '2.0.4'`).
 
-Contract, unchanged from the reference site because it was already right:
-registration is **per MIME type**, a descriptor declares its own page ceiling
-and unit label (`page` / `sheet` / `slide`) and the formats it explicitly
-refuses, and conversion returns markdown plus truncation and empty-extract
-metadata. Caps are the caller's: `ai-core` merges the site's page limit with the
-converter's, applies its own character cap and timeout, and turns an empty
-extract into a refusal that names the reason — a scanned PDF has no text layer,
-so its message must not promise the paste workaround.
+A second definition is a no-op only when it is the same owner and the same
+wording. `_isSameDefinition()` compares `owner`, so a site or plugin that
+re-defines these names always conflicts, even word-for-word. The
+framework's definition wins (seeded at module load) and the loser is
+logged. That is the migration reminder for the reference site, not a break.
 
-**Two or more plugins may claim one MIME type, and `ai-core` tries them in
-registration order until one returns text.** `executeForPlugin` dispatches to a
-single plugin, so ordered retry is the caller's job — and putting it in the
-caller once means "extract first, OCR when the text comes back empty" is a
-plugin install rather than a code change anywhere.
+**Three corrections against the reference contract**, because the names
+were new to the framework and their only users live in one site's
+repository:
+
+- Convert lists its **output** keys: `text`, `markdown`, `pages`, `meta`.
+  A caller reads `markdown || text`.
+- Preview takes `originalName` as an input (the text previewer selects on
+  extension).
+- The preview image field is `imageBase64`, not `jpegBase64`.
+  `previewMime` is authoritative and defaults to `image/jpeg` when
+  omitted.
+
+Registration is still **per format**, not per plugin. A descriptor
+declares `plugin` (the `executeForPlugin` join key — this plugin's own
+name), `mimeTypes`, `extensions`, `label`, and for converters `maxPages`,
+`unitLabel` (`page` / `sheet` / `slide`), and `rejects` as
+`{ extensions, reason, suggest }` rows. Unknown fields pass through
+(an `engine` id is the usual extra). Caps are the caller's: `ai-core`
+merges the site's page limit with the converter's, applies its own
+character cap and timeout, and turns an empty extract into a refusal
+that names the reason.
+
+**Empty extract and throw are different signals.** Empty text plus
+`meta.empty` / `meta.emptyCode` means "I claimed this type and found
+nothing — try the next claimant." `meta.emptyCode: 'no-text-layer'` is
+the pinned value for a scanned page; that refusal must not promise a
+paste workaround. A throw aborts the call (`onError: 'abort'`) and
+ends the caller's attempt.
+
+**Selection is the caller's job, and the two families differ.** Convert
+matches a MIME type exactly and retries every claimant in registration
+order until one returns text — that is what makes "extract first, OCR
+on empty" a plugin install. Preview accepts wildcards (`text/*`, `*`),
+where an exact type or extension match wins over a wildcard regardless
+of array order, and picks one previewer with no retry.
 
 **The upload is a streaming route.** A text file is read locally by the tab; a
 PDF cannot be, so this is the one place a source's bytes reach the server.
@@ -2252,15 +2357,15 @@ the prompt and in authorization flows from it.
 **Four hooks the framework owns and `ai-core` does not.**
 `onDocumentConvertRegister` / `onDocumentConvert` and
 `onDocumentPreviewRegister` / `onDocumentPreview` are framework-owned and
-name no AI concept (W-229, §14.3), so a converter or previewer plugin
-depends on a framework version instead of on an AI plugin. `ai-core` calls
-the convert pair without defining either, which is legal — an undefined
-hook executes under its mode's default error policy, and a definition
-supplies the catalog entry and the policy rather than permission to call.
-That decoupling is what lets the framework release and the bundle release
-land in either order. The preview pair has no framework caller yet; it
-lands in the same item so a plugin that implements both families does not
-find half its hooks in the catalog and half as `unverified` rows.
+name no AI concept (W-229 v2.0.4, §14.3), so a converter or previewer
+plugin depends on a framework version instead of on an AI plugin.
+`ai-core` calls the convert pair without defining either, which is legal
+— an undefined hook executes under its mode's default error policy, and
+a definition supplies the catalog entry and the policy rather than
+permission to call. That decoupling is why the framework release and the
+bundle release could land in either order. The preview pair still has no
+framework caller; it is in the same catalog so a plugin that implements
+both families does not find half its hooks as `unverified` rows.
 
 
 ---
@@ -2717,7 +2822,7 @@ None of the five contains any AI, and all are useful on their own:
 | **W-221** | v2.0.1 | Plugin bundle build and installation — one npm package expanding into several plugin directories, and a declared plugin dependency resolving to an installable package name (§5.1.1) |
 | **W-222** | v2.0.2 | Plugin and site translation merge — `ai-core` can ship translatable UI text (§22.2) |
 | **W-225** | v2.0.3 | Awaitable `onCreate` — a WebSocket namespace can authorize a connection against the database before the upgrade (§11.2) |
-| **W-229** | pending | Document-conversion and preview hook definitions — four framework-owned, AI-free hooks so a PDF, Office, or preview plugin is a framework plugin rather than a dependent of an AI plugin (§14.3) |
+| **W-229** | v2.0.4 | Document-conversion and preview hook definitions — four framework-owned, AI-free hooks so a PDF, Office, or preview plugin is a framework plugin rather than a dependent of an AI plugin (§14.3) |
 
 The first three were released before W-223, so W-223 and W-224 shipped with
 no framework source change. W-225 was the missing one; it shipped as v2.0.3
@@ -2725,12 +2830,12 @@ before W-226.
 
 W-229 is a prerequisite in name only, and deliberately so: `ai-core` calls
 the convert pair whether or not anything has defined them (§16), so W-228
-phase 3 does not wait for it and it does not wait for W-228. What the
-definitions buy is a canonical contract — one wording every converter or
-previewer plugin can be written against, in the catalog, with no AI
-package in the dependency chain. A definition that lived in `ai-core`
-would work identically and say the wrong thing about who owns document
-conversion.
+phase 3 did not wait for it and it did not wait for W-228. It shipped as
+v2.0.4. What the definitions buy is a canonical contract — one wording
+every converter or previewer plugin can be written against, in the
+catalog, with no AI package in the dependency chain. A definition that
+lived in `ai-core` would work identically and say the wrong thing about
+who owns document conversion.
 
 It was missed because §22.2 checked each mechanism for *existence* and
 `createNamespace` does support `onCreate` with `:param` namespaces. What
@@ -2938,7 +3043,8 @@ Shipped as `@jpulse-net/plugin-ai-core` 1.0.4. Rev 15 records the as-built.
 | 4 | Images and vision | Redis staging with a TTL, MIME allowlist, edge and byte caps, send-time gating against the thread's pair, content parts, `data.media` for tool-returned images, and a vision row on the mock (§14.4) |
 
 Phases 1 and 2 touch no framework source and no provider. Phase 3 is where
-W-229's definitions belong but does not depend on them (§21.1). Phase 4 is the
+W-229's definitions belong and did not depend on them (§21.1); those
+definitions later shipped in v2.0.4. Phase 4 is the
 only one that reaches a provider message, and the reach is one line: the loop
 tolerates an array `content` where it used to push a string, and everything about
 staging, MIME, caps, and base64 lives beside it in `webapp/utils/attachments/` —
@@ -2962,7 +3068,20 @@ verdict, and nothing more (§14.2). And phase 3 ships no converter, so a PDF dro
 on a bare install is a clean refusal naming what to install rather than a
 half-working extractor inside the bundle.
 
-### 21.8 Standalone follow-ons
+### 21.8 W-230 — panel regions and site-owned slash commands
+
+Published as `@jpulse-net/plugin-ai-core` 1.0.5 (bundle carries
+`ai-mock` 1.0.5; mock lockstep only). Specified in Rev 18 against shipped
+1.0.4. The panel stops deciding the whole surface: named region anchors,
+a site-owned command catalog with framework implementations addressable
+by name, ten generic gated defaults, clickable `/help` examples, and a
+context row gated on `adapter.contextOptions()`. `describeScope()` is
+removed. No framework source change and no server route. `hello-ai`
+demonstrates a site region, a site command, a hidden command, and
+clickable examples, and proves that a site without `contextOptions()`
+gets no context row.
+
+### 21.9 Standalone follow-ons
 
 Each its own item, written when wanted rather than scheduled now:
 
@@ -3043,7 +3162,7 @@ the only directory that publish and bump are run from (§5.1, W-221).
 ### 22.2 Framework files that change
 
 Checked against the code rather than assumed. **Three framework source files
-need a change; two are released and one is W-229.**
+needed a change; all three are released.**
 
 `webapp/controller/websocket.js` was W-225 (§21.1) and shipped in v2.0.3:
 `onCreate` used to be invoked without `await` and its result dispatched on
@@ -3063,20 +3182,21 @@ the framework, then each active plugin in load order, then
 `site/webapp/translations/`, and a plugin shipping only its default language is
 backfilled rather than blank. `ai-core` is the first real consumer.
 
-The third is `webapp/utils/hook-definitions.js`, and it is W-229: four
-document-conversion and preview hook definitions plus a `docs/hooks.md`
-section, roughly forty lines of catalog and no behavior. This one is not a
-defect and not a gap in a mechanism — every earlier revision of this
-section was right that `ai-core` needs nothing from the framework to
-*call* the convert pair. What it cannot do from inside a plugin is make
-the contract canonical: a name defined by `ai-core` makes a PDF converter
-a dependent of an AI package, which is the wrong shape for every non-AI
-consumer document conversion will eventually have (§14.3). The preview
-pair is the consumer that already exists in the reference site, defined
-by a file-attachment controller. So the finding is about ownership
-rather than capability, which is why it is a framework item on its own
-merits rather than a patch inside the AI work — the same test W-225 had
-to pass.
+The third is `webapp/utils/hook-definitions.js`, and it shipped as W-229
+in v2.0.4: four document-conversion and preview hook definitions plus a
+`docs/hooks.md` section. Catalog and documentation, no converter, no
+previewer, and no framework caller. This one is not a defect and not a
+gap in a mechanism — every earlier revision of this section was right
+that `ai-core` needs nothing from the framework to *call* the convert
+pair. What it cannot do from inside a plugin is make the contract
+canonical: a name defined by `ai-core` makes a PDF converter a dependent
+of an AI package, which is the wrong shape for every non-AI consumer
+document conversion will eventually have (§14.3). The preview pair is
+the consumer that already exists in the reference site, defined by a
+file-attachment controller. So the finding is about ownership rather
+than capability, which is why it was a framework item on its own merits
+rather than a patch inside the AI work — the same test W-225 had to
+pass.
 
 No other framework source change is required for W-227 or W-228. The remaining
 framework-repo deliverable is docs, listed in §22.3.
@@ -3115,9 +3235,14 @@ under the gitignored `docs/installed-plugins/<name>/`.
   provider plugin. It grows a section per item rather than landing at once
 - `plugins/<name>/README.md` for `ai-core`, `ai-mock`, and `ai-anthropic` —
   install, enable, configure, hooks used, requirements, release notes
+- `docs/ai-agent.md` — framework orientation (what an agent is, install,
+  configure, the one-controller case). The versioned contract stays in
+  `plugins/ai-core/docs/README.md`. Rev 3 said the guide would not be a
+  framework page; both exist, for different readers
 - in the framework repo, on whichever framework release accompanies a bundle
-  release: cross-links from `docs/hooks.md` (a plugin now owns the `onAi*`
-  hooks), `docs/genai-instructions.md`, `docs/security-and-auth.md`, and
+  release: cross-links from `docs/hooks.md` (a plugin owns the `onAi*`
+  hooks; the framework owns `onDocument*`), `docs/genai-instructions.md`,
+  `docs/genai-development.md`, `docs/security-and-auth.md`, and
   `docs/url-fetch.md`, plus the usual Latest Release Highlights and
   `docs/CHANGELOG.md` entries. These are a framework commit, never part of a
   plugin commit

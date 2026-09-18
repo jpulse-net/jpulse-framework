@@ -18,18 +18,56 @@ preview hook definitions (v2.0.4, blocks nothing, §21.1). **W-230**
 `@jpulse-net/plugin-ai-core` 1.0.5 (bundle carries `ai-mock` 1.0.5; mock
 had no product change). **W-231** (extract `hello-ai` as a third bundle
 member) is published as `@jpulse-net/plugin-ai-core` 1.0.6 (bundle
-carries `ai-mock` 1.0.6 and `hello-ai` 1.0.6; mock lockstep only). §21
-splits the agent into five items, W-223, W-224, and W-226 through
-W-228, on those prerequisites. Deviations from this document are under
-`### As Built`. Rev 12 specified W-227 against shipped 1.0.2, Rev 13 is
-the as-built after implementation, Rev 14 specifies W-228, Rev 15 is
-the as-built after 1.0.4, Rev 16 records that W-229 is four hooks, not
-two, Rev 17 is the as-built after v2.0.4, Rev 18 is W-230 (specified
-and shipped as 1.0.5), and Rev 19 is W-231 (specified and shipped as
-1.0.6).
+carries `ai-mock` 1.0.6 and `hello-ai` 1.0.6; mock lockstep only).
+**W-232** (upload caps from settings, `AiCore.deleteByScope`, and three
+cutover guards) is published as `@jpulse-net/plugin-ai-core` 1.0.7
+(bundle carries `ai-mock` 1.0.7 and `hello-ai` 1.0.7; companions
+lockstep). §21 splits the agent into five items, W-223, W-224, and
+W-226 through W-228, on those prerequisites. Deviations from this
+document are under `### As Built`. Rev 12 specified W-227 against
+shipped 1.0.2, Rev 13 is the as-built after implementation, Rev 14
+specifies W-228, Rev 15 is the as-built after 1.0.4, Rev 16 records
+that W-229 is four hooks, not two, Rev 17 is the as-built after
+v2.0.4, Rev 18 is W-230 (specified and shipped as 1.0.5), Rev 19 is
+W-231 (specified and shipped as 1.0.6), Rev 20 specifies W-232, and
+Rev 21 is the as-built after 1.0.7.
 
 
 ## Revision history
+
+### Rev 21 — 2026-09-18 — W-232 as-built
+
+Published as `@jpulse-net/plugin-ai-core` 1.0.7 (bundle carries
+`ai-mock` 1.0.7 and `hello-ai` 1.0.7). The specified surface landed.
+Deviations are where the code wanted a home: the wipe lives in
+`agent/scope.js`, execute uses `effectiveTimeoutMs`, and the
+conversation picker re-fetches on `openThread` so a send actually
+moves the chat to the top.
+
+| Section | Change |
+|---|---|
+| Header, §7.1, §12.1, §14.1, §17, §21.10 | Timeout default is the site setting; one attachment list; wipe assembly file; As Built 36–39 |
+
+### Rev 20 — 2026-09-18 — W-232 upload caps from settings, scope wipe, cutover guards
+
+The first gap list written by a second site porting onto the bundle.
+Two blockers — a convert ceiling no admin field reaches, and a
+`global.AiCore` with no way to erase a deleted object's conversations —
+plus three footguns: a tool timeout with no site default, a reserved
+tool name that loses silently to a site registration, and an
+attachment list split in two with no family marker. DX wins over
+migration cost: `handle.sources()` / `handle.images()` /
+`handle.sourceFile()` become one `handle.attachments()` with `kind`,
+and `adapter.sourceAttachable` is dropped rather than left documented
+and never called.
+
+| Section | Change |
+|---|---|
+| Header, §21.10, §21.11 | W-232 specified as 1.0.7; standalone follow-ons renumbered |
+| §12.1 | One attachment list with `kind`; `sourceAttachable` struck; the reserved panel tool names are refused rather than overridden |
+| §14.3, §14.4 | The upload byte cap is a setting under a 25mb route ceiling, separate from the character cap on converted text |
+| §17 | `maxConvertBytes` and `defaultToolTimeoutMs` on the AI tab |
+| §20 | TD-17 — embedded panel chrome (`chrome: 'none'`) |
 
 ### Rev 19 — 2026-09-17 — W-231 extract hello-ai as a bundle companion
 
@@ -470,6 +508,25 @@ decision; each is the shape the code wanted once it existed.
     move). Demo tests live in `hello-ai`; write / slash / mock / vision
     stay in `ai-core`'s `hello-ai.test.js`. In-package dependency is
     `ai-core >=1.0.5`.
+36. **`deleteByScope` is `agent/scope.js`.** `index.js` re-exports it.
+    Success and failure log with a null `req` (`logInfo` / `logError`);
+    there is no `logRequest` because there is no request. The
+    `global.AiCore` wrapper does not pass `redisManager` —
+    `deleteStagedThread` uses `global.RedisManager`.
+37. **Tool timeout is stamped, then last-resorted.**
+    `normalizeDescriptor` stores `timeoutMs: null` when omitted.
+    `resolveTools` stamps `defaultToolTimeoutMs` (10000). `executeTool`
+    calls `effectiveTimeoutMs(tool, settings)` rather than bumping a
+    hardcoded 5000. The tools layer still does not import `agent/`.
+38. **The conversation picker re-fetches on `openThread`.** The server
+    already `touch`es `updatedAt` after a turn. The dropdown stayed
+    stale because it only listed on first load, new, or rename. A
+    completed turn already re-opens the thread, so the current chat
+    now moves to the top; a switch does too.
+39. **Image origin is honest on the wire too.** `sanitizeImageMeta` and
+    `sourceRefsFrom` default to `file`, not `image`. The capability
+    probe returns the clamped `maxImageBytes` beside `maxConvertBytes`.
+    The panel refuses an oversize image before staging, same as convert.
 
 ### Rev 3 — 2026-09-15 — prerequisites released, work split
 
@@ -1095,7 +1152,7 @@ but `name`, `description`, and `schema` has a default.
     dataScope:      'call',         // 'call' | 'turn'; only with module §8.2
     requires:       'scope:read',   // capability name, or null
     mutates:        false,
-    timeoutMs:      5000,
+    timeoutMs:      null,           // omit → Site Configuration → AI defaultToolTimeoutMs (10000)
     group:          'read',         // admin policy grouping
     budget:         null,           // §7.4
     dedupeArgs:     false,          // §7.4
@@ -1809,8 +1866,7 @@ jPulse.ai.panel.create({
         contextOptions()  { … },   // gates the context row and /context
         renderProposalPreview(proposal) { … },   // §13, W-227
         applyProposal(proposal) { … },           // W-227
-        undoProposal(proposal)  { … },           // W-227
-        sourceAttachable(source) { … }           // §14.1, W-228
+        undoProposal(proposal)  { … }            // W-227
     }
 });
 ```
@@ -1854,15 +1910,18 @@ compose box without sending. Text after the brackets is a note, not a
 second syntax. `/help` command names, `/model` pairs, and
 `/conversations` rows use the same links.
 
-`sourceAttachable` is W-228 and optional: a site implements it as a predicate
-for which attached sources it would accept on one of its own objects, defaulting
-to file-origin when absent. The 1.0.4 panel documents it and does not call it
-(no attach-to-object chrome). The write is the site's `applyProposal`, and what
-that write needs is the *original* bytes, which the panel holds and exposes on
-the handle: `handle.sources()` returns the manifest rows and
-`handle.sourceFile(id)` returns the retained `File` or `Blob`, or null once the
-chip is gone. A site with no interest in attachments implements none of this and
-still gets sources the model can read (§14.1).
+As of 1.0.7 the handle is one list: `handle.attachments()` returns text
+sources first, then images, each row carrying `kind: 'source' | 'image'`
+and an honest `origin` (`file` / `url` / `paste`).
+`handle.attachmentFile(id)` returns the retained `File` or `Blob` for
+either family, or null once the chip is gone. The 1.0.4 names
+(`handle.sources()`, `handle.images()`, `handle.sourceFile()`,
+`adapter.sourceAttachable`) are gone — a site that wants only images
+writes `.filter((row) => row.kind === 'image')`. A site with no interest
+in attachments implements none of this and still gets sources the model
+can read (§14.1). `list_sources` / `get_source` stay reserved: a site
+registration is refused, logged once, and withheld as `reserved`. It
+does not throw.
 
 Note what is *not* required on the adapter: `executeTool`. When a client-host
 tool names a shared module (§8.2), the site supplies the data and the
@@ -2157,13 +2216,13 @@ site later contribute server-resolved sources into the same manifest and the
 same tool without reshaping either (TD-16).
 
 **The original bytes stay reachable.** The panel retains the `File` or pasted
-`Blob` behind a chip, and exposes it — `handle.sources()` for the manifest rows
-and `handle.sourceFile(id)` for the bytes — because the interesting site
-features start there: attaching a document the user handed the agent onto the
-site's own object needs the *original* file, not the panel's resized or clipped
-copy. Which sources may be offered that way is the site's call, through an
-optional `adapter.sourceAttachable(source)`; the default is file-origin only,
-since a paste and a URL have no file to attach.
+`Blob` behind a chip, and exposes it — `handle.attachments()` for the
+manifest rows (`kind: 'source' | 'image'`) and `handle.attachmentFile(id)`
+for the bytes — because the interesting site features start there:
+attaching a document the user handed the agent onto the site's own object
+needs the *original* file, not the panel's resized or clipped copy. A site
+that wants only some rows filters the list; `adapter.sourceAttachable` was
+documented in 1.0.4, never called, and is gone in 1.0.7.
 
 ### 14.2 URL ingest — on the framework's `UrlFetch`
 
@@ -2406,14 +2465,14 @@ reference site already uses. Settings split as shipped in 1.0.0:
 
 - **Admin tab (Site Configuration → AI)** — the master switch, allowed roles,
   `defaultProvider` / `defaultModel` / `allowedModels` (§9.5), quota caps
-  (§10.1), loop limits (rounds, timeouts, context size), tool policy
+  (§10.1), loop limits (rounds, turn timeout, default tool timeout, context size), tool policy
   (`disabledTools` / `reviewedTools`), retention, auto-titling, site
   instructions, and — from 1.0.3 — the false-claim phrase list (§13.5),
   which is on this tab rather than in code because it is the kind of
   setting an admin tunes after reading one bad transcript. W-228 adds the
   attachment switches and caps here — sources on or off and their type list
   and character caps, URL ingest on or off with its host lists and byte cap,
-  the conversion page and timeout limits, and the image type list, byte cap,
+  the conversion byte / page / timeout limits, and the image type list, byte cap,
   maximum edge, and staging TTL (§14). The tab
   description is HTML with links to the AI Core overview, usage,
   plugin-local configuration (dumps live there), the guide, and plugin
@@ -2835,6 +2894,37 @@ with rows a site supplies through its scope resolution, and the read tool routes
 panel ids to the module and site ids to a server-host tool under the site's own
 authorization.
 
+### TD-17 Embedded panel chrome
+
+**State.** `jPulse.ai.panel.create()` always builds its own root element and
+hands it to `jPulse.UI.floatPanel.create()` (§12.1). A site that already owns a
+shell — a docked column, a sidebar, its own chat window — cannot put the chat
+content inside it. The adjacent case is already covered: `launcher` binds the
+site's own button to `handle.toggle()`, which is what the reference site needs
+for its cutover.
+
+**Why deferred.** No consumer. The reference site asked for it and then said it
+would pass `launcher` and keep the plugin chrome, and a second panel lifecycle
+written before anything drives it gets the seam wrong — the same argument TD-07
+makes about shared modules and TD-14 about history notes. The chat content also
+leans on the shell more than it looks: scroll-to-bottom is driven by the float
+panel's `onOpen` (As Built item 23), and geometry, persistence, stacking, the
+Escape rule, and the mobile sheet are all `floatPanel`'s. Each has an answer
+outside a float panel; none has one today.
+
+**Trigger.** A site that wants one shell for two chats — the reference site's
+Map Chat and the AI panel sharing a window — or an AI panel embedded in page
+layout rather than floating.
+
+**Shape.** `create({ el, chrome: 'none' })` renders into the supplied element
+and never calls `floatPanel.create`. Everything the framework owns above the
+shell is unchanged: compose, chips, transcript, slash commands, regions, the
+context row, and the handle. What goes away is what the shell owned —
+`handle.open` / `close` / `toggle`, the launcher binding, geometry persistence,
+the ghost animation, and the mobile sheet — and scroll pinning moves to a resize
+or intersection observer because there is no open event to hang it on. The
+default stays `chrome: 'float'`, so a site that omits the option sees no change.
+
 
 ---
 
@@ -2891,6 +2981,7 @@ separate work in its own repository.
 | **W-227** | ai: propose and apply | A write-capable agent proposes, and the user applies or undoes |
 | **W-228** | ai: attachments — sources, URL ingest, conversion, vision | Files, pasted text, URLs, and images join a conversation |
 | **W-231** | ai: extract `hello-ai` into a bundled companion plugin | The sample is a third member of `@jpulse-net/plugin-ai-core`. Disable it without disabling AI |
+| **W-232** | ai: upload caps from settings, scope wipe, and cutover guards | A second site ports onto the bundle without a code change: admin-owned upload caps, one call to erase a deleted object's conversations, and the three silent traps closed |
 
 W-223, W-224, and W-226 are the "first release" referred to throughout: server
 core, a real provider, and the panel. W-227 and W-228 are each independently
@@ -3120,7 +3211,41 @@ Rev 19 against shipped 1.0.5. `hello-ai` moves from a view inside
 conf. The pad is not rewritten. No framework source change.
 `jpulseVersion` stays `>=2.0.3`.
 
-### 21.10 Standalone follow-ons
+### 21.10 W-232 — upload caps from settings, scope wipe, and cutover guards
+
+Published as `@jpulse-net/plugin-ai-core` 1.0.7 (bundle carries
+`ai-mock` 1.0.7 and `hello-ai` 1.0.7; companions lockstep). Specified
+in Rev 20 against shipped 1.0.6. Not a new capability: it is the
+first list of gaps written by a *second* site porting onto the
+bundle, and every entry is a place where the framework made a
+decision the site should own.
+
+Two are blocking. The convert route is capped by a hardcoded
+`bodyLimit` and then again by `maxSourceChars * 4`, so the effective
+PDF ceiling is under 4 MB and no admin field moves it — the route
+becomes a ceiling and a new `maxConvertBytes` becomes the cap (§17).
+And deleting a site object leaves its conversations behind, because
+`global.AiCore` has no wipe — so a site either imports a plugin model
+or names `aiThreads` by string, both of which §5.3 forbids;
+`AiCore.deleteByScope({ scopeType, scopeId })` is the missing member.
+
+Three are footguns. The 5 s tool timeout is a descriptor default with
+no site-wide setting, so every slow tool repeats `timeoutMs`. A site
+that registers `list_sources` or `get_source` silently replaces the
+panel's own tools, because the registry is last-wins. And the panel
+hands back two lists — `handle.sources()` and `handle.images()` —
+with no family marker, which is exactly the confusion the request
+arrived with: it assumed images were in `sources()` under
+`origin: 'image'`. One `handle.attachments()` list carrying
+`kind: 'source' | 'image'` replaces both.
+
+The panel embed mode the same request asked for is TD-17, and no
+`onAiConvert*` hook is added — W-229 is that seam and remains so
+(§14.3). Published as 1.0.7; the wipe assembly is
+`agent/scope.js`, and the conversation picker re-fetches on
+`openThread` (As Built 36–39).
+
+### 21.11 Standalone follow-ons
 
 Each its own item, written when wanted rather than scheduled now:
 

@@ -9509,16 +9509,121 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
-### W-232, v1.0.7, 2026-09-18: ai: FXIME
+### W-232, v1.0.7, 2026-09-18: ai: upload caps from settings, AiCore.deleteByScope, and three cutover guards
 - status: 🚧 IN_PROGRESS
 - type: Feature
 - objectives:
+  - make the two streaming upload routes obey **Site Configuration → AI** instead of a hardcoded route limit and a character cap that describes something else, so a 25 MB PDF converts on a bare install and an admin who wants a smaller site changes one number
+  - give a site one supported way to erase an agent's data for an object it just deleted - `AiCore.deleteByScope({ scopeType, scopeId })` - so site code never imports a plugin model and never names `aiThreads` / `aiTurns` by string
+  - close the three silent traps a second site hit while porting: a 5 s tool timeout with no site-wide default, a reserved tool name that loses to a site registration without a word, and an attachment list split in two with no family marker
+  - **DX over one-time migration pain.** No thread, turn, or chat in the field is protected. Where the shipped shape is wrong, change it and document the rename rather than shipping both and asking a site author which one to use
+  - keep the §1.1 one-liner untouched: a site that attaches nothing, deletes nothing, and writes one tool sees no change at all
+- prerequisites:
+  - W-228, `@jpulse-net/plugin-ai-core` 1.0.4: the two `bodyMode: 'stream'` routes and `collectStreamBody`, the Redis image mailbox with its per-thread index key, `handle.sources()` / `handle.images()` / `handle.sourceFile()`, `PANEL_TOOL_NAMES`, and the source / URL / image caps on the AI tab. This item re-points all of them at settings
+  - W-214, v1.7.17 and W-217, v1.8.0: `bodyLimit` is authoritative in both directions, `25mb` is the comfort max that logs **no** startup warning, and nginx `client_max_body_size` is already `27M`. That is exactly why the route becomes a fixed ceiling and the admin field becomes the cap under it - no nginx edit, no deployment note
+  - W-223, 1.0.0: `global.AiCore` as the one site-facing server surface (design §5.3), the CI-enforced layer rule (`tools/` imports neither `agent/` nor `transport/`), and `resolveTools()` as the **single** offered-list function. The timeout default and the reserved-name refusal both have to land inside those constraints, which is what makes them less obvious than they look
+  - W-231, 1.0.6: the three-member bundle. `ai-mock` and `hello-ai` are version lockstep here unless a test needs otherwise
+  - nothing framework-side. `jpulseVersion` stays `>=2.0.3`, no framework source file is touched
 - rationale:
+  - **the source of this item is a second site porting onto the bundle.** Every entry is a place where the framework kept a decision the site should own, and none of them is a missing capability - which is why the whole item is settings, one published method, and three refusals
+  - **convert is capped at 3.8 MB today, not 8 MB and not 25 MB.** `static routes` says `bodyLimit: '8mb'`, then `apiConvertSource` caps again at `min(8 MB, maxSourceChars * 4)`; with the shipped `maxSourceChars` of 1,000,000 that is 4,000,000 bytes. Meanwhile `MAX_CONVERT_BYTES` (18 MiB) sits unused in `convert.js`. Three numbers, none of them an admin field, and the effective one is derived from a **character** cap that describes the markdown *after* conversion. An admin who wants bigger PDFs has no field to change and no reason to suspect the character cap
+  - **`maxSourceChars` and the upload size are different questions and must stop sharing an answer.** One is "how much text may a source contribute to a conversation", the other is "how big a file may the server accept". Deriving the second from the first is why raising the text budget silently raises the upload ceiling and vice versa
+  - **the image route has the same shape without the bug.** `apiStageImage` already enforces `maxImageBytes`, but the route is a static `5mb`, so an admin can lower the setting and cannot raise it past a number that is not on any page. Both routes should tell one story
+  - **map delete already cascades everything except the agent.** `global.AiCore` exposes `registerTools`, `resolveTools`, `scanToolModules`, `runTurn`, `listProviders`, and `loadSettings` - no wipe - and `AiThreadModel` has no delete method at all. Design §5.3 forbids a site importing from `plugins/`, so without this member the only paths open to a site are the two the design rules out: import the plugin's model, or reach into the database by collection name. A deleted object leaving readable conversations behind is also a privacy answer a site cannot give today
+  - **quota must survive the wipe.** `aiUsage` is keyed `<subject>:<period>`, not by scope. Deleting an object must not hand a user their daily request cap back, so the wipe deliberately stops at threads, turns, and staged images
+  - **a 5 s default is tight for anything that touches a database.** It is a descriptor default with no setting behind it, so the porting site repeats `timeoutMs` on every tool - 10 s on most, 35 s on the slow one. A site-wide default makes the common case silent and leaves the exception explicit, which is the right way round
+  - **the registry is last-wins, so a reserved name loses quietly.** `collectTools` merges by name and a later owner replaces an earlier one. A site that still registers `list_sources` or `get_source` after the cutover takes over the panel's own tools; the panel's client bridge still answers them from panel state, so the failure is a working-looking agent reading the wrong thing. Silence is the defect here, not the collision
+  - **the attachment split is already proven confusing.** The request that asked for a `kind` marker described `handle.sources()` as already carrying `origin: 'file' / 'url' / 'paste' / 'image'` - it does not; images are a second method, `handle.images()`. A reader who has the docs in front of them got the model wrong, and `handle.sourceFile(id)` compounds it by resolving image ids too, because the panel stores both families' original `File` in one map. One list with a family marker is the fix; documenting the split harder is not
+  - **`adapter.sourceAttachable` is documented and never called** (W-228 as-built item 27). A predicate a site implements and the framework never asks is worse than no predicate: it reads as a supported extension point and does nothing. With one list and a `kind` field the site writes `.filter()` and owns the answer
 - features:
+  - **1. upload caps come from Site Configuration → AI.** One rule, stated once in the guide: *the route is a ceiling, the setting is the cap, nginx is an outer gate - and an admin only ever thinks about the middle one*
+    - new admin field **`maxConvertBytes`**, default `26214400` (25 MB), sitting with `maxConvertPages` and `convertTimeoutMs`. Raw bytes, like its neighbour `urlMaxBytes` - do not introduce an MB field beside byte fields
+    - both streaming routes become `bodyLimit: '25mb'` - the W-214 comfort max, which logs no startup warning and needs no nginx change. `apiConvertSource` passes `maxConvertBytesOf(settings)` to `collectStreamBody`; `apiStageImage` keeps passing `maxImageBytesOf(settings)`, which can now actually exceed the old `5mb` route
+    - both helpers **clamp to the route ceiling** (`ROUTE_MAX_BYTES = 26214400`). A setting above it does not accept more bytes, and the field help says so rather than letting an admin believe a number the route will refuse
+    - delete the `min(8 MB, maxSourceChars * 4)` formula and the unused `MAX_CONVERT_BYTES`. `maxSourceChars` keeps its one real job: the character cap `convertLimits` applies to converted text, unchanged
+    - the **413 names the real cap**, because `StreamBody` reports the `maxBytes` it was given - so an over-cap upload says 25 MB (or whatever the admin set), not the route's ceiling
+    - the capability probe returns `maxConvertBytes` beside the existing `maxImageBytes`, and the panel **refuses an oversize file before uploading it** - same red drop hover and toast as a refused type, naming the cap. The server 413 stays the backstop, not the first line
+    - **default 25 MB is the product decision:** a bare install matches what the porting site already does today, and an admin who wants a smaller site lowers one field. A cautious 8 MB default would ship the regression this item exists to prevent
+  - **2. `AiCore.deleteByScope({ scopeType, scopeId })`.** The site's object-delete handler is one optional-chained line, so a disabled plugin is a no-op rather than a boot-time crash: `await global.AiCore?.deleteByScope?.({ scopeType: 'map', scopeId })`
+    - **what it erases, for every user:** the `aiThreads` rows for that scope, the `aiTurns` rows for those threads (proposal records live on the turn, so they go with it), and any staged images still parked in Redis under those threads. A deleted object is gone for everyone who talked about it, not only for the caller
+    - **what it never touches: `aiUsage`.** Quota is per subject and per period; deleting an object is not a quota refund
+    - **order is cancel, turns, threads, images.** `broadcastCancel` first so an in-flight turn stops writing; turns before threads so a failure half-way leaves rows the retention purge already collects by age rather than a thread with no history; images last and best-effort, since the stage TTL would expire them anyway
+    - **both arguments are required.** A missing or empty `scopeType` / `scopeId` throws an `AI_BAD_ARGS` error rather than matching broadly - a typo must not look like a successful wipe. An unknown scope returns zeros, and a second call is a no-op
+    - returns `{ threads, turns, images }` so the site logs one line, and `scope.js` logs `aiCore.deleteByScope` success or error with the same counts. Called outside a request, so those lines take a null `req` (no `logRequest` — there is no request)
+    - **no HTTP route, no `deleteByThread`, no `createdBy` narrowing.** This is a server-side cascade the site calls *after* it has authorized and performed its own delete; exposing it as an endpoint would put a second authorization decision on the framework. User-account deletion stays the separate framework item on `onUserBeforeDelete` / `onUserAfterDelete`
+  - **3. a site-wide default tool timeout.** New admin field **`defaultToolTimeoutMs`**, default `10000`, with the loop limits
+    - `normalizeDescriptor` records `timeoutMs: null` when a descriptor omits it - "unset", not "5000" - and `resolveTools()` stamps the effective value from `options.settings.defaultToolTimeoutMs` on the offered tool. An explicit `timeoutMs` always wins, whether it is shorter or longer
+    - **`resolveTools` is where it lands because of the layer rule.** `tools/descriptor.js` may not import `agent/settings.js`, and `resolveTools` is already the single function that sees both the settings and every tool, every round. Do not thread settings into the registry, and do not add a second default on the `onAiToolRegister` context - two places to look is the thing this item is removing
+    - the last-resort constant in `execute.js`'s `withTimeout` moves from 5000 to 10000 for the path that runs an unstamped registry tool
+    - raising the shipped default is a deliberate behavior change in the safe direction: a longer timeout can only turn a failing tool into a working one
+  - **4. reserved tool names are refused, loudly.** `list_sources` and `get_source` belong to the panel
+    - a registration of either name from any owner other than `ai-core` is **not accepted** - the panel's own descriptors stay in place - in both `AiCore.registerTools()` and the `onAiToolRegister` collection path
+    - the refusal is **visible in three places**: one `logWarning` per name and owner per process (`refused reserved tool name "list_sources" from owner "site"; the AI panel owns this name`), a `withheld` row with `reason: 'reserved'` on the capability probe and in `/tools`, and the debug dump when dumps are on
+    - **it does not throw.** A leftover site handler must not stop a site from booting; it must be impossible to miss in the log and on `/tools`
+    - the reserved list moves to the tools layer (`tools/descriptor.js`) so the registry can consult it without importing `attachments/`; `attachments/tools.js` imports it from there. Last-wins behavior is unchanged for every non-reserved name
+  - **5. one attachment list with a family marker.** `kind` answers "which family", `origin` answers "how it arrived", and they stop overlapping
+    - **`handle.attachments()`** is the one list a site walks: text sources first, then images, every row carrying `kind: 'source' | 'image'`, `origin`, `id`, `name`, `mimeType`, and its family's own fields (`chars` / `sections` / `url`, or `width` / `height`)
+    - **`handle.attachmentFile(id)`** returns the original `File` or `Blob` for a row of either family, or `null` once the chip is gone. The noun matches the list; today's `sourceFile` already resolves image ids, which is the wart this removes
+    - **`handle.sources()`, `handle.images()`, and `handle.sourceFile()` are removed.** Keeping them beside `attachments()` would leave three methods and a choice to make; `attachments().filter((row) => row.kind === 'image')` is explicit, needs no doc lookup, and is what an attach tool wants anyway
+    - **`origin` becomes honest for images too:** `file` when dropped or picked, `paste` when pasted, instead of today's hardcoded `'image'`. `kind` carries the family, so `origin` is free to mean one thing in both families
+    - **`adapter.sourceAttachable` is dropped**, not renamed. It has never been called; a site that wants to offer only some attachments on its own object filters `attachments()` itself
+    - **`kind` does not go into the `list_sources` tool result.** That list is text-only by construction, so the field would be a constant - prompt tokens for no information. `kind` is a panel-handle concept and the guide says so
+  - **out of scope, deliberately:** the embed panel mode (`create({ el, chrome: 'none' })`) is design TD-17 - the requesting site will pass `launcher` and keep the plugin chrome, and a second panel lifecycle written before a consumer exists gets the seam wrong. No `onAiConvert*` hook of any kind: W-229's framework-owned `onDocumentConvertRegister` / `onDocumentConvert` is that seam and stays it, and no converter ships here either
 - deliverables:
-  - FIXME `path/file`:
-    - FIXME summary
+  - `plugins/ai-core/webapp/utils/agent/settings.js`:
+    - `maxConvertBytes` (26214400) and `defaultToolTimeoutMs` (10000) in `AI_CONFIG_DEFAULTS` and in `mergeSettings`, normalized the same way as their numeric neighbours
+  - `plugins/ai-core/webapp/utils/attachments/convert.js`:
+    - `ROUTE_MAX_BYTES` and `maxConvertBytesOf(settings)` with the clamp; `MAX_CONVERT_BYTES` deleted. `convertLimits` is unchanged - `maxSourceChars` still caps the converted text
+  - `plugins/ai-core/webapp/utils/attachments/images.js`:
+    - `maxImageBytesOf` clamped to `ROUTE_MAX_BYTES`; `deleteStagedThread(username, threadId)` reading the per-thread index, deleting each staged key, then the index
+  - `plugins/ai-core/webapp/controller/aiCore.js`:
+    - both stream routes to `bodyLimit: '25mb'`; `apiConvertSource` passing `maxConvertBytesOf(settings)` and dropping the `maxSourceChars * 4` formula; clamped `maxConvertBytes` and `maxImageBytes` on the capability probe; `maxConvertBytes` and `defaultToolTimeoutMs` in `ConfigModel.extendSchema()`; `deleteByScope` published on `global.AiCore` (logging lives in `scope.js`)
+  - `plugins/ai-core/webapp/model/aiThread.js`, `aiTurn.js`:
+    - `AiThreadModel.listByScope({ scopeType, scopeId })` and `deleteByScope`; `AiTurnModel.deleteByThreadIds(ids)`. No index change - `aiThreads_active_scope_user` already leads with `scopeType` / `scopeId`
+  - `plugins/ai-core/webapp/utils/agent/scope.js` (new), `index.js`:
+    - the `deleteByScope` assembly (cancel, turns, threads, staged images) in `scope.js`; `index.js` re-exports it so the controller stays a thin route layer
+  - `plugins/ai-core/webapp/utils/tools/descriptor.js`:
+    - `RESERVED_TOOL_NAMES`, `RESERVED_TOOL_OWNER`, `DEFAULT_TOOL_TIMEOUT_MS` (10000), `isReservedToolName`, and `effectiveTimeoutMs`; `timeoutMs: null` when omitted
+  - `plugins/ai-core/webapp/utils/tools/registry.js`:
+    - reserved-name refusal in `registerTools` and `collectTools`, the warn-once record, and the refusal list `resolveTools` reads
+  - `plugins/ai-core/webapp/utils/tools/resolve.js`:
+    - the effective-timeout stamp from `options.settings.defaultToolTimeoutMs`; `withheld` rows with `reason: 'reserved'`
+  - `plugins/ai-core/webapp/utils/tools/execute.js`:
+    - call sites use `effectiveTimeoutMs(tool, settings)`; `withTimeout`'s last resort is that helper (10000), not a hardcoded 5000
+  - `plugins/ai-core/webapp/utils/attachments/tools.js`:
+    - `PANEL_TOOL_NAMES` re-exported from the tools layer instead of defined here
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - `handle.attachments()` and `handle.attachmentFile(id)` replacing `sources` / `images` / `sourceFile`; `kind` on both families and an honest `origin` on images; the pre-upload size check against `maxConvertBytes` and `maxImageBytes` with the existing refuse hover and toast; `openThread` re-fetches the thread list so a completed turn (and a chat switch) re-sorts newest first
+  - `plugins/ai-core/webapp/translations/en.conf`, `de.conf`:
+    - `maxConvertBytes` and `defaultToolTimeoutMs` labels and help; help on `maxSourceChars` naming what it is *not* (the upload size) and on `maxImageBytes` naming the route ceiling; a withheld-reason label for `reserved`; the oversize-file toast
+  - `plugins/ai-core/webapp/tests/unit/`:
+    - caps: a 25 MB convert accepted with the shipped `maxSourceChars` (**the regression test** - it fails today at 4,000,000 bytes); a lowered `maxConvertBytes` refused with a 413 naming that number; a setting above the ceiling clamped; `maxImageBytes` honored above the old `5mb`; `maxSourceChars` still truncating converted text and no longer influencing the upload
+    - wipe: threads and turns of a scope removed for **every** user; `aiUsage` untouched; staged images deleted; unknown scope returns zeros; a second call is a no-op; missing `scopeType` or `scopeId` throws `AI_BAD_ARGS`; another scope's threads survive
+    - timeout: an omitted `timeoutMs` follows the setting; an explicit one wins in both directions; the unstamped registry path uses 10000; **the layer-boundary scan test still passes** (no `agent/` import under `tools/`)
+    - reserved: a site registration of `get_source` leaves the panel descriptor in place, appears as `withheld: reserved`, and logs once; `ai-core` itself may register both; a non-reserved name still follows last-wins
+    - attachments: `kind` on both families; ordering sources before images; `attachmentFile` resolving either family and returning null after removal (panel scan); pasted images reporting `origin: 'paste'`; `list_sources` output carrying **no** `kind`
+    - `scope.test.js` (new): the wipe cases above
+    - `threads.test.js`: `touch` moves a thread to the front of `listForOwner`; panel scan that `openThread` calls `refreshThreads`
+  - `plugins/ai-core/docs/README.md`, `plugins/ai-core/README.md`:
+    - the caps table (route ceiling vs admin cap vs character cap) with the sentence that conversion buffers the whole file in memory, so a busy site lowers the cap rather than raising the heap; `AiCore.deleteByScope` with the one-line call and what it does not erase; the reserved names and what a collision looks like; `defaultToolTimeoutMs`; `handle.attachments()` / `handle.attachmentFile()` and the `kind` / `origin` split, with the removed members named once so a reader porting from 1.0.6 finds them. Version numbers, never work-item numbers
+  - `docs/dev/design/W-223-ai-agent.md` (framework repo, this item's only framework-repo change):
+    - Rev 20 specifies; Rev 21 / header / §21.10 record 1.0.7 as published; §21.11 renumber, the §21.2 row, and TD-17
+  - framework-repo user docs are **not** part of this item's plugin commits - see notes
 - notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md` Rev 20 and §21.10. Read §5.3 (why a site may not import from `plugins/`), §7.1 and §7.5 (descriptor defaults and the single resolve function), §12.1 (the handle surface), §14.3 / §14.4 (the byte paths), and §17 (the admin split). TD-17 is this item's deliberate omission and must not be "fixed" here
+  - **repo layout:** `plugins/ai-core` is its own git repo and the publish root; `ai-mock` and `hello-ai` are siblings, each its own repo, gitignored by the framework. One publish of `@jpulse-net/plugin-ai-core` 1.0.7 from `plugins/ai-core` only; the companions are header / version lockstep unless a test needs more. The design-doc hunk is the one framework-repo change
+  - **five decisions taken before implementation**, each with the alternative rejected:
+    - *the convert cap's home*: a settings field under a fixed `25mb` route ceiling. A bigger `bodyLimit` was rejected because W-214 warns above 25mb and nginx would need a matching edit; deriving it from `maxSourceChars` is the current bug, not a design
+    - *the default `maxConvertBytes`*: 25 MB, so a bare install matches what the porting site does today. A cautious 8 MB default was rejected as shipping the regression the item exists to prevent
+    - *what `deleteByScope` erases*: threads, turns, and staged images, for all users. Erasing `aiUsage` too was rejected - a per-subject quota counter is not scope data, and refunding a daily cap by deleting an object is a hole
+    - *where the timeout default is applied*: `resolveTools`, which already holds settings and every tool. `normalizeDescriptor` was rejected because the tools layer may not import the agent layer, and a second default on the hook context was rejected as a second place to look
+    - *the attachment API*: one `handle.attachments()` with `kind`, replacing three members. Adding `kind` to the existing two lists and keeping a third convenience method was rejected - it leaves the split intact plus one more thing to read
+  - **migration is unconstrained on purpose.** These plugins are new in this release train and the reference site has not cut over yet, so nothing preserves `handle.sources()`, `handle.images()`, `handle.sourceFile()`, or `adapter.sourceAttachable`. Name the replacements in the guide and move on; do not ship aliases
+  - **the reserved-name refusal must not throw.** A leftover `onAiToolRegister` handler from a pre-cutover site has to boot, warn, and show up on `/tools` - failing the site's startup over a demo registration is the wrong trade
+  - the convert path buffers the whole upload in memory (`collectStreamBody` into `Buffer.concat`), so 25 MB is a real per-request cost against a 1 GB worker heap. Say it in the guide next to the field rather than discovering it in production
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests - use an isolated temp project or the plugin-cli harness
+  - **as-built:** published as `@jpulse-net/plugin-ai-core` 1.0.7 (prepack staged `ai-core`, `ai-mock`, `hello-ai`; companions lockstep; tarball includes `scope.js` and `scope.test.js`). Assembly is `agent/scope.js` (not inlined in `index.js`); wipe logs `logInfo` / `logError` with a null `req` and no `logRequest` because there is no request. The controller wrapper does not pass `redisManager` — `deleteStagedThread` uses `global.RedisManager`. `executeTool` honors settings via `effectiveTimeoutMs` rather than only bumping a constant. The capability probe returns the clamped `maxImageBytes` as well as `maxConvertBytes`. Image `origin` is honest on the wire (`sanitizeImageMeta` / `sourceRefsFrom` default to `file`). Smoke-test fix: the conversation picker was stale after a send because the panel never re-fetched the list; `openThread` now calls `refreshThreads()`. Unit tests: 20 suites, 182 passed
+  - out of scope, each with its own item or number: the embed panel mode (design TD-17); any `onAiConvert*` hook (W-229 is the seam); a PDF or Office converter plugin; an HTTP route for `deleteByScope`; framework user-account deletion and its cascade; per-scope tool policy (TD-12); the reference site's migration, which is that site's repository
 
 
 
@@ -9576,12 +9681,12 @@ git tag v2.0.4; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.6 2026-09-17
+node ../../bin/bump-version.js 1.0.7 2026-09-18
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.6; git push origin main --tags
+git tag v1.0.7; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

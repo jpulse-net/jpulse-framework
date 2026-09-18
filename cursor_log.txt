@@ -26290,3 +26290,70 @@ Diff is framework docs only: user-doc one-liners, design Rev 19, work-items, cur
 
 
 ============================================================
+2026-09-18 00:24
+
+next: W-232. BubbleMap feedback on ai-core gaps (7 items). Decisions: default maxConvertBytes = 25 MB; ship 1-5 in this item; add TD to design doc for item 6; skip 7; handle.attachments() as the one list rather than stuffing images into handle.sources() -- need guidance. Overall objective: good DX over one-time migration pain, no backward compat concern for existing chats. Review and create the work item.
+
+Created W-232 in work-items.md (status and section untouched) and amended the design doc.
+
+Measured the gaps before writing: convert is effectively capped at 4,000,000 bytes today (route 8mb, then min(8MB, maxSourceChars * 4) with the shipped maxSourceChars of 1,000,000), and MAX_CONVERT_BYTES (18 MiB) is dead code. Image route is a static 5mb over a 4 MB setting. AiThreadModel has no delete at all. collectTools is last-wins, so a site list_sources/get_source silently replaces the panel's. handle.sources() and handle.images() are separate, and sourceFile() already resolves both -- the feedback itself had the model wrong, which is the evidence.
+
+Spec: routes become bodyLimit 25mb as a fixed ceiling, new maxConvertBytes (default 26214400) is the cap, clamped to the ceiling, with maxSourceChars keeping only the post-convert character job. AiCore.deleteByScope({ scopeType, scopeId }) erases threads, turns, and staged images for all users, never aiUsage, throws AI_BAD_ARGS on missing args. defaultToolTimeoutMs (10000) stamped in resolveTools, not normalizeDescriptor, because tools/ may not import agent/. Reserved names refused with a warn-once plus a withheld reason, never a throw.
+
+Attachment guidance (the open question): one handle.attachments() list, sources then images, each row carrying kind 'source' | 'image'; handle.attachmentFile(id) for either family; sources(), images(), and sourceFile() removed rather than kept alongside; origin becomes honest for images (file / paste); adapter.sourceAttachable dropped since the panel never calls it; and kind deliberately NOT added to list_sources output, where it would be a constant and pure prompt cost.
+
+Design doc: Rev 20, TD-17 (embedded panel chrome, chrome: 'none' -- what goes away with the float shell and why it waits for a consumer), new §21.10 for W-232, standalone follow-ons renumbered to §21.11, header sentence, and a §21.2 table row.
+
+
+============================================================
+2026-09-18 00:45
+
+thanks opus, looks good
+
+grok: implement unless questions
+
+Implemented W-232 in plugins/ai-core for 1.0.7 (headers left at 1.0.6). Convert and image stream routes use bodyLimit 25mb; maxConvertBytes defaults to 26214400 and is the real upload cap, clamped to that ceiling; maxSourceChars only truncates converted text. maxImageBytes is also clamped to the route ceiling. AiCore.deleteByScope({ scopeType, scopeId }) cancels, then deletes turns, threads, and staged images for every user on that scope, and never touches aiUsage. defaultToolTimeoutMs (10000) is stamped in resolveTools; an explicit timeoutMs still wins; executeTool uses effectiveTimeoutMs for unstamped registry tools. list_sources and get_source are reserved: a site registration is refused with a warn-once and withheld as reserved, and does not throw. handle.attachments() / handle.attachmentFile() replace sources/images/sourceFile; each row has kind source|image and an honest origin (file/paste); the panel refuses an oversize file before upload. i18n (en/de), plugin README, and plugin docs updated. Unit tests: 20 suites, 182 passed. Did not bump versions, change work-item status, run git, or touch .jpulse/.
+
+
+============================================================
+2026-09-18 00:54
+
+review app start: [startup log] smoke test is mostly good. I noticed that the "just a hello" chat did not move to the top; I just sent a prompt, switched chat, came back, it's still in 3rd pos
+
+Startup is clean: convert/image routes mounted at bodyLimit=25mb bodyMode=stream, no reserved-tool warnings, Redis and ai-core initialized. The thread-order issue was a stale panel list: the server already touches updatedAt after a turn, but the dropdown only re-fetched on first load / new / rename. openThread now refreshThreads() so a completed turn and a chat switch both re-sort newest first. Added a touch-moves-to-front model test and a panel scan. Reload the panel JS to pick it up.
+
+
+============================================================
+2026-09-18 01:02
+
+- good now
+- review @tt-git-diff.txt
+- update work item if needed to reflect code
+- same with design doc
+
+Reviewed the plugin diff against W-232. Spec surface is complete (25mb routes, maxConvertBytes, deleteByScope, reserved names, attachments(), docs, tests). As-built deltas recorded without changing work-item status: wipe lives in agent/scope.js; execute uses effectiveTimeoutMs; probe clamps maxImageBytes; honest image origin on the wire; openThread re-fetches the thread list. Design doc Rev 21 and As Built 36–39; §7.1 / §12.1 / §14.1 / §17 / §21.10 updated to the shipped contract. Note: scope.test.js is untracked and must be in the plugin commit; no version bump in the diff (correct).
+
+
+============================================================
+2026-09-18 01:07
+
+- update @plugins/hello-ai/commit-message.txt @plugins/ai-mock/commit-message.txt @plugins/ai-core/commit-message.txt
+- assume W-232, v1.0.7, 2026-09-18
+
+Rewrote the three plugin commit messages for W-232 / 1.0.7. ai-core is the product commit (caps, deleteByScope, timeout, reserved names, attachments(), thread-list refresh). ai-mock and hello-ai are lockstep-only; publish stays from plugins/ai-core.
+
+
+============================================================
+2026-09-18 01:15
+
+- 3 plugin releases done
+- bundle published
+- review @tt-git-diff.txt
+- update work item if needed
+- update design doc if needed
+- update @tt-commit.txt , keep "W-229, v2.0.4, 2026-09-18"
+
+Reviewed the framework diff: design Rev 21, work-items, cursor_log only. Do not add tmp-bubblemap-app. Recorded 1.0.7 as published in the design header, Rev 21, and §21.10. W-232 as-built now says published (prepack staged ai-core, ai-mock, hello-ai; tarball includes scope.js and scope.test.js); status left IN_PROGRESS. Rewrote tt-commit under the W-229 / v2.0.4 prefix.
+
+
+============================================================

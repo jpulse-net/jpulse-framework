@@ -1,4 +1,4 @@
-# jPulse Docs / Hooks v2.0.3
+# jPulse Docs / Hooks v2.0.4
 
 Named extension points that the framework, a site, or a plugin can **define**, and that any plugin or site controller can **handle**. Use them to intercept, modify, react to, or veto operations without patching framework code.
 
@@ -10,7 +10,7 @@ Three roles, kept apart on purpose:
 - A **consumer** registers a handler with `static hooks = { … }` on a controller. That syntax is unchanged.
 - At runtime the producer **fires** the hook with `HookManager.execute()`, `executeFirst()`, or `executeForPlugin()`.
 
-The framework ships authentication, user-lifecycle, plugin-config, and system-stats hooks. A site or plugin adds its own the same way — the framework never needs to learn a domain vocabulary.
+The framework ships authentication, user-lifecycle, plugin-config, document-conversion, document-preview, and system-stats hooks. A site or plugin adds its own the same way — the framework never needs to learn a domain vocabulary.
 
 ## Naming Convention
 
@@ -20,6 +20,7 @@ Hooks follow the simplified `onBucketAction` pattern:
 |---------|----------|-------------|
 | `onAuth*` | `onAuthBeforeLogin`, `onAuthAfterLogin` | Authentication lifecycle |
 | `onUser*` | `onUserBeforeSave`, `onUserAfterSave` | User lifecycle |
+| `onDocument*` | `onDocumentConvertRegister`, `onDocumentPreview` | Document bytes to text, markdown, or a preview image |
 
 ## Quick Start
 
@@ -235,6 +236,145 @@ Total: %DYNAMIC{plugins-hooks-count namespace="onPluginConfig"}% hooks
 -->
 
 `onPluginConfigBeforeSave` uses `mode: 'executeForPlugin'`, so a thrown error aborts the save with a 400 and the handler's message. That is the same throw-to-abort rule as every other `onError: 'abort'` hook, not a special case.
+
+### Document Conversion and Preview Hooks
+
+%DYNAMIC{plugins-hooks-list-table namespace="onDocument"}%
+
+Total: %DYNAMIC{plugins-hooks-count namespace="onDocument"}% hooks
+
+<!-- Plugin hooks as of v2.0.4: (above dynamic list shows the current list)
+| Hook | Context | Can Modify | Can Cancel | Description |
+|------|---------|------------|------------|-------------|
+| `onDocumentConvertRegister` | `{ converters }` | ✅ | ❌ | Contribute a document converter descriptor |
+| `onDocumentConvert` | `{ bytes, mimeType, maxChars, maxPages, timeoutMs, text, markdown, pages, meta }` | ✅ | ✅ | Convert document bytes to text or markdown |
+| `onDocumentPreviewRegister` | `{ previewers }` | ✅ | ❌ | Contribute a document preview descriptor |
+| `onDocumentPreview` | `{ bytes, mimeType, originalName, maxEdge, timeoutMs, imageBase64, previewMime, width, height }` | ✅ | ✅ | Render a preview image from document bytes |
+-->
+
+These four are **framework-owned and AI-free**. They name no model, no thread, and no prompt. A PDF converter, an Office converter, or a thumbnail plugin depends on a framework version, not on an AI package. The framework defines them ahead of any framework-side caller (`stability: 'planned'` as of v2.0.4). An undefined hook still executes under its mode's default error policy, so a caller may fire the names before this catalog row exists.
+
+`onDocumentConvert` and `onDocumentPreview` use `mode: 'executeForPlugin'`. A thrown error aborts that one plugin's call and names the plugin; it does not run the next claimant. An empty convert result is a different signal - see below.
+
+#### Converter plugin
+
+Push one descriptor per **format** (not per plugin). `plugin` is the join key `executeForPlugin` dispatches on - it must be this plugin's own name, the same one that registers `onDocumentConvert`. Aliases of one format may share a row. Unknown fields pass through untouched (an `engine` id is the usual extra).
+
+```javascript
+class PdfConvertController {
+    static hooks = {
+        onDocumentConvertRegister: {},
+        onDocumentConvert: {}
+    };
+
+    static async onDocumentConvertRegister(context) {
+        context.converters.push({
+            plugin: 'pdf-convert',   // must match this plugin's name
+            label: 'PDF',
+            mimeTypes: ['application/pdf'],
+            extensions: ['.pdf'],
+            maxPages: 100,
+            unitLabel: 'page',
+            rejects: []
+        });
+        return context;
+    }
+
+    static async onDocumentConvert(context) {
+        const result = await this.convertPdf(context.bytes, {
+            maxPages: context.maxPages,
+            maxChars: context.maxChars,
+            timeoutMs: context.timeoutMs
+        });
+        context.markdown = result.markdown || '';
+        context.text = result.text || '';
+        context.pages = result.pages || [];
+        context.meta = {
+            pageTruncated: result.stoppedAtLimit === true,
+            empty: result.noText === true,
+            emptyCode: result.noText ? 'no-text-layer' : undefined,
+            emptyReason: result.noText ? 'no text layer' : undefined
+        };
+        return context;
+    }
+}
+```
+
+| Descriptor field | Notes |
+|------------------|-------|
+| `plugin` | Required. This plugin's name. The convert caller dispatches with `executeForPlugin(name, descriptor.plugin, ctx)` |
+| `mimeTypes` | Array of MIME types this row claims |
+| `extensions` | Including the leading dot, e.g. `.pdf` |
+| `label` | Display label (`PDF`, `Word`, `Excel`) |
+| `maxPages` | This format's own ceiling. The caller merges it with the site cap |
+| `unitLabel` | `page`, `sheet`, or `slide` - drives truncation copy |
+| `rejects` | `{ extensions, reason, suggest }` rows so a `.doc` drop can answer "legacy Word format. Save as .docx." |
+
+| Convert result | Notes |
+|----------------|-------|
+| `markdown` | Preferred when the extract has structure. A caller reads `markdown \|\| text` |
+| `text` | Plain extract. Fine when there is no structure to keep |
+| `pages` | Optional structured output. Callers that do not need it ignore it |
+| `meta.empty` | `true` when this plugin claimed the type and found nothing |
+| `meta.emptyCode` | Pin `no-text-layer` for a scanned page. That is the refusal that must not promise a copy-and-paste workaround |
+| `meta.emptyReason` | Short phrase the caller can put in the user-facing message (`encrypted`, `image-only`, `no text layer`) |
+| `meta.pageTruncated` / `meta.truncated` | Truncation in the converter's own unit |
+
+**Empty extract vs throw.** Return empty text plus `meta.empty` / `meta.emptyCode` to say "I claimed this type and found nothing - try the next claimant." Throw only when the conversion itself failed in a way the caller should report as an error. A throw aborts the convert call (`onError: 'abort'`) and does not fall through.
+
+#### Previewer plugin
+
+```javascript
+class PdfPreviewController {
+    static hooks = {
+        onDocumentPreviewRegister: {},
+        onDocumentPreview: {}
+    };
+
+    static async onDocumentPreviewRegister(context) {
+        context.previewers.push({
+            plugin: 'pdf-convert',
+            label: 'PDF first page',
+            mimeTypes: ['application/pdf'],
+            extensions: ['.pdf']
+        });
+        return context;
+    }
+
+    static async onDocumentPreview(context) {
+        const image = await this.renderFirstPage(context.bytes, {
+            maxEdge: context.maxEdge,
+            timeoutMs: context.timeoutMs,
+            originalName: context.originalName
+        });
+        context.imageBase64 = image.base64 || '';
+        context.previewMime = image.mime || 'image/jpeg';
+        context.width = image.width || 0;
+        context.height = image.height || 0;
+        return context;
+    }
+}
+```
+
+| Previewer field | Notes |
+|-----------------|-------|
+| `plugin` | Required. Same join-key rule as convert |
+| `mimeTypes` | Exact types, or a wildcard (`text/*`, `*`) |
+| `extensions` | Including the leading dot |
+| `label` | Display label |
+
+| Preview result | Notes |
+|----------------|-------|
+| `imageBase64` | Raw image bytes, base64. Not named for a specific codec |
+| `previewMime` | Authoritative format. Default `image/jpeg` when omitted |
+| `width` / `height` | Pixel size of the rendered image |
+
+#### What a caller owes
+
+- **Caps and timeout.** Merge the site page limit with the converter's `maxPages`. Pass `maxChars` and `timeoutMs`. Honor the converter's `unitLabel` in truncation copy.
+- **Selection is not hook behavior**, and the two families differ. Convert matches a MIME type exactly and tries every claimant in registration order until one returns text - that is what makes "extract first, OCR on empty" a plugin install. Preview accepts wildcards, where an exact type or extension match wins over a wildcard regardless of array order, and picks one previewer with no retry.
+- **The user-facing refusal.** An empty extract names the reason. A scanned page (`emptyCode: 'no-text-layer'`) must not promise a paste workaround. A `rejects` row supplies `reason` and an optional `suggest` ("Save as .docx.").
+- **No handler is a clean miss**, not an error. `execute` / `executeForPlugin` return the context unchanged when nobody is registered.
 
 ## Hook Execution
 
@@ -587,4 +727,5 @@ Use these in your markdown documentation:
 - [Creating Plugins](plugins/creating-plugins.md) - Build your first plugin
 - [Plugin Architecture](plugins/plugin-architecture.md) - How the plugin system works
 - [Hello World Plugin](installed-plugins/hello-world/README.md) - Working example with hooks
+- [AI Agent](ai-agent.md) - Site-facing agent (install, configure, simple case)
 - [Deployment Guide](deployment.md) - Break-Glass Account Runbook for `localAuthRestriction`

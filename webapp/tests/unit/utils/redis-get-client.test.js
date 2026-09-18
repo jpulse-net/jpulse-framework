@@ -6,7 +6,7 @@
  *                   though the specifically-requested client is healthy (and vice versa) -
  *                   getClient() must trust the requested client's own ioredis status first
  * @file            webapp/tests/unit/utils/redis-get-client.test.js
- * @version         2.0.3
+ * @version         2.0.4
  * @release         2026-09-17
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

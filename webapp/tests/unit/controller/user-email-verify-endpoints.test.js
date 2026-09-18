@@ -6,7 +6,7 @@
  *                   mid-login completion, other-device/status-only landing, and the error/redirect
  *                   paths for expired/invalid tokens)
  * @file            webapp/tests/unit/controller/user-email-verify-endpoints.test.js
- * @version         2.0.3
+ * @version         2.0.4
  * @release         2026-09-17
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -1,4 +1,4 @@
-# jPulse Docs / Template Reference v2.0.3
+# jPulse Docs / Template Reference v2.0.4
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -225,6 +225,8 @@ Define your own template variables safely using the `vars` namespace:
 > **See Also:** [Handlebars Reference](handlebars.md) for complete custom variables documentation with examples and best practices.
 
 ## 🌐 Internationalization (i18n)
+
+Full guide: [Internationalization](internationalization.md) — merge order, file format, controllers, and site/plugin examples.
 
 ### Basic Translation Access
 

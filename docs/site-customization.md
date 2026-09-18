@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v2.0.3
+# jPulse Docs / Site Customization Guide v2.0.4
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -61,7 +61,7 @@ my-jpulse-site/
 
 Put overrides in `site/webapp/translations/` using the same `*.conf` shape as the framework files (`en.conf`, `de.conf`, …). At startup the framework deep-merges **framework, then each active plugin in load order, then the site**. A later source wins a leaf and does not wipe sibling keys. A missing plugin or site `translations/` directory is skipped. Restart the app after editing translation files.
 
-Do not edit `webapp/translations/` — those files are framework-managed and come back on `jpulse update`. Plugin authors ship `plugins/<name>/webapp/translations/`; see [Creating Plugins](plugins/creating-plugins.md).
+Do not edit `webapp/translations/` — those files are framework-managed and come back on `jpulse update`. Plugin authors ship `plugins/<name>/webapp/translations/`; see [Creating Plugins](plugins/creating-plugins.md). Full guide: [Internationalization](internationalization.md).
 
 ________________________________________________
 ## Configuration System

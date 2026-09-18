@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v2.0.3
+# jPulse Docs / Handlebars Templating v2.0.4
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -147,7 +147,7 @@ Full application configuration (filtered based on auth).
 - `{{i18n.view.home.introduction}}` - Introduction message
 - `{{i18n.view.auth.*}}` - Authentication messages
 - `{{i18n.controller.*}}` - Controller messages
-- `{{i18n.*}}` - Consult the merged translation set (framework `webapp/translations/`, then each active plugin's `webapp/translations/`, then `site/webapp/translations/`). A later source wins a leaf.
+- `{{i18n.*}}` - Consult the merged translation set (framework `webapp/translations/`, then each active plugin's `webapp/translations/`, then `site/webapp/translations/`). A later source wins a leaf. Full guide: [Internationalization](internationalization.md).
 
 #### Subtree Embedding (v1.6.42+)
 

@@ -51,6 +51,7 @@ cache-infrastructure.md
 front-end-development.md    Front-End Development
 template-reference.md
 handlebars.md
+internationalization.md
 style-reference.md
 jpulse-ui-reference.md
 themes.md
@@ -72,6 +73,7 @@ hooks.md
 websockets.md
 sending-email.md
 url-fetch.md
+ai-agent.md                 AI Agent
 
 # Security & Deployment
 security-and-auth.md
@@ -159,6 +161,7 @@ dev/design/
 # extend or override those defaults.
 
 Api             API
+Ai              AI
 CHANGELOG       Version History
 
 # EOF docs/.markdown

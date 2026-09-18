@@ -1,6 +1,42 @@
-# jPulse Docs / Version History v2.0.3
+# jPulse Docs / Version History v2.0.4
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.4, W-229, 2026-09-17
+
+**Commit:** `W-229, v2.0.4, 2026-09-17: hooks: jPulse-owned document conversion and preview hooks`
+
+**FEATURE RELEASE**: The reference site defined convert and preview hooks in site controllers, so a published PDF or thumbnail plugin had no framework contract to target. This release adds four framework-owned, AI-free catalog rows. The framework converts nothing, renders nothing, and calls none of the four.
+
+**Objective**: Define `onDocumentConvertRegister` / `onDocumentConvert` and `onDocumentPreviewRegister` / `onDocumentPreview` so a document plugin depends on a framework version, not an AI package.
+
+**Key features**:
+- Four definitions in `hook-definitions.js`, all `canModify: true`, `stability: 'planned'`, `since: '2.0.4'`
+- Register hooks use `onError: 'continue'`; convert and preview use `mode: 'executeForPlugin'` and `onError: 'abort'`
+- Convert context includes output keys (`text`, `markdown`, `pages`, `meta`); preview includes `originalName` and returns `imageBase64` plus `previewMime` (not `jpegBase64`)
+- Empty extract (`meta.empty` / `meta.emptyCode: 'no-text-layer'`) is a miss for the next claimant; a throw ends the caller's attempt
+- Convert matches MIME exactly and retries claimants; preview accepts wildcards and picks one
+- Also: new orientation pages `docs/ai-agent.md` and `docs/internationalization.md`
+
+**Files changed**:
+- `webapp/utils/hook-definitions.js`: `Document conversion and preview hooks (4)` section
+- `webapp/tests/unit/utils/hook-manager.test.js`: planned list 3 → 7; six cases for the four names
+- `docs/hooks.md`: naming-table row, catalog, converter / previewer / caller section
+- `docs/dev/design/W-223-ai-agent.md`: Rev 16 — four hooks, not two
+- `docs/ai-agent.md` (new): install, configure, one-controller case
+- `docs/internationalization.md` (new): translation files, merge, views, controllers
+- Pointers: `docs/.markdown`, `docs/genai-development.md`, `docs/genai-instructions.md`, `docs/site-customization.md`, `docs/plugins/creating-plugins.md`, `docs/handlebars.md`, `docs/template-reference.md`, `plugins/ai-core/docs/README.md`
+- `docs/dev/work-items.md`: W-229 features/deliverables (status unchanged)
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.4 / W-229
+- `docs/CHANGELOG.md`: this section
+
+Verified via `npx jest webapp/tests/unit/utils/hook-manager.test.js --runInBand`: 1 suite / 72 tests passing.
+
+**Release**:
+- Work Item: W-229
+- Version: v2.0.4
+- Release Date: 2026-09-17
 
 ________________________________________________
 ## v2.0.3, W-225, 2026-09-17

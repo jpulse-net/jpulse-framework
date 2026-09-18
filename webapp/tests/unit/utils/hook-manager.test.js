@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for HookManager
  * @description     Tests for plugin hook registration and execution system
  * @file            webapp/tests/unit/utils/hook-manager.test.js
- * @version         2.0.3
+ * @version         2.0.4
  * @release         2026-09-17
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -765,6 +765,10 @@ describe('HookManager', () => {
 
             const planned = HookManager.findHooks({ stability: 'planned' });
             expect(planned.map(hook => hook.name).sort()).toEqual([
+                'onDocumentConvert',
+                'onDocumentConvertRegister',
+                'onDocumentPreview',
+                'onDocumentPreviewRegister',
                 'onUserAfterDelete',
                 'onUserBeforeDelete',
                 'onUserSyncProfile'
@@ -908,6 +912,172 @@ describe('HookManager', () => {
 
             HookManager.setDefinitionsActive('ai-core', true);
             expect(HookManager.isValidHook('onAiComplete')).toBe(true);
+        });
+    });
+
+    describe('document conversion and preview hooks', () => {
+        afterEach(() => {
+            HookManager.clearDefinitions();
+            HookManager.seedFrameworkDefinitions();
+        });
+
+        test('all four definitions are present and normalized', () => {
+            const registerConvert = HookManager.definitions.get('onDocumentConvertRegister');
+            const convert = HookManager.definitions.get('onDocumentConvert');
+            const registerPreview = HookManager.definitions.get('onDocumentPreviewRegister');
+            const preview = HookManager.definitions.get('onDocumentPreview');
+
+            expect(registerConvert).toMatchObject({
+                owner: 'framework',
+                description: 'Contribute a document converter descriptor',
+                mode: 'execute',
+                onError: 'continue',
+                canModify: true,
+                stability: 'planned',
+                since: '2.0.4',
+                contextKeys: ['converters']
+            });
+            expect(convert).toMatchObject({
+                owner: 'framework',
+                description: 'Convert document bytes to text or markdown',
+                mode: 'executeForPlugin',
+                onError: 'abort',
+                canModify: true,
+                stability: 'planned',
+                since: '2.0.4',
+                contextKeys: ['bytes', 'mimeType', 'maxChars', 'maxPages', 'timeoutMs',
+                    'text', 'markdown', 'pages', 'meta']
+            });
+            expect(registerPreview).toMatchObject({
+                owner: 'framework',
+                description: 'Contribute a document preview descriptor',
+                mode: 'execute',
+                onError: 'continue',
+                canModify: true,
+                stability: 'planned',
+                since: '2.0.4',
+                contextKeys: ['previewers']
+            });
+            expect(preview).toMatchObject({
+                owner: 'framework',
+                description: 'Render a preview image from document bytes',
+                mode: 'executeForPlugin',
+                onError: 'abort',
+                canModify: true,
+                stability: 'planned',
+                since: '2.0.4',
+                contextKeys: ['bytes', 'mimeType', 'originalName', 'maxEdge', 'timeoutMs',
+                    'imageBase64', 'previewMime', 'width', 'height']
+            });
+        });
+
+        test('register hooks survive one throwing handler', async () => {
+            HookManager.register('onDocumentConvertRegister', 'broken', () => {
+                throw new Error('converter probe failed');
+            }, 50);
+            HookManager.register('onDocumentConvertRegister', 'pdf-convert', (ctx) => {
+                ctx.converters.push({ plugin: 'pdf-convert', mimeTypes: ['application/pdf'] });
+                return ctx;
+            }, 100);
+            HookManager.register('onDocumentPreviewRegister', 'broken-preview', () => {
+                throw new Error('preview probe failed');
+            }, 50);
+            HookManager.register('onDocumentPreviewRegister', 'pdf-convert', (ctx) => {
+                ctx.previewers.push({ plugin: 'pdf-convert', mimeTypes: ['application/pdf'] });
+                return ctx;
+            }, 100);
+
+            const converters = await HookManager.execute('onDocumentConvertRegister', {
+                converters: []
+            });
+            const previewers = await HookManager.execute('onDocumentPreviewRegister', {
+                previewers: []
+            });
+
+            expect(converters.converters).toEqual([
+                { plugin: 'pdf-convert', mimeTypes: ['application/pdf'] }
+            ]);
+            expect(previewers.previewers).toEqual([
+                { plugin: 'pdf-convert', mimeTypes: ['application/pdf'] }
+            ]);
+            expect(global.LogController.logError).toHaveBeenCalled();
+        });
+
+        test('convert and preview abort and name the plugin', async () => {
+            HookManager.register('onDocumentConvert', 'pdf-convert', () => {
+                throw new Error('No PDF extractor is available');
+            });
+            HookManager.register('onDocumentPreview', 'pdf-convert', () => {
+                throw new Error('Preview render failed');
+            });
+
+            await expect(
+                HookManager.executeForPlugin('onDocumentConvert', 'pdf-convert', {})
+            ).rejects.toMatchObject({
+                message: 'No PDF extractor is available',
+                hookName: 'onDocumentConvert',
+                pluginName: 'pdf-convert'
+            });
+            await expect(
+                HookManager.executeForPlugin('onDocumentPreview', 'pdf-convert', {})
+            ).rejects.toMatchObject({
+                message: 'Preview render failed',
+                hookName: 'onDocumentPreview',
+                pluginName: 'pdf-convert'
+            });
+            expect(global.LogController.logError).not.toHaveBeenCalled();
+        });
+
+        test('identical framework-owner re-definition is a no-op', () => {
+            const first = HookManager.definitions.get('onDocumentConvert');
+            const second = HookManager.defineHook('onDocumentConvert', {
+                description: 'Convert document bytes to text or markdown',
+                owner: 'framework',
+                mode: 'executeForPlugin',
+                contextKeys: ['bytes', 'mimeType', 'maxChars', 'maxPages', 'timeoutMs',
+                    'text', 'markdown', 'pages', 'meta'],
+                canModify: true,
+                onError: 'abort',
+                stability: 'planned',
+                since: '2.0.4'
+            });
+
+            expect(second).toBe(first);
+            expect(first.conflicts).toHaveLength(0);
+            expect(global.LogController.logError).not.toHaveBeenCalled();
+        });
+
+        test('a differing or non-framework definition keeps the framework contract', () => {
+            const kept = HookManager.definitions.get('onDocumentConvertRegister');
+            const result = HookManager.defineHook('onDocumentConvertRegister', {
+                description: 'Contribute a document converter descriptor',
+                owner: 'site',
+                contextKeys: ['converters'],
+                canModify: true
+            });
+
+            expect(result).toBe(kept);
+            expect(kept.owner).toBe('framework');
+            expect(kept.description).toBe('Contribute a document converter descriptor');
+            expect(kept.conflicts).toHaveLength(1);
+            expect(kept.conflicts[0].owner).toBe('site');
+            expect(global.LogController.logError).toHaveBeenCalled();
+        });
+
+        test('all four names return the context unchanged when no handler is registered', async () => {
+            const converters = { converters: [] };
+            const convert = { bytes: Buffer.from('x'), text: '', markdown: '', meta: {} };
+            const previewers = { previewers: [] };
+            const preview = { bytes: Buffer.from('x'), imageBase64: '', width: 0, height: 0 };
+
+            expect(await HookManager.execute('onDocumentConvertRegister', converters))
+                .toEqual(converters);
+            expect(await HookManager.executeForPlugin('onDocumentConvert', 'nobody', convert))
+                .toEqual(convert);
+            expect(await HookManager.execute('onDocumentPreviewRegister', previewers))
+                .toEqual(previewers);
+            expect(await HookManager.executeForPlugin('onDocumentPreview', 'nobody', preview))
+                .toEqual(preview);
         });
     });
 });

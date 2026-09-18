@@ -25903,3 +25903,122 @@ framework release
 Publish tarball is complete: images.js, inputs.js, sources.js, attachments.test.js, and ai-mock are in @jpulse-net/plugin-ai-core@1.0.4. Framework diff is docs only (work-items, design, cursor_log). Aligned §12.1 sourceAttachable with As Built (documented, unused). Wrote framework commit-message.txt. Do not add tmp-bubblemap-app. No framework tag. Status left PENDING.
 
 ============================================================
+2026-09-17 15:55
+
+next: W-229, v2.0.4, 2026-09-17: hooks: framework-owned document conversion hooks
+- review work item @work-items.md (9287-9325)
+- review design doc @docs/dev/design/W-223-ai-agent.md
+- ask questions if unclear
+- suggest change of spec if any, goal is a good DX; use the "don't make me think" paradigm
+- plan how to implement (wait for my go ahead)
+
+Reviewed W-229 against design §14.3/§16/§21.1/§22.2 and the live ai-core 1.0.4 convert caller. Ownership, planned stability, and unordered releases are sound. Spec nits for DX: add text/markdown/meta to convert contextKeys; pin plugin as the join key; document mimeTypes as an array with one-row-per-format guidance; pin emptyCode no-text-layer; add since 2.0.4; copy-paste converter/caller examples in docs/hooks.md. No hostPrerequisite phantom field. Tests must update the planned-hooks exact list. Waiting for go-ahead.
+
+============================================================
+2026-09-17 16:05
+
+- igore the version in doc title, will be handled by bump
+claude: anything to add to this? opinions on questions?
+
+Read the actual reference site (/Users/peterthoeny/Dev/bubblemap-app) instead of inferring. Finding that changes scope: the convert pair is half of a four-hook family already shipped there. bubbleFile.js (a non-AI file-attachment controller) defines onDocumentPreviewRegister/onDocumentPreview with identical shape/policies, and doc-convert-pdf registers all four; doc-preview-text is preview-only. That is the item's "not an AI feature" rationale demonstrated rather than argued. Answers from code: descriptor extra field is engine (no hostPrerequisite anywhere); rejects rows are { extensions, reason, suggest }, both used for user-facing copy; req is not passed by either caller; pages is a real output both converters set and aiAgent.js reads, which ai-core ignores; neither converter ever writes markdown, only text. Correction to the item's rationale: "identical re-definition is a no-op" can never fire outside the framework because _isSameDefinition compares owner. Also found doc-preview-text returns a PNG in a field named jpegBase64 plus previewMime, so canonizing that name would canonize a defect.
+
+============================================================
+2026-09-17 16:25
+
+- no convern for site code migration, just document it
+- overall objective: flexible ai framework interface, good dx over migration cost
+- update the work item
+- wait with implementation
+
+Rewrote W-229 for four hooks (title, objectives, rationale, features, deliverables, notes). Convert contextKeys gain text/markdown/pages/meta; preview gains originalName plus imageBase64/previewMime/width/height, with jpegBase64 renamed and "first-page JPEG" dropped from the description. All four canModify, planned, since 2.0.4. Added the three named corrections to the reference contract, both descriptor shapes, the empty-vs-throw rule, and the convert/preview selection asymmetry (exact + ordered retry vs wildcard + single pick). Rationale now cites the real definers and plugins and drops the unreachable identical-no-op claim. Reference site migration is documented in notes as non-blocking, not scheduled. Noted the design doc still says two hooks and needs a revision. Status and section placement untouched. No code written.
+
+============================================================
+2026-09-17 16:30
+
+thanks opus
+
+grok: fix estimate in docs, implement
+
+W-223 design Rev 16: W-229 is four hooks, not two; §22.2 estimate is four definitions plus a docs/hooks.md section (was "roughly a dozen lines"). Header, §14.3, §16, §21.1, §22.2 updated. Implemented four planned definitions in hook-definitions.js (since 2.0.4; convert contextKeys include text/markdown/pages/meta; preview uses imageBase64 not jpegBase64). docs/hooks.md: onDocument* naming row, catalog table, converter/previewer skeletons, descriptor/result/meta tables, empty-vs-throw and selection asymmetry. hook-manager tests: all four normalized, register survives a throw, executeForPlugin aborts with pluginName, identical framework redef is a no-op, site redef conflicts, no-handler is clean; planned list is seven names. Tests: 73 passed. Work item status left IN_PROGRESS. No converter, no caller.
+
+============================================================
+2026-09-17 16:42
+
+- do you recommend any manual tests? might be overkill
+- we need a new doc page for ai agent framework in jpulse
+- what is the proper term: ai agent, or ai chat?
+  - I think the former because it's more than a chat, it can interact with site content
+- it should give an overview what is possible
+- how to install (ai-* plugins) and configure
+- where is the best location?
+- option 1: top level: ai-agent-framework.md (meybe preferred)
+- option 2: under plugins: plugins/ai-agent-framework.md
+
+Recommended no manual tests for W-229 (catalog-only; optional Admin → Plugins Hooks glance). Term: AI agent; chat panel is the UI. New page belongs at top level as docs/ai-agent.md (not plugins/, not *framework*), a discovery/orientation page that links to the plugin guide. Existing genai-*.md is vibe-coding, not this product. Wait for go-ahead to write it.
+
+============================================================
+2026-09-17 16:46
+
+yes, create doc as stated
+
+Added docs/ai-agent.md: orientation (what an agent is, capabilities table, install, configure, simple-case controller + panel.create). Linked from docs/README.md Key Features and Documentation Resources, docs/.markdown publish-list (title AI Agent), hooks.md See Also, genai-development.md (not the in-site agent), and plugins/ai-core/docs/README.md. No W-numbers. Title version left for bump.
+
+============================================================
+2026-09-17 16:52
+
+@docs/genai-instructions.md should have a short note and pointer to new ai-agent page
+
+Added the same one-line distinction under the existing AI-consumption note: this is not the in-site agent; see AI Agent.
+
+============================================================
+2026-09-17 16:56
+
+genai-instructions:
+- clarification on top is good,
+- add also a feew bullets under ### Advanced Examples
+- any maybe also under ### When to Look Where
+- while at it, review ### Directory Layout if it needs additional dirs or files
+
+Added AI Agent to Advanced Examples, When to Look Where, and When User Asks How Do I. Directory Layout gained site/plugin translations/ and utils/ (site utils/ai-tools/ for client-host modules). Top note unchanged.
+
+============================================================
+2026-09-17 17:02
+
+looks good. what is left to do?
+
+W-229 implementation is done (defs, hooks.md, tests, design Rev 16). Left for the user: mark the item DONE, bump-version, changelog/highlights, commit. Optional: stale work-item note that the design still says two hooks. Not this item: converters/previewers, reference-site migration, ai-core contract page. Manual test optional (Admin Hooks panel).
+
+============================================================
+2026-09-17 17:12
+
+looks good
+
+I realize we have a doc gap:
+- internationalization is missing
+- please create a doc, with overview, translation structure, how to use in controllers and views, how site, plugins, framework merge works, maybe examples
+
+Added docs/i18n.md (overview, *.conf format, merge framework→plugins→site, views, translate/translateForUser, site/plugin examples, adding a language). Linked from docs/.markdown, README, site-customization, creating-plugins, handlebars, template-reference, and genai-instructions (How Do I, When to Look Where, Advanced Examples). View placeholders use {{user.firstName}}; controller context stays {{token}}.
+
+============================================================
+2026-09-17 17:24
+
+I renamed the page to internationalization.md and fixed the links
+- verify
+
+Verified: docs/i18n.md is gone; docs/internationalization.md is the live page. All inbound links point at internationalization.md (README, .markdown, site-customization, creating-plugins, handlebars, template-reference, genai-instructions How Do I / When to Look Where / Advanced Examples). No leftover i18n.md links in docs or code. Only historical mention is this log. docs/dev/README.md still lists a proposed implementation-guides/internationalization.md (unrelated, never a live link).
+
+============================================================
+2026-09-17 17:33
+
+release prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-229, v2.0.4, 2026-09-17
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Reviewed tt-git-diff.txt against W-229. Hook work matches the spec (four planned defs, hooks.md, 72 hook-manager tests). Extra in the same tree: design Rev 16, docs/ai-agent.md, docs/internationalization.md, and pointers. Updated W-229 features/deliverables only (status unchanged). Highlights, CHANGELOG, commit-message.txt for v2.0.4 / 2026-09-17. Did not bump version, did not commit, did not include tmp-bubblemap-app.
+
+
+============================================================

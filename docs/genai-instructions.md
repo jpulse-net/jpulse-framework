@@ -1,8 +1,10 @@
-# jPulse Docs / Generative-AI Instructions for AI Assistants v2.0.3
+# jPulse Docs / Generative-AI Instructions for AI Assistants v2.0.4
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
 **Note**: This document is optimized for AI consumption. Site developers should see [Gen-AI Development Guide](genai-development.md).
+
+This is not the in-site agent. For a scoped agent that calls site tools from a chat panel, see [AI Agent](ai-agent.md).
 
 ## 🎯 Core Directives
 
@@ -235,6 +237,9 @@ my-jpulse-site/
 │       ├── app.conf           # Site configuration (merges with framework)
 │       ├── controller/        # Site controllers (auto-discovered)
 │       ├── model/             # Site data models
+│       ├── translations/      # Site i18n (*.conf; overrides plugin + framework)
+│       ├── utils/             # Site utilities
+│       │   └── ai-tools/      # Agent client-host modules (optional)
 │       ├── view/              # Site templates (override framework)
 │       │   ├── jpulse-common.css  # Site-wide styles (site-* prefix, appended)
 │       │   ├── jpulse-common.js   # Site-wide utilities (appended, optional)
@@ -247,6 +252,8 @@ my-jpulse-site/
 │       └── webapp/            # Plugin MVC components (auto-loaded)
 │           ├── controller/    # Plugin controllers (auto-discovered)
 │           ├── model/         # Plugin models
+│           ├── translations/  # Plugin i18n (merged at boot)
+│           ├── utils/         # Plugin utilities
 │           ├── view/          # Plugin templates (mergeable)
 │           │   ├── jpulse-common.css  # Plugin styles (appended)
 │           │   ├── jpulse-common.js   # Plugin utilities (appended)
@@ -335,6 +342,20 @@ Complete details:
 - Theme preview canvas (500x200) for screenshot generation
 - What to learn: Theme-aware development, CSS variables, theme structure
 - Reference: [Themes](themes.md), [Creating Themes](plugins/creating-themes.md)
+
+**AI Agent**: install `@jpulse-net/plugin-ai-core` (bundle includes `ai-mock`) and a provider such as `@jpulse-net/plugin-ai-anthropic`. Demo: `/hello-ai/` (no API key).
+- Site controller registers `onAiScopeResolve`, `onAiToolRegister`, `onAiToolExecute`, `onAiPromptFragment`
+- View: `jPulse.ai.panel.create({ scopeType, scopeId })` — chat panel is the UI, not the product
+- Client-host modules live in `site/webapp/utils/ai-tools/`; do not invent a chat stack
+- What to learn: scoped tools, propose/apply vs direct write, attachments
+- Reference: [AI Agent](ai-agent.md), [AI Core](installed-plugins/ai-core/README.md)
+
+**Internationalization**: `site/webapp/translations/` (and plugin `webapp/translations/`)
+- User-facing text in `*.conf`, not hardcoded in controllers or views
+- Merge: framework, then active plugins, then site; later source wins a leaf
+- Views: `{{i18n.view.*}}`; controllers: `global.i18n.translate(req, key, context)`
+- What to learn: key layout, `{{token}}` vs `%TOKEN%`, translate vs translateForUser
+- Reference: [Internationalization](internationalization.md)
 
 ### Plugin Example
 
@@ -436,6 +457,16 @@ Complete details:
 - Managing installed plugins
 - Hooks (framework, site, and plugin; define with `static hookDefinitions`, handle with `static hooks`): [Hooks Guide](hooks.md)
 - When to use: "How do I create a plugin...", "How do plugins work...", "How do I add a login button..."
+
+**AI Agent**: [docs/ai-agent.md](ai-agent.md)
+- Scoped agent on a page; chat panel is the UI
+- Install, configure, one-controller case
+- Contract: [AI Core](installed-plugins/ai-core/README.md)
+- When to use: "How do I add an agent...", "How do I add AI chat...", "How do I call site tools from the model..."
+
+**Internationalization**: [docs/internationalization.md](internationalization.md)
+- Translation files, merge order (framework → plugins → site), views and controllers
+- When to use: "How do I translate...", "How do I add a language...", "Where do I put i18n strings..."
 
 ## 🔧 Implementation Guidance
 
@@ -703,6 +734,19 @@ Organize your response guidance by user question type:
 → [Creating Plugins](plugins/creating-plugins.md) for step-by-step guide
 → [Plugin API Reference](plugins/plugin-api-reference.md) for API details
 → Reference: `plugins/hello-world/` for complete example
+
+**"How do I add an AI agent?"**
+→ [AI Agent](ai-agent.md) for install, configure, and the one-controller case
+→ [AI Core](installed-plugins/ai-core/README.md) for tools, adapter, propose/apply, attachments
+→ Demo: `/hello-ai/` (mock, no API key)
+→ Do not confuse with this file or [Gen-AI Development](genai-development.md) (coding assistants)
+→ Client-host modules: `site/webapp/utils/ai-tools/`. Convert/preview hooks: [Hooks](hooks.md#document-conversion-and-preview-hooks)
+
+**"How do I translate / add a language?"**
+→ [Internationalization](internationalization.md) for files, merge order, views, and controllers
+→ Site overrides: `site/webapp/translations/`
+→ Plugin strings: `plugins/<name>/webapp/translations/`
+→ Do not edit `webapp/translations/` (framework-managed)
 
 ## 📋 Code Quality Checklist
 

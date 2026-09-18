@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.3
+# jPulse Docs / Dev / Work Items v2.0.4
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -9142,17 +9142,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - out of scope, each with its own item or number: attachments, URL ingest, document conversion, and vision (W-228); `ai-mcp-server` and `ai-openai` (standalone); a hook letting a site contribute its own history notes (design TD-14); re-applying an undone card, which the model is told to propose again instead; the reference site's migration, which is that site's repository
   - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests - use an isolated temp project or the plugin-cli harness
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-228, v1.0.4, 2026-09-17: ai: ai-core plugin with attachments, URL ingest, document conversion, and vision
-- status: 🕑 PENDING
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - let a file, a pasted block of text, a URL, and an image join a conversation, as framework machinery: the source strip and its chips, the prompt manifest, the read tool, URL ingest on the framework's own `UrlFetch`, the document-conversion call path, and image staging that actually reaches a vision model
@@ -9291,6 +9282,77 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-229, v2.0.4, 2026-09-17: hooks: jPulse-owned document conversion and preview hooks
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - define **four** hooks in the framework hook catalog as **generic, AI-free** contracts - `onDocumentConvertRegister` / `onDocumentConvert` ("turn these bytes into text") and `onDocumentPreviewRegister` / `onDocumentPreview` ("turn these bytes into a thumbnail") - so a PDF, Office, or preview plugin is a framework plugin rather than a dependent of an AI plugin
+  - ship the definitions, the catalog entries, and the documentation - **no converter, no previewer, and no caller**. The framework converts nothing, renders nothing, and calls none of the four; the first convert caller is `ai-core` (W-228), and converters and previewers are separate items
+  - keep the contract the reference implementation proved, and **correct the three places it is wrong** rather than canonizing them: a convert definition that omits its own output keys, a preview definition that omits an input its previewers read, and a preview output field named `jpegBase64` that carries a PNG
+  - **good DX beats migration cost.** These names are new to the framework and their only current users live in one site's repository, so this is the last cheap moment to name the fields correctly. A downstream rename is documented, not avoided
+- prerequisites:
+  - W-209, v1.7.13: `HookManager.defineHooks()`, per-hook `onError` / `contextKeys` / `stability`, and the introspection surface these definitions appear in
+- rationale:
+  - **the names exist in the wild, defined in the wrong places.** In the reference site (bubblemap) the convert pair is declared by its AI controller (`site/webapp/controller/aiAgent.js`) and the preview pair by its file-attachment controller (`site/webapp/controller/bubbleFile.js`), with three plugins registering against them: `doc-convert-pdf`, `doc-convert-office`, and `doc-preview-text`. That works for one site and cannot work for a published plugin - the contract is invisible outside that repository, and every other site wanting a PDF reader would write its own slightly different definition
+  - **document handling is not an AI feature, and the reference site demonstrates it rather than arguing it.** The preview pair's only caller is a file-attachment controller with no AI anywhere near it. Hooks named and owned by an AI plugin would force document preview, export, and search indexing to install an AI package for a contract that has nothing to do with models
+  - **one plugin spans both families, which is why they land together.** `doc-convert-pdf` registers all four hooks. Defining only the convert pair would leave the first plugin anyone ports with half its hooks in the catalog and half as `unverified` rows - the exact "why is only half of this here?" moment the catalog exists to prevent
+  - **the definition is not permission to call, which is what makes this cheap and unordered.** `HookManager` executes an undefined hook under the mode's historical default (`continue` for `execute`, `abort` for `executeForPlugin`), so `ai-core` calls the convert pair before this item ships and this item ships with nothing calling any of the four. What a definition adds is the catalog row, the documented context keys, the explicit error policy, and one canonical wording - not the ability to work
+  - **a conflicting second definition is harmless, and the "identical is a no-op" escape hatch does not apply to anyone outside the framework.** `_isSameDefinition()` compares `owner`, so a site or plugin re-defining these names always conflicts, even with word-for-word identical wording - which the reference site's register description already is. The framework's definition wins (it is seeded at module load, ahead of plugins and site controllers) and the loser is recorded with a logged error. Nothing breaks; the log line is the migration reminder
+  - the framework already defines hooks ahead of any implementation - `onUserBeforeDelete`, `onUserAfterDelete`, and `onUserSyncProfile` are `stability: 'planned'` - so this is an established pattern rather than a new one
+- features:
+  - **four definitions in `webapp/utils/hook-definitions.js`**, in one new `Document conversion and preview hooks (4)` section. All four `canModify: true`, `stability: 'planned'`, `since: '2.0.4'`:
+    - `onDocumentConvertRegister` - `description: 'Contribute a document converter descriptor'`, `contextKeys: ['converters']`, `onError: 'continue'` (one broken converter must not remove the others)
+    - `onDocumentConvert` - `description: 'Convert document bytes to text or markdown'`, `mode: 'executeForPlugin'`, `contextKeys: ['bytes', 'mimeType', 'maxChars', 'maxPages', 'timeoutMs', 'text', 'markdown', 'pages', 'meta']`, `onError: 'abort'` (a failed conversion is the caller's error to report, not something to swallow)
+    - `onDocumentPreviewRegister` - `description: 'Contribute a document preview descriptor'`, `contextKeys: ['previewers']`, `onError: 'continue'`
+    - `onDocumentPreview` - `description: 'Render a preview image from document bytes'`, `mode: 'executeForPlugin'`, `contextKeys: ['bytes', 'mimeType', 'originalName', 'maxEdge', 'timeoutMs', 'imageBase64', 'previewMime', 'width', 'height']`, `onError: 'abort'`
+    - `stability: 'planned'` is not optional here: the catalog-honesty test (`hook-definitions.test.js`) fails any non-planned framework definition with no `execute*` call site under `webapp/`. The trigger for `stable` is a framework-side consumer, not a plugin-side one
+  - **the three corrections to the reference contract**, each one a field an author would otherwise have to read someone else's source to discover:
+    - **output keys are part of the contract.** The reference definitions list inputs only, so nothing tells a converter author that `text`, `markdown`, `pages`, and `meta` are where the answer goes, or that a caller reads `markdown || text` in that order
+    - **`originalName` is an input.** The reference preview definition omits it, yet its caller passes it and `doc-preview-text` selects on its extension
+    - **`jpegBase64` becomes `imageBase64`, and the description drops "first-page JPEG".** `doc-preview-text` returns a PNG in that field and adds `previewMime` to say so, so the reference name is already inaccurate in its own tree, and neither previewer is limited to a first page. `previewMime` is documented as the authoritative format, defaulting to `image/jpeg` when a previewer omits it
+  - **the descriptor shapes are documented, not enforced:**
+    - converter: `plugin` (the join key `executeForPlugin` dispatches on - the plugin's own name, the same one that registers `onDocumentConvert`), `mimeTypes`, `extensions`, `label`, `maxPages`, `unitLabel` (`page` / `sheet` / `slide`, which drives truncation copy), and `rejects` as `{ extensions, reason, suggest }` rows so a `.doc` drop can answer "legacy Word format. Save as .docx."
+    - previewer: `plugin`, `mimeTypes`, `extensions`, `label`
+    - unknown fields pass through untouched - both reference converters carry an `engine` id this way - so a plugin keeps its own diagnostics on the descriptor without a framework change
+    - one descriptor per **format**, not per plugin: a plugin claiming three OOXML types pushes three rows, because the page ceiling and the unit label differ per format. Aliases of one format may share a row
+  - **the result shapes are documented:** convert returns `markdown` or `text` (markdown preferred; `text` is what both reference converters actually write), optional `pages` for structured output, and `meta` carrying truncation state in the converter's own unit plus an empty-extract reason. Preview returns `imageBase64`, `previewMime`, `width`, and `height`
+  - **an empty extract and a thrown error are different signals, and the difference is documented because it is easy to get backwards:** an empty result plus `meta.empty` / `meta.emptyCode` means "I claimed this type and found nothing, try the next claimant"; a throw aborts the call under `onError: 'abort'` and ends the caller's attempt. `meta.emptyCode: 'no-text-layer'` is the pinned value for a scanned page, because that is the one refusal whose message must not promise a copy-and-paste workaround - there is no text to select
+  - **selection is the caller's job, and the two families differ**, so the docs state each rather than letting an author assume symmetry: convert matches a MIME type exactly and the caller retries every claimant in registration order until one returns text (which is what makes "extract first, OCR on empty" a plugin install); preview accepts wildcard claims (`text/*`, `*`) where an exact type or extension match wins over a wildcard regardless of array order, and picks one previewer with no retry
+  - **`docs/hooks.md`** gains `onDocument*` in the naming table, a catalog section for the four, and a responsibilities section: a copy-paste converter skeleton, a copy-paste previewer skeleton, the descriptor / result / `meta` tables, what a caller owes (caps, timeout, selection order, and the user-facing refusal), and the note that all four are defined ahead of any framework consumer
+  - **tests** in the existing hook-manager suite: all four definitions present and normalized; a register hook surviving one throwing handler; both `executeForPlugin` hooks aborting with `hookName` and `pluginName` stamped; an identical framework-owner re-definition being a no-op; a differing or non-framework definition keeping the framework's and recording the conflict; and all four executing cleanly with no handler registered. The existing exact-list assertion on `findHooks({ stability: 'planned' })` grows from three names to seven
+  - **design Rev 16** in `docs/dev/design/W-223-ai-agent.md`: header, §14.3, §16, §21.1, and §22.2 now say four hooks; §22.2's "roughly a dozen lines" becomes four definitions plus a `docs/hooks.md` section
+  - **orientation pages** (same release, not converters): `docs/ai-agent.md` (install, configure, one-controller case) and `docs/internationalization.md` (translation files, merge order, views, controllers), with pointers from README, `.markdown`, genai-instructions, genai-development, site-customization, creating-plugins, handlebars, template-reference, hooks See Also, and the AI Core plugin README
+- deliverables:
+  - `webapp/utils/hook-definitions.js`:
+    - the four definitions in one new section
+  - `docs/hooks.md`:
+    - the naming-table row, the four catalog rows, and the converter / previewer / caller responsibilities section. Version numbers, never work-item numbers
+  - `webapp/tests/unit/utils/hook-manager.test.js` (or the hook-definitions suite):
+    - the cases above, including the widened `planned` list
+  - `docs/dev/design/W-223-ai-agent.md`:
+    - Rev 16: four hooks, not two
+  - `docs/ai-agent.md` (new):
+    - site-facing agent orientation
+  - `docs/internationalization.md` (new):
+    - translation files, merge, views, controllers
+  - pointers: `docs/.markdown`, `docs/README.md`, `docs/genai-development.md`, `docs/genai-instructions.md`, `docs/site-customization.md`, `docs/plugins/creating-plugins.md`, `docs/handlebars.md`, `docs/template-reference.md`, `plugins/ai-core/docs/README.md`
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md` §14.3 (the contract and why the framework owns it), §16 (hooks `ai-core` executes but does not own), §21.1 (why this is a prerequisite in name only), §22.2 (the third framework source file, and why ownership rather than capability made it an item). Rev 14 records the original decision
+  - **the design doc describes two hooks and needs a revision to match:** §14.3, §16, §21.1, and §22.2 all say two, and §22.2 estimates "roughly a dozen lines". The preview pair turning out to be an already-shipped sibling family with a non-AI caller is that section's own argument demonstrated, and is worth recording as such
+  - **this item ships no converter and no previewer.** The reference site's PDF converter needs `poppler-utils` on the host with an `unpdf` fallback, its Office converter parses OOXML in process, and its text previewer paints a card; publishing any of them as a framework plugin is a separate item with its own host-prerequisite documentation
+  - **W-228 does not wait for this and this does not wait for W-228** - see the rationale. If W-228 ships first, the convert hooks run with `unverified` rows in the catalog until this lands
+  - **the reference site's migration is documented here, not scheduled here, and blocks nothing.** For whenever that site adopts the framework contract: delete the two definitions in `aiAgent.js` and the two in `bubbleFile.js`; rename the `jpegBase64` context field to `imageBase64` where it is written (`doc-convert-pdf`, `doc-preview-text`) and where it is seeded and read (`site/webapp/utils/documentPreview.js`). That util's own return shape and `emptyPreview()`'s `previewThumb` are site-internal names rather than part of the hook contract, so they may stay as they are. Until the definitions are deleted, the framework's win and the site's loss are logged as conflicts - noisy, not broken
+  - do not add any `onDocument*` name to the AI hook family or the `onAi*` prefix. The whole point of the item is that these four are not AI hooks
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -9318,7 +9380,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-225, v2.0.3, 2026-09-17
+- assume W-229, v2.0.4, 2026-09-17
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -9330,12 +9392,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.3 2026-09-17
+node bin/bump-version.js 2.0.4 2026-09-17
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.3; git push origin main --tags
+git tag v2.0.4; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa
@@ -9401,44 +9463,6 @@ template:
   - FIXME `path/file`:
     - FIXME summary
 - notes:
-
-### W-229, vX.X.X, YYYY-MM-DD: hooks: framework-owned document conversion hooks
-- status: 🕑 PENDING
-- type: Feature
-- objectives:
-  - define `onDocumentConvertRegister` and `onDocumentConvert` in the framework hook catalog as **generic, AI-free** hooks, so "turn these bytes into text" is a framework contract a converter plugin can be written against, and a PDF or Office converter is a framework plugin rather than a dependent of an AI plugin
-  - ship the definitions, the catalog entry, and the documentation - **no converter and no caller**. The framework does not convert anything and does not call these hooks; the first caller is `ai-core` (W-228), and the first converters are separate items
-  - keep the contract the one the reference implementation already proved: per-MIME-type registration, one descriptor per format, and a convert call that takes bytes plus caps and returns text or markdown with truncation and empty-extract metadata
-- prerequisites:
-  - W-209, v1.7.13: `HookManager.defineHooks()`, per-hook `onError` / `contextKeys` / `stability`, and the introspection surface these definitions appear in
-- rationale:
-  - **the names exist in the wild, defined in the wrong place.** The reference site (bubblemap) declares both hooks in its own AI controller and two of its plugins register against them. That works for one site and cannot work for a published converter: the contract is invisible outside that repository, and every other site that wants a PDF reader would write its own slightly different definition
-  - **document conversion is not an AI feature.** Its obvious consumers are document preview, export, search indexing, and an agent reading an attachment - the agent just happens to be first. A hook named and owned by an AI plugin would force every one of those consumers to install an AI package to get a contract that has nothing to do with models
-  - **the definition is not permission to call, which is what makes this cheap and unordered.** `HookManager` executes an undefined hook under the mode's historical default (`continue` for `execute`, `abort` for `executeForPlugin`), so `ai-core` calls both names before this item ships and this item ships with nothing calling it. What the definition adds is the catalog row, the documented context keys, the explicit error policy, and one canonical wording - not the ability to work
-  - **an identical second definition is a deliberate no-op**, so a plugin family may define defensively; a *differing* second definition keeps the first and logs a conflict. That is the mechanism that lets this item land whenever it lands without breaking anything already calling the hooks
-  - the framework already defines hooks ahead of any implementation - `onUserBeforeDelete`, `onUserAfterDelete`, and `onUserSyncProfile` are `stability: 'planned'` - so this is an established pattern rather than a new one
-- features:
-  - **two definitions in `webapp/utils/hook-definitions.js`:**
-    - `onDocumentConvertRegister` - `description: 'Contribute a document converter descriptor'`, `contextKeys: ['converters']`, `canModify: true`, `onError: 'continue'` (one broken converter must not remove the others)
-    - `onDocumentConvert` - `description: 'Convert document bytes to text or markdown'`, `mode: 'executeForPlugin'`, `contextKeys: ['bytes', 'mimeType', 'maxChars', 'maxPages', 'timeoutMs']`, `canModify: true`, `onError: 'abort'` (a failed conversion is the caller's error to report, not something to swallow)
-    - both `stability: 'planned'`, because no framework code calls them yet. The trigger for `stable` is a framework-side consumer, not a plugin-side one
-  - **the descriptor shape is documented, not enforced:** one descriptor per MIME type, with the extensions it claims, a display label, its own page ceiling and unit label (`page` / `sheet` / `slide`), the formats it explicitly refuses, and whatever host prerequisite it needs. Registration is per type on purpose, so two plugins may claim `application/pdf` and the *caller* decides how to order them - `executeForPlugin` dispatches to one plugin, so chaining is deliberately not hook behavior
-  - **the convert result shape is documented:** text or markdown, plus truncation state in the converter's own unit and an empty-extract reason (no text layer, encrypted, image-only) so the caller can compose a refusal that tells the user something true. A scanned PDF is the case that matters - its message must not promise a copy-and-paste workaround, because there is no text to select
-  - **`docs/hooks.md`** gains the two rows and a short section: what a converter plugin implements, what a caller is responsible for (caps, timeout, ordering, and the user-facing refusal), and the note that these are defined ahead of any framework consumer
-  - **tests** in the existing hook-manager suite: both definitions present and normalized; the register hook surviving one throwing handler; the convert hook aborting and naming the plugin; an identical re-definition by a plugin being a no-op; a differing re-definition keeping the framework's and recording the conflict; and execution of both names with no handler registered returning cleanly
-- deliverables:
-  - `webapp/utils/hook-definitions.js`:
-    - the two definitions
-  - `docs/hooks.md`:
-    - two catalog rows plus the converter/caller responsibilities section. Version numbers, never work-item numbers
-  - `webapp/tests/unit/utils/hook-manager.test.js` (or the hook-definitions suite):
-    - the cases above
-- notes:
-  - design source: `docs/dev/design/W-223-ai-agent.md` §14.3 (the contract and why the framework owns it), §16 (two hooks `ai-core` executes but does not own), §21.1 (why this is a prerequisite in name only), §22.2 (the third framework source file, and why ownership rather than capability made it an item). Rev 14 records the decision
-  - **this item ships no converter.** The reference site's PDF converter needs `poppler-utils` on the host with an `unpdf` fallback, and its Office converter parses OOXML in process; publishing either as a framework plugin is a separate item with its own host-prerequisite documentation
-  - **W-228 does not wait for this and this does not wait for W-228** - see the rationale. If W-228 ships first, the hooks run with an `unverified` row in the catalog until this lands
-  - **when the reference site adopts this, it deletes its own two definitions.** If it does not, the framework's definition wins (it is defined at bootstrap, before plugins and site controllers) and the site's is recorded as a conflict with a logged error - harmless but noisy, and worth one line in that site's migration notes
-  - do not add an `onDocumentConvert*` name to the AI hook family or the `onAi*` prefix. The whole point of the item is that these two are not AI hooks
 
 ### W-230, v1.0.5, YYYY-MM-DD: ai: generalize the panel interface - site-owned regions and slash commands
 - status: 🕑 PENDING

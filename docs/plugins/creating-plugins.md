@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Creating Plugins v2.0.3
+# jPulse Docs / Plugins / Creating Plugins v2.0.4
 
 A step-by-step guide to creating your first jPulse plugin.
 
@@ -78,7 +78,7 @@ This is the only required file for a minimal plugin.
 
 ### Plugin translations
 
-Ship `webapp/translations/en.conf` (and `de.conf` when you have German) using the same `view.ui.*` tree as the framework files. At startup the framework deep-merges **framework, then each active plugin in load order, then `site/webapp/translations/`**. A missing plugin or site translations directory is skipped. You may ship only the default language; missing keys in other languages are backfilled from it.
+Ship `webapp/translations/en.conf` (and `de.conf` when you have German) using the same `view.ui.*` tree as the framework files. At startup the framework deep-merges **framework, then each active plugin in load order, then `site/webapp/translations/`**. A missing plugin or site translations directory is skipped. You may ship only the default language; missing keys in other languages are backfilled from it. Full guide: [Internationalization](../internationalization.md).
 
 ### Plugin bundles
 

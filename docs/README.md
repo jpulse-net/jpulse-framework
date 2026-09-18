@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v2.0.3
+# jPulse Docs / Site Administrator & Developer Documentation v2.0.4
 
 **For Site Administrators & Site Developers**
 
@@ -44,6 +44,7 @@ jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application f
 - Deep-merge of framework, then active plugins, then `site/webapp/translations/`
 - Natural `{{i18n.key}}` template syntax
 - Variable substitution in translations
+- See [Internationalization](internationalization.md)
 
 ### 🔧 **Site Customization**
 - Seamless framework updates with site preservation
@@ -61,8 +62,14 @@ jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application f
 - Automatic symlink management for assets and docs
 - Ships with `hello-world` demo plugin
 
+### 🤖 **AI Agent**
+- Scoped agent on a page that calls site-owned tools (read, write, propose/apply)
+- Chat panel UI; mock provider with no API key; optional Anthropic provider
+- Attachments (file, URL, image) stay on the tab; the model reads through tools
+- See [AI Agent](ai-agent.md)
+
 ### 🧪 **Testing & Quality**
-- 3400+ tests with 100% pass rate
+- 3900+ tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis
@@ -221,6 +228,8 @@ jPulse is designed for:
 
 ### Documentation Resources
 - **[Front-End Development](front-end-development.md)** - Primary entry point for client-side developers
+- **[AI Agent](ai-agent.md)** - Scoped agent on a page: install, configure, and the one-controller case
+- **[Internationalization](internationalization.md)** - Translation files, merge order, views and controllers
 - **[REST API Reference](api-reference.md)** - Complete endpoint documentation, including `static routes`, per-route `bodyLimit`, and `bodyMode: 'stream'`
 - **[Style Reference](style-reference.md)** - Complete CSS framework and components
 - **[Template Reference](template-reference.md)** - Server-side integration guide
@@ -238,6 +247,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v2.0.4, W-229, 2026-09-17: Hooks: jPulse-owned document conversion and preview hooks**: Four framework-owned, AI-free catalog rows — `onDocumentConvertRegister` / `onDocumentConvert` and `onDocumentPreviewRegister` / `onDocumentPreview` — so a PDF, Office, or thumbnail plugin depends on a framework version, not an AI package. Convert lists output keys (`text`, `markdown`, `pages`, `meta`); preview takes `originalName` and returns `imageBase64` plus `previewMime` (not `jpegBase64`). All four are `stability: 'planned'` until a framework caller exists. No converter, previewer, or caller ships. Also: new orientation pages [AI Agent](ai-agent.md) and [Internationalization](internationalization.md). Docs: `hooks.md`.
 - **v2.0.3, W-225, 2026-09-17: WebSocket: await `onCreate` so a namespace can refuse a connection asynchronously**: `onCreate` may be async; the upgrade path awaits it before the handshake. A returned Promise was previously installed as the connection `ctx`, so an async handler that meant to reject was accepted instead. Bounded by `controller.websocket.onCreateTimeoutMs` (default 5000). Docs: `websockets.md`.
 - **v2.0.2, W-222, 2026-09-16: i18n: site specific and plugin specific translations**: Startup deep-merges translation `*.conf` files from the framework, then each active plugin in load order, then `site/webapp/translations/`. A later source wins a leaf and does not wipe sibling keys. A plugin may ship only the default language; missing keys in other languages are backfilled from it. `{{i18n.*}}` is unchanged. Vue SPA loading of the merged set stays a later item. Docs: `creating-plugins.md`, `site-customization.md`, `handlebars.md`.
 - **v2.0.1, W-221, 2026-09-15: Plugins: bundle build and installation**: One npm package can expand into several `plugins/<name>/` directories. A primary declares `bundle.members`; `npx jpulse plugin publish <primary>` (or a wired `npm publish` from that directory) ships root `package.json` plus `plugins/<member>/` and no root `plugin.json`. Install and update re-expand every member; remove stays per plugin name. `dependencies.plugins` may be `{ version, npmPackage }` so install can fetch the package that provides a plugin (no guessed `@jpulse-net/plugin-<name>`). Bump from the primary applies that plugin's file list to every member; bump from a companion is refused. Docs: `creating-plugins.md`, `publishing-plugins.md`, `managing-plugins.md`, `installation.md`.

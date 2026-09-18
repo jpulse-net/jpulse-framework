@@ -12,17 +12,32 @@ client-host tools, `hello-ai`) is published
 a vision row). Four framework prerequisites are released — W-220
 `jPulse.UI.floatPanel` (v2.0.0), W-221 plugin bundle build and installation
 (v2.0.1), W-222 plugin and site translation merge (v2.0.2), and W-225
-awaitable `onCreate` (v2.0.3). A fifth, **W-229** (document-conversion hook
-definitions), is pending and blocks nothing (§21.1). Next AI items are
-**W-230** (panel regions and site-owned slash commands) then **W-231**
-(extract `hello-ai`). §21 splits the agent into five items, W-223, W-224, and
-W-226 through W-228, on those prerequisites. Deviations from this document
-are under `### As Built`. Rev 12 specified W-227 against shipped 1.0.2,
-Rev 13 is the as-built after implementation, Rev 14 specifies W-228, and
-Rev 15 is the as-built after 1.0.4.
+awaitable `onCreate` (v2.0.3). A fifth, **W-229** (document-conversion and
+preview hook definitions), is pending and blocks nothing (§21.1). Next AI
+items are **W-230** (panel regions and site-owned slash commands) then
+**W-231** (extract `hello-ai`). §21 splits the agent into five items, W-223,
+W-224, and W-226 through W-228, on those prerequisites. Deviations from this
+document are under `### As Built`. Rev 12 specified W-227 against shipped
+1.0.2, Rev 13 is the as-built after implementation, Rev 14 specifies W-228,
+Rev 15 is the as-built after 1.0.4, and Rev 16 records that W-229 is four
+hooks, not two.
 
 
 ## Revision history
+
+### Rev 16 — 2026-09-17 — W-229 is four hooks, not two
+
+No AI product change. Reading the reference site showed the convert pair is
+half of a four-hook family already shipped there: a file-attachment controller
+with no AI near it defines `onDocumentPreviewRegister` /
+`onDocumentPreview`, and one converter plugin registers all four. That is
+§14.3's own ownership argument demonstrated rather than argued, so W-229
+defines the sibling pair in the same item. The catalog is the contract, not a
+dozen-line stub.
+
+| Section | Change |
+|---|---|
+| Header, §14.3, §16, §21.1, §22.2 | W-229 is four framework-owned hooks (convert plus preview); §22.2's "roughly a dozen lines" becomes four definitions plus a `docs/hooks.md` section |
 
 ### Rev 15 — 2026-09-17 — W-228 as built
 
@@ -482,8 +497,9 @@ Initial design from the brainstorming sessions.
   the tab behind a client-host pure module and never reach the server, the prompt
   carries a metadata manifest only, and the one thing that does reach a provider
   message — an image — arrives as content parts assembled outside the loop
-  (§14). Document conversion is a **framework-owned, AI-free hook pair** with
-  converters as ordinary plugins (§14.3, W-229).
+  (§14). Document conversion and preview are a **framework-owned, AI-free
+  hook family** with converters and previewers as ordinary plugins (§14.3,
+  W-229).
 - The two-host tool split (`host: 'server' | 'client'`) is the answer to
   view-centric versus controller-centric, and it is **per tool, not per site**
   (§7.2). A controller-centric site additionally gets an HTTP/SSE turn path so
@@ -2070,11 +2086,16 @@ machinery: a tool with `proposes: true` (§13) is a consent card.
 ### 14.3 Document conversion — framework hooks, plugin converters
 
 `onDocumentConvertRegister` and `onDocumentConvert` are **framework-owned and
-generic** (W-229, §21.1). They name no AI concept, and a converter plugin
-therefore depends on a framework version rather than on `ai-core` — which is
-the honest dependency, since converting a PDF to markdown has nothing to do
-with an agent. The framework ships the definitions, the catalog entry, and
-nothing else: no converter and no caller.
+generic** (W-229, §21.1), and so are their preview siblings
+`onDocumentPreviewRegister` and `onDocumentPreview`. They name no AI
+concept, and a converter or previewer plugin therefore depends on a
+framework version rather than on `ai-core` — which is the honest
+dependency, since converting a PDF to markdown has nothing to do with an
+agent. The framework ships the four definitions, the catalog entries, and
+nothing else: no converter, no previewer, and no caller. The preview pair
+is in the same item because the reference site already ships it from a
+file-attachment controller with no AI near it, and one converter plugin
+registers all four.
 
 **Definer and caller are decoupled, so the two releases are unordered.** A hook
 executes whether or not it is defined — `HookManager` falls back to the mode's
@@ -2228,14 +2249,18 @@ thread is about document X, this user may read it, may not write it, and the
 words for its parts are *section* and *document*". Everything domain-shaped in
 the prompt and in authorization flows from it.
 
-**Two hooks `ai-core` executes but does not own.**
-`onDocumentConvertRegister` and `onDocumentConvert` are framework-owned and
-name no AI concept (W-229, §14.3), so a converter plugin depends on a framework
-version instead of on an AI plugin. `ai-core` calls both without defining
-either, which is legal — an undefined hook executes under its mode's default
-error policy, and a definition supplies the catalog entry and the policy rather
-than permission to call. That decoupling is what lets the framework release and
-the bundle release land in either order.
+**Four hooks the framework owns and `ai-core` does not.**
+`onDocumentConvertRegister` / `onDocumentConvert` and
+`onDocumentPreviewRegister` / `onDocumentPreview` are framework-owned and
+name no AI concept (W-229, §14.3), so a converter or previewer plugin
+depends on a framework version instead of on an AI plugin. `ai-core` calls
+the convert pair without defining either, which is legal — an undefined
+hook executes under its mode's default error policy, and a definition
+supplies the catalog entry and the policy rather than permission to call.
+That decoupling is what lets the framework release and the bundle release
+land in either order. The preview pair has no framework caller yet; it
+lands in the same item so a plugin that implements both families does not
+find half its hooks in the catalog and half as `unverified` rows.
 
 
 ---
@@ -2692,19 +2717,20 @@ None of the five contains any AI, and all are useful on their own:
 | **W-221** | v2.0.1 | Plugin bundle build and installation — one npm package expanding into several plugin directories, and a declared plugin dependency resolving to an installable package name (§5.1.1) |
 | **W-222** | v2.0.2 | Plugin and site translation merge — `ai-core` can ship translatable UI text (§22.2) |
 | **W-225** | v2.0.3 | Awaitable `onCreate` — a WebSocket namespace can authorize a connection against the database before the upgrade (§11.2) |
-| **W-229** | pending | Document-conversion hook definitions — two framework-owned, AI-free hooks so a PDF or Office converter is a framework plugin rather than a dependent of an AI plugin (§14.3) |
+| **W-229** | pending | Document-conversion and preview hook definitions — four framework-owned, AI-free hooks so a PDF, Office, or preview plugin is a framework plugin rather than a dependent of an AI plugin (§14.3) |
 
 The first three were released before W-223, so W-223 and W-224 shipped with
 no framework source change. W-225 was the missing one; it shipped as v2.0.3
 before W-226.
 
-W-229 is a prerequisite in name only, and deliberately so: `ai-core` calls both
-hooks whether or not anything has defined them (§16), so W-228 phase 3 does not
-wait for it and it does not wait for W-228. What the definitions buy is a
-canonical contract — one wording every converter plugin can be written against,
-in the catalog, with no AI package in the dependency chain. A definition that
-lived in `ai-core` would work identically and say the wrong thing about who owns
-document conversion.
+W-229 is a prerequisite in name only, and deliberately so: `ai-core` calls
+the convert pair whether or not anything has defined them (§16), so W-228
+phase 3 does not wait for it and it does not wait for W-228. What the
+definitions buy is a canonical contract — one wording every converter or
+previewer plugin can be written against, in the catalog, with no AI
+package in the dependency chain. A definition that lived in `ai-core`
+would work identically and say the wrong thing about who owns document
+conversion.
 
 It was missed because §22.2 checked each mechanism for *existence* and
 `createNamespace` does support `onCreate` with `:param` namespaces. What
@@ -3037,17 +3063,20 @@ the framework, then each active plugin in load order, then
 `site/webapp/translations/`, and a plugin shipping only its default language is
 backfilled rather than blank. `ai-core` is the first real consumer.
 
-The third is `webapp/utils/hook-definitions.js`, and it is W-229: two
-document-conversion hook definitions plus a `docs/hooks.md` entry, roughly a
-dozen lines and no behavior. This one is not a defect and not a gap in a
-mechanism — every earlier revision of this section was right that `ai-core`
-needs nothing from the framework to *call* those hooks. What it cannot do from
-inside a plugin is make the contract canonical: a name defined by `ai-core`
-makes a PDF converter a dependent of an AI package, which is the wrong shape for
-every non-AI consumer document conversion will eventually have (§14.3). So the
-finding is about ownership rather than capability, which is why it is a
-framework item on its own merits rather than a patch inside the AI work — the
-same test W-225 had to pass.
+The third is `webapp/utils/hook-definitions.js`, and it is W-229: four
+document-conversion and preview hook definitions plus a `docs/hooks.md`
+section, roughly forty lines of catalog and no behavior. This one is not a
+defect and not a gap in a mechanism — every earlier revision of this
+section was right that `ai-core` needs nothing from the framework to
+*call* the convert pair. What it cannot do from inside a plugin is make
+the contract canonical: a name defined by `ai-core` makes a PDF converter
+a dependent of an AI package, which is the wrong shape for every non-AI
+consumer document conversion will eventually have (§14.3). The preview
+pair is the consumer that already exists in the reference site, defined
+by a file-attachment controller. So the finding is about ownership
+rather than capability, which is why it is a framework item on its own
+merits rather than a patch inside the AI work — the same test W-225 had
+to pass.
 
 No other framework source change is required for W-227 or W-228. The remaining
 framework-repo deliverable is docs, listed in §22.3.

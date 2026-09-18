@@ -1,4 +1,4 @@
-# jPulse Framework v2.0.3
+# jPulse Framework v2.0.4
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -82,7 +82,7 @@ npm start
 - **Enterprise Security**: Built-in authentication, session management, security headers, and HTML sanitization
 - **Hardened URL Fetch**: `UrlFetch.fetch()` for a URL a user or a config field chose — SSRF guard, size caps, redirect re-validation (not raw Node `fetch()`)
 - **Internationalization**: Complete i18n support with dynamic translation loading
-- **Testing Framework**: 3400+ tests with automated cleanup and isolation
+- **Testing Framework**: 3900+ tests with automated cleanup and isolation
 - **Production Ready**: nginx integration, PM2 clustering, MongoDB replica sets
 
 ## Deployment Requirements
@@ -206,6 +206,7 @@ Business Source License 1.1 with Additional Terms
 
 ## Latest Release Highlights
 
+- **v2.0.4, W-229, 2026-09-17: Hooks: jPulse-owned document conversion and preview hooks**: Four framework-owned, AI-free catalog rows — `onDocumentConvertRegister` / `onDocumentConvert` and `onDocumentPreviewRegister` / `onDocumentPreview` — so a PDF, Office, or thumbnail plugin depends on a framework version, not an AI package. Convert lists output keys (`text`, `markdown`, `pages`, `meta`); preview takes `originalName` and returns `imageBase64` plus `previewMime` (not `jpegBase64`). All four are `stability: 'planned'` until a framework caller exists. No converter, previewer, or caller ships. Also: new orientation pages `ai-agent.md` and `internationalization.md`. Docs: `hooks.md`.
 - **v2.0.3, W-225, 2026-09-17: WebSocket: await `onCreate` so a namespace can refuse a connection asynchronously**: `onCreate` may be async; the upgrade path awaits it before the handshake. A returned Promise was previously installed as the connection `ctx`, so an async handler that meant to reject was accepted instead. Bounded by `controller.websocket.onCreateTimeoutMs` (default 5000). Docs: `websockets.md`.
 - **v2.0.2, W-222, 2026-09-16: i18n: site specific and plugin specific translations**: Startup deep-merges translation `*.conf` files from the framework, then each active plugin in load order, then `site/webapp/translations/`. A later source wins a leaf and does not wipe sibling keys. A plugin may ship only the default language; missing keys in other languages are backfilled from it. `{{i18n.*}}` is unchanged. Vue SPA loading of the merged set stays a later item. Docs: `creating-plugins.md`, `site-customization.md`, `handlebars.md`.
 - **v2.0.1, W-221, 2026-09-15: Plugins: bundle build and installation**: One npm package can expand into several `plugins/<name>/` directories. A primary declares `bundle.members`; `npx jpulse plugin publish <primary>` (or a wired `npm publish` from that directory) ships root `package.json` plus `plugins/<member>/` and no root `plugin.json`. Install and update re-expand every member; remove stays per plugin name. `dependencies.plugins` may be `{ version, npmPackage }` so install can fetch the package that provides a plugin (no guessed `@jpulse-net/plugin-<name>`). Bump from the primary applies that plugin's file list to every member; bump from a companion is refused. Docs: `creating-plugins.md`, `publishing-plugins.md`, `managing-plugins.md`, `installation.md`.

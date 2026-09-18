@@ -4,7 +4,7 @@
  * @description     Definitions of every hook fired by framework code, seeded into
  *                  HookManager's catalog at module load through the public defineHooks() API.
  * @file            webapp/utils/hook-definitions.js
- * @version         2.0.3
+ * @version         2.0.4
  * @release         2026-09-17
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -131,6 +131,46 @@ const frameworkHookDefinitions = {
         contextKeys: ['req', 'pluginName', 'configData', 'oldConfig'],
         canModify: true,
         since: '1.7.4'
+    },
+
+    // ================================================================
+    // Document conversion and preview hooks (4)
+    // ================================================================
+    onDocumentConvertRegister: {
+        description: 'Contribute a document converter descriptor',
+        contextKeys: ['converters'],
+        canModify: true,
+        onError: 'continue',
+        stability: 'planned',
+        since: '2.0.4'
+    },
+    onDocumentConvert: {
+        description: 'Convert document bytes to text or markdown',
+        mode: 'executeForPlugin',
+        contextKeys: ['bytes', 'mimeType', 'maxChars', 'maxPages', 'timeoutMs',
+            'text', 'markdown', 'pages', 'meta'],
+        canModify: true,
+        onError: 'abort',
+        stability: 'planned',
+        since: '2.0.4'
+    },
+    onDocumentPreviewRegister: {
+        description: 'Contribute a document preview descriptor',
+        contextKeys: ['previewers'],
+        canModify: true,
+        onError: 'continue',
+        stability: 'planned',
+        since: '2.0.4'
+    },
+    onDocumentPreview: {
+        description: 'Render a preview image from document bytes',
+        mode: 'executeForPlugin',
+        contextKeys: ['bytes', 'mimeType', 'originalName', 'maxEdge', 'timeoutMs',
+            'imageBase64', 'previewMime', 'width', 'height'],
+        canModify: true,
+        onError: 'abort',
+        stability: 'planned',
+        since: '2.0.4'
     },
 
     // ================================================================

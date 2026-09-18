@@ -9338,17 +9338,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **the reference site's migration is documented here, not scheduled here, and blocks nothing.** For whenever that site adopts the framework contract: delete the two definitions in `aiAgent.js` and the two in `bubbleFile.js`; rename the `jpegBase64` context field to `imageBase64` where it is written (`doc-convert-pdf`, `doc-preview-text`) and where it is seeded and read (`site/webapp/utils/documentPreview.js`). That util's own return shape and `emptyPreview()`'s `previewThumb` are site-internal names rather than part of the hook contract, so they may stay as they are. Until the definitions are deleted, the framework's win and the site's loss are logged as conflicts - noisy, not broken
   - do not add any `onDocument*` name to the AI hook family or the `onAi*` prefix. The whole point of the item is that these four are not AI hooks
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-230, v1.0.5, 2026-09-17: ai: generalize the panel interface - site-owned regions and slash commands
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - stop `ai-core` deciding the whole panel UI. A site contributes its own stacked **regions** at framework-named anchors, and owns the **complete slash-command list** - keeping framework implementations available by name so opting in costs one word and overriding costs one function
@@ -9446,6 +9437,89 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests - use an isolated temp project or the plugin-cli harness
   - out of scope, each its own polish item or already deferred: the quota footer (the `/quota` command ships; persistent footer chrome does not), the empty-transcript hint, multi-tab "another tab is running" state and the launcher unread dot, `/new` confirmation when chips are attached, a richer source badge popover in the transcript, wiring `adapter.sourceAttachable` and the attach-to-object chip menu (W-228 surface), site-authored history notes (TD-14), a conversation-scoped tool cache (TD-15), server-resolved or cross-tab sources (TD-16), document converters (W-229 hooks), an agent-callable URL fetch, and citations
 
+### W-231, v1.0.6, 2026-09-17: ai: extract hello-ai into a bundled companion plugin
+- status: ✅ DONE
+- type: Refactoring
+- objectives:
+  - split the scratch-pad sample out of `ai-core` into its own plugin, `hello-ai`, so a site author opening `plugins/ai-core` sees only what a site needs (hooks, panel, attachments, propose/apply) and opening `plugins/hello-ai` sees the worked example
+  - keep one install and one publish: `@jpulse-net/plugin-ai-core` expands to `ai-core` + `ai-mock` + `hello-ai`. `autoEnable: true` so first-run is still "install, open `/hello-ai/`". The win over today's gated view is that an admin can disable the demo without disabling AI
+  - **no framework source change.** `jpulseVersion` stays `>=2.0.3`. W-221 already walks N bundle members; views, controllers, nav, and i18n are existing plugin seams; `ai-core`'s module scanner already lists every active plugin's `webapp/utils/ai-tools/`
+  - do not rewrite the scratch-pad page. This item is the extract, the bundle membership, and the doc cut
+- prerequisites:
+  - W-221, v2.0.1: bundle install, publish, stage, and bump already treat `bundle.members` as a list. Adding a third name is plugin.json only
+  - W-222, v2.0.2: plugin translation merge, so `hello-ai` can carry its own `webapp/translations/`
+  - W-226, `@jpulse-net/plugin-ai-core` 1.0.2: `/hello-ai/` as a view inside `ai-core`, the demo hooks, `readDraft`, and the nav/card entries this item relocates
+  - W-227, 1.0.3: `proposeRewrite` and the proposing tool on the demo, still gated on `scopeType === 'hello-ai'`
+  - W-228, 1.0.4: attachments landed on that same demo (source drop, vision paste, prompt fragment). Extract the post-attachments tree, not a mid-flight one. W-229 is not a prerequisite and does not wait for this
+- rationale:
+  - **`ai-core` currently conflates two products.** `helloAi.js` sits next to `aiCore.js`, `readDraft.js` / `proposeRewrite.js` sit next to `sources.js`, and the installed-plugin guide says both "one controller, one `panel.create` line" and "open `/hello-ai/`". A site author cannot tell which files they must write and which are the sample
+  - **design §5.1 and W-221 said `hello-ai` is a view inside `ai-core`, not a third plugin.** That was right when the goal was "do not invent a third package to stand up a demo." The bundle machinery now exists and already ships a companion (`ai-mock`). A third *member of the same package* is cheap, and it is a different kind of companion: `ai-mock` is a no-key provider; `hello-ai` is a worked site. Different reasons to disable
+  - **a gated view cannot be turned off.** Today the only way to hide `/hello-ai/` is to edit or disable `ai-core`. After this item, plugin admin disables `hello-ai` and the page, its nav entries, its dashboard card, and its two tool modules disappear, while turns, quota, and the panel stay
+  - **the loader already expected this.** `defaultRoots()` in `plugins/ai-core/webapp/utils/tools/modules.js` walks `site/webapp/utils/ai-tools/` and then every active plugin's `webapp/utils/ai-tools/`. Moving `readDraft` and `proposeRewrite` is using that seam, not adding one
+- features:
+  - **new plugin `plugins/hello-ai/`** as a bundle companion, same shape as `ai-mock`:
+    - `plugin.json`: `name: hello-ai`, `npmPackage: "@jpulse-net/plugin-ai-core"`, version lockstep with the primary, `autoEnable: true`, `jpulseVersion: ">=2.0.3"`, `dependencies.plugins.ai-core` with `version: ">=1.0.5"` and the same `npmPackage` (in-package, no extra fetch)
+    - companion guard `package.json` (`private`, `prepublishOnly` refuses and names `ai-core`), stripped at stage the same way `ai-mock`'s is
+    - no `webapp/bump-version.conf` — bump stays on the primary
+  - **`ai-core` `bundle.members` becomes `["ai-mock", "hello-ai"]`.** Publish, stage, pack, and bump from `plugins/ai-core` visit three trees. An existing site that updates the package gets the new member on expand; `autoEnable: true` enables it unless the admin already disabled it after a previous expand
+  - **what moves** (and nothing else):
+    - `webapp/controller/helloAi.js` — demo hooks only, still gated on `scopeType === 'hello-ai'`
+    - `webapp/view/hello-ai/index.shtml` — scratch pad, launcher, dashboard card
+    - `webapp/utils/ai-tools/readDraft.js` and `proposeRewrite.js`
+    - hello-ai nav entries and the site-examples card (leave the AI Core / AI usage entries on `ai-core`)
+    - hello-ai strings in `en.conf` / `de.conf` that exist only for that page — none existed, so no translation files were created
+    - demo / `readDraft` / `proposeRewrite` cases into `plugins/hello-ai/webapp/tests/unit/hello-ai.test.js`; write path, slash catalog, mock sequence, and vision stay in `plugins/ai-core/webapp/tests/unit/hello-ai.test.js`
+  - **what stays in `ai-core`:** `aiCore.js`, the panel, attachments, `sources.js`, the propose/apply layer, admin AI tab, usage, capability page, and the site-facing docs that teach the one-liner
+  - **docs cut, version numbers never work-item numbers:**
+    - `plugins/ai-core/README.md` and `plugins/ai-core/docs/README.md` describe core only and point at the Hello AI plugin for the sample
+    - `plugins/hello-ai/README.md` and `plugins/hello-ai/docs/README.md` say this is the sample, how to disable it, and that a site copies the pattern rather than depending on these tools
+    - `ai-core` `plugin.json` help may still link to `/hello-ai/`; `hello-ai` `plugin.json` help owns the demo walkthrough
+  - **design note in the framework repo:** `docs/dev/design/W-223-ai-agent.md` §5.1 / §22.1 said `hello-ai` is a view inside `ai-core`. Record the reversal (third bundle member, same package) so the next item does not re-litigate it
+  - **tests:** install/pack still expands every member; `hello-ai` disabled ⇒ `/hello-ai/` gone and `readDraft` / `proposeRewrite` absent from the module catalog; `ai-core` still serves the panel and `sources`; bump from `hello-ai/` is refused and names `ai-core`
+- deliverables:
+  - `plugins/hello-ai/plugin.json`, `package.json` (companion guard), `jest.config.cjs`, `README.md`, `docs/README.md`:
+    - the member manifest, `autoEnable: true`, in-package `ai-core` dependency `>=1.0.5`, and the sample-not-product wording
+  - `plugins/hello-ai/webapp/controller/helloAi.js`, `webapp/view/hello-ai/index.shtml`, `webapp/utils/ai-tools/readDraft.js`, `webapp/utils/ai-tools/proposeRewrite.js`, `webapp/view/jpulse-navigation.js`:
+    - the relocated demo, behavior unchanged. No `webapp/translations/` — no page-only keys existed
+  - `plugins/hello-ai/webapp/tests/unit/hello-ai.test.js`:
+    - the relocated hello / readDraft / proposeRewrite cases, paths relative to this plugin
+  - `plugins/ai-core/plugin.json`:
+    - `bundle.members: ["ai-mock", "hello-ai"]`; help text that names Hello AI as a bundled plugin rather than as a view of ai-core
+  - `plugins/ai-core/README.md`, `plugins/ai-core/docs/README.md`, `plugins/ai-core/webapp/view/jpulse-navigation.js`, and `plugins/ai-core/webapp/tests/unit/hello-ai.test.js`:
+    - sample files removed; write / slash / mock / vision cases stay; core docs no longer teach `/hello-ai/` as if it were ai-core
+  - `docs/dev/design/W-223-ai-agent.md`:
+    - Rev 19 / §5.1 / §21.9 / §22.1 (and the package table): `hello-ai` is a third bundle member, not a view inside `ai-core`; 1.0.6 published
+  - `docs/ai-agent.md`, `docs/genai-instructions.md`:
+    - first-run one-liners name Hello AI as a bundled plugin that can be disabled without turning off AI
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md` §5.1 (was two members, hello-ai a view), §21.5 / §22.1 (demo files inside `ai-core`). This item revises that on purpose; attachments, convert hooks, and the panel do not move. Rev 19 records the reversal and 1.0.6 as published
+  - **repo layout:** `plugins/ai-core` is its own git repo and the publish root. `hello-ai` is a new sibling directory and its own git repo (`plugin-hello-ai`), gitignored by the framework repo the same way `ai-core` and `ai-mock` are. Three commits, one publish, from `plugins/ai-core` only. The design-doc hunk is a framework-repo change
+  - **`autoEnable: true`** is a product decision, not a default to revisit in implementation: first-run keeps `/hello-ai/`; production disables the `hello-ai` plugin in admin
+  - **do not change `hello-ai` product behavior** (tools, pad, examples, attachment demo copy) except where a path or plugin name must change
+  - **do not add framework files, do not bump `jpulseVersion`, do not run bump-version, do not touch `.jpulse/`**
+  - **as-built:** published as `@jpulse-net/plugin-ai-core` 1.0.6 (prepack staged `ai-core`, `ai-mock`, `hello-ai`). Extracted the shipped 1.0.5 tree including `/pad` and the W-230 region / slash demo. Dependency is `ai-core >=1.0.5` (spec said `>=1.0.4`). No translation files. Tests split as above; 170 passed. Disable path verified: `/hello-ai/` 404s, capability lists only `sources`, tools empty; re-enable restores the four demo tools. Installed-plugin links stay site-root `/jpulse-docs/installed-plugins/<name>/README`
+  - out of scope: rewriting the scratch-pad page; a fourth bundle member; making `hello-ai` a separate npm package; W-229 hook definitions; shipping a converter
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-232, v1.0.7, 2026-09-18: ai: FXIME
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+- rationale:
+- features:
+- deliverables:
+  - FIXME `path/file`:
+    - FIXME summary
+- notes:
+
 
 
 
@@ -9479,7 +9553,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-230, v1.0.5, 2026-09-17
+- assume W-231, v1.0.6, 2026-09-17
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -9502,12 +9576,12 @@ git tag v2.0.4; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.5 2026-09-17
+node ../../bin/bump-version.js 1.0.6 2026-09-17
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.5; git push origin main --tags
+git tag v1.0.6; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 
@@ -9562,67 +9636,6 @@ template:
   - FIXME `path/file`:
     - FIXME summary
 - notes:
-
-### W-231, v1.0.6, YYYY-MM-DD: ai: extract hello-ai into a bundled companion plugin
-- status: 🕑 PENDING
-- type: Refactoring
-- objectives:
-  - split the scratch-pad sample out of `ai-core` into its own plugin, `hello-ai`, so a site author opening `plugins/ai-core` sees only what a site needs (hooks, panel, attachments, propose/apply) and opening `plugins/hello-ai` sees the worked example
-  - keep one install and one publish: `@jpulse-net/plugin-ai-core` expands to `ai-core` + `ai-mock` + `hello-ai`. `autoEnable: true` so first-run is still "install, open `/hello-ai/`". The win over today's gated view is that an admin can disable the demo without disabling AI
-  - **no framework source change.** `jpulseVersion` stays `>=2.0.3`. W-221 already walks N bundle members; views, controllers, nav, and i18n are existing plugin seams; `ai-core`'s module scanner already lists every active plugin's `webapp/utils/ai-tools/`
-  - do not rewrite the scratch-pad page. This item is the extract, the bundle membership, and the doc cut
-- prerequisites:
-  - W-221, v2.0.1: bundle install, publish, stage, and bump already treat `bundle.members` as a list. Adding a third name is plugin.json only
-  - W-222, v2.0.2: plugin translation merge, so `hello-ai` can carry its own `webapp/translations/`
-  - W-226, `@jpulse-net/plugin-ai-core` 1.0.2: `/hello-ai/` as a view inside `ai-core`, the demo hooks, `readDraft`, and the nav/card entries this item relocates
-  - W-227, 1.0.3: `proposeRewrite` and the proposing tool on the demo, still gated on `scopeType === 'hello-ai'`
-  - W-228, 1.0.4: attachments landed on that same demo (source drop, vision paste, prompt fragment). Extract the post-attachments tree, not a mid-flight one. W-229 is not a prerequisite and does not wait for this
-- rationale:
-  - **`ai-core` currently conflates two products.** `helloAi.js` sits next to `aiCore.js`, `readDraft.js` / `proposeRewrite.js` sit next to `sources.js`, and the installed-plugin guide says both "one controller, one `panel.create` line" and "open `/hello-ai/`". A site author cannot tell which files they must write and which are the sample
-  - **design §5.1 and W-221 said `hello-ai` is a view inside `ai-core`, not a third plugin.** That was right when the goal was "do not invent a third package to stand up a demo." The bundle machinery now exists and already ships a companion (`ai-mock`). A third *member of the same package* is cheap, and it is a different kind of companion: `ai-mock` is a no-key provider; `hello-ai` is a worked site. Different reasons to disable
-  - **a gated view cannot be turned off.** Today the only way to hide `/hello-ai/` is to edit or disable `ai-core`. After this item, plugin admin disables `hello-ai` and the page, its nav entries, its dashboard card, and its two tool modules disappear, while turns, quota, and the panel stay
-  - **the loader already expected this.** `defaultRoots()` in `plugins/ai-core/webapp/utils/tools/modules.js` walks `site/webapp/utils/ai-tools/` and then every active plugin's `webapp/utils/ai-tools/`. Moving `readDraft` and `proposeRewrite` is using that seam, not adding one
-- features:
-  - **new plugin `plugins/hello-ai/`** as a bundle companion, same shape as `ai-mock`:
-    - `plugin.json`: `name: hello-ai`, `npmPackage: "@jpulse-net/plugin-ai-core"`, version lockstep with the primary, `autoEnable: true`, `jpulseVersion: ">=2.0.3"`, `dependencies.plugins.ai-core` with `version: ">=1.0.4"` and the same `npmPackage` (in-package, no extra fetch)
-    - companion guard `package.json` (`private`, `prepublishOnly` refuses and names `ai-core`), stripped at stage the same way `ai-mock`'s is
-    - no `webapp/bump-version.conf` — bump stays on the primary
-  - **`ai-core` `bundle.members` becomes `["ai-mock", "hello-ai"]`.** Publish, stage, pack, and bump from `plugins/ai-core` visit three trees. An existing site that updates the package gets the new member on expand; `autoEnable: true` enables it unless the admin already disabled it after a previous expand
-  - **what moves** (and nothing else):
-    - `webapp/controller/helloAi.js` — demo hooks only, still gated on `scopeType === 'hello-ai'`
-    - `webapp/view/hello-ai/index.shtml` — scratch pad, launcher, dashboard card
-    - `webapp/utils/ai-tools/readDraft.js` and `proposeRewrite.js`
-    - hello-ai nav entries and the site-examples card (leave the AI Core / AI usage entries on `ai-core`)
-    - hello-ai strings in `en.conf` / `de.conf` that exist only for that page
-    - `webapp/tests/unit/hello-ai.test.js` and the `readDraft` / `proposeRewrite` cases that only prove the demo (today they live in `modules.test.js` / `proposals.test.js` and hard-code `plugins/ai-core/webapp/utils/ai-tools`)
-  - **what stays in `ai-core`:** `aiCore.js`, the panel, attachments, `sources.js`, the propose/apply layer, admin AI tab, usage, capability page, and the site-facing docs that teach the one-liner
-  - **docs cut, version numbers never work-item numbers:**
-    - `plugins/ai-core/README.md` and `plugins/ai-core/docs/README.md` describe core only and point at the Hello AI plugin for the sample
-    - `plugins/hello-ai/README.md` and `plugins/hello-ai/docs/README.md` say this is the sample, how to disable it, and that a site copies the pattern rather than depending on these tools
-    - `ai-core` `plugin.json` help may still link to `/hello-ai/`; `hello-ai` `plugin.json` help owns the demo walkthrough
-  - **design note in the framework repo:** `docs/dev/design/W-223-ai-agent.md` §5.1 / §22.1 currently say `hello-ai` is a view inside `ai-core`. Record the reversal (third bundle member, same package) so the next item does not re-litigate it
-  - **tests:** install/pack still expands every member; `hello-ai` disabled ⇒ `/hello-ai/` gone and `readDraft` / `proposeRewrite` absent from the module catalog; `ai-core` still serves the panel and `sources`; bump from `hello-ai/` is refused and names `ai-core`
-- deliverables:
-  - `plugins/hello-ai/plugin.json`, `package.json` (companion guard), `README.md`, `docs/README.md`:
-    - the member manifest, `autoEnable: true`, in-package `ai-core` dependency, and the sample-not-product wording
-  - `plugins/hello-ai/webapp/controller/helloAi.js`, `webapp/view/hello-ai/index.shtml`, `webapp/utils/ai-tools/readDraft.js`, `webapp/utils/ai-tools/proposeRewrite.js`, `webapp/view/jpulse-navigation.js`, `webapp/translations/en.conf`, `de.conf`:
-    - the relocated demo, behavior unchanged
-  - `plugins/hello-ai/webapp/tests/unit/`:
-    - the relocated hello / readDraft / proposeRewrite cases, paths relative to this plugin
-  - `plugins/ai-core/plugin.json`:
-    - `bundle.members: ["ai-mock", "hello-ai"]`; help text that names Hello AI as a bundled plugin rather than as a view of ai-core
-  - `plugins/ai-core/README.md`, `plugins/ai-core/docs/README.md`, `plugins/ai-core/webapp/view/jpulse-navigation.js`, `webapp/translations/*`, and the tests that hard-coded the old `ai-tools` path:
-    - sample files and sample strings removed; core docs no longer teach `/hello-ai/` as if it were ai-core
-  - `docs/dev/design/W-223-ai-agent.md`:
-    - §5.1 / §22.1 (and the package table) updated: `hello-ai` is a third bundle member, not a view inside `ai-core`
-- notes:
-  - design source: `docs/dev/design/W-223-ai-agent.md` §5.1 (today: two members, hello-ai is a view), §21.5 / §22.1 (demo files inside `ai-core`). This item revises that on purpose; attachments, convert hooks, and the panel do not move
-  - **repo layout:** `plugins/ai-core` is its own git repo and the publish root. `hello-ai` is a new sibling directory, gitignored by the framework repo the same way `ai-core` and `ai-mock` are. Commit the extract in the ai-core repo (it owns the bundle). The design-doc hunk is a framework-repo change
-  - **`autoEnable: true`** is a product decision, not a default to revisit in implementation: first-run keeps `/hello-ai/`; production disables the `hello-ai` plugin in admin
-  - **do not change `hello-ai` product behavior** (tools, pad, examples, attachment demo copy) except where a path or plugin name must change
-  - **do not add framework files, do not bump `jpulseVersion`, do not run bump-version, do not touch `.jpulse/`**
-  - out of scope: rewriting the scratch-pad page; a fourth bundle member; making `hello-ai` a separate npm package; W-229 hook definitions; shipping a converter
-
 
 ### W-202, v1.7.6, 2026-08-xx: auth: add locked status
 - status: 🕑 PENDING

@@ -4,7 +4,7 @@ A jPulse site gets an **agent** by installing plugins and registering tools — 
 
 This page is orientation. The versioned contract lives with the plugin: [AI Core](installed-plugins/ai-core/README.md). For writing jPulse *with* an AI coding assistant, see [Generative AI Development](genai-development.md) instead.
 
-Live demo with no API key: [`/hello-ai/`](/hello-ai/).
+Live demo with no API key: [`/hello-ai/`](/hello-ai/) (bundled Hello AI plugin).
 
 ## What is possible
 
@@ -30,7 +30,7 @@ npx jpulse plugin install @jpulse-net/plugin-ai-core
 npx jpulse plugin install @jpulse-net/plugin-ai-anthropic
 ```
 
-The first package is a bundle: it installs `ai-core` and `ai-mock`. Both have `autoEnable: true`. The second is the Anthropic provider (API key required for live models).
+The first package is a bundle: it installs `ai-core`, `ai-mock`, and `hello-ai`. All three have `autoEnable: true`. Disable Hello AI to hide the demo without turning off AI. The second is the Anthropic provider (API key required for live models).
 
 See [Managing Plugins](plugins/managing-plugins.md) for enable, disable, and update.
 
@@ -96,7 +96,7 @@ jPulse.ai.panel.create({ scopeType: 'doc', scopeId: docId });
 
 The namespace is `jPulse.ai`, not `jPulse.plugins.aiCore`. Until you register a client-host tool, the panel stays on HTTP. Cancel is `POST /api/1/ai/thread/:id/cancel`.
 
-Open [`/hello-ai/`](/hello-ai/) for the scratch-pad demo (read, direct write, and propose/apply, no API key).
+Open [`/hello-ai/`](/hello-ai/) for the scratch-pad demo (the bundled Hello AI plugin: read, direct write, and propose/apply, no API key).
 
 ## Where to go next
 

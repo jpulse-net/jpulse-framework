@@ -26167,3 +26167,126 @@ ai-core 1.0.5 already committed, tagged, pushed, and npm published (bundle inclu
 
 
 ============================================================
+2026-09-17 21:50
+
+next: W-231, v1.0.6, 2026-09-17: ai: extract hello-ai into a bundled companion plugin
+- review work item
+- review design doc
+- ask questions if unclear
+- suggest change of spec if any, goal is a good DX; use the "don't make me think" paradigm
+- plan how to implement (wait for my go ahead)
+
+Reviewed W-231 and design §5.1 / §21.5 / §22.1. The extract is the right DX cut: ai-core stays product, hello-ai becomes a third bundle member (same package, autoEnable true). Recommended spec tweaks: extract the shipped 1.0.5 tree (W-230 pad region / /pad), treat hello-ai as its own sibling git repo like ai-mock, skip empty translation files (none exist to move), split tests so slash/mock/vision coverage stays in ai-core, and keep first-run pointers in ai-core while moving the walkthrough. Plan written; waiting for go-ahead. No code changes.
+
+
+============================================================
+2026-09-17 22:42
+
+- I'll create an empty repo on github
+- autoEnable: true
+- Framework user-doc one-liners: include
+- I created placeholder dirs at plugins/hello-ai
+- site menu item addition needs to move to hello-ai as well
+- ok to link from ai-core/docs/README.md to hello-ai/docs/README.md and vice versa
+- implement unless questions
+
+Extracted hello-ai into plugins/hello-ai as a bundled companion (autoEnable true, companion guard, no bump conf). Moved controller, view, tools, site-hello-demos nav, dashboard card. ai-core bundle.members is now ai-mock + hello-ai. Docs cut: pointer in core, walkthrough in hello-ai, plus design Rev 19 and framework one-liners. Tests split; 170 passed. Browser: /hello-ai/ and installed-plugin guide work; /help still lists /pad and examples. Versions left at 1.0.5 for the user's bump. Work-item status untouched. Did not git init hello-ai.
+
+
+============================================================
+2026-09-17 22:50
+
+- I have not tested yet
+- @README.md (66-69): is it better to use absolute uri or ../ relative?
+- are there any leftover translations in ai-core that can be deleted?
+
+Recommended keeping the site-root path `/jpulse-docs/installed-plugins/hello-ai/README` (same as the rest of that guide). Filesystem `../hello-ai/docs/README.md` is wrong at runtime and 404s on GitHub. No leftover ai-core translation keys to delete; the only Hello AI string is the AI-tab help pointer, which belongs on ai-core.
+
+
+============================================================
+2026-09-17 23:00
+
+Briefly inform the user about the task result (Start jPulse app for browser verification)
+
+The npm start used to check /hello-ai/ has exited. Port 8080 is free again.
+
+
+============================================================
+2026-09-17 23:02
+
+- initial smoke test ok
+- what manual tests do you recommend?
+
+Recommended a short manual list: the disable path first (the actual product win), then isolation on a non-hello page, then a pad/propose/attach spot check, then pack/bump if they publish. Restart may be required after enable/disable.
+
+
+============================================================
+2026-09-17 23:18
+
+- disabled hello-ai, restarted
+- /api/1/ai/capability has only sources module, tools [], transport http
+- /hello-ai/ has 404
+- reenabled plugin, restarted
+- /tools lists read_draft and append_draft, as it should, right? ss 2
+- /pad is ok -- ss 3
+
+Confirmed disable results match the extract. /tools on /hello-ai/ should list all four demo tools (read_draft, propose_draft_rewrite, append_draft, get_hello_clock); ss 2 shows that. Withheld list_sources/get_source is no-sources with nothing attached. /pad ok.
+
+
+============================================================
+2026-09-17 23:34
+
+- I created the plugins-hello-ai repo on github, empty
+- guide me through git init
+- I did a git init -b main
+- what else?
+
+Guided remaining steps from plugins/hello-ai: add origin (same SSH shape as ai-mock), add, status, commit, push -u origin main. Do not commit from the framework repo. Bump can happen before or after the first commit.
+
+
+============================================================
+2026-09-17 23:38
+
+fix @plugins/hello-ai/commit-message.txt , I copied it from ai-mock
+
+Rewrote as W-231 / 1.0.6 extract: companion of ai-core, autoEnable, disable hides the demo, publish from the primary only.
+
+
+============================================================
+2026-09-17 23:44
+
+how to fix git push ERROR: Repository not found
+
+Local commit and v1.0.6 tag are fine. origin is git@github.com:jpulse-net/plugin-hello-ai.git. GitHub has no such repo or no access — earlier they named it plugins-hello-ai. Fix: confirm the GitHub name, git remote set-url origin <that url>, then git push -u origin main --tags.
+
+
+============================================================
+2026-09-17 23:48
+
+- update plugins/ai-mock/commit-message.txt and plugins/ai-core/commit-message.txt
+- assume W-231, v1.0.6, 2026-09-17
+
+Rewrote both for W-231 1.0.6. ai-mock: lockstep plus the Hello AI first-run docs line. ai-core: extract, bundle.members, files removed, tests split.
+
+
+============================================================
+2026-09-17 23:53
+
+3 plugins released, bundle published
+(git commit/tag/push ai-core 8f4b40c v1.0.6, npm publish @jpulse-net/plugin-ai-core@1.0.6)
+
+Confirmed publish: prepack staged ai-core, ai-mock, hello-ai; tarball has the hello-ai tree and the demo deletes. Remaining hello-ai.test.js in ai-core is the write/slash/mock suite. npm repository.url warn is cosmetic.
+
+
+============================================================
+2026-09-18 00:00
+
+- review tt-git-diff.txt
+- update tt-commit.txt, keep "W-229, v2.0.4, 2026-09-17"
+- if needed, update W-231
+- if needed, update docs/dev/design/W-223-ai-agent.md
+
+Diff is framework docs only: user-doc one-liners, design Rev 19, work-items, cursor_log. Do not add tmp-bubblemap-app. Recorded 1.0.6 as published in the design header, Rev 19, §21.9, and As Built 35. W-231 as-built: no translation files, test split, dependency >=1.0.5, three sibling repos. Rewrote tt-commit under the W-229 / v2.0.4 prefix.
+
+
+============================================================

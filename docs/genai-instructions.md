@@ -343,7 +343,7 @@ Complete details:
 - What to learn: Theme-aware development, CSS variables, theme structure
 - Reference: [Themes](themes.md), [Creating Themes](plugins/creating-themes.md)
 
-**AI Agent**: install `@jpulse-net/plugin-ai-core` (bundle includes `ai-mock`) and a provider such as `@jpulse-net/plugin-ai-anthropic`. Demo: `/hello-ai/` (no API key).
+**AI Agent**: install `@jpulse-net/plugin-ai-core` (bundle includes `ai-mock` and the Hello AI sample) and a provider such as `@jpulse-net/plugin-ai-anthropic`. Demo: `/hello-ai/` (Hello AI plugin, no API key).
 - Site controller registers `onAiScopeResolve`, `onAiToolRegister`, `onAiToolExecute`, `onAiPromptFragment`
 - View: `jPulse.ai.panel.create({ scopeType, scopeId })` — chat panel is the UI, not the product
 - Client-host modules live in `site/webapp/utils/ai-tools/`; do not invent a chat stack
@@ -738,7 +738,7 @@ Organize your response guidance by user question type:
 **"How do I add an AI agent?"**
 → [AI Agent](ai-agent.md) for install, configure, and the one-controller case
 → [AI Core](installed-plugins/ai-core/README.md) for tools, adapter, propose/apply, attachments
-→ Demo: `/hello-ai/` (mock, no API key)
+→ Demo: `/hello-ai/` (bundled Hello AI plugin, mock, no API key)
 → Do not confuse with this file or [Gen-AI Development](genai-development.md) (coding assistants)
 → Client-host modules: `site/webapp/utils/ai-tools/`. Convert/preview hooks: [Hooks](hooks.md#document-conversion-and-preview-hooks)
 

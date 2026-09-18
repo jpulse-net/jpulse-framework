@@ -16,17 +16,34 @@ awaitable `onCreate` (v2.0.3), and **W-229** document-conversion and
 preview hook definitions (v2.0.4, blocks nothing, §21.1). **W-230**
 (panel regions and site-owned slash commands) is published as
 `@jpulse-net/plugin-ai-core` 1.0.5 (bundle carries `ai-mock` 1.0.5; mock
-had no product change). Next AI item is **W-231** (extract `hello-ai`).
-§21 splits the agent into five items, W-223, W-224, and W-226 through
+had no product change). **W-231** (extract `hello-ai` as a third bundle
+member) is published as `@jpulse-net/plugin-ai-core` 1.0.6 (bundle
+carries `ai-mock` 1.0.6 and `hello-ai` 1.0.6; mock lockstep only). §21
+splits the agent into five items, W-223, W-224, and W-226 through
 W-228, on those prerequisites. Deviations from this document are under
 `### As Built`. Rev 12 specified W-227 against shipped 1.0.2, Rev 13 is
-the as-built after implementation, Rev 14 specifies W-228, Rev 15 is the
-as-built after 1.0.4, Rev 16 records that W-229 is four hooks, not two,
-Rev 17 is the as-built after v2.0.4, and Rev 18 is W-230 (specified and
-shipped as 1.0.5).
+the as-built after implementation, Rev 14 specifies W-228, Rev 15 is
+the as-built after 1.0.4, Rev 16 records that W-229 is four hooks, not
+two, Rev 17 is the as-built after v2.0.4, Rev 18 is W-230 (specified
+and shipped as 1.0.5), and Rev 19 is W-231 (specified and shipped as
+1.0.6).
 
 
 ## Revision history
+
+### Rev 19 — 2026-09-17 — W-231 extract hello-ai as a bundle companion
+
+`hello-ai` leaves `ai-core` and becomes a third member of
+`@jpulse-net/plugin-ai-core`, same shape as `ai-mock`. One install, one
+publish. An admin can disable the demo without disabling AI. No
+framework source change. The scratch pad is not rewritten. Shipped as
+1.0.6.
+
+| Section | Change |
+|---|---|
+| Header, §5.1, §22.1, §22.2 | Bundle is `ai-core` + `ai-mock` + `hello-ai`. Demo is not a view inside `ai-core` |
+| §21 | W-231 published as 1.0.6; next AI item is unscheduled |
+| As Built | Item 35 |
 
 ### Rev 18 — 2026-09-17 — W-230 panel regions and site-owned slash commands
 
@@ -443,6 +460,16 @@ decision; each is the shape the code wanted once it existed.
     configure, one-controller case. The versioned contract stays in
     `plugins/ai-core/docs/README.md`. Rev 3 said the guide would not
     be a framework page; both exist, for different readers.
+35. **`hello-ai` is a third bundle member.** Same package as `ai-core`
+    and `ai-mock`, own plugin directory, `autoEnable: true`. Disable
+    it to hide `/hello-ai/`, its site-hello-demos entry, its dashboard
+    card, and `readDraft` / `proposeRewrite`. The panel and `sources`
+    stay on `ai-core`. 1.0.0 shipped two members; 1.0.2 shipped the
+    demo as a view; this item is the reversal of that view decision.
+    Published as 1.0.6. No hello-ai translation files (none existed to
+    move). Demo tests live in `hello-ai`; write / slash / mock / vision
+    stay in `ai-core`'s `hello-ai.test.js`. In-package dependency is
+    `ai-core >=1.0.5`.
 
 ### Rev 3 — 2026-09-15 — prerequisites released, work split
 
@@ -546,9 +573,10 @@ Initial design from the brainstorming sessions.
   view-centric versus controller-centric, and it is **per tool, not per site**
   (§7.2). A controller-centric site additionally gets an HTTP/SSE turn path so
   it never needs the WebSocket at all (§11).
-- `ai-core` ships a **`hello-ai` demo view**, in the spirit of `hello-todo`
-  but inside the plugin, because the feature is complex enough that onboarding
-  needs a running example rather than a document (§22).
+- The bundle ships a **`hello-ai` companion plugin**, in the spirit of
+  `hello-todo` / `hello-world`, because the feature is complex enough that
+  onboarding needs a running example rather than a document (§22). Disable
+  that plugin to hide the demo without disabling AI.
 
 
 ---
@@ -854,14 +882,14 @@ The bundle is drawn tightly:
 
 | Package | Contains | Why |
 |---|---|---|
-| `@jpulse-net/plugin-ai-core` | `ai-core` + `ai-mock` | Everything needed to stand the server core up and see it work, with no API key and no spend. `hello-ai` is a view inside `ai-core` as of 1.0.2, not a third plugin and not in 1.0.0 |
+| `@jpulse-net/plugin-ai-core` | `ai-core` + `ai-mock` + `hello-ai` | Everything needed to stand the server core up and see it work, with no API key and no spend. `hello-ai` was a view inside `ai-core` from 1.0.2 through 1.0.5. W-231 makes it a third bundle member so an admin can disable the demo without disabling AI |
 | `@jpulse-net/plugin-ai-anthropic` | `ai-anthropic` | Depends on `ai-core`; installed only by a site that uses Anthropic |
 | *(deferred)* | `ai-openai` | TD-11 |
 
 The reasoning for bundling `ai-mock` with `ai-core` rather than shipping it
 separately: a freshly installed `ai-core` with no provider is a feature that
 cannot be demonstrated, and the first thing anyone does with it — including the
-framework's own tests and the `hello-ai` view — is run a turn without spending
+framework's own tests and the `hello-ai` plugin — is run a turn without spending
 money. The mock is not an optional extra, it is how `ai-core` is testable at
 all.
 
@@ -2862,6 +2890,7 @@ separate work in its own repository.
 | **W-226** | ai: chat panel, client-host tools, and `hello-ai` | The §1.1 one-liner works, a view-centric site works, and `hello-ai` demonstrates all of it on the mock |
 | **W-227** | ai: propose and apply | A write-capable agent proposes, and the user applies or undoes |
 | **W-228** | ai: attachments — sources, URL ingest, conversion, vision | Files, pasted text, URLs, and images join a conversation |
+| **W-231** | ai: extract `hello-ai` into a bundled companion plugin | The sample is a third member of `@jpulse-net/plugin-ai-core`. Disable it without disabling AI |
 
 W-223, W-224, and W-226 are the "first release" referred to throughout: server
 core, a real provider, and the panel. W-227 and W-228 are each independently
@@ -3081,7 +3110,17 @@ demonstrates a site region, a site command, a hidden command, and
 clickable examples, and proves that a site without `contextOptions()`
 gets no context row.
 
-### 21.9 Standalone follow-ons
+### 21.9 W-231 — extract `hello-ai` into a bundled companion plugin
+
+Published as `@jpulse-net/plugin-ai-core` 1.0.6 (bundle carries
+`ai-mock` 1.0.6 and `hello-ai` 1.0.6; mock lockstep only). Specified in
+Rev 19 against shipped 1.0.5. `hello-ai` moves from a view inside
+`ai-core` to a third `bundle.members` name. Same npm package,
+`autoEnable: true`, companion-guard `package.json`, no bump-version
+conf. The pad is not rewritten. No framework source change.
+`jpulseVersion` stays `>=2.0.3`.
+
+### 21.10 Standalone follow-ons
 
 Each its own item, written when wanted rather than scheduled now:
 
@@ -3107,7 +3146,7 @@ namespace with no framework involvement.
 
 Each plugin directory is its own git repository and its own commit, as
 `plugins/auth-mfa/` already is — `plugins/*` is gitignored by the framework
-repo except `hello-world`. The bundle is therefore two repositories with
+repo except `hello-world`. The bundle is therefore three repositories with
 `ai-core` as the **primary**: it declares `bundle.members`, owns the published
 package name and version, carries the only `webapp/bump-version.conf`, and is
 the only directory that publish and bump are run from (§5.1, W-221).
@@ -3135,21 +3174,15 @@ the only directory that publish and bump are run from (§5.1, W-221).
   read-only to everything else, and the documented plugin convention is
   `plg-<name>-*`, which `auth-oauth` already ships as `plg-oauth-*`. The panel
   reuses `jp-*` classes freely and creates none
-- `plugins/ai-core/webapp/view/jpulse-navigation.js` — the `hello-ai` nav entry
+- `plugins/ai-core/webapp/view/jpulse-navigation.js` — AI usage and AI Core
 - `plugins/ai-core/webapp/view/admin/` — the usage page (§17)
-- `plugins/ai-core/webapp/controller/helloAi.js` — demo hooks only,
-  gated on `scopeType === 'hello-ai'`. Product code and the worked example
-  are not the same file
-- `plugins/ai-core/webapp/view/hello-ai/` plus
-  `plugins/ai-core/webapp/utils/ai-tools/` — the demo, shipped **inside the plugin**
-  rather than in the site template. The feature is complex enough that
-  onboarding needs something that runs, and in the plugin it is installable
-  into an existing site for evaluation, arrives and updates with the code it
-  demonstrates, and needs no site-template regeneration. `hello-world` is the
-  precedent: it already ships `webapp/view/hello-plugin/index.shtml` and its
-  own `jpulse-navigation.js` and `jpulse-common.css` from inside a plugin. It
-  runs on `ai-mock`, so it works before any API key exists — which also makes
-  it the fastest smoke test that an install succeeded
+- `plugins/ai-core/webapp/utils/ai-tools/sources.js` — panel-owned source
+  tools. Demo modules do not live here
+- `plugins/hello-ai/` — bundled companion (§5.1). Controller, scratch-pad
+  view, `readDraft` / `proposeRewrite`, site-hello-demos nav, and the
+  dashboard card. `autoEnable: true`. Disable it to hide the demo without
+  disabling AI. Same `hello-world` precedent as before: a plugin can ship
+  a view and its own navigation. It still runs on `ai-mock`
 - `plugins/ai-mock/` — bundled with `ai-core` (§5.1)
 - `plugins/ai-anthropic/` — separate package
 - `plugins/ai-core/webapp/translations/` — `en.conf` and `de.conf`; a chat
@@ -3217,7 +3250,7 @@ this answer:
 | Correct load order ahead of provider plugins | `resolveLoadOrder()` topological sort (§5.1.1) |
 | Guest/anonymous-safe turn leases | existing `RedisManager` lease, used unchanged |
 | Translatable plugin UI text, overridable by a site | W-222 translation merge (v2.0.2) |
-| One package installing `ai-core` + `ai-mock` | W-221 bundle install and publish (v2.0.1). `hello-ai` is a view inside `ai-core`, shipped in W-226 1.0.2 |
+| One package installing `ai-core` + `ai-mock` + `hello-ai` | W-221 bundle install and publish (v2.0.1). `hello-ai` was a view inside `ai-core` from W-226 1.0.2 through 1.0.5; W-231 makes it a third member |
 
 ### 22.3 Documentation
 
@@ -3233,8 +3266,9 @@ under the gitignored `docs/installed-plugins/<name>/`.
   and keeping the same order as this document: the tool descriptor, the two
   hosts, shared tool modules, the adapter contract, quota, and writing a
   provider plugin. It grows a section per item rather than landing at once
-- `plugins/<name>/README.md` for `ai-core`, `ai-mock`, and `ai-anthropic` —
-  install, enable, configure, hooks used, requirements, release notes
+- `plugins/<name>/README.md` for `ai-core`, `ai-mock`, `hello-ai`, and
+  `ai-anthropic` — install, enable, configure, hooks used, requirements,
+  release notes. `hello-ai` is the sample; `ai-core` points at it
 - `docs/ai-agent.md` — framework orientation (what an agent is, install,
   configure, the one-controller case). The versioned contract stays in
   `plugins/ai-core/docs/README.md`. Rev 3 said the guide would not be a

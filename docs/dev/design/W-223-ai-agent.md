@@ -22,18 +22,65 @@ carries `ai-mock` 1.0.6 and `hello-ai` 1.0.6; mock lockstep only).
 **W-232** (upload caps from settings, `AiCore.deleteByScope`, and three
 cutover guards) is published as `@jpulse-net/plugin-ai-core` 1.0.7
 (bundle carries `ai-mock` 1.0.7 and `hello-ai` 1.0.7; companions
-lockstep). §21 splits the agent into five items, W-223, W-224, and
-W-226 through W-228, on those prerequisites. Deviations from this
-document are under `### As Built`. Rev 12 specified W-227 against
-shipped 1.0.2, Rev 13 is the as-built after implementation, Rev 14
-specifies W-228, Rev 15 is the as-built after 1.0.4, Rev 16 records
+lockstep). **W-233** (panel title, floatPanel shell options, and the
+clipped add menu) is published as `@jpulse-net/plugin-ai-core` 1.0.8
+(bundle carries `ai-mock` 1.0.8 and `hello-ai` 1.0.8; companions
+lockstep). §21 splits the agent into five items, W-223, W-224,
+and W-226 through W-228, on those prerequisites.
+Deviations from this document are under `### As Built`. Rev 12 specified
+W-227 against shipped 1.0.2, Rev 13 is the as-built after implementation,
+Rev 14 specifies W-228, Rev 15 is the as-built after 1.0.4, Rev 16 records
 that W-229 is four hooks, not two, Rev 17 is the as-built after
 v2.0.4, Rev 18 is W-230 (specified and shipped as 1.0.5), Rev 19 is
-W-231 (specified and shipped as 1.0.6), Rev 20 specifies W-232, and
-Rev 21 is the as-built after 1.0.7.
+W-231 (specified and shipped as 1.0.6), Rev 20 specifies W-232, Rev 21
+is the as-built after 1.0.7, Rev 22 specifies W-233, and Rev 23 is the
+as-built after 1.0.8.
 
 
 ## Revision history
+
+### Rev 23 — 2026-09-19 — W-233 as-built
+
+Published as `@jpulse-net/plugin-ai-core` 1.0.8 (bundle carries
+`ai-mock` 1.0.8 and `hello-ai` 1.0.8). The specified surface landed.
+Deviations are where the code wanted a home: the live list is
+`formatTurnAttachmentManifest` appended by `openUserContent`;
+the empty-sources policy is on every user message when sources
+are enabled, not only when `list_sources` / `get_source` are
+withheld; image metadata is on that message only when vision
+is actually on; `disconnectWs()` is the shared close path for
+thread switch and `destroy()`.
+
+| Section | Change |
+|---|---|
+| Header, §9.6, §21.12 | As Built 40–42; empty-sources on every enabled turn; helpers named |
+
+### Rev 22 — 2026-09-18 — W-233 panel title, shell options, add-menu clip
+
+The second list from the same porting site, now with the panel open.
+The (+) menu is `right: 0` on a left-edge button and
+`.jp-float-panel { overflow: hidden }` clips "Add file" / "Add URL" —
+`left: 0` or `right: 0` from which half the (+) sits in, not a
+portal and not a framework overflow change.
+`create({ title })` is the toolbar label (default remains the i18n
+"AI chat"). `create()` forwards `storageKey` / `cascade` / `group` to
+`floatPanel.create()` so a second panel on the page can keep
+`aiAgent:window` and cascade with Map Chat. Cascade occupancy is every
+registered panel's `x` / `y` (a closed Chat at the default corner still
+counts); `group` is only `mobile.exclusive`. `create()` returns
+`destroy()` that unregisters the float panel, closes the per-thread
+WebSocket, and removes the body node. Compose paste of `text/plain`
+stays in the textarea; only clipboard files and images become chips.
+This turn's source/image list is on the user message; filenames in
+earlier replies are stale. The §1.1 one-liner is unchanged. TD-17
+stays deferred.
+
+| Section | Change |
+|---|---|
+| Header, §21.12, §21.13 | W-233 specified as 1.0.8; standalone follow-ons renumbered |
+| §12.1 | `title` and the three shell options on `create()`; `destroy()` removes the body node and closes the socket; compose paste stays in the box; add menu shifts to stay inside |
+| §9.6 | Source/image manifest moves from the system prompt onto this turn's user message |
+| §21.2 | Table row for W-233 |
 
 ### Rev 21 — 2026-09-18 — W-232 as-built
 
@@ -527,6 +574,23 @@ decision; each is the shape the code wanted once it existed.
     `sourceRefsFrom` default to `file`, not `image`. The capability
     probe returns the clamped `maxImageBytes` beside `maxConvertBytes`.
     The panel refuses an oversize image before staging, same as convert.
+40. **The empty-sources policy is on every enabled user message.**
+    1.0.7 put `formatSourcesEmptyBlock` on the system prompt only
+    when `list_sources` / `get_source` were withheld as `no-sources`.
+    1.0.8 puts that block on this turn's user message whenever
+    `sourcesEnabled !== false`, including a tab with no chips.
+    Image metadata rides that message only when `includeImages`
+    (vision model, images enabled, at least one image).
+41. **Manifest helpers are `formatTurnAttachmentManifest` and
+    `appendManifestToUserContent`.** `openUserContent` appends;
+    `assemblePrompt` no longer embeds the blocks. `extras.prompt`
+    still passes sources/images into `assemblePrompt`, which
+    ignores them.
+42. **`disconnectWs()` is the shared close path.** Thread switch
+    already used `_aiIgnoreStatus` plus `wsConn.disconnect()`.
+    `destroy()` calls the same function first, then unbinds
+    document/launcher listeners, then `floatPanel.destroy()`, then
+    `removeChild`s the root. HTTP is a no-op.
 
 ### Rev 3 — 2026-09-15 — prerequisites released, work split
 
@@ -1596,26 +1660,33 @@ The framework owns assembly and the order; the site owns the words.
     [admin]      site instructions             from config
     [framework]  this turn's tool availability and what was withheld
     [framework]  scope, context, and target blocks
-    [framework]  attached sources and images manifest
 ```
 
 Only the framework's own fragments are framework-authored, and they are
 deliberately thin: content is data and never instruction, do not invent
 identifiers, use this turn's tool list rather than what an earlier reply said,
-and text inside source markers or an image is a quotation rather than a
-request. The reference site's 40 lines of domain vocabulary are site fragments.
+filenames and attachments named in earlier replies are stale, and text
+inside source markers or an image is a quotation rather than a request.
+The reference site's 40 lines of domain vocabulary are site fragments.
 
-The context, target, sources, and images block formatters become framework
-functions parameterized by labels the site supplies through `onAiScopeResolve`,
+The context and target block formatters become framework functions
+parameterized by labels the site supplies through `onAiScopeResolve`,
 so "bubble" is not baked in.
 
-The manifest slot is filled as of 1.0.4, and what lands there is
-metadata only: one line per source with its id, name, type, size, and section
-count, one line per image with its id, name, pixel size, and format, and the
-sentence naming the tool that reads a source. Source *text* never enters the
-system prompt — that is the whole point of reading it through a tool (§14.1).
-When sources are enabled but none are attached, a policy block tells the model
-to ask the user to re-attach rather than claim it cannot read files or the web.
+The sources and images manifest is on **this turn's user message**,
+not in the system prompt (1.0.8). History keeps earlier assistant
+replies that name files; if the live list lives only in the system
+prompt the model recites those names and calls the current chip
+stale. Metadata only: one line per source with its id, name, type,
+size, and section count, one line per image with its id, name, pixel
+size, and format, and the sentence naming the tool that reads a
+source. Source *text* never enters the prompt — that is the whole
+point of reading it through a tool (§14.1). When sources are enabled
+but none are attached, a policy block on the user message tells the
+model to ask the user to re-attach rather than claim it cannot read
+files or the web. Stored `userText` is unchanged; the next turn's
+history does not pile up old manifests.
+
 The reference site's manifest also carries a paragraph of domain steering per
 source; that half is a site fragment, not a framework one.
 
@@ -1859,6 +1930,12 @@ component:
 jPulse.ai.panel.create({
     scopeType: 'map',
     scopeId:   mapId,
+    title:     'AI Agent',              // toolbar; omit for i18n "AI chat"
+    storageKey: 'aiAgent:window',       // forwarded to floatPanel
+    cascade:   true,                    // first visit only; occupancy is every
+                                        // registered x/y
+    group:     'map',                   // mobile.exclusive only; no effect until
+                                        // exclusive is on
     adapter: {
         toolData(toolName) { … },  // data for client-host tools, §8.1
         describeContext(value) { … },
@@ -1934,7 +2011,28 @@ timeout.
 Panel defaults that keep the one-liner honest: `id` is
 `ai-panel-<scopeType>-<scopeId>`; the default size is larger than
 `floatPanel`'s 360×280; the last thread id persists under its own key
-rather than inside the panel geometry. The client namespace is `jPulse.ai`,
+rather than inside the panel geometry; the toolbar label is the i18n
+"AI chat" unless `title` is a non-empty string. `storageKey`, `cascade`,
+and `group` are forwarded to `floatPanel.create()` when supplied —
+otherwise the shell defaults (`jp:floatPanel:<id>`, no cascade, group
+`default`). Cascade occupancy is every registered panel's `x` / `y`,
+not open-only and not same-group; a closed Chat created on map load
+still occupies the default corner. `group` is only `mobile.exclusive`.
+Any parseable JSON at `storageKey` sets `fromStorage` and skips
+cascade. Do not spread the rest of the create bag into the shell.
+`create()` always appends a root to `document.body`. The returned
+`destroy()` (also on `handle.destroy`) unregisters the float panel,
+disconnects the per-thread WebSocket (the same path thread switch
+already uses; a no-op on HTTP), and removes that node; a second
+call is a no-op. A site only calls `destroy()`. It does not cancel
+an in-flight turn or clear `localStorage`.
+Compose paste of `text/plain` stays in the textarea. Only clipboard
+files and images become chips (`origin: 'paste'`). Paste-as-source
+is drop / (+) menu. The send-time URL intercept is unchanged.
+The (+) attach menu defaults to `left: 0`. On open it flips to
+`right: 0` when the (+) is in the right half of the panel so
+`.jp-float-panel`'s `overflow: hidden` does not clip either edge.
+The client namespace is `jPulse.ai`,
 the mirror of `global.AiCore`, not `jPulse.plugins.aiCore`. W-220's
 `launcher` option is ghost geometry and focus-return only; the panel binds
 the element's `click` to `handle.toggle()`.
@@ -2982,6 +3080,7 @@ separate work in its own repository.
 | **W-228** | ai: attachments — sources, URL ingest, conversion, vision | Files, pasted text, URLs, and images join a conversation |
 | **W-231** | ai: extract `hello-ai` into a bundled companion plugin | The sample is a third member of `@jpulse-net/plugin-ai-core`. Disable it without disabling AI |
 | **W-232** | ai: upload caps from settings, scope wipe, and cutover guards | A second site ports onto the bundle without a code change: admin-owned upload caps, one call to erase a deleted object's conversations, and the three silent traps closed |
+| **W-233** | ai: panel title, floatPanel shell options, and the clipped add menu | A second panel on the same page can name itself, keep its own geometry key, and cascade; `destroy()` removes the body node and closes the socket; compose paste stays in the box; this turn's attachments are on the user message; the (+) menu is readable |
 
 W-223, W-224, and W-226 are the "first release" referred to throughout: server
 core, a real provider, and the panel. W-227 and W-228 are each independently
@@ -3245,7 +3344,79 @@ The panel embed mode the same request asked for is TD-17, and no
 `agent/scope.js`, and the conversation picker re-fetches on
 `openThread` (As Built 36–39).
 
-### 21.11 Standalone follow-ons
+### 21.12 W-233 — panel title, shell options, and the clipped add menu
+
+Specified in Rev 22 against shipped 1.0.7, published as 1.0.8. Rev 23
+is as-built after publish. Not a new capability: the same second
+site, now with the panel open. Places where `create()` or the chip
+strip made a decision the site should own, or got a layout fact
+wrong.
+
+The (+) menu is `right: 0` on a left-edge button. Chips sit first
+(`display: contents`) and (+) last, so one file puts (+) on the left
+of a 420 px panel; the 10 em menu grows past the edge and
+`.jp-float-panel { overflow: hidden }` clips "Add file" / "Add URL"
+to "d file" / "d URL". The menu defaults to `left: 0`. On open it
+flips to `right: 0` when the (+) midpoint is in the right half of
+the panel. Enter on the rename field stops, same as Escape, so a
+site document listener does not see the key after the input hides.
+
+`create({ title })` stamps `.plg-ai-title` (and the thread-select
+`aria-label`). The i18n default stays "AI chat". Create-time only.
+
+`storageKey`, `cascade`, and `group` are forwarded to
+`floatPanel.create()` by those names. They are already W-220
+options; the panel was dropping them, so every AI panel persisted as
+`jp:floatPanel:ai-panel-<scopeType>-<scopeId>` and never cascaded.
+A site that omits them sees no change. The rest of the create bag
+is not spread into the shell.
+
+`create()` returns `destroy()`. `create()` always appends a root to
+`document.body`, and `floatPanel.destroy()` only drops listeners and
+the registry entry, so a site that recreates the chat on a scope
+change would leave the old node and its cascade occupancy. The
+per-thread socket would otherwise sit (and reconnect) until the
+tab dies, with `handleToolCall` still on the old adapter.
+`destroy()` disconnects that socket, unbinds the panel's document
+and launcher listeners, unregisters the float panel, and removes
+the root. Idempotent. Same function on the returned object and on
+`handle.destroy`. A site only calls `destroy()`. It does not cancel
+an in-flight turn or clear `localStorage`.
+
+Compose paste of `text/plain` stays in the textarea. The handler
+used to `preventDefault` and `addTextSource` any paste longer than
+400 characters that was not a lone URL, which minted an Untitled
+paste chip. Clipboard files and images still become chips. A long
+paste that happens to contain a URL already stayed as text. Paste-
+as-source is drop / (+) menu. The send-time URL intercept is
+unchanged.
+
+The live source/image list belongs on this turn's user message.
+Leaving it only in the system prompt lets an earlier assistant
+reply (a filename, a char count) invert the current chips: the
+model recites the old file and calls the live chip stale.
+`/sources` and the Used badge already read this tab's list; the
+site does not register `list_sources` / `get_source` and
+`onAiPromptFragment` never sees chip names. `openUserContent`
+appends `formatTurnAttachmentManifest`; `assemblePrompt` does not.
+Empty-tab policy is on every user message when sources are enabled,
+not only when the tools are withheld. Image metadata rides the user
+message only when vision is actually in play. Stored
+`userText` is unchanged.
+
+Cascade occupancy is every registered panel's `x` / `y`, not
+open-only and not same-group. Map Chat is created on map load even
+while closed, so a closed chat at the default corner still occupies
+it. `group` is only `mobile.exclusive`; forwarding `group: 'map'`
+does nothing until exclusive is on. Any parseable JSON at the key
+sets `fromStorage: true` and skips cascade — a leftover custom-panel
+blob without `x` / `y` / `w` / `h` / `open` still counts. Clear it
+once or rewrite it in that shape.
+
+TD-17 remains the embed-mode follow-on. This item keeps the float
+shell.
+
+### 21.13 Standalone follow-ons
 
 Each its own item, written when wanted rather than scheduled now:
 

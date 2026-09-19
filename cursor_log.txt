@@ -26357,3 +26357,159 @@ Reviewed the framework diff: design Rev 21, work-items, cursor_log only. Do not 
 
 
 ============================================================
+2026-09-18 02:56
+
+next: W-233, v1.0.8, 2026-09-18: ai-core fixes
+
+from bubblemap while trying to use ai-core:
+1. (+) menu clip — .plg-ai-add-menu is right: 0 on a left-edge button; .jp-float-panel overflow hidden cuts off Add file / Add URL. Open inward (left: 0) or portal.
+2. create({ title }) — per-panel toolbar label. Map wants "AI Agent"; i18n default is "AI chat".
+3. create() → floatPanel — forward storageKey / cascade / group so the map can keep aiAgent:window geometry and cascade with Map Chat.
+
+Created W-233 in work-items.md (status and section untouched; type left Bugfix) and amended the design doc.
+
+Measured before writing: the + sits after chips (display:contents), so one file puts it on the left of a 420px panel; right:0 grows the 10em menu past the edge; jp-float-panel overflow:hidden is doing its job. createPanel stamps I18N.title and forwards id/el/defaults/min/launcher/onOpen only.
+
+Spec: left:0 not a portal and not a framework overflow change; create({ title }) is create-time only on .plg-ai-title and the thread-select aria-label; storageKey/cascade/group forwarded by name, not ...options. Cascade still only runs when storage is empty. hello-ai unchanged. TD-17 stays out.
+
+Design doc: Rev 22, new §21.12, standalone follow-ons → §21.13, §12.1 create() example and defaults paragraph, §21.2 table row.
+
+
+============================================================
+2026-09-18 11:37
+
+bubblemap feedback:
+
+Map-side, with one correction. Cascade occupancy is every registered panel’s x / y, not open-only and not same-group. Chat is created on map load even while closed, so a closed chat at the default corner still occupies it. group is only mobile.exclusive; forwarding group: 'map' does nothing until exclusive is on. Any parseable JSON at the key sets fromStorage: true and skips cascade — a leftover custom-panel blob without x / y / w / h / open still counts. Clear it once or rewrite it in that shape.
+
+Corrected W-233 and Rev 22. Occupancy is every registered panel x/y, including a closed Map Chat created on load. group is mobile.exclusive only. Any parseable JSON at the key skips cascade. Still not implementing until go-ahead.
+
+
+============================================================
+2026-09-18 11:54
+
+go ahead
+
+(+) popup: problem just shifted: if (+) is at the right side, it's clipped. Best to make this dynamic: shift left so that it never gets clipped.
+
+Implemented W-233 in plugins/ai-core (headers left at 1.0.7). create({ title }) stamps .plg-ai-title and the thread-select aria-label. floatPanel.create gets storageKey, cascade, group by name. Add menu CSS default is left: 0; on open, positionAddMenu() measures against .jp-float-panel and shifts left so neither edge clips. Plugin README/docs updated. Unit tests: hello-ai scan plus 20 suites / 183 passed. Did not bump versions, change work-item status, run git, or touch .jpulse/. Reload the panel JS to pick it up (the running 8080 process is still serving a cached jpulse-common.js).
+
+
+============================================================
+2026-09-18 12:10
+
+- popup still clipped on right
+- easiest fix: get horiz pos of popup, slight right if on left half, and vice versa
+- Enter on rename should stopPropagation before saveRename, same as Escape (map Edit Details)
+
+The overflow measure could run before the menu had a width and leave left: 0 on a right-edge (+). positionAddMenu now flips from the (+) midpoint vs the panel midpoint: left half left:0, right half right:0. Rename Enter calls stopPropagation before saveRename so the same keydown does not reach document after the input hides. Hard-reload the panel JS.
+
+
+============================================================
+2026-09-19 00:03
+
+new request from bubblemap:
+
+jPulse.ai.panel.create should return a destroy() that removes the body node.
+
+create() now returns destroy() (same function on handle.destroy). It unbinds the panel document/launcher listeners, calls floatPanel.destroy so the registry entry leaves cascade occupancy, and removeChilds the body node. Idempotent. Does not close the WebSocket or clear localStorage. W-233 / Rev 22 / plugin docs / hello-ai scan updated. 12 tests passed. Hard-reload the panel JS.
+
+
+============================================================
+2026-09-19 00:10
+
+from bubblemap:
+
+The one gap versus the earlier ask: it still does not close the WebSocket. That is not what left the panel on screen. It is worth a follow-up if it is cheap — portal / map-id change destroys and recreates, and the old /api/1/ws/ai/:threadId would otherwise sit until the tab dies. Not a blocker for this bug.
+
+---------------
+
+there is a workaround in bubblemap, but wondering what the best course of action is for any ai deployment
+
+Recommended: sites only call destroy() on scope/portal leave. Do not close the AI socket from the site. destroy() should disconnect the transport socket (same previous.disconnect() path already used on thread switch). HTTP-only sites are a no-op. Closing WS is plugin-owned and cheap; a leftover socket also leaves handleToolCall and the old adapter live. Cancel-in-flight is a separate, optional extra. Not implemented; waiting for go-ahead to fold into 1.0.8 destroy().
+
+
+============================================================
+2026-09-19 00:13
+
+yes, fold that into 1.0.8
+
+destroy() now calls transport.disconnect() first. disconnectWs() is the same _aiIgnoreStatus + wsConn.disconnect() path thread switch already used; HTTP is a no-op. Does not cancel an in-flight turn or clear localStorage. W-233 / Rev 22 / plugin docs / hello-ai scan updated. 12 tests passed. Hard-reload the panel JS. Sites only call destroy().
+
+
+============================================================
+2026-09-19 00:30
+
+next bugfix needed:
+
+Compose paste of text/plain must stay in the textarea. Only clipboard files/images become chips. Today the handler preventDefaults and addTextSources any paste longer than 400 characters that is not a lone URL, which creates an Untitled paste source. A long paste that happens to contain a URL is already supposed to stay as text. Paste-as-source is drop / + menu, not compose paste.
+
+Folded into 1.0.8. Compose paste returns unless clipboardData.files is non-empty; then preventDefault and addDroppedFile as before. The 400-character Untitled-paste heuristic is gone. Send-time URL intercept is unchanged. W-233 / Rev 22 / plugin docs / hello-ai scan updated. 12 tests passed. Hard-reload the panel JS.
+
+
+============================================================
+2026-09-19 00:43
+
+next bug report from bubblemap:
+
+This is an ai-core bug. Nothing on the map is losing the file. The chip is test.txt. Used test.txt means this turn’s payload already had that source. /sources read the same tab list. The site does not register list_sources / get_source, and onAiPromptFragment never sees chip names. The model still recited Copyright.txt from an earlier reply, then called test.txt stale. The inversion is the plugin putting the live list only in the system prompt and leaving old filenames in history. The fix: put this turn’s source/image list on the user message, and treat earlier filenames as stale. Do not change the site. A new conversation is the only local workaround until that ships.
+
+Folded into 1.0.8. assemblePrompt no longer embeds the source/image manifest. openUserContent appends formatTurnAttachmentManifest to this turn’s user message (empty-tab policy when none). Safety says earlier filenames are stale. Stored userText is unchanged; history is not rewritten. Site is untouched. W-233 / Rev 22 §9.6 / plugin docs / attachments tests updated. 46 tests passed. Restart the server (this is the turn loop, not panel JS).
+
+
+============================================================
+2026-09-19 00:50
+
+give me a summary of everything fixed/enhanced in 1.0.8. I will ask bubblemap if this matches the needs (before we build here)
+
+Summarized 1.0.8 for BubbleMap: title, storageKey/cascade/group forwards, (+) menu half-flip, rename Enter stop, destroy+WS close, compose text paste stays in the box, this-turn source/image list on the user message. Listed deliberate omissions (no embed chrome, no live title setter, no defaults/mobile/min forward, no turn cancel on destroy, no history rewrite, no site change).
+
+
+============================================================
+2026-09-19 01:05
+
+- review @tt-git-diff.txt for accuracy and completeness
+- update work item and design doc if needed to reflect code
+- update @plugins/ai-core/commit-message.txt @plugins/ai-mock/commit-message.txt @plugins/hello-ai/commit-message.txt
+- assume W-233, v1.0.8, 2026-09-19
+
+Reviewed the ai-core plugin-repo working-tree diff (72 files). Product hunks match 1.0.8: title, shell forwards, menu half-flip, rename Enter stop, destroy+WS, compose files-only paste, user-message manifest. Remaining files are the 1.0.8 header lockstep. Framework design/work-items are outside this plugin diff. Recorded W-233 as-built and design Rev 23 (As Built 40-42). Rewrote the three plugin commit-message.txt files for W-233 / v1.0.8 / 2026-09-19 (ai-core product; ai-mock and hello-ai lockstep only). Status left IN_PROGRESS.
+
+
+============================================================
+2026-09-19 01:11
+
+I made a mistake, I forgot to tag two plugins, and already pushed. how can I add a tag after the fact?
+
+Tagging is independent of the commit push. In each forgotten plugin repo, create the annotated tag on the already-pushed commit (HEAD, or a SHA if HEAD moved) and push only the tag: git tag -a v1.0.8 -m "Release v1.0.8" then git push origin v1.0.8. Same commands the publish CLI prints. No rewrite, no force-push unless a wrong tag already exists on the remote.
+
+
+============================================================
+2026-09-19 01:12
+
+does that work too?
+
+git tag v1.0.8; git push origin main --tags
+
+Yes: the tag lands on HEAD and is pushed. Differences: git tag without -a is lightweight (CLI uses annotated); --tags pushes every local tag, not only v1.0.8; pushing main is unnecessary if already pushed. Prefer git tag -a v1.0.8 -m "Release v1.0.8" then git push origin v1.0.8.
+
+
+============================================================
+2026-09-19 01:16
+
+done: (ai-core commit 087ba89, annotated tag v1.0.8, push main --tags, npm publish 1.0.8)
+
+Confirmed the publish: annotated tag, main advanced b79ce00..087ba89, tarball staged ai-core + ai-mock + hello-ai (89 files), @jpulse-net/plugin-ai-core@1.0.8. npm repository.url warn is harmless. Updated W-233 as-built and design Rev 23 / header / §21.12 to published. Status left IN_PROGRESS. Companion git repos still need their own v1.0.8 tags if those were the two forgotten earlier.
+
+
+============================================================
+2026-09-19 01:20
+
+- review @tt-git-diff.txt
+- update work item and design doc if needed
+- update @tt-commit.txt , keep W-229, v2.0.4, 2026-09-19
+
+Reviewed the framework diff: design Rev 22/23, work-items, cursor_log, plus an unrelated bin/loc wrap. Do not add tmp-bubblemap-app. Do not add bin/loc to this commit (format-only). Design/work-items match published 1.0.8; dropped the leftover "until this ships" line in §21.12. Rewrote tt-commit under the W-229 / v2.0.4 prefix. W-233 status left IN_PROGRESS.
+
+
+============================================================

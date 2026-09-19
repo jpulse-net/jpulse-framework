@@ -9500,17 +9500,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **as-built:** published as `@jpulse-net/plugin-ai-core` 1.0.6 (prepack staged `ai-core`, `ai-mock`, `hello-ai`). Extracted the shipped 1.0.5 tree including `/pad` and the W-230 region / slash demo. Dependency is `ai-core >=1.0.5` (spec said `>=1.0.4`). No translation files. Tests split as above; 170 passed. Disable path verified: `/hello-ai/` 404s, capability lists only `sources`, tools empty; re-enable restores the four demo tools. Installed-plugin links stay site-root `/jpulse-docs/installed-plugins/<name>/README`
   - out of scope: rewriting the scratch-pad page; a fourth bundle member; making `hello-ai` a separate npm package; W-229 hook definitions; shipping a converter
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-232, v1.0.7, 2026-09-18: ai: upload caps from settings, AiCore.deleteByScope, and three cutover guards
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - make the two streaming upload routes obey **Site Configuration → AI** instead of a hardcoded route limit and a character cap that describes something else, so a 25 MB PDF converts on a bare install and an admin who wants a smaller site changes one number
@@ -9631,6 +9622,89 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-233, v1.0.8, 2026-09-19: ai: create chat options; fix clipped add menu
+- status: 🚧 IN_PROGRESS
+- type: Bugfix
+- objectives:
+  - make the (+) attach menu readable on the first chip - it is a left-edge control today, and `right: 0` plus `.jp-float-panel { overflow: hidden }` clips "Add file" / "Add URL"
+  - let a site name the toolbar - `create({ title: 'AI Agent' })` - so a page with two chats is not two windows both labelled "AI chat"
+  - forward the three floatPanel shell options a second panel on the same page needs - `storageKey`, `cascade`, `group` - so the map keeps `aiAgent:window` geometry and cascades with Map Chat
+  - keep the §1.1 one-liner untouched: a site that omits all three still gets "AI chat", `jp:floatPanel:<id>`, no cascade, group `default`
+  - let a site tear the panel down - `create()` returns `destroy()` that removes the body node `create()` always appends and closes the per-thread WebSocket, so switching maps or scopes does not leak a second chat or leave `/api/1/ws/ai/:threadId` until the tab dies
+  - keep compose `text/plain` paste in the textarea - only clipboard files and images become chips; paste-as-source is drop / (+) menu
+  - put this turn's source/image list on the user message and treat earlier filenames as stale, so a prior reply cannot invert the live chip list
+- prerequisites:
+  - W-226, `@jpulse-net/plugin-ai-core` 1.0.2: `jPulse.ai.panel.create()` builds its own root and hands it to `jPulse.UI.floatPanel.create()`. Title is baked from i18n. Shell options other than `id`, `launcher`, and `open` are dropped
+  - W-220, v2.0.0: `storageKey` / `cascade` / `group` already work on `floatPanel.create()`. This item only stops swallowing them
+  - W-228, 1.0.4: the (+) menu (`.plg-ai-add-menu`) and the chip strip. As Built 25 put (+) after the last chip via `display: contents`
+  - W-232, 1.0.7: published. No contract change here - this is the next list from the same porting site, all panel chrome
+  - nothing framework-side. Do not change `.jp-float-panel { overflow: hidden }`. `jpulseVersion` stays `>=2.0.3`
+- rationale:
+  - **the source of this item is the same second site, now with the panel open.** W-232 closed the server-side cutover traps. The screenshot, the `create()` call, and then a scope change that leaked the old body node are what this item still cannot say without these changes
+  - **the menu clip is a one-line CSS bug, not a shell bug.** `.plg-ai-add-menu` is `position: absolute; right: 0; bottom: calc(100% + 4px)` on `.plg-ai-strip-add`. The strip is `display: flex` with chips first (`display: contents`) and (+) last, so (+) sits just after the last chip - on the left of a 420 px panel when there is one file. `right: 0` grows the 10 em menu to the left, past the panel edge. `.jp-float-panel { overflow: hidden }` is doing its job (rounded clip, resize handles). The screenshot is "d file" / "d URL"
+  - **portal is the wrong fix.** A body-level menu needs a second positioner, a raise/z-index rule against other float panels, and a scroll listener, for two buttons that already have a parent. A fixed `left: 0` only moved the clip to the right-edge (+) after chips fill the row. Flip from which half the (+) sits in; do not measure the menu box
+  - **the toolbar label is not a floatPanel option.** `floatPanel` never sets a title - the site's markup does. The AI panel owns `.plg-ai-title` and today stamps `I18N.title` ("AI chat") at create. A per-panel string is a create option, not an i18n override and not a live setter
+  - **the shell options already exist and are dropped.** `createPanel` forwards `id`, `el`, `defaults` (420x560), `minWidth`, `minHeight`, `launcher`, `onOpen`. `storageKey`, `cascade`, and `group` are ignored, so every AI panel persists as `jp:floatPanel:ai-panel-<scopeType>-<scopeId>`, never cascades, and shares group `default`. The map already has `aiAgent:window` and a Map Chat panel that cascades. Without the three names, the port resets geometry and stacks on top of Map Chat
+  - **do not spread `options` into floatPanel.** `adapter`, `regions`, `commands`, `scopeType` are not shell keys. Forward the three by name. An unknown floatPanel option stays unforwarded until a site asks - that is cheaper than a silent bag
+- features:
+  - **1. the add menu stays inside the panel.** CSS default is `left: 0` (and drops `right: 0`). On open, `positionAddMenu()` looks at the (+) midpoint against the panel midpoint: left half keeps `left: 0`, right half sets `right: 0`. That is the (+) position, not a measure of the still-hidden menu. No portal, no `overflow` change on `.jp-float-panel`. The chip pop stays in-flow and is not this bug
+  - **4. Enter on the rename field stops.** Same as Escape: `preventDefault` and `stopPropagation` before `saveRename()`. After save the input is hidden and focus leaves; without stop, the same keydown reaches document and a site that treats Enter as a page command (map Edit Details) runs it
+  - **5. `create()` returns `destroy()`.** `create()` always appends a root to `document.body` and `floatPanel.destroy()` only drops listeners and the registry entry, so a map that recreates the chat on scope change would leave the old node. `destroy()` is idempotent: it calls `transport.disconnect()` (the same `_aiIgnoreStatus` + `wsConn.disconnect()` path thread switch already uses, a no-op on HTTP), unbinds the panel's document and launcher listeners, calls the floatPanel destroy (so the old `x` / `y` leaves cascade occupancy), and `removeChild`s the root. The same function is on the returned object and on `handle.destroy`. A site only calls `destroy()` - it does not close the AI socket itself. It does not cancel an in-flight turn or clear `localStorage`
+  - **2. `create({ title })` is the toolbar label.** A non-empty string replaces `I18N.title` on `.plg-ai-title` and on the thread-select `aria-label` (that select already uses the same string). Omitted, `null`, or `''` keeps the i18n default. Create-time only - no `handle.setTitle`, no i18n key for "AI Agent". `hello-ai` does not pass `title`
+  - **3. `create()` forwards `storageKey`, `cascade`, `group` to `floatPanel.create()`.** Same names, same types as W-220 (`cascade` is `true` or `{ offsetX, offsetY }`). Omitted means floatPanel's own defaults. Cascade still only runs when storage is empty (`!loaded.fromStorage`), so a restored `aiAgent:window` is not shoved aside on every load - that is the existing floatPanel contract, not a new one. Occupancy is every **registered** panel's `x` / `y`, not open-only and not same-group: Map Chat is created on map load even while closed, and a closed chat at the default corner still occupies it. `group` is only `mobile.exclusive`; forwarding `group: 'map'` does nothing until exclusive is on. Do not forward `mobile` in this item - a site that wants exclusive turns it on at floatPanel, which this bag does not reach
+  - **6. compose paste of `text/plain` stays in the textarea.** The handler used to `preventDefault` and `addTextSource` any paste longer than 400 characters that was not a lone URL, which minted an Untitled paste chip. A long paste that happens to contain a URL already stayed as text (`extractPromptUrl`). Clipboard files and images still become chips (`origin: 'paste'`). Paste-as-source is drop / (+) menu, not compose paste. The send-time URL intercept is unchanged
+  - **7. this turn's source/image list is on the user message.** `formatSourcesBlock` / `formatImagesBlock` / the empty-sources policy used to land only in the system prompt. History still has earlier assistant replies that name files (`Copyright.txt`), so the model recited those and called the live chip (`test.txt`) stale. `/sources` and the Used badge already read the tab list; `onAiPromptFragment` never sees chip names. `openUserContent` now appends this turn's metadata list (or the empty-tab policy). Safety says earlier filenames are stale. Stored `userText` is unchanged. Do not rewrite history. Do not change the site
+  - **out of scope, deliberately:** TD-17 embed chrome (`chrome: 'none'`); forwarding `defaults` / `mobile` / `minWidth` / `minHeight` (the panel keeps 420x560 and 320x360); changing `.jp-float-panel` overflow; a live title setter; cancelling an in-flight turn on destroy; rewriting prior assistant text
+- deliverables:
+  - `plugins/ai-core/webapp/view/jpulse-common.css`:
+    - `.plg-ai-add-menu` uses `left: 0`; `right: 0` is gone. `positionAddMenu()` flips `left` / `right` from which half the (+) sits in
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - resolve `title` once (`options.title` if it is a non-empty string, else `I18N.title`) and stamp it on `.plg-ai-title` and the thread-select `aria-label`
+    - `floatPanel.create({ ... })` gains `storageKey: options.storageKey`, `cascade: options.cascade`, `group: options.group`
+    - `create()` returns `destroy()` that unregisters the float panel, disconnects the per-thread WebSocket, and removes the body node
+    - compose `paste` only `preventDefault`s when `clipboardData.files` is non-empty; `text/plain` is not turned into a source
+  - `plugins/ai-core/webapp/utils/agent/prompt.js`, `inputs.js`, `utils/attachments/index.js`:
+    - `assemblePrompt` no longer embeds the source/image manifest; `openUserContent` appends `formatTurnAttachmentManifest` to this turn's user message; safety says earlier filenames are stale
+  - `plugins/ai-core/webapp/tests/unit/hello-ai.test.js` (panel scan, same file as the `openThread` / `refreshThreads` scan):
+    - CSS: `.plg-ai-add-menu` block contains `left: 0` and does not contain `right: 0`
+    - JS: `positionAddMenu` compares the (+) midpoint to the panel midpoint and sets `right: 0` on the right half
+    - JS: rename Enter calls `stopPropagation` before `saveRename`
+    - JS: `floatPanel.create` is passed `storageKey`, `cascade`, and `group` from `options`
+    - JS: the title stamp reads `options.title` (not only `I18N.title`)
+    - JS: `destroy()` exists, `removeChild`s `root`, and calls `transport.disconnect()` (`disconnectWs`)
+    - JS: compose paste has no `text.length > 400` / `addTextSource` branch; files still become chips
+  - `plugins/ai-core/webapp/tests/unit/attachments.test.js`:
+    - live list is on `openUserContent`; `assemblePrompt` system does not contain the source name; earlier-replies-are-stale is in safety
+  - `plugins/ai-core/docs/README.md`, `plugins/ai-core/README.md`:
+    - the three create options next to `launcher` / `id`, with the map-shaped example (`title: 'AI Agent'`, `storageKey: 'aiAgent:window'`, `cascade: true`). `group` is documented as `mobile.exclusive` only, not as what makes cascade see Map Chat. `destroy()` is documented as the teardown that removes the body node and closes the socket. Compose paste of text stays in the box. This turn's source/image list is on the user message. Version numbers, never work-item numbers
+  - `docs/dev/design/W-223-ai-agent.md` (framework repo, this item's only framework-repo change):
+    - Rev 22 specifies; Rev 23 is as-built after 1.0.8; §12.1 names the three shell options and `title`; new §21.12; standalone follow-ons become §21.13; a §21.2 table row
+  - framework-repo user docs are **not** part of this item's plugin commits
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md` Rev 22, Rev 23, and §21.12. Read §12.1 (panel create and the floatPanel shell) and W-220's `docs/jpulse-ui-reference.md` Floating Panel Widget (`storageKey`, `cascade`, `group`). TD-17 is still the deliberate omission - this item keeps the float shell
+  - **repo layout:** `plugins/ai-core` is its own git repo and the publish root; `ai-mock` and `hello-ai` are siblings, lockstep only (no product change). One publish of `@jpulse-net/plugin-ai-core` 1.0.8 from `plugins/ai-core` only. The design-doc hunk is the one framework-repo change
+  - **decisions taken before implementation**, each with the alternative rejected:
+    - *the menu:* flip from which half the (+) sits in. Measuring the menu box was rejected - it can run before the menu has a width (or against a clipped box) and leave `left: 0` on a right-edge (+). Portaling was rejected. Changing `.jp-float-panel { overflow: hidden }` was rejected
+    - *the title:* a create-time string on `.plg-ai-title`. An i18n override was rejected because two panels on one page need two labels, not one translated default. A handle setter was rejected - the map knows the name at `create()`
+    - *the shell bag:* forward the three named options, not `...options`. Spreading would leak `adapter` / `regions` / `commands` into floatPanel and would look like every W-220 key works when `defaults` and `mobile` still do not
+    - *teardown:* `destroy()` on the object `create()` returns, also assigned to `handle.destroy`. Calling only `floatPanel.destroy()` was rejected - that leaves the body node. A site closing `/api/1/ws/ai/:threadId` itself was rejected - that socket is plugin-owned. `destroy()` disconnects it (thread switch already did). Cancelling an in-flight turn or wiping `localStorage` is not this call
+    - *compose paste:* `text/plain` stays in the box. The 400-character Untitled-paste heuristic was rejected - paste-as-source is drop / (+) menu. A lower threshold or a confirm dialog was rejected for the same reason
+    - *source manifest:* on this turn's user message, not only the system prompt. Rewriting history or asking the site to mention chip names was rejected — the inversion is the plugin's
+  - **cascade occupancy is every registered panel's `x` / `y`.** Not open-only, not same-group. Map Chat is created on map load even while closed, so a closed chat at the default corner still occupies it - that is why `cascade: true` on a first visit offsets. `group` is only `mobile.exclusive`; forwarding `group: 'map'` does nothing until exclusive is on
+  - **any parseable JSON at the key sets `fromStorage: true` and skips cascade.** A leftover custom-panel blob without `x` / `y` / `w` / `h` / `open` still counts. Clear it once or rewrite it in that shape. A missing or empty key is the only first-visit path
+  - `hello-ai` stays on the i18n title and the default storage key - the demo is not a second panel on a map
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests
+  - out of scope: TD-17 embed mode; forwarding `defaults` / `mobile` / min size; a live title setter; any `onAiConvert*` hook; a converter plugin
+  - **as-built:** published as `@jpulse-net/plugin-ai-core` 1.0.8 (prepack staged `ai-core`, `ai-mock`, `hello-ai`; companions lockstep; commit `087ba89`; annotated tag `v1.0.8`). Menu CSS is `left: 0`; `positionAddMenu()` flips by (+) midpoint vs panel midpoint. Title is create-time only. Shell bag is the three named keys. `destroy()` is idempotent: `transport.disconnect()` (`disconnectWs`, same `_aiIgnoreStatus` path as thread switch), unbind document/launcher, `floatPanel.destroy()`, `removeChild(root)`. Compose paste is files-only. Manifest helpers are `formatTurnAttachmentManifest` / `appendManifestToUserContent` in `attachments/index.js`; `openUserContent` appends; `assemblePrompt` does not. Empty-tab policy is on every user message when `sourcesEnabled !== false`, not only when tools are withheld as `no-sources`. Image metadata only when `includeImages` (vision + enabled + has images). Stored `userText` unchanged. `extras.prompt` is still passed into `assemblePrompt` and unused for the list. Design Rev 23 records this.
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -9658,7 +9732,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-231, v1.0.6, 2026-09-17
+- assume W-233, v1.0.8, 2026-09-19
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -9681,12 +9755,12 @@ git tag v2.0.4; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.7 2026-09-18
+node ../../bin/bump-version.js 1.0.8 2026-09-19
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.7; git push origin main --tags
+git tag v1.0.8; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

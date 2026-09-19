@@ -13,7 +13,30 @@
 # @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
 # @genai           N/A
 
-cloc --timeout 0 --force-lang="Text",conf --force-lang="Text",tmpl --force-lang="Text",shtml --force-lang="JavaScript",cjs --force-lang="Text",webmanifest --force-lang="Text",txt --force-lang="Markdown",markdown --list-file=<(find . -type f -not -path '*.png' -not -path '*.jpg' -not -path '*.svg' -not -path '*.save*' -not -path '*/common/*' -not -path './tt-*' -not -path '*/node_modules/*' -not -path './coverage/*' -not -path '*/tmp*' -not -path './.*' -not -path '*/.git*' -not -path './cursor*' -not -path '*/fixtures/*' -not -path './package-lock.json' -print)
+cloc --timeout 0 \
+  --force-lang="Text",conf \
+  --force-lang="Text",tmpl \
+  --force-lang="Text",shtml \
+  --force-lang="JavaScript",cjs \
+  --force-lang="Text",webmanifest \
+  --force-lang="Text",txt \
+  --force-lang="Markdown",markdown \
+  --list-file=<(find . -type f \
+    -not -path '*.png' \
+    -not -path '*.jpg' \
+    -not -path '*.svg' \
+    -not -path '*.save*' \
+    -not -path '*/common/*' \
+    -not -path './tt-*' \
+    -not -path '*/node_modules/*' \
+    -not -path './coverage/*' \
+    -not -path '*/tmp*' \
+    -not -path './.*' \
+    -not -path '*/.git*' \
+    -not -path './cursor*' \
+    -not -path '*/fixtures/*' \
+    -not -path './package-lock.json' \
+    -print)
 
 # inaccurate:
 # find . -type f -not -path '*.png' -not -path '*.jpg' -not -path '*.svg' -not -path '*.save*' -not -path '*/common/*' -not -path './tt-*' -not -path '*/node_modules/*' -not -path './coverage/*' -not -path '*/tmp*' -not -path './.*' -not -path '*/.git*' -not -path './cursor*' -not -path '*/fixtures/*' -not -path './package-lock.json' | xargs wc -l

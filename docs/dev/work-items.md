@@ -9721,17 +9721,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests
   - **as-built:** published as `@jpulse-net/plugin-ai-core` 1.0.9 (prepack staged `ai-core`, `ai-mock`, `hello-ai`; companions lockstep; commit `619d36f`; tag `v1.0.9`). `sendText` does not clear chips. `takeStagedImages` peeks and refreshes TTL. ✕ is `DELETE .../image/:id`; `/new` and thread switch are `DELETE .../images`. Hello AI has no `propose_image`; `regressions.test.js` walks `handle.attachments()` after peek. Unit tests: 23 suites, 240 passed. Design Rev 25 records this.
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-235, v2.0.5, 2026-09-19: websocket: queue a send until the socket is open
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - stop dropping the first message when a caller sends before the socket reaches `OPEN` - today that is a console warning and a silently lost payload
@@ -9786,8 +9777,17 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - the `onStatusChange` callback list has no unsubscribe, which is why `ai-core`'s per-turn `waitForWs()` accumulates handlers. Not fixed here; noted because adopting the queue in W-237 makes that call path go away
   - do not run the bump-version script while implementing, and do not touch `.jpulse/`
 
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
 ### W-236, v1.0.1, 2026-09-19: ai-anthropic: a transient network failure is retryable
-- status: 🕑 PENDING
+- status: 🚧 IN_PROGRESS
 - type: Bugfix
 - objectives:
   - let a reset socket or a refused connect use the retry ladder the turn loop already has, instead of ending the turn
@@ -9952,11 +9952,17 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-235, v2.0.5, 2026-09-19
+- assume W-236, v1.0.1, 2026-09-19
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - append to cursor_log.txt
+
+plugin release prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-236, v1.0.1, 2026-09-19
+- plugin README.md & docs/README.md: add release to Plugin releases section
+- plugin commit-message.txt: update
 
 ### Misc
 
@@ -9975,12 +9981,12 @@ git tag v2.0.5; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.9 2026-09-19
+node ../../bin/bump-version.js 1.0.1 2026-09-19
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.9; git push origin main --tags
+git tag v1.0.1; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

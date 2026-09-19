@@ -26679,3 +26679,46 @@ bump-version.
 
 
 ============================================================
+2026-09-19 15:24
+
+release done, all good
+
+anything I need to carry forward to new chat for W-236, v1.0.1,
+2026-09-19: ai-anthropic: a transient network failure is retryable;
+or continue here?
+
+Advised a new chat. This thread overflowed once and is full of W-235
+framework WS queue context. W-236 is plugins/ai-anthropic 1.0.1, its
+own repo, independent of W-235/W-237. Spec is locked. Offered a
+paste-ready handoff. Did not implement.
+
+
+============================================================
+2026-09-19 15:28
+
+next: W-236, v1.0.1, 2026-09-19: ai-anthropic: a transient network
+failure is retryable.
+
+Classified error.cause.code in completeAnthropic. Retryable:
+ECONNRESET, ECONNREFUSED, ETIMEDOUT, EPIPE, EAI_AGAIN,
+UND_ERR_SOCKET, UND_ERR_CONNECT_TIMEOUT. Message is
+sanitizeError("fetch failed (CODE)"). ENOTFOUND and TLS stay
+fatal. AbortError / 429 / 529 unchanged. Tests 3 suites / 39
+passed. README 1.0.1 bullet and plugin commit-message.txt.
+package.json / plugin.json 1.0.1. Status left as found. Did not
+commit, bump-version, or touch .jpulse/.
+
+
+============================================================
+2026-09-19 15:47
+
+release & publish done
+- update @tt-commit.txt for framework commit
+
+Rewrote tt-commit.txt for the framework-repo documentation of
+published @jpulse-net/plugin-ai-anthropic 1.0.1. No framework
+source or version bump. Design-doc line waits for W-237. Status
+left IN_PROGRESS. Did not commit.
+
+
+============================================================

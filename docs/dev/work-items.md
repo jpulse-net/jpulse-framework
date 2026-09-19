@@ -9777,17 +9777,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - the `onStatusChange` callback list has no unsubscribe, which is why `ai-core`'s per-turn `waitForWs()` accumulates handlers. Not fixed here; noted because adopting the queue in W-237 makes that call path go away
   - do not run the bump-version script while implementing, and do not touch `.jpulse/`
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-236, v1.0.1, 2026-09-19: ai-anthropic: a transient network failure is retryable
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bugfix
 - objectives:
   - let a reset socket or a refused connect use the retry ladder the turn loop already has, instead of ending the turn
@@ -9821,8 +9812,17 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - *no new error code:* `AI_PROVIDER_ERROR` plus `retryable` is the contract `turnLoop` already reads. A new code would need a matching branch there
   - do not run the bump-version script while implementing, and do not touch `.jpulse/`
 
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
 ### W-237, v1.0.10, 2026-09-19: ai: chip attach, mobile shell, destroy cancel
-- status: 🕑 PENDING
+- status: 🚧 IN_PROGRESS
 - type: Feature
 - objectives:
   - close the remaining BubbleMap / core-migration panel gaps so a site can drop `hardClose` and wire chip → object without a site fork
@@ -9855,24 +9855,25 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - click calls `attach(row, handle.attachmentFile(row.id))`. Site does the write (same path as a canvas drop). Not a proposal. Does not consult `toolsWrite`. Does not open an Apply card. Does not remove the chip
     - site decides file-origin vs paste/URL, home/widget/portal refusals, store-ready. Plugin does not guess
     - label is i18n `chipAttach` ("Attach"). A map site overrides the string to "Attach to bubble". No `adapter.attachLabel`
+    - chip is a group (`.plg-ai-chip`): body / ⋯ / ✕ as siblings. A `<button>` cannot host both ⋯ and ✕
     - chip click still opens the details pop; ⋯ is a separate control and does not toggle details. Flip the menu to stay inside the panel (same half-rule as the (+) menu)
   - **2. `create()` forwards `mobile`, `defaults`, `minWidth`, `minHeight`.** Named keys, not a spread. Omitted keeps today's plugin defaults (`defaults: { w: 420, h: 560, open: !!options.open }`, `minWidth: 320`, `minHeight: 360`, floatPanel's own mobile bag with `exclusive: false`). Passed `defaults` merge on top of that 420×560/`open` so a site can send `{ w: 360, h: 480 }` without restating `open`. `mobile: { exclusive: true, breakpoint: 768 }` is what makes `group: 'map'` mean anything
   - **3. compose `safe-area-inset-bottom`.** Pad `.plg-ai-compose` (or the compose row) with `env(safe-area-inset-bottom, 0px)` so Send clears the home indicator on a phone sheet. Desktop inset is 0
   - **4. `destroy()` cancels an in-flight turn.** When `state.running` and there is a `threadId`, fire `POST /api/1/ai/thread/:id/cancel` (same route as the Cancel button), then disconnect. Do not wait for the POST before tearing down — cancel is HTTP, so closing the socket does not drop it. Still idempotent. Still does not clear `localStorage`. Still does not require the site to close `/api/1/ws/ai/:threadId`
-  - **5. `/new` (and +) confirm when chips are attached.** `attachments().length > 0` → `confirmDialog`, then `createNew` / `clearAttachments` (already DELETEs staged images). Cancel leaves the chips. Empty strip does not confirm. The conversation-select path uses the same gate when a switch would drop chips (`openThread` already `clearAttachments` on `!sameThread`). `createNew` → `openThread` after a clear does not confirm a second time
+  - **5. `/new` (and +) confirm when chips are attached.** `attachments().length > 0` → `confirmDialog`, then `createNew` / `clearAttachments` (already DELETEs staged images). Cancel leaves the chips. Empty strip does not confirm. The conversation-select path and `/conversations n` use the same helper when a switch would drop chips (`openThread` already `clearAttachments` on `!sameThread`). `createNew` → `openThread` after a clear does not confirm a second time. Confirm body uses "this conversation", not "this tab"
   - **6. WS actor includes `session.user` (same shape as HTTP).** `authorizeAiSocket` already has the handshake `req`. Stash that user object on `ctx`. The turn path builds `actorFromRequest({ user, session: { user } }, { origin: 'ws', … })` instead of `{ user: { username, roles } }` only. Scope/tool hooks that read `req.session.user` then work on WS without a site `reqFromActor` synth. Username/roles fallback stays for older ctx
   - **7. `handle.setTitle(str)`.** Create-time `title` stays. A non-empty string stamps `.plg-ai-title` and the thread-select `aria-label`. `''` / `null` restores the i18n default. Optional for the map; cheap because the stamp already exists
   - **8. `sendText` stops treating a false `send()` as a turn error.** Today `startTurn` emits a generic error when `wsConn.send()` returns false. Still correct once the queue accepts a send that has not hit the wire yet
-  - **9. adopt the W-235 queue.** `startTurn` connects and sends without the per-turn `await waitForWs()`, because the framework holds the payload until the socket opens. `waitForWs` itself stays for the reconnect notice, but is no longer called once per turn, which also ends the `onStatusChange` handler it accumulates per call. `jpulseVersion` is `>=2.0.5`
+  - **9. adopt the W-235 queue.** `startTurn` connects and sends without `waitForWs`. The function is removed rather than kept unused: W-235's outbox is the send gate, and reconnect already comes from `onStatusChange`. A false `send()` is not a turn error. `jpulseVersion` is `>=2.0.5`
   - **out of scope:** TD-17 `chrome: 'none'`; quota footer; unread-dot; reviving `sourceAttachable`; the `jPulse.ws` queue itself and the Vue doc note (W-235); the Anthropic retry classification (W-236); site wiring of `adapter.attach` and its user-doc sentences (that site's repo)
 - deliverables:
   - `plugins/ai-core/webapp/view/jpulse-common.js`:
     - chip ⋯ + `adapter.attach` / `canAttach` as specified; hello-ai does not pass them
     - `floatPanel.create({ … })` gains `mobile: options.mobile`, merged `defaults`, `minWidth` / `minHeight` from options with the 320×360 fallback
     - `destroy()` fires cancel when a turn is running, then disconnects
-    - `/new`, the (+) new button, and a chip-dropping thread switch share one confirm
+    - `/new`, the (+) new button, thread select, and `/conversations n` share one confirm
     - `handle.setTitle`
-    - `startTurn` no longer awaits `waitForWs()` per turn; a false `send()` is not a turn error
+    - `startTurn` sends without `waitForWs` (`waitForWs` removed); a false `send()` is not a turn error
   - `plugins/ai-core/webapp/view/jpulse-common.css`:
     - compose (or compose-row) padding includes `env(safe-area-inset-bottom, 0px)`
     - ⋯ menu stays inside the panel (half-flip, no portal, no `.jp-float-panel` overflow change)
@@ -9888,7 +9889,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - `/new` / thread-switch confirm reads `attachments().length` (or `state.sources` / `state.images`)
     - `handle.setTitle` exists
     - CSS contains `safe-area-inset-bottom`
-    - `startTurn` does not `await waitForWs()`; a false `send()` is not emitted as a turn error
+    - `waitForWs` is gone; a false `send()` is not emitted as a turn error
   - `plugins/ai-core/webapp/tests/unit/helpers-contracts.test.js` (or the WS suite):
     - turn actor after authorize exposes `req.session.user` with the handshake user, not only `{ username, roles }`
   - `plugins/ai-core/docs/README.md`, `plugins/ai-core/README.md`:
@@ -9915,7 +9916,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - *defaults merge:* plugin 420×560/`open` plus `options.defaults`. Replacing the whole object was rejected — a site that passes only `{ w: 360, h: 480 }` should not lose `open`
     - *destroy cancel:* fire the existing POST, then disconnect. Making `destroy()` an awaited handshake was rejected — cancel is HTTP. Wiping `localStorage` is still not this call
     - *`/new` confirm:* chip count, not "did the site implement attach". A paste chip is dropped too. Confirming every `/new` was rejected — empty strip is cheap
-    - *W-235 adoption:* `jpulseVersion` `>=2.0.5` is accepted. `waitForWs()` stays for the reconnect notice only; it is no longer the send gate
+    - *W-235 adoption:* `jpulseVersion` `>=2.0.5` is accepted. `waitForWs` is removed rather than kept unused — W-235's outbox is the send gate and reconnect already comes from `onStatusChange`
+  - **as-built:** published as `@jpulse-net/plugin-ai-core` 1.0.10 (prepack staged `ai-core`, `ai-mock`, `hello-ai`; companions lockstep; commit `774c3b9`; tag `v1.0.10`). Chip is a group (body / ⋯ / ✕); ⋯ only when `adapter.attach` is a function. Shell keys forwarded, bag not spread. Compose pads `env(safe-area-inset-bottom, 0px)`. `destroy()` fires cancel POST then disconnects. `/new`, (+), thread select, and `/conversations n` share `confirmDropAttachments`; body is "this conversation". `handle.setTitle`. WS actor is `{ user, session: { user } }` from the handshake user. `waitForWs` removed; `startTurn` sends after `connectWs`. Hello AI has no attach / mobile / setTitle. Unit tests: 23 suites, 247 passed. Design Rev 27 records this.
   - **already shipped (do not redo):** `title`, `storageKey` / `cascade` / `group`, `destroy()` node + WS, text paste stays in the box, user-message source/image manifest, image chips stay on Send, peek mailbox, (+) menu inward
   - **after 1.0.10 the site can** pass `mobile: { exclusive: true }` and drop both the manual `isFront()` + `hardClose()` gate and the `setRect({ w: 360, h: 480 })` reset handler; wire `adapter.attach` to its direct-drop helpers; and override the `chipAttach` string to "Attach to bubble", which keeps its existing user-doc sentences and its `/Attach to bubble/` doc test true with no edit. Quota footer, unread-dot, and embed `chrome: 'none'` stay out
   - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests
@@ -9960,9 +9962,9 @@ release prep:
 
 plugin release prep:
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-236, v1.0.1, 2026-09-19
+- assume W-237, v1.0.10, 2026-09-19
 - plugin README.md & docs/README.md: add release to Plugin releases section
-- plugin commit-message.txt: update
+- update plugin commit-message.txt
 
 ### Misc
 

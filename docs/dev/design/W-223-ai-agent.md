@@ -27,7 +27,13 @@ clipped add menu) is published as `@jpulse-net/plugin-ai-core` 1.0.8
 (bundle carries `ai-mock` 1.0.8 and `hello-ai` 1.0.8; companions
 lockstep). **W-234** (image chips stay on Send) is published as
 `@jpulse-net/plugin-ai-core` 1.0.9 (bundle carries `ai-mock` 1.0.9 and
-`hello-ai` 1.0.9; companions lockstep).
+`hello-ai` 1.0.9; companions lockstep). **W-237** (chip attach, mobile
+shell, destroy cancel) is published as `@jpulse-net/plugin-ai-core`
+1.0.10 (bundle carries `ai-mock` 1.0.10 and `hello-ai` 1.0.10;
+companions lockstep; commit `774c3b9`, tag `v1.0.10`). **W-236**
+(`@jpulse-net/plugin-ai-anthropic` 1.0.1) classifies
+`error.cause.code`: retryable connect blips, `ENOTFOUND` / TLS fatal,
+`fetch failed (CODE)`, family `AI_PROVIDER_ERROR`.
 §21 splits the agent into five items, W-223, W-224, and
 W-226 through W-228, on those prerequisites.
 Deviations from this document are under `### As Built`. Rev 12 specified
@@ -37,11 +43,52 @@ that W-229 is four hooks, not two, Rev 17 is the as-built after
 v2.0.4, Rev 18 is W-230 (specified and shipped as 1.0.5), Rev 19 is
 W-231 (specified and shipped as 1.0.6), Rev 20 specifies W-232, Rev 21
 is the as-built after 1.0.7, Rev 22 specifies W-233, Rev 23 is the
-as-built after 1.0.8, Rev 24 specifies W-234, and Rev 25 is the
-as-built after 1.0.9.
+as-built after 1.0.8, Rev 24 specifies W-234, Rev 25 is the
+as-built after 1.0.9, Rev 26 specifies W-237, and Rev 27 is the
+as-built after 1.0.10.
 
 
 ## Revision history
+
+### Rev 27 — 2026-09-19 — W-237 as-built
+
+Published as `@jpulse-net/plugin-ai-core` 1.0.10 (bundle carries
+`ai-mock` 1.0.10 and `hello-ai` 1.0.10; commit `774c3b9`, tag
+`v1.0.10`). The specified surface landed. Chip is a group (body /
+⋯ / ✕); ⋯ only when `adapter.attach` exists. Confirm body uses
+"this conversation"; `/conversations n` uses the same helper as
+`/new`. `waitForWs` was removed rather than kept unused: W-235's
+outbox is the send gate and reconnect already comes from
+`onStatusChange`. Hello AI has no `attach`, no `mobile`, no title
+setter. W-236's provider classification is the line in Rev 26.
+
+| Section | Change |
+|---|---|
+| Header, §12.1, §21.15 | 1.0.10 published; as-built |
+
+### Rev 26 — 2026-09-19 — W-237 chip attach, mobile shell, destroy cancel
+
+The remaining BubbleMap / core-migration panel gaps. Chip ⋯ Attach
+only when `adapter.attach` exists (`canAttach` optional). `create()`
+forwards `mobile` / `defaults` / `minWidth` / `minHeight` as named
+keys; passed `defaults` merge on 420×560/`open`. Compose pads
+`env(safe-area-inset-bottom, 0px)`. `destroy()` fires the cancel
+POST then disconnects. `/new` and a chip-dropping thread switch
+share one confirm. `handle.setTitle`. WS turn actor carries
+`req.session.user` from the handshake user. `startTurn` sends
+without `waitForWs`; a false `send()` is not a turn error.
+`jpulseVersion` `>=2.0.5`. W-236 (anthropic 1.0.1):
+`completeAnthropic` classifies `error.cause.code` — `ECONNRESET` /
+`ECONNREFUSED` / `ETIMEDOUT` / `EPIPE` / `EAI_AGAIN` /
+`UND_ERR_SOCKET` / `UND_ERR_CONNECT_TIMEOUT` are retryable;
+`ENOTFOUND` and TLS stay fatal; the message is `fetch failed
+(CODE)`; the family remains `AI_PROVIDER_ERROR`.
+
+| Section | Change |
+|---|---|
+| Header, §12.1, §21.15 | W-237 specified as 1.0.10 |
+| §21.2 | Table row for W-237 |
+| Header | W-236 provider classification |
 
 ### Rev 25 — 2026-09-19 — W-234 as-built
 
@@ -1964,8 +2011,9 @@ jPulse.ai.panel.create({
     storageKey: 'aiAgent:window',       // forwarded to floatPanel
     cascade:   true,                    // first visit only; occupancy is every
                                         // registered x/y
-    group:     'map',                   // mobile.exclusive only; no effect until
-                                        // exclusive is on
+    group:     'map',                   // mobile.exclusive only
+    mobile:    { exclusive: true, breakpoint: 768 },
+    defaults:  { w: 360, h: 480 },      // merges on 420×560 / open
     adapter: {
         toolData(toolName) { … },  // data for client-host tools, §8.1
         describeContext(value) { … },
@@ -1973,7 +2021,9 @@ jPulse.ai.panel.create({
         contextOptions()  { … },   // gates the context row and /context
         renderProposalPreview(proposal) { … },   // §13, W-227
         applyProposal(proposal) { … },           // W-227
-        undoProposal(proposal)  { … }            // W-227
+        undoProposal(proposal)  { … },           // W-227
+        canAttach(row) { … },                    // W-237; omit = ok
+        attach(row, file) { … }                  // W-237; ⋯ only if present
     }
 });
 ```
@@ -2034,6 +2084,16 @@ live until ✕, `/new`, thread switch, or reload, the same as sources.
 `handle.attachments()` mid-turn still lists a PNG that was just
 sent. The Redis mailbox peeks and is deleted only with the chip
 (§14.4).
+As of 1.0.10, a chip ⋯ **Attach** ships only when `adapter.attach`
+is a function. The chip is a group (body / ⋯ / ✕). `canAttach(row)`
+omitted is `{ ok: true }`; `{ ok: false, reason }` keeps the item
+visible and disabled. Click is `attach(row, handle.attachmentFile(row.id))`
+— a site write, not a proposal. The label is i18n `chipAttach`.
+Chip click still opens details; ⋯ does not toggle them. `/new`,
+the (+) new button, thread select, and `/conversations n` share
+one confirm when the switch would drop chips. The body says
+"this conversation". The WS turn actor is built with the handshake
+user on `req.user` and `req.session.user`.
 
 Note what is *not* required on the adapter: `executeTool`. When a client-host
 tool names a shared module (§8.2), the site supplies the data and the
@@ -2047,26 +2107,34 @@ Panel defaults that keep the one-liner honest: `id` is
 `ai-panel-<scopeType>-<scopeId>`; the default size is larger than
 `floatPanel`'s 360×280; the last thread id persists under its own key
 rather than inside the panel geometry; the toolbar label is the i18n
-"AI chat" unless `title` is a non-empty string. `storageKey`, `cascade`,
-and `group` are forwarded to `floatPanel.create()` when supplied —
-otherwise the shell defaults (`jp:floatPanel:<id>`, no cascade, group
-`default`). Cascade occupancy is every registered panel's `x` / `y`,
-not open-only and not same-group; a closed Chat created on map load
-still occupies the default corner. `group` is only `mobile.exclusive`.
+"AI chat" unless `title` is a non-empty string. `handle.setTitle(str)`
+restamps the toolbar and the thread-select `aria-label`; `''` / `null`
+restores the i18n default. `storageKey`, `cascade`, `group`, `mobile`,
+`defaults`, `minWidth`, and `minHeight` are forwarded to
+`floatPanel.create()` when supplied — otherwise the plugin defaults
+(`defaults: { w: 420, h: 560, open }`, `minWidth: 320`,
+`minHeight: 360`, floatPanel's own mobile bag with `exclusive: false`).
+Passed `defaults` merge on top of 420×560/`open`. Cascade occupancy
+is every registered panel's `x` / `y`, not open-only and not
+same-group; a closed Chat created on map load still occupies the
+default corner. `group` is only `mobile.exclusive`.
 Any parseable JSON at `storageKey` sets `fromStorage` and skips
 cascade. Do not spread the rest of the create bag into the shell.
 `create()` always appends a root to `document.body`. The returned
-`destroy()` (also on `handle.destroy`) unregisters the float panel,
-disconnects the per-thread WebSocket (the same path thread switch
-already uses; a no-op on HTTP), and removes that node; a second
-call is a no-op. A site only calls `destroy()`. It does not cancel
-an in-flight turn or clear `localStorage`.
+`destroy()` (also on `handle.destroy`) fires cancel when a turn is
+running, unregisters the float panel, disconnects the per-thread
+WebSocket (the same path thread switch already uses; a no-op on
+HTTP), and removes that node; a second call is a no-op. A site only
+calls `destroy()`. It does not clear `localStorage`. Compose pads
+`env(safe-area-inset-bottom, 0px)`. Send queues until the socket is
+open (jPulse `>=2.0.5`).
 Compose paste of `text/plain` stays in the textarea. Only clipboard
 files and images become chips (`origin: 'paste'`). Paste-as-source
 is drop / (+) menu. The send-time URL intercept is unchanged.
-The (+) attach menu defaults to `left: 0`. On open it flips to
-`right: 0` when the (+) is in the right half of the panel so
-`.jp-float-panel`'s `overflow: hidden` does not clip either edge.
+The (+) attach menu and the chip ⋯ menu default to `left: 0`. On
+open they flip to `right: 0` when the control is in the right half
+of the panel so `.jp-float-panel`'s `overflow: hidden` does not
+clip either edge.
 The client namespace is `jPulse.ai`,
 the mirror of `global.AiCore`, not `jPulse.plugins.aiCore`. W-220's
 `launcher` option is ghost geometry and focus-return only; the panel binds
@@ -2091,7 +2159,9 @@ example rows.
 per scope and user. `POST /api/1/ai/thread` without `forceNew` is
 `findOrCreateActive` (first send, empty list). With `forceNew: true` the
 server archives the active slot and inserts. The picker does not filter by
-status and does not label archived rows.
+status and does not label archived rows. As of 1.0.10 the panel
+confirms `/new` (and a chip-dropping switch) when chips are
+attached; cancel leaves them.
 
 **`marked` is loaded on demand.** `jpulse-header.tmpl` includes Prism but
 not `marked.min.js`. The panel injects `/common/marked/marked.min.js` once
@@ -3119,6 +3189,7 @@ separate work in its own repository.
 | **W-232** | ai: upload caps from settings, scope wipe, and cutover guards | A second site ports onto the bundle without a code change: admin-owned upload caps, one call to erase a deleted object's conversations, and the three silent traps closed |
 | **W-233** | ai: panel title, floatPanel shell options, and the clipped add menu | A second panel on the same page can name itself, keep its own geometry key, and cascade; `destroy()` removes the body node and closes the socket; compose paste stays in the box; this turn's attachments are on the user message; the (+) menu is readable |
 | **W-234** | ai: image chips stay on Send | A PNG chip stays until ✕ / `/new` / thread switch / reload, same as a text source. The mailbox peeks; mid-turn `handle.attachments()` still sees the picture |
+| **W-237** | ai: chip attach, mobile shell, destroy cancel | A site can drop `hardClose` and wire chip → object without a fork: ⋯ Attach, the four shell keys, destroy-cancel, `/new` confirm, `setTitle`, WS `session.user` |
 
 W-223, W-224, and W-226 are the "first release" referred to throughout: server
 core, a real provider, and the panel. W-227 and W-228 are each independently
@@ -3476,6 +3547,29 @@ covered by `plugins/ai-core/webapp/tests/unit/regressions.test.js`
 Helper contracts (sanitizers, lease holder, ingest, budgets) are
 `helpers-contracts.test.js`. The specified surface landed; no
 product deviation from Rev 24.
+
+### 21.15 W-237 — chip attach, mobile shell, destroy cancel
+
+Specified in Rev 26 against shipped 1.0.9. Published as
+`@jpulse-net/plugin-ai-core` 1.0.10 (bundle carries `ai-mock` 1.0.10
+and `hello-ai` 1.0.10; companions lockstep; commit `774c3b9`, tag
+`v1.0.10`). Chip ⋯ Attach ships only when `adapter.attach` is a
+function. The chip is a group (body / ⋯ / ✕). `canAttach` omitted
+is ok. The write is not a proposal. `create()` forwards `mobile`,
+merged `defaults`, `minWidth`, and `minHeight` as named keys.
+Compose pads `env(safe-area-inset-bottom, 0px)`. `destroy()` fires
+the existing cancel POST (does not wait) then disconnects.
+`/new`, the (+) new button, thread select, and `/conversations n`
+share one confirm. Body uses "this conversation". `handle.setTitle`
+restamps the toolbar. `authorizeAiSocket` stashes the handshake
+user; the turn actor is
+`actorFromRequest({ user, session: { user } }, { origin: 'ws', … })`
+with a username/roles fallback. `startTurn` sends without
+`waitForWs` (removed; W-235's outbox is the send gate). A false
+`send()` is not a turn error. `jpulseVersion` is `>=2.0.5`.
+Hello AI has no `attach`, no `mobile`, no title setter. The
+specified surface landed; `waitForWs` removal is the one home the
+code wanted.
 
 ### 21.14 Standalone follow-ons
 

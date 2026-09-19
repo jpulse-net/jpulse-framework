@@ -26722,3 +26722,98 @@ left IN_PROGRESS. Did not commit.
 
 
 ============================================================
+2026-09-19 15:53
+
+anything else to carry over to new chat for new chat for W-237,
+v1.0.10, 2026-09-19: ai: chip attach, mobile shell, destroy cancel?
+
+Advised a new chat. This thread is W-236 anthropic 1.0.1 plus leftover
+W-235 queue context. W-237 is ai-core 1.0.10, its own publish.
+W-236 has landed: include one design-doc line in Rev 26/27. W-235
+as-built: send() true means accepted; flush is connection._flushOutbox().
+Do not redo 1.0.8/1.0.9 chrome or W-236. Offered a paste-ready handoff.
+
+
+============================================================
+2026-09-19 16:05
+
+next: W-237, v1.0.10, 2026-09-19: ai: chip attach, mobile shell, destroy cancel.
+Spec: docs/dev/work-items.md ### W-237. Status still PENDING; do not
+change status or move the item. Workflow: read the spec, ask if
+anything is unclear, plan, wait for go-ahead before implementing.
+
+Read W-237 (PENDING, do not move). Planned 1.0.10 only: chip ⋯
+adapter.attach/canAttach, forward mobile/defaults/min size, compose
+safe-area, destroy cancel POST then disconnect, /new+switch confirm,
+WS ctx.user + session.user actor, handle.setTitle, startTurn no
+per-turn waitForWs and false send() is not an error, jpulseVersion
+>=2.0.5. hello-ai lockstep only. Design-doc Rev 26/27 plus one
+W-236 line. Asked about connectWs wait and confirm copy. Waiting
+for go-ahead. Did not implement, bump-version, or touch status.
+
+
+============================================================
+2026-09-19 16:10
+
+- waitForWs no longer needed in site code since it is handled
+upstream; remove unless argument against it
+- "body: Attached files and images will be removed from this tab"
+-- is tab the right word? or "this conversation"
+Keep the spec as written. Chip as a group. Pad compose. Same
+confirm helper for /conversations n.
+
+Implemented W-237 as specified. Confirm body uses "this
+conversation". Removed waitForWs (W-235 outbox is the send gate).
+Chip is a group with body / ⋯ / ✕; ⋯ only when adapter.attach
+exists. Forwarded mobile/defaults/min size. Compose
+safe-area-inset-bottom. destroy() cancel POST then disconnect.
+/new and chip-dropping switch share confirm. handle.setTitle.
+WS handshake user on ctx; turn actor session.user. startTurn
+sends without waiting; false send() is not an error.
+jpulseVersion >=2.0.5 lockstep. Tests 23/247 passed. Design-doc
+Rev 26/27 plus W-236 line. Status left PENDING. No server on
+8080 so Hello AI was not browser-checked. Did not bump-version
+or commit.
+
+
+============================================================
+2026-09-19 16:20
+
+- for all 3 plugins, enhance plugins releases bullets to include
+W-nnn and date as in README.md (82-86)
+- for all 3 plugins, copy the plugins releases section to
+docs/README.md
+
+Formatted every Plugin releases bullet as **v**, W-nnn, date on
+ai-core, ai-mock, and hello-ai README.md. Copied the same section
+into each plugin's docs/README.md. Status left PENDING.
+
+
+============================================================
+2026-09-19 16:26
+
+plugin release prep: review tt-git-diff.txt; assume W-237,
+v1.0.10, 2026-09-19; update commit-message.txt for 3 plugins
+
+Reviewed tt-git-diff.txt against W-237. Product surface is
+complete. Agreed deviation: waitForWs removed (W-235 outbox).
+Design-doc hunk is framework-repo, not in these diffs. Wrote
+commit-message.txt for ai-core, ai-mock, hello-ai. Status left
+as found. Did not commit or bump-version.
+
+
+============================================================
+2026-09-19 16:40
+
+plugins released, bundle published. Update tt-commit.txt; do not
+change the W-235, v2.0.5, 2026-09-19: ai: prefix. Review work
+item and design doc against actual code.
+
+Updated tt-commit.txt for W-237 / 1.0.10 (prefix kept). Aligned
+W-237 features/deliverables/as-built with shipped code (chip
+group, this conversation, /conversations n, waitForWs removed,
+774c3b9). Design-doc header and Rev 27 / §12.1 / §21.15 now say
+published. Status left IN_PROGRESS. Did not commit.
+
+
+============================================================

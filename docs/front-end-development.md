@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v2.0.4
+# jPulse Docs / Front-End Development Guide v2.0.5
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -486,8 +486,7 @@ const MyApp = {
     data() {
         return {
             connectionStatus: 'disconnected',
-            messages: [],
-            ws: null
+            messages: []
         };
     },
     mounted() {
@@ -509,7 +508,11 @@ const MyApp = {
 };
 ```
 
-> **See Complete Guide:** [WebSocket Real-Time Communication](websockets.md) for server-side setup, authentication, monitoring, dynamic namespaces (one per room/resource), connection context (conn/ctx), and handling reconnects.
+A socket handle or a `floatPanel` handle is not reactive state. Keep it off `data()` / `reactive()`, or wrap it in `markRaw()`. Disconnect / `destroy()` on unmount when the component remounts. Storing the handle on `data()` has not been seen to break `send` / `toggle` / `destroy`; the guidance is still the safer default.
+
+If a floating panel's `el` is a Vue-owned tree (`Teleport` or any VNode root), do not use the default `resizeHandles.mode: 'inject'`. Injected grip nodes are not in the VNode tree, so the next patch removes them and the panel stops resizing. Use `resizeHandles: { mode: 'manual' }` and put the eight `data-jp-panel-resize` nodes in the template. A panel appended to `document.body` outside Vue can keep inject. See [Floating Panel Widget](jpulse-ui-reference.md#floating-panel-widget).
+
+> **See Complete Guide:** [WebSocket Real-Time Communication](websockets.md) for server-side setup, authentication, monitoring, dynamic namespaces (one per room/resource), connection context (conn/ctx), and handling reconnects. `send()` now returns `true` when a payload is accepted (written or queued until the socket opens); `false` means the connection is gone.
 
 ## 📝 Form Handling & Validation
 

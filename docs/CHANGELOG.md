@@ -1,6 +1,37 @@
-# jPulse Docs / Version History v2.0.4
+# jPulse Docs / Version History v2.0.5
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.5, W-235, 2026-09-19
+
+**Commit:** `W-235, v2.0.5, 2026-09-19: websocket: queue a send until the socket is open`
+
+**FEATURE RELEASE**: Sending before the socket reached `OPEN` was a console warning and a silently dropped payload. Three callers had already hand-rolled a "wait until connected" guard. This release queues those sends in the framework.
+
+**Objective**: Accept `send()` / `request()` while `connecting` or `reconnecting`, flush in order on open, and keep refusing a socket that is genuinely gone.
+
+**Key features**:
+- `send()` returns `true` when the payload is accepted (written or queued), `false` when status is `disconnected` or `auth-required`
+- Flush runs via `connection._flushOutbox()` in `_createWebSocket.onopen` before `onStatusChange('connected')`
+- Outbox caps: `maxQueueLength` 32, `maxQueueAgeMs` 10000 (connect options)
+- `request()` queues on the same rule; its timeout clock starts at enqueue
+- Age/length drop of a queued request is `NOT_CONNECTED`; teardown (`disconnect()`, 4401 / 4403) is `CONNECTION_LOST`
+- `disconnect()` and auth-terminal closes drop the outbox; an ordinary close keeps it for reconnect
+- Docs: Vue `floatPanel` inject grips vanish on the next VNode patch — use `resizeHandles: { mode: 'manual' }` when `el` is Vue-owned. The Vue SPA example keeps the socket off `data()`
+
+**Files changed**:
+- `webapp/view/jpulse-common.js`: `connection.outbox`, enqueue in `send()` / `request()`, `_flushOutbox` on open, clear on disconnect / 4401 / 4403
+- `webapp/tests/unit/utils/jpulse-websocket-request.test.js` (behavioral), `jpulse-websocket-simple.test.js` (config + source scan)
+- `docs/websockets.md`, `docs/jpulse-ui-reference.md`, `docs/front-end-development.md`
+- `docs/dev/work-items.md`: W-235 features/deliverables as-built
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.5 / W-235
+- `docs/CHANGELOG.md`: this section
+
+**Release**:
+- Work Item: W-235
+- Version: v2.0.5
+- Release Date: 2026-09-19
 
 ________________________________________________
 ## v2.0.4, W-229, 2026-09-17

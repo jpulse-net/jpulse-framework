@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         2.0.4
- * @release         2026-09-17
+ * @version         2.0.5
+ * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -12532,7 +12532,9 @@ window.jPulse = {
             reconnectInterval: 5000,
             pingInterval: 30000,          // 30 seconds
             uuidStorage: 'session',       // 'session' | 'local' | 'memory'
-            requestTimeoutMs: 30000       // W-208: default for ws.request()
+            requestTimeoutMs: 30000,      // W-208: default for ws.request()
+            maxQueueLength: 32,           // W-235: outbox cap while connecting / reconnecting
+            maxQueueAgeMs: 10000          // W-235: drop queued payloads older than this at flush
         },
 
         // Memory storage for 'memory' mode
@@ -12647,7 +12649,9 @@ window.jPulse = {
                 uuid: clientUUID, // Store UUID directly on connection object
                 // W-208: effective limits from server welcome; pending client→server requests
                 limits: null,
-                pendingRequests: new Map()
+                pendingRequests: new Map(),
+                // W-235: payloads accepted while connecting / reconnecting
+                outbox: []
             };
 
             // Add getConnection method to the connection object
@@ -12684,29 +12688,132 @@ window.jPulse = {
                 }
             };
 
+            const queueLengthCap = () => {
+                const n = Number(connection.config.maxQueueLength);
+                return Number.isFinite(n) && n > 0 ? n : 32;
+            };
+
+            const queueAgeCapMs = () => {
+                const n = Number(connection.config.maxQueueAgeMs);
+                return Number.isFinite(n) && n >= 0 ? n : 10000;
+            };
+
+            const socketIsOpen = () => {
+                return !!(connection.ws && connection.ws.readyState === WebSocket.OPEN);
+            };
+
+            const canQueue = () => {
+                return connection.shouldReconnect
+                    && (connection.status === 'connecting' || connection.status === 'reconnecting');
+            };
+
+            const oversize = (data) => {
+                const maxSize = connection.limits?.maxSize;
+                if (typeof maxSize !== 'number') {
+                    return null;
+                }
+                const size = payloadByteLength(data);
+                if (size > maxSize) {
+                    return { size, maxSize };
+                }
+                return null;
+            };
+
+            const rejectOutboxEntry = (entry, error, code) => {
+                if (!entry || typeof entry.rejectQueued !== 'function') {
+                    return;
+                }
+                entry.rejectQueued(error, code);
+            };
+
+            const dropOldestQueued = () => {
+                const dropped = connection.outbox.shift();
+                if (!connection._queueLengthWarned) {
+                    console.warn('- jPulse.ws: Outbox full, dropping oldest queued message');
+                    connection._queueLengthWarned = true;
+                }
+                rejectOutboxEntry(dropped, 'Connection not open', 'NOT_CONNECTED');
+            };
+
+            const enqueue = (entry) => {
+                const cap = queueLengthCap();
+                while (connection.outbox.length >= cap) {
+                    dropOldestQueued();
+                }
+                connection.outbox.push(entry);
+                return true;
+            };
+
+            const clearOutbox = (error, code) => {
+                const items = connection.outbox.splice(0);
+                items.forEach((entry) => {
+                    rejectOutboxEntry(entry, error, code);
+                });
+            };
+
+            const writeOpen = (data) => {
+                const tooBig = oversize(data);
+                if (tooBig) {
+                    console.warn(`- jPulse.ws: Message too large: ${tooBig.size} > ${tooBig.maxSize}`);
+                    return false;
+                }
+                connection.ws.send(JSON.stringify(data));
+                return true;
+            };
+
+            const flushOutbox = () => {
+                if (!socketIsOpen()) {
+                    return;
+                }
+                const now = Date.now();
+                const maxAge = queueAgeCapMs();
+                const items = connection.outbox.splice(0);
+                items.forEach((entry) => {
+                    if (now - entry.enqueuedAt > maxAge) {
+                        if (!connection._queueAgeWarned) {
+                            console.warn('- jPulse.ws: Dropping queued message older than maxQueueAgeMs');
+                            connection._queueAgeWarned = true;
+                        }
+                        rejectOutboxEntry(entry, 'Connection not open', 'NOT_CONNECTED');
+                        return;
+                    }
+                    if (typeof entry.sendNow === 'function') {
+                        entry.sendNow();
+                        return;
+                    }
+                    writeOpen(entry.data);
+                });
+            };
+
+            connection._flushOutbox = flushOutbox;
+            connection._clearOutbox = clearOutbox;
+
             // Create connection handle (public API)
             connection.handle = {
                 /**
                  * Send message to server
                  * @param {Object} data - Data to send
-                 * @returns {boolean} True if sent successfully
+                 * @returns {boolean} True if accepted (written or queued), false if refused
                  */
                 send: (data) => {
-                    if (!connection.ws || connection.ws.readyState !== WebSocket.OPEN) {
-                        console.warn('- jPulse.ws: Cannot send, connection not open');
-                        return false;
+                    if (socketIsOpen()) {
+                        return writeOpen(data);
                     }
-                    // W-208: client-side size pre-check when limits are known
-                    const maxSize = connection.limits?.maxSize;
-                    if (typeof maxSize === 'number') {
-                        const size = payloadByteLength(data);
-                        if (size > maxSize) {
-                            console.warn(`- jPulse.ws: Message too large: ${size} > ${maxSize}`);
+                    if (canQueue()) {
+                        const tooBig = oversize(data);
+                        if (tooBig) {
+                            console.warn(`- jPulse.ws: Message too large: ${tooBig.size} > ${tooBig.maxSize}`);
                             return false;
                         }
+                        enqueue({
+                            kind: 'send',
+                            data,
+                            enqueuedAt: Date.now()
+                        });
+                        return true;
                     }
-                    connection.ws.send(JSON.stringify(data));
-                    return true;
+                    console.warn('- jPulse.ws: Cannot send, connection not open');
+                    return false;
                 },
 
                 /**
@@ -12718,51 +12825,87 @@ window.jPulse = {
                  */
                 request: (data, options = {}) => {
                     const timeoutMs = options.timeoutMs ?? connection.config.requestTimeoutMs ?? 30000;
-                    if (!connection.ws || connection.ws.readyState !== WebSocket.OPEN) {
+                    const requestId = jPulse.ws._generateUUID();
+                    const payload = { ...data, requestId };
+                    const tooBig = oversize(payload);
+                    if (tooBig) {
+                        return Promise.resolve({
+                            success: false,
+                            error: `Message too large: ${tooBig.size} > ${tooBig.maxSize}`,
+                            code: 'MESSAGE_TOO_LARGE',
+                            details: { size: tooBig.size, limit: tooBig.maxSize },
+                            requestId
+                        });
+                    }
+                    if (!socketIsOpen() && !canQueue()) {
                         return Promise.resolve({
                             success: false,
                             error: 'Connection not open',
-                            code: 'NOT_CONNECTED'
+                            code: 'NOT_CONNECTED',
+                            requestId
                         });
                     }
-                    const requestId = jPulse.ws._generateUUID();
-                    const payload = { ...data, requestId };
-                    const maxSize = connection.limits?.maxSize;
-                    if (typeof maxSize === 'number') {
-                        const size = payloadByteLength(payload);
-                        if (size > maxSize) {
-                            return Promise.resolve({
-                                success: false,
-                                error: `Message too large: ${size} > ${maxSize}`,
-                                code: 'MESSAGE_TOO_LARGE',
-                                details: { size, limit: maxSize },
-                                requestId
-                            });
-                        }
-                    }
                     return new Promise((resolve) => {
-                        const timer = setTimeout(() => {
+                        let settled = false;
+                        let timer = null;
+                        const finish = (result) => {
+                            if (settled) {
+                                return;
+                            }
+                            settled = true;
+                            if (timer) {
+                                clearTimeout(timer);
+                            }
                             connection.pendingRequests.delete(requestId);
-                            resolve({
+                            connection.outbox = connection.outbox.filter((row) => row.requestId !== requestId);
+                            resolve(result);
+                        };
+                        timer = setTimeout(() => {
+                            finish({
                                 success: false,
                                 error: 'Request timed out',
                                 code: 'REQUEST_TIMEOUT',
                                 requestId
                             });
                         }, timeoutMs);
-                        connection.pendingRequests.set(requestId, { resolve, timer });
-                        try {
-                            connection.ws.send(JSON.stringify(payload));
-                        } catch (err) {
-                            clearTimeout(timer);
-                            connection.pendingRequests.delete(requestId);
-                            resolve({
-                                success: false,
-                                error: err.message || 'Send failed',
-                                code: 'NOT_CONNECTED',
-                                requestId
+                        const sendNow = () => {
+                            if (settled) {
+                                return;
+                            }
+                            connection.pendingRequests.set(requestId, {
+                                resolve: finish,
+                                timer
                             });
+                            try {
+                                connection.ws.send(JSON.stringify(payload));
+                            } catch (err) {
+                                finish({
+                                    success: false,
+                                    error: err.message || 'Send failed',
+                                    code: 'NOT_CONNECTED',
+                                    requestId
+                                });
+                            }
+                        };
+                        if (socketIsOpen()) {
+                            sendNow();
+                            return;
                         }
+                        enqueue({
+                            kind: 'request',
+                            data: payload,
+                            requestId,
+                            enqueuedAt: Date.now(),
+                            sendNow,
+                            rejectQueued: (error, code) => {
+                                finish({
+                                    success: false,
+                                    error,
+                                    code,
+                                    requestId
+                                });
+                            }
+                        });
                     });
                 },
 
@@ -12846,6 +12989,7 @@ window.jPulse = {
                         clearInterval(connection.pingTimer);
                     }
                     settlePending('Connection closed', 'CONNECTION_LOST');
+                    clearOutbox('Connection closed', 'CONNECTION_LOST');
                     if (connection.ws) {
                         connection.ws.close();
                     }
@@ -12885,6 +13029,9 @@ window.jPulse = {
                 connection.ws.onopen = () => {
                     console.log(`- jPulse.ws: Connected to ${connection.path}`);
                     connection.reconnectAttempts = 0;
+                    if (typeof connection._flushOutbox === 'function') {
+                        connection._flushOutbox();
+                    }
                     this._updateStatus(connection, 'connected');
 
                     // Remove manual ping timer - browsers handle ping/pong automatically
@@ -12965,6 +13112,9 @@ window.jPulse = {
                     if (event.code === 4401 || event.code === 4403) {
                         console.warn(`- jPulse.ws: Auth-terminal close (${event.code}) on ${connection.path}, stopping reconnect`);
                         connection.shouldReconnect = false;
+                        if (typeof connection._clearOutbox === 'function') {
+                            connection._clearOutbox('Connection closed', 'CONNECTION_LOST');
+                        }
                         jPulse.ws._connections.delete(connection.path);
                         this._updateStatus(connection, 'auth-required');
                         return;

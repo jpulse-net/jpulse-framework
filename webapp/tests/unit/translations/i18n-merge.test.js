@@ -3,8 +3,8 @@
  * @tagline         Deep-merge of framework, plugin, and site translation files
  * @description     Isolated temp translation trees; does not edit the live webapp/translations
  * @file            webapp/tests/unit/translations/i18n-merge.test.js
- * @version         2.0.4
- * @release         2026-09-17
+ * @version         2.0.5
+ * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

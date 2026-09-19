@@ -3,8 +3,8 @@
  * @tagline         Unit tests for CommonUtils.sendStream
  * @description     Ranges, HEAD, conditionals, RFC 5987 filenames, disconnect teardown
  * @file            webapp/tests/unit/utils/send-stream.test.js
- * @version         2.0.4
- * @release         2026-09-17
+ * @version         2.0.5
+ * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

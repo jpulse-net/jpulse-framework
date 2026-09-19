@@ -26586,3 +26586,96 @@ Reviewed the framework diff: design Rev 24, work-items W-234, cursor_log. Do not
 
 
 ============================================================
+2026-09-19 13:36
+
+W-235, v1.0.10, 2026-09-19: ai follow-up work item is needed:
+more work to do before the ai feature migration to core is complete.
+continue here, or start a new chat?
+
+Advised a new chat. This thread already overflowed once; 1.0.8/1.0.9 is published. Offered a paste-ready handoff. Did not write the W-235 spec.
+
+
+============================================================
+2026-09-19 13:42
+
+W-235, v1.0.10, 2026-09-19: ai follow-up work item.
+
+more work to do before the ai feature migration to core is complete.
+
+Filled W-235 in docs/dev/work-items.md (status still PENDING, not moved). Spec is BubbleMap panel parity for ai-core 1.0.10: chip attach via adapter.attach/canAttach (no sourceAttachable), forward mobile/defaults/min size, compose safe-area, destroy() cancels a running turn, /new and chip-dropping thread switch confirm, plus WS session.user and handle.setTitle. Plan written; waiting for go-ahead. Out of scope: MCP, OpenAI, TD-17.
+
+
+============================================================
+2026-09-19 13:57
+
+opus: chime in
+- Anthropic retryable should be in scope
+- framework ws queue is out of scope, requires separate work item; how much effort? spec?
+- Vue wiping handles in or out of scope? jpulse supports vue, thus an site using ai-core and vue, is wiping site code or ai-core code?
+- I am not clear about site wiring of adapter.attach and the two user-doc sentences
+
+Anthropic retry folded into W-235 as feature 8 (ai-anthropic 1.0.1, second package/repo/tag): the non-AbortError catch hardcodes retryable:false, so undici 'fetch failed' skips turnLoop's existing 500/1500/3500 backoff and error.cause is never logged. Classify cause.code; ENOTFOUND and TLS stay fatal. WS queue: ai-core is not affected (it has waitForWs), so it is DX for other callers; ~half a day, spec sketched (outbox with age cap, flush in onopen before status, clear on disconnect/4401/4403, request() timeout clock at enqueue, send() true means accepted). Vue: neither ai-core nor framework wipes anything; Vue proxies what the site stores, and ai-core's destroy closes over its own root/handle. Recommended a framework doc line on markRaw, optional 2-line unwrap for region/preview nodes; cannot reproduce since tmp-bubblemap-app predates the migration. Found the doc sentences: site ai-agent.md lines 53 and 55, plus file-attachments.md:99 and a test grepping /Attach to bubble/ - overriding the i18n chipAttach string to 'Attach to bubble' keeps all of them true. Status left PENDING.
+
+
+============================================================
+2026-09-19 14:12
+
+- tmp-bubblemap-app is a symlink, aka live copy, so latest code is under it
+  - for plugins only, the old code is under tmp-bubblemap-app/plugins.save1/
+- ai-anthropic fix needs its own work item
+- as sequence I propose: W-235 jpulse ws enhancement, W-236 ai-anthropic fix,
+  W-237 ai-core fixes & use of W-235 enhancement; or swap W-236 and W-237?
+- ok to handle vue item as a doc item
+
+Split into three items, all PENDING, none moved. W-235 v2.0.5 framework WS send queue plus the Vue doc note; W-236 ai-anthropic 1.0.1 retry classification; W-237 ai-core 1.0.10 (the former W-235 spec, minus anthropic, plus features 8 and 9 for the queue). Recommended keeping the proposed order, not swapping. Read the live site via the symlink: three callers hand-roll the connected guard (ai-core waitForWs, Map Chat wsConnected, map join in the connected branch), map-canvas-ai.tmpl passes no mobile/defaults and works around it with setRect 360x480 plus a manual isFront/hardClose gate, and map-canvas.tmpl data() declares wsConnection and the three panel handles with no markRaw. Flagged one open decision: feature 9 raises jpulseVersion to >=2.0.5 for all ai-core users, so it is droppable.
+
+
+============================================================
+2026-09-19 14:33
+
+- ok to raise jpulseVersion from >=2.0.3 to >=2.0.5 for every ai-core user
+- from bubblemap chat: the Vue note was injected resize-handle DOM, not
+  Vue proxying the handle object. resizeHandles.mode inject appends eight
+  grips; a Vue Teleport tree drops them on the next patch. Map Chat uses
+  mode: 'manual'. AI plugin panel is on document.body so inject is fine.
+  markRaw / destroy on unmount is still good guidance, different issue.
+
+Locked W-237 feature 9 and jpulseVersion >=2.0.5. Rewrote W-235 Vue
+rationale, feature 7, deliverables, and notes around the inject-vs-manual
+failure mode; markRaw stays a second paragraph. Status left PENDING.
+
+
+============================================================
+2026-09-19 14:55
+
+implement W-235
+
+Implemented the jPulse.ws outbox: send() / request() queue while
+connecting or reconnecting, flush in onopen before status callbacks,
+caps maxQueueLength 32 and maxQueueAgeMs 10000, clear on disconnect
+and 4401/4403. send() true means accepted. Vue docs name inject-vs-
+manual resize grips. Tests: 2 suites / 56 passed. Status left
+IN_PROGRESS. Did not bump-version or touch .jpulse/.
+
+
+============================================================
+2026-09-19 15:13
+
+release prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-235, v2.0.5, 2026-09-19
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Reviewed tt-git-diff.txt. Diff matches W-235: outbox, tests, Vue docs,
+highlights, CHANGELOG. As-built: flush is connection._flushOutbox();
+queued request teardown is CONNECTION_LOST; simple suite is config +
+source scan. Updated W-235 features/deliverables only (status left
+IN_PROGRESS). Aligned websockets.md Vue example, CHANGELOG, and
+commit-message.txt. Do not add tmp-bubblemap-app. Did not commit or
+bump-version.
+
+
+============================================================

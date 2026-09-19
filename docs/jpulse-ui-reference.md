@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v2.0.4
+# jPulse Docs / jPulse.UI Widget Reference v2.0.5
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -361,7 +361,7 @@ Place the panel element where `position: fixed` is viewport-relative. An ancesto
 | `cascade` | boolean \| `{ offsetX, offsetY }` | `false` | Offset when another panel already occupies the default position. `true` uses `{ offsetX: -48, offsetY: -48 }` |
 | `dragHandle` | selector \| Element | `'[data-jp-panel-drag]'` | Pointer-drag target. Arrow-key nudge is listened on the panel itself while it has programmatic focus |
 | `dragIgnore` | selector | `'button, a, input, select, textarea, [data-jp-panel-close]'` | Suppresses a drag started on a matching descendant |
-| `resizeHandles` | `{ mode, dirs }` | `{ mode: 'inject', dirs: [n,ne,e,se,s,sw,w,nw] }` | `'inject'` appends handle nodes to `el` (MPA only). `'manual'` binds existing `[data-jp-panel-resize]` nodes. `false` disables handles |
+| `resizeHandles` | `{ mode, dirs }` | `{ mode: 'inject', dirs: [n,ne,e,se,s,sw,w,nw] }` | `'inject'` appends eight grip nodes onto `el` — fine when `el` is not a virtual-DOM tree. `'manual'` binds existing `[data-jp-panel-resize]` nodes (required when `el` is Vue-owned). `false` disables handles |
 | `mobile` | `{ breakpoint, mode, heightRatio, exclusive }` | `{ breakpoint: 768, mode: 'sheet', heightRatio: 0.55, exclusive: false }` | Below `breakpoint`, a bottom sheet at `heightRatio` of the **safe** viewport (`window` minus `env(safe-area-inset-top/bottom)`). Side inset is 4px plus left/right safe-area so the page remains visible as background; the sheet sits above `safe-area-inset-bottom`. Drag and resize are suppressed. `exclusive` closes other **open panels in the same `group`**. `mobile: false` disables the sheet. iOS reports non-zero insets only when the page uses `viewport-fit=cover` |
 | `animate` | `{ durationMs }` | `{ durationMs: 300 }` | Ghost animation length. Themeable via `--jp-float-panel-anim-ms` (default `300ms`). Bypassed under `prefers-reduced-motion` |
 | `persistDebounceMs` | number | `300` | Debounce for `localStorage` writes. `0` writes immediately |
@@ -433,6 +433,10 @@ const panel = jPulse.UI.floatPanel.create({
 ```
 
 `launcher` is still an element or selector — resolve it yourself if the button is inside the Vue tree. Pass `nextTick` so the widget waits for a flush before reading the launcher rect.
+
+**Vue must not fight the widget.** `resizeHandles.mode: 'inject'` (the default) `appendChild`s eight `.jp-float-panel-resize` nodes onto `el`. When `el` is a Vue `Teleport` (or any VNode root), the next patch rebuilds from VNodes and drops those grips — corners work once, then vanish after a reactive update, and the panel cannot be resized. Use `resizeHandles: { mode: 'manual' }` and keep the eight `data-jp-panel-resize` nodes in the Vue template. A panel whose root is appended to `document.body` outside Vue can keep inject.
+
+A widget handle (or a `jPulse.ws` handle) is not reactive state. Keep it out of `data()` / `reactive()`, or wrap it in `markRaw()`. Destroy the panel on unmount when the component remounts — the registry keys on `id`, and a fresh `data()` does not remove the old entry. This is guidance; storing the handle on `data()` has not been seen to break `toggle` / `destroy`.
 
 ### Z-index band
 

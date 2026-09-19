@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v2.0.4
+# jPulse Docs / Site Administrator & Developer Documentation v2.0.5
 
 **For Site Administrators & Site Developers**
 
@@ -247,6 +247,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v2.0.5, W-235, 2026-09-19: WebSocket: queue a send until the socket is open**: `jPulse.ws.send()` and `request()` accept a payload while status is `connecting` or `reconnecting` and flush it in order when the socket opens, before `onStatusChange('connected')`. `true` now means accepted, not written. A `disconnected` or `auth-required` socket still refuses. The outbox is capped (`maxQueueLength` 32, `maxQueueAgeMs` 10000). Docs also name the Vue `floatPanel` failure: `resizeHandles.mode: 'inject'` drops grips on the next VNode patch — use `mode: 'manual'` on a Vue-owned `el`. Docs: [WebSockets](websockets.md), [UI reference](jpulse-ui-reference.md), [front-end development](front-end-development.md).
 - **v2.0.4, W-229, 2026-09-17: Hooks: jPulse-owned document conversion and preview hooks**: Four framework-owned, AI-free catalog rows — `onDocumentConvertRegister` / `onDocumentConvert` and `onDocumentPreviewRegister` / `onDocumentPreview` — so a PDF, Office, or thumbnail plugin depends on a framework version, not an AI package. Convert lists output keys (`text`, `markdown`, `pages`, `meta`); preview takes `originalName` and returns `imageBase64` plus `previewMime` (not `jpegBase64`). All four are `stability: 'planned'` until a framework caller exists. No converter, previewer, or caller ships. Also: new orientation pages [AI Agent](ai-agent.md) and [Internationalization](internationalization.md). Docs: `hooks.md`.
 - **v2.0.3, W-225, 2026-09-17: WebSocket: await `onCreate` so a namespace can refuse a connection asynchronously**: `onCreate` may be async; the upgrade path awaits it before the handshake. A returned Promise was previously installed as the connection `ctx`, so an async handler that meant to reject was accepted instead. Bounded by `controller.websocket.onCreateTimeoutMs` (default 5000). Docs: `websockets.md`.
 - **v2.0.2, W-222, 2026-09-16: i18n: site specific and plugin specific translations**: Startup deep-merges translation `*.conf` files from the framework, then each active plugin in load order, then `site/webapp/translations/`. A later source wins a leaf and does not wipe sibling keys. A plugin may ship only the default language; missing keys in other languages are backfilled from it. `{{i18n.*}}` is unchanged. Vue SPA loading of the merged set stays a later item. Docs: `creating-plugins.md`, `site-customization.md`, `handlebars.md`.

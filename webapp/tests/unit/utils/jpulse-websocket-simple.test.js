@@ -3,17 +3,19 @@
  * @tagline         Simplified unit tests for jPulse.ws client utilities
  * @description     Fast, focused tests for client-side WebSocket API
  * @file            webapp/tests/unit/utils/jpulse-websocket-simple.test.js
- * @version         2.0.4
- * @release         2026-09-17
+ * @version         2.0.5
+ * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 3.20, Grok 4.6
  */
 
 import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
 import { JSDOM } from 'jsdom';
+import fs from 'fs';
+import path from 'path';
 
 /**
  * Simplified client-side WebSocket tests
@@ -57,7 +59,9 @@ describe('jPulse.ws - Client API (Simplified)', () => {
                     reconnectBaseInterval: 5000,
                     reconnectMaxInterval: 30000,
                     maxReconnectAttempts: 10,
-                    pingInterval: 30000
+                    pingInterval: 30000,
+                    maxQueueLength: 32,
+                    maxQueueAgeMs: 10000
                 },
 
                 _generateUUID: function() {
@@ -137,6 +141,11 @@ describe('jPulse.ws - Client API (Simplified)', () => {
 
         test('has ping configuration', () => {
             expect(jPulse.ws._config.pingInterval).toBe(30000);
+        });
+
+        test('has send-queue configuration', () => {
+            expect(jPulse.ws._config.maxQueueLength).toBe(32);
+            expect(jPulse.ws._config.maxQueueAgeMs).toBe(10000);
         });
 
         test('configuration values are numbers', () => {
@@ -393,6 +402,26 @@ describe('jPulse.ws - Client API (Simplified)', () => {
             expect(key).toContain('jPulse');
             expect(key).toContain('ws');
         });
+    });
+});
+
+describe('jPulse.ws send queue contract (W-235)', () => {
+    const src = fs.readFileSync(
+        path.join(process.cwd(), 'webapp/view/jpulse-common.js'),
+        'utf8'
+    );
+
+    test('send queues while connecting or reconnecting and flushes on open', () => {
+        expect(src).toContain('outbox: []');
+        expect(src).toContain('maxQueueLength: 32');
+        expect(src).toContain('maxQueueAgeMs: 10000');
+        expect(src).toContain('const flushOutbox = () => {');
+        expect(src).toContain('connection._flushOutbox()');
+        expect(src.indexOf('connection._flushOutbox()')).toBeLessThan(src.indexOf("this._updateStatus(connection, 'connected')"));
+        expect(src).toContain("connection.status === 'connecting' || connection.status === 'reconnecting'");
+        expect(src).toContain("clearOutbox('Connection closed', 'CONNECTION_LOST')");
+        expect(src).toContain("event.code === 4401 || event.code === 4403");
+        expect(src).toContain("connection._clearOutbox('Connection closed', 'CONNECTION_LOST')");
     });
 });
 

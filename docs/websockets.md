@@ -1,4 +1,4 @@
-# jPulse Docs / WebSocket Real-Time Communication v2.0.4
+# jPulse Docs / WebSocket Real-Time Communication v2.0.5
 
 > **Need multi-server broadcasting instead?** If you're running multiple server instances and need to synchronize state changes across all servers (like collaborative editing), see [Application Cluster Communication](application-cluster.md) which uses REST API + Redis broadcasts for simpler state synchronization.
 
@@ -307,6 +307,8 @@ jPulse.ws.connect(path, options)
   - `reconnectMaxInterval` (number): Max reconnection interval in ms (default: 30000)
   - `maxReconnectAttempts` (number): Max reconnection attempts (default: 10)
   - `pingInterval` (number): Ping interval in ms (default: 30000)
+  - `maxQueueLength` (number): Max messages held while `connecting` or `reconnecting` (default: 32). The oldest is dropped when the cap is exceeded
+  - `maxQueueAgeMs` (number): Max age of a queued message at flush (default: 10000). Older payloads are dropped when the socket opens
 
 **Returns:** Connection handle with methods
 
@@ -324,7 +326,7 @@ const ws = jPulse.ws.connect('/api/1/ws/my-app', {
 
 #### send(data)
 
-Send message to server.
+Send a message to the server, or accept it for later if the socket is still coming up.
 
 ```javascript
 ws.send({
@@ -333,7 +335,9 @@ ws.send({
 });
 ```
 
-Returns `true` if sent successfully, `false` if connection not open.
+Returns `true` if the payload was **accepted** — written to an open socket, or queued because status is `connecting` / `reconnecting` and auto-reconnect is still on. Returns `false` if the connection is genuinely gone (`disconnected` or `auth-required`), or if a known size limit rejects the payload.
+
+Queued messages flush in enqueue order in `onopen`, **before** `onStatusChange('connected')` runs, so a status handler that sends cannot jump the queue. `disconnect()` and an auth-terminal close (4401 / 4403) drop the queue. An ordinary close keeps it for the reconnect. Use `getStatus()` / `isConnected()` if you need to know whether the socket is actually open.
 
 #### onMessage(callback)
 
@@ -421,6 +425,7 @@ if (res.success) {
 - Attaches a top-level `requestId` automatically.
 - Matching replies are consumed by the promise and **not** re-delivered to `onMessage`.
 - Size is pre-checked against limits from the welcome message when known.
+- While the socket is `connecting` or `reconnecting`, the request is queued like `send()`. The timeout clock starts at enqueue, not at flush. A queued request dropped by age, length, `disconnect()`, or an auth-terminal close resolves `NOT_CONNECTED` (age/length) or `CONNECTION_LOST` (teardown). A socket that is already `disconnected` or `auth-required` still resolves `NOT_CONNECTED` immediately.
 
 #### reply(message, data) / replyError(message, error, code?)
 
@@ -887,8 +892,7 @@ const HelloApp = {
     data() {
         return {
             connectionStatus: 'disconnected',
-            messages: [],
-            ws: null
+            messages: []
         };
     },
     mounted() {
@@ -919,6 +923,8 @@ const HelloApp = {
     `
 };
 ```
+
+Keep the connection off `data()` so Vue does not wrap the socket. See [Front-End Development](front-end-development.md#vuejs-integration) for that pattern and [Floating Panel Widget](jpulse-ui-reference.md#floating-panel-widget) for `resizeHandles.mode: 'inject'` vs `'manual'`.
 
 ---
 

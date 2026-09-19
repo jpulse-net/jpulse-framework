@@ -3,13 +3,13 @@
  * @tagline         Unit tests for jPulse.ws.request / reply (W-208)
  * @description     Loads real jpulse-common.js and exercises the request/response client API
  * @file            webapp/tests/unit/utils/jpulse-websocket-request.test.js
- * @version         2.0.4
- * @release         2026-09-17
+ * @version         2.0.5
+ * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.15, Grok 4.5
+ * @genai           80%, Cursor 3.20, Grok 4.6
  */
 
 import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
@@ -20,20 +20,30 @@ import vm from 'vm';
 import { TextEncoder } from 'util';
 
 class MockWebSocket {
+    static CONNECTING = 0;
     static OPEN = 1;
     static CLOSED = 3;
+    static autoOpen = true;
     constructor(url) {
         this.url = url;
-        this.readyState = MockWebSocket.OPEN;
+        this.readyState = MockWebSocket.autoOpen ? MockWebSocket.OPEN : MockWebSocket.CONNECTING;
         this.sentMessages = [];
         this.onopen = null;
         this.onmessage = null;
         this.onclose = null;
         this.onerror = null;
         MockWebSocket.instances.push(this);
-        queueMicrotask(() => {
-            if (typeof this.onopen === 'function') this.onopen();
-        });
+        if (MockWebSocket.autoOpen) {
+            queueMicrotask(() => {
+                if (typeof this.onopen === 'function') this.onopen();
+            });
+        }
+    }
+    open() {
+        this.readyState = MockWebSocket.OPEN;
+        if (typeof this.onopen === 'function') {
+            this.onopen();
+        }
     }
     send(data) {
         this.sentMessages.push(data);
@@ -150,9 +160,8 @@ describe('jPulse.ws request/response (W-208)', () => {
     }, 5000);
 
     test('request() resolves NOT_CONNECTED when socket closed', async () => {
-        const handle = jPulse.ws.connect('/api/1/ws/w208-closed');
-        const sock = MockWebSocket.instances[0];
-        sock.readyState = MockWebSocket.CLOSED;
+        const { handle } = await connectAndWelcome('/api/1/ws/w208-closed');
+        handle.disconnect();
         const res = await handle.request({ type: 'x' });
         expect(res.success).toBe(false);
         expect(res.code).toBe('NOT_CONNECTED');
@@ -221,6 +230,140 @@ describe('jPulse.ws request/response (W-208)', () => {
             interval: 500,
             maxMessages: 10
         });
+    });
+});
+
+describe('jPulse.ws send queue (W-235)', () => {
+
+    beforeEach(() => {
+        MockWebSocket.instances = [];
+        MockWebSocket.autoOpen = false;
+        jPulse.ws._connections.clear();
+        win.sessionStorage.clear();
+        win.localStorage.clear();
+    });
+
+    afterEach(() => {
+        MockWebSocket.autoOpen = true;
+        jPulse.ws._connections.forEach((conn) => {
+            if (conn.handle) conn.handle.disconnect();
+        });
+        jPulse.ws._connections.clear();
+    });
+
+    function connectHeld(path, options) {
+        const handle = jPulse.ws.connect(path, options);
+        const sock = MockWebSocket.instances[MockWebSocket.instances.length - 1];
+        return { handle, sock };
+    }
+
+    test('send before open is delivered once, in order', () => {
+        const { handle, sock } = connectHeld('/api/1/ws/w235-order');
+        expect(handle.send({ type: 'a' })).toBe(true);
+        expect(handle.send({ type: 'b' })).toBe(true);
+        expect(sock.sentMessages).toHaveLength(0);
+        sock.open();
+        expect(sock.sentMessages).toHaveLength(2);
+        expect(JSON.parse(sock.sentMessages[0]).type).toBe('a');
+        expect(JSON.parse(sock.sentMessages[1]).type).toBe('b');
+    });
+
+    test('send while disconnected or auth-required is refused', () => {
+        const { handle, sock } = connectHeld('/api/1/ws/w235-refuse');
+        sock.open();
+        handle.disconnect();
+        expect(handle.send({ type: 'late' })).toBe(false);
+        expect(sock.sentMessages.some((row) => {
+            try {
+                return JSON.parse(row).type === 'late';
+            } catch (_err) {
+                return false;
+            }
+        })).toBe(false);
+
+        const second = connectHeld('/api/1/ws/w235-auth');
+        expect(second.handle.send({ type: 'queued' })).toBe(true);
+        second.sock.close(4401);
+        expect(second.handle.getStatus()).toBe('auth-required');
+        expect(second.handle.send({ type: 'after-auth' })).toBe(false);
+    });
+
+    test('over-length drops the oldest; over-age is dropped at flush', async () => {
+        const { handle, sock } = connectHeld('/api/1/ws/w235-len', { maxQueueLength: 2 });
+        expect(handle.send({ type: 'one' })).toBe(true);
+        expect(handle.send({ type: 'two' })).toBe(true);
+        expect(handle.send({ type: 'three' })).toBe(true);
+        sock.open();
+        const types = sock.sentMessages.map((row) => JSON.parse(row).type);
+        expect(types).toEqual(['two', 'three']);
+
+        const aged = connectHeld('/api/1/ws/w235-age', { maxQueueAgeMs: 5 });
+        expect(aged.handle.send({ type: 'stale' })).toBe(true);
+        await new Promise((resolve) => setTimeout(resolve, 15));
+        aged.sock.open();
+        expect(aged.sock.sentMessages).toHaveLength(0);
+    });
+
+    test('disconnect and 4401 clear the outbox', () => {
+        const { handle, sock } = connectHeld('/api/1/ws/w235-disc');
+        expect(handle.send({ type: 'gone' })).toBe(true);
+        handle.disconnect();
+        sock.open();
+        expect(sock.sentMessages).toHaveLength(0);
+
+        const auth = connectHeld('/api/1/ws/w235-4401');
+        expect(auth.handle.send({ type: 'auth-gone' })).toBe(true);
+        auth.sock.close(4401);
+        expect(auth.handle.getStatus()).toBe('auth-required');
+        auth.sock.readyState = MockWebSocket.OPEN;
+        if (typeof auth.sock.onopen === 'function') {
+            auth.sock.onopen();
+        }
+        expect(auth.sock.sentMessages).toHaveLength(0);
+    });
+
+    test('queued request times out on the enqueue clock and a drop is NOT_CONNECTED', async () => {
+        const { handle } = connectHeld('/api/1/ws/w235-req-timeout');
+        const timed = handle.request({ type: 'slow' }, { timeoutMs: 30 });
+        const res = await timed;
+        expect(res.success).toBe(false);
+        expect(res.code).toBe('REQUEST_TIMEOUT');
+
+        const drop = connectHeld('/api/1/ws/w235-req-drop', { maxQueueLength: 1 });
+        const first = drop.handle.request({ type: 'keep' });
+        const second = drop.handle.request({ type: 'newer' });
+        const dropped = await first;
+        expect(dropped.success).toBe(false);
+        expect(dropped.code).toBe('NOT_CONNECTED');
+        drop.sock.open();
+        const sent = JSON.parse(drop.sock.sentMessages[0]);
+        expect(sent.type).toBe('newer');
+        drop.sock.deliver({
+            success: true,
+            data: { type: 'ok' },
+            requestId: sent.requestId
+        });
+        const kept = await second;
+        expect(kept.success).toBe(true);
+    });
+
+    test('flush runs before connected status callbacks', () => {
+        const { handle, sock } = connectHeld('/api/1/ws/w235-flush-order');
+        const order = [];
+        handle.onStatusChange((status) => {
+            if (status === 'connected') {
+                order.push('status');
+                handle.send({ type: 'from-status' });
+            }
+        });
+        handle.send({ type: 'queued' });
+        const origSend = sock.send.bind(sock);
+        sock.send = (data) => {
+            order.push(JSON.parse(data).type);
+            origSend(data);
+        };
+        sock.open();
+        expect(order).toEqual(['queued', 'status', 'from-status']);
     });
 });
 

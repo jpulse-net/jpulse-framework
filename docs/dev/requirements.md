@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Requirements Document v2.0.4
+# jPulse Docs / Dev / Requirements Document v2.0.5
 
 Strategic requirements and specifications for the jPulse Framework, targeting enterprise and government organizations with focus on security, scalability, and maintainability.
 

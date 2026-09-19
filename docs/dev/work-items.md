@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.4
+# jPulse Docs / Dev / Work Items v2.0.5
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -9691,17 +9691,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - out of scope: TD-17 embed mode; forwarding `defaults` / `mobile` / min size; a live title setter; any `onAiConvert*` hook; a converter plugin
   - **as-built:** published as `@jpulse-net/plugin-ai-core` 1.0.8 (prepack staged `ai-core`, `ai-mock`, `hello-ai`; companions lockstep; commit `087ba89`; annotated tag `v1.0.8`). Menu CSS is `left: 0`; `positionAddMenu()` flips by (+) midpoint vs panel midpoint. Title is create-time only. Shell bag is the three named keys. `destroy()` is idempotent: `transport.disconnect()` (`disconnectWs`, same `_aiIgnoreStatus` path as thread switch), unbind document/launcher, `floatPanel.destroy()`, `removeChild(root)`. Compose paste is files-only. Manifest helpers are `formatTurnAttachmentManifest` / `appendManifestToUserContent` in `attachments/index.js`; `openUserContent` appends; `assemblePrompt` does not. Empty-tab policy is on every user message when `sourcesEnabled !== false`, not only when tools are withheld as `no-sources`. Image metadata only when `includeImages` (vision + enabled + has images). Stored `userText` unchanged. `extras.prompt` is still passed into `assemblePrompt` and unused for the list. Design Rev 23 records this.
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-234, v1.0.9, 2026-09-19: ai: image chips stay on Send
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bugfix
 - objectives:
   - keep image chips on Send, the same way text and URL chips already stay
@@ -9735,6 +9726,205 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-235, v2.0.5, 2026-09-19: websocket: queue a send until the socket is open
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - stop dropping the first message when a caller sends before the socket reaches `OPEN` - today that is a console warning and a silently lost payload
+  - retire the "wait until connected" guard every caller has had to hand-roll
+  - keep the current behavior for a socket that is genuinely gone (`disconnected`, `auth-required`): still refuse, still return `false`
+  - document how Vue and `floatPanel` coexist (documentation only, no widget code) — the real T-124 failure is injected resize-handle DOM, not a proxied handle object
+- prerequisites:
+  - W-208, v1.x: `request()` / `reply()` / `replyError()`, the `pendingRequests` map, `settlePending`, and the welcome-message `limits` - the queue reuses all of it
+  - W-163: heartbeat and the auth-terminal close codes (4401 / 4403), which must not be queued through
+  - nothing plugin-side. This is a framework release; `ai-core` adopts it in W-237
+- rationale:
+  - **three independent callers have already written the same guard**, which is the signal to move it into the framework rather than document it a fourth time:
+    - `plugins/ai-core/webapp/view/jpulse-common.js` `waitForWs()` - ~30 lines, resolves on the `connected` status, rejects after 15 s, and leaks one `onStatusChange` callback per call because there is no unsubscribe
+    - the reference site's Map Chat - a `wsConnected` boolean checked before all three `wsConnection.send()` call sites
+    - the same site's map socket - `join` is sent from inside the `connected` branch of `onStatusChange` because sending it next to `connect()` would be dropped
+  - **the failure is silent to the user and loud in the console.** `send()` warns `Cannot send, connection not open` and returns `false`. Most callers ignore the return value, so the message is gone with no retry and no surface
+  - **`request()` is worse**, because it resolves `NOT_CONNECTED` instantly during a reconnect the framework is already managing. The caller sees a hard failure while the transport is mid-backoff and about to succeed
+  - **a queue needs an age cap, not just a buffer.** Reconnect backs off to 30 s and up to `maxReconnectAttempts`. Replaying a two-minute-old chat message on recovery is worse than losing it, so a queued entry expires
+  - **Vue is a doc problem, and the real failure is injected DOM, not a proxied handle.** `resizeHandles.mode` defaults to `'inject'`, which `appendChild`s eight `.jp-float-panel-resize` nodes onto `el`. When `el` is a Vue `Teleport` tree (Map Chat), the next Vue patch rebuilds from VNodes and drops those grips because they are not in the VNode tree. Symptom: corners work right after bind, then vanish after a reactive update (open, unread, a new message); the panel stops resizing. That is why Map Chat uses `resizeHandles: { mode: 'manual' }` and keeps the eight `data-jp-panel-resize` divs in the Vue template. The table already says inject is "MPA only"; this item names the failure mode. A panel whose root is `appendChild`'d onto `document.body` outside Vue (the AI plugin panel) is fine on inject. Storing `_chatPanelHandle` / `_aiPanelHandle` / `_aiPluginPanel` / `wsConnection` on `data()` without `markRaw` was never seen to break `toggle` / `destroy` — `floatPanel` compares by `id` — but "a handle is not reactive state; destroy on unmount" is still good guidance, a different issue
+- features:
+  - **1. `send()` queues while the socket is coming up.** When `readyState !== OPEN`, the status is `connecting` or `reconnecting`, and `shouldReconnect` is set, the payload is appended to `connection.outbox` and `send()` returns `true`. Status `disconnected` or `auth-required` keeps today's warn-and-`false`
+  - **2. the outbox is bounded two ways.** `maxQueueLength` (default 32) and `maxQueueAgeMs` (default 10000) on the connect options. Over length drops the oldest and warns once; over age is dropped at flush and warned once. The existing `maxSize` byte pre-check runs at enqueue when `limits` are known (they are `null` before the first welcome, which is already true today)
+  - **3. flush happens in `onopen`, before the status callbacks.** In enqueue order, so a handler that sends from the `connected` branch cannot jump ahead of a message queued earlier
+  - **4. the outbox is cleared where pending requests are already settled.** `disconnect()` and the auth-terminal closes (4401 / 4403) drop it; an ordinary close keeps it for the reconnect
+  - **5. `request()` queues on the same rule, and its timeout clock starts at enqueue.** The caller asked for a total budget, not a post-connect one. A queued request dropped by age or length resolves `NOT_CONNECTED`. Teardown (`disconnect()`, 4401 / 4403) of a queued request resolves `CONNECTION_LOST`, same as an in-flight request
+  - **6. one contract change, documented:** `send()` returning `true` now means *accepted*, not *written to the wire*. `getStatus()` and `isConnected()` are unchanged and stay the way to ask what the socket is actually doing
+  - **7. Vue guidance (documentation only, two paragraphs).**
+    - *resize handles:* when `el` is a Vue-owned tree (`Teleport` or any VNode root), use `resizeHandles: { mode: 'manual' }` and put the eight `data-jp-panel-resize` nodes in the template. `'inject'` (the default) appends grips that the next Vue patch removes. A panel appended to `document.body` outside Vue can keep inject
+    - *handles on `data()`:* a widget handle or a socket handle is not reactive state — keep it out of `data()` / `reactive()`, or wrap it in `markRaw()`. Destroy on unmount when a component re-mounts. Never seen as a hard failure; still good guidance
+    - no framework code change for this item
+  - **out of scope:** an offline/durable queue that survives a reload; per-message priority or deduplication; changing reconnect backoff or `maxReconnectAttempts`; the server side of the namespace; anything in `ai-core` (that is W-237)
+- deliverables:
+  - `webapp/view/jpulse-common.js` (`jPulse.ws`):
+    - `connection.outbox`, the two caps on the connect options, enqueue in `send()` and `request()`, flush via `connection._flushOutbox()` from `_createWebSocket.onopen` (that method cannot close over a local `flushOutbox`) ahead of `_updateStatus('connected')`, clear in `disconnect()` and on 4401 / 4403
+  - `webapp/tests/unit/utils/jpulse-websocket-simple.test.js`, `jpulse-websocket-request.test.js`:
+    - behavioral cases live in the request suite (queue-then-flush in order, flush before `onStatusChange('connected')`, `disconnected` / `auth-required` refuse, `disconnect()` and 4401 / 4403 drop the queue, length and age drop, `request()` timeout starts at enqueue, teardown of a queued request is `CONNECTION_LOST`)
+    - the simple suite covers the config defaults and a source-contract scan
+    - 2 suites, 56 passed
+  - `docs/websockets.md`:
+    - the queue, the two caps, and the `send()` contract change. The Vue SPA example no longer puts the connection on `data()`. The `webapp/static/assets/jpulse-docs/` copy is generated by `configure` / `jpulse-update` and is not edited by hand
+  - `docs/jpulse-ui-reference.md` (Floating Panel Widget) and `docs/front-end-development.md` (Vue.js integration):
+    - the inject-vs-manual failure mode (Vue patch drops injected grips; use `mode: 'manual'` and template nodes). The existing "MPA only" table cell is not enough
+    - a shorter second paragraph: a handle is not reactive state (`markRaw` or keep it off `data()`); destroy on unmount. Not the T-124 symptom
+  - `README.md` and `docs/README.md` Latest Release Highlights, `docs/CHANGELOG.md`
+- notes:
+  - **repo layout:** framework-only. No plugin change in this item. `ai-core` adopts the queue in W-237 and raises `jpulseVersion` to `>=2.0.5`
+  - **decisions taken before implementation**, each with the alternative rejected:
+    - *queue rather than a promise:* `send()` stays synchronous and keeps returning a boolean. Making it return a promise was rejected - it is called from event handlers all over the reference site and would silently become a floating promise
+    - *age cap:* 10 s default. An unbounded queue was rejected because the reconnect ladder reaches 30 s and `maxReconnectAttempts` can be 60 - a message would resurface half an hour later
+    - *queue only while `connecting` / `reconnecting`:* a socket the framework has given up on stays a hard `false`, so a caller that never checks status still cannot pile up messages forever
+    - *Vue as documentation:* name the inject failure and keep `markRaw` as a second paragraph. Changing the inject default, auto-detecting Vue, or unwrapping `__v_raw` inside the framework were rejected — the widget does not depend on Vue, and a body-appended panel (the AI plugin) is already correct on inject
+  - the `onStatusChange` callback list has no unsubscribe, which is why `ai-core`'s per-turn `waitForWs()` accumulates handlers. Not fixed here; noted because adopting the queue in W-237 makes that call path go away
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/`
+
+### W-236, v1.0.1, 2026-09-19: ai-anthropic: a transient network failure is retryable
+- status: 🕑 PENDING
+- type: Bugfix
+- objectives:
+  - let a reset socket or a refused connect use the retry ladder the turn loop already has, instead of ending the turn
+  - put the real reason in the message and in the log, so `fetch failed` stops being the whole story
+  - keep a wrong endpoint or a bad certificate fatal - retrying those only delays an accurate error
+- prerequisites:
+  - W-224, `@jpulse-net/plugin-ai-anthropic` 1.0.0: `completeAnthropic` and its emitted error shape
+  - `ai-core` 1.0.x: `turnLoop` already backs off on `retryable` (`RETRYABLE_WAIT_MS = [500, 1500, 3500]`) and throws "retry exhausted" after the third attempt. No `ai-core` change, no framework change
+  - independent of W-235 and W-237; can ship in any order
+- rationale:
+  - **the mechanism exists and one hardcoded flag bypasses it.** Every non-`AbortError` throw emits `retryable: false`, so undici's `TypeError: fetch failed` reaches the loop as fatal and the backoff never runs. A blip that would have cleared in 500 ms ends the user's turn
+  - **the diagnosis is thrown away.** `sanitizeError(error.message)` yields the bare string `fetch failed`. The code that explains it - `ECONNRESET`, `ECONNREFUSED`, `EAI_AGAIN` - is on `error.cause` and is never read or logged, so an admin has nothing to act on
+  - **not everything that throws is transient.** `ENOTFOUND` on a mistyped endpoint and a TLS chain failure do not heal in 3.5 s. Retrying them costs 5.5 s per turn and still fails, so they stay fatal and simply get a better message
+- features:
+  - **1. the catch classifies `error.cause.code`.** Retryable: `ECONNRESET`, `ECONNREFUSED`, `ETIMEDOUT`, `EPIPE`, `EAI_AGAIN`, `UND_ERR_SOCKET`, `UND_ERR_CONNECT_TIMEOUT`. Everything else, including `ENOTFOUND` and any TLS / certificate failure, stays `retryable: false`
+  - **2. the cause rides the message.** `fetch failed (ECONNRESET)` through the existing `sanitizeError`, so the API-key redaction still applies, and the same line is logged
+  - **3. nothing else moves.** `AbortError` is still `AI_TIMEOUT`. 429 / 529 are still `AI_RATE_LIMIT` with `retryable: true`. The family here stays `AI_PROVIDER_ERROR` - `turnLoop` reads the flag, not a new code
+- deliverables:
+  - `plugins/ai-anthropic/webapp/controller/aiAnthropic.js`:
+    - a small `causeCode()` / retryable-set helper and the classified emit in the non-`AbortError` catch
+  - `plugins/ai-anthropic/webapp/tests/unit/complete-anthropic.test.js`:
+    - `fetch failed` with `cause.code = 'ECONNRESET'` is `retryable: true` and names the code in the message
+    - `ENOTFOUND` and a TLS failure stay `retryable: false`
+    - an `AbortError` is still `AI_TIMEOUT`; 429 is still `AI_RATE_LIMIT`; the key is still redacted
+  - `plugins/ai-anthropic/README.md`: a 1.0.1 release bullet
+  - `plugins/ai-anthropic/commit-message.txt`
+- notes:
+  - **repo layout:** `plugins/ai-anthropic` is its own git repo and its own package, with no bundle members. One publish of `@jpulse-net/plugin-ai-anthropic` 1.0.1. No framework-repo change beyond this work item and a design-doc line if W-237's revision is being written anyway
+  - **decisions taken before implementation:**
+    - *classify the cause, do not retry everything:* a blanket retryable was rejected - a misconfigured endpoint would then cost 5.5 s per turn and still report the same unhelpful text
+    - *no new error code:* `AI_PROVIDER_ERROR` plus `retryable` is the contract `turnLoop` already reads. A new code would need a matching branch there
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/`
+
+### W-237, v1.0.10, 2026-09-19: ai: chip attach, mobile shell, destroy cancel
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - close the remaining BubbleMap / core-migration panel gaps so a site can drop `hardClose` and wire chip → object without a site fork
+  - sites that omit the new options stay on today's chrome (the §1.1 one-liner)
+  - do not revive unused `adapter.sourceAttachable` (no caller since W-232)
+  - not MCP, not OpenAI, not embed chrome (TD-17)
+- prerequisites:
+  - W-233, 1.0.8: `title`, `storageKey` / `cascade` / `group`, `destroy()` node + WS. `defaults` / `mobile` / min size and a live title setter were deliberately not forwarded. `destroy()` does not cancel a turn
+  - W-234, 1.0.9: published (`619d36f`, tag `v1.0.9`). Image chips stay on Send; mailbox peeks; DELETE with the chip. `/new` and thread switch already `clearAttachments`
+  - W-220, v2.0.0: `floatPanel.create()` already accepts `mobile`, `defaults`, `minWidth`, `minHeight`. This item only stops swallowing them
+  - W-235, v2.0.5: `jPulse.ws` queues a send until the socket is open. Feature 9 adopts it. `jpulseVersion` becomes `>=2.0.5` for every `ai-core` user (bundle members lockstep)
+  - W-236 is independent; this item does not wait for it
+- rationale:
+  - **the source of this item is the same porting site, now on 1.0.9.** Chip attach is the one 100% gap: the old site's chip ⋯ **Attach to bubble** wrote the file or picture onto the selected bubble with no prompt and no Apply card. Plugin chips have ✕ and a details pop only. User docs still describe the menu
+  - **`sourceAttachable` was the wrong name for this.** W-232 dropped it because the panel never called it. This item adds `adapter.attach` / `adapter.canAttach` and ships the ⋯ only when `attach` exists. A predicate with no writer is how the unused name happened
+  - **`group: 'map'` is inert until exclusive is on.** `create()` still hardcodes `defaults: { w: 420, h: 560 }` and does not pass `mobile`. Map Chat + AI still need a site `hardClose`. Forward the four names the same way `storageKey` / `cascade` / `group` already are. Do not spread the create bag
+  - **a phone sheet puts Send under the home indicator.** Pad compose with `env(safe-area-inset-bottom)`
+  - **`destroy()` leaves the turn running** after ← Maps. The Cancel route already exists. Call it when a turn is running, then disconnect. Still idempotent. Still does not clear `localStorage`
+  - **user docs: confirm `/new` only if sources are attached** — those are dropped. Plugin `/new` and the (+) new button do not confirm. The same lifetime rule applies to a thread switch that would `clearAttachments`
+  - **the porting site's current workarounds are the checklist.** Read against the live map: `create()` is called with `title` / `storageKey` / `cascade` / `group: 'map'` but no `mobile` and no `defaults`, so a double-click handler calls `setRect({ x: null, y: null, w: 360, h: 480 })` to get the size back, and a manual `isFront()` + `hardClose()` pair in the canvas stands in for `mobile.exclusive`. Both disappear once the four keys are forwarded
+- features:
+  - **1. chip ⋯ Attach, only when the adapter implements it.**
+    ```
+    adapter.canAttach?.(row) → { ok: true } | { ok: false, reason }
+    adapter.attach(row, file) → Promise   // truthy = success
+    ```
+    - no `attach` → no ⋯ (hello-ai stays clean)
+    - `canAttach` omitted → treat as `{ ok: true }`
+    - `canAttach` false → item visible, disabled, `reason` in the pop
+    - click calls `attach(row, handle.attachmentFile(row.id))`. Site does the write (same path as a canvas drop). Not a proposal. Does not consult `toolsWrite`. Does not open an Apply card. Does not remove the chip
+    - site decides file-origin vs paste/URL, home/widget/portal refusals, store-ready. Plugin does not guess
+    - label is i18n `chipAttach` ("Attach"). A map site overrides the string to "Attach to bubble". No `adapter.attachLabel`
+    - chip click still opens the details pop; ⋯ is a separate control and does not toggle details. Flip the menu to stay inside the panel (same half-rule as the (+) menu)
+  - **2. `create()` forwards `mobile`, `defaults`, `minWidth`, `minHeight`.** Named keys, not a spread. Omitted keeps today's plugin defaults (`defaults: { w: 420, h: 560, open: !!options.open }`, `minWidth: 320`, `minHeight: 360`, floatPanel's own mobile bag with `exclusive: false`). Passed `defaults` merge on top of that 420×560/`open` so a site can send `{ w: 360, h: 480 }` without restating `open`. `mobile: { exclusive: true, breakpoint: 768 }` is what makes `group: 'map'` mean anything
+  - **3. compose `safe-area-inset-bottom`.** Pad `.plg-ai-compose` (or the compose row) with `env(safe-area-inset-bottom, 0px)` so Send clears the home indicator on a phone sheet. Desktop inset is 0
+  - **4. `destroy()` cancels an in-flight turn.** When `state.running` and there is a `threadId`, fire `POST /api/1/ai/thread/:id/cancel` (same route as the Cancel button), then disconnect. Do not wait for the POST before tearing down — cancel is HTTP, so closing the socket does not drop it. Still idempotent. Still does not clear `localStorage`. Still does not require the site to close `/api/1/ws/ai/:threadId`
+  - **5. `/new` (and +) confirm when chips are attached.** `attachments().length > 0` → `confirmDialog`, then `createNew` / `clearAttachments` (already DELETEs staged images). Cancel leaves the chips. Empty strip does not confirm. The conversation-select path uses the same gate when a switch would drop chips (`openThread` already `clearAttachments` on `!sameThread`). `createNew` → `openThread` after a clear does not confirm a second time
+  - **6. WS actor includes `session.user` (same shape as HTTP).** `authorizeAiSocket` already has the handshake `req`. Stash that user object on `ctx`. The turn path builds `actorFromRequest({ user, session: { user } }, { origin: 'ws', … })` instead of `{ user: { username, roles } }` only. Scope/tool hooks that read `req.session.user` then work on WS without a site `reqFromActor` synth. Username/roles fallback stays for older ctx
+  - **7. `handle.setTitle(str)`.** Create-time `title` stays. A non-empty string stamps `.plg-ai-title` and the thread-select `aria-label`. `''` / `null` restores the i18n default. Optional for the map; cheap because the stamp already exists
+  - **8. `sendText` stops treating a false `send()` as a turn error.** Today `startTurn` emits a generic error when `wsConn.send()` returns false. Still correct once the queue accepts a send that has not hit the wire yet
+  - **9. adopt the W-235 queue.** `startTurn` connects and sends without the per-turn `await waitForWs()`, because the framework holds the payload until the socket opens. `waitForWs` itself stays for the reconnect notice, but is no longer called once per turn, which also ends the `onStatusChange` handler it accumulates per call. `jpulseVersion` is `>=2.0.5`
+  - **out of scope:** TD-17 `chrome: 'none'`; quota footer; unread-dot; reviving `sourceAttachable`; the `jPulse.ws` queue itself and the Vue doc note (W-235); the Anthropic retry classification (W-236); site wiring of `adapter.attach` and its user-doc sentences (that site's repo)
+- deliverables:
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - chip ⋯ + `adapter.attach` / `canAttach` as specified; hello-ai does not pass them
+    - `floatPanel.create({ … })` gains `mobile: options.mobile`, merged `defaults`, `minWidth` / `minHeight` from options with the 320×360 fallback
+    - `destroy()` fires cancel when a turn is running, then disconnects
+    - `/new`, the (+) new button, and a chip-dropping thread switch share one confirm
+    - `handle.setTitle`
+    - `startTurn` no longer awaits `waitForWs()` per turn; a false `send()` is not a turn error
+  - `plugins/ai-core/webapp/view/jpulse-common.css`:
+    - compose (or compose-row) padding includes `env(safe-area-inset-bottom, 0px)`
+    - ⋯ menu stays inside the panel (half-flip, no portal, no `.jp-float-panel` overflow change)
+  - `plugins/ai-core/webapp/utils/transport/ws.js`:
+    - handshake user on `ctx`; turn actor `req.user` and `req.session.user` are that object
+  - `plugins/ai-core/webapp/translations/en.conf`, `de.conf`:
+    - `chipAttach`, disabled-reason surface, `/new` confirm title/body
+  - `plugins/ai-core/webapp/tests/unit/panel-strip.test.js`, `hello-ai.test.js`, `regressions.test.js`:
+    - invert the 1.0.8 "no `mobile` / no `defaults`" scans; assert the four names are forwarded and the bag is still not spread
+    - no ⋯ / no `attach(` in the hello-ai adapter
+    - ⋯ present only when `adapter.attach` is a function; disabled when `canAttach` is `{ ok: false }`; click calls `attach(row, file)`
+    - `destroy()` body contains the cancel POST before `transport.disconnect()`
+    - `/new` / thread-switch confirm reads `attachments().length` (or `state.sources` / `state.images`)
+    - `handle.setTitle` exists
+    - CSS contains `safe-area-inset-bottom`
+    - `startTurn` does not `await waitForWs()`; a false `send()` is not emitted as a turn error
+  - `plugins/ai-core/webapp/tests/unit/helpers-contracts.test.js` (or the WS suite):
+    - turn actor after authorize exposes `req.session.user` with the handshake user, not only `{ username, roles }`
+  - `plugins/ai-core/docs/README.md`, `plugins/ai-core/README.md`:
+    - `attach` / `canAttach` next to the other adapter methods; ⋯ only when `attach` exists; not a proposal
+    - `mobile` / `defaults` / min size next to `storageKey` / `cascade` / `group`, with the map-shaped example (`mobile: { exclusive: true, breakpoint: 768 }`, `defaults: { w: 360, h: 480 }`)
+    - `destroy()` cancels a running turn
+    - `/new` confirms when chips are attached
+    - `handle.setTitle`
+    - send queues until the socket is open; requires jPulse `>=2.0.5`
+    - version numbers, never work-item numbers
+  - `plugins/ai-core/plugin.json` (and the two lockstep companions): `jpulseVersion` `>=2.0.5`
+  - `hello-ai`: lockstep only. No `attach`. No `mobile`. No title setter
+  - `docs/dev/design/W-223-ai-agent.md` (framework repo, this item's only framework-repo change besides this work item):
+    - Rev 26 specifies; Rev 27 is as-built after 1.0.10; §12.1 names attach chrome, the four shell keys, destroy-cancel, `/new` confirm, `setTitle`; WS actor `session.user`; new §21.15; a §21.2 table row. W-236's provider classification is a line in the same revision if it has landed by then
+  - framework-repo user docs are **not** part of this item's plugin commits
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md` Rev 25, §12.1, §14.4, §21.13. Read W-220's `docs/jpulse-ui-reference.md` Floating Panel Widget (`mobile`, `defaults`, min size, `exclusive`). TD-17 stays deferred
+  - **repo layout:** plugin-only. `plugins/ai-core` is the publish root; `ai-mock` and `hello-ai` lockstep only. One publish of `@jpulse-net/plugin-ai-core` 1.0.10 from `plugins/ai-core` only. The design-doc hunk is the one framework-repo change besides this work item
+  - **decisions taken before implementation**, each with the alternative rejected:
+    - *attach chrome:* a ⋯ on the chip, only when `adapter.attach` exists. Putting Attach in the details pop was rejected — user docs describe a menu, and a details pop on every site would show a dead action on hello-ai. Reviving `sourceAttachable` was rejected — that name had no writer
+    - *attach label:* i18n "Attach", site-overridable. An `adapter.attachLabel` method was rejected — one more adapter seam for a string the translation merge already covers
+    - *attach is a write, not a proposal:* no Apply card, no `toolsWrite`. The old site wrote on click. A propose/apply hop was rejected — the user already confirmed by picking the menu item
+    - *shell bag:* four more named keys, still not `...options`. Spreading would leak `adapter` / `regions` / `commands` and would look like every W-220 key works
+    - *defaults merge:* plugin 420×560/`open` plus `options.defaults`. Replacing the whole object was rejected — a site that passes only `{ w: 360, h: 480 }` should not lose `open`
+    - *destroy cancel:* fire the existing POST, then disconnect. Making `destroy()` an awaited handshake was rejected — cancel is HTTP. Wiping `localStorage` is still not this call
+    - *`/new` confirm:* chip count, not "did the site implement attach". A paste chip is dropped too. Confirming every `/new` was rejected — empty strip is cheap
+    - *W-235 adoption:* `jpulseVersion` `>=2.0.5` is accepted. `waitForWs()` stays for the reconnect notice only; it is no longer the send gate
+  - **already shipped (do not redo):** `title`, `storageKey` / `cascade` / `group`, `destroy()` node + WS, text paste stays in the box, user-message source/image manifest, image chips stay on Send, peek mailbox, (+) menu inward
+  - **after 1.0.10 the site can** pass `mobile: { exclusive: true }` and drop both the manual `isFront()` + `hardClose()` gate and the `setRect({ w: 360, h: 480 })` reset handler; wire `adapter.attach` to its direct-drop helpers; and override the `chipAttach` string to "Attach to bubble", which keeps its existing user-doc sentences and its `/Attach to bubble/` doc test true with no edit. Quota footer, unread-dot, and embed `chrome: 'none'` stay out
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -9762,7 +9952,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-233, v1.0.8, 2026-09-19
+- assume W-235, v2.0.5, 2026-09-19
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -9774,12 +9964,12 @@ release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.4 2026-09-17
+node bin/bump-version.js 2.0.5 2026-09-19
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.4; git push origin main --tags
+git tag v2.0.5; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

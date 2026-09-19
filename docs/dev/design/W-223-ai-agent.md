@@ -25,19 +25,49 @@ cutover guards) is published as `@jpulse-net/plugin-ai-core` 1.0.7
 lockstep). **W-233** (panel title, floatPanel shell options, and the
 clipped add menu) is published as `@jpulse-net/plugin-ai-core` 1.0.8
 (bundle carries `ai-mock` 1.0.8 and `hello-ai` 1.0.8; companions
-lockstep). §21 splits the agent into five items, W-223, W-224,
-and W-226 through W-228, on those prerequisites.
+lockstep). **W-234** (image chips stay on Send) is published as
+`@jpulse-net/plugin-ai-core` 1.0.9 (bundle carries `ai-mock` 1.0.9 and
+`hello-ai` 1.0.9; companions lockstep).
+§21 splits the agent into five items, W-223, W-224, and
+W-226 through W-228, on those prerequisites.
 Deviations from this document are under `### As Built`. Rev 12 specified
 W-227 against shipped 1.0.2, Rev 13 is the as-built after implementation,
 Rev 14 specifies W-228, Rev 15 is the as-built after 1.0.4, Rev 16 records
 that W-229 is four hooks, not two, Rev 17 is the as-built after
 v2.0.4, Rev 18 is W-230 (specified and shipped as 1.0.5), Rev 19 is
 W-231 (specified and shipped as 1.0.6), Rev 20 specifies W-232, Rev 21
-is the as-built after 1.0.7, Rev 22 specifies W-233, and Rev 23 is the
-as-built after 1.0.8.
+is the as-built after 1.0.7, Rev 22 specifies W-233, Rev 23 is the
+as-built after 1.0.8, Rev 24 specifies W-234, and Rev 25 is the
+as-built after 1.0.9.
 
 
 ## Revision history
+
+### Rev 25 — 2026-09-19 — W-234 as-built
+
+Published as `@jpulse-net/plugin-ai-core` 1.0.9 (bundle carries
+`ai-mock` 1.0.9 and `hello-ai` 1.0.9). Commit `619d36f`, tag
+`v1.0.9`. The specified surface landed. No product deviation.
+Hello AI has no `propose_image`; the mid-turn adapter contract is
+unit-tested on `handle.attachments()`.
+
+| Section | Change |
+|---|---|
+| Header, §12.1, §21.13 | 1.0.9 published; as-built |
+
+### Rev 24 — 2026-09-19 — W-234 image chips stay on Send
+
+Send was consuming the image chip (`state.images = []` after
+`startTurn`) while leaving source chips. The site adapter then
+read an empty `handle.attachments()` mid-turn. Image chips now
+live with source chips: ✕, `/new`, thread switch, reload.
+The Redis mailbox peeks on send and refreshes TTL; delete only
+when the chip is cleared.
+
+| Section | Change |
+|---|---|
+| Header, §14.4, §21.14 | W-234 specified as 1.0.9; mailbox lifetime matches the chip |
+| §12.1 | Send does not clear image chips |
 
 ### Rev 23 — 2026-09-19 — W-233 as-built
 
@@ -1999,6 +2029,11 @@ in attachments implements none of this and still gets sources the model
 can read (§14.1). `list_sources` / `get_source` stay reserved: a site
 registration is refused, logged once, and withheld as `reserved`. It
 does not throw.
+As of 1.0.9, Send leaves both families on the strip. Image chips
+live until ✕, `/new`, thread switch, or reload, the same as sources.
+`handle.attachments()` mid-turn still lists a PNG that was just
+sent. The Redis mailbox peeks and is deleted only with the chip
+(§14.4).
 
 Note what is *not* required on the adapter: `executeTool`. When a client-host
 tool names a shared module (§8.2), the site supplies the data and the
@@ -2424,14 +2459,16 @@ anywhere. The converted text comes back as an ordinary in-tab source chip, so
 Staging with a TTL, an allowlist of MIME types, edge and byte caps, and
 `capabilities.vision` gating from the provider descriptor (§9.5).
 
-**Staging is Redis-only, park-on-send / read-once / delete.** The panel resizes
-to a maximum edge, re-encodes to an allowed type, uploads the raw bytes to a
-streaming route, and the server parks them under a key scoped to user, thread,
-and image id with a short TTL. The turn reads each key once and deletes it.
-There is no fallback to process memory, Mongo, or disk: an image that outlives
-its turn is a copy of a user's file in a place nobody manages. Where Redis is
-absent, the capability probe reports images unavailable and the panel hides the
-affordance rather than failing at paste time.
+**Staging is Redis-only, park-on-attach / peek-on-send / delete-with-chip.**
+The panel resizes to a maximum edge, re-encodes to an allowed type, uploads
+the raw bytes to a streaming route, and the server parks them under a key
+scoped to user, thread, and image id with a short TTL. Each send peeks
+those keys and refreshes the TTL. Delete is ✕ /
+`DELETE /api/1/ai/thread/:id/image/:imageId`, or `/new` / thread switch /
+`DELETE /api/1/ai/thread/:id/images`. Send does not consume the chip or
+the mailbox. There is no fallback to process memory, Mongo, or disk.
+Where Redis is absent, the capability probe reports images unavailable
+and the panel hides the affordance rather than failing at paste time.
 
 **Gating happens at send, against the thread's pair — not at attach, against
 the site default.** The menu already greys non-vision rows when the thread has
@@ -3081,6 +3118,7 @@ separate work in its own repository.
 | **W-231** | ai: extract `hello-ai` into a bundled companion plugin | The sample is a third member of `@jpulse-net/plugin-ai-core`. Disable it without disabling AI |
 | **W-232** | ai: upload caps from settings, scope wipe, and cutover guards | A second site ports onto the bundle without a code change: admin-owned upload caps, one call to erase a deleted object's conversations, and the three silent traps closed |
 | **W-233** | ai: panel title, floatPanel shell options, and the clipped add menu | A second panel on the same page can name itself, keep its own geometry key, and cascade; `destroy()` removes the body node and closes the socket; compose paste stays in the box; this turn's attachments are on the user message; the (+) menu is readable |
+| **W-234** | ai: image chips stay on Send | A PNG chip stays until ✕ / `/new` / thread switch / reload, same as a text source. The mailbox peeks; mid-turn `handle.attachments()` still sees the picture |
 
 W-223, W-224, and W-226 are the "first release" referred to throughout: server
 core, a real provider, and the panel. W-227 and W-228 are each independently
@@ -3416,7 +3454,30 @@ once or rewrite it in that shape.
 TD-17 remains the embed-mode follow-on. This item keeps the float
 shell.
 
-### 21.13 Standalone follow-ons
+### 21.13 W-234 — image chips stay on Send
+
+Published as `@jpulse-net/plugin-ai-core` 1.0.9 (bundle carries
+`ai-mock` 1.0.9 and `hello-ai` 1.0.9; companions lockstep). Specified
+in Rev 24 against shipped 1.0.8. The panel
+was consuming the image chip on Send (`state.images = []` after
+`startTurn`) while leaving `state.sources`. A PNG vanished; a `.txt`
+or URL stayed. Mid-turn `propose_image` then read
+`handle.attachments()` and the strip was empty. The Used badge was
+correct — the server already had this turn's images.
+
+Image chips now live with source chips: they stay until ✕, `/new`,
+thread switch, or reload. The site does not own the strip.
+`takeStagedImages` peeks and refreshes TTL. Delete is
+`DELETE /api/1/ai/thread/:id/image/:imageId` (✕) or
+`DELETE /api/1/ai/thread/:id/images` (`clearAttachments`).
+Hello AI has no `propose_image`; the mid-turn adapter contract is
+covered by `plugins/ai-core/webapp/tests/unit/regressions.test.js`
+(`handle.attachments()` + `attachmentFile()` after peek, fail after ✕).
+Helper contracts (sanitizers, lease holder, ingest, budgets) are
+`helpers-contracts.test.js`. The specified surface landed; no
+product deviation from Rev 24.
+
+### 21.14 Standalone follow-ons
 
 Each its own item, written when wanted rather than scheduled now:
 

@@ -9616,17 +9616,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **as-built:** published as `@jpulse-net/plugin-ai-core` 1.0.7 (prepack staged `ai-core`, `ai-mock`, `hello-ai`; companions lockstep; tarball includes `scope.js` and `scope.test.js`). Assembly is `agent/scope.js` (not inlined in `index.js`); wipe logs `logInfo` / `logError` with a null `req` and no `logRequest` because there is no request. The controller wrapper does not pass `redisManager` — `deleteStagedThread` uses `global.RedisManager`. `executeTool` honors settings via `effectiveTimeoutMs` rather than only bumping a constant. The capability probe returns the clamped `maxImageBytes` as well as `maxConvertBytes`. Image `origin` is honest on the wire (`sanitizeImageMeta` / `sourceRefsFrom` default to `file`). Smoke-test fix: the conversation picker was stale after a send because the panel never re-fetched the list; `openThread` now calls `refreshThreads()`. Unit tests: 20 suites, 182 passed
   - out of scope, each with its own item or number: the embed panel mode (design TD-17); any `onAiConvert*` hook (W-229 is the seam); a PDF or Office converter plugin; an HTTP route for `deleteByScope`; framework user-account deletion and its cascade; per-scope tool policy (TD-12); the reference site's migration, which is that site's repository
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-233, v1.0.8, 2026-09-19: ai: create chat options; fix clipped add menu
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bugfix
 - objectives:
   - make the (+) attach menu readable on the first chip - it is a left-edge control today, and `right: 0` plus `.jp-float-panel { overflow: hidden }` clips "Add file" / "Add URL"
@@ -9705,6 +9696,45 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-234, v1.0.9, 2026-09-19: ai: image chips stay on Send
+- status: 🚧 IN_PROGRESS
+- type: Bugfix
+- objectives:
+  - keep image chips on Send, the same way text and URL chips already stay
+  - clear images only in `clearAttachments` (`/new`, thread switch) and on ✕
+  - peek the Redis mailbox on send; delete mailbox bytes only when the chip is cleared
+  - so a mid-turn site adapter (`handle.attachments()` / `propose_image`) still sees the picture
+  - so a follow-up prompt can see the picture if the chip is still there (images are not replayed from history)
+- prerequisites:
+  - W-228, 1.0.4: Redis image mailbox, `takeStagedImages` used to delete on send, panel `state.images = []` after `startTurn`
+  - W-233, 1.0.8: published. This is the next list from the same porting site
+  - nothing framework-side. `jpulseVersion` stays `>=2.0.3`
+- features:
+  - **1. send does not consume chips.** `sendText` leaves `state.images` and `state.sources` after `transport.startTurn`
+  - **2. mailbox peeks.** `takeStagedImage` / `takeStagedImages` read and refresh TTL; they do not `cacheDel`
+  - **3. delete with the chip.** ✕ is `DELETE /api/1/ai/thread/:id/image/:imageId`. `/new` and thread switch call `clearAttachments`, which is `DELETE /api/1/ai/thread/:id/images`
+  - **out of scope:** re-staging from `panelStore.files` on each send; cancelling an in-flight turn; rewriting history to replay images
+- deliverables:
+  - `plugins/ai-core/webapp/view/jpulse-common.js`: no `state.images = []` after send; `clearAttachments` and image ✕ delete the mailbox
+  - `plugins/ai-core/webapp/utils/attachments/images.js`: peek + TTL refresh
+  - `plugins/ai-core/webapp/controller/aiCore.js`: the two DELETE routes
+  - `plugins/ai-core/webapp/tests/unit/attachments.test.js`, `hello-ai.test.js`, `panel-strip.test.js`, `regressions.test.js`, `helpers-contracts.test.js`
+  - `plugins/ai-core/docs/README.md`, `docs/dev/design/W-223-ai-agent.md` Rev 24 / §14.4 / §21.13
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md` Rev 24, §14.4, §21.13
+  - **repo layout:** plugin-only. `ai-mock` and `hello-ai` lockstep when published
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests
+  - **as-built:** published as `@jpulse-net/plugin-ai-core` 1.0.9 (prepack staged `ai-core`, `ai-mock`, `hello-ai`; companions lockstep; commit `619d36f`; tag `v1.0.9`). `sendText` does not clear chips. `takeStagedImages` peeks and refreshes TTL. ✕ is `DELETE .../image/:id`; `/new` and thread switch are `DELETE .../images`. Hello AI has no `propose_image`; `regressions.test.js` walks `handle.attachments()` after peek. Unit tests: 23 suites, 240 passed. Design Rev 25 records this.
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -9755,12 +9785,12 @@ git tag v2.0.4; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.8 2026-09-19
+node ../../bin/bump-version.js 1.0.9 2026-09-19
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.8; git push origin main --tags
+git tag v1.0.9; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 
@@ -10093,4 +10123,3 @@ status codes:
 - status: ✅ DONE
 - status: ❌ CANCELED
 ------------------------
-

@@ -26513,3 +26513,76 @@ Reviewed the framework diff: design Rev 22/23, work-items, cursor_log, plus an u
 
 
 ============================================================
+2026-09-19 01:54
+
+argh! new regression bug discovered in bubblemap!
+
+ai-core: do not clear image chips on Send. sendText does state.images = [] after transport.startTurn and leaves state.sources in place. PNG chip vanishes; text/URL chips stay. Clear images only in clearAttachments (/new, thread switch). Site does not own the strip.
+
+Confirmed: sendText lines after startTurn wipe state.images, syncStore, renderStrip; sources stay. clearAttachments already clears both. Mid-turn propose_image fails because handle.attachments() is empty; Used badge is correct (server already got the images). takeStagedImages still deletes Redis on send, so keeping the chip alone is not enough for a follow-up vision turn. Proposed W-234 / 1.0.9: stop clearing chips; also keep mailbox bytes (peek, or re-stage from panelStore.files). Waiting for go-ahead. Did not implement. W-233 left DONE.
+
+
+============================================================
+2026-09-19 02:06
+
+- please fix the code
+- yes on mailbox behavior (not alternative)
+- we had many bugs so far, actually WAY too many!
+- what can we do to have more quality code?
+- please add many more unit tests
+
+W-234 / 1.0.9: sendText no longer clears image chips. takeStagedImages peeks and refreshes TTL. DELETE /api/1/ai/thread/:id/image/:imageId on ✕; DELETE .../images on clearAttachments. Docs §14.4 / plugin README / Rev 24. New panel-strip.test.js plus mailbox lifetime tests. 21 suites, 198 passed. Status left IN_PROGRESS. Restart server and hard-reload panel JS.
+
+
+============================================================
+2026-09-19 02:21
+
+- I verified here with hello-ai, chip stays, x removes it
+- I can't verify propose_image here
+- please review all bug fixes done in 1.0.8 and 1.0.9, and add many more unit tests
+- objective is the reduce regressions
+
+Added regressions.test.js (19 contracts for 1.0.8 chrome/menu/paste/manifest and 1.0.9 peek + site propose_image via handle.attachments). Expanded panel-strip, attachments, hello-ai tests. 22 suites, 221 passed. Hello AI cannot run propose_image; the adapter contract is unit-tested. W-234 status left IN_PROGRESS.
+
+
+============================================================
+2026-09-19 02:38
+
+- thanks
+- review all ai-core code to see if we can add more unit tests
+
+Reviewed remaining ai-core modules against existing suites. Added helpers-contracts.test.js (19 tests) for sanitizers, lease holder/TTL, ingest branches, image caption/index, parseModelArg, actor capabilities, budgets countWhen, convertLimits, deriveThreadLabel, computeCost. Left controller HTTP and panel IIFE to existing scans. 23 suites, 240 passed.
+
+
+============================================================
+2026-09-19 02:45
+
+- review @tt-git-diff.txt for accuracy
+- assume W-234, v1.0.9, 2026-09-19
+- update @plugins/ai-core/commit-message.txt @plugins/ai-mock/commit-message.txt @plugins/hello-ai/commit-message.txt
+- add release bullet at @plugins/ai-core/README.md @plugins/ai-mock/README.md @plugins/hello-ai/README.md
+- update work item and design doc if needed
+
+Reviewed ai-core diff: product matches peek-until-cleared + DELETE-with-chip. Include the three untracked test files. Rewrote plugin commit messages under W-234 / 1.0.9. ai-core README already had 1.0.9; added companion bullets (mock/hello-ai also backfilled skipped 1.0.6–1.0.8 lockstep). Work item + §21.13 list helpers-contracts.test.js. Status left IN_PROGRESS. Headers still 1.0.8 until bump.
+
+
+============================================================
+2026-09-19 02:53
+
+releases and publish done
+(ai-core commit 619d36f, git tag v1.0.9, push, npm publish 1.0.9)
+
+Confirmed: @jpulse-net/plugin-ai-core@1.0.9 on GitHub Packages. Tarball has the three new test files and both companions, no companion package.json. Lightweight tag again (fine). npm repository.url warn is harmless. W-234 status left IN_PROGRESS; design header still says specified. Companions need their own commit+tag if not done.
+
+
+============================================================
+2026-09-19 02:55
+
+- review @tt-git-diff.txt
+- update @tt-commit.txt
+- if needed, update work item and design doc
+
+Reviewed the framework diff: design Rev 24, work-items W-234, cursor_log. Do not add tmp-bubblemap-app. Header still said specified after npm 1.0.9; added Rev 25 as-built, §12.1 chip lifetime, §21.13 published, work-item as-built notes. Status left IN_PROGRESS. Rewrote tt-commit under W-229 / v2.0.4.
+
+
+============================================================

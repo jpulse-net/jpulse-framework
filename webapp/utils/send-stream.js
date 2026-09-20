@@ -4,7 +4,7 @@
  * @description     One helper for byte responses: Content-Disposition, range requests,
  *                  conditional GET, and teardown of the upstream stream on client disconnect.
  * @file            webapp/utils/send-stream.js
- * @version         2.0.5
+ * @version         2.0.6
  * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -6,7 +6,7 @@
  *                   checkLocalAuthRestrictionSafety() (W-195), checkEmailVerificationSafety() (W-205),
  *                   and checkUrlFetchSafety()
  * @file            webapp/tests/unit/utils/bootstrap.test.js
- * @version         2.0.5
+ * @version         2.0.6
  * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -16,6 +16,8 @@
  */
 
 import { describe, test, expect, jest } from '@jest/globals';
+import fs from 'fs';
+import path from 'path';
 import { checkLocalAuthRestrictionSafety, checkEmailVerificationSafety, checkUrlFetchSafety } from '../../../utils/bootstrap.js';
 
 // W-195: Bootstrap safety check for localAuthRestriction: 'disabled'
@@ -181,6 +183,20 @@ describe('checkUrlFetchSafety', () => {
         const log = jest.fn();
         expect(() => checkUrlFetchSafety({}, log)).not.toThrow();
         expect(log).not.toHaveBeenCalled();
+    });
+});
+
+describe('bootstrap WebSocketController order', () => {
+    test('global.WebSocketController is assigned before SiteControllerRegistry.initialize', () => {
+        const src = fs.readFileSync(
+            path.join(process.cwd(), 'webapp/utils/bootstrap.js'),
+            'utf8'
+        );
+        const wsAssign = src.indexOf('global.WebSocketController =');
+        const siteInit = src.indexOf('SiteControllerRegistryModule.default.initialize()');
+        expect(wsAssign).toBeGreaterThan(-1);
+        expect(siteInit).toBeGreaterThan(-1);
+        expect(wsAssign).toBeLessThan(siteInit);
     });
 });
 

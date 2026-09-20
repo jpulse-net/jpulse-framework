@@ -1,6 +1,36 @@
-# jPulse Docs / Version History v2.0.5
+# jPulse Docs / Version History v2.0.6
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.6, W-240, 2026-09-19
+
+**Commit:** `W-240, v2.0.6, 2026-09-19: plugins: symlink checkout discovery and host WebSocketController`
+
+**FEATURE RELEASE**: A `plugins/<name>` symlink to a checkout was skipped (`Dirent.isDirectory()` is false for a symlink). Dependents then threw on a missing `errors` array. A plugin that imported host `websocket.js` by walking out of the tree stamped a pattern namespace on the wrong class. This release discovers the symlink and assigns `global.WebSocketController` before plugin init.
+
+**Objective**: Local `ln -s` development loads the plugin and registers WebSocket patterns on the process that serves the site, without copying the plugin tree into each host.
+
+**Key features**:
+- `isPluginDirEntry`: real directory, or a symlink that `statSync` (follows) resolves to a directory. Broken links are skipped
+- `ensurePluginErrors` before every `errors.push` (existing registry row, missing dep, circular dep)
+- `global.WebSocketController` assigned once, before AppCluster and `SiteControllerRegistry.initialize()`
+- `plugin.path` stays `plugins/<name>` (the symlink), not the real path
+- Docs: `ln -s` next to local-path install; ESM still resolves from the real file path — plugin code must not import host modules by walking `../../` out of the plugin
+
+**Files changed**:
+- `webapp/utils/plugin-manager.js`: `isPluginDirEntry`, `ensurePluginErrors`
+- `webapp/utils/bootstrap.js`: early `global.WebSocketController` assignment
+- `webapp/tests/unit/utils/plugin-manager.test.js`, `bootstrap.test.js`
+- `docs/plugins/managing-plugins.md`, `docs/plugins/plugin-architecture.md`
+- `docs/dev/work-items.md`: W-240 features/deliverables as-built
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.6 / W-240
+- `docs/CHANGELOG.md`: this section
+
+**Release**:
+- Work Item: W-240
+- Version: v2.0.6
+- Release Date: 2026-09-19
 
 ________________________________________________
 ## v2.0.5, W-235, 2026-09-19

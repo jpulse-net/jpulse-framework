@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.5
+# jPulse Docs / Dev / Work Items v2.0.6
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -9812,17 +9812,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - *no new error code:* `AI_PROVIDER_ERROR` plus `retryable` is the contract `turnLoop` already reads. A new code would need a matching branch there
   - do not run the bump-version script while implementing, and do not touch `.jpulse/`
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-237, v1.0.10, 2026-09-19: ai: chip attach, mobile shell, destroy cancel
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - close the remaining BubbleMap / core-migration panel gaps so a site can drop `hardClose` and wire chip → object without a site fork
@@ -9922,6 +9913,160 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **after 1.0.10 the site can** pass `mobile: { exclusive: true }` and drop both the manual `isFront()` + `hardClose()` gate and the `setRect({ w: 360, h: 480 })` reset handler; wire `adapter.attach` to its direct-drop helpers; and override the `chipAttach` string to "Attach to bubble", which keeps its existing user-doc sentences and its `/Attach to bubble/` doc test true with no edit. Quota footer, unread-dot, and embed `chrome: 'none'` stay out
   - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests
 
+### W-238, v1.0.11, 2026-09-19: ai: chip tooltip, switch confirm, compose Enter
+- status: ✅ DONE
+- type: Bugfix
+- objectives:
+  - three 1.0.10 chrome bugs found on the porting site: blocked Attach tooltip, switch-confirm copy, compose Enter leaking to the host
+  - no new seams; sites that omit `adapter.attach` stay on today's chrome
+- prerequisites:
+  - W-237, 1.0.10: published (`774c3b9`, tag `v1.0.10`). Chip ⋯ Attach, shared `/new` confirm, compose Enter is `preventDefault` + `send.click()` only
+  - W-220 `jp-tooltip` / `data-tooltip`; `jPulse.UI.confirmDialog` `buttons` array (index 0 = Cancel, last = primary)
+  - nothing framework-side. The confirm dialog's 10ms `jp-dialog-show` delay stays; this item stops the Enter at the compose box
+- rationale:
+  - **blocked Attach uses a native `title=`.** `toggleChipMenu` writes `item.title = gate.reason`. Chips already use `jp-tooltip` + `data-tooltip`. A disabled `<button>` may not fire hover for `jp-tooltip` — wrap or use `aria-disabled` so the reason shows the same way as the chip, never `title`
+  - **a switch reuses the `/new` strings.** Same helper for the gate is correct. The primary must not say New conversation when the user is switching. Switch path (dropdown + `/conversations n`) gets its own title and primary; body stays
+  - **compose Enter bubbles.** `preventDefault` + `send.click()` does not stop a document listener. The host's Enter (Edit Details) runs, then the confirm. Escape and thread-rename already `stopPropagation`. The dialog's `jp-dialog-show` is 10ms late, so that same Enter is still visible
+- features:
+  - **1. blocked Attach is `jp-tooltip` + `data-tooltip`.** On menu open, if `canAttach` is `{ ok: false, reason }`, the Attach item (or a wrapper) gets `jp-tooltip` and `data-tooltip` with that reason (fallback `chipAttachBlocked`). `jPulse.UI.tooltip.initAll` on the menu. Enabled item has neither `title` nor a tooltip. Never `item.title =`
+  - **2. switch confirm has its own title and primary.** `confirmDropAttachments` still owns the gate. `/new` and (+) keep `newConfirmTitle` / `newConversation`. Dropdown and `/conversations n` use `switchConfirmTitle` / `switchConfirmAction`. Body stays `newConfirmBody` ("Attached files and images will be removed from this conversation.")
+  - **3. compose Enter stops.** On Enter without Shift: `preventDefault`, `stopPropagation`, then `send.click()`. Same as Escape / thread-rename
+  - **4. blocked tooltip is unbound, not only hidden.** Enabling Attach or a new `reason` destroys the popup, drops document listeners, and `cloneNode`s the wrapper. `closeActive` alone left hover listeners and the old text
+  - **5. `registerAiNamespace` uses the host `WebSocketController`.** `global.WebSocketController` or `projectRoot/webapp/controller/websocket.js`. A static import that walked out of the plugin followed the symlink real path and stamped `/api/1/ws/ai/:threadId` on the wrong class
+  - **out of scope:** changing the framework 10ms `jp-dialog-show` delay; quota footer; unread-dot; embed chrome; site wiring of `adapter.attach`. Framework `plugin-manager` symlink discovery and early `global.WebSocketController` stay in the framework repo, not this bundle
+- deliverables:
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - blocked Attach: `jp-tooltip` + `data-tooltip` on `.plg-ai-chip-attach-tip`, no `title=`
+    - `unbindChipAttachTooltip` on enable, reason change, and menu hide
+    - switch path passes switch title/primary into the shared confirm helper
+    - compose Enter `stopPropagation`
+  - `plugins/ai-core/webapp/view/jpulse-common.css`: `.plg-ai-chip-attach-tip` (block, full width)
+  - `plugins/ai-core/webapp/utils/transport/ws.js`:
+    - no host-escaping `websocket.js` import; `registerAiNamespace` is async
+  - `plugins/ai-core/webapp/controller/aiCore.js`: `await registerAiNamespace()`
+  - `plugins/ai-core/webapp/translations/en.conf`, `de.conf`:
+    - `switchConfirmTitle` / `switchConfirmAction` (EN: "Switch conversation?" / "Switch"; DE: "Gespräch wechseln?" / "Wechseln")
+  - `plugins/ai-core/webapp/tests/unit/regressions.test.js`, `panel-strip.test.js`, `ws-bridge.test.js`:
+    - invert: no `item.title =`; attach reason uses `data-tooltip` / `jp-tooltip`
+    - `/new` still `newConfirmTitle` / `newConversation`; switch path uses `switchConfirmTitle` / `switchConfirmAction`
+    - compose Enter handler contains `stopPropagation`
+    - unbind destroys the popup (not `closeActive` only)
+    - no `../../../../../webapp/controller/websocket.js` import; pattern stamps on `global.WebSocketController`
+  - `plugins/ai-core/docs/README.md`, `plugins/ai-core/README.md`: 1.0.11 Plugin releases bullet
+  - `docs/dev/design/W-223-ai-agent.md` (framework repo): Rev 28 as-built; §12.1 / §21.16 name the chrome fixes, unbind, and host WS
+  - `hello-ai` / `ai-mock`: lockstep only
+- notes:
+  - **repo layout:** plugin-only. `plugins/ai-core` is the publish root; companions lockstep. One publish of `@jpulse-net/plugin-ai-core` 1.0.11. Design-doc hunk is the one framework-repo change besides this work item
+  - **decisions taken before implementation:**
+    - *tooltip, not title:* native `title=` was rejected — chips already use `jp-tooltip`
+    - *same helper, different chrome:* one gate; switch does not reuse New conversation as the primary
+    - *stop the key, do not change the dialog:* `stopPropagation` on compose Enter. Moving `jp-dialog-show` earlier is a framework follow-on
+  - **host-page gate before publish:** blocked Attach tooltip; `/new` confirm; dropdown switch confirm; `/conversations n`; compose Enter with chips; compose Enter without chips. Hello AI cannot catch this class
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests
+
+### W-239, v1.0.12, 2026-09-19: ai: /sources footer names sources vs images and the cap
+- status: ✅ DONE
+- type: Bugfix
+- objectives:
+  - after 1.0.11, `/sources` listed a PNG then said `Sources: 1/5` — the cap line counted `state.sources` only
+  - a novice could not tell that 5 is the limit, or that images are a different family
+  - do not fold images into `maxSourcesPerConversation` (that cap is source chips only)
+- prerequisites:
+  - W-238, 1.0.11: published. `/sources` already lists both families; the footer was one `used / max` line
+  - W-228 attachments: `state.sources` vs `state.images`; convert (PDF/Office) and URL ingest land in `state.sources` via `addTextSource`; images are Redis-staged vision chips
+  - `fillToken` already used for other slash strings (`%USED%`, `%MAX%`, `%LABEL%`)
+- rationale:
+  - **the cap line under-counted the list.** Chips print both families. The footer used `state.sources.length / maxSourcesPerConversation`. A PNG in the list made it look missing from the count
+  - **combining every chip against that 5 was rejected.** `maxSourcesPerConversation` is source chips (file / URL / paste after convert). Images have their own settings (bytes, edge, vision gate) and no conversation-count cap
+  - **"Text sources" was rejected.** PDF, Office, URL, and paste are sources. `addTextSource` is the convert path, not the product word. Images are the only other family
+  - **"1 / 5" was rejected as cryptic.** Name used-of-maximum
+- features:
+  - **1. split footer.** After the chip list: a sources line (`%USED%` of `%MAX%` maximum), then an images line (`Images: n`). Empty list still uses `sourcesNone` first
+  - **2. copy names the cap.** EN `Sources: %USED% of %MAX% maximum`. DE `Quellen: %USED% von maximal %MAX%`. Nested `fillToken`
+  - **3. PNG stays listed.** Do not treat an image as a missing source. Do not change attach, convert, or the chip strip
+  - **out of scope:** changing `maxSourcesPerConversation` to include images; a conversation-count image cap; quota footer; unread-dot. The framework symlink-discovery stub below this item is not this bundle
+- deliverables:
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - `runSources` lists `state.sources` then `state.images`, then the two footer lines
+    - sources line is nested `fillToken` on `I18N.slashSourcesCap` (`%USED%`, `%MAX%`)
+    - images line is `I18N.slashImagesCap` plus `state.images.length` when images are enabled
+  - `plugins/ai-core/webapp/translations/en.conf`, `de.conf`:
+    - `sourcesCap` / `imagesCap` (EN: "Sources: %USED% of %MAX% maximum" / "Images"; DE: "Quellen: %USED% von maximal %MAX%" / "Bilder")
+  - `plugins/ai-core/webapp/tests/unit/regressions.test.js`, `panel-strip.test.js`:
+    - `runSources` walks both families; footer uses `fillToken` `%USED%` / `%MAX%`, then `slashImagesCap`
+    - invert: no `sources.length / maxSourcesPerConversation` as the only count
+    - EN/DE lock the Sources / Quellen wording (not "Text sources")
+  - `plugins/ai-core/docs/README.md`: `/sources` row says the footer names how many sources are used of the maximum, then the image count
+  - `plugins/ai-core/docs/README.md`, `plugins/ai-core/README.md`: 1.0.12 Plugin releases bullet at publish
+  - `docs/dev/design/W-223-ai-agent.md` (framework repo): Rev 29 as-built; `/sources` footer names sources vs images and the cap
+  - `hello-ai` / `ai-mock`: lockstep only
+- notes:
+  - **repo layout:** plugin-only. `plugins/ai-core` is the publish root; companions lockstep. One publish of `@jpulse-net/plugin-ai-core` 1.0.12. Design-doc hunk is the one framework-repo change besides this work item
+  - **decisions taken before implementation:**
+    - *split, do not combine:* two footer lines. Folding images into the 5 was rejected — that setting is source chips
+    - *Sources, not Text sources:* convert output is text; the chip is a source (PDF, Office, URL, paste)
+    - *name the maximum:* `%USED% of %MAX% maximum`, not `n / max`
+  - **as-built (not published):** copy and tests are in the tree. Host gate: `/sources` with one PDF (or other file) and one PNG reads `Sources: 1 of 5 maximum` then `Images: 1`. Hard-refresh the symlink host
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-240, v2.0.6, 2026-09-19: plugins: symlink checkout discovery and host WebSocketController
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - a `plugins/<name>` symlink to a checkout is discovered and loaded, same as a real directory
+  - a plugin that registers a WebSocket pattern during `initialize()` stamps the class the running process uses for `_handleUpgrade`
+  - local `ln -s` development does not require copying the plugin tree into each host
+- prerequisites:
+  - W-045 plugin discovery (`readdirSync` + `Dirent.isDirectory()`)
+  - W-225 awaitable `onCreate`; `WebSocketController.patternNamespaces` and `_handleUpgrade`
+  - W-238, `ai-core` 1.0.11: plugin half already shipped — `registerAiNamespace` uses `global.WebSocketController` or `projectRoot`, not a host-escaping relative import. This item is the host half
+- rationale:
+  - **`Dirent.isDirectory()` is false for a symlink.** `discoverPlugins` skipped `plugins/ai-core -> …`. Dependents (`hello-ai`, `ai-mock`) then hit `plugin.errors.push` while `errors` was missing on a registry row loaded from disk — boot threw instead of logging a missing dep
+  - **ESM follows the real path.** A static `import` that walked `../../` out of a symlinked plugin loaded the framework checkout's `websocket.js` and stamped `/api/1/ws/ai/:threadId` on that class. The host process used a different class for upgrade. HTTP AI worked; the handshake failed. Copying the plugin tree was a workaround, not the product
+  - **`global.WebSocketController` was assigned after plugin `initialize()`.** Even a plugin that used `global` saw `undefined` and fell through. Moving the assignment before AppCluster and `SiteControllerRegistry.initialize()` makes `global` the first host resolution
+- features:
+  - **1. `discoverPlugins` follows a symlink to a directory.** `isPluginDirEntry`: real directory, or `isSymbolicLink()` plus `statSync` (follows) `isDirectory()`. Broken links are skipped
+  - **2. `ensurePluginErrors` before every `errors.push`.** Registry rows from disk may omit `errors`. `resolveLoadOrder` logs a missing or circular dep instead of throwing
+  - **3. `global.WebSocketController` is assigned before plugin init.** Same import as today's Step 25, moved ahead of AppCluster / `SiteControllerRegistry.initialize()`. Late Step 25 assignment is removed (one assignment)
+  - **4. user doc names `ln -s` and the ESM rule.** A symlink is a directory for discovery. Plugin code must not import host modules by walking out of the plugin
+  - **out of scope:** changing `ai-core` (W-238 already did). Treating a symlink-to-file as a plugin. Rewriting Node ESM resolution. Committing `tmp-bubblemap-app`. The design-doc hunks in this working tree for W-238 / W-239 are plugin as-built, not this item
+- deliverables:
+  - `webapp/utils/plugin-manager.js`:
+    - `isPluginDirEntry`, used by `discoverPlugins`
+    - `ensurePluginErrors` on existing-registry update, missing dep, and circular dep
+  - `webapp/utils/bootstrap.js`:
+    - `global.WebSocketController =` before AppCluster and `SiteControllerRegistry.initialize()`
+    - no second assignment later
+  - `webapp/tests/unit/utils/plugin-manager.test.js`:
+    - symlink-to-directory is discovered; path stays `plugins/<name>`
+    - broken symlink is skipped
+    - `resolveLoadOrder` does not throw when `errors` is missing
+  - `webapp/tests/unit/utils/bootstrap.test.js`:
+    - source-order: `global.WebSocketController =` appears before `SiteControllerRegistry.initialize()`
+  - `docs/plugins/managing-plugins.md`:
+    - `ln -s` next to local-path install; ESM real-path note (`global.*` or `projectRoot`). No work-item number
+  - `README.md` and `docs/README.md` Latest Release Highlights, `docs/CHANGELOG.md` at publish
+- notes:
+  - **repo layout:** framework-only. v2.0.6. Plugin 1.0.11+ already registers on the host class; this release makes a symlink checkout discoverable and puts the class on `global` in time
+  - **decisions taken before implementation:**
+    - *follow the link, keep the plugin path:* `statSync` for the type check; `plugin.path` stays `plugins/<name>` (the symlink). Resolving to the real path was rejected — enable/disable and update still key on the name under `plugins/`
+    - *skip a broken link:* do not record it as a plugin. A missing target is not a discovery
+    - *move the assignment, do not add a second global:* one `global.WebSocketController`. A plugin-only `projectRoot` import (W-238) is enough when the global is still unset; early assign is the host guarantee
+  - **as-built (not published):** BubbleMap with `plugins/ai-core` → framework checkout: discovered; `Registered pattern namespace: /api/1/ws/ai/:threadId` on the same process as `bubblemap/:mapId`
+  - **this `tt-git-diff` also has** W-238 / W-239 design-doc and work-item hunks (plugin items, already published) and `cursor_log.txt`. Those are not this item's product. Do not add `tmp-bubblemap-app`
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/`
+
+
+
 
 
 
@@ -9954,7 +10099,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-236, v1.0.1, 2026-09-19
+- assume W-240, v2.0.6, 2026-09-19
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -9962,9 +10107,10 @@ release prep:
 
 plugin release prep:
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-237, v1.0.10, 2026-09-19
+- review work item and design doc if it matches actual code & fix if needed
+- assume W-239, v1.0.12, 2026-09-19
 - plugin README.md & docs/README.md: add release to Plugin releases section
-- update plugin commit-message.txt
+- plugin commit-message.txt: update message
 
 ### Misc
 
@@ -9972,23 +10118,23 @@ plugin release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.5 2026-09-19
+node bin/bump-version.js 2.0.6 2026-09-19
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.5; git push origin main --tags
+git tag v2.0.6; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.1 2026-09-19
+node ../../bin/bump-version.js 1.0.12 2026-09-19
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.1; git push origin main --tags
+git tag v1.0.12; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

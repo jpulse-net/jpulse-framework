@@ -1,4 +1,4 @@
-# jPulse Framework v2.0.5
+# jPulse Framework v2.0.6
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -82,7 +82,7 @@ npm start
 - **Enterprise Security**: Built-in authentication, session management, security headers, and HTML sanitization
 - **Hardened URL Fetch**: `UrlFetch.fetch()` for a URL a user or a config field chose — SSRF guard, size caps, redirect re-validation (not raw Node `fetch()`)
 - **Internationalization**: Complete i18n support with dynamic translation loading
-- **Testing Framework**: 3900+ tests with automated cleanup and isolation
+- **Testing Framework**: 4000+ tests with automated cleanup and isolation
 - **Production Ready**: nginx integration, PM2 clustering, MongoDB replica sets
 
 ## Deployment Requirements
@@ -206,6 +206,7 @@ Business Source License 1.1 with Additional Terms
 
 ## Latest Release Highlights
 
+- **v2.0.6, W-240, 2026-09-19: Plugins: symlink checkout discovery and host WebSocketController**: `discoverPlugins` treats a `plugins/<name>` symlink to a directory as a plugin (`statSync` follows; a broken link is skipped). Registry rows that omit `errors` no longer throw on a missing dependency. `global.WebSocketController` is assigned before plugin `initialize()`, so a plugin that registers a pattern namespace stamps the class this process uses for upgrade. Docs: `plugins/managing-plugins.md`.
 - **v2.0.5, W-235, 2026-09-19: WebSocket: queue a send until the socket is open**: `jPulse.ws.send()` and `request()` accept a payload while status is `connecting` or `reconnecting` and flush it in order when the socket opens, before `onStatusChange('connected')`. `true` now means accepted, not written. A `disconnected` or `auth-required` socket still refuses. The outbox is capped (`maxQueueLength` 32, `maxQueueAgeMs` 10000). Docs also name the Vue `floatPanel` failure: `resizeHandles.mode: 'inject'` drops grips on the next VNode patch — use `mode: 'manual'` on a Vue-owned `el`. Docs: `websockets.md`, `jpulse-ui-reference.md`, `front-end-development.md`.
 - **v2.0.4, W-229, 2026-09-17: Hooks: jPulse-owned document conversion and preview hooks**: Four framework-owned, AI-free catalog rows — `onDocumentConvertRegister` / `onDocumentConvert` and `onDocumentPreviewRegister` / `onDocumentPreview` — so a PDF, Office, or thumbnail plugin depends on a framework version, not an AI package. Convert lists output keys (`text`, `markdown`, `pages`, `meta`); preview takes `originalName` and returns `imageBase64` plus `previewMime` (not `jpegBase64`). All four are `stability: 'planned'` until a framework caller exists. No converter, previewer, or caller ships. Also: new orientation pages `ai-agent.md` and `internationalization.md`. Docs: `hooks.md`.
 - **v2.0.3, W-225, 2026-09-17: WebSocket: await `onCreate` so a namespace can refuse a connection asynchronously**: `onCreate` may be async; the upgrade path awaits it before the handshake. A returned Promise was previously installed as the connection `ctx`, so an async handler that meant to reject was accepted instead. Bounded by `controller.websocket.onCreateTimeoutMs` (default 5000). Docs: `websockets.md`.

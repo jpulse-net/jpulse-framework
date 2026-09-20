@@ -3,7 +3,7 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         2.0.5
+ * @version         2.0.6
  * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -237,6 +237,15 @@ export async function bootstrap(options = {}) {
             bootstrapLog('✅ SessionStore: Configured with MemoryStore for tests');
         }
 
+        // WebSocketController class must be on global before AppCluster and
+        // before plugin initialize() (SiteControllerRegistry). createNamespace
+        // writes static patternNamespaces; a plugin that imported this file via
+        // a real path outside the host (symlink checkout) would otherwise stamp
+        // the pattern on a different class than _handleUpgrade uses.
+        const WebSocketControllerModule = await import('../controller/websocket.js');
+        global.WebSocketController = WebSocketControllerModule.default;
+        bootstrapLog('✅ WebSocketController: Class available (server init pending)');
+
         // Step 10: Initialize app cluster controller (W-143 - merged broadcast functionality)
         try {
             const AppClusterControllerModule = await import('../controller/appCluster.js');
@@ -364,12 +373,6 @@ export async function bootstrap(options = {}) {
             viewRouteRE: global.ViewController.getViewRouteRE()
         };
         bootstrapLog(`✅ viewRegistry: Built with ${global.viewRegistry.viewList.length} directories`);
-
-        // Step 25: Prepare WebSocketController (but don't initialize server yet)
-        // Server initialization requires Express app and http.Server
-        const WebSocketControllerModule = await import('../controller/websocket.js');
-        global.WebSocketController = WebSocketControllerModule.default;
-        bootstrapLog('✅ WebSocketController: Class available (server init pending)');
 
         bootstrapLog(`🎉 ${isTest ? 'Test' : 'App'} initialization complete!`);
 

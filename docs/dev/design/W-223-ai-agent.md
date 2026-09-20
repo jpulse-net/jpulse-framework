@@ -30,7 +30,13 @@ lockstep). **W-234** (image chips stay on Send) is published as
 `hello-ai` 1.0.9; companions lockstep). **W-237** (chip attach, mobile
 shell, destroy cancel) is published as `@jpulse-net/plugin-ai-core`
 1.0.10 (bundle carries `ai-mock` 1.0.10 and `hello-ai` 1.0.10;
-companions lockstep; commit `774c3b9`, tag `v1.0.10`). **W-236**
+companions lockstep; commit `774c3b9`, tag `v1.0.10`). **W-238**
+(chip tooltip, switch confirm, compose Enter) is published as
+`@jpulse-net/plugin-ai-core` 1.0.11 (bundle carries `ai-mock`
+1.0.11 and `hello-ai` 1.0.11; companions lockstep). **W-239**
+(`/sources` footer) is published as `@jpulse-net/plugin-ai-core`
+1.0.12 (bundle carries `ai-mock` 1.0.12 and `hello-ai` 1.0.12;
+companions lockstep). **W-236**
 (`@jpulse-net/plugin-ai-anthropic` 1.0.1) classifies
 `error.cause.code`: retryable connect blips, `ENOTFOUND` / TLS fatal,
 `fetch failed (CODE)`, family `AI_PROVIDER_ERROR`.
@@ -44,11 +50,45 @@ v2.0.4, Rev 18 is W-230 (specified and shipped as 1.0.5), Rev 19 is
 W-231 (specified and shipped as 1.0.6), Rev 20 specifies W-232, Rev 21
 is the as-built after 1.0.7, Rev 22 specifies W-233, Rev 23 is the
 as-built after 1.0.8, Rev 24 specifies W-234, Rev 25 is the
-as-built after 1.0.9, Rev 26 specifies W-237, and Rev 27 is the
-as-built after 1.0.10.
+as-built after 1.0.9, Rev 26 specifies W-237, Rev 27 is the
+as-built after 1.0.10, Rev 28 is the as-built after 1.0.11, and
+Rev 29 is the as-built after 1.0.12.
 
 
 ## Revision history
+
+### Rev 29 — 2026-09-19 — W-239 /sources footer names sources vs images and the cap
+
+After 1.0.11, `/sources` listed both families then said
+`Sources: 1/5` — the cap line counted `state.sources` only, so a
+PNG looked missing. The footer is now two lines: how many sources
+are used of the maximum, then the image count. Source chips are
+file / URL / paste (PDF and Office after convert). Images stay a
+separate family and do not count against `maxSourcesPerConversation`.
+Copy names the limit (`Sources: %USED% of %MAX% maximum`). "Text
+sources" was rejected.
+
+| Section | Change |
+|---|---|
+| Header, §12.1, §21.17 | W-239 specified and as-built as 1.0.12 |
+
+### Rev 28 — 2026-09-19 — W-238 chip tooltip, switch confirm, compose Enter
+
+Three 1.0.10 chrome bugs from the porting site, plus two
+as-built follow-ons found on the same host pass. Blocked Attach
+uses `jp-tooltip` + `data-tooltip` on a wrapper (disabled buttons
+do not hover). Enabling Attach or a new reason unbinds that
+tooltip (`cloneNode`). A conversation switch confirm has its own
+title and primary ("Switch conversation?" / "Switch"); `/new`
+keeps New conversation. Compose Enter `stopPropagation` so a
+host document listener does not fire. Same confirm helper; body
+unchanged. `registerAiNamespace` uses the host
+`WebSocketController` (`global` or `projectRoot`), not a relative
+import that follows a symlink's real path.
+
+| Section | Change |
+|---|---|
+| Header, §12.1, §21.16 | W-238 specified and as-built as 1.0.11 |
 
 ### Rev 27 — 2026-09-19 — W-237 as-built
 
@@ -2061,7 +2101,10 @@ default; passing the array is the complete list, last entry wins, and
 `/help`, `/tools`, `/model`, `/new` (`clear`), `/cancel`, `/conversations`
 (`resume`), `/quota`, `/sources`, `/status`, `/context`. `/model` and
 `/status` are always listed. `when()` gates `/quota`, `/sources`, and
-`/context` on data the panel already holds. `examples` is the content slot
+`/context` on data the panel already holds. As of 1.0.12 `/sources`
+lists both families, then a footer that names how many sources are
+used of the maximum and the image count. Images do not count
+against `maxSourcesPerConversation`. `examples` is the content slot
 of `/help`: `[[label]]` anywhere in a row is clickable and fills the
 compose box without sending. Text after the brackets is a note, not a
 second syntax. `/help` command names, `/model` pairs, and
@@ -2091,8 +2134,15 @@ visible and disabled. Click is `attach(row, handle.attachmentFile(row.id))`
 — a site write, not a proposal. The label is i18n `chipAttach`.
 Chip click still opens details; ⋯ does not toggle them. `/new`,
 the (+) new button, thread select, and `/conversations n` share
-one confirm when the switch would drop chips. The body says
-"this conversation". The WS turn actor is built with the handshake
+one confirm helper when the switch would drop chips. `/new` and
+(+) keep "Start a new conversation?" / "New conversation"; a
+dropdown or `/conversations n` switch uses "Switch conversation?"
+/ "Switch". The body says "this conversation". A blocked Attach
+reason is `jp-tooltip` + `data-tooltip`, not `title`. Enabling
+Attach or a new reason unbinds that tooltip. Compose
+Enter does not bubble. `registerAiNamespace` stamps
+`/api/1/ws/ai/:threadId` on the host `WebSocketController`. The
+WS turn actor is built with the handshake
 user on `req.user` and `req.session.user`.
 
 Note what is *not* required on the adapter: `executeTool`. When a client-host
@@ -3190,6 +3240,8 @@ separate work in its own repository.
 | **W-233** | ai: panel title, floatPanel shell options, and the clipped add menu | A second panel on the same page can name itself, keep its own geometry key, and cascade; `destroy()` removes the body node and closes the socket; compose paste stays in the box; this turn's attachments are on the user message; the (+) menu is readable |
 | **W-234** | ai: image chips stay on Send | A PNG chip stays until ✕ / `/new` / thread switch / reload, same as a text source. The mailbox peeks; mid-turn `handle.attachments()` still sees the picture |
 | **W-237** | ai: chip attach, mobile shell, destroy cancel | A site can drop `hardClose` and wire chip → object without a fork: ⋯ Attach, the four shell keys, destroy-cancel, `/new` confirm, `setTitle`, WS `session.user` |
+| **W-238** | ai: chip tooltip, switch confirm, compose Enter | Blocked Attach uses `jp-tooltip` and unbinds when enabled; a switch confirm says Switch, not New conversation; compose Enter does not leak to the host page; the AI WS pattern registers on the host class |
+| **W-239** | ai: /sources footer names sources vs images and the cap | `/sources` footer is used-of-maximum for source chips, then the image count. Images do not fold into `maxSourcesPerConversation` |
 
 W-223, W-224, and W-226 are the "first release" referred to throughout: server
 core, a real provider, and the panel. W-227 and W-228 are each independently
@@ -3570,6 +3622,41 @@ with a username/roles fallback. `startTurn` sends without
 Hello AI has no `attach`, no `mobile`, no title setter. The
 specified surface landed; `waitForWs` removal is the one home the
 code wanted.
+
+### 21.16 W-238 — chip tooltip, switch confirm, compose Enter
+
+Specified and shipped as `@jpulse-net/plugin-ai-core` 1.0.11
+against published 1.0.10. Blocked Attach (`canAttach` `{ ok: false,
+reason }`) shows `reason` with `jp-tooltip` + `data-tooltip` on
+`.plg-ai-chip-attach-tip` — a disabled `<button>` does not fire
+hover. Never `title=`. Enabling the item (or a new `reason`)
+destroys the popup and unbinds hover listeners (`cloneNode`);
+`closeActive` alone is not enough. The confirm helper is still shared; `/new`
+and (+) keep `newConfirmTitle` / `newConversation`; dropdown and
+`/conversations n` use `switchConfirmTitle` / `switchConfirmAction`.
+Body stays `newConfirmBody`. Compose Enter is `preventDefault`,
+`stopPropagation`, then `send.click()` — same as Escape /
+thread-rename — so a host document listener does not see that key
+before the dialog's 10ms `jp-dialog-show`. The framework delay is
+unchanged. `registerAiNamespace` does not import
+`../../../../../webapp/controller/websocket.js`; it uses
+`global.WebSocketController` or
+`projectRoot/webapp/controller/websocket.js` so a symlink
+checkout stamps the pattern on the process that serves the site.
+
+### 21.17 W-239 — /sources footer names sources vs images and the cap
+
+Specified and shipped as `@jpulse-net/plugin-ai-core` 1.0.12
+against published 1.0.11. `/sources` already listed both
+families; the footer used `state.sources.length / max`. A PNG in
+the list made it look missing from the count. Combining every
+chip against `maxSourcesPerConversation` was rejected — that
+setting is source chips (file / URL / paste after convert).
+Images have their own settings and no conversation-count cap.
+"Text sources" was rejected: convert output is text; the chip is
+a source. The footer is `Sources: %USED% of %MAX% maximum` then
+`Images: n` (`fillToken`). Empty still uses `sourcesNone` first.
+Companions lockstep only.
 
 ### 21.14 Standalone follow-ons
 

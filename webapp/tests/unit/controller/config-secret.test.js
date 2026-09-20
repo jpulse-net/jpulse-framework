@@ -3,7 +3,7 @@
  * @tagline         Unit tests for W-210 config secret reveal
  * @description     Tests ConfigController.getSecret path validation, masking of logs, and audit
  * @file            webapp/tests/unit/controller/config-secret.test.js
- * @version         2.0.5
+ * @version         2.0.6
  * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

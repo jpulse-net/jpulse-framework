@@ -26623,8 +26623,7 @@ Anthropic retry folded into W-235 as feature 8 (ai-anthropic 1.0.1, second packa
 - tmp-bubblemap-app is a symlink, aka live copy, so latest code is under it
   - for plugins only, the old code is under tmp-bubblemap-app/plugins.save1/
 - ai-anthropic fix needs its own work item
-- as sequence I propose: W-235 jpulse ws enhancement, W-236 ai-anthropic fix,
-  W-237 ai-core fixes & use of W-235 enhancement; or swap W-236 and W-237?
+- as sequence I propose: W-235 jpulse ws enhancement, W-236 ai-anthropic fix, W-237 ai-core fixes & use of W-235 enhancement; or swap W-236 and W-237?
 - ok to handle vue item as a doc item
 
 Split into three items, all PENDING, none moved. W-235 v2.0.5 framework WS send queue plus the Vue doc note; W-236 ai-anthropic 1.0.1 retry classification; W-237 ai-core 1.0.10 (the former W-235 spec, minus anthropic, plus features 8 and 9 for the queue). Recommended keeping the proposed order, not swapping. Read the live site via the symlink: three callers hand-roll the connected guard (ai-core waitForWs, Map Chat wsConnected, map join in the connected branch), map-canvas-ai.tmpl passes no mobile/defaults and works around it with setRect 360x480 plus a manual isFront/hardClose gate, and map-canvas.tmpl data() declares wsConnection and the three panel handles with no markRaw. Flagged one open decision: feature 9 raises jpulseVersion to >=2.0.5 for all ai-core users, so it is droppable.
@@ -26634,15 +26633,9 @@ Split into three items, all PENDING, none moved. W-235 v2.0.5 framework WS send 
 2026-09-19 14:33
 
 - ok to raise jpulseVersion from >=2.0.3 to >=2.0.5 for every ai-core user
-- from bubblemap chat: the Vue note was injected resize-handle DOM, not
-  Vue proxying the handle object. resizeHandles.mode inject appends eight
-  grips; a Vue Teleport tree drops them on the next patch. Map Chat uses
-  mode: 'manual'. AI plugin panel is on document.body so inject is fine.
-  markRaw / destroy on unmount is still good guidance, different issue.
+- from bubblemap chat: the Vue note was injected resize-handle DOM, not Vue proxying the handle object. resizeHandles.mode inject appends eight grips; a Vue Teleport tree drops them on the next patch. Map Chat uses mode: 'manual'. AI plugin panel is on document.body so inject is fine. markRaw / destroy on unmount is still good guidance, different issue.
 
-Locked W-237 feature 9 and jpulseVersion >=2.0.5. Rewrote W-235 Vue
-rationale, feature 7, deliverables, and notes around the inject-vs-manual
-failure mode; markRaw stays a second paragraph. Status left PENDING.
+Locked W-237 feature 9 and jpulseVersion >=2.0.5. Rewrote W-235 Vue rationale, feature 7, deliverables, and notes around the inject-vs-manual failure mode; markRaw stays a second paragraph. Status left PENDING.
 
 
 ============================================================
@@ -26650,12 +26643,7 @@ failure mode; markRaw stays a second paragraph. Status left PENDING.
 
 implement W-235
 
-Implemented the jPulse.ws outbox: send() / request() queue while
-connecting or reconnecting, flush in onopen before status callbacks,
-caps maxQueueLength 32 and maxQueueAgeMs 10000, clear on disconnect
-and 4401/4403. send() true means accepted. Vue docs name inject-vs-
-manual resize grips. Tests: 2 suites / 56 passed. Status left
-IN_PROGRESS. Did not bump-version or touch .jpulse/.
+Implemented the jPulse.ws outbox: send() / request() queue while connecting or reconnecting, flush in onopen before status callbacks, caps maxQueueLength 32 and maxQueueAgeMs 10000, clear on disconnect and 4401/4403. send() true means accepted. Vue docs name inject-vs- manual resize grips. Tests: 2 suites / 56 passed. Status left IN_PROGRESS. Did not bump-version or touch .jpulse/.
 
 
 ============================================================
@@ -26669,13 +26657,7 @@ release prep:
 - update commit-message.txt, following the same format (don't commit)
 - append to cursor_log.txt
 
-Reviewed tt-git-diff.txt. Diff matches W-235: outbox, tests, Vue docs,
-highlights, CHANGELOG. As-built: flush is connection._flushOutbox();
-queued request teardown is CONNECTION_LOST; simple suite is config +
-source scan. Updated W-235 features/deliverables only (status left
-IN_PROGRESS). Aligned websockets.md Vue example, CHANGELOG, and
-commit-message.txt. Do not add tmp-bubblemap-app. Did not commit or
-bump-version.
+Reviewed tt-git-diff.txt. Diff matches W-235: outbox, tests, Vue docs, highlights, CHANGELOG. As-built: flush is connection._flushOutbox(); queued request teardown is CONNECTION_LOST; simple suite is config + source scan. Updated W-235 features/deliverables only (status left IN_PROGRESS). Aligned websockets.md Vue example, CHANGELOG, and commit-message.txt. Do not add tmp-bubblemap-app. Did not commit or bump-version.
 
 
 ============================================================
@@ -26683,14 +26665,9 @@ bump-version.
 
 release done, all good
 
-anything I need to carry forward to new chat for W-236, v1.0.1,
-2026-09-19: ai-anthropic: a transient network failure is retryable;
-or continue here?
+anything I need to carry forward to new chat for W-236, v1.0.1, 2026-09-19: ai-anthropic: a transient network failure is retryable; or continue here?
 
-Advised a new chat. This thread overflowed once and is full of W-235
-framework WS queue context. W-236 is plugins/ai-anthropic 1.0.1, its
-own repo, independent of W-235/W-237. Spec is locked. Offered a
-paste-ready handoff. Did not implement.
+Advised a new chat. This thread overflowed once and is full of W-235 framework WS queue context. W-236 is plugins/ai-anthropic 1.0.1, its own repo, independent of W-235/W-237. Spec is locked. Offered a paste-ready handoff. Did not implement.
 
 
 ============================================================
@@ -26699,14 +26676,7 @@ paste-ready handoff. Did not implement.
 next: W-236, v1.0.1, 2026-09-19: ai-anthropic: a transient network
 failure is retryable.
 
-Classified error.cause.code in completeAnthropic. Retryable:
-ECONNRESET, ECONNREFUSED, ETIMEDOUT, EPIPE, EAI_AGAIN,
-UND_ERR_SOCKET, UND_ERR_CONNECT_TIMEOUT. Message is
-sanitizeError("fetch failed (CODE)"). ENOTFOUND and TLS stay
-fatal. AbortError / 429 / 529 unchanged. Tests 3 suites / 39
-passed. README 1.0.1 bullet and plugin commit-message.txt.
-package.json / plugin.json 1.0.1. Status left as found. Did not
-commit, bump-version, or touch .jpulse/.
+Classified error.cause.code in completeAnthropic. Retryable: ECONNRESET, ECONNREFUSED, ETIMEDOUT, EPIPE, EAI_AGAIN, UND_ERR_SOCKET, UND_ERR_CONNECT_TIMEOUT. Message is sanitizeError("fetch failed (CODE)"). ENOTFOUND and TLS stay fatal. AbortError / 429 / 529 unchanged. Tests 3 suites / 39 passed. README 1.0.1 bullet and plugin commit-message.txt. package.json / plugin.json 1.0.1. Status left as found. Did not commit, bump-version, or touch .jpulse/.
 
 
 ============================================================
@@ -26715,105 +26685,211 @@ commit, bump-version, or touch .jpulse/.
 release & publish done
 - update @tt-commit.txt for framework commit
 
-Rewrote tt-commit.txt for the framework-repo documentation of
-published @jpulse-net/plugin-ai-anthropic 1.0.1. No framework
-source or version bump. Design-doc line waits for W-237. Status
-left IN_PROGRESS. Did not commit.
+Rewrote tt-commit.txt for the framework-repo documentation of published @jpulse-net/plugin-ai-anthropic 1.0.1. No framework source or version bump. Design-doc line waits for W-237. Status left IN_PROGRESS. Did not commit.
 
 
 ============================================================
 2026-09-19 15:53
 
-anything else to carry over to new chat for new chat for W-237,
-v1.0.10, 2026-09-19: ai: chip attach, mobile shell, destroy cancel?
+anything else to carry over to new chat for new chat for W-237, v1.0.10, 2026-09-19: ai: chip attach, mobile shell, destroy cancel?
 
-Advised a new chat. This thread is W-236 anthropic 1.0.1 plus leftover
-W-235 queue context. W-237 is ai-core 1.0.10, its own publish.
-W-236 has landed: include one design-doc line in Rev 26/27. W-235
-as-built: send() true means accepted; flush is connection._flushOutbox().
-Do not redo 1.0.8/1.0.9 chrome or W-236. Offered a paste-ready handoff.
+Advised a new chat. This thread is W-236 anthropic 1.0.1 plus leftover W-235 queue context. W-237 is ai-core 1.0.10, its own publish. W-236 has landed: include one design-doc line in Rev 26/27. W-235 as-built: send() true means accepted; flush is connection._flushOutbox(). Do not redo 1.0.8/1.0.9 chrome or W-236. Offered a paste-ready handoff.
 
 
 ============================================================
 2026-09-19 16:05
 
 next: W-237, v1.0.10, 2026-09-19: ai: chip attach, mobile shell, destroy cancel.
-Spec: docs/dev/work-items.md ### W-237. Status still PENDING; do not
-change status or move the item. Workflow: read the spec, ask if
-anything is unclear, plan, wait for go-ahead before implementing.
+Spec: docs/dev/work-items.md ### W-237. Status still PENDING; do not change status or move the item. Workflow: read the spec, ask if anything is unclear, plan, wait for go-ahead before implementing.
 
-Read W-237 (PENDING, do not move). Planned 1.0.10 only: chip ⋯
-adapter.attach/canAttach, forward mobile/defaults/min size, compose
-safe-area, destroy cancel POST then disconnect, /new+switch confirm,
-WS ctx.user + session.user actor, handle.setTitle, startTurn no
-per-turn waitForWs and false send() is not an error, jpulseVersion
->=2.0.5. hello-ai lockstep only. Design-doc Rev 26/27 plus one
-W-236 line. Asked about connectWs wait and confirm copy. Waiting
-for go-ahead. Did not implement, bump-version, or touch status.
+Read W-237 (PENDING, do not move). Planned 1.0.10 only: chip ⋯ adapter.attach/canAttach, forward mobile/defaults/min size, compose safe-area, destroy cancel POST then disconnect, /new+switch confirm, WS ctx.user + session.user actor, handle.setTitle, startTurn no per-turn waitForWs and false send() is not an error, jpulseVersion >=2.0.5. hello-ai lockstep only. Design-doc Rev 26/27 plus one W-236 line. Asked about connectWs wait and confirm copy. Waiting for go-ahead. Did not implement, bump-version, or touch status.
 
 
 ============================================================
 2026-09-19 16:10
 
-- waitForWs no longer needed in site code since it is handled
-upstream; remove unless argument against it
-- "body: Attached files and images will be removed from this tab"
--- is tab the right word? or "this conversation"
-Keep the spec as written. Chip as a group. Pad compose. Same
-confirm helper for /conversations n.
+- waitForWs no longer needed in site code since it is handled upstream; remove unless argument against it
+- "body: Attached files and images will be removed from this tab" -- is tab the right word? or "this conversation"
+Keep the spec as written. Chip as a group. Pad compose. Same confirm helper for /conversations n.
 
-Implemented W-237 as specified. Confirm body uses "this
-conversation". Removed waitForWs (W-235 outbox is the send gate).
-Chip is a group with body / ⋯ / ✕; ⋯ only when adapter.attach
-exists. Forwarded mobile/defaults/min size. Compose
-safe-area-inset-bottom. destroy() cancel POST then disconnect.
-/new and chip-dropping switch share confirm. handle.setTitle.
-WS handshake user on ctx; turn actor session.user. startTurn
-sends without waiting; false send() is not an error.
-jpulseVersion >=2.0.5 lockstep. Tests 23/247 passed. Design-doc
-Rev 26/27 plus W-236 line. Status left PENDING. No server on
-8080 so Hello AI was not browser-checked. Did not bump-version
-or commit.
+Implemented W-237 as specified. Confirm body uses "this conversation". Removed waitForWs (W-235 outbox is the send gate). Chip is a group with body / ⋯ / ✕; ⋯ only when adapter.attach exists. Forwarded mobile/defaults/min size. Compose safe-area-inset-bottom. destroy() cancel POST then disconnect. /new and chip-dropping switch share confirm. handle.setTitle. WS handshake user on ctx; turn actor session.user. startTurn sends without waiting; false send() is not an error. jpulseVersion >=2.0.5 lockstep. Tests 23/247 passed. Design-doc Rev 26/27 plus W-236 line. Status left PENDING. No server on 8080 so Hello AI was not browser-checked. Did not bump-version or commit.
 
 
 ============================================================
 2026-09-19 16:20
 
-- for all 3 plugins, enhance plugins releases bullets to include
-W-nnn and date as in README.md (82-86)
-- for all 3 plugins, copy the plugins releases section to
-docs/README.md
+- for all 3 plugins, enhance plugins releases bullets to include W-nnn and date as in README.md (82-86)
+- for all 3 plugins, copy the plugins releases section to docs/README.md
 
-Formatted every Plugin releases bullet as **v**, W-nnn, date on
-ai-core, ai-mock, and hello-ai README.md. Copied the same section
-into each plugin's docs/README.md. Status left PENDING.
+Formatted every Plugin releases bullet as **v**, W-nnn, date on ai-core, ai-mock, and hello-ai README.md. Copied the same section into each plugin's docs/README.md. Status left PENDING.
 
 
 ============================================================
 2026-09-19 16:26
 
-plugin release prep: review tt-git-diff.txt; assume W-237,
-v1.0.10, 2026-09-19; update commit-message.txt for 3 plugins
+plugin release prep: review tt-git-diff.txt; assume W-237, v1.0.10, 2026-09-19; update commit-message.txt for 3 plugins
 
-Reviewed tt-git-diff.txt against W-237. Product surface is
-complete. Agreed deviation: waitForWs removed (W-235 outbox).
-Design-doc hunk is framework-repo, not in these diffs. Wrote
-commit-message.txt for ai-core, ai-mock, hello-ai. Status left
-as found. Did not commit or bump-version.
+Reviewed tt-git-diff.txt against W-237. Product surface is complete. Agreed deviation: waitForWs removed (W-235 outbox). Design-doc hunk is framework-repo, not in these diffs. Wrote commit-message.txt for ai-core, ai-mock, hello-ai. Status left as found. Did not commit or bump-version.
 
 
 ============================================================
 2026-09-19 16:40
 
-plugins released, bundle published. Update tt-commit.txt; do not
-change the W-235, v2.0.5, 2026-09-19: ai: prefix. Review work
-item and design doc against actual code.
+plugins released, bundle published. Update tt-commit.txt; do not change the W-235, v2.0.5, 2026-09-19: ai: prefix. Review work item and design doc against actual code.
 
-Updated tt-commit.txt for W-237 / 1.0.10 (prefix kept). Aligned
-W-237 features/deliverables/as-built with shipped code (chip
-group, this conversation, /conversations n, waitForWs removed,
-774c3b9). Design-doc header and Rev 27 / §12.1 / §21.15 now say
-published. Status left IN_PROGRESS. Did not commit.
+Updated tt-commit.txt for W-237 / 1.0.10 (prefix kept). Aligned W-237 features/deliverables/as-built with shipped code (chip group, this conversation, /conversations n, waitForWs removed, 774c3b9). Design-doc header and Rev 27 / §12.1 / §21.15 now say published. Status left IN_PROGRESS. Did not commit.
+
+
+============================================================
+2026-09-19 17:34
+
+I am disappointed, so many bugs... 1.0.10 live: disabled Attach uses title=; switch confirm reuses New conversation; compose Enter on /new leaks to host Edit Details. What can we do to make this platform stable??
+
+Root-caused all three in 1.0.10 panel code. Planned a 1.0.11 chrome patch (jp-tooltip on blocked Attach, switch confirm copy, stopPropagation on compose Enter). Did not implement. Status left as found. Did not commit.
+
+
+============================================================
+2026-09-19 17:39
+
+- working is good
+- stub done work-items.md (9925-9936)
+- how can I test in bubblemap without publish?
+- replace plugin temporarily?
+
+Filled W-238 stub: chip tooltip, switch confirm, compose Enter. Status left PENDING. Local test: copy the three chrome files into BubbleMap plugins/ai-core, or plugin install of the ai-core path with --force. Did not implement or commit.
+
+
+============================================================
+2026-09-19 17:45
+
+- implement
+- add also unit tests
+- we have to get more vigilent with code, this is really disappointing
+
+Implemented W-238: jp-tooltip wrapper for blocked Attach (never title=), switch confirm title/primary, compose Enter stopPropagation. Tests invert the 1.0.10 scans (no item.title, switch strings, Enter stop before click). 23 suites / 253 passed. Design Rev 28. Status left PENDING. Did not bump-version or commit.
+
+
+============================================================
+2026-09-19 18:19
+
+BUG: Enabled Attach still shows the blocked tooltip. syncChipAttachItem on ok strips class/attr and closeActive(); it leaves _jpTooltip and the hover listeners. Destroy/unbind when enabled and when reason changes.
+
+Added unbindChipAttachTooltip: remove popup, drop document listeners, cloneNode to kill hover/focus. Called on ok, reason change, and hideChipMenus. Tests lock destroy, not closeActive-only. Status left PENDING. Did not commit.
+
+
+============================================================
+2026-09-19 18:25
+
+actually, symlink did NOT work, boot failed because plugins dir check for plugins does not recognize symlinks
+
+discoverPlugins now treats a symlink-to-directory as a plugin (statSync follow; broken links skipped). resolveLoadOrder guards plugin.errors so a missing dep logs instead of throwing. Tests: 14 passed. Copy webapp/utils/plugin-manager.js into BubbleMap before retrying npm start. Did not bump-version or commit.
+
+
+============================================================
+2026-09-19 18:48
+
+SO MANY BUGS!!! hello-ai works here; hello-ai and bubblemap ai agent are broken. Handshake fails: /api/1/ws/ai/:threadId never registered on the host WebSocketController. Symlink ESM import stamped the pattern on the framework class. Do not publish.
+
+Removed the host-escaping websocket.js import. registerAiNamespace now uses global.WebSocketController or projectRoot. Bootstrap assigns that global before plugin initialize(). Tests: 31 passed. Keep the symlink; restart BubbleMap. Did not publish or commit.
+
+
+============================================================
+2026-09-19 19:14
+
+two framework files changed, so I need to copy webapp/utils/bootstrap.js and webapp/utils/plugin-manager.js?
+
+plugin-manager.js: yes if BubbleMap still has the old isDirectory() scan (needed for the symlink to be discovered). bootstrap.js: optional for the handshake; ws.js via the symlink loads the host controller from projectRoot when global is still unset. Restart after the copies you choose.
+
+
+============================================================
+2026-09-19 19:16
+
+review bubblemap app start log
+
+Start is good. Both copies are live: PluginManager discovered 25 plugins including ai-core; WebSocketController is on global before AppCluster; Registered pattern namespace: /api/1/ws/ai/:threadId on the same process as bubblemap/:mapId. Handshake should work; try a map send. Hook-audit and bodyLimit lines are unrelated.
+
+
+============================================================
+2026-09-19 19:20
+
+it looks like we are ready to build the next ai plugin bundle
+
+Plugin release prep for 1.0.11 / W-238. Tests 23/257 passed. READMEs, work-item features/deliverables, design Rev 28, and plugins/ai-core/commit-message.txt updated (unbind + host WS). Status left PENDING. Did not bump-version, pack, commit, or publish. Framework bootstrap/plugin-manager stay out of the bundle.
+
+
+============================================================
+2026-09-19 19:24
+
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-238, v1.0.11, 2026-09-19
+- update plugin commit-message.txt for all 3 plugins
+- if needed, update work item and design doc to match the code
+
+tt-git-diff is the ai-core tree and matches W-238 as-built (tooltip, unbind, switch confirm, Enter stop, host WS). Companions not in that diff. Wrote commit-message.txt for ai-core, ai-mock, hello-ai. Added CSS wrapper to work-item deliverables. Design Rev 28 already matched. Status left IN_PROGRESS. Did not bump or commit.
+
+
+============================================================
+2026-09-19 19:28
+
+what is this error? [hello-ai git commit -F then gs]
+
+Not an error. Commit 23554a7 succeeded. "ahead of origin/main by 1 commit" means it is not pushed yet. 2 files / 2 insertions is the 1.0.11 README bullets only — bump-version has not run.
+
+
+============================================================
+2026-09-19 19:58
+
+YET ANOTHER BUG /sources cap line counts text sources only
+
+Split the footer: Text sources: n / max, then Images: n. Did not fold images into maxSourcesPerConversation (that cap is text-only). PNG still listed as before. Tests lock both counts. Did not bump, did not touch W-239.
+
+
+============================================================
+2026-09-19 20:01
+
+"Text sources: 1 / 5" is cryptic, specify the 5 is the limit (max)
+
+Footer is now "Text sources: 1 of 5 maximum" (DE: von maximal). fillToken %USED% / %MAX%. Tests updated. 48 passed. Did not bump.
+
+
+============================================================
+2026-09-19 20:08
+
+hmm, is "text source" the right term??? what about pdf and other file types? only images are special case
+
+Dropped "Text". Footer is "Sources: 1 of 5 maximum" (DE: Quellen). PDF/Office/URL/plain text all count as sources; images stay a separate line. Tests 48 passed. Did not bump.
+
+
+============================================================
+2026-09-19 20:12
+
+write work-items.md (9976-9987)
+
+Filled W-239 v1.0.12 as the /sources footer bugfix (split families, name the max, Sources not Text sources). Status left IN_PROGRESS. Did not touch the v2.0.6 symlink stub. Did not bump.
+
+
+============================================================
+2026-09-19 20:26
+
+plugin release prep W-239 v1.0.12
+
+tt-git-diff matches W-239 (split /sources footer, fillToken, Sources not Text). Added 1.0.12 Plugin releases on all three plugins. Updated three commit-message.txt. Design Rev 29. Tests 23/259. Status left IN_PROGRESS. Did not bump.
+
+
+============================================================
+2026-09-19 20:37
+
+plugins released; write W-240 work item from tt-git-diff
+
+Filled W-240 v2.0.6: symlink plugin-dir discovery, ensurePluginErrors, early global.WebSocketController. Diff also has W-238/W-239 docs and tmp-bubblemap-app (out of scope). Status left IN_PROGRESS. Did not bump.
+
+
+============================================================
+2026-09-19 20:41
+
+release prep W-240 v2.0.6
+
+Added v2.0.6 Latest Release Highlights and CHANGELOG. Updated commit-message.txt. plugin-architecture names symlink discovery. Tests 2/29. Status left IN_PROGRESS. Did not bump or commit.
 
 
 ============================================================

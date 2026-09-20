@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v2.0.5
+# jPulse Docs / Site Administrator & Developer Documentation v2.0.6
 
 **For Site Administrators & Site Developers**
 
@@ -69,7 +69,7 @@ jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application f
 - See [AI Agent](ai-agent.md)
 
 ### 🧪 **Testing & Quality**
-- 3900+ tests with 100% pass rate
+- 4000+ tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis
@@ -247,6 +247,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v2.0.6, W-240, 2026-09-19: Plugins: symlink checkout discovery and host WebSocketController**: `discoverPlugins` treats a `plugins/<name>` symlink to a directory as a plugin (`statSync` follows; a broken link is skipped). Registry rows that omit `errors` no longer throw on a missing dependency. `global.WebSocketController` is assigned before plugin `initialize()`, so a plugin that registers a pattern namespace stamps the class this process uses for upgrade. Docs: [Managing Plugins](plugins/managing-plugins.md).
 - **v2.0.5, W-235, 2026-09-19: WebSocket: queue a send until the socket is open**: `jPulse.ws.send()` and `request()` accept a payload while status is `connecting` or `reconnecting` and flush it in order when the socket opens, before `onStatusChange('connected')`. `true` now means accepted, not written. A `disconnected` or `auth-required` socket still refuses. The outbox is capped (`maxQueueLength` 32, `maxQueueAgeMs` 10000). Docs also name the Vue `floatPanel` failure: `resizeHandles.mode: 'inject'` drops grips on the next VNode patch — use `mode: 'manual'` on a Vue-owned `el`. Docs: [WebSockets](websockets.md), [UI reference](jpulse-ui-reference.md), [front-end development](front-end-development.md).
 - **v2.0.4, W-229, 2026-09-17: Hooks: jPulse-owned document conversion and preview hooks**: Four framework-owned, AI-free catalog rows — `onDocumentConvertRegister` / `onDocumentConvert` and `onDocumentPreviewRegister` / `onDocumentPreview` — so a PDF, Office, or thumbnail plugin depends on a framework version, not an AI package. Convert lists output keys (`text`, `markdown`, `pages`, `meta`); preview takes `originalName` and returns `imageBase64` plus `previewMime` (not `jpegBase64`). All four are `stability: 'planned'` until a framework caller exists. No converter, previewer, or caller ships. Also: new orientation pages [AI Agent](ai-agent.md) and [Internationalization](internationalization.md). Docs: `hooks.md`.
 - **v2.0.3, W-225, 2026-09-17: WebSocket: await `onCreate` so a namespace can refuse a connection asynchronously**: `onCreate` may be async; the upgrade path awaits it before the handshake. A returned Promise was previously installed as the connection `ctx`, so an async handler that meant to reject was accepted instead. Bounded by `controller.websocket.onCreateTimeoutMs` (default 5000). Docs: `websockets.md`.

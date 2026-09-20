@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugin Architecture v2.0.5
+# jPulse Docs / Plugins / Plugin Architecture v2.0.6
 
 Understanding how the jPulse plugin system works under the hood.
 
@@ -24,7 +24,7 @@ Server Starts
     ↓
 PluginManager.discoverPlugins()
     ↓
-Scan plugins/ directory
+Scan plugins/ directory (a subdirectory or a symlink to a directory)
     ↓
 Read plugin.json from each subdirectory
     ↓

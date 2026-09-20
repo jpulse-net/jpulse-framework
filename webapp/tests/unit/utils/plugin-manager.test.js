@@ -6,7 +6,7 @@
  *                   prevents one PM2 instance's stale in-memory registry from clobbering a peer
  *                   instance's more recent change
  * @file            webapp/tests/unit/utils/plugin-manager.test.js
- * @version         2.0.5
+ * @version         2.0.6
  * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -303,6 +303,58 @@ describe('PluginManager (W-199 concurrency & persistence safety)', () => {
             );
             expect(global.HookManager.registerFromClass).toHaveBeenCalled();
             expect(global.HookManager.registerFromClass.mock.calls[0][0]).toBe('plugin-a');
+        });
+    });
+
+    describe('discoverPlugins follows a symlink to a plugin directory', () => {
+        test('a plugins/<name> symlink that points at a directory is discovered', async () => {
+            const realDir = path.join(tmpRoot, 'real-ai-core');
+            fs.mkdirSync(realDir, { recursive: true });
+            fs.writeFileSync(path.join(realDir, 'plugin.json'), JSON.stringify({
+                name: 'ai-core',
+                version: '1.0.11',
+                description: 'Linked checkout',
+                author: 'Test Author',
+                autoEnable: false
+            }, null, 2));
+            fs.symlinkSync(realDir, path.join(pluginsDir, 'ai-core'));
+
+            await PluginManager.initialize();
+
+            expect(PluginManager.discovered.has('ai-core')).toBe(true);
+            expect(PluginManager.discovered.get('ai-core').path).toBe(path.join(pluginsDir, 'ai-core'));
+            expect(PluginManager.registry.plugins.find((p) => p.name === 'ai-core')).toBeDefined();
+        });
+
+        test('a broken symlink is skipped', async () => {
+            fs.symlinkSync(
+                path.join(tmpRoot, 'missing-plugin'),
+                path.join(pluginsDir, 'gone')
+            );
+
+            await PluginManager.initialize();
+
+            expect(PluginManager.discovered.has('gone')).toBe(false);
+        });
+
+        test('resolveLoadOrder does not throw when registry errors is missing', async () => {
+            writePluginJson(pluginsDir, 'hello-ai', {
+                autoEnable: true,
+                dependencies: {
+                    plugins: {
+                        'ai-core': { version: '>=1.0.0', npmPackage: '@jpulse-net/plugin-ai-core' }
+                    }
+                }
+            });
+
+            await PluginManager.initialize();
+            const row = PluginManager.registry.plugins.find((p) => p.name === 'hello-ai');
+            delete row.errors;
+
+            expect(() => PluginManager.resolveLoadOrder()).not.toThrow();
+            expect(Array.isArray(row.errors)).toBe(true);
+            expect(row.errors.some((msg) => msg.includes('Missing dependency: ai-core'))).toBe(true);
+            expect(row.status).toBe('error');
         });
     });
 });

@@ -3,7 +3,7 @@
  * @tagline         Plugin Discovery and Lifecycle Management
  * @description     Manages plugin discovery, validation, dependencies, and lifecycle
  * @file            webapp/utils/plugin-manager.js
- * @version         2.0.5
+ * @version         2.0.6
  * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -23,6 +23,43 @@ import {
     validateBundleMembers,
     formatMissingPluginDependency
 } from './plugin-package.js';
+
+/**
+ * True for a real directory, or a symlink that resolves to one.
+ * Dirent.isDirectory() is false for a symlink even when the target is a
+ * directory, so a local `plugins/ai-core -> …` checkout was skipped.
+ * @param {fs.Dirent} entry
+ * @param {string} pluginsDir
+ * @returns {boolean}
+ */
+function isPluginDirEntry(entry, pluginsDir) {
+    if (entry.isDirectory()) {
+        return true;
+    }
+    if (!entry.isSymbolicLink()) {
+        return false;
+    }
+    try {
+        return fs.statSync(path.join(pluginsDir, entry.name)).isDirectory();
+    } catch (_err) {
+        return false;
+    }
+}
+
+/**
+ * Registry rows loaded from disk may omit `errors`.
+ * @param {object} plugin
+ * @returns {string[]}
+ */
+function ensurePluginErrors(plugin) {
+    if (!plugin) {
+        return [];
+    }
+    if (!Array.isArray(plugin.errors)) {
+        plugin.errors = [];
+    }
+    return plugin.errors;
+}
 
 /**
  * Plugin Manager - handles plugin discovery, validation, and lifecycle
@@ -133,7 +170,7 @@ class PluginManager {
         let discoveredCount = 0;
 
         for (const entry of entries) {
-            if (!entry.isDirectory()) {
+            if (!isPluginDirEntry(entry, pluginsDir)) {
                 continue;
             }
 
@@ -188,6 +225,7 @@ class PluginManager {
                     // Existing plugin - update discovery info
                     registryEntry.version = pluginJson.version;
                     registryEntry.path = pluginPath;
+                    ensurePluginErrors(registryEntry);
                     if (registryEntry.status === 'missing') {
                         registryEntry.status = 'discovered';
                     }
@@ -366,7 +404,7 @@ class PluginManager {
                     inDegree.set(plugin.name, inDegree.get(plugin.name) + 1);
                 } else {
                     // Dependency not enabled or not found
-                    plugin.errors.push(`Missing dependency: ${depName}`);
+                    ensurePluginErrors(plugin).push(`Missing dependency: ${depName}`);
                     plugin.status = 'error';
                 }
             }
@@ -404,7 +442,7 @@ class PluginManager {
                 if (degree > 0) {
                     const plugin = this.registry.plugins.find(p => p.name === name);
                     if (plugin) {
-                        plugin.errors.push('Circular dependency detected');
+                        ensurePluginErrors(plugin).push('Circular dependency detected');
                         plugin.status = 'error';
                     }
                 }

@@ -3,7 +3,7 @@
  * @tagline         Unit tests for UrlFetch http(s) transport with injected deps
  * @description     Redirects, size caps, gzip bombs, timeouts, content-type, json, non-2xx
  * @file            webapp/tests/unit/utils/url-fetch-transport.test.js
- * @version         2.0.5
+ * @version         2.0.6
  * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

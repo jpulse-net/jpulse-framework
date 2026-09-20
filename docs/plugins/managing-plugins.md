@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Managing Plugins via CLI v2.0.5
+# jPulse Docs / Plugins / Managing Plugins via CLI v2.0.6
 
 jPulse Framework provides a command-line interface for managing plugins. This guide covers installation, updates, and publishing.
 
@@ -104,12 +104,17 @@ npx jpulse plugin install auth-mfa --registry=https://npm.pkg.github.com
 npx jpulse plugin install ./my-local-plugin
 npx jpulse plugin install /absolute/path/to/plugin
 
+# Or symlink a checkout into plugins/ (a directory target is discovered)
+ln -s /absolute/path/to/plugin plugins/my-plugin
+
 # With options
 npx jpulse plugin install auth-mfa --enable     # Enable after install
 npx jpulse plugin install auth-mfa --no-enable  # Keep disabled
 npx jpulse plugin install auth-mfa --force      # Overwrite existing
 npx jpulse plugin install auth-mfa --no-deps    # Do not fetch plugin dependencies
 ```
+
+A `plugins/<name>` symlink is a directory for discovery. Node still resolves ESM imports from the **real** file path, so plugin code must not import host modules (for example `webapp/controller/websocket.js`) by walking `../../` out of the plugin. Use `global.*` or `appConfig.system.projectRoot` so registration lands on the process that is serving the site.
 
 A bundle package (root `package.json`, `plugins/<name>/plugin.json`, no root `plugin.json`) installs every member in one command. `npx jpulse plugin update <name>` of a bundle member re-fetches that package and re-expands every member. `remove` stays per plugin name.
 

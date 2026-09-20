@@ -1,4 +1,4 @@
-# jPulse Docs / AI Agent v2.0.6
+# jPulse Docs / AI Agent v2.0.7
 
 A jPulse site gets an **agent** by installing plugins and registering tools — not by building a chat stack. The agent is scoped to one object on the page (a document, a ticket, a map). It can read and write that object through tools the site owns. The floating **chat panel** is the UI, not the product.
 
@@ -15,7 +15,7 @@ Live demo with no API key: [`/hello-ai/`](/hello-ai/) (bundled Hello AI plugin).
 | Propose and apply | A tool can return a proposal instead of writing. Apply / Undo sit on a card. Use a direct write when the user is watching and can undo by hand |
 | Attachments | Drop or paste a file, a URL, or an image. The model sees a manifest and reads through tools — source text is not dumped into the prompt |
 | Mock provider | `ai-mock` answers without an API key, including a vision row for the image gate |
-| Quota and usage | Per-subject caps on Site Configuration → AI. Usage is Admin → AI usage |
+| Quota and usage | Per-subject caps on Site Configuration → AI Agent. Usage is Admin → AI usage |
 
 A PDF drop needs a converter plugin on the framework `onDocumentConvert*` hooks. None ships in the bundle; a bare install refuses the type and names what to install. See [Hooks](hooks.md#document-conversion-and-preview-hooks). Images need Redis; without it the panel hides the image affordance rather than failing at paste time.
 
@@ -36,7 +36,7 @@ See [Managing Plugins](plugins/managing-plugins.md) for enable, disable, and upd
 
 ## Configure
 
-1. **Site Configuration → AI** — master switch, allowed roles, default and allowed models, quota, loop limits, tool policy, retention, site instructions, the false-claim phrase list, and the source / URL / image caps.
+1. **Site Configuration → AI Agent** — master switch, allowed roles, default and allowed models, quota, loop limits, tool policy, retention, site instructions, the false-claim phrase list, and the source / URL / image caps.
 2. **Admin → Plugins → ai-anthropic** — API key (password field), endpoint, timeout. Use Verify after saving.
 3. **Admin → Plugins → ai-core** — debug dumps only. Leave them off.
 4. **Live probe** — [`/jpulse-plugins/ai-core.shtml`](/jpulse-plugins/ai-core.shtml) shows which transport, models, and tools the site actually has.

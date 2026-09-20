@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for jPulse.UI.input.tagInput (W-148)
  * @description     Tests for tagInput: parseValue, formatValue, init/sync
  * @file            webapp/tests/unit/utils/jpulse-ui-input-taginput.test.js
- * @version         2.0.6
+ * @version         2.0.7
  * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

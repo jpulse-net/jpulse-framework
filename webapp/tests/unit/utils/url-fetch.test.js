@@ -3,7 +3,7 @@
  * @tagline         Unit tests for UrlFetch pure guards (no I/O)
  * @description     Option narrowing, address classification, host matching, URL pre-flight
  * @file            webapp/tests/unit/utils/url-fetch.test.js
- * @version         2.0.6
+ * @version         2.0.7
  * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

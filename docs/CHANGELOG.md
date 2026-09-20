@@ -1,6 +1,36 @@
-# jPulse Docs / Version History v2.0.6
+# jPulse Docs / Version History v2.0.7
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.7, W-242, 2026-09-19
+
+**Commit:** `W-242, v2.0.7, 2026-09-19: floatPanel: mobile.exclusive holds on a viewport resize`
+
+**FEATURE RELEASE**: `mobile.exclusive` ran only in `doOpen`. A desktop user with two same-group panels open who narrowed past the breakpoint kept both sheets. This release enforces exclusive on every shared resize.
+
+**Objective**: Keep one open panel per group while any open member is exclusive and mobile at its own breakpoint, and name the AI config tab the way the plugin does.
+
+**Key features**:
+- `enforceExclusiveOnResize` runs from `onSharedResize` after the per-panel `reclamp`
+- Front-most survives (`openInstsFrontFirst` / `lastActiveAt`); the rest are `hardClose()`d
+- Mobility is per panel (`isMobileViewport(inst.opts.mobile)`), not stale `state.mobile`
+- `autoResize: false` neither triggers the pass nor is closed by it
+- No reopen on widening; `doOpen` / `closeOthersExclusive` unchanged
+- Docs: resize enforcement and front-most survivor; Site Configuration → AI Agent
+
+**Files changed**:
+- `webapp/view/jpulse-common.js`: `enforceExclusiveOnResize`
+- `webapp/tests/unit/utils/jpulse-ui-float-panel.test.js`: five resize cases in `mobile.exclusive`
+- `docs/jpulse-ui-reference.md`, `docs/ai-agent.md`
+- `docs/dev/work-items.md`: W-242 features/deliverables as-built
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.7 / W-242
+- `docs/CHANGELOG.md`: this section
+
+**Release**:
+- Work Item: W-242
+- Version: v2.0.7
+- Release Date: 2026-09-19
 
 ________________________________________________
 ## v2.0.6, W-240, 2026-09-19

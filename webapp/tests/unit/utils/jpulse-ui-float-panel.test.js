@@ -3,7 +3,7 @@
  * @tagline         Unit tests for jPulse.UI.floatPanel
  * @description     Tests for the floating panel widget: persistence, clamp, cascade, drag, resize, stack, mobile, Escape, MPA/SPA contract
  * @file            webapp/tests/unit/utils/jpulse-ui-float-panel.test.js
- * @version         2.0.6
+ * @version         2.0.7
  * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -532,6 +532,146 @@ describe('jPulse.UI.floatPanel', () => {
             expect(a.isOpen()).toBe(false);
             expect(b.isOpen()).toBe(true);
             expect(other.isOpen()).toBe(true);
+        });
+
+        test('resize keeps the front-most same-group exclusive panel', async () => {
+            const a = make({
+                id: 'resize-ex-a',
+                group: 'chat',
+                defaults: { x: 20, y: 80, w: 260, h: 180, open: false },
+                mobile: { breakpoint: 768, exclusive: true, heightRatio: 0.5 }
+            });
+            const b = make({
+                id: 'resize-ex-b',
+                group: 'chat',
+                defaults: { x: 40, y: 100, w: 260, h: 180, open: false },
+                mobile: { breakpoint: 768, exclusive: true, heightRatio: 0.5 }
+            });
+            await a.open();
+            await b.open();
+            a.raise();
+            expect(a.isOpen()).toBe(true);
+            expect(b.isOpen()).toBe(true);
+            expect(a.isFront()).toBe(true);
+            setViewport(400, 800);
+            window.dispatchEvent(new Event('resize'));
+            expect(a.isOpen()).toBe(true);
+            expect(b.isOpen()).toBe(false);
+        });
+
+        test('resize leaves another group open', async () => {
+            const a = make({
+                id: 'resize-group-a',
+                group: 'chat',
+                defaults: { x: 20, y: 80, w: 260, h: 180, open: false },
+                mobile: { breakpoint: 768, exclusive: true, heightRatio: 0.5 }
+            });
+            const b = make({
+                id: 'resize-group-b',
+                group: 'chat',
+                defaults: { x: 40, y: 100, w: 260, h: 180, open: false },
+                mobile: { breakpoint: 768, exclusive: true, heightRatio: 0.5 }
+            });
+            const other = make({
+                id: 'resize-group-other',
+                group: 'inspector',
+                defaults: { x: 60, y: 120, w: 260, h: 180, open: false },
+                mobile: { breakpoint: 768, exclusive: true, heightRatio: 0.5 }
+            });
+            await a.open();
+            await b.open();
+            await other.open();
+            a.raise();
+            setViewport(400, 800);
+            window.dispatchEvent(new Event('resize'));
+            expect(a.isOpen()).toBe(true);
+            expect(b.isOpen()).toBe(false);
+            expect(other.isOpen()).toBe(true);
+        });
+
+        test('resize leaves a group with no exclusive panel untouched', async () => {
+            const a = make({
+                id: 'resize-plain-a',
+                group: 'notes',
+                defaults: { x: 20, y: 80, w: 260, h: 180, open: false },
+                mobile: { breakpoint: 768, exclusive: false, heightRatio: 0.5 }
+            });
+            const b = make({
+                id: 'resize-plain-b',
+                group: 'notes',
+                defaults: { x: 40, y: 100, w: 260, h: 180, open: false },
+                mobile: { breakpoint: 768, exclusive: false, heightRatio: 0.5 }
+            });
+            await a.open();
+            await b.open();
+            setViewport(400, 800);
+            window.dispatchEvent(new Event('resize'));
+            expect(a.isOpen()).toBe(true);
+            expect(b.isOpen()).toBe(true);
+        });
+
+        test('autoResize: false is neither closed nor a trigger', async () => {
+            const optedOutExclusive = make({
+                id: 'resize-optout-ex',
+                group: 'trigger',
+                autoResize: false,
+                defaults: { x: 20, y: 80, w: 260, h: 180, open: false },
+                mobile: { breakpoint: 768, exclusive: true, heightRatio: 0.5 }
+            });
+            const sameGroupPeer = make({
+                id: 'resize-optout-peer',
+                group: 'trigger',
+                defaults: { x: 40, y: 100, w: 260, h: 180, open: false },
+                mobile: { breakpoint: 768, exclusive: false, heightRatio: 0.5 }
+            });
+            const optedOutKeep = make({
+                id: 'resize-optout-keep',
+                group: 'closed',
+                autoResize: false,
+                defaults: { x: 60, y: 120, w: 260, h: 180, open: false },
+                mobile: { breakpoint: 768, exclusive: true, heightRatio: 0.5 }
+            });
+            const closer = make({
+                id: 'resize-optout-closer',
+                group: 'closed',
+                defaults: { x: 80, y: 140, w: 260, h: 180, open: false },
+                mobile: { breakpoint: 768, exclusive: true, heightRatio: 0.5 }
+            });
+            await optedOutExclusive.open();
+            await sameGroupPeer.open();
+            await optedOutKeep.open();
+            await closer.open();
+            setViewport(400, 800);
+            window.dispatchEvent(new Event('resize'));
+            expect(optedOutExclusive.isOpen()).toBe(true);
+            expect(sameGroupPeer.isOpen()).toBe(true);
+            expect(optedOutKeep.isOpen()).toBe(true);
+            expect(closer.isOpen()).toBe(true);
+        });
+
+        test('a second resize while already mobile changes nothing', async () => {
+            const a = make({
+                id: 'resize-again-a',
+                group: 'chat',
+                defaults: { x: 20, y: 80, w: 260, h: 180, open: false },
+                mobile: { breakpoint: 768, exclusive: true, heightRatio: 0.5 }
+            });
+            const b = make({
+                id: 'resize-again-b',
+                group: 'chat',
+                defaults: { x: 40, y: 100, w: 260, h: 180, open: false },
+                mobile: { breakpoint: 768, exclusive: true, heightRatio: 0.5 }
+            });
+            await a.open();
+            await b.open();
+            a.raise();
+            setViewport(400, 800);
+            window.dispatchEvent(new Event('resize'));
+            expect(a.isOpen()).toBe(true);
+            expect(b.isOpen()).toBe(false);
+            window.dispatchEvent(new Event('resize'));
+            expect(a.isOpen()).toBe(true);
+            expect(b.isOpen()).toBe(false);
         });
     });
 

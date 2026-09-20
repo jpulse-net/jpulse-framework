@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v2.0.6
+# jPulse Docs / jPulse.UI Widget Reference v2.0.7
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -362,7 +362,7 @@ Place the panel element where `position: fixed` is viewport-relative. An ancesto
 | `dragHandle` | selector \| Element | `'[data-jp-panel-drag]'` | Pointer-drag target. Arrow-key nudge is listened on the panel itself while it has programmatic focus |
 | `dragIgnore` | selector | `'button, a, input, select, textarea, [data-jp-panel-close]'` | Suppresses a drag started on a matching descendant |
 | `resizeHandles` | `{ mode, dirs }` | `{ mode: 'inject', dirs: [n,ne,e,se,s,sw,w,nw] }` | `'inject'` appends eight grip nodes onto `el` — fine when `el` is not a virtual-DOM tree. `'manual'` binds existing `[data-jp-panel-resize]` nodes (required when `el` is Vue-owned). `false` disables handles |
-| `mobile` | `{ breakpoint, mode, heightRatio, exclusive }` | `{ breakpoint: 768, mode: 'sheet', heightRatio: 0.55, exclusive: false }` | Below `breakpoint`, a bottom sheet at `heightRatio` of the **safe** viewport (`window` minus `env(safe-area-inset-top/bottom)`). Side inset is 4px plus left/right safe-area so the page remains visible as background; the sheet sits above `safe-area-inset-bottom`. Drag and resize are suppressed. `exclusive` closes other **open panels in the same `group`**. `mobile: false` disables the sheet. iOS reports non-zero insets only when the page uses `viewport-fit=cover` |
+| `mobile` | `{ breakpoint, mode, heightRatio, exclusive }` | `{ breakpoint: 768, mode: 'sheet', heightRatio: 0.55, exclusive: false }` | Below `breakpoint`, a bottom sheet at `heightRatio` of the **safe** viewport (`window` minus `env(safe-area-inset-top/bottom)`). Side inset is 4px plus left/right safe-area so the page remains visible as background; the sheet sits above `safe-area-inset-bottom`. Drag and resize are suppressed. `exclusive` closes other **open panels in the same `group`**, on `open()` and on every resize while any open member is exclusive and below its own `breakpoint`. The front-most open panel (highest `lastActiveAt`) survives; the rest are `hardClose()`d. A panel with `autoResize: false` neither triggers the resize pass nor is closed by it. `mobile: false` disables the sheet. iOS reports non-zero insets only when the page uses `viewport-fit=cover` |
 | `animate` | `{ durationMs }` | `{ durationMs: 300 }` | Ghost animation length. Themeable via `--jp-float-panel-anim-ms` (default `300ms`). Bypassed under `prefers-reduced-motion` |
 | `persistDebounceMs` | number | `300` | Debounce for `localStorage` writes. `0` writes immediately |
 | `autoResize` | boolean | `true` | Participate in the shared `window` resize listener |
@@ -459,7 +459,7 @@ Toasts deliberately paint above panels. Panels clamp below the header via `topOf
 - **Persistence**: `localStorage` only (device-specific). The `storage` adapter covers a site that disagrees. Legacy `openedAt` is still read as `lastActiveAt`
 - **Ghost animation**: double-`requestAnimationFrame` commit, `transitionend` plus a timeout safety net, bypassed under `prefers-reduced-motion`. No launcher (or a launcher that has gone away) falls back to a center-scale animation
 - **N-panel stack**: adding a third panel needs no new code
-- **Mobile sheet**: 4px plus left/right safe-area, `heightRatio` of the safe viewport, lifted by `safe-area-inset-bottom`; group-scoped `exclusive`
+- **Mobile sheet**: 4px plus left/right safe-area, `heightRatio` of the safe viewport, lifted by `safe-area-inset-bottom`; group-scoped `exclusive` also holds on viewport resize (front-most survives)
 - **Keyboard**: programmatic focus goes to the panel element (no visible ring) on open and on a click of the header or body, so arrow keys can nudge it; interactive children keep their own focus. Escape closes the front panel (dialogs win)
 - **Accessibility**: consumer supplies `role="dialog"` and a label; the widget sets the close-button and resize-handle labels from i18n. Headings inside `.jp-float-panel` and `.jp-dialog` do not get heading-anchor 🔗 icons
 

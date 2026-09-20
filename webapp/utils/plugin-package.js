@@ -4,7 +4,7 @@
  * @description     Detects single-plugin vs bundle install layout, normalizes
  *                  dependencies.plugins values, and validates bundle.members
  * @file            webapp/utils/plugin-package.js
- * @version         2.0.6
+ * @version         2.0.7
  * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

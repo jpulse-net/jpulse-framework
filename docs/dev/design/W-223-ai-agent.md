@@ -36,6 +36,9 @@ companions lockstep; commit `774c3b9`, tag `v1.0.10`). **W-238**
 1.0.11 and `hello-ai` 1.0.11; companions lockstep). **W-239**
 (`/sources` footer) is published as `@jpulse-net/plugin-ai-core`
 1.0.12 (bundle carries `ai-mock` 1.0.12 and `hello-ai` 1.0.12;
+companions lockstep). **W-241** is as-built as
+`@jpulse-net/plugin-ai-core` 1.0.13 (complete cancel, toolbar
+double-click reset, AI Agent tab, omitted empty archives;
 companions lockstep). **W-236**
 (`@jpulse-net/plugin-ai-anthropic` 1.0.1) classifies
 `error.cause.code`: retryable connect blips, `ENOTFOUND` / TLS fatal,
@@ -52,10 +55,36 @@ is the as-built after 1.0.7, Rev 22 specifies W-233, Rev 23 is the
 as-built after 1.0.8, Rev 24 specifies W-234, Rev 25 is the
 as-built after 1.0.9, Rev 26 specifies W-237, Rev 27 is the
 as-built after 1.0.10, Rev 28 is the as-built after 1.0.11, and
-Rev 29 is the as-built after 1.0.12.
+Rev 29 is the as-built after 1.0.12, and Rev 30 is the
+as-built after 1.0.13.
 
 
 ## Revision history
+
+### Rev 30 — 2026-09-19 — W-241 cancel unsticks Send, toolbar reset, AI Agent tab, empty archives
+
+As-built as `@jpulse-net/plugin-ai-core` 1.0.13 against published
+1.0.12. The specified surface landed. `cancelTurn` awaits the POST
+and then completes the turn in the panel (`setRunning(false)`,
+clear live bubble and notice, re-render). The Cancel button and
+`/cancel` share it. A failed POST stays running. A later
+`canceled` event is still handled. Double-click `.plg-ai-toolbar`
+calls `handle.setRect({ x: null, y: null, w, h })` from the
+merged `create()` defaults. Controls are ignored.
+`resetOnTitleDblclick: false` opts out; default on. Config
+`tabLabel` is AI Agent / KI-Agent. Plugin-owned copy that names
+the tab was swept (including `ai-core.shtml` and the ingest
+host-not-allowed string). `apiListThreads` over-fetches to the
+model cap of 100, omits an archived row with no surviving turns,
+then slices to the caller's limit. The active thread is kept even
+when empty. The partial-purge transcript notice is deferred.
+Exclusive-on-resize is a framework item, not this one.
+`jpulseVersion` stays `>=2.0.5`. Host gate passed on the symlink
+BubbleMap checkout.
+
+| Section | Change |
+|---|---|
+| Header, §9.7, §12.1, §21.18 | W-241 specified and as-built as 1.0.13 |
 
 ### Rev 29 — 2026-09-19 — W-239 /sources footer names sources vs images and the cap
 
@@ -1826,10 +1855,12 @@ Source text and image bytes are never written to a turn.
 The `aiThreads` uniqueness is partial and deliberately narrow. Any number of
 *archived* threads already coexist per scope and user. The panel lists the
 last 20 for the scope, newest first, without archive/resume chrome (§12.1).
-`startNew` archives the active slot so a new row can insert. Only the active
-one is constrained, which is what makes the guard against a two-tab or
-double-click duplicate cost one index. Relaxing it to allow several live
-conversations on one scope is TD-13.
+As of 1.0.13 an archived row with no surviving turns is omitted; the
+active thread is kept even when empty. `startNew` archives the active
+slot so a new row can insert. Only the active one is constrained, which
+is what makes the guard against a two-tab or double-click duplicate cost
+one index. Relaxing it to allow several live conversations on one scope
+is TD-13.
 
 Retention purges turns by age, and guest threads would get a shorter retention
 than user threads once guests exist (TD-04).
@@ -2175,7 +2206,15 @@ cascade. Do not spread the rest of the create bag into the shell.
 running, unregisters the float panel, disconnects the per-thread
 WebSocket (the same path thread switch already uses; a no-op on
 HTTP), and removes that node; a second call is a no-op. A site only
-calls `destroy()`. It does not clear `localStorage`. Compose pads
+calls `destroy()`. It does not clear `localStorage`. The Cancel
+button and `/cancel` await that same POST and then complete the
+turn in the panel (`setRunning(false)`, clear the live bubble and
+notice, re-render). They do not wait only on a transport event.
+A failed POST stays running. Double-click `.plg-ai-toolbar`
+restores the merged `create()` defaults and the default corner
+via `handle.setRect({ x: null, y: null, w, h })`. Controls
+(`button`, close) are ignored. `resetOnTitleDblclick: false`
+opts out; default on. Compose pads
 `env(safe-area-inset-bottom, 0px)`. Send queues until the socket is
 open (jPulse `>=2.0.5`).
 Compose paste of `text/plain` stays in the textarea. Only clipboard
@@ -2209,7 +2248,9 @@ example rows.
 per scope and user. `POST /api/1/ai/thread` without `forceNew` is
 `findOrCreateActive` (first send, empty list). With `forceNew: true` the
 server archives the active slot and inserts. The picker does not filter by
-status and does not label archived rows. As of 1.0.10 the panel
+status and does not label archived rows. As of 1.0.13 it omits an
+archived row with no surviving turns; the active thread is kept
+even when empty. As of 1.0.10 the panel
 confirms `/new` (and a chip-dropping switch) when chips are
 attached; cancel leaves them.
 
@@ -3657,6 +3698,39 @@ Images have their own settings and no conversation-count cap.
 a source. The footer is `Sources: %USED% of %MAX% maximum` then
 `Images: n` (`fillToken`). Empty still uses `sourcesNone` first.
 Companions lockstep only.
+
+### 21.18 W-241 — cancel unsticks Send, toolbar reset, AI Agent tab, empty archives
+
+Specified and as-built as `@jpulse-net/plugin-ai-core` 1.0.13
+against published 1.0.12. `sendText` still sets `state.running` before
+`transport.startTurn`. `cancelTurn` now awaits the POST and, on
+success, calls `setRunning(false)`, clears `pendingUser` /
+`streaming`, clears the notice, and re-renders. The Cancel button
+and `/cancel` share that path. A failed POST toasts and stays
+running. A later `canceled` / `completed` / `stalled` / `error`
+event is still handled and is idempotent. `/cancel` with nothing
+running still answers idle without a POST. `destroy()` stays
+fire-and-forget.
+
+`.plg-ai-toolbar` `dblclick` calls `handle.setRect({ x: null,
+y: null, w, h })` from the merged `create()` defaults (plugin
+420×560, or the site's `defaults`). Ignore
+`button, a, input, select, textarea, [data-jp-panel-close]`.
+Not the thread row. `resetOnTitleDblclick: false` opts out;
+default on. Nothing is added to `floatPanel`.
+
+`view.ui.ai.config.tabLabel` is AI Agent / KI-Agent. Plugin-owned
+copy that names the tab is swept to match. Panel title stays
+"AI chat" / "KI-Chat".
+
+`apiListThreads` asks `listForOwner` for 100, drops
+`status: 'archived'` rows that `threadIdsWithTurns` does not
+return, then slices to the caller's `limit`. The active thread is
+kept even when empty. Nothing is deleted. The partial-purge
+transcript notice is deferred. Exclusive-on-resize is a framework
+item. Hello AI lockstep only; it passes no new option.
+The specified surface landed. Host gate passed on the symlink
+BubbleMap checkout. Unit tests: 23 suites, 270 passed.
 
 ### 21.14 Standalone follow-ons
 

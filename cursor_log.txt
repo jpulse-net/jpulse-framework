@@ -26893,3 +26893,103 @@ Added v2.0.6 Latest Release Highlights and CHANGELOG. Updated commit-message.txt
 
 
 ============================================================
+2026-09-19 21:56
+
+anything I should carry over from this chat?
+
+Handoff for a new BubbleMap bugs/features chat: shipped 1.0.10–1.0.12 and W-240 host half; symlink ESM rule; sources vs images; Hello AI cannot catch host chrome; do not reopen settled decisions.
+
+
+============================================================
+2026-09-19 22:00
+
+next: more bugs & features for ai-core migration!
+
+Reviewed five items against 1.0.12. Item 1 is a cutover blocker: cancelTurn only POSTs; Send stays hidden without a transport event. Item 2 is plugin toolbar dblclick → setRect from create() defaults (not floatPanel). Item 3 is tabLabel AI → AI Agent. Item 4 is floatPanel exclusive-on-resize (framework, not 1.0.13). Item 5 omits archived husks at list time. Plan written; waiting on questions. No implementation.
+
+
+============================================================
+2026-09-19 22:11
+
+- packaging: as suggested
+- resize survivor: keep front-most
+- cancel live bubble: complete cancel
+- partial-purge notice: not sure
+- German tab: KI-Agent
+- item 3 copy: make it consistent opus: chime in, create W-241 work item
+
+Wrote W-241 v1.0.13: complete cancel (button + live bubble + notice), toolbar dblclick setRect with resetOnTitleDblclick, tabLabel AI Agent / KI-Agent plus a seven-place copy sweep, and archived zero-turn threads omitted in apiListThreads. Recommended deferring the partial-purge notice (els.notice is multiplexed; needs a new renderTurns item kind; retention notice already explains short history) and recorded it as deferred-not-rejected. Found: the husk filter must run before the limit, since refreshThreads asks for 20 and slices 20. Accepted the lease 409 as the cost of unsticking Send. Status left 🕑 PENDING, no section move. Framework item for exclusive-on-resize plus the two docs/ai-agent.md lines still needs creating. No implementation.
+
+
+============================================================
+2026-09-19 22:17
+
+A, but work item only at this time / wait
+
+Wrote W-242 v2.0.7 (framework): mobile.exclusive enforced in the shared resize pass — group the open panels, keep the front-most by lastActiveAt, hardClose the rest; per-panel isMobileViewport rather than stale state.mobile; autoResize:false respected; no reopen on widening; idempotent, so no breakpoint edge detection. Also carries the two docs/ai-agent.md tab lines and the jpulse-ui-reference mobile row. Status 🕑 PENDING, placed after W-241 in IN_PROGRESS. No code changes; waiting for go on both items.
+
+
+============================================================
+2026-09-19 22:29
+
+implement W-241, v1.0.13, 2026-09-19: ai: cancel unsticks Send, dblclick size reset, AI Agent tab, empty archives
+
+Implemented 1.0.13: cancelTurn completes after a successful POST (setRunning false, clear live bubble and notice, renderTurns); toolbar dblclick setRect from merged defaults with resetOnTitleDblclick (default on); tabLabel AI Agent / KI-Agent plus a copy sweep; apiListThreads over-fetches 100, drops archived zero-turn rows, then slices. Design Rev 30. Tests 23/270. Did not bump, did not change work-item status. Host gate still needed on BubbleMap after a hard-refresh.
+
+
+============================================================
+2026-09-19 22:51
+
+- I did a symlink of ai-core in bubblemap, all manual tests pass
+- anything left before reease prep?
+
+Product work for W-241 is done; host gate is done. Nothing else to implement. Release prep still owns: three commit-message.txt files (still 1.0.12), companion 1.0.13 lockstep Plugin-releases bullets, Rev 30 specified → as-built, bump-version (user). No code change.
+
+
+============================================================
+2026-09-19 22:55
+
+plugin release prep W-241 v1.0.13
+
+tt-git-diff matches W-241 (complete cancel, toolbar reset, AI Agent tab, husk filter). Extra copy files ingest.js and ai-core.shtml recorded in work-item deliverables. Design Rev 30 as-built. Added 1.0.13 Plugin releases on hello-ai and ai-mock (ai-core already had them). Updated three commit-message.txt. Status left IN_PROGRESS. Did not bump.
+
+
+============================================================
+2026-09-19 23:08
+
+release and publish done / give me summary I can carry over for new W-242 chat
+
+Handoff: W-241 / ai-core 1.0.13 published. W-242 is framework v2.0.7: exclusive-on-resize in floatPanel, front-most survives, plus docs/ai-agent.md tab rename. Do not touch ai-core. No implementation in this turn.
+
+
+============================================================
+2026-09-19 23:20
+
+next: W-242, v2.0.7, 2026-09-19: floatPanel: mobile.exclusive holds on a viewport resize
+
+Implemented exclusive-on-resize in floatPanel onSharedResize: after reclamp, group open autoResize panels; if any member is exclusive and mobile at its own breakpoint, keep front-most (openInstsFrontFirst / lastActiveAt) and hardClose the rest. autoResize:false neither triggers nor is closed. closeOthersExclusive in doOpen unchanged. Five new unit tests, 34/34. Docs: jpulse-ui-reference resize + front-most; ai-agent.md Site Configuration → AI Agent. Copied jpulse-common.js into BubbleMap for local test. Site hardClose delete was skipped. Port 8086 was down. Status left PENDING. No git, no bump.
+
+
+============================================================
+2026-09-19 23:15
+
+I rejected the bubblemap edit. please provide a summary I can take into bubblemap chat
+
+Handoff for BubbleMap: W-242 is in the framework (unpublished 2.0.7). Delete only the isMobileLayout exclusive watcher in map-canvas.tmpl (~2820). Keep isMobileLayout data/compute and chatHardClose/aiHardClose. Local test needs the copied webapp/view/jpulse-common.js plus hard-refresh. Narrow past 768: one front-most sheet; widen: still one.
+
+
+============================================================
+2026-09-19 23:20
+
+release prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-242, v2.0.7, 2026-09-19
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+tt-git-diff matches W-242 (enforceExclusiveOnResize, five resize tests, ui-reference + ai-agent tab). Extra hunks: W-241 Rev 30 design doc, cursor_log, tmp-bubblemap-app (do not add). Features/deliverables named the helper and autoResize doc sentence. Added v2.0.7 Latest Release Highlights and CHANGELOG. Updated commit-message.txt. Status left PENDING. Did not bump or commit.
+
+
+============================================================

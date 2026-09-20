@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.6
+# jPulse Docs / Dev / Work Items v2.0.7
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -10009,17 +10009,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **as-built (not published):** copy and tests are in the tree. Host gate: `/sources` with one PDF (or other file) and one PNG reads `Sources: 1 of 5 maximum` then `Images: 1`. Hard-refresh the symlink host
   - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-240, v2.0.6, 2026-09-19: plugins: symlink checkout discovery and host WebSocketController
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - a `plugins/<name>` symlink to a checkout is discovered and loaded, same as a real directory
@@ -10065,6 +10056,152 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **this `tt-git-diff` also has** W-238 / W-239 design-doc and work-item hunks (plugin items, already published) and `cursor_log.txt`. Those are not this item's product. Do not add `tmp-bubblemap-app`
   - do not run the bump-version script while implementing, and do not touch `.jpulse/`
 
+### W-241, v1.0.13, 2026-09-19: ai: cancel unsticks Send, dblclick size reset, AI Agent tab, empty archives
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - a canceled or never-started turn returns the compose row to Send — the panel must not wait on a transport event that never arrives
+  - the porting site drops its double-click size-reset listener from plugin chrome
+  - admins find the config tab under the name the panel, the usage page, and the docs already use
+  - a fully purged archived conversation is not offered in the picker
+  - sites that omit the new option stay on today's chrome
+- prerequisites:
+  - W-239, 1.0.12: published. `/sources` footer is split; `cancelTurn` still only POSTs
+  - W-237, 1.0.10: `create()` forwards `defaults` / `mobile` / `minWidth` / `minHeight`; `destroy()` fires the cancel POST when a turn is running
+  - W-240, v2.0.6: host symlink discovery and early `global.WebSocketController` — how this item is gated on the porting site, not something it changes
+  - `jPulse.UI.floatPanel` `handle.setRect({ x: null, y: null, w, h })`: a null `x` / `y` resolves to the default (bottom-right) corner in `clamp`
+  - `apiCancelTurn` already succeeds when nothing is running: `broadcastCancel`, then `requestCancel` only when a `status: 'running'` turn exists
+  - `AiTurnModel.nextSeq` is monotonic per thread and only `purgeOlderThan` / `deleteByThreadIds` remove turns
+  - the exclusive-on-resize fix is a framework item on `jPulse.UI.floatPanel`, not this one. This item does not raise `jpulseVersion` (stays `>=2.0.5`)
+- rationale:
+  - **`setRunning(true)` runs before the turn exists.** `sendText` hides Send and shows Cancel, then calls `transport.startTurn`. `cancelTurn()` only POSTs `/api/1/ai/thread/:id/cancel`. `setRunning(false)` lives in the transport handler (`completed` / `canceled` / `stalled` / `error`) and in the `startTurn` catch. A queued send, a handshake that never completed, or a `canceled` that never arrives leaves Send hidden for good. The site cannot unstick it — `state` is closure-private
+  - **flipping the button back is not enough.** The thinking dots and the outgoing prompt come from `state.pendingUser` / `state.streaming` in `renderTurns()`. Unsticking Send without a re-render leaves a ghost live turn above the compose row. Cancel completes: button state, live bubble, and notice
+  - **a second send during wind-down is a 409, not a deadlock.** Unsticking can let the user send again while a server turn is still settling; the lease answers `AI_LEASE_HELD` and the panel toasts it. A recoverable error beats a permanently dead compose row
+  - **the size-reset listener belongs on plugin chrome.** Map Chat resets on header double-click and owns its own header. The map dropped its AI copy when 1.0.10 shipped `defaults`, and nothing replaced it: `create()` forwards `defaults` to `floatPanel` and then forgets them. `.plg-ai-toolbar` is plugin-owned, so the binding is plugin-owned
+  - **the tab says AI, everything else says AI Agent.** The map panel title is AI Agent and its usage page links "AI Agent settings". A `site/webapp/translations/` override works but leaves every other install hunting. The plugin's own docs say "Site Configuration → AI" in seven places, so the rename is a copy sweep, not one string
+  - **`purgeOlderThan` deletes turns and leaves rows.** `listForOwner` returns every thread, so an archive whose turns all aged out still sits in the picker and opens empty. A husk is indistinguishable from an archive that never held a turn (two `[+]` in a row), and neither is useful — omit on "zero surviving turns", not on "was purged"
+  - **filter before the limit.** `refreshThreads` asks for `limit=20` and slices 20. Filtering after the cut would show fewer than 20 real conversations whenever husks are in the newest page
+- features:
+  - **1. cancel completes the turn in the panel.** `cancelTurn()` awaits the POST; on success it calls `setRunning(false)`, clears `state.pendingUser` / `state.streaming`, clears the notice, and re-renders. The Cancel button and `/cancel` share it (both already call `cancelTurn`). A failed POST leaves the turn running and toasts. A later `canceled` event is still handled and is idempotent. `/cancel` with no running turn still answers `cancelIdle` without a POST. `destroy()` stays fire-and-forget
+  - **2. double-click the toolbar restores the default size and corner.** `create()` binds `dblclick` on `.plg-ai-toolbar` to `handle.setRect({ x: null, y: null, w, h })` using the merged `create()` defaults (plugin 420×560, or the site's `defaults` when passed). Ignore `button, a, input, select, textarea, [data-jp-panel-close]`, so × is not a reset. Not the thread row. New create option `resetOnTitleDblclick: false` opts out; default on. Nothing is added to `floatPanel`
+  - **3. config tab is AI Agent / KI-Agent.** `view.ui.ai.config.tabLabel` EN `AI Agent`, DE `KI-Agent` (panel title stays `AI chat` / `KI-Chat`). Plugin-owned copy that names the tab is swept to match: `plugin.json` help, `ai-core` `README.md` and `docs/README.md`, `ai-mock` `docs/README.md`
+  - **4. an archived conversation with no surviving turns is omitted.** `apiListThreads` asks the model for up to 100, drops `status: 'archived'` rows that have zero turns, then applies the caller's `limit`. The active thread is kept even when empty. Nothing is deleted — purge still only removes turns, and the row stays for `deleteByScope`
+  - **out of scope:** `mobile.exclusive` on a desktop → phone resize (framework item on `floatPanel`; the map keeps its site `hardClose` until then); the partial-purge transcript notice (deferred, see notes); quota footer; unread-dot; embed `chrome: 'none'`; moving the confirm dialog's 10ms `jp-dialog-show`; deleting husk rows at purge time; `docs/ai-agent.md` (framework-repo user doc, carried by the framework item)
+- deliverables:
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - `cancelTurn` awaits the POST, then `setRunning(false)`, `state.pendingUser = ''`, `state.streaming = ''`, `showNotice('', false)`, `renderTurns()`; a failed POST stays running and toasts
+    - toolbar `dblclick` → `setRect({ x: null, y: null, w, h })` from the merged defaults, held in a closure; control elements ignored; `resetOnTitleDblclick` (default true)
+  - `plugins/ai-core/webapp/controller/aiCore.js`:
+    - `apiListThreads` over-fetches (model cap 100), drops archived rows with zero turns via the new turn-model helper, then slices to `limit`; active rows are never dropped
+    - `tabLabel` is unchanged in code (i18n key already); `plugin.json` help copy is the string change
+  - `plugins/ai-core/webapp/model/aiTurn.js`:
+    - `threadIdsWithTurns(ids)` — one `find({ threadId: { $in } })` with a `threadId` projection, returns a `Set`; an empty input returns an empty set without a query
+  - `plugins/ai-core/webapp/translations/en.conf`, `de.conf`:
+    - `tabLabel` `AI Agent` / `KI-Agent`
+  - `plugins/ai-core/plugin.json`: help copy says Site Configuration → AI Agent
+  - `plugins/ai-core/webapp/view/jpulse-plugins/ai-core.shtml`: Site Configuration → AI Agent
+  - `plugins/ai-core/webapp/utils/attachments/ingest.js`: host-not-allowed string names AI Agent
+  - `plugins/ai-core/webapp/tests/unit/helpers.js`: `matchQuery` supports `$in` next to the existing `$lt`
+  - `plugins/ai-core/webapp/tests/unit/regressions.test.js`, `panel-strip.test.js`:
+    - `cancelTurn` body contains `setRunning(false)` after the POST and clears the live bubble; invert: `setRunning(false)` is not only in the transport handler
+    - `dblclick` is bound on `.plg-ai-toolbar`, not `.plg-ai-thread-row`; the handler ignores `[data-jp-panel-close]`; `setRect` is called with `x: null, y: null`; `resetOnTitleDblclick` gates it
+    - `apiListThreads` filters archived zero-turn rows and slices after the filter, not before
+  - `plugins/ai-core/webapp/tests/unit/threads.test.js`:
+    - `threadIdsWithTurns` returns only ids with at least one turn; empty input is a no-query empty set
+    - the list contract: archived + zero turns omitted, archived + turns kept, active + zero turns kept
+  - `plugins/ai-core/webapp/tests/unit/settings.test.js` (or the translations scan):
+    - EN `AI Agent` / DE `KI-Agent`; invert the bare `'AI'` / `'KI'` label
+  - `plugins/ai-core/docs/README.md`, `plugins/ai-core/README.md`:
+    - Site Configuration → AI Agent everywhere the tab is named
+    - `resetOnTitleDblclick` next to `defaults` / `mobile` / min size, with the double-click reset described
+    - `/cancel` row says cancel returns the compose row to Send
+    - the conversation picker omits an archived conversation whose turns have aged out
+    - 1.0.13 Plugin releases bullet at publish. Version numbers, never work-item numbers
+  - `plugins/ai-mock/docs/README.md`: Site Configuration → AI Agent
+  - `docs/dev/design/W-223-ai-agent.md` (framework repo, this item's only framework-repo change besides this work item):
+    - Rev 30 specifies; §12.1 names the completed cancel, the toolbar reset option, and the omitted husk; §9.7 notes that the picker skips an archive with no surviving turns
+  - `hello-ai` / `ai-mock`: lockstep only. Hello AI gets the double-click reset from the default; it passes no new option
+- notes:
+  - design source: `docs/dev/design/W-223-ai-agent.md` Rev 29, §9.7, §12.1. This chat's transcript: [AI plugin host bugs](28c845a3-ee07-45fa-a5eb-9411c78c2f6f)
+  - **repo layout:** plugin-only. `plugins/ai-core` is the publish root; `ai-mock` and `hello-ai` lockstep. One publish of `@jpulse-net/plugin-ai-core` 1.0.13. The design-doc hunk is the one framework-repo change besides this work item
+  - **decisions taken before implementation**, each with the alternative rejected:
+    - *unstick on POST success, not on the event:* the transport event stays handled, but it is no longer the only path. Waiting only on `canceled` is the bug
+    - *complete cancel:* button, live bubble, and notice together. Flipping only the button was rejected — the dots come from `pendingUser` / `streaming`, so Send would return under a ghost turn
+    - *accept the lease 409:* a send during wind-down surfaces `AI_LEASE_HELD` as a toast. Keeping Send hidden until the server confirms was rejected — that is the deadlock this item removes
+    - *no new field on the cancel response:* the panel unsticks on any success, so a `running` flag would have no consumer
+    - *reset lives on the plugin toolbar:* `floatPanel` gains nothing. A site listener on plugin chrome (what the map has today) and a `floatPanel`-wide reset were both rejected — Chat already owns its own header reset
+    - *reset goes to the default corner, not the cascaded one:* `x: null, y: null`, same as Map Chat. Re-running cascade on a reset was rejected as surprising
+    - *change the plugin default, not the site override:* a `site/webapp/translations/` override fixes one site; the default fixes every install
+    - *omit on zero surviving turns, not on "was purged":* the two are indistinguishable after the fact, and an archive with no turns is noise either way. Deleting the row at purge time was rejected — `deleteByScope` and any later audit still want it
+    - *filter before the limit:* over-fetch to the model's 100 cap, filter, then slice. Filtering the already-cut page was rejected — the picker would show fewer than 20
+  - **deferred, not rejected — the partial-purge notice.** A thread whose oldest surviving turn has `seq > 1` has lost history, and the signal is sound (`nextSeq` is monotonic; only purge removes turns). It is out of 1.0.13 because the panel's one `els.notice` element is already multiplexed across running / reconnecting / retention, and a transcript line needs a new sort-before-the-first-turn item kind in `renderTurns()` for a rare state. The retention notice ("Turns are kept for N days.") already explains a short history. Revisit if the host gate shows a user confused by a truncated conversation
+  - **host-page gate before publish (BubbleMap, hard-refresh — `IncludeCache` serves a stale `jpulse-common.js`):** Cancel with no `canceled` event returns Send and clears the dots; `/cancel` the same; `/cancel` with nothing running still says no turn is running; double-click the toolbar restores the default size and corner; double-click × does not reset; Site Configuration shows **AI Agent**; an archived conversation whose turns aged out is gone from the picker while the active empty one stays. Hello AI can catch cancel and the tab label; the porting site is the gate for the rest
+  - **as-built (not published):** specified surface landed. Copy sweep also hit `ai-core.shtml` and the ingest host-not-allowed string. Unit tests: 23 suites, 270 passed. Host gate passed on the symlink BubbleMap checkout (hard-refresh). Design Rev 30 is as-built. `jpulseVersion` stays `>=2.0.5`
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests
+
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-242, v2.0.7, 2026-09-19: floatPanel: mobile.exclusive holds on a viewport resize
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - `mobile.exclusive` holds when the viewport crosses the breakpoint, not only on the next `open()`
+  - the porting site drops its last site-level `hardClose` gate
+  - a site that does not set `exclusive` sees no change
+  - framework user docs name the AI config tab the way the plugin names it as of `ai-core` 1.0.13
+- prerequisites:
+  - W-220, v2.0.0: `jPulse.UI.floatPanel` — `mobile.exclusive`, `group`, `hardClose()`, the shared `resize` listener, `openInstsFrontFirst()` ordered by `lastActiveAt`
+  - W-240, v2.0.6: the previous host release; this is the next one
+  - W-241, `ai-core` 1.0.13: the plugin half of the same porting pass and the source of the tab rename this item's doc hunk follows. No code dependency either way — `ai-core` `jpulseVersion` stays `>=2.0.5`
+  - `ai-core` 1.0.10 already forwards `mobile` to `create()`, so the porting site's panels are exclusive-capable today
+- rationale:
+  - **`closeOthersExclusive()` only runs in `doOpen`.** The shared resize handler only reclamps. A desktop user with Map Chat and AI Agent side by side who narrows the window to phone width keeps two stacked sheets
+  - **the widget owns the invariant.** The map has a site `hardClose` for exactly this case, and a listener in `ai-core` would be the same wrong layer one level down. `mobile.exclusive` is a `floatPanel` promise, so `floatPanel` keeps it
+  - **enforce on every mobile resize rather than detect the edge.** While mobile, `doOpen` already keeps one panel open per group, so the pass is a no-op after the first run. A "crossed the breakpoint" flag would add state that desyncs as soon as two panels carry different `breakpoint` values
+  - **front-most wins.** `openInstsFrontFirst()` already ranks by `lastActiveAt`. Closing the front panel and leaving a background one would discard the panel the user was working in
+  - **mobility is per panel.** Each instance carries its own `mobile.breakpoint`, so the pass asks `isMobileViewport(inst.opts.mobile)` instead of reading `state.mobile`, which is stale on any panel that skipped the reclamp
+- features:
+  - **1. the shared resize pass enforces `mobile.exclusive`.** After the per-panel `reclamp`, `enforceExclusiveOnResize` groups the open `autoResize` panels by `group`. In a group where at least one open panel is `mobile.exclusive` and is mobile at its own breakpoint (`isMobileViewport(inst.opts.mobile)`), keep the front-most (`openInstsFrontFirst` / `lastActiveAt`) and `hardClose()` the rest. Same call the open path makes, so the `hardClose` event still fires for a site listener
+  - **2. `autoResize: false` is respected.** A panel that opted out of the shared resize listener neither triggers the pass nor is closed by it
+  - **3. nothing else changes.** A group with no exclusive open panel is untouched, groups are independent, and a desktop viewport never triggers the pass
+  - **4. docs.** `docs/jpulse-ui-reference.md` says `exclusive` also holds on every resize while any open member is exclusive and below its own breakpoint, names the front-most survivor, and notes `autoResize: false`. `docs/ai-agent.md` says Site Configuration → AI Agent
+  - **out of scope:** an exclusive rule on desktop; reopening a panel when the viewport widens again (closed stays closed); changing `doOpen`; sheet geometry (`heightRatio`, insets); a new create option or handle method; anything in `ai-core` (W-241)
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - `enforceExclusiveOnResize` runs from `onSharedResize` after the per-panel `reclamp`
+    - the pass uses `isMobileViewport(inst.opts.mobile)`, `openInstsFrontFirst()`, and `inst.handle.hardClose()` — no new create option, no new handle method, no change to `closeOthersExclusive`
+  - `webapp/tests/unit/utils/jpulse-ui-float-panel.test.js` (extend the `mobile.exclusive` describe):
+    - two same-group exclusive panels open at 1000×800, then `setViewport(400, 800)` and a `resize` event → the front-most stays open, the other is closed
+    - a panel in another group stays open through the same resize
+    - a group with no exclusive panel is untouched
+    - `autoResize: false` is neither closed nor a trigger
+    - a second resize while already mobile changes nothing
+  - `docs/jpulse-ui-reference.md`:
+    - the `mobile` row and the Mobile sheet bullet name resize enforcement and the front-most survivor
+  - `docs/ai-agent.md`:
+    - Site Configuration → AI Agent in the quota/usage table row and the numbered setup step. Version number if a change note is wanted, never a work-item number
+  - `README.md` and `docs/README.md` Latest Release Highlights, `docs/CHANGELOG.md` at publish
+- notes:
+  - **repo layout:** framework-only. v2.0.7. No plugin change — `ai-core` already forwards `mobile`, and the map's site `hardClose` becomes dead code it can delete on its own schedule
+  - **decisions taken before implementation**, each with the alternative rejected:
+    - *enforce, do not edge-detect:* an idempotent pass on every resize while mobile. A crossed-the-breakpoint flag was rejected — per-panel breakpoints make one global edge wrong
+    - *front-most survives:* `lastActiveAt` order. "The exclusive panel always wins" was rejected — the focused panel is the one worth keeping
+    - *the group decides on resize, as the opener does on open:* `doOpen` closes same-group panels regardless of their own `exclusive`, and the resize pass matches that
+    - *`hardClose`, not `close`:* no animation during a reflow, and the same call the open path already makes
+    - *respect `autoResize: false`:* that option is the documented opt-out from the shared resize listener; a panel cannot opt out of resize handling and still be resized shut
+    - *no reopen on widening:* a closed panel stays closed. Restoring it would mean remembering why it closed
+  - **host-page gate:** BubbleMap on desktop with Map Chat and AI Agent both open — narrow past 768 and one sheet remains, the one that was in front; widen and it is still one. Then delete the site's resize `hardClose` and repeat
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/`
+
+
 
 
 
@@ -10099,7 +10236,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-240, v2.0.6, 2026-09-19
+- assume W-242, v2.0.7, 2026-09-19
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -10108,7 +10245,7 @@ release prep:
 plugin release prep:
 - review tt-git-diff.txt for accuracy and completness of work item
 - review work item and design doc if it matches actual code & fix if needed
-- assume W-239, v1.0.12, 2026-09-19
+- assume W-241, v1.0.13, 2026-09-19
 - plugin README.md & docs/README.md: add release to Plugin releases section
 - plugin commit-message.txt: update message
 
@@ -10118,23 +10255,23 @@ plugin release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.6 2026-09-19
+node bin/bump-version.js 2.0.7 2026-09-19
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.6; git push origin main --tags
+git tag v2.0.7; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.12 2026-09-19
+node ../../bin/bump-version.js 1.0.13 2026-09-19
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.12; git push origin main --tags
+git tag v1.0.13; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

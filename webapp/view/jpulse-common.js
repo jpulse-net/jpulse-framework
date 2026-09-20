@@ -3,7 +3,7 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         2.0.6
+ * @version         2.0.7
  * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -4145,6 +4145,38 @@ window.jPulse = {
                 return open;
             };
 
+            const enforceExclusiveOnResize = () => {
+                const byGroup = new Map();
+                registry.forEach((inst) => {
+                    if (!inst.state.open || inst.opts.autoResize === false) {
+                        return;
+                    }
+                    const key = inst.opts.group;
+                    if (!byGroup.has(key)) {
+                        byGroup.set(key, []);
+                    }
+                    byGroup.get(key).push(inst);
+                });
+                byGroup.forEach((members, group) => {
+                    const shouldEnforce = members.some((inst) => (
+                        inst.opts.mobile.exclusive && isMobileViewport(inst.opts.mobile)
+                    ));
+                    if (!shouldEnforce) {
+                        return;
+                    }
+                    const keep = openInstsFrontFirst().find((inst) => (
+                        inst.state.open
+                        && inst.opts.autoResize !== false
+                        && inst.opts.group === group
+                    ));
+                    members.forEach((inst) => {
+                        if (inst !== keep) {
+                            inst.handle.hardClose();
+                        }
+                    });
+                });
+            };
+
             const onSharedResize = () => {
                 registry.forEach((inst) => {
                     if (inst.opts.autoResize === false) {
@@ -4152,6 +4184,7 @@ window.jPulse = {
                     }
                     inst.reclamp({ fromViewport: true });
                 });
+                enforceExclusiveOnResize();
             };
 
             const onSharedEscape = (e) => {

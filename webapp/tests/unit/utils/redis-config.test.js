@@ -3,7 +3,7 @@
  * @tagline         Unit tests for Redis configuration validation (W-076)
  * @description     Tests Redis config parsing, validation, and fallback behavior
  * @file            webapp/tests/unit/utils/redis-config.test.js
- * @version         2.0.6
+ * @version         2.0.7
  * @release         2026-09-19
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

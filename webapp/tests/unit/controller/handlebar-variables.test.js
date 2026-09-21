@@ -9,7 +9,7 @@
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.2, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.20, Grok 4.6
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
@@ -285,6 +285,38 @@ describe('W-103: Handlebars Variables - {{let}} and {{#with}}', () => {
 
             const result = await HandlebarController.expandHandlebars(mockReq, template, {});
             expect(result.trim()).toBe('deep');
+        });
+
+        test('context switch is logDebug with the path name', async () => {
+            const info = [];
+            const debug = [];
+            const originalInfo = global.LogController.logInfo.bind(global.LogController);
+            const originalDebug = global.LogController.logDebug.bind(global.LogController);
+            global.LogController.logInfo = (req, scope, msg) => {
+                info.push({ scope, msg });
+                return originalInfo(req, scope, msg);
+            };
+            global.LogController.logDebug = (req, scope, msg) => {
+                debug.push({ scope, msg });
+                return originalDebug(req, scope, msg);
+            };
+            await global.LogController.setDebugAreas(['handlebar']);
+            try {
+                await HandlebarController.expandHandlebars(
+                    mockReq,
+                    '{{#with user}}{{firstName}}{{/with}}',
+                    {}
+                );
+                expect(debug.some((line) =>
+                    line.scope === 'handlebar.with' && line.msg === 'Context switched to: user'
+                )).toBe(true);
+                expect(info.some((line) => line.scope === 'handlebar.with')).toBe(false);
+                expect(debug.some((line) => String(line.msg).includes('[object Object]'))).toBe(false);
+            } finally {
+                global.LogController.logInfo = originalInfo;
+                global.LogController.logDebug = originalDebug;
+                await global.LogController.setDebugAreas([]);
+            }
         });
     });
 

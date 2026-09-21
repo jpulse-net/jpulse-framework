@@ -9,7 +9,7 @@
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.15, Grok 4.6
+ * @genai           60%, Cursor 3.20, Grok 4.6
  */
 
 import path from 'path';
@@ -1318,7 +1318,7 @@ class HandlebarController {
                 case 'component':
                     return await _handleComponentDefinition(parsedArgs, blockContent, currentContext);
                 case 'with':
-                    return await _handleWithBlock(parsedArgs, blockContent, currentContext);
+                    return await _handleWithBlock(parsedArgs, blockContent, currentContext, params);
                 case 'let':
                     return await _handleLetBlock(parsedArgs, blockContent, currentContext);
                 default:
@@ -1924,13 +1924,14 @@ class HandlebarController {
          * Example: {{#with user}} {{firstName}} {{lastName}} {{/with}}
          * W-116: Refactored to use args parameter (already parsed)
          */
-        async function _handleWithBlock(args, blockContent, currentContext) {
+        async function _handleWithBlock(args, blockContent, currentContext, rawParams) {
             // Get the context object from args._target (already evaluated by _parseAndEvaluateArguments)
             const contextValue = args._target || null;
+            const targetName = String(rawParams || '').trim().split(/\s+/)[0] || 'unknown';
 
             if (!contextValue || typeof contextValue !== 'object') {
-                LogController.logInfo(req, 'handlebar.with',
-                    `Context not found or invalid`);
+                LogController.logDebug(req, 'handlebar.with',
+                    `Context not found or invalid: ${targetName}`);
                 return ''; // Empty output if context not found
             }
 
@@ -1940,8 +1941,8 @@ class HandlebarController {
                 ...contextValue
             };
 
-            LogController.logInfo(req, 'handlebar.with',
-                `Context switched to: ${args._target || 'unknown'}`);
+            LogController.logDebug(req, 'handlebar.with',
+                `Context switched to: ${targetName}`);
 
             return await _resolveHandlebars(blockContent, blockContext);
         }

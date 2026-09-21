@@ -27303,3 +27303,38 @@ Rewrote tt-commit body for the framework-repo documentation of published auth-mf
 
 
 ============================================================
+2026-09-20 21:04
+
+feedback from jpulse.net: handlebar.with always-on; select-all site also checks helloPlugin
+
+handlebar.with is leftover logInfo (two {{#with user}} on the examples page). args._target is the object so the line is Context switched to: [object Object]. Same class as include/component — should be logDebug. Select-all site is not a grouping bug: after save, isAreaEnabled uses unanchored startsWith, so enabled hello matches helloPlugin. mfaAuth does not. hello-world being in-tree is unrelated. Same prefix rule as web→websocket.
+
+
+============================================================
+2026-09-20 21:09
+
+yes, fix handlebar.with
+
+Moved both handlebar.with lines to logDebug. Message uses the raw path (user, vars.data.level1) instead of [object Object]. handlebar-variables 40/40 passing.
+
+
+============================================================
+2026-09-20 21:40
+
+let's commit this with a one-liner followup commit
+- review tt-git-diff.txt
+- give one liner starting with W-245, v1.0.14...
+
+Diff is handlebar.with → logDebug plus the path name, the new unit test, and cursor_log. Did not commit. One-liner given.
+
+
+============================================================
+2026-09-20 21:46
+
+oops, my bad, the commit should start with:
+W-243, v2.0.8, 2026-09-20: logs:
+
+Corrected one-liner to W-243 / handlebar.with follow-up. Did not commit.
+
+
+============================================================

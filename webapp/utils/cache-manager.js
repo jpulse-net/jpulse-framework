@@ -153,7 +153,7 @@ class CacheManager {
             const timer = setInterval(async () => {
                 try {
                     await this._refreshCache(cache);
-                    LogController.logInfo(null, 'cache-manager.refresh',
+                    LogController.logDebug(null, 'cache-manager.refresh',
                         `${name}: Periodic refresh completed`);
                 } catch (error) {
                     LogController.logError(null, 'cache-manager.refresh',
@@ -245,7 +245,7 @@ class CacheManager {
             }
         }
 
-        LogController.logInfo(null, 'cache-manager._refreshCache',
+        LogController.logDebug(null, 'cache-manager._refreshCache',
             `${cache.name}: Smart refresh completed - ${refreshedCount} updated, ${removedCount} removed, ${unchangedCount} unchanged`);
     }
 

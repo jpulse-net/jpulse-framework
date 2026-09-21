@@ -643,6 +643,19 @@ describe('Log Controller Context Extraction', () => {
         expect(line).toMatch(/^-\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\tinfo\twsuser\tip:10\.0\.0\.2\tvm:0\tid:0\tws\.scope\tTest message$/);
     });
 
+    test('collapses newlines in the message so a log line stays one row', () => {
+        const line = CommonUtils.formatLogMessage(
+            'log.change',
+            'config update: global (data.ai.proposalClaimPhrases: undefined ==> "I\'ve proposed\nI have proposed\r\nclick Apply")',
+            'info',
+            { username: 'siteadmin', ip: '::1' }
+        );
+
+        expect(line).not.toMatch(/[\r\n]/);
+        expect(line).toContain('I\'ve proposed I have proposed click Apply');
+        expect(line).toMatch(/^-\t\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\tinfo\tsiteadmin\tip:::1\tvm:0\tid:0\tlog\.change\t/);
+    });
+
     test('should format logInfo log correctly', () => {
         const mockReq = {
             session: { user: { username: 'testuser' } },

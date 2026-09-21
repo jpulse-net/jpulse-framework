@@ -9,7 +9,7 @@
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 3.20, Grok 4.6
  */
 
 import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
@@ -29,6 +29,7 @@ jest.mock('fs', () => ({
 jest.unstable_mockModule('../../../controller/log.js', () => ({
     default: {
         logInfo: jest.fn(),
+        logDebug: jest.fn(),
         logError: jest.fn(),
         logWarning: jest.fn()
     }
@@ -54,6 +55,7 @@ describe('CacheManager', () => {
         // Get the mocked LogController - use the mock directly
         mockLogController = {
             logInfo: jest.fn(),
+            logDebug: jest.fn(),
             logError: jest.fn(),
             logWarning: jest.fn()
         };
@@ -249,6 +251,68 @@ describe('CacheManager', () => {
             // Cache should be cleared, so next read should get updated content
             const updatedContent = cache.getFileSync(testFile);
             expect(updatedContent).toBe('updated content');
+        });
+
+        it('smart and periodic refresh completed is logDebug, failures stay logError', async () => {
+            cache.getFileSync(testFile);
+            if (typeof fs.stat.mockResolvedValue === 'function') {
+                fs.stat.mockResolvedValue({ mtime: { valueOf: () => 1000000000 } });
+            }
+
+            const logDebugSpy = jest.spyOn(LogController, 'logDebug').mockImplementation(() => {});
+            const logInfoSpy = jest.spyOn(LogController, 'logInfo').mockImplementation(() => {});
+            const logErrorSpy = jest.spyOn(LogController, 'logError').mockImplementation(() => {});
+
+            try {
+                await cacheManager._refreshCache(cache);
+
+                expect(logDebugSpy).toHaveBeenCalledWith(
+                    null,
+                    'cache-manager._refreshCache',
+                    expect.stringContaining('Smart refresh completed')
+                );
+                expect(logInfoSpy.mock.calls.some((call) =>
+                    call[1] === 'cache-manager._refreshCache'
+                )).toBe(false);
+
+                if (typeof fs.stat.mockRejectedValueOnce === 'function') {
+                    const statError = new Error('permission denied');
+                    statError.code = 'EACCES';
+                    fs.stat.mockRejectedValueOnce(statError);
+                    await cacheManager._refreshCache(cache);
+                    expect(logErrorSpy).toHaveBeenCalledWith(
+                        null,
+                        'cache-manager._refreshCache',
+                        expect.stringContaining('Error checking')
+                    );
+                }
+
+                jest.useFakeTimers();
+                cacheManager.register({
+                    enabled: true,
+                    checkInterval: 1
+                }, 'PeriodicCache');
+                logDebugSpy.mockClear();
+                logInfoSpy.mockClear();
+                logErrorSpy.mockClear();
+
+                await jest.advanceTimersByTimeAsync(60000);
+
+                expect(logDebugSpy).toHaveBeenCalledWith(
+                    null,
+                    'cache-manager.refresh',
+                    expect.stringContaining('Periodic refresh completed')
+                );
+                expect(logInfoSpy.mock.calls.some((call) =>
+                    call[1] === 'cache-manager.refresh'
+                )).toBe(false);
+            } finally {
+                logDebugSpy.mockRestore();
+                logInfoSpy.mockRestore();
+                logErrorSpy.mockRestore();
+                jest.useRealTimers();
+                cacheManager.unregister('PeriodicCache');
+            }
         });
     });
 });

@@ -8,7 +8,7 @@
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.20, Grok 4.6
  */
 
 // Import required modules (ES module syntax)
@@ -71,7 +71,7 @@ class AppClusterController {
     static handleConnect(conn) {
         AppClusterController.clientChannels.set(conn.clientId, new Map());
 
-        LogController.logInfo(
+        LogController.logDebug(
             conn.ctx,
             'appCluster.handleConnect',
             `Client connected to app cluster namespace (${conn.clientId})`
@@ -100,7 +100,7 @@ class AppClusterController {
                 if (channel && typeof channel === 'string') {
                     const ch = AppClusterController.clientChannels.get(clientId);
                     ch.set(channel, { omitSelf });
-                    LogController.logInfo(ctx, 'appCluster.handleMessage', `Client subscribed to channel: ${channel} (omitSelf: ${omitSelf})`);
+                    LogController.logDebug(ctx, 'appCluster.handleMessage', `Client subscribed to channel: ${channel} (omitSelf: ${omitSelf})`);
                     AppClusterController.wsNamespace.sendToClient(clientId, {
                         type: 'subscribed',
                         data: { channel, timestamp: new Date().toISOString() }
@@ -110,7 +110,7 @@ class AppClusterController {
                 const { channel } = data;
                 if (channel && typeof channel === 'string') {
                     clientChannels.delete(channel);
-                    LogController.logInfo(ctx, 'appCluster.handleMessage', `Client unsubscribed from channel: ${channel}`);
+                    LogController.logDebug(ctx, 'appCluster.handleMessage', `Client unsubscribed from channel: ${channel}`);
                     AppClusterController.wsNamespace.sendToClient(clientId, {
                         type: 'unsubscribed',
                         data: { channel, timestamp: new Date().toISOString() }
@@ -122,7 +122,7 @@ class AppClusterController {
                     data: { timestamp: new Date().toISOString() }
                 }, ctx);
             } else {
-                LogController.logInfo(ctx, 'appCluster.handleMessage', `Received unknown message type: ${data.type}`);
+                LogController.logDebug(ctx, 'appCluster.handleMessage', `Received unknown message type: ${data.type}`);
             }
         } catch (error) {
             LogController.logError(ctx, 'appCluster.handleMessage', `Error handling message: ${error.message}`);
@@ -136,7 +136,7 @@ class AppClusterController {
         const clientChannels = AppClusterController.clientChannels.get(conn.clientId);
         const channelCount = clientChannels ? clientChannels.size : 0;
 
-        LogController.logInfo(
+        LogController.logDebug(
             conn.ctx,
             'appCluster.handleDisconnect',
             `Client disconnected from app cluster namespace (${conn.clientId}) - cleaned up ${channelCount} channel subscriptions`

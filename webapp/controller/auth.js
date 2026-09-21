@@ -102,7 +102,7 @@ class AuthController {
      */
     static requireAuthentication(req, res, next) {
         if (!AuthController.isAuthenticated(req)) {
-            global.LogController.logError(req, 'auth.requireAuthentication', 'error: Authentication required - access denied');
+            global.LogController.logWarning(req, 'auth.requireAuthentication', 'warning: Authentication required - access denied');
             const message = global.i18n.translate(req, 'controller.auth.authenticationRequired');
             return global.CommonUtils.sendError(req, res, 401, message, 'UNAUTHORIZED');
         }
@@ -118,7 +118,7 @@ class AuthController {
     static requireRole(roles) {
         return (req, res, next) => {
             if (!AuthController.isAuthenticated(req)) {
-                global.LogController.logError(req, 'auth.requireRole', 'error: Authentication required for role check - access denied');
+                global.LogController.logWarning(req, 'auth.requireRole', 'warning: Authentication required for role check - access denied');
                 const message = global.i18n.translate(req, 'controller.auth.authenticationRequired');
                 return global.CommonUtils.sendError(req, res, 401, message, 'UNAUTHORIZED');
             }

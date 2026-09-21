@@ -27338,3 +27338,78 @@ Corrected one-liner to W-243 / handlebar.with follow-up. Did not commit.
 
 
 ============================================================
+2026-09-20 22:04
+
+please check this, discovered by bubblemap chat:
+aiCore.apiCapability / apiListThreads / apiListTurns (twice each)
+
+Each of those writes the usual audit pair (logRequest + success). On panel create, capability and turns are one HTTP each; listThreads is called twice (init refreshThreads, then openThread refreshThreads again to re-check ownership). A second create() or SPA remount would double all three. Confirm in the Network tab: one vs two requests per path.
+
+
+============================================================
+2026-09-20 22:10
+
+websocket._onConnection / _onDisconnect — fix upstream in jPulse
+
+Moved both lifecycle lines to logDebug. onConnect / onDisconnect handler failures stay logError. websocket.test 69/69 passing.
+
+
+============================================================
+2026-09-20 22:40
+
+on ai-core, page load has these network requests, see ss
+another W-243 leftover: cache-manager._refreshCache and cache-manager.refresh still logInfo on every checkInterval tick
+
+Network: capability is one HTTP (304); the two UUID names are last-path-segment IDs (site docs, not turns). Filter /bubble- hides /api/1/ai/thread and .../turns. "Twice each" in logs is the audit pair; listThreads is two HTTP only when openThread re-lists. Moved cache-manager.refresh and _refreshCache completed lines to logDebug. register/init stay info; failures stay logError. cache-manager.test 14/14 passing.
+
+
+============================================================
+2026-09-20 22:43
+
+one more from bubblemap site: LogController Populated appConfig.system.docTypes — 5-minute TTL refresh, same family as cache-manager timer
+
+TTL refresh (refreshDocTypesCache → populateDocTypes) now logDebug. Boot populate stays logInfo. Failures logError (was console.log). Off the raw formatLogMessage path. log-doctypes-caching.test 20/20 passing. Report with the cache-manager leftover, not as attach/delete.
+
+
+============================================================
+2026-09-20 23:45
+
+review logs, all with log debug off
+… one small bug: log.change multiline from proposalClaimPhrases; collapse newlines with .replace(/[\\r\\n]+/, '  ')
+
+Reviewed the debug-off dump. formatLogMessage now collapses all CR/LF runs to two spaces (/g so a multi-line field stays one row). log-basic.test 60/60 passing.
+
+
+============================================================
+2026-09-20 23:55
+
+app config dump leave as is; no action on /.well-known/; what is url.parse() deprecation?; fix other oddities
+
+url.parse() was Node DEP0169 from websocket._handleUpgrade (legacy url.parse); replaced with WHATWG URL. Guest auth deny is logWarning. appCluster and admin/test WS lifecycle are logDebug. health.metrics double was windowFocus.register plus a second startAutoRefresh. openThread only refreshThreads when the thread is not already in the list. Tests 206/206 passing.
+
+
+============================================================
+2026-09-21 00:39
+
+I did a lot of browsing, please check logs
+
+Reviewed the debug-off browsing dump. Prior quieting held (no url.parse, no WS connect/disconnect, no appCluster chatter, no multiline log.change, listThreads once per panel open). Leftover: guest websocket._completeUpgrade Authentication required was still ERROR (leftover tab reconnects before login) and counted as a health error. Same class as HTTP deny — now logWarning. Role denials stay logError. websocket.test 70/70 passing.
+
+
+============================================================
+2026-09-21 00:44
+
+so, ready for a follow-up commit? review tt-git-diff.txt; one-liner starting W-243, v2.0.8, 2026-09-20: logs follow-up:
+
+Diff matches the leftover work (WS/cache/docTypes/appCluster quieting, guest deny warning, url.parse, health.metrics double, newline collapse). Blocker: formatLogMessage used one space, test expected two — aligned to '  ' with /g. ai-core openThread skip-refresh is in the plugin tree, not this framework diff. @genai header bumps are incidental. One-liner given; CHANGELOG/work-items not in this follow-up.
+
+
+============================================================
+2026-09-21 00:45
+
+actually, please append work done now and in previous framework followup in the notes: work-items.md (10365-10370)
+
+Appended W-243 notes: framework follow-up after 2.0.8 ship (WS/appCluster/cache/docTypes, guest deny warning, newline collapse, url.parse, health.metrics double). Appended W-245 notes: openThread skip-refresh plus pointer to the W-243 host leftovers.
+
+
+============================================================

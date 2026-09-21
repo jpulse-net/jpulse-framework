@@ -9,7 +9,7 @@
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.20, Grok 4.6
  */
 
 import { describe, test, expect, beforeEach, beforeAll, afterEach, jest } from '@jest/globals';
@@ -39,6 +39,8 @@ describe('WebSocketController - High Priority Tests', () => {
         // `const LogController = global.LogController` at module load (W-176 revalidateClientSession tests).
         LogController = (await import('../../../controller/log.js')).default;
         LogController.logInfo = jest.fn();
+        LogController.logDebug = jest.fn();
+        LogController.logWarning = jest.fn();
         LogController.logError = jest.fn();
         global.LogController = LogController;
 
@@ -49,6 +51,8 @@ describe('WebSocketController - High Priority Tests', () => {
     beforeEach(() => {
         // Clear mock call history but keep the mock implementations
         if (LogController.logInfo) LogController.logInfo.mockClear();
+        if (LogController.logDebug) LogController.logDebug.mockClear();
+        if (LogController.logWarning) LogController.logWarning.mockClear();
         if (LogController.logError) LogController.logError.mockClear();
         if (AuthController.isAuthenticated) AuthController.isAuthenticated.mockClear();
         if (AuthController.isAuthorized) AuthController.isAuthorized.mockClear();
@@ -184,6 +188,15 @@ describe('WebSocketController - High Priority Tests', () => {
             expect(mockSocket.destroyed).toBe(true);
             // Verify wss.handleUpgrade was NOT called (connection rejected)
             expect(WebSocketController.wss).toBeNull();
+            expect(LogController.logWarning).toHaveBeenCalledWith(
+                mockRequest,
+                'websocket._completeUpgrade',
+                expect.stringContaining('Authentication required')
+            );
+            expect(LogController.logError.mock.calls.some((call) =>
+                call[1] === 'websocket._completeUpgrade'
+                && String(call[2]).includes('Authentication required')
+            )).toBe(false);
         });
 
         test('should allow connection when auth present and required', async () => {
@@ -273,6 +286,11 @@ describe('WebSocketController - High Priority Tests', () => {
             expect(mockSocket.destroyed).toBe(true);
             // Verify wss.handleUpgrade was NOT called (connection rejected)
             expect(WebSocketController.wss).toBeNull();
+            expect(LogController.logError).toHaveBeenCalledWith(
+                mockRequest,
+                'websocket._completeUpgrade',
+                expect.stringContaining('Insufficient roles')
+            );
         });
 
         test('should allow connection when role satisfied', async () => {
@@ -1006,6 +1024,71 @@ describe('WebSocketController - High Priority Tests', () => {
             expect(client.lastPing).toBeLessThanOrEqual(afterTime);
             expect(client.lastPong).toBeGreaterThanOrEqual(beforeTime);
             expect(client.lastPong).toBeLessThanOrEqual(afterTime);
+        });
+
+        test('connect and disconnect lifecycle is logDebug, handler errors stay logError', () => {
+            const _onDisconnect = jest.fn();
+            const namespace = {
+                path: '/api/1/ws/test',
+                clients: new Map(),
+                _onConnect: jest.fn(),
+                _onDisconnect
+            };
+            const ws = new WebSocketTestUtils.MockWebSocket();
+            const ctx = {
+                username: 'testuser',
+                ip: '127.0.0.1',
+                roles: [],
+                firstName: '',
+                lastName: '',
+                initials: '',
+                params: {}
+            };
+
+            WebSocketController._onConnection(ws, namespace, ctx, '12345678-1234-4567-8901-123456789012');
+            expect(LogController.logDebug).toHaveBeenCalledWith(
+                ctx,
+                'websocket._onConnection',
+                expect.stringContaining('connected to /api/1/ws/test')
+            );
+            expect(LogController.logInfo.mock.calls.some((call) =>
+                call[1] === 'websocket._onConnection'
+            )).toBe(false);
+
+            WebSocketController._onDisconnect('12345678-1234-4567-8901-123456789012', namespace);
+            expect(LogController.logDebug).toHaveBeenCalledWith(
+                ctx,
+                'websocket._onDisconnect',
+                expect.stringContaining('disconnected from /api/1/ws/test')
+            );
+            expect(LogController.logInfo.mock.calls.some((call) =>
+                call[1] === 'websocket._onDisconnect'
+            )).toBe(false);
+            expect(_onDisconnect).toHaveBeenCalledTimes(1);
+        });
+
+        test('admin and test namespace lifecycle is logDebug', () => {
+            WebSocketController._registerTestNamespace();
+            const ns = WebSocketController.namespaces.get('/api/1/ws/jpulse-ws-test');
+            expect(ns).toBeDefined();
+            const ctx = {
+                username: 'siteadmin',
+                ip: '127.0.0.1',
+                roles: ['admin'],
+                firstName: '',
+                lastName: '',
+                initials: '',
+                params: {}
+            };
+            ns._onConnect({ clientId: 'abc', ctx, message: {} });
+            expect(LogController.logDebug).toHaveBeenCalledWith(
+                ctx,
+                'websocket._registerTestNamespace',
+                expect.stringContaining('Test client connected')
+            );
+            expect(LogController.logInfo.mock.calls.some((call) =>
+                call[1] === 'websocket._registerTestNamespace'
+            )).toBe(false);
         });
     });
 

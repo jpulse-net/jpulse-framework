@@ -1640,7 +1640,8 @@ class CommonUtils {
     static formatLogMessage(scope, message, level = 'info', reqOrContext = null) {
         const timestamp = CommonUtils.formatTimestamp();
         const context = CommonUtils.getLogContext(reqOrContext);
-        return `-\t${timestamp}\t${level}\t${context.username}\tip:${context.ip}\tvm:${context.vm}\tid:${context.id}\t${scope}\t${message}`;
+        const singleLine = String(message ?? '').replace(/[\r\n]+/g, ' ');
+        return `-\t${timestamp}\t${level}\t${context.username}\tip:${context.ip}\tvm:${context.vm}\tid:${context.id}\t${scope}\t${singleLine}`;
     }
 
     // =========================================================================

@@ -9,7 +9,7 @@
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.15, Grok 4.6
+ * @genai           60%, Cursor 3.20, Grok 4.6
  */
 
 import LogModel from '../model/log.js';
@@ -89,9 +89,12 @@ class LogController {
 
     /**
      * Populate appConfig.system.docTypes with caching
+     * @param {object} [options]
+     * @param {boolean} [options.refresh=false] - TTL refresh (logDebug); boot/init stays logInfo
      * @returns {Promise<void>}
      */
-    static async populateDocTypes() {
+    static async populateDocTypes(options = {}) {
+        const isRefresh = options.refresh === true;
         try {
             const docTypes = await LogModel.getDistinctDocTypes();
             global.appConfig.system.docTypes = docTypes;
@@ -103,9 +106,14 @@ class LogController {
                 ttl: 300000 // 5 minutes
             };
 
-            console.log(CommonUtils.formatLogMessage('LogController', `Populated appConfig.system.docTypes with ${docTypes.length} types: ${docTypes.join(', ')}`));
+            const message = `Populated appConfig.system.docTypes with ${docTypes.length} types: ${docTypes.join(', ')}`;
+            if (isRefresh) {
+                LogController.logDebug(null, 'log.refreshDocTypesCache', message);
+            } else {
+                LogController.logInfo(null, 'log.populateDocTypes', message);
+            }
         } catch (error) {
-            console.log(CommonUtils.formatLogMessage('LogController', `Failed to populate docTypes: ${error.message}`));
+            LogController.logError(null, 'log.populateDocTypes', `Failed to populate docTypes: ${error.message}`);
             global.appConfig.system.docTypes = ['config', 'user']; // Fallback
         }
     }
@@ -117,7 +125,7 @@ class LogController {
     static async refreshDocTypesCache() {
         const now = Date.now();
         if (now - LogController.docTypesCache.timestamp > LogController.docTypesCache.ttl) {
-            await LogController.populateDocTypes();
+            await LogController.populateDocTypes({ refresh: true });
         }
     }
 

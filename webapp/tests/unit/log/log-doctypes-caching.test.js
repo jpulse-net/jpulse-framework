@@ -9,7 +9,7 @@
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 1.7, Claude Sonnet 4
+ * @genai           80%, Cursor 3.20, Grok 4.6
  */
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
@@ -266,6 +266,60 @@ describe('Log DocTypes Caching', () => {
 
             // Restore original method
             LogModel.getDistinctDocTypes = originalGetDistinctDocTypes;
+        });
+
+        test('TTL refresh completed is logDebug, init populate stays logInfo, failures stay logError', async () => {
+            const mockDocTypes = ['config', 'user', 'helloTodo'];
+            const originalGetDistinctDocTypes = LogModel.getDistinctDocTypes;
+            LogModel.getDistinctDocTypes = jest.fn().mockResolvedValue(mockDocTypes);
+            global.appConfig.system = { docTypes: [] };
+
+            const logDebugSpy = jest.spyOn(LogController, 'logDebug').mockImplementation(() => {});
+            const logInfoSpy = jest.spyOn(LogController, 'logInfo').mockImplementation(() => {});
+            const logErrorSpy = jest.spyOn(LogController, 'logError').mockImplementation(() => {});
+
+            try {
+                await LogController.populateDocTypes();
+                expect(logInfoSpy).toHaveBeenCalledWith(
+                    null,
+                    'log.populateDocTypes',
+                    expect.stringContaining('Populated appConfig.system.docTypes')
+                );
+                expect(logDebugSpy.mock.calls.some((call) =>
+                    call[1] === 'log.refreshDocTypesCache'
+                )).toBe(false);
+
+                logDebugSpy.mockClear();
+                logInfoSpy.mockClear();
+
+                LogController.docTypesCache = {
+                    data: ['old'],
+                    timestamp: Date.now() - (6 * 60 * 1000),
+                    ttl: 300000
+                };
+                await LogController.refreshDocTypesCache();
+                expect(logDebugSpy).toHaveBeenCalledWith(
+                    null,
+                    'log.refreshDocTypesCache',
+                    expect.stringContaining('Populated appConfig.system.docTypes')
+                );
+                expect(logInfoSpy.mock.calls.some((call) =>
+                    call[1] === 'log.refreshDocTypesCache' || call[1] === 'log.populateDocTypes'
+                )).toBe(false);
+
+                LogModel.getDistinctDocTypes = jest.fn().mockRejectedValue(new Error('Database error'));
+                await LogController.populateDocTypes();
+                expect(logErrorSpy).toHaveBeenCalledWith(
+                    null,
+                    'log.populateDocTypes',
+                    expect.stringContaining('Failed to populate docTypes')
+                );
+            } finally {
+                logDebugSpy.mockRestore();
+                logInfoSpy.mockRestore();
+                logErrorSpy.mockRestore();
+                LogModel.getDistinctDocTypes = originalGetDistinctDocTypes;
+            }
         });
     });
 });

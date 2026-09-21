@@ -13,7 +13,6 @@
  */
 
 import { WebSocketServer as WSServer } from 'ws';
-import { parse as parseUrl } from 'url';
 import AuthController from './auth.js';
 import ConfigModel from '../model/config.js';
 
@@ -600,9 +599,9 @@ class WebSocketController {
      */
     static _handleUpgrade(req, socket, head) {
         try {
-            const urlParts = parseUrl(req.url, true);
-            const pathname = urlParts.pathname;
-            const query = urlParts.query;
+            const parsedUrl = new URL(req.url, 'http://localhost');
+            const pathname = parsedUrl.pathname;
+            const query = Object.fromEntries(parsedUrl.searchParams);
 
             // W-155: Try exact match first, then pattern match
             let namespace = this.namespaces.get(pathname);
@@ -742,7 +741,7 @@ class WebSocketController {
 
             if (!allowPublic) {
                 if (namespace.requireAuth && !AuthController.isAuthenticated(req)) {
-                    LogController.logError(req, 'websocket._completeUpgrade', `error: Authentication required for ${namespace.path}`);
+                    LogController.logWarning(req, 'websocket._completeUpgrade', `warning: Authentication required for ${namespace.path}`);
                     socket.destroy();
                     return;
                 }
@@ -845,7 +844,7 @@ class WebSocketController {
         };
         namespace.clients.set(clientId, client);
 
-        LogController.logInfo(ctx, 'websocket._onConnection', `Client ${clientId} (${ctx.username}) connected to ${namespace.path}`);
+        LogController.logDebug(ctx, 'websocket._onConnection', `Client ${clientId} (${ctx.username}) connected to ${namespace.path}`);
 
         // Send welcome message with sanitized ctx + effective limits (W-208)
         const limits = this.getEffectiveLimits(namespace);
@@ -1136,7 +1135,7 @@ class WebSocketController {
 
         // Remove client first so onDisconnect handler sees correct client count (e.g. for user-left broadcast)
         namespace.clients.delete(clientId);
-        LogController.logInfo(ctx, 'websocket._onDisconnect', `Client ${clientId} disconnected from ${namespace.path}`);
+        LogController.logDebug(ctx, 'websocket._onDisconnect', `Client ${clientId} disconnected from ${namespace.path}`);
 
         if (namespace._onDisconnect) {
             try {
@@ -1475,7 +1474,7 @@ class WebSocketController {
         });
         ns.onMessage((conn) => {
             if (conn.message.type === 'admin-connected') {
-                LogController.logInfo(conn.ctx, 'websocket._registerAdminStatsNamespace', `Admin monitoring connected: ${conn.message.message}`);
+                LogController.logDebug(conn.ctx, 'websocket._registerAdminStatsNamespace', `Admin monitoring connected: ${conn.message.message}`);
             }
         });
         ns.onDisconnect((conn) => {
@@ -1495,10 +1494,10 @@ class WebSocketController {
     static _registerTestNamespace() {
         const ns = this.createNamespace('/api/1/ws/jpulse-ws-test', { requireAuth: true });
         ns.onConnect((conn) => {
-            LogController.logInfo(conn.ctx, 'websocket._registerTestNamespace', `Test client connected: ${conn.clientId}`);
+            LogController.logDebug(conn.ctx, 'websocket._registerTestNamespace', `Test client connected: ${conn.clientId}`);
         });
         ns.onMessage((conn) => {
-            LogController.logInfo(conn.ctx, 'websocket._registerTestNamespace', `Test message received: ${JSON.stringify(conn.message)}`);
+            LogController.logDebug(conn.ctx, 'websocket._registerTestNamespace', `Test message received: ${JSON.stringify(conn.message)}`);
             ns.broadcast({
                 type: 'echo',
                 data: {
@@ -1509,7 +1508,7 @@ class WebSocketController {
             }, conn.ctx);
         });
         ns.onDisconnect((conn) => {
-            LogController.logInfo(conn.ctx, 'websocket._registerTestNamespace', `Test client disconnected: ${conn.clientId}`);
+            LogController.logDebug(conn.ctx, 'websocket._registerTestNamespace', `Test client disconnected: ${conn.clientId}`);
         });
     }
 

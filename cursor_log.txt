@@ -27242,3 +27242,64 @@ Root cause: partial LogController mocks lack logDebug, so redis-manager.cacheSet
 
 
 ============================================================
+2026-09-20 17:41
+
+next: W-244, v1.0.7, 2026-09-20: auth-mfa logging
+- any additional tests needed?
+
+No. Plugin has no unit tests; work item only says update existing auth-mfa.onSystemGetStats assertions (none exist). Framework suite does not assert that string. Implementation already in place (4 hook internals → logDebug, stats-error scope mfaAuth.onSystemGetStats, jpulseVersion >=2.0.8). Manual MFA login during 2.0.8 already covered the contract. No debugEnabled guard needed — messages are short interpolations, not stringify.
+
+
+============================================================
+2026-09-20 17:44
+
+plugin release prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- review work item and design doc if it matches actual code & fix if needed
+- assume W-244, v1.0.7, 2026-09-20
+- plugin README.md & docs/README.md: add release to Plugin releases section
+- plugin commit-message.txt: update message
+
+Reviewed W-244 as-built against source (tt-git-diff.txt is still the 1.0.6 W-211 leftover). Matches: 4 hook internals → logDebug, stats-error mfaAuth.onSystemGetStats, jpulseVersion >=2.0.8, API/validate-step stay audit. As-built extras recorded in work item (no debugEnabled; no tests). No design doc. README 1.0.7 dated; docs/README Plugin Releases 1.0.7; plugin commit-message.txt rewritten. Status left IN_PROGRESS. Did not bump or commit.
+
+
+============================================================
+2026-09-20 17:58
+
+next: W-245, v1.0.14, 2026-09-20: ai-core logging
+- any more tests needed?
+
+No. Work item required test is already in turn-loop.test.js (both gates on → prompt dump is logDebug not logInfo; success: turn stays logInfo). regressions.test.js asserts jpulseVersion >=2.0.8 on all three bundle members. settings.test.js covers debugDumps merge. Off-gate cases were live-checked in 2.0.8 dogfood.
+
+
+============================================================
+2026-09-20 18:02
+
+plugin release prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- review work item and design doc if it matches actual code & fix if needed
+- assume W-245, v1.0.14, 2026-09-20
+- plugin README.md & docs/README.md: add release to Plugin releases section
+- plugin commit-message.txt: update message
+
+tt-git-diff is the ai-core working tree and matches W-245 plus the per-user thread-memory extra. No design doc. Recorded as-built in the work item (status left IN_PROGRESS). Added docs/README 1.0.14; README 1.0.14 now names thread memory; companion lockstep 1.0.14 notes. commit-message.txt rewritten. Plugin tests 24/276 passing. Did not bump or commit.
+
+
+============================================================
+2026-09-20 18:09
+
+oops, you missed ai-mock and hello-ai commit-message.txt
+unfortunately I already tagged ai-mock, what can I do?
+
+Wrote companion commit-message.txt for W-245 / 1.0.14 lockstep. Recovery: amend HEAD with -F commit-message.txt, delete and recreate v1.0.14, force-with-lease main, push the tag. Tree is already correct; only the commit subject is stale. hello-ai not yet committed with the old file.
+
+
+============================================================
+2026-09-20 20:28
+
+next: update @tt-commit.txt (keep first row as is)
+
+Rewrote tt-commit body for the framework-repo documentation of published auth-mfa 1.0.7 (W-244) and ai-core 1.0.14 (W-245, lockstep companions). First row kept. No framework source or version bump. Did not commit.
+
+
+============================================================

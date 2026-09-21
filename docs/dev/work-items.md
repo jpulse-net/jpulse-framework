@@ -10191,19 +10191,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **host-page gate:** BubbleMap on desktop with Map Chat and AI Agent both open — narrow past 768 and one sheet remains, the one that was in front; widen and it is still one. Then delete the site's resize `hardClose` and repeat
   - do not run the bump-version script while implementing, and do not touch `.jpulse/`
 
-
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-243, v2.0.8, 2026-09-20: logs: per-area logDebug with a live admin toggle
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - prod logs carry the audit trail and nothing else — one page load is tens of lines, not hundreds
@@ -10304,13 +10293,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **follow-up after 2.0.8:** sites wait for `logDebug`, then do the site-owned moves. Framework plugin items: W-244 (`auth-mfa`), W-245 (`ai-core` bundle). `auth-oauth` and `ai-anthropic` were scanned and already follow `[controller].[method]` with one-line API audit — no item. Feature 11 already covers the in-tree `hello-world` plugin and demo `site/` controllers
   - do not run the bump-version script while implementing, and do not touch `.jpulse/`
 
-
-
-
-
-
 ### W-244, v1.0.7, 2026-09-20: auth-mfa logging: one mfaAuth log area and hook internals to logDebug
-- status: 🕑 PENDING
+- status: ✅ DONE
 - type: Refactoring
 - repository: github.com/jpulse-net/plugin-auth-mfa (separate repo, independent versioning)
 - npm package: @jpulse-net/plugin-auth-mfa
@@ -10326,7 +10310,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **`onAuthGetSteps` / `onAuthGetWarnings` are not user actions.** They run on every login to decide whether to add a step or a nag. The user-facing lines are the API `success: … in Nms` closes and the `onAuthValidateStep` pass/fail (someone submitted an MFA or backup code)
 - features:
   - **1. one area.** Rename the stats-error scope `auth-mfa.onSystemGetStats` → `mfaAuth.onSystemGetStats`. No other scope in this plugin is off-convention
-  - **2. hook internals to `logDebug`.** `mfaAuth.onAuthGetSteps` ("MFA step required…", "MFA locked for N minutes" when *adding* the step) and both `mfaAuth.onAuthGetWarnings` nags. Guard any later stringify with `LogController.debugEnabled('mfaAuth')`
+  - **2. hook internals to `logDebug`.** `mfaAuth.onAuthGetSteps` ("MFA step required…", "MFA locked for N minutes" when *adding* the step) and both `mfaAuth.onAuthGetWarnings` nags. As-built: no `debugEnabled('mfaAuth')` guard — the four messages are short interpolations, not a stringify
   - **3. audit trail stays `logInfo`.** `apiStatus` / `apiSetup` / `apiVerifySetup` / `apiDisable` / `apiBackupCodes` request + success; `onAuthValidateStep` lock / success / fail (TOTP and backup). Errors stay `logError`
   - **4. host requirement.** `plugin.json` `jpulseVersion` becomes `>=2.0.8`. README names the new logging rule. Plugin `version` is left for the bump script
   - **out of scope:** framework files; changing hook names or MFA policy; the plugin-local `logLevel` field if present
@@ -10338,18 +10322,15 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - `jpulseVersion` `>=2.0.8`
   - `plugins/auth-mfa/README.md` and `plugins/auth-mfa/docs/README.md`:
     - release note that scopes are `mfaAuth.*` and hook internals are debug. Version number if a change note is wanted, never a work-item number
-  - existing unit tests: update any assertion that matches the old `auth-mfa.onSystemGetStats` string
+    - as-built: README Plugin Releases 1.0.7; docs/README overview sentence plus Plugin Releases 1.0.7
+  - existing unit tests: none in this plugin; no `auth-mfa.onSystemGetStats` assertion to update
 - notes:
   - **repo layout:** plugin repo only. Dogfood / jpulse.net / bubblemap pick it up on plugin update. No framework commit
   - **verification:** log in with MFA on and off. Prod log shows API success and validate-step outcomes only. Tick `mfaAuth` and the step/warning lines appear. No `auth-mfa.` scope anywhere
   - do not run the bump-version script while implementing, and do not touch `.jpulse/`
 
-
-
-
-
 ### W-245, v1.0.14, 2026-09-20: ai-core logging: turn-loop prompt/response dumps to logDebug
-- status: 🕑 PENDING
+- status: ✅ DONE
 - type: Refactoring
 - repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
 - npm package: @jpulse-net/plugin-ai-core
@@ -10368,21 +10349,32 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **1. dumps become `logDebug`.** In `turnLoop.js`, the two `logLine` calls behind `settings.debugDumps` (prompt dump ~289, response dump ~389) call `logDebug`. Guard the `JSON.stringify` formatters with `LogController.debugEnabled('aiCore')` so the expensive string is not built when the area is off
   - **2. audit trail unchanged.** `logReq` / `logOk` / `logErr` on every `aiCore.api*` method; `logLine` for `success: turn <id> <status>`; `aiCore.initialize` purge success; all `logError` / `logWarning` (`aiCore.registerTools`, quota, turn-after)
   - **3. host requirement.** `ai-core` / `ai-mock` / `hello-ai` `jpulseVersion` becomes `>=2.0.8`. README of the primary names the dump rule
+  - **as-built extra (2.0.8 dogfood).** Per-user last-open thread: key `jp:ai:thread:<username>:scope`; `apiCapability` returns `username`; the panel ignores a stored id not in the current user's list. `debugDumps` help names the host `aiCore` area
   - **out of scope:** changing `debugDumps` semantics beyond the extra `logDebug` gate; provider plugins (`ai-anthropic` was scanned — only `aiAnthropic.verifyApiKey` audit lines, no item); framework files
 - deliverables:
   - `plugins/ai-core/webapp/utils/agent/turnLoop.js`:
-    - prompt and response dumps via `logDebug`, still inside `if (settings.debugDumps)`, each formatter behind `debugEnabled('aiCore')`
+    - prompt and response dumps via `logDebug`, still inside `if (settings.debugDumps && debugEnabled('aiCore'))` so the formatters do not run when the area is off
     - `success: turn …` stays `logInfo`
   - `plugins/ai-core/plugin.json`, `plugins/ai-mock/plugin.json`, `plugins/hello-ai/plugin.json`:
     - `jpulseVersion` `>=2.0.8` (plugin `version` left for the bump script on the primary)
   - `plugins/ai-core/README.md` and `plugins/ai-core/docs/README.md`:
     - debug dumps need both the plugin setting and the host `aiCore` debug area. Version number if a change note is wanted, never a work-item number
+    - as-built: Plugin Releases 1.0.14 (dumps + per-user thread memory)
   - existing turn-loop unit tests: a dump line is `logDebug` when both gates are on, and is not `logInfo`
+  - as-built extra: `webapp/utils/panel/threadMemory.js`, `webapp/tests/unit/thread-memory.test.js`; panel + `aiCore.apiCapability` `username`
 - notes:
   - **repo layout:** plugin-ai-core only. Bump from `plugins/ai-core`. No framework commit
   - **scanned, no sibling item:** `auth-oauth` (`oauthAuth.*` throughout; API and `onAuthValidateStep` success are already one-line audit; hooks otherwise only `logError` / `logWarning`). `ai-anthropic` (only `verifyApiKey`). `hello-ai` / `ai-mock` (no log calls)
   - **verification:** run a hello-ai turn with debug dumps off — one `success: turn` line. Dumps on and `aiCore` debug off — still no dump. Both on — prompt and response debug lines appear
   - do not run the bump-version script while implementing, and do not touch `.jpulse/`
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
 
 
 
@@ -10425,7 +10417,7 @@ release prep:
 plugin release prep:
 - review tt-git-diff.txt for accuracy and completness of work item
 - review work item and design doc if it matches actual code & fix if needed
-- assume W-241, v1.0.13, 2026-09-19
+- assume W-245, v1.0.14, 2026-09-20
 - plugin README.md & docs/README.md: add release to Plugin releases section
 - plugin commit-message.txt: update message
 
@@ -10446,12 +10438,12 @@ git tag v2.0.8; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.13 2026-09-19
+node ../../bin/bump-version.js 1.0.14 2026-09-20
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.13; git push origin main --tags
+git tag v1.0.14; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

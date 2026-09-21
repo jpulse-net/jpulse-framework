@@ -1,4 +1,4 @@
-# jPulse Docs / Generative-AI Development Guide v2.0.7
+# jPulse Docs / Generative-AI Development Guide v2.0.8
 
 Complete guide for site developers building jPulse applications with Gen-AI assistance, aka vibe coding, using IDEs like Cline, Cursor, GitHub Copilot, or Windsurf.
 
@@ -190,8 +190,11 @@ When working with AI, it's crucial to understand these core concepts:
 ```
 "When working with controllers, log API requests as follows:
 - Log API requests with LogController.logRequest()
-- Use LogController.logInfo() for additional logging
-- Log errors with LogController.logError()"
+- Use LogController.logInfo() for the one success/outcome line (success: … in Nms)
+- Use LogController.logDebug() for internals that fire more than once per request per method
+- Guard expensive debug strings with LogController.debugEnabled('myController')
+- Log errors with LogController.logError()
+- A line that records a user-facing action with its outcome is logInfo; anything else is logDebug"
 ```
 
 ## 🎨 Building Common Features

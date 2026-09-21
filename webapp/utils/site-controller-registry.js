@@ -3,13 +3,13 @@
  * @tagline         Site Controller Registry and Auto-Discovery
  * @description     Discovers and registers site controller APIs at startup (W-014)
  * @file            webapp/utils/site-controller-registry.js
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.19, Grok 4.6
+ * @genai           60%, Cursor 3.20, Grok 4.6
  */
 
 import fs from 'fs';
@@ -536,7 +536,7 @@ class SiteControllerRegistry {
                         const ControllerClass = await this._loadController(registryKey);
                         await ControllerClass[apiMethod.name](req, res);
                     } catch (error) {
-                        LogController.logError(req, `site-api.${controller.name}.${apiMethod.name}`, error.message);
+                        LogController.logError(req, `${controller.name}.${apiMethod.name}`, error.message);
                         const CommonUtils = global.CommonUtils;
                         if (CommonUtils?.sendError) {
                             return CommonUtils.sendError(req, res, 500, 'Site API error', 'SITE_API_ERROR', error.message);

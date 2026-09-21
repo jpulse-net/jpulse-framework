@@ -3,13 +3,13 @@
  * @tagline         WebSocket Controller for Real-Time Communication
  * @description     Manages WebSocket namespaces, client connections, and provides admin stats
  * @file            webapp/controller/websocket.js
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.20, Grok 4.6
  */
 
 import { WebSocketServer as WSServer } from 'ws';
@@ -342,12 +342,12 @@ class WebSocketController {
                 const channelSuffix = namespacePath.replace(/^\//, '').replace(/\//g, ':');
                 const channel = `controller:websocket:broadcast:${channelSuffix}`;
                 global.RedisManager.publishBroadcast(channel, payload);
-                LogController.logInfo(ctx, 'websocket.broadcast', `Published to Redis channel: ${channel}`);
+                LogController.logDebug(ctx, 'websocket.broadcast', `Published to Redis channel: ${channel}`);
             } catch (error) {
                 LogController.logError(ctx, 'websocket.broadcast', `Redis broadcast failed: ${error.message}`);
             }
         } else {
-            LogController.logInfo(ctx, 'websocket.broadcast',
+            LogController.logDebug(ctx, 'websocket.broadcast',
                 'Redis not available - single instance mode');
         }
     }
@@ -376,7 +376,7 @@ class WebSocketController {
         this._recordMessage(namespace);
 
         if (payload.type !== 'ping' && payload.type !== 'pong' && (sentCount > 0 || this.redis.enabled)) {
-            LogController.logInfo(payload.ctx, 'websocket._localBroadcast',
+            LogController.logDebug(payload.ctx, 'websocket._localBroadcast',
                 `Broadcast to ${sentCount} clients in ${namespacePath} (from: ${payload.ctx?.username || 'system'})`);
         }
     }
@@ -619,7 +619,10 @@ class WebSocketController {
                     for (let i = 0; i < pattern.paramNames.length; i++) {
                         extractedParams[pattern.paramNames[i]] = match[i + 1];
                     }
-                    LogController.logInfo(req, 'websocket._handleUpgrade', `Pattern matched: ${pattern.pattern}, extracted params: ${JSON.stringify(extractedParams)}`);
+                    if (LogController.debugEnabled('websocket')) {
+                        LogController.logDebug(req, 'websocket._handleUpgrade',
+                            `Pattern matched: ${pattern.pattern}, extracted params: ${JSON.stringify(extractedParams)}`);
+                    }
                     break;
                 }
             }
@@ -728,7 +731,7 @@ class WebSocketController {
                     literalNs._onMessage = template._onMessage;
                     literalNs._onDisconnect = template._onDisconnect;
                     this.namespaces.set(pathname, literalNs);
-                    LogController.logInfo(req, 'websocket._completeUpgrade', `Created literal namespace from pattern: ${pathname}`);
+                    LogController.logDebug(req, 'websocket._completeUpgrade', `Created literal namespace from pattern: ${pathname}`);
                 }
                 namespace = this.namespaces.get(pathname);
             }
@@ -806,7 +809,7 @@ class WebSocketController {
             }
 
             if (!this._socketAcceptsUpgrade(socket)) {
-                LogController.logInfo(req, 'websocket._completeUpgrade', `Socket closed before upgrade for ${namespace.path}`);
+                LogController.logDebug(req, 'websocket._completeUpgrade', `Socket closed before upgrade for ${namespace.path}`);
                 return;
             }
 
@@ -953,7 +956,7 @@ class WebSocketController {
         const rawLength = Buffer.isBuffer(data) ? data.length : (typeof data === 'string' ? Buffer.byteLength(data, 'utf8') : 0);
         if (rawLength > maxSize) {
             dropped.oversize++;
-            LogController.logInfo(ctx, 'websocket._onMessage', `Dropped oversized message: ${rawLength} > ${maxSize}`);
+            LogController.logWarning(ctx, 'websocket._onMessage', `Dropped oversized message: ${rawLength} > ${maxSize}`);
             this._sendRejection(client, `Message too large: ${rawLength} > ${maxSize}`, 'MESSAGE_TOO_LARGE', {
                 size: rawLength,
                 limit: maxSize
@@ -1015,7 +1018,7 @@ class WebSocketController {
         }
         if (recent.length >= maxMessages) {
             dropped.rateLimit++;
-            LogController.logInfo(ctx, 'websocket._onMessage', `Rate limit exceeded: ${recent.length} in ${interval}ms`);
+            LogController.logWarning(ctx, 'websocket._onMessage', `Rate limit exceeded: ${recent.length} in ${interval}ms`);
             const requestId = message.requestId || null;
             const shouldNotify = !!requestId || !client?.rateLimitNotified;
             if (shouldNotify) {

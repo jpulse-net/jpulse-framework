@@ -3,10 +3,10 @@
  * @tagline         Hello Plugin Controller
  * @description     Simple API controller demonstrating plugin structure
  * @file            plugins/hello-world/webapp/controller/helloPlugin.js
- * @version         2.0.7
+ * @version         2.0.8
  * @author          jPulse Team, https://jpulse.net
  * @license         BSL 1.1
- * @genai           80%, Cursor 3.15, Grok 4.6
+ * @genai           80%, Cursor 3.20, Grok 4.6
  */
 
 import HelloPluginModel from '../model/helloPlugin.js';
@@ -43,7 +43,7 @@ class HelloPluginController {
      * Demonstrates how plugins can react to framework events
      */
     static async onAuthAfterLogin(context) {
-        LogController.logInfo(context.req, 'helloPlugin.hook',
+        LogController.logDebug(context.req, 'helloPlugin.hook',
             `User ${context.user.username} logged in via ${context.authMethod}`);
         return context;
     }

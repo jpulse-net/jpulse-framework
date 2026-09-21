@@ -3,13 +3,13 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 1.7, Claude Sonnet 4
+ * @genai           60%, Cursor 3.20, Grok 4.6
  */
 
 import fs from 'fs';
@@ -297,7 +297,7 @@ class ViewController {
                 const namespace = pathParts[0];
                 if (this.isSPA(namespace)) {
                     filePath = `/${namespace}/index.shtml`;
-                    LogController.logInfo(req, 'view.load',
+                    LogController.logDebug(req, 'view.load',
                         `SPA sub-route detected: ${req.path} → ${filePath}`);
                 }
             }
@@ -321,7 +321,7 @@ class ViewController {
                         const contents = allFiles.map(file => this.templateCache.getFileSync(file));
                         content = contents.join('\n');
                         fullPath = allFiles[0]; // Use first file for logging
-                        LogController.logInfo(req, 'view.load',
+                        LogController.logDebug(req, 'view.load',
                             `Append mode: concatenated ${allFiles.length} file(s) for ${filePath}`);
                     }
                     // Note: No .tmpl fallback for .js or .css files (W-098)

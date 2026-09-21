@@ -3,13 +3,13 @@
  * @tagline         WebSocket Demo Controller for Real-Time Communication Examples
  * @description     Demonstrates WebSocket patterns: emoji cursor tracking and collaborative todo
  * @file            site/webapp/controller/helloWebsocket.js
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.20, Grok 4.6
  */
 
 import WebSocketController from '../../../webapp/controller/websocket.js';
@@ -87,7 +87,7 @@ class HelloWebsocketController {
         this.wsHandles.request = ns;
 
         ns.onConnect(({ clientId, ctx }) => {
-            LogController.logInfo(ctx, 'helloWebsocket.request.onConnect',
+            LogController.logDebug(ctx, 'helloWebsocket.request.onConnect',
                 `Client ${clientId} connected to request/response demo`);
         });
 
@@ -96,7 +96,7 @@ class HelloWebsocketController {
             const username = ctx?.username || 'guest';
 
             if (message.type === 'echo') {
-                LogController.logInfo(ctx, 'helloWebsocket.request.onMessage',
+                LogController.logDebug(ctx, 'helloWebsocket.request.onMessage',
                     `${username} echo request`);
                 conn.reply({
                     type: 'echo-result',
@@ -111,7 +111,7 @@ class HelloWebsocketController {
 
             if (message.type === 'ask-browser') {
                 // Server→client request: ask the browser, then answer the original client→server request
-                LogController.logInfo(ctx, 'helloWebsocket.request.onMessage',
+                LogController.logDebug(ctx, 'helloWebsocket.request.onMessage',
                     `${username} ask-browser (server will request client)`);
                 const browserRes = await WebSocketController.request(
                     clientId,
@@ -138,13 +138,13 @@ class HelloWebsocketController {
 
             // Unknown type with requestId → NO_REPLY is automatic; without id, ignore
             if (!message.requestId) {
-                LogController.logInfo(ctx, 'helloWebsocket.request.onMessage',
+                LogController.logDebug(ctx, 'helloWebsocket.request.onMessage',
                     `${username} unknown type: ${message.type}`);
             }
         });
 
         ns.onDisconnect(({ clientId, ctx }) => {
-            LogController.logInfo(ctx, 'helloWebsocket.request.onDisconnect',
+            LogController.logDebug(ctx, 'helloWebsocket.request.onDisconnect',
                 `Client ${clientId} disconnected from request/response demo`);
         });
     }
@@ -159,7 +159,7 @@ class HelloWebsocketController {
 
         emoji.onConnect(({ clientId, ctx }) => {
             const username = ctx?.username || 'guest';
-            LogController.logInfo(ctx, 'helloWebsocket.emoji.onConnect',
+            LogController.logDebug(ctx, 'helloWebsocket.emoji.onConnect',
                 `Client ${clientId} (${username}) connected to emoji demo`);
             const stats = emoji.getStats();
             emoji.sendToClient(clientId, {
@@ -171,7 +171,7 @@ class HelloWebsocketController {
         emoji.onMessage(({ clientId, message: data, ctx }) => {
             const username = ctx?.username || 'guest';
             if (data.type === 'emoji-select') {
-                LogController.logInfo(ctx, 'helloWebsocket.emoji.onMessage',
+                LogController.logDebug(ctx, 'helloWebsocket.emoji.onMessage',
                     `${username} selected emoji: ${data.emoji}`);
                 emoji.broadcast({
                     type: 'user-emoji',
@@ -187,7 +187,7 @@ class HelloWebsocketController {
 
         emoji.onDisconnect(({ clientId, ctx }) => {
             const username = ctx?.username || 'guest';
-            LogController.logInfo(ctx, 'helloWebsocket.emoji.onDisconnect',
+            LogController.logDebug(ctx, 'helloWebsocket.emoji.onDisconnect',
                 `Client ${clientId} (${username}) disconnected from emoji demo`);
             const stats = emoji.getStats();
             emoji.broadcast({
@@ -207,7 +207,7 @@ class HelloWebsocketController {
 
         todo.onConnect(({ clientId, ctx }) => {
             const username = ctx?.username || 'guest';
-            LogController.logInfo(ctx, 'helloWebsocket.todo.onConnect',
+            LogController.logDebug(ctx, 'helloWebsocket.todo.onConnect',
                 `Client ${clientId} (${username}) connected to todo demo`);
             const stats = todo.getStats();
             todo.sendToClient(clientId, {
@@ -218,7 +218,7 @@ class HelloWebsocketController {
 
         todo.onMessage(({ clientId, message, ctx }) => {
             const username = ctx?.username || 'guest';
-            LogController.logInfo(ctx, 'helloWebsocket.todo.onMessage',
+            LogController.logDebug(ctx, 'helloWebsocket.todo.onMessage',
                 `${username} sent: ${message.type}`);
             if (message.type === 'ping') {
                 todo.sendToClient(clientId, { type: 'pong', data: { timestamp: Date.now() } }, ctx);
@@ -227,7 +227,7 @@ class HelloWebsocketController {
 
         todo.onDisconnect(({ clientId, ctx }) => {
             const username = ctx?.username || 'guest';
-            LogController.logInfo(ctx, 'helloWebsocket.todo.onDisconnect',
+            LogController.logDebug(ctx, 'helloWebsocket.todo.onDisconnect',
                 `Client ${clientId} (${username}) disconnected from todo demo`);
             const stats = todo.getStats();
             todo.broadcast({
@@ -297,7 +297,7 @@ class HelloWebsocketController {
 
         notes.onConnect(async ({ clientId, ctx }) => {
             const username = ctx?.username || 'guest';
-            LogController.logInfo(ctx, 'helloWebsocket.notes.onConnect',
+            LogController.logDebug(ctx, 'helloWebsocket.notes.onConnect',
                 `Client ${clientId} (${username}) connected to notes demo`);
             const stats = notes.getStats();
             notes.sendToClient(clientId, {
@@ -362,7 +362,7 @@ class HelloWebsocketController {
 
         notes.onDisconnect(({ clientId, user, ctx }) => {
             const username = user?.username || 'guest';
-            LogController.logInfo(ctx, 'helloWebsocket.notes.onDisconnect',
+            LogController.logDebug(ctx, 'helloWebsocket.notes.onDisconnect',
                 `Client ${clientId} (${username}) disconnected from notes demo`);
             const stats = notes.getStats();
             notes.broadcast({
@@ -407,7 +407,7 @@ class HelloWebsocketController {
         rooms.onConnect(({ clientId, ctx }) => {
             const username = ctx?.username || 'guest';
             const roomName = ctx?.params?.roomName || 'unknown';
-            LogController.logInfo(ctx, 'helloWebsocket.rooms.onConnect',
+            LogController.logDebug(ctx, 'helloWebsocket.rooms.onConnect',
                 `Client ${clientId} (${username}) joined room: ${roomName}`);
 
             const roomPath = `/api/1/ws/hello-rooms/${roomName}`;
@@ -444,7 +444,7 @@ class HelloWebsocketController {
             const roomName = ctx?.params?.roomName || 'unknown';
 
             if (message.type === 'chat') {
-                LogController.logInfo(ctx, 'helloWebsocket.rooms.onMessage',
+                LogController.logDebug(ctx, 'helloWebsocket.rooms.onMessage',
                     `${username} in ${roomName}: ${message.data?.text?.slice(0, 50)}`);
 
                 // Broadcast to all clients in this specific room
@@ -472,7 +472,7 @@ class HelloWebsocketController {
         rooms.onDisconnect(({ clientId, ctx }) => {
             const username = ctx?.username || 'guest';
             const roomName = ctx?.params?.roomName || 'unknown';
-            LogController.logInfo(ctx, 'helloWebsocket.rooms.onDisconnect',
+            LogController.logDebug(ctx, 'helloWebsocket.rooms.onDisconnect',
                 `Client ${clientId} (${username}) left room: ${roomName}`);
 
             const roomPath = `/api/1/ws/hello-rooms/${roomName}`;

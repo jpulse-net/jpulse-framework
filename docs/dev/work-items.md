@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.7
+# jPulse Docs / Dev / Work Items v2.0.8
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -10139,18 +10139,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **as-built (not published):** specified surface landed. Copy sweep also hit `ai-core.shtml` and the ingest host-not-allowed string. Unit tests: 23 suites, 270 passed. Host gate passed on the symlink BubbleMap checkout (hard-refresh). Design Rev 30 is as-built. `jpulseVersion` stays `>=2.0.5`
   - do not run the bump-version script while implementing, and do not touch `.jpulse/` in tests
 
-
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-242, v2.0.7, 2026-09-19: floatPanel: mobile.exclusive holds on a viewport resize
-- status: 🕑 PENDING
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - `mobile.exclusive` holds when the viewport crosses the breakpoint, not only on the next `open()`
@@ -10209,6 +10199,196 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-243, v2.0.8, 2026-09-20: logs: per-area logDebug with a live admin toggle
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - prod logs carry the audit trail and nothing else — one page load is tens of lines, not hundreds
+  - turning one area up (`websocket`, `redis-manager`, …) is a checkbox, with no restart and no code edit
+  - the log line format does not change — `debug` uses the severity column that already exists
+  - areas are discovered, so a site or plugin controller appears in the UI without registering anything
+- prerequisites:
+  - W-154/W-155, v1.7.x: `LogController` accepts an Express `req` or a plain `{ username, ip }` context, and each WebSocket client carries `client.ctx`. `logDebug` takes the same context — no new context plumbing
+  - the `controller:config:data:changed` broadcast already consumed by `handlebar.js`, `health.js` and `email.js` — the live toggle reuses that mechanism on its own channel
+  - `SiteControllerRegistry.registry.controllers` — a Map of every site and plugin controller carrying `name` and `source` (`site` / `plugin:<name>`), populated at startup before any request
+  - `MetricsRegistry.register(name, fn, { category })` — the registration shape the optional area registration follows
+  - W-112 `CounterManager` — already used by `LogController` for `entriesCounter`; the per-area suppressed counters reuse it
+  - `RedisManager.cacheSet/cacheGet` with TTL, and `_validateChannelSchema` (`controller:log:debug:changed` is a valid 4-part channel)
+- rationale:
+  - **the noise has a single cause: there was no `logDebug`.** Every internal that wanted to say something had `logInfo` as its only option, so cache hits, include expansion, component registration, Redis cache ops and WebSocket relay all landed at the same severity as "a user did a thing". One BubbleMap map reload is ~250 lines, of which ~215 are mechanics
+  - **the essential lines are already correct.** The `logRequest` banner, the `success: … in Nms` close, warnings and errors are exactly the trail prod needs. So the gate is binary — audit trail always, diagnostics on request — and a global `level` floor would only ever be able to suppress warnings, which nobody wants. One axis, not two
+  - **a URL param cannot reach the noise.** All 29 `logInfo` calls in `redis-manager.js` and all 16 in `cache-manager.js` pass `null` for the context, which is precisely why those lines print `(guest)` / `ip:0.0.0.0`; a `?jpulseLogDebug=redis-manager` would add zero lines. It also would not reach the asset, API and WebSocket-upgrade fan-out of one page load, there is no `AsyncLocalStorage` anywhere in the codebase to carry an ambient request, and the lines carry absolute paths, Redis keys and session ids, so it would need admin gating regardless
+  - **therefore the toggle is process-level and cluster-wide.** It has to work where there is no `req`, and the Redis relay logs on the receiving instance, not on the one the admin is talking to
+  - **ephemeral, with a TTL.** A debug switch that survives a restart is a switch someone leaves on in prod. `app.conf` is the boot default; the live override expires by itself
+  - **discovery over registration.** The framework already auto-discovers controllers. A register-to-appear rule would silently omit whatever an author forgot, and the omission would only surface at the moment someone needed that area
+  - **`debugEnabled()` rather than a lazy message form.** One call signature for `logDebug` keeps call sites uniform and reviewable. The few producers that build an expensive message guard it themselves, which is explicit where it matters and adds no second way to write the same call
+- features:
+  - **1. `logDebug(reqOrCtx, scope, message)`.** Same signature, same context handling and same line format as `logInfo`, with `debug` in the existing severity column. Emitted only when its area is enabled. `logRequest`, `logInfo`, `logWarning` and `logError` are never gated — they are the audit trail and always print
+  - **2. `LogController.debugEnabled(areaOrScope)`** returns whether the gate is currently open, so a producer can skip expensive message construction: `if (LogController.debugEnabled('websocket')) { LogController.logDebug(ctx, 'websocket._handleUpgrade', \`… ${JSON.stringify(params)}\`); }`. The predicate is deliberately permissive — it answers true when the query is *broader* than an enabled tag (asking `handlebar` while only `handlebar.component` is on), so a guard can never suppress a line the gate would have printed. Passing the full scope gives the exact test
+  - **3. area matching is a prefix test on the scope.** An area is the scope up to the first dot, and a dotless scope (`app`, `routes`, `hook-manager`, `site-controller-registry`) is its own area. Matching is `scope.startsWith(tag)`, which yields abbreviations for free — `redis` matches `redis-manager.cacheSet`, `web` matches `websocket._localBroadcast`, `handlebar.component` matches that one scope only. `*` matches everything. No alias table
+  - **4. `controller.log.debug` and `controller.log.debugTtl` in `app.conf`.** `debug` is the boot default and accepts an array (`['websocket']`), a boolean (`true` → all, `false` → none) or a comma-separated string, so `debug: true` does the obvious thing instead of failing. `debugTtl` is the live-override lifetime in minutes, default `30`. `JPULSE_LOG_DEBUG=websocket,redis-manager` overlays `debug` at startup for a local session
+  - **5. live cluster-wide override.** `setDebugAreas(areas, ttlMinutes)` writes a TTL-bearing Redis key and publishes `controller:log:debug:changed`; every instance updates its in-memory set from the broadcast callback, and an instance starting or restarting mid-window reads the key once at boot so it joins with the same setting. With Redis unavailable it degrades to the local process. Both the enable and the expiry print as normal `info` lines under scope `log.setDebug`, so a log file explains its own chattiness at both ends
+  - **6. area discovery from three sources, unioned.** (a) `SiteControllerRegistry` supplies every site and plugin controller name with its `source`, available before anything has logged; (b) passive observation records the first segment of every scope passed to any log call, which is what surfaces the framework utils that are not controllers (`cache-manager`, `redis-manager`, `context-extensions`, `time-based-counters`) — these all log during initialization, so the list is populated before the admin page is ever opened; (c) an optional `registerDebugArea(area, { label, category })`, shaped like `MetricsRegistry.register`, adds a human label and grouping and is never required for an area to be listed or toggled
+  - **7. per-area suppressed-line counters.** Every gated `logDebug` that does not print increments a counter for its area via `CounterManager`, so the admin list ranks by where the noise actually is. Scope→area is memoized in a Map so the hot path does no repeated string slicing
+  - **8. admin panel on `/admin/logs.shtml`.** Sits below the log table. Checkboxes grouped Framework / Site / Plugins using the registry `source`. An area with suppressed lines shows the count as a number; a footnote explains it. Filter box, per-group select-all and clear (label column aligned), an "all off" button, and the remaining TTL. Help text interpolates `%TTL%` from `debugTtl`. Admin-gated. It deliberately does **not** live in the Config UI: `app.conf` is not admin-editable (the Config UI writes the `config` collection, a different tree from `appConfig.controller.log`), and the live state is ephemeral, which a save-shaped UI would misrepresent
+  - **9. reclassification of ~27 hot call sites** to `logDebug`: `cache-manager.getFileSync` hit/loaded/not-found (3); `handlebar` include expansion, component registration, `file.includeComponents`, `loadComponents` (5); `view.load` SPA sub-route detection and append-mode concatenation (2); `websocket` upgrade pattern match, literal namespace creation, socket-closed-before-upgrade, `_localBroadcast`, `broadcast` Redis publish (6); `redis-manager` `publishBroadcast`, `cacheSet`, `cacheGet`, `cacheGetByPattern`, `cacheDel`, `cacheDelPattern` and the lock acquire/release pairs (11). Lifecycle lines — initialization, connection handlers, session-store mode, registry scan results, shutdown — stay `info`. Separately, `websocket._onMessage` "Dropped oversized message" and "Rate limit exceeded" are misfiled as `logInfo` and become `logWarning`. Review add: `auth._completeLoginSession` "Warnings hook result" → `logDebug`
+  - **10. one scope-convention fix.** `SiteControllerRegistry.registerApiRoutes` logs site and plugin API errors as `site-api.${controller.name}.${apiMethod.name}`, so the first segment is `site-api` rather than the controller name. That breaks area matching — the registry-derived checkbox for `bubbleMap` would not match `site-api.bubbleMap.apiRead`, and a phantom `site-api` area would lump every site controller's errors together. Drop the prefix so it reads `bubbleMap.apiRead`, matching the `[controller].[method]` convention every other call site follows. No site action — both site audits confirmed this
+  - **11. in-tree demo site and hello-world plugin** (from the jpulse.net audit; these files live in this repo, not on jpulse.net). Move to `logDebug`: `helloWebsocket` per-connection `onConnect` / `onMessage` / `onDisconnect` chatter across the request, emoji, todo, notes and rooms namespaces; `helloClusterTodo._broadcastChange` success line; `helloPlugin.hook` (`onAuthAfterLogin`). The Redis-unavailable line in `_broadcastChange` is a real warning and becomes `logWarning`. The two `helloWebsocket.initialize` lines stay `info` — they fire once at boot, which is the lifecycle exception in feature 9. CRUD / API success lines in `hello`, `helloTodo`, `helloVue`, `helloFetch`, `helloClusterTodo` and `helloPlugin` already follow the one-line audit pattern and stay
+  - **12. docs.** New `docs/logging.md`. The logging rules gain `logDebug` and `debugEnabled` with the audit-trail-versus-diagnostics rule stated as the test an author applies: a line that records a user-facing action with its outcome is `logInfo`, anything firing more than once per request per method is `logDebug`
+  - **out of scope:** changing the log line format; a global `level` floor; per-request or per-user verbosity (and the `AsyncLocalStorage` it would require); the database change log (`logChange` and the `log` collection are untouched — this is stdout only); client-side console logging; the plugin-local `logLevel` field in `plugin.json`, which stays each plugin's own knob; renaming the existing dotless framework scopes, which remain valid areas; cross-instance aggregation of the observed-area union (all instances run the same code, so the local union is complete in practice)
+- deliverables:
+  - `webapp/controller/log.js`:
+    - `logDebug(reqOrCtx, scope, message)` and `debugEnabled(areaOrScope)`; the gate, the prefix matcher and the memoized scope→area Map
+    - `setDebugAreas(areas, ttlMinutes)`, `getDebugAreas()` → `{ areas, expiresAt }`, `getDebugRegistry()` → `[{ area, source, label, suppressed }]`, `registerDebugArea(area, options)`
+    - boot read of the Redis key, `controller:log:debug:changed` callback registration, TTL expiry timer, and the `log.setDebug` enable/expiry `info` lines
+    - config normalization for array / boolean / comma-string plus the `JPULSE_LOG_DEBUG` overlay
+    - `getMetrics()` gains the enabled areas and the per-area suppressed counts
+  - `webapp/app.conf`:
+    - `controller.log.debug: []` and `controller.log.debugTtl: 30`, commented alongside `maxMsgLength`
+  - `webapp/routes.js`:
+    - `GET /api/1/log/debug` (registry + current state) and `PUT /api/1/log/debug` (set areas), both behind `AuthController.requireAdminRole()`, alongside the existing `/api/1/log/search`
+  - `webapp/view/admin/logs.shtml`:
+    - the Debug Areas panel below the table — grouped checkboxes, suppressed counts as a number plus footnote, filter, per-group select-all/clear, all-off, TTL remaining, help text with `%TTL%`
+  - `webapp/translations/en.conf` and `webapp/translations/de.conf`:
+    - strings for the panel; no hard-coded English in the view
+  - `webapp/controller/auth.js`:
+    - `_completeLoginSession` warnings-hook result → `logDebug`
+  - `webapp/view/auth/login.shtml`:
+    - the HTML comment that contained a literal `{{or}}` is a Handlebars comment so the helper is not parsed; `showLocalForm` is built from two `let`s so `or` receives real arguments
+  - `webapp/utils/cache-manager.js`, `webapp/controller/handlebar.js`, `webapp/controller/view.js`, `webapp/controller/websocket.js`, `webapp/utils/redis-manager.js`:
+    - the ~27 reclassifications from feature 9, plus the two `websocket._onMessage` lines to `logWarning`
+    - `websocket._handleUpgrade` guards its `JSON.stringify(extractedParams)` message with `debugEnabled`
+  - `webapp/utils/site-controller-registry.js`:
+    - drop the `site-api.` prefix from the API error scope
+  - `site/webapp/controller/helloWebsocket.js`:
+    - per-connection `onConnect` / `onMessage` / `onDisconnect` lines → `logDebug`; the two `initialize` lines stay `info`
+  - `site/webapp/controller/helloClusterTodo.js`:
+    - `_broadcastChange` success → `logDebug`; Redis-unavailable → `logWarning`
+  - `plugins/hello-world/webapp/controller/helloPlugin.js`:
+    - `helloPlugin.hook` (`onAuthAfterLogin`) → `logDebug`
+  - `webapp/tests/unit/log/log-basic.test.js` (extend):
+    - `logDebug` is suppressed by default and prints when its area is enabled
+    - `logRequest` / `logInfo` / `logWarning` / `logError` print regardless of the debug set
+    - prefix matching: `redis` matches `redis-manager.cacheSet`, `web` matches `websocket…`, `handlebar.component` does not match `handlebar.expandHandlebars`, `*` matches everything
+    - `debugEnabled('handlebar')` is true while only `handlebar.component` is enabled (a guard never suppresses a line the gate would print)
+    - config normalization: array, `true`, `false`, comma string, and the env overlay
+    - TTL expiry clears the set and logs the expiry line
+    - a dotless scope is its own area
+    - suppressed counters increment only when the line is gated
+  - `docs/genai-instructions.md`, `docs/genai-development.md`, `docs/api-reference.md`:
+    - the logging section gains `logDebug` / `debugEnabled` and the audit-trail-versus-diagnostics test
+  - `docs/logging.md` (new):
+    - the line format, the five calls, area naming, `controller.log.debug` / `debugTtl`, `JPULSE_LOG_DEBUG`, and the admin panel. Version number if a change note is wanted, never a work-item number
+  - `docs/.markdown`:
+    - `logging.md` in the publish-list
+  - `README.md` and `docs/README.md` Latest Release Highlights, `docs/CHANGELOG.md` at publish
+- notes:
+  - **repo layout:** framework plus the in-tree demo site and the in-tree `hello-world` plugin. v2.0.8. Sibling plugin repos (`ai-*`, `auth-*`, `hello-ai`) are also framework-owned; they are gitignored here and ship their own versions after `logDebug` exists. Site-owned code (jpulse.net `contact`, BubbleMap controllers) is the only non-framework follow-up
+  - **ownership of the two site audits** (jpulse.net mixed these):
+    - *this repo (W-243):* the ~27 framework internals, the `site-api.` prefix, `helloWebsocket` connect/message/disconnect chatter, `helloClusterTodo._broadcastChange`, `helloPlugin.hook`
+    - *framework plugins, sibling repos:* W-244 (`auth-mfa` 1.0.7) and W-245 (`ai-core` 1.0.14 bundle). `auth-oauth` and `ai-anthropic` scanned, no item
+    - *jpulse.net site:* extra `contact.apiCreate` "saved" / email-sent `logInfo` lines — no `contact` controller in this tree
+    - *BubbleMap site:* no-dot helpers (`bubbleFile`, `bubbleImage`, `mapAccess.requireAuth` callers), retag `fileStore.listStores`, and the map-load / chat / cascade / `apiBytes` internals. First-segment areas already match controller names; startup `logInfo` stays verbose by their choice
+  - **decisions taken before implementation**, each with the alternative rejected:
+    - *one axis, not two:* only `debug` areas. A global `level` floor was rejected once the four essential channels became unconditional — it would have had nothing left to gate but warnings
+    - *process-level toggle:* rejected the per-page URL param, because the two areas named in the original objective (`redis-manager`, `cache-manager`) log with a `null` context and could never be reached by it
+    - *ephemeral with TTL:* rejected persisting the selection. `app.conf` covers "always on in this environment"; the live override is for a debugging session
+    - *discovery, with registration optional:* rejected register-to-appear, which fails silently
+    - *`debugEnabled()` guard:* rejected a function-valued message parameter, to keep one `logDebug` call shape
+    - *prefix matching:* rejected an alias table, since `startsWith` already yields `redis`, `web` and sub-scope targeting
+    - *panel on the logs page:* rejected the Config UI, which cannot edit `app.conf` and would imply the setting is persisted
+  - **verification gate:** reload a BubbleMap map page with an empty debug set and count the lines — the request banners, the API `success: … in Nms` closes, the WebSocket connect/join and any warnings, around 30 rather than ~250. Then tick `websocket` and `redis-manager` and confirm the relay and cache-op lines come back, on every instance, and disappear again when the TTL expires
+  - **follow-up after 2.0.8:** sites wait for `logDebug`, then do the site-owned moves. Framework plugin items: W-244 (`auth-mfa`), W-245 (`ai-core` bundle). `auth-oauth` and `ai-anthropic` were scanned and already follow `[controller].[method]` with one-line API audit — no item. Feature 11 already covers the in-tree `hello-world` plugin and demo `site/` controllers
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/`
+
+
+
+
+
+
+### W-244, v1.0.7, 2026-09-20: auth-mfa logging: one mfaAuth log area and hook internals to logDebug
+- status: 🕑 PENDING
+- type: Refactoring
+- repository: github.com/jpulse-net/plugin-auth-mfa (separate repo, independent versioning)
+- npm package: @jpulse-net/plugin-auth-mfa
+- objectives:
+  - the admin debug panel has one `mfaAuth` checkbox, not a leftover `auth-mfa` area
+  - hook chatter that fires on every login is `logDebug`; MFA API and verification outcomes stay on the audit trail
+  - the plugin requires a host that has `LogController.logDebug` (framework v2.0.8)
+- prerequisites:
+  - W-243, v2.0.8: `logDebug` and `debugEnabled` — this plugin cannot call them until that ships
+  - W-211, v1.0.6: current published plugin; the error log is still `'auth-mfa.onSystemGetStats'`
+- rationale:
+  - **the first segment is the checkbox.** `onSystemGetStats` is the only call in this plugin that logs under `auth-mfa` instead of `mfaAuth`. Both site audits named it. After W-243, that one line splits the plugin across two areas
+  - **`onAuthGetSteps` / `onAuthGetWarnings` are not user actions.** They run on every login to decide whether to add a step or a nag. The user-facing lines are the API `success: … in Nms` closes and the `onAuthValidateStep` pass/fail (someone submitted an MFA or backup code)
+- features:
+  - **1. one area.** Rename the stats-error scope `auth-mfa.onSystemGetStats` → `mfaAuth.onSystemGetStats`. No other scope in this plugin is off-convention
+  - **2. hook internals to `logDebug`.** `mfaAuth.onAuthGetSteps` ("MFA step required…", "MFA locked for N minutes" when *adding* the step) and both `mfaAuth.onAuthGetWarnings` nags. Guard any later stringify with `LogController.debugEnabled('mfaAuth')`
+  - **3. audit trail stays `logInfo`.** `apiStatus` / `apiSetup` / `apiVerifySetup` / `apiDisable` / `apiBackupCodes` request + success; `onAuthValidateStep` lock / success / fail (TOTP and backup). Errors stay `logError`
+  - **4. host requirement.** `plugin.json` `jpulseVersion` becomes `>=2.0.8`. README names the new logging rule. Plugin `version` is left for the bump script
+  - **out of scope:** framework files; changing hook names or MFA policy; the plugin-local `logLevel` field if present
+- deliverables:
+  - `plugins/auth-mfa/webapp/controller/mfaAuth.js`:
+    - stats-error scope `mfaAuth.onSystemGetStats`
+    - the four hook-internal `logInfo` calls in `onAuthGetSteps` / `onAuthGetWarnings` → `logDebug`
+  - `plugins/auth-mfa/plugin.json`:
+    - `jpulseVersion` `>=2.0.8`
+  - `plugins/auth-mfa/README.md` and `plugins/auth-mfa/docs/README.md`:
+    - release note that scopes are `mfaAuth.*` and hook internals are debug. Version number if a change note is wanted, never a work-item number
+  - existing unit tests: update any assertion that matches the old `auth-mfa.onSystemGetStats` string
+- notes:
+  - **repo layout:** plugin repo only. Dogfood / jpulse.net / bubblemap pick it up on plugin update. No framework commit
+  - **verification:** log in with MFA on and off. Prod log shows API success and validate-step outcomes only. Tick `mfaAuth` and the step/warning lines appear. No `auth-mfa.` scope anywhere
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/`
+
+
+
+
+
+### W-245, v1.0.14, 2026-09-20: ai-core logging: turn-loop prompt/response dumps to logDebug
+- status: 🕑 PENDING
+- type: Refactoring
+- repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
+- npm package: @jpulse-net/plugin-ai-core
+- objectives:
+  - a normal turn writes one audit line, not the prompt and response dumps
+  - those dumps still exist, behind `logDebug` and the existing `debugDumps` setting
+  - `ai-mock` and `hello-ai` stay in lockstep even though they have no log call sites today
+- prerequisites:
+  - W-243, v2.0.8: `logDebug` and `debugEnabled`
+  - W-241, 1.0.13: current published bundle
+- rationale:
+  - **the dumps are already named debug.** `formatPromptDebugLine` / `formatResponseDebugLine` clip text at `DEBUG_TEXT_MAX` and run only when `settings.debugDumps` is on, but they still call `logInfo`. Once W-243 makes `logInfo` the always-on audit trail, a forgotten debug-dumps checkbox writes prompt text to every prod log
+  - **two gates, on purpose.** `debugDumps` stays the plugin-config switch (prompt text is sensitive; it lives on the plugin page so it is hard to leave on). `logDebug` is the host switch. Both must be on to print a dump. The turn `success: turn <id> <status>` line is the audit trail and stays `logInfo`
+  - **`ai-mock` and `hello-ai` have zero `LogController` calls** (scanned 2026-09-20). They still bump with the primary because the bundle versions lockstep
+- features:
+  - **1. dumps become `logDebug`.** In `turnLoop.js`, the two `logLine` calls behind `settings.debugDumps` (prompt dump ~289, response dump ~389) call `logDebug`. Guard the `JSON.stringify` formatters with `LogController.debugEnabled('aiCore')` so the expensive string is not built when the area is off
+  - **2. audit trail unchanged.** `logReq` / `logOk` / `logErr` on every `aiCore.api*` method; `logLine` for `success: turn <id> <status>`; `aiCore.initialize` purge success; all `logError` / `logWarning` (`aiCore.registerTools`, quota, turn-after)
+  - **3. host requirement.** `ai-core` / `ai-mock` / `hello-ai` `jpulseVersion` becomes `>=2.0.8`. README of the primary names the dump rule
+  - **out of scope:** changing `debugDumps` semantics beyond the extra `logDebug` gate; provider plugins (`ai-anthropic` was scanned — only `aiAnthropic.verifyApiKey` audit lines, no item); framework files
+- deliverables:
+  - `plugins/ai-core/webapp/utils/agent/turnLoop.js`:
+    - prompt and response dumps via `logDebug`, still inside `if (settings.debugDumps)`, each formatter behind `debugEnabled('aiCore')`
+    - `success: turn …` stays `logInfo`
+  - `plugins/ai-core/plugin.json`, `plugins/ai-mock/plugin.json`, `plugins/hello-ai/plugin.json`:
+    - `jpulseVersion` `>=2.0.8` (plugin `version` left for the bump script on the primary)
+  - `plugins/ai-core/README.md` and `plugins/ai-core/docs/README.md`:
+    - debug dumps need both the plugin setting and the host `aiCore` debug area. Version number if a change note is wanted, never a work-item number
+  - existing turn-loop unit tests: a dump line is `logDebug` when both gates are on, and is not `logInfo`
+- notes:
+  - **repo layout:** plugin-ai-core only. Bump from `plugins/ai-core`. No framework commit
+  - **scanned, no sibling item:** `auth-oauth` (`oauthAuth.*` throughout; API and `onAuthValidateStep` success are already one-line audit; hooks otherwise only `logError` / `logWarning`). `ai-anthropic` (only `verifyApiKey`). `hello-ai` / `ai-mock` (no log calls)
+  - **verification:** run a hello-ai turn with debug dumps off — one `success: turn` line. Dumps on and `aiCore` debug off — still no dump. Both on — prompt and response debug lines appear
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/`
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -10236,7 +10416,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-242, v2.0.7, 2026-09-19
+- assume W-243, v2.0.8, 2026-09-20
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -10255,12 +10435,12 @@ plugin release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.7 2026-09-19
+node bin/bump-version.js 2.0.8 2026-09-20
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.7; git push origin main --tags
+git tag v2.0.8; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa
@@ -10319,8 +10499,8 @@ template:
 - status: 🕑 PENDING
 - type: Feature     // Idea, Feature, Bugfix, Refactoring, Testing, Infrastructure, Documentation, Deployment
 - objectives:
-- prerequisits:     // optional
-- rationale:        // optional
+- prerequisits:
+- rationale:
 - features:
 - deliverables:
   - FIXME `path/file`:

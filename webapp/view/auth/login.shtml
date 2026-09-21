@@ -4,13 +4,13 @@
  * @tagline         User authentication login page
  * @description     Login form for internal authentication with support for LDAP/OAuth2 planning
  * @file            webapp/view/auth/login.shtml
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.13, Claude Sonnet 5
+ * @genai           60%, Cursor 3.20, Grok 4.6
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -261,18 +261,20 @@
                     <p>{{i18n.view.auth.login.subtitle}}</p>
                 </div>
 
-                <!-- W-195: localAuthMode/isRestricted/showLocalForm drive layout below -->
-                <!-- Note: RHS must be parenthesized to force property resolution for {{let key=(...)}}.
-                     Also note: controller.auth.localAuthRestriction must be on app.conf's
+                {{!-- localAuthMode/isRestricted/showLocalForm drive layout below.
+                     RHS must be parenthesized to force property resolution for {{let key=(...)}}.
+                     controller.auth.localAuthRestriction must be on app.conf's
                      controller.handlebar.contextFilter.alwaysAllow list, since appConfig.controller.*
                      is otherwise stripped for unauthenticated requests - and this page is by
                      definition always viewed unauthenticated. Use string.default (not or/not) for
                      the fallback below: {{or}} returns a boolean, not the value itself, so it can't
                      be used to coalesce a config value with a default. string.default covers sites
-                     whose config predates this setting (value absent from appConfig entirely). -->
+                     whose config predates this setting (value absent from appConfig entirely). --}}
                 {{let localAuthMode=(string.default (appConfig.controller.auth.localAuthRestriction) "none")}}
                 {{let isRestricted=(ne vars.localAuthMode "none")}}
-                {{let showLocalForm=(or (not vars.isRestricted) (eq url.param.localFallback "1"))}}
+                {{let unrestricted=(not vars.isRestricted)}}
+                {{let localFallback=(eq url.param.localFallback "1")}}
+                {{let showLocalForm=(or vars.unrestricted vars.localFallback)}}
                 {{let hasAuthProviders=(not (array.isEmpty authProviders))}}
 
                 {{#if vars.isRestricted}}

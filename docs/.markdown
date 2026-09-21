@@ -69,6 +69,7 @@ sidebar-components.md
 
 # Backend & API
 api-reference.md
+logging.md                  Server Logging
 hooks.md
 websockets.md
 sending-email.md

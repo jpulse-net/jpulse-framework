@@ -3,13 +3,13 @@
  * @tagline         Redis connection management with cluster support and graceful fallback
  * @description     Manages Redis connections for sessions, WebSocket, broadcasting, and metrics
  * @file            webapp/utils/redis-manager.js
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.13, Claude Sonnet 5
+ * @genai           60%, Cursor 3.20, Grok 4.6
  */
 
 import Redis from 'ioredis';
@@ -647,7 +647,7 @@ class RedisManager {
                 await publisher.publish(key, JSON.stringify(message));
 
                 const logCtx = data?.ctx ?? null;
-                global.LogController?.logInfo(logCtx, 'redis-manager.publishBroadcast',
+                global.LogController?.logDebug(logCtx, 'redis-manager.publishBroadcast',
                     `Broadcast published: ${channel} from ${RedisManager.instanceId}`);
                 return true;
             } catch (error) {
@@ -662,7 +662,7 @@ class RedisManager {
             // Redis not available - call local callbacks directly (single-instance mode)
             await RedisManager._handleCallbackMessage(channel, data, RedisManager.instanceId);
             const logCtx = data?.ctx ?? null;
-            global.LogController?.logInfo(logCtx, 'redis-manager.publishBroadcast',
+            global.LogController?.logDebug(logCtx, 'redis-manager.publishBroadcast',
                 `Broadcast handled locally (Redis unavailable): ${channel} from ${RedisManager.instanceId}`);
             return true;
         }
@@ -1224,7 +1224,7 @@ class RedisManager {
                 await redis.set(...args);
             }
 
-            global.LogController?.logInfo(null, 'redis-manager.cacheSet',
+            global.LogController?.logDebug(null, 'redis-manager.cacheSet',
                 `Cache set: ${cacheKey} (ttl: ${normalizedTTL > 0 ? normalizedTTL + 's' : 'indefinite'})`);
             return true;
         } catch (error) {
@@ -1261,7 +1261,7 @@ class RedisManager {
 
             if (value) {
                 RedisManager._cacheStats.hits++;
-                global.LogController?.logInfo(null, 'redis-manager.cacheGet',
+                global.LogController?.logDebug(null, 'redis-manager.cacheGet',
                     `Cache hit: ${cacheKey}`);
             } else {
                 RedisManager._cacheStats.misses++;
@@ -1337,7 +1337,7 @@ class RedisManager {
                 }
             }
 
-            global.LogController?.logInfo(null, 'redis-manager.cacheGetByPattern',
+            global.LogController?.logDebug(null, 'redis-manager.cacheGetByPattern',
                 `Cache get-by-pattern: ${values.length} values for pattern: ${pattern}`);
             return values;
         } catch (error) {
@@ -1372,7 +1372,7 @@ class RedisManager {
 
             const result = await redis.del(cacheKey);
 
-            global.LogController?.logInfo(null, 'redis-manager.cacheDel',
+            global.LogController?.logDebug(null, 'redis-manager.cacheDel',
                 `Cache deleted: ${cacheKey}`);
             return result > 0;
         } catch (error) {
@@ -1826,7 +1826,7 @@ class RedisManager {
         const redis = RedisManager.getClient('cache');
         if (!redis) {
             RedisManager._cacheStats.lockAcquireFallback++;
-            global.LogController?.logInfo(null, 'redis-manager.cacheLockAcquire',
+            global.LogController?.logDebug(null, 'redis-manager.cacheLockAcquire',
                 'Redis cache unavailable — lock acquire treated as granted (single-instance fallback)');
             return true;
         }
@@ -1839,7 +1839,7 @@ class RedisManager {
             const acquired = result === 'OK';
             if (acquired) {
                 RedisManager._cacheStats.lockAcquireOk++;
-                global.LogController?.logInfo(null, 'redis-manager.cacheLockAcquire',
+                global.LogController?.logDebug(null, 'redis-manager.cacheLockAcquire',
                     `Lock acquired: ${lockKey} (ttl: ${Math.floor(ttl)}s)`);
             } else {
                 RedisManager._cacheStats.lockAcquireDenied++;
@@ -1876,7 +1876,7 @@ class RedisManager {
         const redis = RedisManager.getClient('cache');
         if (!redis) {
             RedisManager._cacheStats.lockReleaseFallback++;
-            global.LogController?.logInfo(null, 'redis-manager.cacheLockRelease',
+            global.LogController?.logDebug(null, 'redis-manager.cacheLockRelease',
                 'Redis cache unavailable — lock release treated as success (single-instance fallback)');
             return true;
         }
@@ -1894,7 +1894,7 @@ class RedisManager {
             const released = Number(deleted) === 1;
             if (released) {
                 RedisManager._cacheStats.lockReleaseOk++;
-                global.LogController?.logInfo(null, 'redis-manager.cacheLockRelease',
+                global.LogController?.logDebug(null, 'redis-manager.cacheLockRelease',
                     `Lock released: ${lockKey}`);
             } else {
                 RedisManager._cacheStats.lockReleaseNoop++;
@@ -1954,7 +1954,7 @@ class RedisManager {
 
             const deleted = await redis.del(...keys);
 
-            global.LogController?.logInfo(null, 'redis-manager.cacheDelPattern',
+            global.LogController?.logDebug(null, 'redis-manager.cacheDelPattern',
                 `Deleted ${deleted} keys matching pattern: ${pattern}`);
 
             return deleted;

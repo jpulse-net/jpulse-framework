@@ -1,4 +1,4 @@
-# jPulse Docs / Generative-AI Instructions for AI Assistants v2.0.7
+# jPulse Docs / Generative-AI Instructions for AI Assistants v2.0.8
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
@@ -75,10 +75,14 @@ This is not the in-site agent. For a scoped agent that calls site tools from a c
      - Initial request with `LogController.logRequest(req, 'myController.apiCreate', 'description')`
      - Log success with `LogController.logInfo(req, 'myController.apiCreate', 'success: description')`
      - Log error with `LogController.logError(req, 'myController.apiCreate', 'error: ' + error.message')`
+     - Internals (more than once per request per method) with `LogController.logDebug(req, 'myController.apiCreate', '…')`
+     - Guard expensive debug strings: `if (LogController.debugEnabled('myController')) { LogController.logDebug(…); }`
      - Log format: `[controller].[method]` for all log messages
+   - A line that records a user-facing action with its outcome is `logInfo`. Anything that fires more than once per request per method is `logDebug`. `logRequest` / `logInfo` / `logWarning` / `logError` always print
    - Log database CRUD actions: `create`, `update`, `delete`
      - Update example: `await LogController.logChange(req, 'myController', 'update', id, oldObj, newObj);`
    - See site/webapp/controller/helloTodo.js reference implementations for patterns
+   - See [Server Logging](logging.md) for areas, `controller.log.debug`, and the admin toggle
 
 9. **Code Quality**:
    - No tabs - always 4 spaces for indentation

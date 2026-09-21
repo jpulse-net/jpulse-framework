@@ -26993,3 +26993,252 @@ tt-git-diff matches W-242 (enforceExclusiveOnResize, five resize tests, ui-refer
 
 
 ============================================================
+2026-09-20 12:50
+
+Brainstorming on server logs
+- they are way to noisy at this time, see sample below
+- we need finer grained logs
+- objectives:
+  - lean essential logs in prod
+  - easy to turn volume up when working on a certain area, such as on websocket, or on redis
+- the log format is already structured well, so no change there
+- what do you propose?
+
+Proposed level + per-area verbose (not a single logLevel / verboseLogging). Keep the line format; add logDebug. controller.log.level (error|warn|info|debug, default info) plus controller.log.verbose list matching the first scope segment (websocket, redis-manager, cache-manager, handlebar, view, plus aliases redis/cache/ws). JPULSE_LOG_VERBOSE env overlay. Prod/dev default stays lean. Reclassify high-volume internals (cache hits, include/component registered, asset view.loads, WS broadcast/upgrade, Redis cache/pubsub) to debug; keep request banners, API success, WS connect/join, errors. Same map reload ~30-40 lines vs ~250. Offered to write as a work item.
+
+
+============================================================
+2026-09-20 12:47
+
+this needs more refinement
+- today most messages are info
+- with your proposal it means truning the majority of info messages into debug messages
+- which could be ok, big one time change
+- the logRequest and logInfo for success/fail with time is essential, should always be in log
+- logWarning and logError likely should always be in log
+- wondering if we should add a url param support on any page, such as jpulseLogVerbose=websocket,redis-manager
+
+Agreed the four essential channels always emit, which kills the global level axis - config collapses to one list. Showed the URL param cannot work: every logInfo in redis-manager (29) and cache-manager (16) passes null for req, which is why those lines show (guest)/ip:0.0.0.0 in the sample, so jpulseLogVerbose=redis-manager would add zero lines. Also the param does not reach the asset/API/WS fan-out, there is no AsyncLocalStorage in the codebase, and log lines carry paths/Redis keys/session ids so it would need admin gating anyway. Recommended instead a live cluster-wide toggle over the existing controller:config:data:changed broadcast (already consumed by handlebar/health/email) with a TTL, env var, and an admin-page URL entry point. Quantified the one-time change: ~25 hot call sites across redis-manager, websocket, handlebar, cache-manager, view; the other logInfo calls are lifecycle/audit and stay. Caught websocket._onMessage 'Dropped oversized message' and 'Rate limit exceeded' filed as logInfo, should be logWarning. User chose the live cluster-wide toggle and asked to keep refining before a work item.
+
+
+============================================================
+2026-09-20 13:02
+
+- I like the idea of a admin switch to turn logDebug per area on and off,
+- could even be a gui with checkboxes
+- is there a way to dynamically gather the areas? site controllers and plugin controllers contribute too
+- so, if we move most current info to logDebug, we should call the app.log setting controller.log.debug for consistency instead of controller.log.verbose
+
+Agreed on the rename to controller.log.debug (accept array, true/false, or comma string; JPULSE_LOG_DEBUG env). Yes to dynamic area discovery via three complementary sources: SiteControllerRegistry.registry.controllers already holds every site and plugin controller with a source field (site / plugin:name), which gives grouped checkboxes at startup before any line is logged; passive observation of scope first-segments catches framework utils (cache-manager, redis-manager, handlebar, view, websocket) that are not controllers; optional explicit registration following the MetricsRegistry.register pattern adds labels. Panel belongs on admin/logs.shtml rather than the Config UI, since app.conf is not admin-editable and the state is ephemeral with a TTL. Proposed suppressed-line counters per area so the UI ranks by actual noise. Open: ephemeral vs persistable state, and whether to include counters.
+
+
+============================================================
+2026-09-20 13:10
+
+[answers to design questions] persistence: ephemeral only (TTL expiry, cleared on restart, app.conf/env as boot default). counters: yes, include per-area suppressed-line counters reusing CounterManager.
+
+Summarized the settled design and raised three loose ends. (1) Real inconsistency found: site-controller-registry.js:539 logs site/plugin API errors as `site-api.${controller.name}.${apiMethod.name}`, so the first segment is site-api, not the controller name - the registry-derived checkbox for bubbleMap would not match site-api.bubbleMap.apiRead, and a phantom site-api area would group all site controller errors. Recommended dropping the prefix to match rule #6 [controller].[method]. Also noted dotless scopes (site-controller-registry) must be treated as whole area names by the segment extractor. (2) Proposed a 30 minute TTL default with enable and expiry both logged as normal info lines so a log file explains its own chattiness. (3) Raised whether logDebug should accept a lazy function message for the few JSON.stringify cases; recommended skipping it to keep one call style, but flagged that retrofitting later means touching call sites again. Work item not written yet.
+
+
+============================================================
+2026-09-20 13:33
+
+- Site and plugin API errors don't follow the [controller].[method] convention: yes, let's fix all site and plugin to follow the same convention
+  - please provide question I can forward to sites chats
+- ttl default: 30 min is good, add a controller.log.debugTtl
+- whether logDebug accepts a lazy message: agreed for kiss, single function,
+  - in return can we fix expensive calls at the producer side? if(<log-debug-enabled>) { /* stringify etc */; LogController.logDebug(); }
+  - would the conditional be this? LogController.debugEnabled('handlebar')
+
+Wrote W-243 into docs/dev/work-items.md (replaced the FIXME stub at 10205-10216; status and section placement left untouched). Confirmed LogController.debugEnabled('handlebar') as the guard name, with one correctness detail: the predicate must be permissive when the query is broader than an enabled tag, otherwise debugEnabled('handlebar') returns false while only handlebar.component is on and the guard would suppress a line the gate would have printed. Added controller.log.debugTtl (default 30 min) alongside controller.log.debug. Work item covers 11 features (logDebug, debugEnabled, prefix matching, config + JPULSE_LOG_DEBUG, live cluster toggle over controller:log:debug:changed with Redis TTL key read at boot, three-source area discovery, suppressed counters, admin panel on admin/logs.shtml, ~27 reclassifications plus 2 logInfo->logWarning, the site-api scope fix, docs), deliverables per file including translations and tests, and notes with seven decisions and their rejected alternatives. Also drafted a self-contained audit question for site chats covering the scope convention and which logInfo calls are per-request rather than per-user-action. Verified no tabs or trailing spaces added; the 3 pre-existing tab lines at 1749-1751 were left alone.
+
+
+============================================================
+2026-09-20 14:09
+
+response from jpulse.net looks more like framework stuff, not site-specific:
+[audit: rename auth-mfa.onSystemGetStats, move WS/contact/helloClusterTodo/initialize/mfaAuth hooks/helloPlugin.hook to logDebug]
+response from bubblemap; it claims site-api. prefix is framework-side:
+[audit: no-dot helpers, fileStore.listStores, keep CRUD logInfo, move map-load internals; plugin note on mfaAuth]
+
+Classified the two audits into four owners. Folded in-tree items into W-243 feature 11 + deliverables (helloWebsocket connect/message/disconnect, helloClusterTodo._broadcastChange success, helloPlugin.hook; Redis-unavailable becomes logWarning; helloWebsocket.initialize stays info as boot lifecycle). Confirmed site-api. is already feature 10, no site action. auth-mfa.onSystemGetStats lives in @jpulse-net/plugin-auth-mfa (gitignored, not a framework file) — noted as a plugin follow-up, same finding from both sites. contact.apiCreate is jpulse.net-only (no contact controller in this tree). BubbleMap scope/reclass work stays on that site. Corrected the earlier note that in-tree site/ and plugins/ already conform. Status and section placement left untouched. Drafted short replies for both site chats.
+
+
+============================================================
+2026-09-20 14:12
+
+actually, all plugins here are framework owned -- either jpulse (hello-world), or separate repos (ai-*, auth-*, hello-ai)
+
+Corrected W-243 notes: sibling plugin repos are framework-owned, not external. hello-world stays in this commit; auth-mfa (the split checkbox both audits found) plus later ai-* / hello-ai are framework plugin releases after 2.0.8. Only jpulse.net contact and BubbleMap controllers remain site-owned. Status and section placement left untouched.
+
+
+============================================================
+2026-09-20 14:14
+
+please supply again corrected responses for 2 sites
+
+Rewrote the jpulse.net and BubbleMap replies: plugins are framework-owned (hello-world in v2.0.8; auth-mfa / ai-* / hello-ai in later plugin releases). jpulse.net site work is only contact.apiCreate extras. BubbleMap site plan unchanged; auth-mfa is a framework plugin follow-up, not this site.
+
+
+============================================================
+2026-09-20 14:27
+
+- create W-244 for auth-mfa @work-items.md (10304-10316)
+- create other work items for other plugins that need to be fixed (ai-core is a bundle that includes ai-mock, hello-ai)
+
+Scanned on-disk plugin trees. Wrote W-244 (auth-mfa 1.0.7): rename auth-mfa.onSystemGetStats → mfaAuth.onSystemGetStats; four hook-internal logInfo in onAuthGetSteps/onAuthGetWarnings → logDebug; API and onAuthValidateStep stay audit; jpulseVersion >=2.0.8. Wrote W-245 (ai-core 1.0.14 bundle): prompt/response dumps in turnLoop.js (already behind debugDumps) become logDebug with debugEnabled('aiCore') guards; success: turn stays logInfo; ai-mock and hello-ai have zero LogController calls but lockstep bump. Did not create items for auth-oauth (oauthAuth.* throughout, API audit already correct) or ai-anthropic (only verifyApiKey). Pointed W-243 follow-up at W-244/W-245. Status and section placement left untouched.
+
+
+============================================================
+2026-09-20 14:45
+
+- looks good
+- implement W-243
+
+Implemented W-243: LogController.logDebug/debugEnabled, controller.log.debug + debugTtl, JPULSE_LOG_DEBUG, Redis live override with TTL, area discovery, suppressed counters, GET/PUT /api/1/log/debug, Debug Areas panel on /admin/logs.shtml. Reclassified the hot cache/handlebar/view/websocket/redis-manager sites, dropped the site-api. prefix, and moved helloWebsocket connect/message/disconnect, helloClusterTodo broadcast success, and helloPlugin.hook to logDebug. Tests in log-basic.test.js (prefix example corrected: web matches websocket, not ws). Docs: logging.md, genai-instructions, genai-development, api-reference. README/CHANGELOG left for publish. Did not bump versions or change W-243 status. Admin panel not browser-checked (dev server was not running).
+
+
+============================================================
+2026-09-20 15:15
+
+review logs: start and user login with auth-mfa
+
+Reviewed the npm start + MFA login log. W-243 is doing its job on page load: no cache/handlebar/redis/websocket internals, helloPlugin.hook silent. Remaining noise is intended boot lifecycle plus three login-page issues: auth-oauth CONFIG_CACHE_PATH plugin:auth-oauth:config is rejected (ERROR every login.shtml), handlebar.or gets no args from {{let showLocalForm=(or ...)}}, and mfaAuth.onAuthGetSteps still logInfo (W-244) including a second call after MFA already succeeded. auth._completeLoginSession "0 warning(s)" is framework internals that should be logDebug.
+
+
+============================================================
+2026-09-20 15:22
+
+- fix jpulse misses
+- fix W-244 and W-245 already, we'll test more later
+- /admin/logs.shtml page: move debug after table; drop repetitive unterdrueckt; columns top-down-right
+
+Framework: auth._completeLoginSession warnings line is logDebug; login.shtml showLocalForm no longer nests or(not/eq) so handlebar.or stops warning. Admin logs: debug panel below the table, counts are bare numbers (zeros hidden) with a footnote, CSS columns top-down. W-244: mfaAuth hook internals logDebug, stats-error scope mfaAuth.onSystemGetStats, jpulseVersion >=2.0.8. W-245: turn-loop dumps logDebug behind debugDumps and debugEnabled('aiCore'); ai-core/ai-mock/hello-ai jpulseVersion >=2.0.8. Tests: 84 passed. Restart needed to pick up controllers/templates. Browser check hit 401 in the isolated session.
+
+
+============================================================
+2026-09-20 15:55
+
+startup log, then gap, select all framework debug, log page reload:
+[npm start 15:51:11–15:52:10]
+- "Die Auswahl läuft automatisch ab und überlebt keinen Neustart."
+- change that to:
+- "Die Auswahl läuft automatisch nach %TTL% Minuten ab und überlebt keinen Neustart."
+
+Reviewed the boot + live-override log. Startup is clean (no handlebar.or, no redis cache-params error). The quiet gap is the intended production posture. Select-all framework debug then reload emits cache-manager / handlebar / view append-mode as debug; view.load completed, log.search, and log.setDebug stay info. Screenshot counts (handlebar 48, cache-manager 46, view 4, redis-manager 1) match the first load while debug was still off. German debugHelp now includes nach %TTL% Minuten; English kept in sync; logs.shtml substitutes %TTL% from the API ttlMinutes (fallback 30). Reload the logs page; restart if the translation cache still shows the old sentence.
+
+
+============================================================
+2026-09-20 16:00
+
+- please align the [alles auswählen] [leern] buttons like in this mockup
+
+Aligned Alle auswählen / Leeren across Framework, Site, and Plugins by wrapping each group name in a fixed 8em label so the two buttons share one vertical column. Reload /admin/logs.shtml to see it.
+
+
+============================================================
+2026-09-20 16:29
+
+- gui looks good
+- app start, select all debug in all 3 sections, page reload
+[npm start 16:28:09–16:29:06]
+
+Debug path is correct: three setDebug PUTs (framework, then +site, then +plugins), then reload internals are debug and view.load/log.search stay info. MFA hook internals and auth warnings stay off the audit trail. Two login.shtml misses remain: (1) handlebar.or warning was from {{or}} inside an HTML comment, not the let line — converted that note to a Handlebars comment so it is stripped; (2) auth-oauth getCachedProviders uses plugin:auth-oauth:config, which Redis rejects (component must be controller|model|view|util). Cache fails open so login still works; every login.shtml still ERROR. Plugin path should be model:… if they want it fixed.
+
+
+============================================================
+2026-09-20 16:38
+
+app start, log out, log in, select all, reload, deselect all, reload:
+[npm start 16:35:48–16:37:04]
+
+Cycle is correct. handlebar.or is gone. Logout/login/MFA stay on the audit trail. Select-all then reload emits cache/handlebar/redis debug; Alles aus then reload is quiet again (view.load + log.search only). Screenshot: Kein Live-Override, TTL sentence has 30 Minuten, counts are suppressed-while-off. Remaining miss: auth-oauth plugin:auth-oauth:config still ERRORs on every login.shtml.
+
+
+============================================================
+2026-09-20 16:40
+
+yes, please fix error
+
+Changed auth-oauth CONFIG_CACHE_PATH from plugin:auth-oauth:config to model:oauthProvider:config so Redis accepts the login-page provider cache. Updated the unit test; 17 passed. Restart to pick up the plugin.
+
+
+============================================================
+2026-09-20 16:46
+
+app start, logout, login, log page, select all debug, reload, hello-ai, 2 prompts, log, clear all debug, hello-ai, 1 prompt
+[npm start 16:41:48–16:45:39]
+
+Cycle is correct. Redis plugin: cache-path ERROR is gone; login.shtml has no handlebar.or. Boot/logout/login/first logs page stay info-only. Select-all (3 PUTs) then reload emits cache/handlebar/view/websocket/redis as debug; API success and view.load completed stay info. Two hello-ai turns with debug on: websocket broadcast flood + aiCore.runTurn success, no prompt/response dumps (debugDumps plugin setting defaults off; both gates required). Clear-all then third turn is one success line. No new miss.
+
+
+============================================================
+2026-09-20 16:53
+
+logout, login via google sso, a few incorrect mfa, then correct one
+[16:50:51–16:52:28]
+any other tests you recommend?
+
+Google+MFA path is the intended audit trail: oauth init/callback, completeExternalAuth next step mfa, onAuthValidateStep fail/success as info, auth.login ERROR on bad codes and success via oauth. No hook internals, no handlebar.or, no redis cache-path error. Leftover hello-ai WS 4401 after logout is expected. Recommended remaining tests: restart clears override; tick only web or redis (prefix); mfaAuth on during login for hook debug; ai-core dumps with both gates; optional 1–2 min TTL or non-admin 403 on /api/1/log/debug.
+
+
+============================================================
+2026-09-20 17:04
+
+- 1 ok
+- 2, 3, 4 see below
+[redis-only 16:56; SSO+debug 16:58; hello-ai dumps 17:01 as peter]
+
+2: redis-manager only is isolated — health cache/broadcast as debug, view.load/log.search stay info. 3: hook internals appear (mfaAuth.onAuthGetSteps, auth warnings, helloPlugin.hook); oauth cache path is now model:oauthProvider:config:providers. 4 is not a dump miss: peter has 0 threads but localStorage reused siteadmin thread 6aab341…; 403 + WS onCreate rejected is ownership. Retry: New conversation, then one prompt (debugDumps already true).
+
+
+============================================================
+2026-09-20 17:11
+
+oh, that looks like a bug that needs to be fixed. if a ai chat has been opened by user A, then user B logs in, visits the same page, the system should recognize that a different person is on the page, and only show chats of that person! security issue!
+actually I see "noch keine gespräche", and no existing chats, so no security issue. but the incorrect user assumption is a bug
+
+Fixed: last-open thread is now per user (jp:ai:thread:<username>:scope). A stored id is used only if it is in the current user's thread list; otherwise the panel stays empty and does not GET turns or open the socket. Legacy unscoped key is still accepted when the id is owned. Capability now includes username. Unit tests 26 passed. Reload /hello-ai/ as peter to confirm no 403/WS loop.
+
+
+============================================================
+2026-09-20 17:16
+
+log log, 2 logins by different users, hello-ai by different users, now looks ok
+[npm start 17:12:47–17:15:05]
+
+Confirmed. peter /hello-ai/ lists 0 threads, creates his own, no 403/WS reject. After logout, siteadmin lists 8 of his threads and opens 6aab341… (23 then 24 turns). Cross-user thread reuse is gone. debugDumps on then off as expected. Chrome DevTools 404 is unrelated leftover.
+
+
+============================================================
+2026-09-20 17:18
+
+anything lese before release prep?
+
+W-243 implementation is complete; remaining items are the publish pass (README/docs README highlights, CHANGELOG, bump-version, mark DONE). Fold in auth warning→logDebug and login.shtml Handlebars-comment fix. W-244/W-245 ship after 2.0.8; include oauth cache path and per-user thread memory in those plugin notes. Site log moves, Chrome 404, url.parse deprecation are not this release.
+
+
+============================================================
+2026-09-20 17:25
+
+release prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-243, v2.0.8, 2026-09-20
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+tt-git-diff matches W-243 (logDebug gate, admin panel, ~27 reclassifications, site-api prefix, in-tree hello chatter, logging.md). As-built extras: panel below table / footnote counts / %TTL%; auth warnings-hook → logDebug; login.shtml {{or}} comment. Features/deliverables updated; status left IN_PROGRESS. Added v2.0.8 Latest Release Highlights and CHANGELOG. Updated commit-message.txt. log-basic 59 passed. Did not bump or commit. W-244/W-245 stay sibling-plugin follow-ups.
+
+
+============================================================
+2026-09-20 17:29
+
+oh, test errors that need to be fixed:
+[34 unit failures]
+
+Root cause: partial LogController mocks lack logDebug, so redis-manager.cacheSet/Get throw and return false; auth-begin-session throws. Added logDebug (and debugEnabled) to those mocks; cacheGet hit assertion is now logDebug. ai-core regressions jpulseVersion assertion updated to >=2.0.8 (W-245). Unit suite 3919/3919 passing.
+
+
+============================================================

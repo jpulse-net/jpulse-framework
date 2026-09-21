@@ -3,13 +3,13 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.14, Claude Sonnet 5
+ * @genai           60%, Cursor 3.20, Grok 4.6
  */
 
 import UserModel from '../model/user.js';
@@ -346,7 +346,7 @@ class AuthController {
             });
         }
 
-        global.LogController.logInfo(req, 'auth._completeLoginSession',
+        global.LogController.logDebug(req, 'auth._completeLoginSession',
             `Warnings hook result: ${warningResult.warnings?.length || 0} warning(s)`);
 
         // W-205: also stash on the session (self-cleaning - always overwritten/cleared here,

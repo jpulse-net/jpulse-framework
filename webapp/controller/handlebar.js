@@ -3,8 +3,8 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -1150,7 +1150,7 @@ class HandlebarController {
             const registrySnapshot = new Map(req.componentRegistry);
             const components = await this._structureComponents(req, registrySnapshot, context);
 
-            LogController.logInfo(req, 'handlebar.loadComponents',
+            LogController.logDebug(req, 'handlebar.loadComponents',
                 `Loaded ${registrySnapshot.size} components from ${assetPath}`);
 
             return { success: true, components };
@@ -2029,7 +2029,7 @@ class HandlebarController {
             // Remove header comments from included content
             const cleanContent = content.replace(/(<!--|\/\*\*|\{\{\!--)\s+\* +\@name .*?(\*\/|-->|--\}\})\r?\n?/gs, '');
 
-            LogController.logInfo(req, 'handlebar.expandHandlebars', `Include processed: ${includePath}${hasContextVars ? ' (with context vars)' : ''}`);
+            LogController.logDebug(req, 'handlebar.expandHandlebars', `Include processed: ${includePath}${hasContextVars ? ' (with context vars)' : ''}`);
 
             // Process handlebars with the include context (recursive call to internal implementation)
             const processed = await self._expandHandlebars(req, cleanContent, includeContext, depth + 1);
@@ -2090,7 +2090,7 @@ class HandlebarController {
             }
             _setNestedProperty(currentContext.components, usageName, blockContent);
 
-            LogController.logInfo(req, 'handlebar.component',
+            LogController.logDebug(req, 'handlebar.component',
                 `Component registered: ${componentName} (use as: {{components.${usageName}}})`
             );
 
@@ -3890,12 +3890,12 @@ class HandlebarController {
                     // Add to context.components
                     _setNestedProperty(currentContext.components, usageName, comp.content);
 
-                    LogController.logInfo(req, 'handlebar.file.includeComponents',
+                    LogController.logDebug(req, 'handlebar.file.includeComponents',
                         `Component registered: ${comp.name} (order: ${comp.order}, file: ${comp.file})`
                     );
                 }
 
-                LogController.logInfo(req, 'handlebar.file.includeComponents',
+                LogController.logDebug(req, 'handlebar.file.includeComponents',
                     `Registered ${components.length} component(s) from ${relativeFiles.length} file(s) with pattern: ${globPattern}`
                 );
 

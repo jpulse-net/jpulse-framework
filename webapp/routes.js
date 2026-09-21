@@ -3,8 +3,8 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -137,8 +137,10 @@ router.put('/api/1/user/:id', AuthController.requireAuthentication, UserControll
 // Email API routes (W-087)
 router.post('/api/1/email/send', AuthController.requireAuthentication, EmailController.apiSend);
 
-// Log API routes (search requires authentication)
+// Log API routes (search requires authentication; debug toggle is admin-only)
 router.get('/api/1/log/search', AuthController.requireAuthentication, logController.search);
+router.get('/api/1/log/debug', AuthController.requireAdminRole(), logController.getDebug);
+router.put('/api/1/log/debug', AuthController.requireAdminRole(), logController.setDebug);
 router.post('/api/1/log/report/csp',
     bodyParser.json({ type: ['application/json', 'application/csp-report', 'application/reports+json'] }),
     logController.reportCspViolation);

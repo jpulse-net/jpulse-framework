@@ -1,4 +1,4 @@
-# jPulse Docs / WebSocket Real-Time Communication v2.0.7
+# jPulse Docs / WebSocket Real-Time Communication v2.0.8
 
 > **Need multi-server broadcasting instead?** If you're running multiple server instances and need to synchronize state changes across all servers (like collaborative editing), see [Application Cluster Communication](application-cluster.md) which uses REST API + Redis broadcasts for simpler state synchronization.
 

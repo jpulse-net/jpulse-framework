@@ -1,4 +1,4 @@
-# jPulse Framework v2.0.7
+# jPulse Framework v2.0.8
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -184,6 +184,7 @@ npx jpulse update @jpulse-net/jpulse-framework@1.0.0-rc.1
 - **[Framework Comparison](docs/framework-comparison.md)** - jPulse vs. alternatives (NestJS, Django, Rails, etc.)
 - **[Site Customization](docs/site-customization.md)** - Master the override system
 - **[API Reference](docs/api-reference.md)** - Complete framework API
+- **[Server Logging](docs/logging.md)** - Line format, `logDebug`, and the admin per-area toggle
 - **[Examples](docs/examples.md)** - Real-world enterprise scenarios
 - **[Deployment Guide](docs/deployment.md)** - Production deployment
 
@@ -206,6 +207,7 @@ Business Source License 1.1 with Additional Terms
 
 ## Latest Release Highlights
 
+- **v2.0.8, W-243, 2026-09-20: Logs: per-area logDebug with a live admin toggle**: Prod logs keep the audit trail (`logRequest` / `logInfo` / `logWarning` / `logError`) and drop the internals. `logDebug` prints only when its area is enabled. Prefix match (`redis` → `redis-manager.cacheSet`, `web` → `websocket…`, `*` all). Boot default is `controller.log.debug` (array, boolean, or comma string) plus `JPULSE_LOG_DEBUG`; the live override on `/admin/logs.shtml` is cluster-wide, expires after `debugTtl` minutes (default 30), and does not survive a restart. Docs: `logging.md`.
 - **v2.0.7, W-242, 2026-09-19: jPulse.UI: mobile.exclusive holds on a viewport resize**: Two same-group panels open on desktop used to stay stacked after a narrow. The shared resize pass now keeps the front-most (`lastActiveAt`) and `hardClose()`s the rest when any open member is exclusive and below its own breakpoint. `autoResize: false` is left alone. Widening does not reopen. Site Configuration names the tab **AI Agent**. Docs: `jpulse-ui-reference.md`, `ai-agent.md`.
 - **v2.0.6, W-240, 2026-09-19: Plugins: symlink checkout discovery and host WebSocketController**: `discoverPlugins` treats a `plugins/<name>` symlink to a directory as a plugin (`statSync` follows; a broken link is skipped). Registry rows that omit `errors` no longer throw on a missing dependency. `global.WebSocketController` is assigned before plugin `initialize()`, so a plugin that registers a pattern namespace stamps the class this process uses for upgrade. Docs: `plugins/managing-plugins.md`.
 - **v2.0.5, W-235, 2026-09-19: WebSocket: queue a send until the socket is open**: `jPulse.ws.send()` and `request()` accept a payload while status is `connecting` or `reconnecting` and flush it in order when the socket opens, before `onStatusChange('connected')`. `true` now means accepted, not written. A `disconnected` or `auth-required` socket still refuses. The outbox is capped (`maxQueueLength` 32, `maxQueueAgeMs` 10000). Docs also name the Vue `floatPanel` failure: `resizeHandles.mode: 'inject'` drops grips on the next VNode patch — use `mode: 'manual'` on a Vue-owned `el`. Docs: `websockets.md`, `jpulse-ui-reference.md`, `front-end-development.md`.

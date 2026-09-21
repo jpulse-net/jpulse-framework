@@ -3,13 +3,13 @@
  * @tagline         Unit tests for Redis cache wrapper operations (W-143)
  * @description     Tests cache operations, pattern methods, JSON handling, and rate limiting
  * @file            webapp/tests/unit/utils/redis-cache.test.js
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.20, Grok 4.6
  */
 
 import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
@@ -48,8 +48,10 @@ describe('Redis Cache Operations (W-143)', () => {
         // Mock LogController
         global.LogController = {
             logInfo: jest.fn(),
+            logDebug: jest.fn(),
             logWarning: jest.fn(),
-            logError: jest.fn()
+            logError: jest.fn(),
+            debugEnabled: jest.fn(() => false)
         };
 
         // Create mock Redis client
@@ -223,7 +225,7 @@ describe('Redis Cache Operations (W-143)', () => {
 
                 expect(result).toBe('cached-value');
                 expect(mockRedisClient.get).toHaveBeenCalled();
-                expect(global.LogController.logInfo).toHaveBeenCalledWith(
+                expect(global.LogController.logDebug).toHaveBeenCalledWith(
                     null,
                     'redis-manager.cacheGet',
                     expect.stringContaining('Cache hit')

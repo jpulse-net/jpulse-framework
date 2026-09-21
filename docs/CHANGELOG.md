@@ -1,6 +1,46 @@
-# jPulse Docs / Version History v2.0.7
+# jPulse Docs / Version History v2.0.8
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.8, W-243, 2026-09-20
+
+**Commit:** `W-243, v2.0.8, 2026-09-20: logs: per-area logDebug with a live admin toggle`
+
+**FEATURE RELEASE**: Internals that had only `logInfo` filled prod with cache hits, include expansion, Redis ops, and WebSocket relay. This release adds `logDebug`, gated per area, with a live admin toggle that does not survive a restart.
+
+**Objective**: Prod logs carry the audit trail and nothing else. Turning one area up is a checkbox, with no restart and no code edit. The line format does not change.
+
+**Key features**:
+- `logDebug(reqOrCtx, scope, message)` uses the existing `debug` severity column; `logRequest` / `logInfo` / `logWarning` / `logError` always print
+- `debugEnabled(areaOrScope)` is the producer-side guard; it is permissive when the query is broader than an enabled tag
+- Prefix match on the first scope segment (`redis` → `redis-manager.cacheSet`, `web` → `websocket…`, `handlebar.component` one scope, `*` all)
+- `controller.log.debug` (array, boolean, or comma string) and `controller.log.debugTtl` (default 30); `JPULSE_LOG_DEBUG` overlays the boot default
+- Live cluster-wide override over Redis (`controller:log:debug` key + `controller:log:debug:changed`); expires; restart restores the boot default
+- Areas discovered from the controller registry, passive first-segment observation, and optional `registerDebugArea`
+- Admin panel below the log table on `/admin/logs.shtml`: Framework / Site / Plugins, filter, per-group select/clear, all-off, TTL, suppressed counts
+- Hot internals moved to `logDebug`; oversized/rate-limit WebSocket drops become `logWarning`; `site-api.` prefix dropped from API error scopes
+- In-tree `helloWebsocket` connect/message/disconnect, `helloClusterTodo._broadcastChange`, and `helloPlugin.hook` → `logDebug`
+- Review extras: `auth._completeLoginSession` warnings-hook result → `logDebug`; `login.shtml` no longer parses a literal `{{or}}` in a comment
+- Docs: new `logging.md`; genai + API reference name the audit-trail-versus-diagnostics test
+
+**Files changed**:
+- `webapp/controller/log.js`: gate, discovery, Redis override, metrics
+- `webapp/app.conf`, `webapp/routes.js`: `debug` / `debugTtl`; `GET`/`PUT /api/1/log/debug`
+- `webapp/view/admin/logs.shtml`, `webapp/translations/en.conf`, `webapp/translations/de.conf`
+- `webapp/utils/cache-manager.js`, `webapp/controller/handlebar.js`, `webapp/controller/view.js`, `webapp/controller/websocket.js`, `webapp/utils/redis-manager.js`, `webapp/utils/site-controller-registry.js`
+- `webapp/controller/auth.js`, `webapp/view/auth/login.shtml`
+- `site/webapp/controller/helloWebsocket.js`, `site/webapp/controller/helloClusterTodo.js`, `plugins/hello-world/webapp/controller/helloPlugin.js`
+- `webapp/tests/unit/log/log-basic.test.js`
+- `docs/logging.md`, `docs/.markdown`, `docs/genai-instructions.md`, `docs/genai-development.md`, `docs/api-reference.md`
+- `docs/dev/work-items.md`: W-243 features/deliverables as-built
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.8 / W-243
+- `docs/CHANGELOG.md`: this section
+
+**Release**:
+- Work Item: W-243
+- Version: v2.0.8
+- Release Date: 2026-09-20
 
 ________________________________________________
 ## v2.0.7, W-242, 2026-09-19

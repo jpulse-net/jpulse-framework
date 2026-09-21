@@ -3,13 +3,13 @@
  * @tagline         Unit tests for log model and controller basic functionality
  * @description     This file contains unit tests for the log model and controller
  * @file            webapp/tests/unit/log/log-basic.test.js
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.15, Grok 4.6
+ * @genai           80%, Cursor 3.20, Grok 4.6
  */
 
 import { describe, test, expect, beforeEach, afterEach, beforeAll, jest } from '@jest/globals';
@@ -937,6 +937,134 @@ describe('Log Controller Context Extraction', () => {
             expect(metrics.status).toBe('error');
             expect(metrics.stats.entriesLastHour).toBe(5); // Counter still works
         });
+    });
+});
+
+describe('Log Controller debug areas (W-243)', () => {
+    let originalConsoleLog;
+    let consoleLogs;
+    let originalEnv;
+    const mockReq = {
+        session: { user: { username: 'testuser' } },
+        ip: '192.168.1.100'
+    };
+
+    beforeEach(() => {
+        originalEnv = process.env.JPULSE_LOG_DEBUG;
+        delete process.env.JPULSE_LOG_DEBUG;
+        global.appConfig = {
+            controller: {
+                log: {
+                    maxMsgLength: 256,
+                    debug: [],
+                    debugTtl: 30
+                }
+            }
+        };
+        LogController._resetDebugStateForTests();
+        originalConsoleLog = console.log;
+        consoleLogs = [];
+        console.log = (...args) => {
+            consoleLogs.push(args.join(' '));
+        };
+    });
+
+    afterEach(() => {
+        console.log = originalConsoleLog;
+        LogController._resetDebugStateForTests();
+        if (originalEnv === undefined) {
+            delete process.env.JPULSE_LOG_DEBUG;
+        } else {
+            process.env.JPULSE_LOG_DEBUG = originalEnv;
+        }
+        jest.useRealTimers();
+    });
+
+    test('logDebug is suppressed by default and prints when its area is enabled', async () => {
+        LogController.logDebug(mockReq, 'websocket._localBroadcast', 'hidden');
+        expect(consoleLogs.filter((l) => l.includes('\tdebug\t'))).toHaveLength(0);
+
+        await LogController.setDebugAreas(['websocket']);
+        consoleLogs.length = 0;
+        LogController.logDebug(mockReq, 'websocket._localBroadcast', 'shown');
+        expect(consoleLogs.some((l) =>
+            /^\-\t.+\tdebug\ttestuser\tip:192\.168\.1\.100\tvm:0\tid:0\twebsocket\._localBroadcast\tshown$/.test(l)
+        )).toBe(true);
+    });
+
+    test('logRequest / logInfo / logWarning / logError print regardless of the debug set', () => {
+        LogController.logRequest(mockReq, 'test.scope', 'req');
+        LogController.logInfo(mockReq, 'test.scope', 'info');
+        LogController.logWarning(mockReq, 'test.scope', 'warning: x');
+        LogController.logError(mockReq, 'test.scope', 'error: x');
+        expect(consoleLogs.some((l) => l.includes('===test.scope===') && l.includes('req'))).toBe(true);
+        expect(consoleLogs.some((l) => l.includes('\tinfo\t') && l.includes('info'))).toBe(true);
+        expect(consoleLogs.some((l) => l.includes('\twarning\t'))).toBe(true);
+        expect(consoleLogs.some((l) => l.includes('\tERROR\t'))).toBe(true);
+    });
+
+    test('prefix matching: redis, web, handlebar.component, and *', async () => {
+        await LogController.setDebugAreas(['redis']);
+        expect(LogController.shouldEmitDebug('redis-manager.cacheSet')).toBe(true);
+        expect(LogController.shouldEmitDebug('websocket._localBroadcast')).toBe(false);
+
+        await LogController.setDebugAreas(['web']);
+        expect(LogController.shouldEmitDebug('websocket._localBroadcast')).toBe(true);
+
+        await LogController.setDebugAreas(['handlebar.component']);
+        expect(LogController.shouldEmitDebug('handlebar.component')).toBe(true);
+        expect(LogController.shouldEmitDebug('handlebar.expandHandlebars')).toBe(false);
+
+        await LogController.setDebugAreas(['*']);
+        expect(LogController.shouldEmitDebug('anything.at.all')).toBe(true);
+    });
+
+    test('debugEnabled is permissive when the query is broader than an enabled tag', async () => {
+        await LogController.setDebugAreas(['handlebar.component']);
+        expect(LogController.debugEnabled('handlebar')).toBe(true);
+        expect(LogController.debugEnabled('handlebar.component')).toBe(true);
+        expect(LogController.debugEnabled('handlebar.expandHandlebars')).toBe(false);
+        expect(LogController.shouldEmitDebug('handlebar.expandHandlebars')).toBe(false);
+    });
+
+    test('config normalization: array, true, false, comma string, and env overlay', () => {
+        expect(LogController.normalizeDebugAreas(['websocket'])).toEqual(['websocket']);
+        expect(LogController.normalizeDebugAreas(true)).toEqual(['*']);
+        expect(LogController.normalizeDebugAreas(false)).toEqual([]);
+        expect(LogController.normalizeDebugAreas('websocket, redis-manager')).toEqual(['websocket', 'redis-manager']);
+
+        global.appConfig.controller.log.debug = ['handlebar'];
+        LogController.applyBootDebugAreas({ log: false });
+        expect(LogController.getDebugAreas().areas).toEqual(['handlebar']);
+
+        process.env.JPULSE_LOG_DEBUG = 'websocket,redis-manager';
+        LogController.applyBootDebugAreas({ log: false });
+        expect(LogController.getDebugAreas().areas).toEqual(['websocket', 'redis-manager']);
+    });
+
+    test('TTL expiry clears the set and logs the expiry line', async () => {
+        jest.useFakeTimers();
+        await LogController.setDebugAreas(['websocket'], 30);
+        expect(LogController.getDebugAreas().areas).toEqual(['websocket']);
+        consoleLogs.length = 0;
+        jest.advanceTimersByTime(30 * 60 * 1000);
+        expect(LogController.getDebugAreas().areas).toEqual([]);
+        expect(consoleLogs.some((l) => l.includes('log.setDebug') && l.includes('Debug areas expired, all off'))).toBe(true);
+    });
+
+    test('a dotless scope is its own area', () => {
+        expect(LogController.scopeToArea('hook-manager')).toBe('hook-manager');
+        expect(LogController.scopeToArea('cache-manager.getFileSync')).toBe('cache-manager');
+        LogController.observeScope('hook-manager');
+        expect(LogController.getDebugRegistry().some((r) => r.area === 'hook-manager')).toBe(true);
+    });
+
+    test('suppressed counters increment only when the line is gated', async () => {
+        LogController.logDebug(mockReq, 'cache-manager.getFileSync', 'hit');
+        expect(LogController.getSuppressedCount('cache-manager')).toBe(1);
+        await LogController.setDebugAreas(['cache-manager']);
+        LogController.logDebug(mockReq, 'cache-manager.getFileSync', 'hit-shown');
+        expect(LogController.getSuppressedCount('cache-manager')).toBe(1);
     });
 });
 

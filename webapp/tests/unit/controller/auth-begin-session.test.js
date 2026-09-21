@@ -7,13 +7,13 @@
  *                   none remain, redirect validation, and the fact that a required step (e.g.
  *                   MFA) is never skipped
  * @file            webapp/tests/unit/controller/auth-begin-session.test.js
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           85%, Cursor 3.15, Claude Opus 5
+ * @genai           85%, Cursor 3.20, Grok 4.6
  */
 
 import { describe, test, expect, beforeAll, beforeEach, afterEach, jest } from '@jest/globals';
@@ -54,7 +54,7 @@ describe('AuthController.beginAuthenticatedSession() (W-206)', () => {
             translate: jest.fn((req, key) => key),
             translateForUser: jest.fn((u, key) => key)
         };
-        global.LogController = { logInfo: jest.fn(), logError: jest.fn(), logWarning: jest.fn() };
+        global.LogController = { logInfo: jest.fn(), logDebug: jest.fn(), logError: jest.fn(), logWarning: jest.fn(), debugEnabled: jest.fn(() => false) };
         global.HookManager = { execute: jest.fn(async (name, context) => context) };
 
         UserModel.getEmailVerificationPolicy.mockReturnValue('off');

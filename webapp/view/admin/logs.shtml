@@ -4,13 +4,13 @@
  * @tagline         Admin logs viewer interface
  * @description     Log analysis and search interface for site administrators
  * @file            webapp/view/admin/logs.shtml
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.15, Grok 4.6
+ * @genai           60%, Cursor 3.20, Grok 4.6
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -27,6 +27,68 @@
             gap: 8px;
             margin-bottom: 15px;
             flex-wrap: wrap;
+        }
+
+        .local-debug-panel {
+            margin: 24px 0 0 0;
+            padding: 12px 16px;
+            border: 1px solid var(--jp-theme-border-color);
+            border-radius: 6px;
+            background: var(--jp-theme-bg-secondary);
+        }
+
+        .local-debug-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .local-debug-groups {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .local-debug-group-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 6px 0;
+            font-size: 14px;
+        }
+
+        .local-debug-group-label {
+            flex: 0 0 8em;
+        }
+
+        .local-debug-checks {
+            column-width: 220px;
+            column-gap: 24px;
+            column-fill: balance;
+        }
+
+        .local-debug-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            break-inside: avoid;
+            margin: 0 0 4px 0;
+        }
+
+        .local-debug-count {
+            color: var(--jp-theme-text-muted);
+            font-size: 12px;
+        }
+
+        .local-debug-footnote {
+            margin: 10px 0 0 0;
+        }
+
+        .local-debug-hidden {
+            display: none;
         }
 
         /* Remove local table styles - using jp-* styles now */
@@ -363,6 +425,20 @@
                 <button id="nextPage" class="jp-btn jp-btn-outline" disabled>{{i18n.view.admin.logs.next}}</button>
             </div>
 
+            <div class="local-debug-panel" id="debugAreasPanel">
+                <div class="jp-page-header">
+                    <h2>{{i18n.view.admin.logs.debugTitle}}</h2>
+                    <span class="jp-subtitle" id="debugTtlLabel">{{i18n.view.admin.logs.debugNoExpiry}}</span>
+                </div>
+                <p class="jp-form-help" id="debugHelpText">{{i18n.view.admin.logs.debugHelp}}</p>
+                <div class="local-debug-toolbar">
+                    <input type="search" id="debugAreaFilter" class="jp-form-input" placeholder="{{i18n.view.admin.logs.debugFilter}}" style="max-width: 220px;">
+                    <button type="button" class="jp-btn jp-btn-outline" id="debugAllOff">{{i18n.view.admin.logs.debugAllOff}}</button>
+                </div>
+                <div class="local-debug-groups" id="debugAreaGroups"></div>
+                <p class="jp-form-help local-debug-footnote">{{i18n.view.admin.logs.debugCountHelp}}</p>
+            </div>
+
           {{else}}
             <div class="jp-error-box">
                 {{i18n.view.auth.common.notAuthenticated}}
@@ -391,7 +467,18 @@
             resultsPerPage: `{{i18n.view.admin.logs.resultsPerPage}}`,
             showingResults: `{{i18n.view.admin.logs.showingResults}}`,
             result: `{{i18n.view.admin.logs.result}}`,
-            results: `{{i18n.view.admin.logs.results}}`
+            results: `{{i18n.view.admin.logs.results}}`,
+            debugHelp: `{{i18n.view.admin.logs.debugHelp}}`,
+            debugExpiresIn: `{{i18n.view.admin.logs.debugExpiresIn}}`,
+            debugExpired: `{{i18n.view.admin.logs.debugExpired}}`,
+            debugNoExpiry: `{{i18n.view.admin.logs.debugNoExpiry}}`,
+            debugGroupFramework: `{{i18n.view.admin.logs.debugGroupFramework}}`,
+            debugGroupSite: `{{i18n.view.admin.logs.debugGroupSite}}`,
+            debugGroupPlugins: `{{i18n.view.admin.logs.debugGroupPlugins}}`,
+            debugSelectGroup: `{{i18n.view.admin.logs.debugSelectGroup}}`,
+            debugClearGroup: `{{i18n.view.admin.logs.debugClearGroup}}`,
+            debugSaved: `{{i18n.view.admin.logs.debugSaved}}`,
+            debugSaveFailed: `{{i18n.view.admin.logs.debugSaveFailed}}`
         };
 
         // W-080: Cursor-based pagination state (using jPulse.UI.pagination helper)
@@ -402,12 +489,202 @@
         let allLogs = [];
 
         // Initialize logs page
+        let debugState = { areas: [], expiresAt: null, ttlMinutes: 30, registry: [] };
+        let debugTtlTimer = null;
+
         jPulse.dom.ready(() => {
             setupEventListeners();
             initializeSorting();
             setDefaultDate();
             loadLogs(); // Load all logs by default (no filters)
+            updateDebugHelpText();
+            loadDebugAreas();
+            const filterEl = document.getElementById('debugAreaFilter');
+            if (filterEl) {
+                filterEl.addEventListener('input', filterDebugAreas);
+            }
+            const allOff = document.getElementById('debugAllOff');
+            if (allOff) {
+                allOff.addEventListener('click', () => saveDebugAreas([]));
+            }
         });
+
+        async function loadDebugAreas() {
+            try {
+                const result = await jPulse.api.get('/api/1/log/debug');
+                if (!result?.success || !result.data) {
+                    return;
+                }
+                debugState = result.data;
+                renderDebugAreas();
+                updateDebugHelpText();
+                updateDebugTtlLabel();
+                if (debugTtlTimer) {
+                    clearInterval(debugTtlTimer);
+                }
+                debugTtlTimer = setInterval(updateDebugTtlLabel, 15000);
+            } catch (error) {
+                // Panel stays empty if the admin API is unavailable
+            }
+        }
+
+        function updateDebugHelpText() {
+            const el = document.getElementById('debugHelpText');
+            if (!el) {
+                return;
+            }
+            const ttl = debugState.ttlMinutes || 30;
+            el.textContent = i18nStrings.debugHelp.replace('%TTL%', String(ttl));
+        }
+
+        function updateDebugTtlLabel() {
+            const label = document.getElementById('debugTtlLabel');
+            if (!label) {
+                return;
+            }
+            if (!debugState.expiresAt) {
+                label.textContent = i18nStrings.debugNoExpiry;
+                return;
+            }
+            const remainingMs = debugState.expiresAt - Date.now();
+            if (remainingMs <= 0) {
+                label.textContent = i18nStrings.debugExpired;
+                return;
+            }
+            const minutes = Math.max(1, Math.round(remainingMs / 60000));
+            label.textContent = i18nStrings.debugExpiresIn.replace('%MINUTES%', String(minutes));
+        }
+
+        function isAreaEnabled(area) {
+            const tags = debugState.areas || [];
+            if (tags.includes('*')) {
+                return true;
+            }
+            return tags.some((tag) => area === tag || area.startsWith(tag + '.') || area.startsWith(tag));
+        }
+
+        function renderDebugAreas() {
+            const host = document.getElementById('debugAreaGroups');
+            if (!host) {
+                return;
+            }
+            const groups = {
+                framework: { label: i18nStrings.debugGroupFramework, items: [] },
+                site: { label: i18nStrings.debugGroupSite, items: [] },
+                plugin: { label: i18nStrings.debugGroupPlugins, items: [] }
+            };
+            (debugState.registry || []).forEach((item) => {
+                const key = item.source === 'site' ? 'site' : (item.source === 'plugin' ? 'plugin' : 'framework');
+                groups[key].items.push(item);
+            });
+            host.innerHTML = '';
+            Object.keys(groups).forEach((key) => {
+                const group = groups[key];
+                if (!group.items.length) {
+                    return;
+                }
+                const section = document.createElement('section');
+                section.dataset.group = key;
+                const title = document.createElement('h3');
+                title.className = 'local-debug-group-title';
+                const titleLabel = document.createElement('span');
+                titleLabel.className = 'local-debug-group-label';
+                titleLabel.textContent = group.label;
+                title.appendChild(titleLabel);
+                const selectAll = document.createElement('button');
+                selectAll.type = 'button';
+                selectAll.className = 'jp-btn jp-btn-outline jp-btn-sm';
+                selectAll.textContent = i18nStrings.debugSelectGroup;
+                selectAll.addEventListener('click', () => setDebugGroup(key, true));
+                const clear = document.createElement('button');
+                clear.type = 'button';
+                clear.className = 'jp-btn jp-btn-outline jp-btn-sm';
+                clear.textContent = i18nStrings.debugClearGroup;
+                clear.addEventListener('click', () => setDebugGroup(key, false));
+                title.appendChild(selectAll);
+                title.appendChild(clear);
+                const checks = document.createElement('div');
+                checks.className = 'local-debug-checks';
+                group.items.forEach((item) => {
+                    const label = document.createElement('label');
+                    label.className = 'local-debug-item';
+                    label.dataset.area = item.area;
+                    const box = document.createElement('input');
+                    box.type = 'checkbox';
+                    box.value = item.area;
+                    box.checked = isAreaEnabled(item.area);
+                    box.addEventListener('change', onDebugCheckboxChange);
+                    const name = document.createElement('span');
+                    name.textContent = item.label || item.area;
+                    label.appendChild(box);
+                    label.appendChild(name);
+                    if (item.suppressed > 0) {
+                        const count = document.createElement('span');
+                        count.className = 'local-debug-count';
+                        count.textContent = String(item.suppressed);
+                        label.appendChild(count);
+                    }
+                    checks.appendChild(label);
+                });
+                section.appendChild(title);
+                section.appendChild(checks);
+                host.appendChild(section);
+            });
+            filterDebugAreas();
+        }
+
+        function filterDebugAreas() {
+            const q = (document.getElementById('debugAreaFilter')?.value || '').trim().toLowerCase();
+            document.querySelectorAll('#debugAreaGroups .local-debug-item').forEach((el) => {
+                const area = (el.dataset.area || '').toLowerCase();
+                el.classList.toggle('local-debug-hidden', q !== '' && !area.includes(q));
+            });
+        }
+
+        function collectedDebugAreas() {
+            const areas = [];
+            document.querySelectorAll('#debugAreaGroups input[type="checkbox"]').forEach((box) => {
+                if (box.checked) {
+                    areas.push(box.value);
+                }
+            });
+            return areas;
+        }
+
+        function setDebugGroup(groupKey, on) {
+            document.querySelectorAll(`#debugAreaGroups section[data-group="${groupKey}"] input[type="checkbox"]`).forEach((box) => {
+                const label = box.closest('.local-debug-item');
+                if (label && label.classList.contains('local-debug-hidden')) {
+                    return;
+                }
+                box.checked = on;
+            });
+            saveDebugAreas(collectedDebugAreas());
+        }
+
+        function onDebugCheckboxChange() {
+            saveDebugAreas(collectedDebugAreas());
+        }
+
+        async function saveDebugAreas(areas) {
+            try {
+                const result = await jPulse.api.put('/api/1/log/debug', {
+                    areas: areas,
+                    ttlMinutes: debugState.ttlMinutes
+                });
+                if (!result?.success) {
+                    jPulse.UI.toast.error(i18nStrings.debugSaveFailed);
+                    return;
+                }
+                debugState = result.data;
+                renderDebugAreas();
+                updateDebugHelpText();
+                updateDebugTtlLabel();
+                jPulse.UI.toast.success(i18nStrings.debugSaved);
+            } catch (error) {
+                jPulse.UI.toast.error(i18nStrings.debugSaveFailed);
+            }
+        }
 
         function initializeSorting() {
             document.querySelectorAll('.jp-sortable').forEach(header => {

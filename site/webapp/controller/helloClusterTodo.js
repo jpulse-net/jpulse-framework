@@ -3,13 +3,13 @@
  * @tagline         Collaborative Todo Demo Controller - Server-Side Broadcasting Pattern
  * @description     Full MVC pattern with database persistence and Redis broadcasting
  * @file            site/webapp/controller/helloClusterTodo.js
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           60%, Cursor 3.20, Grok 4.6
  */
 
 import HelloTodoModel from '../model/helloTodo.js';
@@ -239,7 +239,7 @@ class HelloClusterTodoController {
      */
     static async _broadcastChange(action, todo, req, clientUuid = null) {
         if (!global.RedisManager || !global.RedisManager.isRedisAvailable()) {
-            LogController.logInfo(req, 'helloClusterTodo._broadcastChange', 'warning: Redis not available, skipping broadcast');
+            LogController.logWarning(req, 'helloClusterTodo._broadcastChange', 'warning: Redis not available, skipping broadcast');
             return;
         }
 
@@ -262,7 +262,7 @@ class HelloClusterTodoController {
 
         try {
             await global.RedisManager.publishBroadcast(channel, payload);
-            LogController.logInfo(req, 'helloClusterTodo._broadcastChange', `success: broadcasted [${action}] on channel [${channel}]`);
+            LogController.logDebug(req, 'helloClusterTodo._broadcastChange', `success: broadcasted [${action}] on channel [${channel}]`);
         } catch (error) {
             LogController.logError(req, 'helloClusterTodo._broadcastChange', `error: Failed to broadcast change: ${error.message}`);
         }

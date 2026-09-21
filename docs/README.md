@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v2.0.7
+# jPulse Docs / Site Administrator & Developer Documentation v2.0.8
 
 **For Site Administrators & Site Developers**
 
@@ -159,6 +159,7 @@ my-jpulse-site/
 - **[Application Cluster Communication](application-cluster.md)** - Multi-server broadcasting for state synchronization
 - **[WebSocket Real-Time Communication](websockets.md)** - Bi-directional real-time interactions
 - **[URL Fetch](url-fetch.md)** - Hardened fetch for untrusted URLs (SSRF guard, size caps, redirects)
+- **[Server Logging](logging.md)** - Line format, `logRequest` / `logInfo` / `logDebug`, and the admin per-area toggle
 - **[REST API Reference](api-reference.md)** - Complete `/api/1/*` endpoint documentation, including `static routes`, per-route `bodyLimit`, and `bodyMode: 'stream'`
 - **[Hooks](hooks.md)** - Define and handle extension points (framework, site, or plugin)
 - **[Handlebars Reference](handlebars.md)** - Complete Handlebars syntax guide (variables, conditionals, loops)
@@ -247,6 +248,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v2.0.8, W-243, 2026-09-20: Logs: per-area logDebug with a live admin toggle**: Prod logs keep the audit trail (`logRequest` / `logInfo` / `logWarning` / `logError`) and drop the internals. `logDebug` prints only when its area is enabled. Prefix match (`redis` → `redis-manager.cacheSet`, `web` → `websocket…`, `*` all). Boot default is `controller.log.debug` (array, boolean, or comma string) plus `JPULSE_LOG_DEBUG`; the live override on `/admin/logs.shtml` is cluster-wide, expires after `debugTtl` minutes (default 30), and does not survive a restart. Docs: [Server Logging](logging.md).
 - **v2.0.7, W-242, 2026-09-19: jPulse.UI: mobile.exclusive holds on a viewport resize**: Two same-group panels open on desktop used to stay stacked after a narrow. The shared resize pass now keeps the front-most (`lastActiveAt`) and `hardClose()`s the rest when any open member is exclusive and below its own breakpoint. `autoResize: false` is left alone. Widening does not reopen. Site Configuration names the tab **AI Agent**. Docs: [UI reference](jpulse-ui-reference.md), [AI Agent](ai-agent.md).
 - **v2.0.6, W-240, 2026-09-19: Plugins: symlink checkout discovery and host WebSocketController**: `discoverPlugins` treats a `plugins/<name>` symlink to a directory as a plugin (`statSync` follows; a broken link is skipped). Registry rows that omit `errors` no longer throw on a missing dependency. `global.WebSocketController` is assigned before plugin `initialize()`, so a plugin that registers a pattern namespace stamps the class this process uses for upgrade. Docs: [Managing Plugins](plugins/managing-plugins.md).
 - **v2.0.5, W-235, 2026-09-19: WebSocket: queue a send until the socket is open**: `jPulse.ws.send()` and `request()` accept a payload while status is `connecting` or `reconnecting` and flush it in order when the socket opens, before `onStatusChange('connected')`. `true` now means accepted, not written. A `disconnected` or `auth-required` socket still refuses. The outbox is capped (`maxQueueLength` 32, `maxQueueAgeMs` 10000). Docs also name the Vue `floatPanel` failure: `resizeHandles.mode: 'inject'` drops grips on the next VNode patch — use `mode: 'manual'` on a Vue-owned `el`. Docs: [WebSockets](websockets.md), [UI reference](jpulse-ui-reference.md), [front-end development](front-end-development.md).

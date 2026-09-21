@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / jPulse Framework Project Assessments v2.0.7
+# jPulse Docs / Dev / jPulse Framework Project Assessments v2.0.8
 
 __________________________________________________________________
 ## Project Assessment v1.4.16, 2026-01-16

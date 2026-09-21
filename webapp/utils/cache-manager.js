@@ -7,8 +7,8 @@
  *                  const cache = cacheManager.register(config, 'TemplateCa che');
  *                  const content = cache.getFileSync(filePath);
  * @file            webapp/utils/cache-manager.js
- * @version         2.0.7
- * @release         2026-09-19
+ * @version         2.0.8
+ * @release         2026-09-20
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -61,7 +61,7 @@ class Cache {
         // Check cache first - instant return if found
         const fileEntry = this.fileCache.get(filePath);
         if (fileEntry !== undefined) {
-            LogController.logInfo(null, 'cache-manager.getFileSync', `${this.name}: Cache hit: ${filePath}`);
+            LogController.logDebug(null, 'cache-manager.getFileSync', `${this.name}: Cache hit: ${filePath}`);
             return fileEntry.content; // Could be null for "does not exist" files
         }
 
@@ -79,7 +79,7 @@ class Cache {
                 cacheTime: Date.now()
             });
 
-            LogController.logInfo(null, 'cache-manager.getFileSync', `${this.name}: Loaded and cached: ${filePath}`);
+            LogController.logDebug(null, 'cache-manager.getFileSync', `${this.name}: Loaded and cached: ${filePath}`);
             return content;
         } catch (error) {
             if (error.code === 'ENOENT') {
@@ -91,7 +91,7 @@ class Cache {
                     path: null,
                     cacheTime: Date.now()
                 });
-                LogController.logInfo(null, 'cache-manager.getFileSync', `${this.name}: File not found, cached as not found: ${filePath}`);
+                LogController.logDebug(null, 'cache-manager.getFileSync', `${this.name}: File not found, cached as not found: ${filePath}`);
                 return null;
             }
             LogController.logError(null, 'cache-manager.getFileSync', `${this.name}: Error loading ${filePath}: ${error.message}`);

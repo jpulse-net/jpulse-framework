@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v2.0.7
+# jPulse Docs / REST API Reference v2.0.8
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -92,6 +92,8 @@ Admin roles are defined in **site config** (Admin → Site Configuration → Gen
 - `PUT /api/1/config/:id` - Configuration updates
 - `DELETE /api/1/config/:id` - Configuration deletion
 - `GET /api/1/log/search` - System log access
+- `GET /api/1/log/debug` - Read debug areas (admin)
+- `PUT /api/1/log/debug` - Set debug areas (admin, ephemeral)
 
 #### Plugin-Added Endpoints
 Plugins can register additional API endpoints. See [Plugin API Reference](plugins/plugin-api-reference.md) for details.
@@ -1960,6 +1962,56 @@ GET /api/1/log/search?level=error&limit=50&offset=100
     }
 }
 ```
+
+Stdout application logs use `LogController.logRequest` / `logInfo` / `logWarning` / `logError` (always printed) and `logDebug` (printed only when the area is enabled). A line that records a user-facing action with its outcome is `logInfo`; anything that fires more than once per request per method is `logDebug`. Guard expensive debug strings with `LogController.debugEnabled('myController')`. See [Server Logging](logging.md).
+
+### Debug Areas
+
+Live, ephemeral per-area toggle for `logDebug`. Admin only. The same state is shown on `/admin/logs.shtml`. `app.conf` `controller.log.debug` is the boot default; this API is a temporary override that expires after `controller.log.debugTtl` minutes (default 30). Clearing the set or restarting restores the boot default.
+
+#### Get Debug Areas
+
+**Route:** `GET /api/1/log/debug`
+**Middleware:** `AuthController.requireAdminRole()`
+**Authentication:** Required (admin)
+
+**Response (200):**
+```json
+{
+    "success": true,
+    "data": {
+        "areas": ["websocket"],
+        "expiresAt": 1726870000000,
+        "ttlMinutes": 30,
+        "registry": [
+            {
+                "area": "websocket",
+                "source": "framework",
+                "label": "websocket",
+                "suppressed": 12
+            }
+        ]
+    }
+}
+```
+
+#### Set Debug Areas
+
+**Route:** `PUT /api/1/log/debug`
+**Middleware:** `AuthController.requireAdminRole()`
+**Authentication:** Required (admin)
+
+**Body:**
+```json
+{
+    "areas": ["websocket", "redis-manager"],
+    "ttlMinutes": 30
+}
+```
+
+`areas` accepts an array of tags, `true` / `"*"` (all), `false` / `[]` (none), or a comma-separated string. Matching is a prefix test: `redis` matches `redis-manager.cacheSet`. The override is cluster-wide when Redis is available.
+
+**Response (200):** same shape as `GET /api/1/log/debug`.
 
 ## 📄 Markdown Documentation API
 

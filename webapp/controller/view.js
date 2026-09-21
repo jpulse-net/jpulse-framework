@@ -3,8 +3,8 @@
  * @tagline         Server-side template rendering controller
  * @description     Handles .shtml files with handlebars template expansion
  * @file            webapp/controller/view.js
- * @version         2.0.8
- * @release         2026-09-20
+ * @version         2.0.9
+ * @release         2026-09-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -272,6 +272,7 @@ class ViewController {
     static async load(req, res) {
         const startTime = Date.now();
         const viewConfig = global.appConfig?.controller?.view || {};
+        const headerTags = viewConfig.fileHeaders?.remove;
 
         try {
             // Log the request
@@ -317,8 +318,11 @@ class ViewController {
                     const allFiles = PathResolver.collectAllFiles(relativePath);
 
                     if (allFiles.length > 0) {
-                        // Concatenate all matching files (framework + site + plugins)
-                        const contents = allFiles.map(file => this.templateCache.getFileSync(file));
+                        // Concatenate all matching files (framework + site + plugins).
+                        // Strip each file's header before join so every layer is cleaned.
+                        const contents = allFiles.map(file =>
+                            this._stripFileHeaderTags(this.templateCache.getFileSync(file), headerTags)
+                        );
                         content = contents.join('\n');
                         fullPath = allFiles[0]; // Use first file for logging
                         LogController.logDebug(req, 'view.load',
@@ -405,7 +409,7 @@ class ViewController {
             }
 
             if (!content) {
-                content = this.templateCache.getFileSync(fullPath);
+                content = this._stripFileHeaderTags(this.templateCache.getFileSync(fullPath), headerTags);
             }
 
             // W-159: Detect data-jp-disable-sidebars in view's <body> so footer can omit sidebar markup
@@ -456,6 +460,88 @@ class ViewController {
             const message = global.i18n.translate(req, 'controller.view.internalServerError', { error: error.message });
             return CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR');
         }
+    }
+
+    /**
+     * Remove selected @tag rows from the first file-header comment of a view.
+     * Source on disk is unchanged; this runs on the bytes sent to the browser.
+     * Identifies a file header as the first block comment that contains ` * @name`.
+     * An empty list or a non-array leaves the content unchanged.
+     * @param {string} content - Raw view file content
+     * @param {string[]} tags - Tag names without @ (e.g. 'author')
+     * @returns {string} Content with matching header rows removed
+     */
+    static _stripFileHeaderTags(content, tags) {
+        if (typeof content !== 'string' || !content) {
+            return content;
+        }
+        if (!Array.isArray(tags) || tags.length === 0) {
+            return content;
+        }
+
+        const seen = new Set();
+        const safeTags = [];
+        for (const raw of tags) {
+            const tag = String(raw == null ? '' : raw).replace(/^@/, '').trim();
+            if (!/^[A-Za-z][\w-]*$/.test(tag) || seen.has(tag)) {
+                continue;
+            }
+            seen.add(tag);
+            safeTags.push(tag);
+        }
+        if (safeTags.length === 0) {
+            return content;
+        }
+
+        const escaped = safeTags.map(tag => tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        const lineRe = new RegExp(
+            `^[ \\t]*\\*[ \\t]*@(?:${escaped.join('|')})\\b[^\\n\\r]*\\r?\\n`,
+            'gm'
+        );
+        const commentRe = /\{\{!--[\s\S]*?--\}\}|<!--[\s\S]*?-->|\/\*[\s\S]*?\*\//g;
+
+        let match;
+        while ((match = commentRe.exec(content)) !== null) {
+            const block = match[0];
+            if (!/\*[ \t]*@name\b/.test(block)) {
+                continue;
+            }
+
+            const newBlock = block.replace(lineRe, '');
+            let open;
+            let close;
+            if (block.startsWith('{{!--')) {
+                open = '{{!--';
+                close = '--}}';
+            } else if (block.startsWith('<!--')) {
+                open = '<!--';
+                close = '-->';
+            } else if (block.startsWith('/**')) {
+                open = '/**';
+                close = '*/';
+            } else {
+                open = '/*';
+                close = '*/';
+            }
+            const interior = newBlock.slice(open.length, newBlock.length - close.length);
+            const residual = interior.replace(/[*\s]/g, '');
+            let replacement = newBlock;
+            let end = match.index + block.length;
+            if (residual === '') {
+                replacement = '';
+                if (content[end] === '\r') {
+                    end += 1;
+                }
+                if (content[end] === '\n') {
+                    end += 1;
+                }
+            } else if (newBlock === block) {
+                return content;
+            }
+            return content.slice(0, match.index) + replacement + content.slice(end);
+        }
+
+        return content;
     }
 
     /**

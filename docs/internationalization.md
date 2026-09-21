@@ -1,4 +1,4 @@
-# jPulse Docs / Internationalization v2.0.8
+# jPulse Docs / Internationalization v2.0.9
 
 User-facing text lives in `*.conf` translation files, not in controllers or views. The same key is resolved in the visitor's language in templates (`{{i18n.view.home.title}}`) and in controllers (`global.i18n.translate(req, 'controller.email.sendFailed', { error })`).
 

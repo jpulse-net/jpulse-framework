@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.8
+# jPulse Docs / Dev / Work Items v2.0.9
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -10375,8 +10375,69 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
+
+### W-246, v2.0.9, 2026-09-21: view: remove some file headers for privacy
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - selected `@tag` rows in view file-header comments do not reach the browser
+  - the default list is `@repository`, `@author`, `@genai`; a site can replace or extend it in `app.conf`
+  - source files on disk stay unchanged, including controllers, models, utils, tests, and `bin/`
+  - framework, plugin, and site views are all covered by the one view-serving path
+- prerequisites:
+  - `ViewController.load` already serves `.shtml` / `.tmpl` / view `.js` / `.css` from framework, plugins, and site through one pipeline
+  - W-098 append mode: `.js` and `.css` are concatenated via `PathResolver.collectAllFiles` (framework + plugins + site), each file keeping its own header
+  - `{{file.include}}` already deletes the entire header comment of an include so nested comments do not break
+  - `CommonUtils.deepMerge` replaces arrays; `{ $concat: [...] }` appends. Site `fileHeaders.remove` therefore replaces the default unless it uses `$concat`
+  - file headers use a uniform interior line: ` * @tag          value` inside `<!-- -->`, `/* */`, or `{{!-- --}}`
+- rationale:
+  - **View Source is a public surface.** Every `.shtml` page and every `/jpulse-common.js` / `/jpulse-common.css` download currently ships `@author` (name + personal URLs), `@repository` (including a private site or plugin repo), and `@genai` (tooling attribution). That is identity and process leakage, not product metadata
+  - **the large leak is the concatenated JS/CSS bundle.** Append mode joins framework + every plugin + site, so one page load exposes every layer's author and repo. A page-only strip would miss that
+  - **serve-time, not a source rewrite.** Headers remain useful on the server for `bump-version`, blame, and internals. Mutating files on disk would fight the bump script and every checkout
+  - **one hook covers three trees.** Walking `webapp/view`, `plugins/*/webapp/view`, and `site/webapp/view` separately would miss a future source. `ViewController.load` already resolves all three
+  - **keep legal notices in the default.** `@copyright` repeats the author name, but `@copyright` / `@license` are attribution lines. The site adds them to `remove` if it wants them gone. `@file` is a mild path disclosure and stays unless the site adds it
+  - **always on, including dev.** A prod-only strip is something you forget to test. `[]` is the explicit "keep every tag" override
+- features:
+  - **1. `controller.view.fileHeaders.remove` in `app.conf`.** Default `[ 'repository', 'author', 'genai' ]` (tag names without `@`). `[]` keeps every tag. A site array replaces the default; `{ $concat: ['copyright'] }` appends. Restart required, same as any other `app.conf` change
+  - **2. strip at serve time in `ViewController.load`.** After the file is read (and after JS/CSS concat inputs are read), before i18n / Handlebars. The template cache keeps the original bytes
+  - **3. per-file, first header comment only.** For append-mode `.js` / `.css`, strip each file before `join`, otherwise only the first file in the bundle would be cleaned. A later `/* */` or `<!-- -->` in the body is left alone
+  - **4. one line matcher for every view comment style.** Interior lines are ` * @tag`. Works for HTML `<!-- -->`, JS/CSS `/* */` (and `/** */`), and Handlebars `{{!-- --}}`. Unknown tags in the list match nothing and are harmless. Missing or empty `remove` is a no-op. As-built: the header is the first block comment that contains ` * @name`, so a leading `<!-- Start path -->` is skipped; tag names may include a leading `@`
+  - **5. empty-comment collapse.** If a site lists every tag and the block is wrappers-only, drop the empty comment so View Source does not show `<!--\n-->` or `/*\n*/`
+  - **6. includes and Handlebars comments stay as they are.** `{{file.include}}` already removes the whole header (stronger than a row strip). `{{!-- --}}` is dropped by the Handlebars engine and never reaches the client
+  - **7. out of scope:** rewriting files on disk; `webapp/static/**` (`sendFile`, mostly vendor); non-view source; stripping all comments / minification; a `deployment.mode === 'prod'` gate; changing the include-strip; adding `@copyright`, `@license`, or `@file` to the default list
+- deliverables:
+  - `webapp/app.conf`:
+    - `controller.view.fileHeaders.remove: [ 'repository', 'author', 'genai' ]` with a short comment (already sketched; comment the existing block)
+  - `webapp/controller/view.js`:
+    - `_stripFileHeaderTags(content, tags)` — first ` * @name` header comment, configured tags only, empty-block collapse
+    - `load()` applies it to each append-mode `.js` / `.css` file before join, and to single-file `.shtml` / `.tmpl` / other text views after read
+  - `webapp/tests/unit/controller/view.test.js` (extend):
+    - HTML, JS/`/*`, JSDoc/`/**`, and Handlebars samples drop `repository` / `author` / `genai` and keep `name` / `version` / `copyright` / `license`
+    - `[]` and a missing config leave the header unchanged
+    - a later body comment that happens to contain `@author` is not touched
+    - two concatenated JS files each lose the configured rows
+    - stripping every tag removes the empty comment wrappers
+    - as-built extras: leading non-header comment, `@` prefix / invalid names, non-string unchanged
+  - `docs/site-customization.md`:
+    - short example next to the existing `$concat` note: replace the list vs `{ $concat: ['copyright'] }`
+  - `docs/security-and-auth.md`:
+    - one paragraph under Security Features: view headers are stripped on the way out; source on disk is unchanged
+  - `README.md` and `docs/README.md` Latest Release Highlights, `docs/CHANGELOG.md` at publish
+  - live View Source (author): delivered `.shtml` / `.js` / `.css` confirmed stripped
+- notes:
+  - **repo layout:** framework-only. v2.0.9. Plugin and site views are covered automatically because they already go through `ViewController.load`. No plugin package bump
+  - **decisions taken before implementation**, each with the alternative rejected:
+    - *default `repository` + `author` + `genai`:* rejected adding `copyright` / `file` to the default — legal notices stay unless the site opts in
+    - *serve-time in `ViewController.load`:* rejected a disk rewrite and rejected walking the three view trees
+    - *strip each JS/CSS file before concat:* rejected a single pass on the joined bundle, which would only clean the first header
+    - *always on:* rejected a prod-only gate
+    - *`fileHeaders.remove` (tag names without `@`):* rejected a boolean "strip the whole block" as the first knob; the nested object leaves room if that is needed later
+  - **nginx is not a loophole.** `templates/deploy/nginx.prod.conf` has no `root` / `alias` / `try_files` for app files. Every location (`/api/`, `/auth/`, `/assets/`, `/`) `proxy_pass`es to Node. `/jpulse-common.js`, `/jpulse-common.css`, and `/themes/*.css` hit `location /` and then `ViewController.load`. `/assets/` is also proxied; Express `sendFile`s `webapp/static/**` (vendor, out of scope). A site that later `alias`es `webapp/view/` off disk would bypass the strip — that is a site-owned nginx change, not the scaffold
+  - **verification gate:** View Source on `/home/` has no `@author` / `@repository` / `@genai` and still has `@version` / `@copyright`. `/jpulse-common.js` shows the same for the framework header and for each appended plugin/site header. `site/webapp/app.conf` with `remove: []` restores the three tags after restart
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/`
 
 
 
@@ -10391,7 +10452,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
-- logLevel: 'warn' or 1, 2; or verboseLogging: true
 - version history: label is not shown in history table
 
 ### Potential next items:
@@ -10410,7 +10470,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-243, v2.0.8, 2026-09-20
+- assume W-246, v2.0.9, 2026-09-21
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -10419,7 +10479,7 @@ release prep:
 plugin release prep:
 - review tt-git-diff.txt for accuracy and completness of work item
 - review work item and design doc if it matches actual code & fix if needed
-- assume W-245, v1.0.14, 2026-09-20
+- assume W-245, v1.0.14, 2026-09-21
 - plugin README.md & docs/README.md: add release to Plugin releases section
 - plugin commit-message.txt: update message
 
@@ -10429,12 +10489,12 @@ plugin release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.8 2026-09-20
+node bin/bump-version.js 2.0.9 2026-09-21
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.8; git push origin main --tags
+git tag v2.0.9; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

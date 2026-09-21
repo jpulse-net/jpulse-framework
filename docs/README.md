@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v2.0.8
+# jPulse Docs / Site Administrator & Developer Documentation v2.0.9
 
 **For Site Administrators & Site Developers**
 
@@ -248,6 +248,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v2.0.9, W-246, 2026-09-21: View: strip selected file-header tags for privacy**: Views sent to the browser (`.shtml`, `.js`, `.css`, `.tmpl`) drop `@repository`, `@author`, and `@genai` from the first file-header comment. Source on disk is unchanged. The list can be customized in the `app.conf` configuration file. Docs: [Site Customization](site-customization.md), [Security and Auth](security-and-auth.md).
 - **v2.0.8, W-243, 2026-09-20: Logs: per-area logDebug with a live admin toggle**: Prod logs keep the audit trail (`logRequest` / `logInfo` / `logWarning` / `logError`) and drop the internals. `logDebug` prints only when its area is enabled. Prefix match (`redis` → `redis-manager.cacheSet`, `web` → `websocket…`, `*` all). Boot default is `controller.log.debug` (array, boolean, or comma string) plus `JPULSE_LOG_DEBUG`; the live override on `/admin/logs.shtml` is cluster-wide, expires after `debugTtl` minutes (default 30), and does not survive a restart. Docs: [Server Logging](logging.md).
 - **v2.0.7, W-242, 2026-09-19: jPulse.UI: mobile.exclusive holds on a viewport resize**: Two same-group panels open on desktop used to stay stacked after a narrow. The shared resize pass now keeps the front-most (`lastActiveAt`) and `hardClose()`s the rest when any open member is exclusive and below its own breakpoint. `autoResize: false` is left alone. Widening does not reopen. Site Configuration names the tab **AI Agent**. Docs: [UI reference](jpulse-ui-reference.md), [AI Agent](ai-agent.md).
 - **v2.0.6, W-240, 2026-09-19: Plugins: symlink checkout discovery and host WebSocketController**: `discoverPlugins` treats a `plugins/<name>` symlink to a directory as a plugin (`statSync` follows; a broken link is skipped). Registry rows that omit `errors` no longer throw on a missing dependency. `global.WebSocketController` is assigned before plugin `initialize()`, so a plugin that registers a pattern namespace stamps the class this process uses for upgrade. Docs: [Managing Plugins](plugins/managing-plugins.md).

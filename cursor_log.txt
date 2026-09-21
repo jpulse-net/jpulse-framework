@@ -27413,3 +27413,96 @@ Appended W-243 notes: framework follow-up after 2.0.8 ship (WS/appCluster/cache/
 
 
 ============================================================
+2026-09-21 00:51
+
+follow-up commit done; leave as such, no rush, leave until upcoming published package; ok?
+
+Agreed. Follow-up is committed on main; no extra ship. Sites pick it up on the next jpulse-update. Plugin openThread skip-refresh stays with the ai-core package if it is not in this commit.
+
+
+============================================================
+2026-09-21 00:53
+
+also for ai-core, no rush, so follow-up commit only — please provide one-line commit text
+
+Diff is openThread wrapping refreshThreads in if (!currentThread()). One-liner given; leave until next published ai-core package.
+
+
+============================================================
+2026-09-21 01:08
+
+brainstorming on removing selected file header rows in view files
+- objective: remove selected headers in view files for privacy
+- example: @repository, @author, possibly @genai
+- the list should be settable in app.conf
+- what is a good default?
+- this should be done for all view files (jpulse, plugins, site)
+- non-view files (those that remain on server) can be excluded
+
+Brainstorm only, no code. Recommended default: strip repository, author, genai at serve time in ViewController.load (covers framework + plugins + site). Keep copyright/license for legal notices; flag that @copyright repeats author PII. Config: controller.view.stripHeaderTags. Includes already drop the whole header; Handlebars {{!-- --}} never reaches the client. Biggest leak is top-level .shtml plus concatenated jpulse-common.js/css.
+
+
+============================================================
+2026-09-21 01:22
+
+- Default list: repository + author + genai
+- controller.view.fileHeaders.remove: @app.conf (482-485)
+- create work item W-246: @work-items.md (10382-10393)
+
+Filled W-246 (v2.0.9) with objectives, prerequisites, rationale, features, deliverables, notes. Default strip repository/author/genai at serve time in ViewController.load, per-file before JS/CSS concat. Commented the existing controller.view.fileHeaders.remove block in app.conf. Spec review in chat; waiting for implement go-ahead.
+
+
+============================================================
+2026-09-21 01:25
+
+- check for potential loophole:
+- what does nginx in a prod env serve statically? jpulse .css and .js files?
+- look at @templates/deploy/nginx.prod.conf
+
+No loophole in the scaffold. nginx.prod.conf proxies every location to Node (no root/alias/try_files). /jpulse-common.js, /jpulse-common.css, /themes/*.css hit location / then ViewController.load. /assets/ is also proxied; Express sendFiles webapp/static (vendor). Noted on W-246. A site that aliases webapp/view/ off disk would bypass — site-owned, not the template.
+
+
+============================================================
+2026-09-21 01:30
+
+looks good
+please implement
+
+Implemented W-246 serve-time strip: ViewController._stripFileHeaderTags plus load() calls (per JS/CSS file before concat; single-file views after read). Default tags repository/author/genai. view.test.js 44/44. Docs in site-customization.md and security-and-auth.md. Real home/jpulse-common/header/ai-core files lose those three tags and keep version/copyright. Dev server was not running, so no live View Source pass.
+
+
+============================================================
+2026-09-21 01:50
+
+I inspected all .shtml, .js, .css files delivered to the browser,
+- looks good
+- anything left bfore releas prep?
+
+Nothing left in the feature. Implementation and user-facing docs match W-246. Remaining work is release prep itself: full tests, tt-git-diff, work-item as-built notes, README/CHANGELOG highlights, commit-message.txt. User runs bump-version.
+
+
+============================================================
+2026-09-21 01:55
+
+npm test: all pass
+
+reease prep:
+- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-246, v2.0.9, 2026-09-21
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+W-246 v2.0.9 release prep. tt-git-diff.txt was not in the tree; reviewed implementation files against the work item — match. Features/deliverables as-built (@name detector, live View Source). README + docs/README highlights, CHANGELOG v2.0.9 section, commit-message.txt. Status left IN_PROGRESS. No bump, no commit.
+
+
+============================================================
+2026-09-21 02:06
+
+strange, @tt-git-diff.txt is here, and has proper file timestamp (e.g. is fresh)
+
+Missed it because .gitignore has tt-* and Glob skips those. Reviewed now. Feature files match W-246. Snapshot is pre-release-prep (no README/CHANGELOG/commit-message). Also in the work-items hunk: an unrelated old-pending logLevel line is gone. Incidental @genai bump in view.test.js.
+
+
+============================================================

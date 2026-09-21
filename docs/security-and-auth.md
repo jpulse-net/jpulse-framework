@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v2.0.8
+# jPulse Docs / Security & Authentication v2.0.9
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -428,6 +428,10 @@ add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 - **X-XSS-Protection**: Enables XSS filter in older browsers
 - **Strict-Transport-Security**: Forces HTTPS connections (HSTS)
 - **Referrer-Policy**: Controls referrer information sharing
+
+#### View File-Header Comments
+
+Views (`.shtml`, `.js`, `.css`, `.tmpl`) carry a file-header comment in source. On the way to the browser, `controller.view.fileHeaders.remove` strips selected `@tag` rows (`repository`, `author`, and `genai` by default). Source files on disk are unchanged. Set `remove` to `[]` to keep every tag. See [Site Customization](site-customization.md) for replacing or appending to the list.
 
 #### Content Security Policy (CSP)
 

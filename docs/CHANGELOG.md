@@ -1,6 +1,39 @@
-# jPulse Docs / Version History v2.0.8
+# jPulse Docs / Version History v2.0.9
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.9, W-246, 2026-09-21
+
+**Commit:** `W-246, v2.0.9, 2026-09-21: view: remove some file headers for privacy`
+
+**FEATURE RELEASE**: View Source on every page and `/jpulse-common.js` shipped `@author` (name + personal URLs), `@repository`, and `@genai`. This release strips those rows at serve time.
+
+**Objective**: Selected `@tag` rows in view file-header comments do not reach the browser. Source files on disk stay unchanged.
+
+**Key features**:
+- `controller.view.fileHeaders.remove` defaults to `[ 'repository', 'author', 'genai' ]` (tag names without `@`)
+- `ViewController._stripFileHeaderTags` edits the first block comment that contains ` * @name`
+- Each append-mode `.js` / `.css` file is stripped before `join`, so framework + plugin + site headers are all cleaned
+- `[]` keeps every tag; a site array replaces the default; `{ $concat: ['copyright'] }` appends
+- Legal notices (`@copyright`, `@license`) stay unless the site adds them
+- `{{file.include}}` still drops the whole include header; Handlebars `{{!-- --}}` never reaches the client
+- Official `nginx.prod.conf` proxies every location to Node — not a static-file bypass
+- Docs: `site-customization.md` (`$concat` example), `security-and-auth.md` (Security Features)
+
+**Files changed**:
+- `webapp/app.conf`: `controller.view.fileHeaders.remove`
+- `webapp/controller/view.js`: `_stripFileHeaderTags` and `load()` wiring
+- `webapp/tests/unit/controller/view.test.js`: HTML / `/*` / `/**` / Handlebars, `[]`, later `@author`, concat, empty-comment collapse
+- `docs/site-customization.md`, `docs/security-and-auth.md`
+- `docs/dev/work-items.md`: W-246 features/deliverables as-built
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.9 / W-246
+- `docs/CHANGELOG.md`: this section
+
+**Release**:
+- Work Item: W-246
+- Version: v2.0.9
+- Release Date: 2026-09-21
 
 ________________________________________________
 ## v2.0.8, W-243, 2026-09-20

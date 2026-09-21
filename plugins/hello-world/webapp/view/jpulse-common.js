@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript of the Hello World Plugin
  * @description     Common JavaScript of the Hello World Plugin, appended to the framework common JavaScript
  * @file            plugins/hello-world/webapp/view/jpulse-common.js
- * @version         2.0.8
- * @release         2026-09-20
+ * @version         2.0.9
+ * @release         2026-09-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

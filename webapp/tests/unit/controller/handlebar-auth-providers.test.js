@@ -6,8 +6,8 @@
  *                   leaves it empty elsewhere so sites without an external-auth plugin pay
  *                   zero cost
  * @file            webapp/tests/unit/controller/handlebar-auth-providers.test.js
- * @version         2.0.8
- * @release         2026-09-20
+ * @version         2.0.9
+ * @release         2026-09-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -1,4 +1,4 @@
-# jPulse Docs / AI Agent v2.0.8
+# jPulse Docs / AI Agent v2.0.9
 
 A jPulse site gets an **agent** by installing plugins and registering tools — not by building a chat stack. The agent is scoped to one object on the page (a document, a ticket, a map). It can read and write that object through tools the site owns. The floating **chat panel** is the UI, not the product.
 

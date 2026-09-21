@@ -3,13 +3,13 @@
  * @tagline         Unit tests for view controller handlebars functionality
  * @description     Tests for viewController handlebars template processing
  * @file            webapp/tests/unit/controller/view.test.js
- * @version         2.0.8
- * @release         2026-09-20
+ * @version         2.0.9
+ * @release         2026-09-21
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.15, Grok 4.6
+ * @genai           80%, Cursor 3.20, Grok 4.6
  */
 
 import { describe, test, expect, beforeEach, afterEach, beforeAll, jest } from '@jest/globals';
@@ -154,6 +154,7 @@ describe('View Controller Unit Tests', () => {
             expect(ViewController).toBeDefined();
             expect(typeof ViewController.initialize).toBe('function');
             expect(typeof ViewController.load).toBe('function');
+            expect(typeof ViewController._stripFileHeaderTags).toBe('function');
         });
 
         test('should have HandlebarController available', async () => {
@@ -492,6 +493,158 @@ describe('View Controller Unit Tests', () => {
             expect(ViewController._detectBodyDisableSidebars('')).toBe(false);
             expect(ViewController._detectBodyDisableSidebars(null)).toBe(false);
             expect(ViewController._detectBodyDisableSidebars(undefined)).toBe(false);
+        });
+    });
+
+    describe('_stripFileHeaderTags()', () => {
+        const defaultTags = [ 'repository', 'author', 'genai' ];
+        const keepTags = [ '@name', '@tagline', '@description', '@file', '@version',
+            '@release', '@copyright', '@license' ];
+        const stripTags = [ '@repository', '@author', '@genai' ];
+
+        function headerLines(open, close) {
+            return [
+                open,
+                ' * @name            Sample View',
+                ' * @tagline         Sample tagline',
+                ' * @description     Sample description',
+                ' * @file            webapp/view/sample.ext',
+                ' * @version         2.0.8',
+                ' * @release         2026-09-20',
+                ' * @repository      https://github.com/jpulse-net/jpulse-framework',
+                ' * @author          Peter Thoeny, https://twiki.org',
+                ' * @copyright       2025 Peter Thoeny',
+                ' * @license         BSL 1.1',
+                ' * @genai           60%, Cursor 3.20, Grok 4.6',
+                close
+            ].join('\n');
+        }
+
+        function expectKeptAndStripped(result) {
+            for (const tag of keepTags) {
+                expect(result).toContain(tag);
+            }
+            for (const tag of stripTags) {
+                expect(result).not.toContain(tag);
+            }
+        }
+
+        test('strips default tags from an HTML comment and keeps the rest', () => {
+            const content = `<!DOCTYPE html>\n${headerLines('<!--', '-->')}\n<html></html>\n`;
+            const result = ViewController._stripFileHeaderTags(content, defaultTags);
+            expectKeptAndStripped(result);
+            expect(result).toContain('<!DOCTYPE html>');
+            expect(result).toContain('<html></html>');
+        });
+
+        test('strips default tags from a /* JS comment', () => {
+            const content = `${headerLines('/*', ' */')}\n\nwindow.jPulse = {};\n`;
+            const result = ViewController._stripFileHeaderTags(content, defaultTags);
+            expectKeptAndStripped(result);
+            expect(result).toContain('window.jPulse = {};');
+        });
+
+        test('strips default tags from a /** JSDoc comment', () => {
+            const content = `${headerLines('/**', ' */')}\n\nexport default {};\n`;
+            const result = ViewController._stripFileHeaderTags(content, defaultTags);
+            expectKeptAndStripped(result);
+            expect(result).toContain('export default {};');
+        });
+
+        test('strips default tags from a Handlebars comment', () => {
+            const content = `${headerLines('{{!--', '--}}')}\n{{#if ok}}yes{{/if}}\n`;
+            const result = ViewController._stripFileHeaderTags(content, defaultTags);
+            expectKeptAndStripped(result);
+            expect(result).toContain('{{#if ok}}yes{{/if}}');
+        });
+
+        test('empty list and missing config leave the header unchanged', () => {
+            const content = `${headerLines('/*', ' */')}\ncode();\n`;
+            expect(ViewController._stripFileHeaderTags(content, [])).toBe(content);
+            expect(ViewController._stripFileHeaderTags(content, undefined)).toBe(content);
+            expect(ViewController._stripFileHeaderTags(content, null)).toBe(content);
+        });
+
+        test('does not touch a later body comment that contains @author', () => {
+            const content = [
+                headerLines('/*', ' */'),
+                '',
+                'code();',
+                '/*',
+                ' * later note @author should stay',
+                ' * @author          later author line',
+                ' */',
+                ''
+            ].join('\n');
+            const result = ViewController._stripFileHeaderTags(content, defaultTags);
+            expect(result).not.toContain('@repository');
+            expect(result).toContain(' * later note @author should stay');
+            expect(result).toContain(' * @author          later author line');
+        });
+
+        test('skips a leading non-header comment then strips the file header', () => {
+            const content = [
+                '<!-- Start webapp/view/jpulse-header.tmpl -->',
+                headerLines('<!--', '-->'),
+                '<link rel="stylesheet" href="/jpulse-common.css">',
+                ''
+            ].join('\n');
+            const result = ViewController._stripFileHeaderTags(content, defaultTags);
+            expect(result).toContain('<!-- Start webapp/view/jpulse-header.tmpl -->');
+            expectKeptAndStripped(result);
+        });
+
+        test('two concatenated JS files each lose the configured rows', () => {
+            const file1 = `${headerLines('/*', ' */')}\nwindow.jPulse = {};\n`;
+            const file2 = [
+                '/*',
+                ' * @name            Plugin Common JS',
+                ' * @version         1.0.0',
+                ' * @repository      https://example.com/plugin',
+                ' * @author          Plugin Author',
+                ' * @copyright       2026 Plugin Author',
+                ' * @genai           10%, Cursor',
+                ' */',
+                'jPulse.plugin = {};',
+                ''
+            ].join('\n');
+            const joined = [
+                ViewController._stripFileHeaderTags(file1, defaultTags),
+                ViewController._stripFileHeaderTags(file2, defaultTags)
+            ].join('\n');
+            expect(joined).toContain('@name            Sample View');
+            expect(joined).toContain('@name            Plugin Common JS');
+            expect(joined).toContain('@copyright       2025 Peter Thoeny');
+            expect(joined).toContain('@copyright       2026 Plugin Author');
+            expect(joined).not.toContain('@repository');
+            expect(joined).not.toContain('@author');
+            expect(joined).not.toContain('@genai');
+            expect(joined).toContain('window.jPulse = {};');
+            expect(joined).toContain('jPulse.plugin = {};');
+        });
+
+        test('stripping every tag removes the empty comment wrappers', () => {
+            const allTags = [ 'name', 'tagline', 'description', 'file', 'version',
+                'release', 'repository', 'author', 'copyright', 'license', 'genai' ];
+            const content = `<!DOCTYPE html>\n${headerLines('<!--', '-->')}\n<html></html>\n`;
+            const result = ViewController._stripFileHeaderTags(content, allTags);
+            expect(result).toBe('<!DOCTYPE html>\n<html></html>\n');
+            expect(result).not.toContain('<!--');
+            expect(result).not.toContain('-->');
+        });
+
+        test('accepts tag names with a leading @ and ignores invalid names', () => {
+            const content = `${headerLines('/*', ' */')}\ncode();\n`;
+            const result = ViewController._stripFileHeaderTags(content, [ '@author', '!!', '', 'genai' ]);
+            expect(result).not.toContain('@author');
+            expect(result).not.toContain('@genai');
+            expect(result).toContain('@repository');
+        });
+
+        test('returns non-string content unchanged', () => {
+            expect(ViewController._stripFileHeaderTags(null, defaultTags)).toBe(null);
+            expect(ViewController._stripFileHeaderTags(undefined, defaultTags)).toBe(undefined);
+            expect(ViewController._stripFileHeaderTags('', defaultTags)).toBe('');
         });
     });
 });

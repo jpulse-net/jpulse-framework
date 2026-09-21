@@ -1,4 +1,4 @@
-# jPulse Docs / Site Customization Guide v2.0.8
+# jPulse Docs / Site Customization Guide v2.0.9
 
 This guide covers jPulse's powerful site override architecture for creating custom sites while maintaining clean framework updates.
 
@@ -142,6 +142,26 @@ controller: {
 ```
 
 This appends `'controller.myCustomSettings'` to the framework's list. The framework list is never affected if it changes in a future update.
+
+**Example — view file-header privacy:**
+
+Views sent to the browser (`.shtml`, `.js`, `.css`, `.tmpl`) drop selected `@tag` rows from the first file-header comment. The default list is `repository`, `author`, and `genai`. A site array **replaces** that list; `{ $concat: [...] }` **appends**. `[]` keeps every tag. Source files on disk are unchanged.
+
+```javascript
+// site/webapp/app.conf
+controller: {
+    view: {
+        fileHeaders: {
+            // replace the default list:
+            remove:         [ 'repository', 'author', 'genai', 'copyright' ]
+            // or append to the default:
+            // remove:      { $concat: [ 'copyright' ] }
+            // or keep every tag:
+            // remove:      []
+        }
+    }
+}
+```
 
 **Rules:**
 - The value must be exactly `{ $concat: [...] }` — one key, value is an array.

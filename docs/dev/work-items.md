@@ -10430,17 +10430,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **verification gate:** View Source on `/home/` has no `@author` / `@repository` / `@genai` and still has `@version` / `@copyright`. `/jpulse-common.js` shows the same for the framework header and for each appended plugin/site header. `site/webapp/app.conf` with `remove: []` restores the three tags after restart
   - do not run the bump-version script while implementing, and do not touch `.jpulse/`
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-247, v1.0.15, 2026-09-21: ai-core: delete conversation
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
 - npm package: @jpulse-net/plugin-ai-core
@@ -10467,7 +10458,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **7. `/delete`.** The current conversation only, listed in `/help`, added to **both** copies of the command catalog (`utils/panel/slash.js` and the IIFE in the panel, which cannot import ESM). No `/delete n`: `/conversations n` opens a conversation and the trash deletes the open one. After a confirmed delete, `/delete` returns `false` so the replacement thread does not get a slash card
   - **8. last-open memory.** Clear the stored id when it was the deleted thread, then write the replacement `thread._id` (the same per-user key 1.0.14 added)
   - **9. other tabs.** The plugin panel has no scope-level thread broadcast. A second tab discovers the 404 on its next list or open and falls back the same way as a missing last-open id. Do not add a socket event in this item
-  - **10. partial-purge line, and only one retention sentence.** `apiListThreads` returns `minSeq` / `surviving` on each visible row — the same pass that decides the husk omit — so the panel needs no second query. When `minSeq > 1` the transcript opens with one line, “Older messages were removed after %DAYS% days.” The “kept for N days” policy is a one-shot info toast the first time the panel opens a never-purged conversation (`retentionTold`); a purged conversation skips the toast. `els.notice` stays for running / reconnect only — a standing retention banner was too aggressive. An active thread that is fully purged still shows the empty hint and is not omitted (1.0.13)
+  - **10. partial-purge line, and only one retention sentence.** `apiListThreads` returns `minSeq` / `surviving` on each visible row — the same pass that decides the husk omit — so the panel needs no second query. When `minSeq > 1` the transcript opens with one line, “Older messages were removed after %DAYS% days.” The “kept for N days” policy is a one-shot info toast when the user opens or uses the panel (`retentionReady` after bootstrap, panel must be open, `sessionStorage` so a page load does not retell); a purged conversation skips the toast. Silent `openThread` on create does not toast. `els.notice` stays for running / reconnect only — a standing retention banner was too aggressive. An active thread that is fully purged still shows the empty hint and is not omitted (1.0.13)
   - **as-built extras (hello-ai dogfood).** Compose Enter ignores IME composition (`isComposing` / keyCode 229). After a completed / canceled / stalled / error turn, `refreshThreads` then `openThread(..., { keepLocals: true })` so auto-title shows without reload. Thread-row / strip (+) / chip-detail Copy use `jp-btn-outline`; row buttons 28×28, gap 4px. `adapter.canUndoProposal` hides Undo when the site says the snapshot is gone (hello-ai `_undoById` is tab memory)
   - **out of scope:** bulk delete; deleting another user's thread; a delete affordance on each row inside the picker dropdown; decrementing usage; undo or a trash bin; a scope-level broadcast so other tabs rebind live; conversations across scopes; regenerating a title; date grouping or paging; a `jp-btn-danger` option for `confirmDialog` (a framework change); framework log leftovers (cache-manager / websocket / `populateDocTypes` — those stay on the next jPulse, not this plugin bump)
 - deliverables:
@@ -10517,6 +10508,55 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **as-built:** implemented in `plugins/ai-core` (and hello-ai `canUndoProposal`). No separate W-247 design doc — this block is the spec. Framework `docs/ai-agent.md` stays orientation and points at the plugin guide
   - do not run the bump-version script while implementing, and do not touch `.jpulse/`
 
+### W-248, v1.0.16, 2026-09-22: ai-core: add code examples and architecture to hello-ai
+- status: ✅ DONE
+- type: Feature
+- repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
+- npm package: @jpulse-net/plugin-ai-core
+- objectives:
+  - give the Hello AI demo the same learning pages as the other hello examples: code and architecture, each its own document
+- prerequisites:
+  - hello-ai 1.0.15 scratch pad (`/hello-ai/`), client-host tools, and `adapter.canUndoProposal`
+  - the hello-todo / hello-app-cluster tab pattern: `jp-btn-nav-group` links to sibling `.shtml` pages
+- rationale:
+  - the demo was only the scratch pad. The other hello examples teach from pages you can open, bookmark, and reload. A client-side tab would be a different kind of site, and leaving Scratch Pad in this tab would drop the textarea
+- features:
+  - **Scratch Pad** stays `/hello-ai/`. The column is `jp-container-1000`, shared with the two new pages. A tab strip and the Home → Hello World → Hello AI trail match the other demos
+  - **Code Examples** (`/hello-ai/code-examples.shtml`) shows the view adapter, the controller tool list, and `readDraft` / `proposeRewrite`. Each file opens with a purpose line and the tasks that file performs. Listings are the real code, shortened where the page says so (schemas, budget messages, the full `/help` list)
+  - **Architecture** (`/hello-ai/architecture.shtml`) follows page load, a read, a proposal (Apply / Undo in this tab only), an append, and `get_hello_clock`
+  - disabling hello-ai hides all three pages, the site-menu entry, and the dashboard card. AI stays on
+- deliverables:
+  - `plugins/hello-ai/webapp/view/hello-ai/index.shtml`:
+    - tab strip, bottom trail, `jp-container-1000`
+  - `plugins/hello-ai/webapp/view/hello-ai/code-examples.shtml`:
+    - new page
+  - `plugins/hello-ai/webapp/view/hello-ai/architecture.shtml`:
+    - new page
+  - `plugins/hello-ai/webapp/tests/unit/hello-ai.test.js`:
+    - the three pages link to each other; code examples name the four tools; architecture names the scope gate, WebSocket, and `applyProposal`
+  - `plugins/hello-ai/plugin.json`:
+    - General help links to Code Examples and Architecture
+  - `plugins/hello-ai/README.md` and `plugins/hello-ai/docs/README.md`:
+    - the two pages; the guide says the pad is not saved, and that `read_draft` returns the text in the tool result; Disable names all three pages
+  - `docs/ai-agent.md` (framework repo, not the plugin package):
+    - orientation links to the two pages. No framework version bump in this item
+  - `plugins/ai-core` and `plugins/ai-mock` README.md, docs/README.md, commit-message.txt:
+    - 1.0.16 lockstep notes. No product change in those two plugins
+- notes:
+  - **repo layout:** bump from `plugins/ai-core`. `hello-ai` is the product change. `ai-mock` lockstep only. `jpulseVersion` stays `>=2.0.8`
+  - **tt-git-diff.txt** is the hello-ai repo. It matches the pages, the nav on the scratch pad, the learning-pages test, `plugin.json`, and the README link. It does not include framework `docs/ai-agent.md`. The guide's Disable sentence and the scratch-pad paragraph (not saved; `read_draft` returns the text) were corrected after that snapshot
+  - **listings are excerpts.** The page says when a schema, a budget message, or an example prompt is only in the source file
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/`
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
 
 
 
@@ -10558,7 +10598,7 @@ release prep:
 plugin release prep:
 - review tt-git-diff.txt for accuracy and completness of work item
 - review work item and design doc if it matches actual code & fix if needed
-- assume W-247, v1.0.15, 2026-09-21
+- assume W-248, v1.0.16, 2026-09-22
 - 3 plugin README.md & docs/README.md: add release to Plugin releases section
 - 3 plugin commit-message.txt: update message
 
@@ -10579,12 +10619,12 @@ git tag v2.0.9; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.15 2026-09-21
+node ../../bin/bump-version.js 1.0.16 2026-09-22
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.15; git push origin main --tags
+git tag v1.0.16; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

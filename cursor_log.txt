@@ -27605,3 +27605,88 @@ Rewrote the body for the W-246 docs follow-up of published ai-core 1.0.15: sever
 
 
 ============================================================
+2026-09-22 00:28
+
+the text "Turns werden 90 Tage aufbewahrt." is shown too aggressively — toast on every page load
+
+Retention toast no longer fires from the silent openThread on create. It waits until retentionReady after bootstrap, the panel is open, and the user opens or sends. sessionStorage jp:ai:retentionTold:<user> so a later page load does not retell. Docs and the 1.0.15 scan updated. 37 regressions passed. No bump, no status change.
+
+
+============================================================
+2026-09-22 00:34
+
+give me a one-line commit message, starting with: W-247, v1.0.15, 2026-09-21: ai-core follow-up:
+
+Gave: W-247, v1.0.15, 2026-09-21: ai-core follow-up: retention toast only when the user opens or uses the panel, not on page load
+
+
+============================================================
+2026-09-22 13:10
+
+next:
+- hello-ai only has the actual demo app
+  - all other hello examples have tabs with code examples, architecture
+  - we should enhance hello-ai as such
+  - because this is not a spa, we should add /hello-ai/code-examples.shtml and /hello-ai/architecture.shtml
+
+Added Scratch Pad, Code Examples, and Architecture as separate pages on the Hello AI demo, matching the other hello examples. Code examples show the view adapter, controller tool list, and the readDraft and proposeRewrite modules. Architecture walks page load, read, propose/apply, append, and the server clock. Nav is on all three pages. Plugin guide, plugin.json help, and docs/ai-agent.md point at the new pages. hello-ai unit tests: 13 passed. Code examples and architecture verified in the browser. The scratch-pad page is in the running server's template cache, so its tabs appear after the next view-cache refresh.
+
+
+============================================================
+2026-09-22 13:33
+
+I started to restructure the intro for each code-example file
+- each file should have a purpose paragraph, followed by a bullet list of tasks/items performed
+- please finish/clean up
+
+Finished the four code-example intros on code-examples.shtml. Each file now has a purpose paragraph and a task list: index.shtml, helloAi.js, readDraft.js, and proposeRewrite.js. Cleaned the half-formatted lists, and moved the leftover notes (scope hooks, schemas, previewLine) into those lists. Verified the rendered page.
+
+
+============================================================
+2026-09-22 15:50
+
+looks good
+
+anything else before release prep?
+
+The demo work is done. Nothing else to build before release prep. Next version is new (do not rewrite the 1.0.15 notes). hello-ai is the product change; ai-core and ai-mock are lockstep only. One guide sentence still says "the page" on disable; the two learning pages go with it. Left the "never reaches the server" shorthand as the existing persistence claim.
+
+
+============================================================
+2026-09-22 15:56
+
+release prep:
+- fix hello ai guide
+- review tt-git-diff.txt for accuracy and completness of work item
+- create work item @work-items.md (10520-10531)
+- assume W-248, v1.0.16, 2026-09-22
+- 3 plugin README.md & docs/README.md: add release to Plugin releases section
+- 3 plugin commit-message.txt: update message
+
+Filled W-248 as IN_PROGRESS. Guide now says the pad is not saved and that read_draft returns the text; Disable names all three pages. tt-git-diff.txt matches the hello-ai repo (pages, nav, test, plugin.json, README) and omits framework docs/ai-agent.md; the guide wording was corrected after that snapshot. Added 1.0.16 notes to ai-core, ai-mock, and hello-ai README and docs, and rewrote the three commit-message.txt files. No version bump. Status left IN_PROGRESS.
+
+
+============================================================
+2026-09-22 16:09
+
+releases done, publish done
+
+next related item: update marketing pages to descrive the new ai feature
+
+do this here, or in a new chat?
+
+Recommended a new chat. This thread is the W-248 demo pages and the 1.0.16 release notes. Marketing copy should start from the public pages and docs/ai-agent.md, not from this implementation history.
+
+
+============================================================
+2026-09-22 16:14
+
+ah, right, that's a jpulse.net site work item
+
+please update @tt-commit.txt for jpulse commit without build
+- keep first line as is
+
+Rewrote the tt-commit.txt body. First line unchanged. Docs-only framework commit for published plugin 1.0.16: Hello AI code examples and architecture, no version bump and no build. Kept the 1.0.15 conversation follow-up. Work items W-246, W-248. Date 2026-09-22.
+
+
+============================================================

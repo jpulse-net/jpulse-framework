@@ -4,7 +4,7 @@ A jPulse site gets an **agent** by installing plugins and registering tools — 
 
 This page is orientation. The versioned contract lives with the plugin: [AI Core](installed-plugins/ai-core/README.md). For writing jPulse *with* an AI coding assistant, see [Generative AI Development](genai-development.md) instead.
 
-Live demo with no API key: [`/hello-ai/`](/hello-ai/) (bundled Hello AI plugin).
+Live demo with no API key: [`/hello-ai/`](/hello-ai/) (bundled Hello AI plugin). [Code examples](/hello-ai/code-examples.shtml) and [architecture](/hello-ai/architecture.shtml) are the next pages on that demo.
 
 ## What is possible
 
@@ -16,7 +16,7 @@ Live demo with no API key: [`/hello-ai/`](/hello-ai/) (bundled Hello AI plugin).
 | Attachments | Drop or paste a file, a URL, or an image. The model sees a manifest and reads through tools — source text is not dumped into the prompt |
 | Mock provider | `ai-mock` answers without an API key, including a vision row for the image gate |
 | Conversations | One object can have many. (+) or `/new` starts another; the picker switches and renames. Trash or `/delete` removes the one that is open (confirm names the title). The panel then binds the newest remaining conversation, or a new empty one. Usage totals stay |
-| Quota, usage, and retention | Per-subject caps on Site Configuration → AI Agent. Usage is Admin → AI usage. The keep-for-N-days policy is a one-shot info toast. A conversation whose oldest surviving turn is past seq 1 shows that older messages were removed after N days |
+| Quota, usage, and retention | Per-subject caps on Site Configuration → AI Agent. Usage is Admin → AI usage. The keep-for-N-days policy is a one-shot info toast when the user opens or uses the panel, not on page load. A conversation whose oldest surviving turn is past seq 1 shows that older messages were removed after N days |
 
 A PDF drop needs a converter plugin on the framework `onDocumentConvert*` hooks. None ships in the bundle; a bare install refuses the type and names what to install. See [Hooks](hooks.md#document-conversion-and-preview-hooks). Images need Redis; without it the panel hides the image affordance rather than failing at paste time.
 
@@ -97,7 +97,7 @@ jPulse.ai.panel.create({ scopeType: 'doc', scopeId: docId });
 
 The namespace is `jPulse.ai`, not `jPulse.plugins.aiCore`. Until you register a client-host tool, the panel stays on HTTP. Cancel is `POST /api/1/ai/thread/:id/cancel`. (+) or `/new` starts another conversation on the same object; trash or `/delete` removes the one that is open (`DELETE /api/1/ai/thread/:id`).
 
-Open [`/hello-ai/`](/hello-ai/) for the scratch-pad demo (the bundled Hello AI plugin: read, direct write, and propose/apply, no API key).
+Open [`/hello-ai/`](/hello-ai/) for the scratch-pad demo (the bundled Hello AI plugin: read, direct write, and propose/apply, no API key). [Code examples](/hello-ai/code-examples.shtml) and [architecture](/hello-ai/architecture.shtml) are separate pages on the same demo.
 
 ## Where to go next
 

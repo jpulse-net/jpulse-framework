@@ -43,6 +43,12 @@ companions lockstep). **W-236**
 (`@jpulse-net/plugin-ai-anthropic` 1.0.1) classifies
 `error.cause.code`: retryable connect blips, `ENOTFOUND` / TLS fatal,
 `fetch failed (CODE)`, family `AI_PROVIDER_ERROR`.
+**W-245** is as-built as `@jpulse-net/plugin-ai-core` 1.0.14
+(dump lines are `logDebug` behind both gates; last-open thread is
+per user; `jpulseVersion` `>=2.0.8`; companions lockstep).
+**W-247** is as-built as `@jpulse-net/plugin-ai-core` 1.0.15
+(delete the open conversation; purge line; retention toast;
+companions lockstep).
 §21 splits the agent into five items, W-223, W-224, and
 W-226 through W-228, on those prerequisites.
 Deviations from this document are under `### As Built`. Rev 12 specified
@@ -56,10 +62,49 @@ as-built after 1.0.8, Rev 24 specifies W-234, Rev 25 is the
 as-built after 1.0.9, Rev 26 specifies W-237, Rev 27 is the
 as-built after 1.0.10, Rev 28 is the as-built after 1.0.11, and
 Rev 29 is the as-built after 1.0.12, and Rev 30 is the
-as-built after 1.0.13.
+as-built after 1.0.13, Rev 31 is the as-built after 1.0.14, and
+Rev 32 is the as-built after 1.0.15.
 
 
 ## Revision history
+
+### Rev 32 — 2026-09-21 — W-247 delete conversation, purge line, retention toast
+
+As-built as `@jpulse-net/plugin-ai-core` 1.0.15 against published
+1.0.14. `DELETE /api/1/ai/thread/:id` goes through `_ownedThread`.
+Cascade turns and staged images; usage is not decremented. Delete
+first, then activate the newest remaining row or
+`findOrCreateActive`. Trash sits after rename and (+) and deletes
+the conversation on screen. `/delete` is in both catalogs; empty
+and running-turn are no-ops; a confirmed delete returns `false`
+so the replacement gets no slash card. Confirm is
+`jPulse.UI.confirmDialog` with its own copy. `apiListThreads`
+stamps `surviving` / `minSeq`. A `minSeq > 1` transcript opens
+with the purge line. The keep-for-N-days policy is a one-shot
+info toast (`retentionTold`); `els.notice` is running / reconnect
+only. Compose Enter ignores IME. Picker refreshes after a turn so
+auto-title shows. Thread-row / strip (+) / chip Copy use
+`jp-btn-outline`. `adapter.canUndoProposal` hides Undo when the
+site says the snapshot is gone. `jpulseVersion` stays `>=2.0.8`.
+Companions lockstep (`hello-ai` ships `canUndoProposal`).
+
+| Section | Change |
+|---|---|
+| Header, §12.1, §21.20 | W-247 specified and as-built as 1.0.15 |
+
+### Rev 31 — 2026-09-20 — W-245 dumps to logDebug, per-user last-open thread
+
+As-built as `@jpulse-net/plugin-ai-core` 1.0.14 against published
+1.0.13. Prompt and response dumps call `logDebug` inside
+`debugDumps && debugEnabled('aiCore')`. The turn audit line stays
+`logInfo`. Last-open key is `jp:ai:thread:<username>:scope`;
+`apiCapability` returns `username`; a stored id not in the user's
+list is ignored. `jpulseVersion` is `>=2.0.8`. Companions
+lockstep only.
+
+| Section | Change |
+|---|---|
+| Header, §21.19 | W-245 specified and as-built as 1.0.14 |
 
 ### Rev 30 — 2026-09-19 — W-241 cancel unsticks Send, toolbar reset, AI Agent tab, empty archives
 
@@ -2043,14 +2088,14 @@ Built on `jPulse.UI.floatPanel` (W-220), which the reference site already runs
 for both of its chat panels — so the shell is proven before this item starts.
 The framework owns everything that is not about the site's data:
 
-- conversation title, select, rename, and new-conversation on one row under the panel title — no thread side list
+- conversation title, select, rename, new, and delete on one row under the panel title — no thread side list. Trash and `/delete` remove the open conversation after `confirmDialog` (1.0.15)
 - the select lists the last 20 threads for the scope, newest first; archive is an internal slot, not chrome
 - compose box, slash-command picker, keyboard handling, send and cancel
 - `/model` to view and set the thread pair when more than one model is allowed (§9.5); not a header picker
 - transport connect, reconnect, and turn reconciliation after a reload
 - token streaming, jumping dots while waiting for the first token, the outgoing prompt kept visible as a right-aligned pill, scroll-to-bottom on render / after layout / on float-panel open, a running-turn notice after reload
 - markdown rendering with pinned copy buttons
-- quota and error surfaces, retention notices
+- quota and error surfaces. Retention is a one-shot info toast; a `minSeq > 1` transcript opens with the purge line (1.0.15). A standing retention banner is gone
 - attachment chips for file, paste, and URL sources, and staged images, with the source state and the original `File` / `Blob` behind them (§14.1) — **W-228**, shipped in 1.0.4 (tooltip + click details; no outline expander)
 - the URL-intercept card (§14.2) — **W-228**, shipped in 1.0.4 (hidden when the prompt is a question about the link)
 - Apply cards, several per turn, "Apply all", and the false-claim guard — **W-227**, shipped in 1.0.3
@@ -3731,6 +3776,40 @@ transcript notice is deferred. Exclusive-on-resize is a framework
 item. Hello AI lockstep only; it passes no new option.
 The specified surface landed. Host gate passed on the symlink
 BubbleMap checkout. Unit tests: 23 suites, 270 passed.
+
+### 21.19 W-245 — dumps to logDebug, per-user last-open thread
+
+Specified and as-built as `@jpulse-net/plugin-ai-core` 1.0.14
+against published 1.0.13. The two dump `logLine` calls in
+`turnLoop.js` are `logDebug` and run only when
+`settings.debugDumps` and `debugEnabled('aiCore')` are both on.
+`success: turn …` stays `logInfo`. Last-open storage is
+`jp:ai:thread:<username>:scope`. `apiCapability` returns
+`username`. A stored id missing from the current user's list is
+ignored. `jpulseVersion` is `>=2.0.8` on all three members.
+Companions lockstep only.
+
+### 21.20 W-247 — delete conversation, purge line, retention toast
+
+Specified and as-built as `@jpulse-net/plugin-ai-core` 1.0.15
+against published 1.0.14. `DELETE /api/1/ai/thread/:id` is
+author-only (`_ownedThread`). Cascade `deleteByThreadIds` and
+`deleteStagedThread`; `AiThreadModel.deleteById` then `activate`
+the newest remaining or `findOrCreateActive`. Response
+`{ deleted: true, thread }`. Usage is unchanged.
+`survivingByThreadIds` groups in JS; `apiListThreads` stamps
+`surviving` / `minSeq` and still omits archived husks. Trash
+after rename and (+); `/delete` in both catalogs; empty prefers
+loaded turns; running-turn refuses; confirm is `confirmDialog`
+with its own copy. After delete, `/delete` returns `false`.
+`minSeq > 1` paints the purge line. The keep-for-N-days policy
+is a one-shot info toast. IME Enter is ignored. The picker
+refreshes after a turn. `adapter.canUndoProposal` hides Undo
+when the snapshot is gone. `jpulseVersion` stays `>=2.0.8`.
+Hello AI ships `canUndoProposal`. Framework orientation
+(`docs/ai-agent.md`) names delete and the toast; the versioned
+contract stays on the plugin guide. The partial-purge notice
+deferred in §21.18 is this item.
 
 ### 21.14 Standalone follow-ons
 

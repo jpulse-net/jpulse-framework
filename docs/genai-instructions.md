@@ -351,7 +351,7 @@ Complete details:
 - Site controller registers `onAiScopeResolve`, `onAiToolRegister`, `onAiToolExecute`, `onAiPromptFragment`
 - View: `jPulse.ai.panel.create({ scopeType, scopeId })` — chat panel is the UI, not the product
 - Client-host modules live in `site/webapp/utils/ai-tools/`; do not invent a chat stack
-- What to learn: scoped tools, propose/apply vs direct write, attachments
+- What to learn: scoped tools, propose/apply vs direct write, attachments, several conversations per object
 - Reference: [AI Agent](ai-agent.md), [AI Core](installed-plugins/ai-core/README.md)
 
 **Internationalization**: `site/webapp/translations/` (and plugin `webapp/translations/`)
@@ -464,7 +464,7 @@ Complete details:
 
 **AI Agent**: [docs/ai-agent.md](ai-agent.md)
 - Scoped agent on a page; chat panel is the UI
-- Install, configure, one-controller case
+- Install, configure, one-controller case; several conversations per object (new, switch, delete)
 - Contract: [AI Core](installed-plugins/ai-core/README.md)
 - When to use: "How do I add an agent...", "How do I add AI chat...", "How do I call site tools from the model..."
 
@@ -741,7 +741,7 @@ Organize your response guidance by user question type:
 
 **"How do I add an AI agent?"**
 → [AI Agent](ai-agent.md) for install, configure, and the one-controller case
-→ [AI Core](installed-plugins/ai-core/README.md) for tools, adapter, propose/apply, attachments
+→ [AI Core](installed-plugins/ai-core/README.md) for tools, adapter, propose/apply, attachments, conversations
 → Demo: `/hello-ai/` (bundled Hello AI plugin, mock, no API key)
 → Do not confuse with this file or [Gen-AI Development](genai-development.md) (coding assistants)
 → Client-host modules: `site/webapp/utils/ai-tools/`. Convert/preview hooks: [Hooks](hooks.md#document-conversion-and-preview-hooks)

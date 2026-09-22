@@ -10370,17 +10370,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **follow-up (panel, after 1.0.14):** `openThread` calls `refreshThreads` only when `currentThread()` is missing, so panel open does not double `aiCore.apiListThreads`. Host leftovers from the same dogfood pass are in W-243 notes (cache/WS lifecycle, guest deny warning, newline collapse, `url.parse`, `health.metrics` first-paint double)
   - do not run the bump-version script while implementing, and do not touch `.jpulse/`
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-246, v2.0.9, 2026-09-21: view: remove some file headers for privacy
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - selected `@tag` rows in view file-header comments do not reach the browser
@@ -10444,6 +10435,94 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-247, v1.0.15, 2026-09-21: ai-core: delete conversation
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
+- npm package: @jpulse-net/plugin-ai-core
+- objectives:
+  - let a user delete the conversation they have open in the panel, with a confirm that names the irreversible loss
+  - close the deferred half of the retention story: a partially purged conversation opens with one line that older messages were removed after N days
+- prerequisites:
+  - W-241, 1.0.13: `apiListThreads` omits an archived thread with zero surviving turns; `AiTurnModel.threadIdsWithTurns`; `AiTurnModel.deleteByThreadIds`
+  - W-245, 1.0.14: current published bundle (`confirmDropAttachments` helper, per-user last-open thread key)
+  - `_ownedThread` already refuses a caller who is not the author — threads are private to their author, with no admin escape hatch
+- rationale:
+  - **the panel can archive but never remove.** `/new` and (+) archive, rename edits a label, and the picker lists whatever is left. A conversation the user regrets — a wrong paste, a private question — has no way out. That is the hole people look for once conversations have names
+  - **the model is almost ready.** `AiTurnModel.deleteByThreadIds` exists. `AiThreadModel` has `deleteByScope` (whole-scope wipe) and neither `deleteById` nor `activate`. Routes stop at the staged-image DELETE; there is no `DELETE /api/1/ai/thread/:id`
+  - **an empty conversation disappearing is not this.** A blank active thread is already archived and then omitted from the picker, so an empty row never accumulates. That is hygiene. This item is a person pointing at a conversation they want gone
+  - **delete what is on screen, not a row in a list.** The picker is one `<select>` enhanced by jpSelect, so there is no row to hang a trash icon on without replacing the widget. The trash belongs beside rename and (+) in the thread row and deletes the conversation the panel is showing. Having to open a conversation before deleting it is also the honest preview: you see what you are about to lose
+  - **the purge notice is the same list pass.** 1.0.13 detects "zero surviving turns" and omits the husk. A partial purge is the other side of that query: the first surviving `seq` is greater than 1. W-241 deferred the transcript line because the panel's one `els.notice` was already multiplexed across running / reconnecting / retention; a line inside the transcript costs that notice nothing
+- features:
+  - **1. `DELETE /api/1/ai/thread/:id`.** `auth: 'user'`, same `_gate` / `_ownedThread` as rename and archive. 404 `AI_THREAD_NOT_FOUND`, 403 `AI_THREAD_FORBIDDEN`. Deletes the thread document, its turns (`deleteByThreadIds`), and that thread's staged images (`deleteStagedThread`, the existing path). Usage counters are not decremented — same rule as turn retention. Response shape: `{ deleted: true, thread }`, where `thread` is the conversation the panel should bind next
+  - **2. the caller always lands on a usable conversation.** When the deleted row was the active one: delete first (so the unique partial index is free), then activate the newest remaining row for that `(scopeType, scopeId, createdBy)` — the picker's `updatedAt` sort — or `findOrCreateActive` when none remain, so there is still exactly one active. When the deleted row was an archive the user had open, the active thread is untouched and is what comes back
+  - **3. the trash deletes the conversation on screen.** A third button in the thread row, after rename (✎) and new (+), always rendered; hover changes emphasis only, like its neighbours (hover-reveal strands touch users). It acts on the conversation currently open in the panel, whether that is the active one or an archive the user opened. No delete affordance inside the picker dropdown — see rationale
+  - **4. an empty conversation is a no-op.** Nothing to delete when there are no surviving turns: the trash is hidden and `/delete` answers one line without a request, the same shape as `/cancel` with no turn running. Empty prefers loaded `state.turns.length`, then list `surviving === 0`, so the trash appears after the first turn before the list refresh. `/new` on an empty conversation keeps today's behavior; this item does not touch it
+  - **5. refuse while a turn is running.** Trash hidden and `/delete` answers the wait line. Stop is right there, same rule as `/new`. No confirm
+  - **6. confirm is `jPulse.UI.confirmDialog`.** The same family `/new` and the switch confirm already use, not a transcript card. Own copy, never the `/new` strings: title **Delete conversation?**, body names the conversation title and says this cannot be undone; when chips are attached it also names that the attached sources will be dropped (they are tab memory). Buttons `[Cancel] [Delete]`, Delete rightmost. `confirmDialog` styles every button `jp-btn-primary`, so Delete reads like Switch — no danger variant and no patching of dialog internals in this item. Escape and the overlay cancel; the panel stays open because the dialog owns the key while it is up
+  - **7. `/delete`.** The current conversation only, listed in `/help`, added to **both** copies of the command catalog (`utils/panel/slash.js` and the IIFE in the panel, which cannot import ESM). No `/delete n`: `/conversations n` opens a conversation and the trash deletes the open one. After a confirmed delete, `/delete` returns `false` so the replacement thread does not get a slash card
+  - **8. last-open memory.** Clear the stored id when it was the deleted thread, then write the replacement `thread._id` (the same per-user key 1.0.14 added)
+  - **9. other tabs.** The plugin panel has no scope-level thread broadcast. A second tab discovers the 404 on its next list or open and falls back the same way as a missing last-open id. Do not add a socket event in this item
+  - **10. partial-purge line, and only one retention sentence.** `apiListThreads` returns `minSeq` / `surviving` on each visible row — the same pass that decides the husk omit — so the panel needs no second query. When `minSeq > 1` the transcript opens with one line, “Older messages were removed after %DAYS% days.” The “kept for N days” policy is a one-shot info toast the first time the panel opens a never-purged conversation (`retentionTold`); a purged conversation skips the toast. `els.notice` stays for running / reconnect only — a standing retention banner was too aggressive. An active thread that is fully purged still shows the empty hint and is not omitted (1.0.13)
+  - **as-built extras (hello-ai dogfood).** Compose Enter ignores IME composition (`isComposing` / keyCode 229). After a completed / canceled / stalled / error turn, `refreshThreads` then `openThread(..., { keepLocals: true })` so auto-title shows without reload. Thread-row / strip (+) / chip-detail Copy use `jp-btn-outline`; row buttons 28×28, gap 4px. `adapter.canUndoProposal` hides Undo when the site says the snapshot is gone (hello-ai `_undoById` is tab memory)
+  - **out of scope:** bulk delete; deleting another user's thread; a delete affordance on each row inside the picker dropdown; decrementing usage; undo or a trash bin; a scope-level broadcast so other tabs rebind live; conversations across scopes; regenerating a title; date grouping or paging; a `jp-btn-danger` option for `confirmDialog` (a framework change); framework log leftovers (cache-manager / websocket / `populateDocTypes` — those stay on the next jPulse, not this plugin bump)
+- deliverables:
+  - `plugins/ai-core/webapp/model/aiThread.js`:
+    - `deleteById(id)` — hard-delete one thread document; returns the deleted row or null
+    - `activate(id)` — set `status: 'active'` on the newest remaining row after a delete (the model has `archive`, but no way back)
+  - `plugins/ai-core/webapp/model/aiTurn.js`:
+    - `survivingByThreadIds(ids)` — one pass returning `{ threadId, surviving, minSeq }` per id; group in JS after the `find`, because the unit-test memory collection has no `$group`. `threadIdsWithTurns` stays (or becomes a thin wrapper) as the zero/non-zero filter so existing tests do not churn
+  - `plugins/ai-core/webapp/controller/aiCore.js`:
+    - `DELETE /api/1/ai/thread/:id` → `apiDeleteThread`; author-only; cascade turns + staged images; if the deleted row was active, activate the newest remaining or `findOrCreateActive`; one `logInfo` success line (`aiCore.apiDeleteThread`)
+    - `apiListThreads` adds `minSeq` / `surviving` on each visible row so the panel does not need a second query
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - thread-row delete button acting on the open conversation, hidden when it is empty or a turn is running
+    - `/delete` in the IIFE command catalog and its `/help` hint
+    - `confirmDeleteThread` over `jPulse.UI.confirmDialog` — own title / body / action, never the `/new` “Start a new conversation?” copy; the sources sentence only when chips are attached
+    - bind the returned replacement thread; clear last-open when it was the deleted id, then write the replacement
+    - transcript purge line when `minSeq > 1`, using `capability.retentionDays`
+    - one-shot retention info toast (`applyRetentionNotice`); `els.notice` is running / reconnect only
+    - `/delete` returns `false` after bind; `conversationIsEmpty` prefers loaded turns
+    - IME Enter ignored; picker refresh after turn complete; `cardCanUndo` via `adapter.canUndoProposal`
+  - `plugins/ai-core/webapp/view/jpulse-common.css`:
+    - `.plg-ai-thread-row` gap 4px; row buttons 28×28, margin 0; `.plg-ai-purge`; strip-add and chip-pop-copy margin 0
+  - `plugins/ai-core/webapp/utils/panel/slash.js`:
+    - `{ name: 'delete' }` on `DEFAULT_COMMANDS`
+  - `plugins/ai-core/webapp/translations/en.conf` and `de.conf`:
+    - delete button, confirm title / body / action, the sources sentence, empty-conversation no-op, running-turn refusal, `/help` hint, purge notice (`Older messages were removed after %DAYS% days.`)
+  - `plugins/ai-core/webapp/tests/unit/threads.test.js`:
+    - `deleteById` removes the row; deleting the active thread leaves exactly one active (newest remaining, or a new empty); author filter is the controller's job — model test is id-only
+    - `survivingByThreadIds` reports `minSeq > 1` when older seqs are gone and `surviving === 0` for a husk
+  - `plugins/ai-core/webapp/tests/unit/regressions.test.js` (or a sibling):
+    - delete route exists and goes through `_ownedThread`; the confirm goes through `confirmDialog` and its strings are not the `/new` title; `/delete` is in both catalog copies; the empty-conversation path does not DELETE
+  - `plugins/ai-core/webapp/tests/unit/thread-api.test.js` (as-built):
+    - `apiListThreads` stamps `surviving` / `minSeq` and omits husks; `apiDeleteThread` leaves usage counters
+  - `plugins/hello-ai/webapp/view/hello-ai/index.shtml` (as-built):
+    - `adapter.canUndoProposal` — Undo only while `_undoById` has a snapshot
+  - `plugins/hello-ai/webapp/tests/unit/hello-ai.test.js` (as-built):
+    - `canUndoProposal` false until apply, false again after undo
+  - `plugins/ai-core/README.md` and `plugins/ai-core/docs/README.md`:
+    - the trash, `/delete`, the confirm, that only the open conversation can be deleted, what a second tab does, the purge line, and the one-shot retention toast. Version number if a change note is wanted, never a work-item number
+  - consuming site user documentation (that site's own repository, not this one):
+    - Conversations: the trash and `/delete`, the confirm, that usage totals stay; the retention paragraph gains the “older messages were removed” line
+- notes:
+  - **repo layout:** plugin-ai-core is the implementation. Bump from `plugins/ai-core`. `ai-mock` and `hello-ai` lockstep even with no delete call sites. No framework commit in this item — the W-243 log leftovers (cache refresh, WS connect/disconnect, `populateDocTypes` TTL) ride the next `jpulse update`. `jpulseVersion` stays `>=2.0.8`
+  - **do not shrink the confirm to “Are you sure?”** Name the conversation and that it cannot be undone
+  - **Delete is not archive.** Archive is `/new`. Delete removes the conversation and its turns. Any apply / undo history on those turns goes with them
+  - **verification (hello-ai):** run a turn so the conversation has content, then delete it with the trash and land on the replacement; delete the last remaining conversation and land on a new empty one; `/delete` on an empty conversation (one line, no request) and after a delete (no leftover slash card); trash and `/delete` while a turn is running (refused); Cancel changes nothing; with chips attached the confirm names the sources. Partial purge: a conversation whose surviving turns start at `seq > 1` shows the purge line and skips the toast; a never-purged one gets the one-shot info toast once; a fully purged archive stays out of the picker. Auto-title after the first turn without reload. IME Enter does not leave leftover compose text. Undo hidden after reload
+  - **as-built:** implemented in `plugins/ai-core` (and hello-ai `canUndoProposal`). No separate W-247 design doc — this block is the spec. Framework `docs/ai-agent.md` stays orientation and points at the plugin guide
+  - do not run the bump-version script while implementing, and do not touch `.jpulse/`
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -10470,7 +10549,7 @@ next work item: W-0...
 release prep:
 - run tests, and fix issues
 - review tt-git-diff.txt for accuracy and completness of work item
-- assume W-246, v2.0.9, 2026-09-21
+- assume W-247, v1.0.15, 2026-09-21
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
@@ -10479,9 +10558,9 @@ release prep:
 plugin release prep:
 - review tt-git-diff.txt for accuracy and completness of work item
 - review work item and design doc if it matches actual code & fix if needed
-- assume W-245, v1.0.14, 2026-09-21
-- plugin README.md & docs/README.md: add release to Plugin releases section
-- plugin commit-message.txt: update message
+- assume W-247, v1.0.15, 2026-09-21
+- 3 plugin README.md & docs/README.md: add release to Plugin releases section
+- 3 plugin commit-message.txt: update message
 
 ### Misc
 
@@ -10500,12 +10579,12 @@ git tag v2.0.9; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.14 2026-09-20
+node ../../bin/bump-version.js 1.0.15 2026-09-21
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.14; git push origin main --tags
+git tag v1.0.15; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

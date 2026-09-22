@@ -27506,3 +27506,102 @@ Missed it because .gitignore has tt-* and Glob skips those. Reviewed now. Featur
 
 
 ============================================================
+2026-09-21 14:16
+
+next: W-247, v1.0.15, 2026-09-21: ai-core: delete conversation
+- this is coming from bubblemap, needed there
+- review work-items.md (10441-10505)
+- ask questions if unclear
+- suggest change of spec if any, goal is a good UX; use the "don't make me think" paradigm
+- plan how to implement (wait for my go ahead)
+
+Reviewed W-247 against T-092 §24.7/§24.9, T-104, and the live 1.0.14 panel. Spec is sound on the API (DELETE, cascade, one remaining active, last-open, no usage decrement). Recommended UX changes before coding: use the existing confirmDialog (not a new transcript card — /new and switch already use a page dialog; jpSelect has no per-option trash); header-row trash deletes the open/selected conversation; empty /delete is a slash idle card like /cancel; skip the retention banner when the partial-purge line is showing. Questions on confirm chrome, Escape, /new-on-empty, last-conversation landing, and whether bubblemap docs are in this session. Implementation plan written; waiting for go-ahead. No code changes.
+
+
+============================================================
+2026-09-21 14:45
+
+- yes for jPulse.UI.confirmDialog
+- delete is only needed for currently active chat
+- docs: both now
+- hello-ai verification
+- please update work item
+- remove bubblemap internal design doc references
+- wait with implementation, to be handed over to grok
+
+Rewrote W-247 in docs/dev/work-items.md (objectives, prerequisites, rationale, 10 features, deliverables, notes). Confirm is jPulse.UI.confirmDialog with its own copy, Delete rightmost, no danger variant (confirmDialog styles every button primary). Trash sits in the thread row after rename and +, and deletes the conversation currently open; no per-row delete inside the jpSelect dropdown. Empty conversation and running turn are no-ops. Partial-purge line replaces the standing retention notice for that conversation instead of doubling it. Deliverables add AiThreadModel.activate, group-in-JS for survivingByThreadIds (memory collection has no $group), /delete in both catalog copies, and both plugin docs; site user doc noted as that site's repo. All T-092 / T-104 / TD-08 / §24 / map vocabulary removed. Verification rewritten for hello-ai. Status left PENDING, block not moved. No code written — implementation handed off.
+
+
+============================================================
+2026-09-21 15:43
+
+what is the status?
+
+W-247 implementation is coded (models, DELETE route, panel trash + /delete + confirmDialog + purge line, EN/DE, plugin + BubbleMap user docs, unit tests). Status left 🚧 IN_PROGRESS; no bump, no commit. hello-ai verify started: empty /delete is a one-line no-op. Trash stayed hidden after a turn because list surviving was still 0 — conversationIsEmpty now prefers loaded turns. Remaining: finish hello-ai confirm/cancel/delete-last/running/chips/purge checks.
+
+
+============================================================
+2026-09-21 18:17
+
+delete functionality — /delete leftover on switch; button contrast/space; title timing; Japanese IME leftover; undo too late
+
+Fixed /delete painting slash cards onto the replacement thread (return false after bind). Thread-row buttons now jp-btn-outline, 28px, gap 4px, no extra jp-btn margin. Picker refreshes after turn complete so auto-title (first completed seq=1, from the prompt, 60 chars) shows without reload. Compose Enter ignores IME composition (isComposing / keyCode 229). Undo hidden when adapter.canUndoProposal is false — hello-ai snapshot is tab memory, gone after reload. 75 related tests passed. No bump, no status change.
+
+
+============================================================
+2026-09-21 18:28
+
+button style — do same for source [+] and [copy] in source detail
+
+Added jp-btn-outline to the strip attach + and the chip-detail Copy button; zeroed their extra jp-btn margin so they match the thread-row icons. Hard-refresh to pick up the CSS/JS. No bump, no status change.
+
+
+============================================================
+2026-09-21 21:14
+
+the text "Turns werden 90 Tage aufbewahrt." is shown too aggressively — maybe a toast instead?
+
+Moved the standing retention banner off els.notice. Policy is now a one-shot info toast the first time the panel opens a never-purged conversation; switching threads does not show it again. The notice bar stays for running/reconnect only. A purged conversation still gets the transcript line and skips the toast. Plugin README/docs updated. No bump, no status change.
+
+
+============================================================
+2026-09-21 21:46
+
+any other tests you recommend? — yes, add the three behavioral ones
+
+Added hello-ai canUndoProposal coverage (false until apply, false again after undo, empty-string snapshot still undoable). Added thread-api tests: apiListThreads stamps surviving/minSeq and omits husks; apiDeleteThread removes the thread and leaves usage counters. 14 tests passed. No bump, no status change.
+
+
+============================================================
+2026-09-21 22:04
+
+plugin release prep: work-items.md (10549-10554)
+
+Reviewed tt-git-diff.txt against W-247. Work item updated to as-built: toast not standing notice, /delete returns false, turns-first empty, IME, picker refresh, outline buttons, canUndoProposal, thread-api tests. No W-247 design doc — the work item is the spec. 1.0.15 Plugin releases on all three members (ai-mock docs also gained the missing 1.0.14). Adapter docs name canUndoProposal. Three commit-message.txt files written. panel-strip compose-Enter scan updated for IME. 25 suites / 285 tests passing. Status left IN_PROGRESS. No bump, no commit.
+
+
+============================================================
+2026-09-21 22:28
+
+releases and bundle publish done — review ai-related jpulse docs, update if needed
+
+Updated framework orientation: docs/ai-agent.md now names trash / /delete, the replacement bind, usage staying, the one-shot retention toast, and the purge line; install requires >= 2.0.8. docs/README.md and genai-instructions.md point at the same. W-223 design doc: header, Rev 31 (1.0.14 dumps + last-open), Rev 32 (1.0.15 delete), §12.1 chrome, §21.19 / §21.20. No W-xxx in user-facing docs. No bump, no status change, no commit.
+
+
+============================================================
+2026-09-21 22:32
+
+framework docs are lop-sided — either remove the delete docs or expand to mention create multiple conversations with option to delete
+
+Expanded, did not strip. Conversations now lead with several per object ((+) / /new, picker switch/rename), then trash or /delete for the one that is open. Same balance in docs/README.md and genai-instructions.md. No bump, no status change, no commit.
+
+
+============================================================
+2026-09-21 22:37
+
+update tt-commit.txt — do not change the first row
+
+Rewrote the body for the W-246 docs follow-up of published ai-core 1.0.15: several conversations per object, then delete; toast and purge line; files and date 2026-09-21. First row left as found.
+
+
+============================================================

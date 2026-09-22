@@ -66,6 +66,7 @@ jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application f
 - Scoped agent on a page that calls site-owned tools (read, write, propose/apply)
 - Chat panel UI; mock provider with no API key; optional Anthropic provider
 - Attachments (file, URL, image) stay on the tab; the model reads through tools
+- Several conversations per object; delete the one that is open. Retention is a one-shot toast plus a purge line when older turns are gone
 - See [AI Agent](ai-agent.md)
 
 ### 🧪 **Testing & Quality**

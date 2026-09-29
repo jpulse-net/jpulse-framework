@@ -49,6 +49,14 @@ per user; `jpulseVersion` `>=2.0.8`; companions lockstep).
 **W-247** is as-built as `@jpulse-net/plugin-ai-core` 1.0.15
 (delete the open conversation; purge line; retention toast;
 companions lockstep).
+**W-248** is published as `@jpulse-net/plugin-ai-core` 1.0.16
+(Hello AI code examples and architecture; companions lockstep).
+**W-249** is published as `@jpulse-net/plugin-ai-anthropic` 1.0.2
+(A\ icon). **W-250** is published as `@jpulse-net/plugin-ai-openai`
+1.0.0. **W-251** is published as `@jpulse-net/plugin-ai-google` 1.0.0.
+**W-252** is published as `@jpulse-net/plugin-ai-core` 1.0.17
+(a retryable provider error is held until the last attempt;
+companions lockstep).
 §21 splits the agent into five items, W-223, W-224, and
 W-226 through W-228, on those prerequisites.
 Deviations from this document are under `### As Built`. Rev 12 specified
@@ -63,10 +71,21 @@ as-built after 1.0.9, Rev 26 specifies W-237, Rev 27 is the
 as-built after 1.0.10, Rev 28 is the as-built after 1.0.11, and
 Rev 29 is the as-built after 1.0.12, and Rev 30 is the
 as-built after 1.0.13, Rev 31 is the as-built after 1.0.14, and
-Rev 32 is the as-built after 1.0.15.
+Rev 32 is the as-built after 1.0.15, and Rev 33 records
+the publishes through `@jpulse-net/plugin-ai-core` 1.0.17 with no
+design change.
 
 
 ## Revision history
+
+### Rev 33 — 2026-09-30 — published providers and bundle 1.0.17
+
+No design change. `@jpulse-net/plugin-ai-core` 1.0.16 (W-248) and
+1.0.17 (W-252) are published. `@jpulse-net/plugin-ai-anthropic` 1.0.2
+(W-249), `@jpulse-net/plugin-ai-openai` 1.0.0 (W-250), and
+`@jpulse-net/plugin-ai-google` 1.0.0 (W-251) are published. 1.0.17
+holds a retryable provider error off the client until the last
+attempt. The provider contract is unchanged.
 
 ### Rev 32 — 2026-09-21 — W-247 delete conversation, purge line, retention toast
 

@@ -10635,17 +10635,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - do not run the bump-version script against this repo while implementing, and do not edit `.jpulse/` in tests
   - naming: `aiOpenai.js`, `AiOpenaiController`, `jPulse.plugins.aiOpenai`, route `/api/1/aiOpenai/verify-api-key` — same collapse as `aiAnthropic`
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-251, v1.0.0, 2026-09-30: ai-google plugin: initial version for Gemini models
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - repository: github.com/jpulse-net/plugin-ai-google (new separate repo; single plugin, not a bundle)
 - npm package: @jpulse-net/plugin-ai-google
@@ -10729,6 +10720,68 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-252, v1.0.17, 2026-09-30: ai-core: hold retryable errors until the last attempt
+- status: 🚧 IN_PROGRESS
+- type: Fix
+- repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
+- npm package: @jpulse-net/plugin-ai-core
+- objectives:
+  - a retryable provider error is an info log while attempts remain, and one client error only when the last attempt fails
+  - a later success shows no error
+  - the WebSocket handler does not send an error the turn loop already sent
+  - the wait is the schedule slot; a `Retry-After` header can only shorten it
+  - the retry log line is built from the wait constants
+  - the bundle guides name OpenAI and Google beside Anthropic
+- prerequisites:
+  - W-248, `@jpulse-net/plugin-ai-core` 1.0.16: the published bundle this bumps. The stub heading said v1.0.3; that version is already published (W-227). This item is 1.0.17
+  - W-251, `@jpulse-net/plugin-ai-google` 1.0.0: the live 503 and free-tier 429 that showed the old toast behavior. No Google code in this item
+- rationale:
+  - the loop used to sink every retryable error immediately, so a 503 that a later attempt recovered from still toasted. A log line is enough while attempts remain
+  - the last attempt's error was sunk by the loop and then again by the WebSocket catch, so one failed turn showed two identical toasts. HTTP/SSE writes the sink once
+  - the wait list was `[500, 1500, 3500]`. It is now `[2000, 4000, 10000]` (four tries: the first call plus three waits). Taking `max(schedule, Retry-After)` let a 30s header replace the shorter slot on every try. The schedule slot is the ceiling. A shorter header still waits less. Nothing waits longer than 30 seconds
+  - the log line used to be assembled in the loop. It is now `formatRetryLog`, so the "attempt N of M" and "wait Nms" text cannot drift from the constants
+  - W-251 left the `ai-core` and `ai-mock` provider lists for this bundle publish. The working tree named OpenAI and not Google
+- features:
+  - **`RETRYABLE_WAIT_MS` is `[2000, 4000, 10000]`**, exported. Still a code constant. Moving it to plugin config stays on the pending list
+  - **`retryWaitMs(attempt, retryAfterMs)`.** No usable header returns the schedule slot. A positive header returns `min(slot, header, 30000)`. A header cannot lengthen the slot
+  - **`formatRetryLog(attempt, code, message, retryAfterMs)`** is the only builder of the info line: `retry: CODE attempt N of M: message (wait Wms)`. Missing code is `AI_PROVIDER_ERROR`. Missing message is `provider error`. `M` is `RETRYABLE_WAIT_MS.length + 1`
+  - **while attempts remain, a retryable error is not sunk.** `emit` logs `formatRetryLog` and does not push the event to the client or `roundEvents`. The client sees that error once, on the attempt that will not be retried. A following success therefore shows no error. `emittedError` is set only when the error is actually sunk
+  - **the sleep uses `retryWaitMs`**, not the raw slot and not the raw header
+  - **`error.emitted`.** The quota failure, the held lease, and the main catch set it after the error has been sunk (the main catch sinks only when `emittedError` is still false, then always sets the flag). The WebSocket catch returns without a second event when the flag is set. An error the loop did not sink is still sent. The handler calls `deps.runTurn` when the test supplies one, otherwise `runTurn`
+  - **guides.** `ai-core` docs install block lists `@jpulse-net/plugin-ai-google` with Anthropic and OpenAI. `ai-mock` docs name the same three packages. hello-ai has no product change
+- deliverables:
+  - `plugins/ai-core/webapp/utils/agent/turnLoop.js`:
+    - exported `RETRYABLE_WAIT_MS`, `retryWaitMs`, `formatRetryLog`; retryable errors held off the sink until the last attempt; sleep via `retryWaitMs`; `error.emitted` on the quota, lease, and main-catch paths
+  - `plugins/ai-core/webapp/utils/agent/index.js`:
+    - re-exports `formatRetryLog`, `RETRYABLE_WAIT_MS`, `retryWaitMs`
+  - `plugins/ai-core/webapp/utils/transport/ws.js`:
+    - skip the error event when `error.emitted` is set; `deps.runTurn` overrides `runTurn` in tests
+  - `plugins/ai-core/webapp/tests/unit/turn-loop.test.js`:
+    - a retry then success sinks no error and logs `formatRetryLog`; exhausted retries wait `retryWaitMs` per slot (a 30s header on the first attempt does not exceed `RETRYABLE_WAIT_MS[0]`), log one line per wait, sink one error, and throw with `emitted === true`
+  - `plugins/ai-core/webapp/tests/unit/ws-bridge.test.js`:
+    - a thrown error with `emitted` sends nothing; a thrown error without it sends one error event
+  - `plugins/ai-core/docs/README.md`, `plugins/ai-mock/docs/README.md`:
+    - install / commercial-provider sentences name Google beside Anthropic and OpenAI. No work-item number in that prose
+  - `plugins/ai-core/README.md`, `plugins/ai-core/docs/README.md`, `plugins/ai-mock/README.md`, `plugins/ai-mock/docs/README.md`, `plugins/hello-ai/README.md`, `plugins/hello-ai/docs/README.md`:
+    - Plugin releases line for 1.0.17
+  - `plugins/ai-core/commit-message.txt`:
+    - W-252, v1.0.17, 2026-09-30
+- notes:
+  - **as-built** in the working tree. No separate design doc — this block is the spec. Status stays 🚧 IN_PROGRESS until you mark it done
+  - **bump from `plugins/ai-core`.** `ai-mock` and `hello-ai` lockstep. Headers are still 1.0.16 until you bump. Do not run the bump script from here, and do not touch `.jpulse/`
+  - framework `docs/ai-agent.md` and `docs/genai-instructions.md` already name `ai-google`. Those files are the framework repo, not this plugin commit
+  - a new provider round inside one turn starts the attempt count again. A permanent quota (`retryable: false`, such as Gemini `limit: 0`) is one error and is not this wait list — that flag is set by the provider plugin
+  - not committed
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -10770,7 +10823,7 @@ release prep:
 plugin release prep:
 - review tt-git-diff.txt for accuracy and completness of work item
 - review work item and design doc if it matches actual code & fix if needed
-- assume W-251, v1.0.0, 2026-09-30
+- assume W-252, v1.0.17, 2026-09-30
 - 3 plugin README.md & docs/README.md: add release to Plugin releases section
 - 3 plugin commit-message.txt: update message
 
@@ -10791,12 +10844,12 @@ git tag v2.0.9; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.0 2026-09-30
+node ../../bin/bump-version.js 1.0.17 2026-09-30
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.0; git push origin main --tags
+git tag v1.0.17; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

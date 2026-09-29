@@ -28003,3 +28003,41 @@ Code matches the work item after one correction: a limit: 0 / upgrade-your-tier 
 
 
 ============================================================
+2026-09-29 14:53
+
+published
+
+next: ai-core commit & publish
+- review tt-git-diff.txt for accuracy and completeness
+- create work item at the W-252 stub
+
+The diff is the retry UX: hold a retryable error until the last attempt, one WebSocket error via error.emitted, waits 2s/4s/10s with Retry-After only able to shorten a slot, log line from formatRetryLog. The provider lists named OpenAI and not Google; both guides now name Google. Stub version 1.0.3 was already published, so W-252 is 1.0.17. Release lines and commit-message.txt written. Headers still 1.0.16 until you bump. turn-loop and ws-bridge: 35 passed. Status unchanged. Not committed.
+
+
+============================================================
+2026-09-29 14:59
+
+it looks like plugin release prep is already done, verify one more time:
+work-items.md plugin release prep — 3 plugin READMEs and 3 commit-message.txt
+
+All six Plugin releases sections already have the 1.0.17 / W-252 line (ai-core, ai-mock, hello-ai, each README and docs/README). ai-core commit-message.txt was already W-252. ai-mock and hello-ai commit messages were still W-248 / 1.0.16; those two are now lockstep 1.0.17. Not committed.
+
+
+============================================================
+2026-09-29 15:03
+
+all 3 plugins committed, 1 plugin published
+
+@jpulse-net/plugin-ai-core 1.0.17 is on GitHub Packages (tag v1.0.17, commit 216995b). The tarball stages ai-core, ai-mock, and hello-ai, so the companion repos do not get their own npm publish. The repository.url warning is the same normalization as the Gemini publish. W-252 status left in progress. Framework docs/ai-agent.md and docs/genai-instructions.md are outside this package.
+
+
+============================================================
+2026-09-29 15:05
+
+review jpulse framework docs if up to date,
+- fix if needed
+
+docs/ai-agent.md and docs/genai-instructions.md already name Anthropic, OpenAI, and Gemini, and Verify does not require Save. docs/README.md still said "optional Anthropic provider"; it now names all three. The W-223 design status stopped at bundle 1.0.15; it now records 1.0.16, 1.0.17, Anthropic 1.0.2, OpenAI 1.0.0, and Google 1.0.0 (Rev 33, no design change). Framework changelog and Latest Release Highlights were left alone; they track framework versions, not plugin publishes. Not committed.
+
+
+============================================================

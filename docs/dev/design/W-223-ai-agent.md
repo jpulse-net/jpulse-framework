@@ -1194,6 +1194,7 @@ The bundle is drawn tightly:
 | `@jpulse-net/plugin-ai-core` | `ai-core` + `ai-mock` + `hello-ai` | Everything needed to stand the server core up and see it work, with no API key and no spend. `hello-ai` was a view inside `ai-core` from 1.0.2 through 1.0.5. W-231 makes it a third bundle member so an admin can disable the demo without disabling AI |
 | `@jpulse-net/plugin-ai-anthropic` | `ai-anthropic` | Depends on `ai-core`; installed only by a site that uses Anthropic |
 | `@jpulse-net/plugin-ai-openai` | `ai-openai` | W-250. Depends on `ai-core`; installed only by a site that uses OpenAI |
+| `@jpulse-net/plugin-ai-google` | `ai-google` | W-251. Depends on `ai-core`; installed only by a site that uses Gemini |
 
 The reasoning for bundling `ai-mock` with `ai-core` rather than shipping it
 separately: a freshly installed `ai-core` with no provider is a feature that
@@ -3263,6 +3264,13 @@ the ghost animation, and the mobile sheet — and scroll pinning moves to a resi
 or intersection observer because there is no open event to hang it on. The
 default stays `chrome: 'float'`, so a site that omits the option sees no change.
 
+### TD-18 Persisting Gemini thought steps
+
+**State.** W-251, `@jpulse-net/plugin-ai-google` 1.0.0. Interactions API with `store: false`. Thought steps (the encrypted `thought_signature`) are held in plugin memory for the current turn, keyed by `turnId`, and replayed on the next round of that turn. No `ai-core` change.
+
+**Why not in core.** Every round of one turn runs inside one `runTurn` on one process, under the thread lease. Google requires the signature on the current turn. Earlier turns are text history for every provider, and Google does not validate signatures on those.
+
+**Trigger.** A need to persist or replay thought steps across turns or process restarts.
 
 ---
 
@@ -3816,6 +3824,7 @@ Each its own item, written when wanted rather than scheduled now:
 |---|---|---|
 | `ai-mcp-server` | W-223 phase 1 only | The controller-centric case that validates the layer boundary (§15.1). Its own plugin, and it needs nothing from W-224 … W-228 — which is the whole point of drawing the boundary first (§5.2) |
 | `ai-openai` | W-224 | W-250. TD-11. A standalone package needing no `ai-core` change |
+| `ai-google` | W-250 | W-251. TD-18. Interactions API. Thought steps held in plugin memory for one turn. No `ai-core` change |
 | Reference-site migration | per layer, §18 | The site's own repository, sequenced against the items above |
 
 

@@ -27845,3 +27845,161 @@ Start a new chat. This thread is the OpenAI plugin from the work item through pu
 
 
 ============================================================
+2026-09-29 02:10
+
+Next: ai-google, initial Gemini provider.
+- Clone from plugins/ai-openai (published 1.0.0).
+- Same ai-core contract: onAiProviderRegister / onAiComplete, password key, unsaved Verify, four-way $/MTok prices, fake-fetch tests.
+- Write the work item first: @work-items.md (10647-10658)
+- Wait with coding.
+
+Wrote W-251 in docs/dev/work-items.md. Clone source is published ai-openai 1.0.0. Wire is the Gemini Interactions API (store: false, x-goog-api-key, POST /v1beta/interactions, Verify GET /v1beta/models). Models: gemini-3.8-flash (default, introductory Standard rates), gemini-3.5-flash-lite, gemini-3.1-pro-preview short-context. cacheWrite is 0 because Google bills cache storage per hour. Thought signatures are not on the ai-core transcript and are out of 1.0.0. No plugin code. Status stays IN_PROGRESS.
+
+
+============================================================
+2026-09-29 02:22
+
+I am not clear on "Google's stateless mode wants thought signatures echoed, and the published transcript has no slot for them", please elaborate
+
+I created the repo, and didd the init: git init -b main, remote origin git@github.com:jpulse-net/plugin-ai-google.git, only .gitignore untracked, no commits yet.
+
+Explained thought signatures. Gemini 3 returns an opaque thought step on a function-call response. The next request in the same turn must send that step back or Google returns 400. The turn loop only keeps assistant toolCalls (id, name, args) and tool results, and saved history is userText plus agentText. A chat with no tools is one request and does not need the signature. A tool round is two requests inside one turn, both in the same process, so the plugin can remember the thought step in memory between them without an ai-core change. Repo init is noted. No code, work item not edited.
+
+
+============================================================
+2026-09-29 02:29
+
+if needed we can enhance the core.
+- what disadvantage has it if only remembered in memory?
+- would that work in a multi-server/multi-node config?
+
+Multi-node: yes. runTurn runs every round of a turn inside one call on one process, under the Redis lease, with retries in the same loop and client-host tools routed back to the process holding the socket. Memory only has to live for one runTurn call. Disadvantages: earlier turns lose their thought steps (Google only validates the current turn, so no 400, but reasoning continuity is weaker, and prior turns' tool steps are not replayed anyway because history is text only); no exact request replay for debugging; a module-level Map could leak, so keep it on the messages array instead. Today the loop pushes toolUse.calls by reference onto the assistant message, so an extra field on the call already survives to the next round with no core change, but it is undocumented and the SSE/WS sink sends the whole tool_use event to the browser. Recommended a small ai-core enhancement: an opaque providerState on tool_use, copied to the assistant message, stripped from the sink event and the stored turn. Persisting across turns would need history to replay tool rounds, a bigger change, not recommended for now. No code, work item not edited.
+
+
+============================================================
+2026-09-29 02:35
+
+memory only does not really have any big disadvantages, so I lean towards that
+
+Updated W-251 for memory only with no ai-core change. The plugin keeps a module-level Map keyed by context.turnId. Each tool round stores its reassembled thought steps with the round's call ids. The next round of the same turn inserts them unchanged before the matching function_call items. A final text round deletes the entry, and entries older than 30 minutes are dropped on every access, which covers cancel, stall, timeout, and error exits. Thought steps are never emitted, so they stay off the browser, the log, and the stored turn. Added rationale, feature, tests, TD-18 wording, a live-key follow-up, and out of scope (persisting across turns or restarts). Status unchanged. No code.
+
+
+============================================================
+2026-09-29 11:21
+
+please implement
+
+Implemented plugins/ai-google 1.0.0 from the W-251 spec, cloned from ai-openai. Interactions API: POST /v1beta/interactions with store false, x-goog-api-key, Api-Revision 2026-05-20, Verify GET /v1beta/models. Models gemini-3.8-flash (default, introductory rates), gemini-3.5-flash-lite, gemini-3.1-pro-preview. Thought steps stay in a per-turn Map and are replayed before the matching function_call; they are not emitted. npm test: 45 passed. Design §5.1, §21.14, and TD-18 updated. docs/ai-agent.md and docs/genai-instructions.md name the package. Status stays IN_PROGRESS. Not committed. Test boot auto-enabled the plugin in the local registry because autoEnable is true.
+
+
+============================================================
+2026-09-29 11:42
+
+create a logo in the lucide style that looks like the attached png
+
+Replaced the ai-google plugin.json icon with a Lucide-style four-point star: 24x24 viewBox, currentColor stroke width 2, round caps and joins, no fill. Tips at 3 and 21, sides are cubic curves with vertical/horizontal tangents at the tips so the sides bow inward like the attached image. plugin.json still parses. Not rendered in the admin UI yet. W-251 deliverables still say not the four-point spark; left unchanged.
+
+
+============================================================
+2026-09-29 12:53
+
+- logo looks good
+- fix the work item for proper icon reference
+- guide me how to generate a key, I already have a google account
+
+Updated the W-251 plugin.json deliverable so the icon is the approved Lucide four-point spark (currentColor, stroke width 2, round caps, no fill). Noted that W-224's ban on that shape applies to the Anthropic icon only. Status unchanged. Guided Gemini API key creation in Google AI Studio with an existing Google account: new Cloud users get a default project and key after accepting terms; existing Cloud users import a project, then Create API key. New keys are auth keys. Paste into Plugins → ai-google → Configure, Verify, then Save. Do not paste the key into chat.
+
+
+============================================================
+2026-09-29 13:16
+
+I got a key, installed. Got an error while trying gemini-3.8-flash (high demand toast), then a later turn succeeded.
+
+The key and plugin were fine: verify valid=true in 229ms, models listed. The banner is Google's HTTP 503 for gemini-3.8-flash. The turn loop retried and the same turn completed at 13:15:51, which is the summary. The banner appeared because the first 503 was sent to the chat before the retry.
+
+
+============================================================
+2026-09-29 13:24
+
+it actually succeeded
+- for ux, better not to show the error on case an automated later try succeeds (maybe just log entry)
+
+The turn loop now keeps a retryable provider error off the client while attempts remain. Those attempts are an info log: aiCore.runTurn retry: CODE attempt N of 4: message. The client gets one error event only when the last attempt still fails. A recovered retry no longer toasts. turn-loop.test.js: 18 passed. Restart the server to pick it up. Not committed.
+
+
+============================================================
+2026-09-29 13:33
+
+- first time with gemini-3.1-pro-preview failed
+- not sure I reloaded the window, so I did
+- tried again, it failed again, showing 2 x same toast
+- gemini-3.1-pro-preview is off-limit with free tier, so error is legit
+
+The 0 input tokens/minute free-tier limit is Google's, and the retries stayed in the info log. The two identical banners were one failure delivered twice: the turn loop sent the final error, then the websocket handler sent it again. The handler now skips an error the loop already sent. turn-loop and ws-bridge tests: 35 passed. Restart the server again. Not committed.
+
+
+============================================================
+2026-09-29 13:41
+
+- error shown just once -- good
+- switched to ai-google/gemini-3.8-flash
+- got "Too Many Requests" error
+- maybe need to gradually back off more?
+
+Retry waits are now 2s, 6s, and 15s (still four tries). A Retry-After header waits at least that long, capped at 30s. A Gemini message with limit 0 or "upgrade your tier" is not retried. Error bodies are read as text so the chat keeps Google's sentence instead of the bare status "Too Many Requests" when the body is present. The flash log's second "attempt 1 of 4" was a new round after the first round's fourth try did not fail. turn-loop 18 passed, complete-google 14 passed. Restart the server. Not committed.
+
+
+============================================================
+2026-09-29 13:59
+
+- I reduced the wait times a bit
+- make sure all user facing strings use the wait time constants, not hard-coded strings
+
+Left the schedule at 2000, 4000, 10000 ms. The 30000ms log lines were Google's Retry-After, which had been allowed to replace the schedule up to a 30s cap. The schedule is now the longest wait. The retry log line is built by formatRetryLog from RETRYABLE_WAIT_MS, and the tests expect that helper rather than hardcoded "of 4" or millisecond strings. turn-loop 18 passed. Restart the server. Not committed.
+
+
+============================================================
+2026-09-29 14:11
+
+are all user-facing ai-core messages i18nized?
+
+No. Panel chrome, slash replies, the usage page, and the AI configuration tab are in en.conf and de.conf. Turn banners and API errors are English sentences from the server or the provider, and a few client toasts (source cap, unsupported file type, tool result size) are hardcoded. No code change.
+
+
+============================================================
+2026-09-29 14:16
+
+good
+
+please check ai-anthropic, ai-google, ai-openai for hard-coded user-facing messages (api responses excluded)
+
+None of the three plugins has a translation catalog. Admin form labels, help, and summaries are English in each plugin.json. The Verify button falls back to hardcoded sentences ("API key is valid", "rejected the API key", "not configured", "Verify failed") when the API message is missing. Model names stay as product titles. No code change; admin English is accepted.
+
+
+============================================================
+2026-09-29 14:22
+
+yes, this is good. it can be assumed the admin knows english
+
+anything left before release? any other manual tests we missed?
+
+ai-google 1.0.0 is ready to publish. Live coverage: Verify, a Flash turn, Pro free-tier refusal (one banner), and an applied tool round. Optional and not blocking: Flash-Lite, an image, a bad key, a price override, a second turn in the same thread, and a retry that then succeeds with no toast. The single-toast and schedule-ceiling behavior is local ai-core only and needs its own release. Work item still says every 429/503 is retried; code skips limit-0 / upgrade-your-tier. docs/ai-agent.md says Verify after saving; unsaved Verify works. Status not changed. Not committed.
+
+
+============================================================
+2026-09-29 14:31
+
+I bumped the files
+
+plugin release prep:
+- assume W-251, v1.0.0, 2026-09-30
+- review code for accuracy and completeness
+- review work item if it matches actual code & fix if needed
+- if not already done:
+  - plugin README.md & docs/README.md: add release to Plugin releases section
+  - plugin commit-message.txt: update message
+
+Code matches the work item after one correction: a limit: 0 / upgrade-your-tier 429 is not retried, the error body is read as text (XSSI prefix stripped), and Retry-After is passed through capped at 30s. Work item features, tests, and the live-key note now say that. READMEs already had the 1.0.0 release line. Commit message gained the quota sentence. docs/ai-agent.md no longer says Verify after saving. Status unchanged. ai-google unit tests: 45 passed. Not committed.
+
+
+============================================================

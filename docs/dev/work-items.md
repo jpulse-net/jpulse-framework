@@ -10562,17 +10562,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - notes:
   - Icon only. No controller, test, or `ai-core` change.
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-250, v1.0.0, 2026-09-29: ai-openai: initial version
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - repository: github.com/jpulse-net/plugin-ai-openai (new separate repo; single plugin, not a bundle)
 - npm package: @jpulse-net/plugin-ai-openai
@@ -10649,6 +10640,95 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-251, v1.0.0, 2026-09-30: ai-google plugin: initial version for Gemini models
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- repository: github.com/jpulse-net/plugin-ai-google (new separate repo; single plugin, not a bundle)
+- npm package: @jpulse-net/plugin-ai-google
+- objectives:
+  - first version of `@jpulse-net/plugin-ai-google`: a Gemini provider plugin that speaks the published `ai-core` contract (`onAiProviderRegister` / `onAiComplete`) so the same HTTP and panel turns that run on `ai-mock`, Claude, and GPT run on Gemini
+  - clone the `ai-openai` package shape (config, Verify, four-way $/MTok prices, fake-`fetch` tests, own git repo) and replace only the vendor wire
+  - prove the contract a third time: another commercial provider is a standalone package and needs no `ai-core` change
+- prerequisites:
+  - W-250, `@jpulse-net/plugin-ai-openai` 1.0.0: the clone source. Current tree is `plugins/ai-openai` 1.0.0 (published)
+  - W-224, `@jpulse-net/plugin-ai-anthropic` 1.0.2: the shape OpenAI itself cloned (password key, unsaved Verify, W-236 cause-code retry)
+  - W-223 / current `@jpulse-net/plugin-ai-core` (>=1.0.0): the turn loop, array `tool_use`, four-way `computeCost` in $/MTok, `configured` on the descriptor, capability probe, model picker. No core change in this item
+  - W-210, v1.7.14: `type: 'password'` + `PluginModel.getSecret` / `isSensitiveMask` — Verify uses the unsaved field the same way OpenAI, Anthropic, and `EmailController` do
+  - W-221, v2.0.1: `dependencies.plugins` may name `npmPackage: '@jpulse-net/plugin-ai-core'` so installing this provider alone pulls the bundle
+- rationale:
+  - OpenAI proved the commercial-provider contract against a second wire (Responses SSE). Gemini is a third wire: Google's recommended Interactions API, an API key that is not a bearer token, and a usage object that bills thinking tokens at the output rate and cache hits as context-caching tokens. Sites ask for Gemini; the contract does not need a new idea to accept it
+  - a commercial provider is its own package because it churns, it carries a credential and a price table a site may not want, and bundling it with `ai-core` would make every mock-only install carry Google. Same reason Anthropic and OpenAI are not in the bundle
+  - **clone, do not invent a new plugin architecture.** `ai-openai` already has password key, unsaved Verify, Pricing override, `configured`, vision parts, parallel `calls`, truncated-tool siblings, 429 retry, W-236 cause-code retry, and fake-`fetch` tests. Copy that skeleton. The new work is the Gemini request/response map
+  - **wire is the Interactions API**, not `generateContent` / `streamGenerateContent`. The Gemini docs mark Interactions as recommended (the generateContent pages are the other toggle), the same way W-250 chose Responses over Chat Completions. Current models, including `gemini-3.8-flash`, are documented there
+  - **stateless on purpose.** The turn loop owns the transcript and calls `onAiComplete` with the full message list. The request always sends `store: false` and never `previous_interaction_id`
+  - **thought steps are kept in plugin memory for one turn.** In stateless mode Google requires the model's `thought` steps (which carry the encrypted `thought_signature`) to be resent exactly as received. Gemini 3 rejects a function-call round with 400 when they are missing from the current turn. The published message has no field for them. All rounds of one turn run inside one `runTurn` call on one process, under the thread's Redis lease, with retries and client-host tool replies routed back to that process. So a per-turn in-memory store in the plugin is enough, works on several nodes, and needs no `ai-core` change. Accepted costs: earlier turns are sent without their thought steps (Google only validates the current turn; earlier tool rounds are not replayed for any provider anyway), and the exact request cannot be rebuilt from the database. Persisting thought steps on the turn is not in 1.0.0
+  - **no live Gemini key is required to ship 1.0.0.** OpenAI and Anthropic never needed a real key in CI: the complete function takes `deps.fetch` and the tests feed documented SSE. The same bar applies here. Live Verify against `generativelanguage.googleapis.com` and a Hello AI turn stay a follow-up when a key exists
+- features:
+  - **the provider** (`@jpulse-net/plugin-ai-google` 1.0.0). Copy `plugins/ai-openai`, then rewrite the vendor pieces:
+    - `onAiProviderRegister` descriptor: `{ plugin: 'ai-google', label: 'Google', models, capabilities: { vision: true }, priceTable, maxTokens, configured }`. `configured` is true when `PluginModel.getSecret('ai-google', 'apiKey')` returns a non-empty, non-mask value; a failed `getSecret` registers unconfigured instead of throwing
+    - **models and built-in $/MTok prices** (Standard paid tier, verified 2026-09-29 from [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing); re-check that page and the [models](https://ai.google.dev/gemini-api/docs/models) page at implementation). Default `gemini-3.8-flash`. No dated snapshots, no Live / image / TTS ids, no Batch / Flex / Priority columns:
+      - `gemini-3.8-flash` — Gemini 3.8 Flash — input 0.75, output 3.75, cacheWrite 0, cacheRead 0.075. Introductory Standard rate through 2026-12-31. The 2027-01-01 standard rate (input 1.50, output 7.50, cacheRead 0.15) is not what 1.0.0 ships; a later plugin release or the Pricing override changes it
+      - `gemini-3.5-flash-lite` — Gemini 3.5 Flash-Lite — input 0.30, output 2.50, cacheWrite 0, cacheRead 0.03
+      - `gemini-3.1-pro-preview` — Gemini 3.1 Pro — input 2, output 12, cacheWrite 0, cacheRead 0.20. This is the Pro text id on the pricing page (no GA Pro id). Short-context rates only (prompts ≤ 200k). If implementation finds a GA id that replaced `gemini-3.1-pro-preview`, use that id and its short-context Standard rates. Do not also list `gemini-3.1-pro-preview-customtools`
+    - **wire is Interactions.** `POST {endpoint}/v1beta/interactions` with body `stream: true` and `store: false`. Auth header `x-goog-api-key` (not `Authorization: Bearer`, and never the key on the query string). Also send `Api-Revision` with the date the [Interactions quickstart](https://ai.google.dev/gemini-api/docs/interactions/quickstart) documents at implementation (the page on 2026-09-29 shows `2026-05-20`). Default endpoint `https://generativelanguage.googleapis.com`. Verify `GET {endpoint}/v1beta/models` with the same key header
+    - **emit the published events.** Reuse `consumeSse` (it already ignores the SSE `event:` line and parses `data:` JSON; Interactions puts `event_type` on that JSON). Text: a `model_output` step whose delta type is `text` → `{ type: 'text_delta', text }`. Do not emit `thought`, `thought_summary`, or `thought_signature` as text. Each `function_call` step: `step.start` carries `id` and `name`; `step.delta` accumulates `arguments_delta` (pin the delta field from the [streaming guide](https://ai.google.dev/gemini-api/docs/streaming) at implementation); `step.stop` seals it. Then **one** `{ type: 'tool_use', calls: [ { id, name, args }, … ] }`. A call whose JSON never parses is `{ type: 'tool_use_truncated', id, name, jsonLen }` — do not drop the valid siblings. Usage is `{ type: 'usage', tokensIn, tokensOut, cacheWrite, cacheRead }` from `interaction.completed` → `usage` (see `mapUsage`). `done.stopReason` is the normalized trio: any sealed function call, or interaction status `requires_action`, → `tool`; a documented max-token / length finish → `length` (pin the field at implementation); else `end`
+    - **`mapUsage`.** From the completed-interaction usage object: `tokensIn` = `total_input_tokens`; `tokensOut` = `total_output_tokens` + `total_thought_tokens` (the pricing page bills thinking at the output rate, and the streaming example adds the two counters separately: 11 + 90 + 245 = 346); `cacheRead` = `total_cached_tokens`; `cacheWrite` = 0. Do not also add `total_tool_use_tokens` unless the usage guide says those tokens sit outside `total_output_tokens`. The published example has `total_cached_tokens: 0`, so it does not show whether cached tokens are inside `total_input_tokens`. Subtract them from `tokensIn` only when the usage guide says they are included; until then, do not subtract. Test fixture is that published example
+    - **message and tool map.** `toGoogleTools`: each ai-core tool becomes `{ type: 'function', name, description, parameters: schema }`. `toGoogleInput`: system string → the system-instruction field named in the Interactions text-generation guide at implementation (not a `user_input` step); user / assistant / tool history → Interactions `input` steps with `store: false`; `role: 'tool'` → `{ type: 'function_result', name, call_id, result: [ { type: 'text', text } ] }`; assistant `toolCalls` → `{ type: 'function_call', id, name, arguments }` with `arguments` as an object; image parts `{ type: 'image', mimeType, data }` → `{ type: 'image', mime_type, data }` (raw base64, not a data URL). Unknown part types are absent, not an error. Send configured max output tokens on the field that guide documents; if it documents none, omit the field and still publish `maxTokens` on the descriptor. Do not send Google hosted tools (Search, code execution, URL context, file search, computer use, MCP)
+    - **price table in $/MTok**, same four keys `computeCost` reads. `cacheWrite` is 0 on every built-in row: Google bills context-cache storage per hour, not as a per-request write-token count, and that hourly product is not in this table. `cacheRead` is the context-caching token price. Plugin-config `priceTableOverride` merges on top; a row is kept only when all four rates are finite numbers (0 is finite); invalid JSON keeps the built-in table. An unknown model leaves cost `null`, never zero. Long-context (2×) Pro rates are not a second table in 1.0.0 — override JSON is the escape hatch
+    - plugin config (W-210): `apiKey` password (`AIza…` placeholder), Verify button (`jPulse.plugins.aiGoogle.verifyApiKey`) that POSTs the **form** key and endpoint so unsaved works, `model` / `endpoint` / `timeoutMs` / `maxTokens`, Pricing tab override. Completions use `getSecret`. Verify and errors never return the key. `sanitizeError` redacts `AIza…` tokens. `global.PluginModel` is never assigned — import `webapp/model/plugin.js` the way OpenAI does
+    - **errors.** Missing key → `AI_NO_API_KEY`. 429 and 503 → `AI_RATE_LIMIT` `retryable: true`, except a body matching `limit: 0` or "upgrade your tier" (a permanent quota, such as Pro at 0 input tokens per minute on the free tier) → `AI_PROVIDER_ERROR` `retryable: false`. The message is the provider `error.message`: the body is read as text and a leading `)]}'` prefix is stripped, so the chat shows Google's sentence rather than the HTTP status text. A retryable response's `Retry-After` is attached as `retryAfterMs`, clamped at 30 seconds; the turn loop decides the wait. 503 is the documented overload / unavailable status; Google has no 529. Plugin timer → `AI_TIMEOUT`. `abortSignal` returns silently. W-236 cause codes (`ECONNRESET`, `ECONNREFUSED`, `ETIMEDOUT`, `EPIPE`, `EAI_AGAIN`, `UND_ERR_SOCKET`, `UND_ERR_CONNECT_TIMEOUT`) → `AI_PROVIDER_ERROR` `retryable: true` with `fetch failed (CODE)` through `sanitizeError`. `ENOTFOUND` and TLS stay fatal
+    - **turn thought store.** Module-level `Map` keyed by `context.turnId`. During a stream, reassemble each `thought` step (`step.start` type `thought`, then `thought_signature` / `thought_summary` deltas) into the step object Google documents (pin the shape at implementation), in stream order, together with the `call_id`s of the function calls in that round. A round that emits `tool_use` appends `{ steps, callIds }` to the turn's entry. The next `completeGoogle` call with the same `turnId` has `toGoogleInput` insert the stored steps right before the matching `function_call` items. A round that ends without a tool call deletes the entry. Every access also drops entries older than 30 minutes, which covers cancel, stall, timeout, and error exits the plugin never sees. A failed or retried attempt adds nothing. No `turnId` on the context → no store, map the transcript as is. Thought steps are never emitted as events, so they never reach the browser, the log, or the stored turn
+    - no `thinking_level` (or thinking-budget) config in 1.0.0 — API default. Thinking tokens still count in `tokensOut`
+    - `dependencies.plugins: { 'ai-core': { version: '>=1.0.0', npmPackage: '@jpulse-net/plugin-ai-core' } }`, `jpulseVersion: '>=2.0.2'`, `autoEnable: true`. Single-plugin package like `ai-openai` / `ai-anthropic`, not a bundle
+- deliverables:
+  - `plugins/ai-google/plugin.json`, `package.json`:
+    - `name: 'ai-google'`, `npmPackage: '@jpulse-net/plugin-ai-google'`, `version: '1.0.0'`, `jpulseVersion: '>=2.0.2'`, `autoEnable: true`, the plugin dependency on `ai-core`, Provider + Pricing schema cloned from OpenAI (Gemini copy, `AIza…` placeholder, default model `gemini-3.8-flash`, endpoint `https://generativelanguage.googleapis.com`, completions `POST /v1beta/interactions`, Verify `GET /v1beta/models`). Icon is a Lucide-style four-point spark in `currentColor` (stroke width 2, round caps and joins, no fill) — the Gemini mark approved from the reference image. Not an emoji and not a filled trademark. W-224's "not the four-point spark" applies to the Anthropic icon only
+  - `plugins/ai-google/webapp/controller/aiGoogle.js`:
+    - exported helpers the tests import: `consumeSse`, `mapUsage`, `mapStopReason`, `sanitizeError`, `toGoogleTools`, `toGoogleInput` (alias `toGoogleMessages`), `mergePriceTable`, `resolveVerifyApiKey`, `completeGoogle`, `pingModels`. Hooks + `POST /api/1/aiGoogle/verify-api-key` (`auth: 'admin'`)
+  - `plugins/ai-google/webapp/view/jpulse-common.js`:
+    - `jPulse.plugins.aiGoogle.verifyApiKey` — form values, toast, never logs the key
+  - `plugins/ai-google/webapp/tests/unit/`:
+    - same three-file split as OpenAI (`complete-google.test.js`, `helpers.test.js`, `descriptor.test.js`), all with a **fake `fetch`** — no network, no real key
+    - SSE parser against a split chunk, a malformed `data:` line, and a block that has both an `event:` line and a `data:` line
+    - `mapUsage` four-way mapping from the documented `interaction.completed` usage object (the 11 / 90 / 245 example); `mapStopReason` for tool / length / other; a `thought` delta is not a `text_delta`
+    - turn thought store: round 1 streams a `thought` step and a function call; round 2 (same `turnId`) request body contains that thought step, unchanged, before the `function_call`; no emitted event contains the signature; a final text round deletes the entry; a different `turnId` gets nothing; an entry past 30 minutes is dropped; no `turnId` → nothing stored
+    - `sanitizeError` redacts `AIza…` and never echoes the key from an HTTP error body
+    - `completeGoogle` with a fake `fetch`: request has `store: false`, header `x-goog-api-key`, and no key in the URL; a text-only Interactions stream; a round with **two** function calls emitted as one `calls` array; a truncated tool JSON that does not drop a valid sibling; 429 and 503 retryable, including a text body whose `)]}'` prefix is stripped and whose `Retry-After` becomes `retryAfterMs`; a 429 whose message says `limit: 0` or "upgrade your tier" is not retryable; missing key → `AI_NO_API_KEY`; `abortSignal` cancels the in-flight request and returns without a provider error; `ECONNRESET` retryable; `ENOTFOUND` fatal
+    - `priceTable` stays in $/MTok through register, including `cacheWrite: 0`; an override JSON merges; invalid JSON is ignored; unknown model → `null` rates
+    - `resolveVerifyApiKey`: unsaved non-mask wins; mask/empty falls back to `getSecret`; empty both → not configured
+    - descriptor: `plugin: 'ai-google'`, `capabilities.vision === true`, `configured` follows the stored key
+  - `plugins/ai-google/docs/README.md`, `README.md`:
+    - install `npx jpulse plugin install @jpulse-net/plugin-ai-google` (pulls `ai-core`), enable, paste key, Verify then Save, set Site Configuration → AI default / allowed list, `jpulseVersion`, hooks used, 1.0.0 note. Guide URL `/jpulse-docs/installed-plugins/ai-google/README` (trailing slash 404s). Pricing help states the 3.8 Flash introductory rate and the 2027-01-01 step-up. No W-number in user-facing docs
+  - `plugins/ai-google/webapp/bump-version.conf`, `jest.config.cjs`:
+    - single-plugin list. `npm test` from this directory chdirs to the framework checkout the same way OpenAI does
+  - `plugins/ai-google/commit-message.txt`:
+    - written at implement / commit time
+  - `docs/dev/design/W-223-ai-agent.md` (framework repo, with this work-item text — not a plugin commit):
+    - §5.1 package table gains `@jpulse-net/plugin-ai-google`. §21.14 follow-on row names W-251. A short TD-18 records state: Interactions wire, `store: false`, thought steps held in plugin memory for one turn, no `ai-core` change; trigger for a core field is a need to persist or replay them across turns
+  - `docs/ai-agent.md` and `docs/genai-instructions.md` (framework repo, at publish — not a plugin commit):
+    - Install / Configure name `ai-google` next to `ai-anthropic` and `ai-openai`. No W-number. `ai-core` / `ai-mock` guides that name the provider list wait for the next bundle publish, same as the OpenAI wording change
+- notes:
+  - **the plugin tree is implemented** under `plugins/ai-google` (its own repo). The item stays 🚧 IN_PROGRESS until you mark it done
+  - **can this ship without a live Gemini key?** Yes, for 1.0.0. Acceptance is the fake-`fetch` unit suite (the same method `ai-openai` used). A key was used before publish: Verify, a Hello AI Flash turn, a Pro free-tier `limit: 0` reply (not retried), and a tool round that applied. Those checks are not in CI. Do not widen `ai-core` to store thought steps in this item
+  - design source: `docs/dev/design/W-223-ai-agent.md` §9.2–§9.4 (contract), §5.1, §21.14. Clone source: `plugins/ai-openai` 1.0.0 (W-250). Vendor source: Interactions quickstart and streaming guide, pricing page verified 2026-09-29
+  - **repo layout: `ai-google` is its own git repo and its own commit**, sibling under `plugins/` (gitignored by the framework except `hello-world`), same as `ai-openai` / `ai-anthropic`. One publish of `@jpulse-net/plugin-ai-google` 1.0.0. No `ai-core` version bump
+  - `global.AiCore` is for site code. This plugin must not import from `plugins/ai-core/`. Completions go through the hooks; cost is computed by the loop from the descriptor's `priceTable` plus the `usage` event
+  - `PluginModel.getSecret` / `isSensitiveMask` — `global.PluginModel` is never assigned; import `webapp/model/plugin.js`
+  - **out of scope:** `generateContent` / `streamGenerateContent`; `previous_interaction_id` server history; persisting thought steps across turns or restarts; Google hosted tools; `thinking_level` config; Live API; image-generation and TTS models; Batch / Flex / Priority price columns; long-context price rows; hourly cache-storage billing; a live-key manual test; any `ai-core` or framework runtime change; Latest Release Highlights / `docs/CHANGELOG.md` until the framework release that accompanies the plugin publish
+  - no `LICENSE` file (same as `ai-openai` / `ai-core` 1.0.0). BSL 1.1 in headers, author/repo rewritten, no OpenAI leftover copy
+  - Verify never receives the stored-only value from the button callback — only the form field (mask or newly typed). That is the W-210 rule
+  - do not run the bump-version script against this repo while implementing, and do not edit `.jpulse/` in tests
+  - naming: `aiGoogle.js`, `AiGoogleController`, `jPulse.plugins.aiGoogle`, route `/api/1/aiGoogle/verify-api-key` — same collapse as `aiOpenai`
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -10659,6 +10739,11 @@ old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - version history: label is not shown in history table
+
+ai pending:
+- add /models alias to /model
+- in model list, use svg icon, such as: /model ai-anthropic/claude-sonnet-5 — A\ Claude Sonnet 5
+- ai-core: some const as admin config, such as RETRYABLE_WAIT_MS in webapp/utils/agent/turnLoop.js
 
 ### Potential next items:
 - W-0: i18n: vue.js SPA support
@@ -10685,7 +10770,7 @@ release prep:
 plugin release prep:
 - review tt-git-diff.txt for accuracy and completness of work item
 - review work item and design doc if it matches actual code & fix if needed
-- assume W-250, v1.0.0, 2026-09-29
+- assume W-251, v1.0.0, 2026-09-30
 - 3 plugin README.md & docs/README.md: add release to Plugin releases section
 - 3 plugin commit-message.txt: update message
 
@@ -10706,7 +10791,7 @@ git tag v2.0.9; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.0 2026-09-29
+node ../../bin/bump-version.js 1.0.0 2026-09-30
 git diff
 git status
 git add .

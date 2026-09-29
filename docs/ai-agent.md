@@ -29,16 +29,17 @@ Requires jPulse Framework >= 2.0.8.
 ```bash
 npx jpulse plugin install @jpulse-net/plugin-ai-core
 npx jpulse plugin install @jpulse-net/plugin-ai-anthropic
+npx jpulse plugin install @jpulse-net/plugin-ai-openai
 ```
 
-The first package is a bundle: it installs `ai-core`, `ai-mock`, and `hello-ai`. All three have `autoEnable: true`. Disable Hello AI to hide the demo without turning off AI. The second is the Anthropic provider (API key required for live models).
+The first package is a bundle: it installs `ai-core`, `ai-mock`, and `hello-ai`. All three have `autoEnable: true`. Disable Hello AI to hide the demo without turning off AI. The next two are commercial providers (API key required for live models). Install the one your site uses, or both.
 
 See [Managing Plugins](plugins/managing-plugins.md) for enable, disable, and update.
 
 ## Configure
 
 1. **Site Configuration → AI Agent** — master switch, allowed roles, default and allowed models, quota, loop limits, tool policy, retention, site instructions, the false-claim phrase list, and the source / URL / image caps.
-2. **Admin → Plugins → ai-anthropic** — API key (password field), endpoint, timeout. Use Verify after saving.
+2. **Admin → Plugins → ai-anthropic** or **ai-openai** — API key (password field), endpoint, timeout. Use Verify after saving.
 3. **Admin → Plugins → ai-core** — debug dumps only. Leave them off.
 4. **Live probe** — [`/jpulse-plugins/ai-core.shtml`](/jpulse-plugins/ai-core.shtml) shows which transport, models, and tools the site actually has.
 

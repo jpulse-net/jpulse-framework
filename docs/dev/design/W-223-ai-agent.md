@@ -1037,9 +1037,6 @@ evaluating the design can stop after this section.
   it is not in scope (TD-03).
 - **Service accounts and guest access.** §6.3 reserves the one field they
   need; neither is implemented (TD-04).
-- **The `ai-openai` provider.** The provider contract is proven by
-  `ai-anthropic` and `ai-mock`; a second commercial provider adds coverage, not
-  design (TD-11).
 - **Cross-process turn migration.** A turn runs to completion in the process
   that started it, guarded by the existing Redis lease.
 
@@ -1196,7 +1193,7 @@ The bundle is drawn tightly:
 |---|---|---|
 | `@jpulse-net/plugin-ai-core` | `ai-core` + `ai-mock` + `hello-ai` | Everything needed to stand the server core up and see it work, with no API key and no spend. `hello-ai` was a view inside `ai-core` from 1.0.2 through 1.0.5. W-231 makes it a third bundle member so an admin can disable the demo without disabling AI |
 | `@jpulse-net/plugin-ai-anthropic` | `ai-anthropic` | Depends on `ai-core`; installed only by a site that uses Anthropic |
-| *(deferred)* | `ai-openai` | TD-11 |
+| `@jpulse-net/plugin-ai-openai` | `ai-openai` | W-250. Depends on `ai-core`; installed only by a site that uses OpenAI |
 
 The reasoning for bundling `ai-mock` with `ai-core` rather than shipping it
 separately: a freshly installed `ai-core` with no provider is a feature that
@@ -3101,18 +3098,18 @@ and becoming MCP-exposable for free.
 
 ### TD-11 The `ai-openai` provider
 
-**State.** Not planned for W-223 … W-228. `ai-anthropic` proves the contract
-against a commercial provider and `ai-mock` proves it against none.
+**State.** W-250, `@jpulse-net/plugin-ai-openai` 1.0.0. Clone of
+`ai-anthropic`; Responses API wire; no `ai-core` change.
 
-**Why deferred.** A second commercial provider adds coverage, not design, and
-it would extend the work item without testing anything the first does not. The
-model-selection surface (§9.5) is built and tested regardless, using the mock
-and Anthropic as the two entries.
+**Why deferred (W-223 … W-228).** A second commercial provider added
+coverage, not design, and would have extended those items without testing
+anything the first did not. The model-selection surface (§9.5) was built
+and tested using the mock and Anthropic as the two entries.
 
-**Trigger.** Demand, or the desire to prove the contract against a second wire
-format before declaring it stable. It is a standalone package
-(`@jpulse-net/plugin-ai-openai`) and therefore a standalone work item that
-needs no change to `ai-core`.
+**What landed.** A standalone package that speaks `onAiProviderRegister` /
+`onAiComplete`. Completions `POST /v1/responses`. Verify `GET /v1/models`.
+Default model `gpt-6-sol`. Fake-`fetch` unit tests; a live key is not
+required to ship.
 
 ### TD-12 Per-scope tool policy
 
@@ -3818,7 +3815,7 @@ Each its own item, written when wanted rather than scheduled now:
 | Follow-on | Depends on | Note |
 |---|---|---|
 | `ai-mcp-server` | W-223 phase 1 only | The controller-centric case that validates the layer boundary (§15.1). Its own plugin, and it needs nothing from W-224 … W-228 — which is the whole point of drawing the boundary first (§5.2) |
-| `ai-openai` | W-224 | TD-11. A standalone package needing no `ai-core` change |
+| `ai-openai` | W-224 | W-250. TD-11. A standalone package needing no `ai-core` change |
 | Reference-site migration | per layer, §18 | The site's own repository, sequenced against the items above |
 
 

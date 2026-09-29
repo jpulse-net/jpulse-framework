@@ -347,7 +347,7 @@ Complete details:
 - What to learn: Theme-aware development, CSS variables, theme structure
 - Reference: [Themes](themes.md), [Creating Themes](plugins/creating-themes.md)
 
-**AI Agent**: install `@jpulse-net/plugin-ai-core` (bundle includes `ai-mock` and the Hello AI sample) and a provider such as `@jpulse-net/plugin-ai-anthropic`. Demo: `/hello-ai/` (Hello AI plugin, no API key).
+**AI Agent**: install `@jpulse-net/plugin-ai-core` (bundle includes `ai-mock` and the Hello AI sample) and a provider: `@jpulse-net/plugin-ai-anthropic` or `@jpulse-net/plugin-ai-openai`. Demo: `/hello-ai/` (Hello AI plugin, no API key).
 - Site controller registers `onAiScopeResolve`, `onAiToolRegister`, `onAiToolExecute`, `onAiPromptFragment`
 - View: `jPulse.ai.panel.create({ scopeType, scopeId })` — chat panel is the UI, not the product
 - Client-host modules live in `site/webapp/utils/ai-tools/`; do not invent a chat stack

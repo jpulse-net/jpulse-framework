@@ -27690,3 +27690,158 @@ Rewrote the tt-commit.txt body. First line unchanged. Docs-only framework commit
 
 
 ============================================================
+2026-09-22 16:27
+
+actually we need one more fix for hello-ai
+- for guest users a toast is shown on page load -- good
+- the ai panel can be opened, a prompt can be sent, and nothing happens
+- in that case it is better to show the "Authentication required" error toast again
+
+A guest send failed in ensureThread before sendText's error toast, so the panel stayed quiet. sendText now catches that failure and shows the same Authentication required toast, and puts the prompt back in the box. Verified on /hello-ai/ as a guest: page-load toast, then send shows the toast again. Unit test covers the catch. No version bump.
+
+
+============================================================
+2026-09-22 16:38
+
+looks good
+- give me a one line commit message for a follow-up commit without build, start with:
+W-248, v1.0.16, 2026-09-22: ai-core follow-up:
+
+W-248, v1.0.16, 2026-09-22: ai-core follow-up: show Authentication required when a guest sends a prompt
+
+
+============================================================
+2026-09-26 16:51
+
+next: W-250, v1.0.0, 2026-09-26: ai-openai: initial version
+- objective inital version of Open AI plugin
+- clone from existing ai-anthropic plugin
+- I do not have an open ai / chatgpt key for testing, can this plugin be done without an actual test?
+- create work item @work-items.md (10574-10585)
+- wait with coding
+
+Filled W-250 in docs/dev/work-items.md (status left IN_PROGRESS). Spec: clone ai-anthropic 1.0.2 into @jpulse-net/plugin-ai-openai, Responses API (not Chat Completions), models gpt-6-sol / luna / astra with 2026-09-26 $/MTok prices, fake-fetch unit tests as the 1.0.0 bar. Yes it can ship without a live OpenAI key; live Verify and a panel turn are a follow-up. No plugin code written.
+
+
+============================================================
+2026-09-26 16:54
+
+please implement
+
+Implemented W-250 @jpulse-net/plugin-ai-openai 1.0.0 as a clone of ai-anthropic 1.0.2. Responses API stream, password Verify, four-way $/MTok prices for gpt-6-sol / luna / astra. 39 fake-fetch unit tests passed. Design TD-11 and docs/ai-agent.md updated. Work item status left IN_PROGRESS. No live OpenAI key used.
+
+
+============================================================
+2026-09-26 17:06
+
+create the openai logo based on attached png
+- use same lucide format like the ai-anthropic svg
+
+Replaced the placeholder hexagon icon in plugins/ai-openai/plugin.json with a stroke drawing of the OpenAI knot: six identical strands (hexagon edge, 60-degree corner, outer arc) rotated 60 degrees apart. Same Lucide attributes as ai-anthropic (currentColor, width 2, round caps and joins). Previewed next to the reference PNG at 360px and 24px: shape and direction match. Temp preview files removed.
+
+
+============================================================
+2026-09-26 17:14
+
+shape is good; it's a bit tight, but that is to be expected
+
+Left the OpenAI knot in plugin.json as drawn. The tight fit in the admin plugin list is the 24px viewBox with stroke width 2; no change.
+
+
+============================================================
+2026-09-29 01:07
+
+- I signed up, and have a key named jpulse-dev
+- I configured the ai-openai plugin with the key
+- /hello-ai/ test is successful
+(logs: capability, readDraft turn, proposeRewrite turn, apply)
+
+Live Hello AI on gpt-6-sol succeeded: the model is on the picker, a read tool turn completed, a proposeRewrite turn completed, and Apply was recorded. That confirms the Responses wire, tool-call join, and stored key. Images, Luna/Astra, and cache-cost numbers were not in this run.
+
+
+============================================================
+2026-09-29 01:09
+
+what additional tests can I do?
+
+Suggested live checks still open after the gpt-6-sol tool turns: Verify with the saved key and with a bad unsaved key, one short turn on Luna and Astra, Admin → AI usage for non-zero tokens and a non-null cost, an image paste if Redis is on, and a bad endpoint restored afterward. Skip another Sol read/propose/apply.
+
+
+============================================================
+2026-09-29 01:18
+
+(logs: verify valid, verify invalid, two more turns, usage page, image stage + describe)
+hmm, /admin/ai-usage.shtml does not show stats by model
+
+Verify, the extra turns, vision, and the 2026-09-29 cost all passed. Usage is subject+period by design in ai-core (aiUsage key subject:period); provider and model are on each turn, not on the usage rollup. The September month row stays "Kosten unbekannt" because an earlier null cost in that month set the flag. No code change.
+
+
+============================================================
+2026-09-29 01:31
+
+I created a https://github.com/jpulse-net/plugin-ai-openai repo, git@github.com:jpulse-net/plugin-ai-openai.git
+- walk me through git init
+
+Walked through a nested git init in plugins/ai-openai, matching ai-anthropic: copy that .gitignore first, git init -b main, commit, remote git@github.com:jpulse-net/plugin-ai-openai.git, push -u origin main. The GitHub repo is empty, so no README pull is needed. Did not run the git commands.
+
+
+============================================================
+2026-09-29 01:33
+
+(git init -b main done; status shows only plugin files)
+do I need to configure for repo write?
+
+No extra git config. Global user.name/email and the existing SSH key for jpulse-net (same as plugin-ai-core) cover the push. The earlier gs output was the framework repo, before this directory had its own .git.
+
+
+============================================================
+2026-09-29 01:41
+
+review if all files are ok
+(bump-version 1.0.0 2026-09-29; git status untracked list)
+
+The commit set is the right one: .gitignore, README, docs, jest.config.cjs, package.json, plugin.json, webapp. commit-message.txt stays out via commit-*.txt. Headers are 1.0.0 / 2026-09-29. Updated the two release-note bullets from 2026-09-26 to 2026-09-29. Price "verified 2026-09-26" left as the pricing check date. find hid .gitignore because the filter matches ".git".
+
+
+============================================================
+2026-09-29 01:45
+
+git commit -F commit-message.txt succeeded (b7795cc, 12 files). git tag v1.0.0. git push origin main --tags failed: origin does not appear to be a git repository.
+
+The remote was never added. Commit and tag are local. Next: git remote add origin git@github.com:jpulse-net/plugin-ai-openai.git then git push -u origin main --tags.
+
+
+============================================================
+2026-09-29 01:46
+
+that's why I asked before if we need to init for writing
+(then: remote add, push main + v1.0.0, npm publish @jpulse-net/plugin-ai-openai@1.0.0)
+
+The earlier "repo write" answer covered SSH identity, not the missing origin remote. Push of main and tag v1.0.0 succeeded. npm publish to GitHub Packages succeeded. The repository.url normalize warning is cosmetic; the published tarball is 1.0.0.
+
+
+============================================================
+2026-09-29 01:50
+
+do any jpulse-framework docs or ai-core plugin docs need any update?
+
+docs/ai-agent.md already lists both providers. Stale: docs/genai-instructions.md names only Anthropic; design §2 still lists ai-openai as not built (TD-11 state and the package table are already updated). ai-core docs/README.md install sample and ai-mock docs/README.md still name only the Anthropic package. Those two ship inside @jpulse-net/plugin-ai-core 1.0.16, so a wording change waits for the next bundle publish. Old work items, the design revision log, and the framework changelog stay as history.
+
+
+============================================================
+2026-09-29 01:53
+
+please fix the framwork and ai-core docs
+
+Updated docs/genai-instructions.md to name both providers. Removed the ai-openai bullet from design §2 Out of Scope (TD-11 already records W-250). plugins/ai-core/docs/README.md install sample now includes ai-openai and says to install the provider the site uses. plugins/ai-mock/docs/README.md names both commercial packages. No version bump. The plugin guide text is local until the next ai-core bundle publish.
+
+
+============================================================
+2026-09-29 02:01
+
+if I want to start a new ai-google plugin for gemini, should I continue here, or start a new chat?
+
+Start a new chat. This thread is the OpenAI plugin from the work item through publish. A Gemini plugin should start from the provider contract and the ai-openai clone, with its own work item, and hold coding until that item is written.
+
+
+============================================================

@@ -10548,6 +10548,20 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **listings are excerpts.** The page says when a schema, a budget message, or an example prompt is only in the source file
   - do not run the bump-version script while implementing, and do not touch `.jpulse/`
 
+### W-249, v1.0.2, 2026-09-24: ai-anthropic: replace icon with official A\ icon
+- status: ✅ DONE
+- type: Feature
+- objectives:
+  - Replace the pen icon with a stroke drawing of the official Anthropic mark
+- features:
+  - Admin → Plugins shows the A\ mark for ai-anthropic
+  - Same Lucide stroke as the other plugin icons: `currentColor`, width 2, round caps, so it follows light and dark mode
+- deliverables:
+  - `plugins/ai-anthropic/plugin.json`:
+    - `icon` is the four-stroke A\ mark. No other product change
+- notes:
+  - Icon only. No controller, test, or `ai-core` change.
+
 
 
 
@@ -10557,6 +10571,78 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-250, v1.0.0, 2026-09-29: ai-openai: initial version
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- repository: github.com/jpulse-net/plugin-ai-openai (new separate repo; single plugin, not a bundle)
+- npm package: @jpulse-net/plugin-ai-openai
+- objectives:
+  - first version of `@jpulse-net/plugin-ai-openai`: an OpenAI provider plugin that speaks the published `ai-core` contract (`onAiProviderRegister` / `onAiComplete`) so the same HTTP and panel turns that run on `ai-mock` and Claude run on GPT
+  - clone the `ai-anthropic` package shape (config, Verify, four-way $/MTok prices, fake-`fetch` tests, own git repo) and replace only the vendor wire
+  - prove TD-11: a second commercial provider is a standalone package and needs no `ai-core` change
+- prerequisites:
+  - W-224, `@jpulse-net/plugin-ai-anthropic` 1.0.0 (and the 1.0.1 retryable-network and 1.0.2 icon follow-ups): the clone source. Current tree is `plugins/ai-anthropic` 1.0.2
+  - W-223 / current `@jpulse-net/plugin-ai-core` (>=1.0.0): the turn loop, array `tool_use`, four-way `computeCost` in $/MTok, `configured` on the descriptor, capability probe, model picker. No core change in this item
+  - W-210, v1.7.14: `type: 'password'` + `PluginModel.getSecret` / `isSensitiveMask` — Verify uses the unsaved field the same way Anthropic and `EmailController` do
+  - W-221, v2.0.1: `dependencies.plugins` may name `npmPackage: '@jpulse-net/plugin-ai-core'` so installing this provider alone pulls the bundle
+- rationale:
+  - design TD-11 deferred OpenAI because Anthropic already proved the commercial-provider contract. The trigger was demand, or proving the contract against a **second wire format**. Both apply now: sites ask for ChatGPT / OpenAI, and the OpenAI Responses API is a different SSE vocabulary from Anthropic Messages
+  - a commercial provider is its own package because it churns, it carries a credential and a price table a site may not want, and bundling it with `ai-core` would make every mock-only install carry OpenAI. Same reason Anthropic is not in the bundle
+  - **clone, do not invent a new plugin architecture.** `ai-anthropic` already has password key, unsaved Verify, Pricing override, `configured`, vision parts, parallel `calls`, truncated-tool siblings, 429 retry, W-236 cause-code retry, and fake-`fetch` tests. Copy that skeleton. The new work is the OpenAI request/response map
+  - **no live OpenAI key is required to ship 1.0.0.** Anthropic never needed a real `sk-ant-` in CI: `completeAnthropic` takes `deps.fetch` and the tests feed documented SSE. The same bar applies here. Live Verify against `api.openai.com` and a Hello AI turn stay a follow-up when a key exists
+- features:
+  - **the provider** (`@jpulse-net/plugin-ai-openai` 1.0.0). Copy `plugins/ai-anthropic`, then rewrite the vendor pieces:
+    - `onAiProviderRegister` descriptor: `{ plugin: 'ai-openai', label: 'OpenAI', models, capabilities: { vision: true }, priceTable, maxTokens, configured }`. `configured` is true when `PluginModel.getSecret('ai-openai', 'apiKey')` returns a non-empty, non-mask value; a failed `getSecret` registers unconfigured instead of throwing
+    - **models and built-in $/MTok prices** (short-context Standard, verified 2026-09-26 from [OpenAI models](https://developers.openai.com/api/docs/models) / [pricing](https://developers.openai.com/api/docs/pricing); re-check both pages at implementation). Default `gpt-6-sol`. No dated snapshots in the select:
+      - `gpt-6-sol` — GPT-6 Sol — input 2, output 10, cacheWrite 2.5, cacheRead 0.2
+      - `gpt-6-luna` — GPT-6 Luna — input 0.10, output 0.50, cacheWrite 0.125, cacheRead 0.01
+      - `gpt-6-astra` — GPT-6 Astra — input 10, output 50, cacheWrite 12.5, cacheRead 1
+    - **wire is the Responses API**, not Chat Completions. Official current models are documented on Responses; GPT-6 Astra requires Responses for tool calling. Completions `POST {endpoint}/v1/responses` with `stream: true`. Verify `GET {endpoint}/v1/models`. Auth `Authorization: Bearer <key>` (not `x-api-key`). Default endpoint `https://api.openai.com`
+    - **emit the published events.** Reuse `consumeSse` (split and malformed chunks). Map Responses events: text deltas → `{ type: 'text_delta', text }`; each completed function call collected, then **one** `{ type: 'tool_use', calls: [ { id, name, args }, … ] }` (`id` is OpenAI `call_id`). A call whose JSON never parses is `{ type: 'tool_use_truncated', id, name, jsonLen }` — do not drop the valid siblings. Usage is `{ type: 'usage', tokensIn, tokensOut, cacheWrite, cacheRead }` from the official Responses usage object (field names pinned in tests from the docs at implementation; typical: `input_tokens` / `output_tokens` / cached-input and cache-write details). `done.stopReason` is the normalized trio: function/tool stop → `tool`, max-output / length → `length`, else `end`
+    - **message and tool map.** `toOpenaiTools`: each ai-core tool becomes `{ type: 'function', name, description, parameters: schema }`. `toOpenaiMessages` (or `toOpenaiInput`): system string → top-level `instructions`; user/assistant/tool history → Responses `input` items; `role: 'tool'` → `function_call_output` with `call_id`; image parts `{ type: 'image', mimeType, data }` → Responses image input (data URL). Unknown part types are absent, not an error. Do not send OpenAI hosted tools (web search, file search, computer use, MCP, code interpreter)
+    - **price table in $/MTok**, same four keys `computeCost` reads. Plugin-config `priceTableOverride` merges on top; a row is kept only when all four rates are finite numbers; invalid JSON keeps the built-in table. An unknown model leaves cost `null`, never zero. Long-context (2×) rates are not a second table in 1.0.0 — override JSON is the escape hatch
+    - plugin config (W-210): `apiKey` password (`sk-…` / `sk-proj-…` placeholder), Verify button (`jPulse.plugins.aiOpenai.verifyApiKey`) that POSTs the **form** key and endpoint so unsaved works, `model` / `endpoint` / `timeoutMs` / `maxTokens`, Pricing tab override. Completions use `getSecret`. Verify and errors never return the key. `sanitizeError` redacts `sk-` / `sk-proj-` / `sk-svcacct-` tokens. `global.PluginModel` is never assigned — import `webapp/model/plugin.js` the way Anthropic does
+    - **errors.** Missing key → `AI_NO_API_KEY`. 429 → `AI_RATE_LIMIT` `retryable: true` (OpenAI has no 529). Plugin timer → `AI_TIMEOUT`. `abortSignal` returns silently. W-236 cause codes (`ECONNRESET`, `ECONNREFUSED`, `ETIMEDOUT`, `EPIPE`, `EAI_AGAIN`, `UND_ERR_SOCKET`, `UND_ERR_CONNECT_TIMEOUT`) → `AI_PROVIDER_ERROR` `retryable: true` with `fetch failed (CODE)` through `sanitizeError`. `ENOTFOUND` and TLS stay fatal
+    - no `reasoning.effort` (or verbosity) config in 1.0.0 — API default. No organization header
+    - `dependencies.plugins: { 'ai-core': { version: '>=1.0.0', npmPackage: '@jpulse-net/plugin-ai-core' } }`, `jpulseVersion: '>=2.0.2'`, `autoEnable: true`. Single-plugin package like `ai-anthropic` / `auth-mfa`, not a bundle
+- deliverables:
+  - `plugins/ai-openai/plugin.json`, `package.json`:
+    - `name: 'ai-openai'`, `npmPackage: '@jpulse-net/plugin-ai-openai'`, `version: '1.0.0'`, `jpulseVersion: '>=2.0.2'`, `autoEnable: true`, the plugin dependency on `ai-core`, Provider + Pricing schema cloned from Anthropic (OpenAI copy, `sk-…` placeholder, default model `gpt-6-sol`, endpoint `https://api.openai.com`, completions path `/v1/responses`, Verify path `/v1/models`). Lucide-stroke official OpenAI mark (`currentColor`, width 2, round caps) — not an emoji
+  - `plugins/ai-openai/webapp/controller/aiOpenai.js`:
+    - exported helpers the tests import: `consumeSse`, `mapUsage`, `mapStopReason`, `sanitizeError`, `toOpenaiTools`, `toOpenaiMessages` (or `toOpenaiInput`), `mergePriceTable`, `resolveVerifyApiKey`, `completeOpenai`, `pingModels`. Hooks + `POST /api/1/aiOpenai/verify-api-key` (`auth: 'admin'`)
+  - `plugins/ai-openai/webapp/view/jpulse-common.js`:
+    - `jPulse.plugins.aiOpenai.verifyApiKey` — form values, toast, never logs the key
+  - `plugins/ai-openai/webapp/tests/unit/`:
+    - same three-file split as Anthropic (`complete-openai.test.js`, `helpers.test.js`, `descriptor.test.js`), all with a **fake `fetch`** — no network, no real key
+    - SSE parser against a split chunk and a malformed `data:` line
+    - `mapUsage` four-way mapping from the documented Responses usage shape; `mapStopReason` for tool / length / other
+    - `sanitizeError` redacts `sk-` / `sk-proj-` / `sk-svcacct-` and never echoes the key from an HTTP error body
+    - `completeOpenai` with a fake `fetch`: a text-only Responses stream; a round with **two** function calls emitted as one `calls` array; a truncated tool JSON that does not drop a valid sibling; 429 retryable; missing key → `AI_NO_API_KEY`; `abortSignal` cancels the in-flight request and returns without a provider error; `ECONNRESET` retryable; `ENOTFOUND` fatal
+    - `priceTable` stays in $/MTok through register; an override JSON merges; invalid JSON is ignored; unknown model → `null` rates
+    - `resolveVerifyApiKey`: unsaved non-mask wins; mask/empty falls back to `getSecret`; empty both → not configured
+    - descriptor: `plugin: 'ai-openai'`, `capabilities.vision === true`, `configured` follows the stored key
+  - `plugins/ai-openai/docs/README.md`, `README.md`:
+    - install `npx jpulse plugin install @jpulse-net/plugin-ai-openai` (pulls `ai-core`), enable, paste key, Verify then Save, set Site Configuration → AI default / allowed list, `jpulseVersion`, hooks used, 1.0.0 note. Guide URL `/jpulse-docs/installed-plugins/ai-openai/README` (trailing slash 404s). No W-number in user-facing docs
+  - `plugins/ai-openai/webapp/bump-version.conf`, `jest.config.cjs`:
+    - single-plugin list. `npm test` from this directory chdirs to the framework checkout the same way Anthropic does
+  - `plugins/ai-openai/commit-message.txt`:
+    - written at implement / commit time
+  - `docs/dev/design/W-223-ai-agent.md` (framework repo, with this work-item text — not a plugin commit):
+    - TD-11 state becomes this item; §5.1 package table and §21.14 follow-on row name W-250
+  - `docs/ai-agent.md` (framework repo, at publish — not a plugin commit):
+    - Install / Configure mention `ai-openai` next to `ai-anthropic`. No W-number
+- notes:
+  - **this pass is the spec only.** Do not create the plugin repo or write plugin code until a later instruction. The item stays 🚧 IN_PROGRESS
+  - **can this ship without a live OpenAI / ChatGPT key?** Yes, for 1.0.0. Acceptance is the fake-`fetch` unit suite (the same method `ai-anthropic` used). What a key would add — Verify against `api.openai.com`, a Hello AI / panel turn, confirming a model id still accepts Responses — is explicitly **out of the 1.0.0 bar** and is a follow-up when a key exists. Do not block publish on a live ping
+  - design source: `docs/dev/design/W-223-ai-agent.md` §9.2–§9.4 (contract), TD-11, §21.14. Clone source: `plugins/ai-anthropic` 1.0.2 (W-224 + W-236 + W-249)
+  - **repo layout: `ai-openai` is its own git repo and its own commit**, sibling under `plugins/` (gitignored by the framework except `hello-world`), same as `ai-anthropic` / `auth-mfa`. One publish of `@jpulse-net/plugin-ai-openai` 1.0.0. No `ai-core` version bump
+  - `global.AiCore` is for site code. This plugin must not import from `plugins/ai-core/`. Completions go through the hooks; cost is computed by the loop from the descriptor's `priceTable` plus the `usage` event
+  - `PluginModel.getSecret` / `isSensitiveMask` — `global.PluginModel` is never assigned; import `webapp/model/plugin.js`
+  - **out of scope:** Chat Completions (`/v1/chat/completions`); OpenAI hosted tools; reasoning-effort / verbosity config; long-context price rows; organization / project headers; image generation; a live-key manual test; any `ai-core` or framework runtime change; Latest Release Highlights / `docs/CHANGELOG.md` until the framework release that accompanies the plugin publish
+  - no `LICENSE` file (same as `ai-anthropic` / `ai-core` 1.0.0). BSL 1.1 in headers, author/repo rewritten, no Anthropic leftover copy
+  - Verify never receives the stored-only value from the button callback — only the form field (mask or newly typed). That is the W-210 rule
+  - do not run the bump-version script against this repo while implementing, and do not edit `.jpulse/` in tests
+  - naming: `aiOpenai.js`, `AiOpenaiController`, `jPulse.plugins.aiOpenai`, route `/api/1/aiOpenai/verify-api-key` — same collapse as `aiAnthropic`
 
 
 
@@ -10567,6 +10653,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
 - user registration: admin option to get notified by email
+- mcp server for ai-assisted development (ref NestJS)
 
 old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
@@ -10598,7 +10685,7 @@ release prep:
 plugin release prep:
 - review tt-git-diff.txt for accuracy and completness of work item
 - review work item and design doc if it matches actual code & fix if needed
-- assume W-248, v1.0.16, 2026-09-22
+- assume W-250, v1.0.0, 2026-09-29
 - 3 plugin README.md & docs/README.md: add release to Plugin releases section
 - 3 plugin commit-message.txt: update message
 
@@ -10619,12 +10706,12 @@ git tag v2.0.9; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.16 2026-09-22
+node ../../bin/bump-version.js 1.0.0 2026-09-29
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.16; git push origin main --tags
+git tag v1.0.0; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

@@ -10715,18 +10715,9 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - do not run the bump-version script against this repo while implementing, and do not edit `.jpulse/` in tests
   - naming: `aiGoogle.js`, `AiGoogleController`, `jPulse.plugins.aiGoogle`, route `/api/1/aiGoogle/verify-api-key` — same collapse as `aiOpenai`
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-252, v1.0.17, 2026-09-30: ai-core: hold retryable errors until the last attempt
-- status: 🚧 IN_PROGRESS
-- type: Fix
+- status: ✅ DONE
+- type: Bugfix
 - repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
 - npm package: @jpulse-net/plugin-ai-core
 - objectives:
@@ -10775,7 +10766,92 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **bump from `plugins/ai-core`.** `ai-mock` and `hello-ai` lockstep. Headers are still 1.0.16 until you bump. Do not run the bump script from here, and do not touch `.jpulse/`
   - framework `docs/ai-agent.md` and `docs/genai-instructions.md` already name `ai-google`. Those files are the framework repo, not this plugin commit
   - a new provider round inside one turn starts the attempt count again. A permanent quota (`retryable: false`, such as Gemini `limit: 0`) is one error and is not this wait list — that flag is set by the provider plugin
-  - not committed
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-253, v1.0.18, 2026-09-30: ai-core: retry waits as site config, /models alias, provider icons, list rows
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
+- npm package: @jpulse-net/plugin-ai-core
+- objectives:
+  - `/models` works like `/model`, without being listed in `/help` or the docs
+  - each model row in the `/model` list and on the AI Core dashboard page shows its provider's SVG icon, so the rows group visually by provider
+  - the panel's linked blocks (`/help` commands, examples, `/model` models, `/conversations`) are real lists with aligned rows, and wrapped rows indent under their own text
+  - an admin can tune the retry schedule and the `Retry-After` cap without a code change
+- prerequisites:
+  - W-252, `@jpulse-net/plugin-ai-core` 1.0.17: `RETRYABLE_WAIT_MS`, `retryWaitMs`, `formatRetryLog`, and the "moving it to config stays on the pending list" note this item closes
+  - W-249 (`ai-anthropic` A\ icon), W-250 (`ai-openai`), W-251 (`ai-google`): each provider plugin already ships an SVG `icon` in its `plugin.json`. No provider plugin change in this item
+- rationale:
+  - `/models` is the natural plural people type. An alias is enough; `/help` lists only command names, the same as the existing `/clear` and `/resume` aliases
+  - the list shows 13 rows from 4 providers as plain text. Model ids differ in length (`mock-echo` vs `claude-fable-5-1`), so anything placed after the dash starts at a different spot on each row. A **leading** icon forms a fixed column, groups rows by provider at a glance, and serves as the row marker
+  - flat `div` rows have no list semantics (screen readers do not announce "list, N items") and a wrapped row starts back at the left edge. Generic bullets everywhere would waste width in a narrow panel: `/help` and `/conversations` rows already start with an aligned `/command`, and `/model` rows get the icon. Only the examples list (free-text prompts that can wrap) has no marker of its own
+  - retry waits and the cap are production turn-loop behavior, next to `maxRoundsPerTurn` and `turnTimeoutMs`, so they go in Site Configuration → AI Agent, not in the plugin-config page (that page is for diagnostics such as "Write debug dumps")
+- features:
+  - **`/models` alias.** `aliases: ['models']` on the `model` entry in both catalogs (server `utils/panel/slash.js` and browser `view/jpulse-common.js`). The slash picker shows `/model — …` when `/models` is typed. Not in `/help`, not in the README
+  - **provider map in the capability response.** `apiCapability` adds `providers: { '<plugin>': { label, icon } }`, one entry per provider that appears in `models`, so each SVG is sent once and not per model row
+    - icon source: `global.PluginManager.getPlugin(<plugin>).metadata.icon` (provider id equals plugin name). The provider plugin does not import from `plugins/ai-core/` and does not pass an icon through `onAiProviderRegister`
+    - `safeSvgIcon(value)`: accepted only when the trimmed string starts with `<svg` and ends with `</svg>`, and has no `<script`, `<foreignObject`, `on…=` attribute, or `javascript:`. Anything else, or no icon, falls back to the `ai-core` plugin's own robot icon (`providerMap(menu, providers, pluginManager)`). The client inserts a marker only when the string starts with `<svg`; otherwise that `/model` row uses the bullet marker. With no plugin manager, `providerMap` yields an empty icon
+  - **icon-first model rows.** Format is `<icon> [[/model provider/model]] — label`, with ` (off)` kept at the end. The icon is outside the link button (a click still only fills the compose box), `aria-hidden`, drawn in the text color (not the link color) at 1em, and dimmed on `(off)` rows
+  - **list rows for linked blocks.** `linkedBlock` / `appendLinkedRow` render model, command, example, and conversation rows as `ul` / `li` with `list-style: none` and a hanging indent. A row may carry a marker:
+    - `/model` models: the provider icon
+    - examples: a small bullet
+    - `/help` commands and `/conversations`: no marker (the leading `/command` is the marker)
+    - header lines (`Provider:`, `Model:`, `Available:`) and blank-line gaps stay outside the list
+  - **dashboard.** The model table on `/jpulse-plugins/ai-core.shtml` shows the same icon before the provider/model cell, from the same `providers` map
+  - **site config: `retryWaitMs`.** AI Agent tab, text field, comma-separated milliseconds, default `2000, 4000, 10000`. The number of entries is the number of retries (tries = entries + 1). Each value is clamped to 0–60000; at most 5 entries are used; non-numeric entries are dropped. A saved empty value means no retries; an unset value (never saved) means the default
+  - **site config: `retryAfterCapMs`.** AI Agent tab, number, default `30000`. Upper bound for a provider's `Retry-After` hint. A missing, zero, or negative value means the default. The rule from W-252 is unchanged: the wait is `min(slot, header, cap)`, and a header can only shorten a slot
+  - **loop reads settings.** `retryWaitMs(attempt, retryAfterMs, retry)` and `formatRetryLog(attempt, code, message, retryAfterMs, retry)` take an optional `{ waits, capMs }`; `runTurn` builds it from `settings.retryWaitMs` / `settings.retryAfterCapMs` and uses `retry.waits.length` in the two "attempts remain" checks, so the log line "attempt N of M" follows the configured schedule. Without the argument the defaults apply. `RETRYABLE_WAIT_MS` stays exported and is the frozen `DEFAULT_RETRY_WAIT_MS`
+  - **defaults live in `settings.js`.** `DEFAULT_RETRY_WAIT_MS`, `DEFAULT_RETRY_AFTER_CAP_MS`, and `parseRetryWaits(value)` are in `settings.js`, not `turnLoop.js`, because `turnLoop.js` already reaches `settings.js` through `prompt.js` (the reverse import would be circular)
+  - **stays a code constant:** `AUTO_TITLE_MAX`, `DEBUG_PRIOR_MAX`, `DEBUG_TEXT_MAX`, `RESULT_SIZE_CAP` (shared client/server and the WebSocket frame limit), `HARD_MAX_READ_CHARS` (ceiling above `maxSourceReadChars`), `SSE_HEARTBEAT_MS`, and the empty-HTML thresholds
+- deliverables:
+  - `plugins/ai-core/webapp/utils/panel/slash.js`:
+    - `model` entry gains `aliases: ['models']`
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - mirrored `models` alias; `providers` kept from the capability response; `modelStatusLines` returns rows with an icon marker; `linkedBlock` / `appendLinkedRow` render `ul` / `li` rows with an optional marker (icon, bullet, none); examples use the bullet; `/help` and `/conversations` use none
+  - `plugins/ai-core/webapp/view/jpulse-common.css`:
+    - `plg-ai-*` list, row, hanging-indent, bullet, and `plg-ai-model-icon` rules (1em, `currentColor`, dimmed on `(off)`), theme variables only
+  - `plugins/ai-core/webapp/controller/aiCore.js`:
+    - `apiCapability` adds `providers: providerMap(menu, providers)`; AI Agent config schema adds `retryWaitMs` (string, default `2000, 4000, 10000`) and `retryAfterCapMs` (number, default 30000) right after `turnTimeoutMs`
+  - `plugins/ai-core/webapp/utils/agent/providers.js`, `index.js`:
+    - `safeSvgIcon`, `providerMap`; `index.js` re-exports them plus `DEFAULT_RETRY_WAIT_MS`, `DEFAULT_RETRY_AFTER_CAP_MS`, `parseRetryWaits`
+  - `plugins/ai-core/webapp/utils/agent/settings.js`:
+    - retry defaults and `parseRetryWaits`; `AI_CONFIG_DEFAULTS` and `mergeSettings` gain `retryWaitMs` (parsed, clamped, empty vs unset) and `retryAfterCapMs` (positive, else default)
+  - `plugins/ai-core/webapp/utils/agent/turnLoop.js`:
+    - `retryPolicy`; `retryWaitMs` / `formatRetryLog` accept `{ waits, capMs }`; `runTurn` passes it from settings; the local `RETRY_AFTER_CAP_MS` constant is gone
+  - `plugins/ai-core/webapp/view/jpulse-plugins/ai-core.shtml`:
+    - model table shows the provider icon
+  - `plugins/ai-core/webapp/translations/en.conf`, `de.conf`:
+    - labels and help for `retryWaitMs` and `retryAfterCapMs`
+    - `modelSet` drops the trailing period (`Model set to %MODEL%` / `Modell gesetzt: %MODEL%`)
+  - tests under `plugins/ai-core/webapp/tests/unit/`:
+    - `hello-ai.test.js`: `/models` and `/models ai-mock/mock-echo` parse to `model`; the picker shows `model` for `/models`; the catalog does not list `models`; source scan for the mirrored browser alias, `listRow` markers (icon, bullet, none), `ul`/`li`, and the list / dimmed-icon CSS
+    - `providers.test.js`: `safeSvgIcon` accepts a plain SVG and rejects non-SVG, `<script`, `on…=`, `javascript:`, `<foreignObject`; `providerMap` gives one entry per provider, falls back to the `ai-core` icon, and yields `''` without a plugin manager
+    - `settings.test.js`: default schedule, custom list, clamping, 5-entry limit, saved empty = no retries, unset/null = default, cap default and custom; schema and en/de keys present
+    - `turn-loop.test.js`: a custom schedule sets the number of attempts, the waits, and the "attempt N of M" text; a custom cap bounds `Retry-After`; an empty schedule makes one attempt; the helpers keep the default policy without the argument
+    - `npm test` from `plugins/ai-core`: 25 suites, 303 tests pass
+  - `plugins/ai-core/docs/README.md`, `README.md`:
+    - the Site Configuration → AI Agent sentence in `docs/README.md` names the retry schedule and the Retry-After cap with their defaults (there is no config table); Plugin releases line for 1.0.18 in both files. No `/models` mention
+  - `plugins/ai-mock/README.md`, `docs/README.md`, `plugins/hello-ai/README.md`, `docs/README.md`:
+    - Plugin releases line for 1.0.18
+  - `plugins/ai-core/commit-message.txt`, `plugins/ai-mock/commit-message.txt`, `plugins/hello-ai/commit-message.txt`:
+    - W-253, v1.0.18, 2026-09-30
+- notes:
+  - **published** `@jpulse-net/plugin-ai-core` 1.0.18. `ai-core` commit `8a35d8e`, tag `v1.0.18`. The tarball stages `ai-core`, `ai-mock`, and `hello-ai` at 1.0.18. npm warned that `repository.url` was normalized to `git+https://github.com/jpulse-net/plugin-ai-core.git` on publish; the package published
+  - **bump from `plugins/ai-core`.** `ai-mock` and `hello-ai` lockstep. Do not run the bump script from here, and do not touch `.jpulse/`
+  - provider plugins are unchanged. The icon comes from their existing `plugin.json`, read by `ai-core` through `PluginManager`; a provider must not import from `plugins/ai-core/`
+  - icons are HTML from installed `plugin.json` files (the same trust level as navigation icons), inserted with `innerHTML` only after the server-side SVG check
+  - retries count toward `turnTimeoutMs`. A long custom schedule can use up the turn timeout; the config help says so. No cross-field validation in this item
+  - **checked in the browser** on `/hello-ai/` and `/jpulse-plugins/ai-core.shtml`: provider icons and wrapped rows, bulleted examples, the two AI Agent fields in German, and the retry schedule on WebSocket and on HTTP (custom first wait, `abc` dropped, empty waits = one error and no retry line). HTTP shows two ERROR log lines for one toast: the loop and `apiStartTurn`'s catch log the same throw; the catch does not send it again
+  - **out of scope:** icons in `/status` or the "Provider:/Model:" header lines; icons in a model `<select>`; `app.conf` overrides for the two new settings; making `AUTO_TITLE_MAX` or the debug clip lengths configurable; any provider plugin release
+
 
 
 
@@ -10786,17 +10862,14 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
 - user registration: admin option to get notified by email
+
+ai pending:
 - mcp server for ai-assisted development (ref NestJS)
 
 old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
 - version history: label is not shown in history table
-
-ai pending:
-- add /models alias to /model
-- in model list, use svg icon, such as: /model ai-anthropic/claude-sonnet-5 — A\ Claude Sonnet 5
-- ai-core: some const as admin config, such as RETRYABLE_WAIT_MS in webapp/utils/agent/turnLoop.js
 
 ### Potential next items:
 - W-0: i18n: vue.js SPA support
@@ -10823,7 +10896,7 @@ release prep:
 plugin release prep:
 - review tt-git-diff.txt for accuracy and completness of work item
 - review work item and design doc if it matches actual code & fix if needed
-- assume W-252, v1.0.17, 2026-09-30
+- assume W-253, v1.0.18, 2026-09-30
 - 3 plugin README.md & docs/README.md: add release to Plugin releases section
 - 3 plugin commit-message.txt: update message
 
@@ -10844,12 +10917,12 @@ git tag v2.0.9; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.17 2026-09-30
+node ../../bin/bump-version.js 1.0.18 2026-09-30
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.17; git push origin main --tags
+git tag v1.0.18; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

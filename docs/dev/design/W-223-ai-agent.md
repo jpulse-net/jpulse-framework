@@ -56,7 +56,9 @@ companions lockstep).
 1.0.0. **W-251** is published as `@jpulse-net/plugin-ai-google` 1.0.0.
 **W-252** is published as `@jpulse-net/plugin-ai-core` 1.0.17
 (a retryable provider error is held until the last attempt;
-companions lockstep).
+companions lockstep). **W-253** is published as
+`@jpulse-net/plugin-ai-core` 1.0.18 (retry waits and the Retry-After
+cap are site config; provider icons on model rows; companions lockstep).
 §21 splits the agent into five items, W-223, W-224, and
 W-226 through W-228, on those prerequisites.
 Deviations from this document are under `### As Built`. Rev 12 specified
@@ -73,10 +75,28 @@ Rev 29 is the as-built after 1.0.12, and Rev 30 is the
 as-built after 1.0.13, Rev 31 is the as-built after 1.0.14, and
 Rev 32 is the as-built after 1.0.15, and Rev 33 records
 the publishes through `@jpulse-net/plugin-ai-core` 1.0.17 with no
-design change.
+design change. Rev 34 records the publish of
+`@jpulse-net/plugin-ai-core` 1.0.18 (W-253).
 
 
 ## Revision history
+
+### Rev 34 — 2026-09-30 — W-253 retry schedule as site config, model icons
+
+Published as `@jpulse-net/plugin-ai-core` 1.0.18 (`ai-core` commit
+`8a35d8e`, tag `v1.0.18`). The packed bundle is `ai-core`, `ai-mock`,
+and `hello-ai` at 1.0.18. No provider plugin change and no change to
+the provider contract.
+
+The retry backoff in §9.1 is no longer a code constant. Site
+Configuration → AI Agent holds `retryWaitMs` (comma-separated
+milliseconds, default `2000, 4000, 10000`, empty for no retries,
+clamped, at most 5) and `retryAfterCapMs` (default 30000). A
+`Retry-After` hint can still only shorten a slot. `/models` is an
+unlisted alias of `/model`. Model rows in the panel and on the AI
+Core page show the provider SVG from that plugin's `plugin.json`,
+read through `PluginManager`, with the AI Core icon as fallback.
+`/help`, examples, `/model`, and `/conversations` render as lists.
 
 ### Rev 33 — 2026-09-30 — published providers and bundle 1.0.17
 

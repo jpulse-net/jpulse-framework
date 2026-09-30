@@ -28041,3 +28041,144 @@ docs/ai-agent.md and docs/genai-instructions.md already name Anthropic, OpenAI, 
 
 
 ============================================================
+2026-09-29 18:13
+
+I'd like some ai-core enhancements:
+- is work-items.md (10792-10795) a new chat, or continue here?
+
+New chat. This thread is the published Gemini provider and ai-core 1.0.17. The three pending lines (models alias, SVG icons in the model list, retry-wait constants as admin config) are one new ai-core work item. Carry-over: waits are 2000, 4000, 10000 ms in turnLoop.js, and a provider must not import from plugins/ai-core.
+
+
+============================================================
+2026-09-29 18:16
+
+next: I'd like to enhance ai-core plugin:
+- add undocumented /models alias to /model
+- in model list, use svg icon, such as: /model ai-anthropic/claude-sonnet-5 — A\ Claude Sonnet 5
+- ai-core: move some const as admin config, such as RETRYABLE_WAIT_MS in webapp/utils/agent/turnLoop.js
+
+let's first discuss spec
+
+Spec discussion only, no code changes. Findings: /model lives in two mirrored catalogs (utils/panel/slash.js and view/jpulse-common.js); /help lists only cmd.name, so aliases are naturally undocumented (like /clear, /resume). Model list rows are text via modelStatusLines() -> parseExampleRow(), so an SVG needs a structured row. Every provider plugin already has an SVG "icon" in plugin.json, reachable server-side via global.PluginManager.getPlugin(name).metadata.icon, and provider id == plugin name, so no provider plugin change (and no import from ai-core). Proposed spec: (1) aliases: ['models'] in both catalogs + tests, no docs; (2) apiCapability adds a providers map { plugin: { label, icon } } (icon only if it is an <svg> string), client renders "[[/model pair]] — <icon> label (off)" with a .plg-ai-model-icon 1em currentColor span; (3) site config AI tab gains retryWaitMs ("2000, 4000, 10000", empty = no retries), retryAfterCapMs (30000), autoTitleMaxChars (60); keep debug clip lengths, RESULT_SIZE_CAP, HARD_MAX_READ_CHARS, SSE heartbeat, HTML heuristics as constants. Asked user for open decisions: missing-icon fallback, icons on AI Core dashboard page, which constants, debug clip lengths placement.
+
+
+============================================================
+2026-09-29 18:31
+
+Provider icons: what is better?
+- [[/model pair]] — <icon> label
+- <icon> [[/model pair]] — label
+- maybe the latter one for alignment reason?
+
+rows as lists:
+- I am wondering if it is better to show left-aligned bullets instead of flat list (/help command list, example list; /model selection list ...)
+
+(Screenshots: /model list, /help list with examples, /conversations list in the German KI-Chat panel.)
+
+Design discussion only, no code changes. Recommended leading icon "<icon> [[/model pair]] — label": the pair lengths vary (mock-echo vs claude-fable-5-1), so a mid-row icon would float and never align; a leading icon forms a fixed column, groups rows by provider at a glance, and acts as the row marker. Icon outside the link button, aria-hidden, text color (not link color), dimmed on "(off)" rows. Bullets: recommended semantic list markup (ul/li, list-style none) with a hanging indent for all linked blocks, but no generic bullet glyphs: /help and /conversations rows already start with an aligned "/command" marker, /model gets the provider icon as its marker (bullet + icon would double up), and only the examples list (free-text prompts that can wrap) gets a subtle bullet. Asked the user to confirm before implementing.
+
+
+============================================================
+2026-09-29 18:35
+
+- yes add that
+- create work item @work-items.md (10779-10790)
+
+Filled in W-253 in docs/dev/work-items.md (status line and section placement unchanged, still 🚧 IN_PROGRESS). Title: "ai-core: /models alias, provider icons, list rows, retry waits as site config". Spec contents: /models alias in both catalogs, hidden from /help and docs; apiCapability adds a providers map { plugin: { label, icon } } with the icon read from PluginManager plugin.json metadata, accepted only as a clean <svg> string, falling back to ai-core's robot icon; icon-first model rows "<icon> [[/model pair]] — label" in the panel and on the AI Core dashboard table; linkedBlock rows become ul/li with hanging indent and an optional marker (icon for /model, small bullet for examples, none for /help and /conversations); Site Configuration AI Agent tab gains retryWaitMs (comma list, default 2000, 4000, 10000, clamp 0-60000, max 5, saved empty = no retries, unset = default) and retryAfterCapMs (default 30000); AUTO_TITLE_MAX and debug clip lengths stay constants. Deliverables list files, tests, en/de labels, README config rows and 1.0.18 release lines, commit-message.txt. Not yet implemented.
+
+
+============================================================
+2026-09-29 19:05
+
+please implement
+
+Implemented W-253 in plugins/ai-core (plus lockstep release lines and commit messages in ai-mock and hello-ai). Server: settings.js gains DEFAULT_RETRY_WAIT_MS, DEFAULT_RETRY_AFTER_CAP_MS, parseRetryWaits (unset = default, saved empty = no retries, clamp 0..60000, max 5) and mergeSettings retryWaitMs / retryAfterCapMs; turnLoop.js retryWaitMs / formatRetryLog take an optional { waits, capMs } built from settings in runTurn (defaults live in settings.js because turnLoop already reaches settings via prompt.js); providers.js adds safeSvgIcon and providerMap (icon from PluginManager plugin.json, fallback ai-core icon); apiCapability returns providers; AI Agent schema adds retryWaitMs / retryAfterCapMs after turnTimeoutMs; en/de labels and help. Browser: /models alias mirrored; linkedBlock renders ul/li rows via listRow(text, marker, off) with provider icon for /model, bullet for examples, none for /help and /conversations; CSS for list, hanging indent, marker, dimmed off icon; AI Core dashboard model table prepends the provider icon. Tests added in hello-ai, providers, settings, turn-loop suites; npm test: 25 suites, 303 tests pass. All six real plugin.json icons pass safeSvgIcon. READMEs: 1.0.18 release lines, AI Agent sentence names the retry settings. Work item W-253 updated as-built (status untouched; user's note removal respected). No git commands, no bump script. Not checked in a browser (no dev server running).
+
+
+============================================================
+2026-09-29 19:12
+
+- /models shows /model
+- provider icons look good
+- site config looks good
+
+let me know some additional manual tests worth doing
+
+(Screenshots: /model list with provider icons and a wrapped Flash-Lite row, /help with bulleted examples, KI-Agent config tab with the two retry fields, AI Core dashboard model table with icons.)
+
+No code changes. Suggested manual tests, focused on what unit tests cannot cover: retry settings end to end with ai-mock "[mock:retry]" (fails attempt 0 only, no Retry-After): default gives log "retry: AI_MOCK_RETRY attempt 1 of 4 ... (wait 2000ms)" then a reply; "500" gives "attempt 1 of 2 ... (wait 500ms)"; empty gives the error toast right away and no retry line; "abc, 1500" gives 1500; settings are reloaded per request so no restart is needed; run it once on the hello-ai page (WebSocket path) and once over HTTP; restore default afterwards. Retry-After cap is unit-tested only (mock sends no header). UI: attach an image then /model for dimmed "(off)" icons on non-vision rows; /models ai-mock/mock-echo sets the model; clicking rows fills the compose box; light theme contrast of icons and bullets; /conversations wrapping with long labels; disable one provider plugin and confirm its rows and icon leave both lists; English UI labels; optional VoiceOver list announcement. Noted a pre-existing untranslated "/pad — Scratch pad size and selection" hint from hello-ai in the German UI (outside W-253).
+
+
+============================================================
+2026-09-29 19:22
+
+- sending "[mock:retry] hi" returns text meant to be internal, or intended?
+- "Run step 1 once on the Hello AI page, which uses the WebSocket connection, and once in a panel that uses plain HTTP" -- I only ha ve /hello-ai/
+
+(Screenshots and server log: default waits logged "attempt 1 of 4 (wait 2000ms)" then success; "500, 4000, 10000" logged wait 500ms; empty gave one toast "Mock retryable error" and no retry line; "abc, 1500" logged "attempt 1 of 2 (wait 1500ms)"; defaults restored.)
+
+No code changes. Log confirms all four retry cases work. The echoed text is ai-core's attachment manifest (formatSourcesEmptyBlock in utils/attachments/index.js), appended to the user message sent to the model every turn; Mock Echo repeats the whole first text part of the user message minus the [mock:...] marker, so it shows prompt text a real model receives but never repeats. Pre-existing, not a W-253 change and not a leak with real providers. Offered an optional ai-mock follow-up to echo only the typed text. Transport: hello-ai registers client-host tools read_draft and propose_draft_rewrite, so its panel uses WebSocket (log has no apiStartTurn lines, confirming the tests ran over WS). For the HTTP path on the same page: put "read_draft, propose_draft_rewrite" in Site Configuration > AI Agent > Disabled tools, reload, /status should show http, repeat the empty-waits test (expect exactly one toast and an apiStartTurn line in the log), then clear the field. The retry logic is shared by both transports; only error delivery differs. In the empty-waits screenshot the single toast is the error event and the "Mock retryable error" line in the transcript is the failed turn reloaded from the database.
+
+
+============================================================
+2026-09-29 19:29
+
+- I still see "ws" after setting the disabled tools & reload
+
+(Screenshots: /status still shows Transport: ws; disabledTools field contains "read_draft, propose_draft_rewrite"; a later message "mock:retry] hi" was echoed as plain text. Log: config save at 19:26:45, page reload with apiCapability at 19:26:51, turn at 19:28:56 completed with no apiStartTurn and no retry line.)
+
+No code changes. My earlier list was incomplete: hello-ai registers a third client-host tool, append_draft (immediate scratch-pad append, not a proposal). Transport is ws while any client-host tool is offered, so the two disabled tools were not enough. Also list_sources and get_source in ai-core are client-hosted and are offered whenever something is attached, so the HTTP path only exists with no attachments. Corrected steps: add append_draft to Disabled tools, reload, /status should show http; the 19:28 message was missing the opening bracket so the mock echoed it instead of running the retry script. Clear Disabled tools afterwards.
+
+
+============================================================
+2026-09-29 19:33
+
+- yup, now 'http'
+
+(Log: 19:31:07 disabledTools now includes append_draft; 19:31:39 a turn goes through ===aiCore.apiStartTurn=== (HTTP); 19:31:51 "[mock:retry]" logs "retry: AI_MOCK_RETRY attempt 1 of 4 (wait 2000ms)" then success at 19:31:53, also via apiStartTurn, with no error line.)
+
+No code changes. Confirmed: the HTTP path retries exactly like the WebSocket path (one info line, no error, then the reply). Reminded the user to clear Disabled tools so read_draft, propose_draft_rewrite, and append_draft come back. Optional leftover: the empty-waits error case over HTTP (one toast, one apiStartTurn line), since only error delivery differs between the transports.
+
+
+============================================================
+2026-09-29 19:36
+
+- last test also works
+
+(Screenshot: one "Mock retryable error" toast and the failed turn in the transcript. Log at 19:35:31 over HTTP with empty retryWaitMs: ERROR aiCore.runTurn and ERROR aiCore.apiStartTurn, both "Mock retryable error", then one apiListTurns.)
+
+No code changes. Confirmed the empty-waits case over HTTP shows one toast. The two ERROR lines are one thrown error logged twice: the turn loop logs it when it sends the error, and apiStartTurn's catch logs the same throw. The catch does not send it again because the stream is already open (res.headersSent), so the browser got one event. Pre-existing, not a W-253 change; the WebSocket path skips its second log via error.emitted. Manual retry testing is complete on both transports. Reminded the user the saved config still has retryWaitMs empty and the three scratch-pad tools disabled, so both should be put back.
+
+
+============================================================
+2026-09-29 19:40
+
+so, all done, ready for release prep?
+
+No code changes. Yes: implementation, unit tests (303), and the manual checks they ran are enough to start release prep. Headers and plugin.json are still 1.0.17 on purpose. Their steps, from plugins/ai-core only: node ../../bin/bump-version.js 1.0.18 (lockstep for ai-mock and hello-ai), then commit each of the three plugin repos from its commit-message.txt, then npx jpulse plugin publish ai-core. The framework repo only has the W-253 work-item text; status stays IN_PROGRESS until they mark it, and docs/CHANGELOG.md / Latest Release Highlights wait for a framework release. Also restore Site Configuration: retry waits 2000, 4000, 10000 and clear Disabled tools. Skipped manual checks (dimmed off icons, light theme, English labels, disabling a provider) are not blockers.
+
+
+============================================================
+2026-09-29 19:43
+
+plugin release prep, do in case still missing:
+- review tt-git-diff.txt for accuracy and completness of work item
+- review work item and design doc if it matches actual code & fix if needed
+- assume W-253, v1.0.18, 2026-09-30
+- 3 plugin README.md & docs/README.md: add release to Plugin releases section
+- 3 plugin commit-message.txt: update message
+
+Reviewed tt-git-diff.txt (ai-core repo, unstaged). It matches W-253. Already present and left as-is: 1.0.18 Plugin releases lines in all six README/docs files, and the three commit-message.txt files (W-253, v1.0.18, 2026-09-30). Work item status unchanged. Fixed the work item to match the diff: client uses a bullet when the icon string is empty; en/de modelSet lost its trailing period (in the diff, not written by the implementation). Added a browser-check note. Design doc W-223 gains Rev 34 as as-built for 1.0.18, not yet published; provider contract unchanged; retry backoff is site config. Flagged the modelSet period to the user in case it was accidental.
+
+
+============================================================
+2026-09-29 19:50
+
+3 plugins released, one package published
+
+(User paste: ai-core commit 8a35d8e, tag v1.0.18, push to github.com:jpulse-net/plugin-ai-core.git, npm publish @jpulse-net/plugin-ai-core@1.0.18. prepack staged ai-core, ai-mock, hello-ai v1.0.18. npm warned repository.url was normalized to git+https://github.com/jpulse-net/plugin-ai-core.git.)
+
+Recorded the publish. Design doc W-223: W-253 is published as 1.0.18, and Rev 34 no longer says "not yet published" (commit 8a35d8e, tag v1.0.18, bundle of three at 1.0.18). Work item notes gain a published line. Status left IN_PROGRESS. The npm warning did not block the publish.
+
+
+============================================================

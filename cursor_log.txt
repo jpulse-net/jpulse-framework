@@ -28219,3 +28219,37 @@ Recorded the publish on W-254 notes and the design-doc §13 correction (commit 9
 
 
 ============================================================
+2026-09-30 00:19
+
+next: W-255, v1.0.4, 2026-09-30: auth-oauth plugin: SVG plugin icon
+- create work item @work-items.md (10896-10907)
+- simple change
+- simple diff: auth-mfa package.json (keywords wrapped, repository.url git+https, trailing blank line removed) and plugin.json icon 🔐 replaced with a 24×24 shield-plus SVG. Version fields still 1.0.7.
+
+Filled W-255. The diff is auth-mfa, and 1.0.7 is already published (W-244), so the heading is auth-mfa v1.0.8 (the version already on the stub). Status left IN_PROGRESS. Documented the shield-plus icon and the package.json repository URL. Version bump, README release lines, and commit-message.txt are noted as the publish step, not part of this diff.
+
+
+============================================================
+2026-09-30 00:28
+
+plugin release prep:
+- assume W-255, v1.0.8, 2026-09-30
+- review tt-git-diff.txt for accuracy and completness of work item
+- review work item and design doc if it matches actual code & fix if needed
+- plugin README.md & docs/README.md: add release to Plugin releases section
+- plugin commit-message.txt: update message
+
+Reviewed tt-git-diff.txt. Product changes: plugin.json icon is the shield-plus SVG, package.json repository.url is git+https, keywords wrapped. The rest is the 1.0.8 / 2026-09-30 bump (package-lock version, README titles, @version/@release headers). Work item deliverables and notes updated to match; status left IN_PROGRESS. W-108 design doc left as-is: its 🔐 samples are user-schema card icons, not plugin.json, and this diff does not change those cards. Added the 1.0.8 Plugin releases line to plugins/auth-mfa/README.md and docs/README.md (no W-number). Wrote commit-message.txt for W-255. Not published.
+
+
+============================================================
+2026-09-30 00:34
+
+plugin released and published
+
+(User paste: auth-mfa commit 5a6cda4, tag v1.0.8, push 1666e0e..5a6cda4 to github.com/jpulse-net/plugin-auth-mfa.git, npm publish @jpulse-net/plugin-auth-mfa@1.0.8, shasum b14d76586167757dcf8450fa1272e994cdac2b77. No repository.url warning.)
+
+Recorded the publish on W-255 notes (commit 5a6cda4, tag v1.0.8, shasum). Status left IN_PROGRESS. npm did not warn about repository.url.
+
+
+============================================================

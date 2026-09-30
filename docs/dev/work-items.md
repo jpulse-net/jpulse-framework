@@ -10843,17 +10843,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **checked in the browser** on `/hello-ai/` and `/jpulse-plugins/ai-core.shtml`: provider icons and wrapped rows, bulleted examples, the two AI Agent fields in German, and the retry schedule on WebSocket and on HTTP (custom first wait, `abc` dropped, empty waits = one error and no retry line). HTTP shows two ERROR log lines for one toast: the loop and `apiStartTurn`'s catch log the same throw; the catch does not send it again
   - **out of scope:** icons in `/status` or the "Provider:/Model:" header lines; icons in a model `<select>`; `app.conf` overrides for the two new settings; making `AUTO_TITLE_MAX` or the debug clip lengths configurable; any provider plugin release
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-254, v1.0.4, 2026-09-30: auth-oauth plugin: provider-list cache path, SVG plugin icon
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bugfix
 - repository: github.com/jpulse-net/plugin-auth-oauth (separate repo)
 - npm package: @jpulse-net/plugin-auth-oauth
@@ -10899,6 +10890,54 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-255, v1.0.8, 2026-09-30: auth-mfa plugin: SVG plugin icon
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- repository: github.com/jpulse-net/plugin-auth-mfa (separate repo)
+- npm package: @jpulse-net/plugin-auth-mfa
+- objectives:
+  - the plugin's own icon on Admin → Plugins and the config page is an inline SVG
+- prerequisites:
+  - W-244, `@jpulse-net/plugin-auth-mfa` 1.0.7: published package. `plugin.json` `icon` was the emoji 🔐
+- rationale:
+  - the plugin icon was the emoji 🔐. Admin → Plugins and the config page title insert a string that starts with `<svg` as HTML, which is how the other plugins draw their icons
+  - npm rewrites a plain `https://` `repository.url` to `git+` form on publish. The auth-oauth 1.0.4 publish logged that warning and still published. This package.json already carries the rewritten URL
+- features:
+  - **plugin icon.** `plugin.json` `icon` is a 24×24 shield with a plus, stroke `currentColor`, width 1.7, round caps and joins. The shield outline is the same path as the auth-oauth icon; the mark inside the shield is a plus
+  - **repository url.** `package.json` `repository.url` is `git+https://github.com/jpulse-net/plugin-auth-mfa.git`. `keywords` is the same six words, one per line
+- deliverables:
+  - `plugins/auth-mfa/plugin.json`:
+    - `icon` is the shield-plus SVG. `version` is `1.0.8`
+  - `plugins/auth-mfa/package.json`:
+    - `version` is `1.0.8`
+    - `repository.url` is `git+https://github.com/jpulse-net/plugin-auth-mfa.git`
+    - `keywords` wrapped one word per line; same words
+    - no blank line after the closing `}`
+  - `plugins/auth-mfa/package-lock.json`:
+    - `version` is `1.0.8` at the root and on the `""` package. No dependency change
+  - `plugins/auth-mfa/README.md`:
+    - title is v1.0.8. Plugin releases line for 1.0.8
+  - `plugins/auth-mfa/docs/README.md`:
+    - title is v1.0.8. Plugin releases line for 1.0.8
+  - `plugins/auth-mfa/commit-message.txt`:
+    - W-255, v1.0.8, 2026-09-30
+  - `plugins/auth-mfa/webapp/bump-version.conf`, `webapp/controller/mfaAuth.js`, `webapp/model/mfaAuth.js`, `webapp/utils/totp.js`, `webapp/view/auth/mfa-setup.shtml`, `webapp/view/auth/mfa-verify.shtml`, `webapp/view/jpulse-common.css`, `webapp/view/jpulse-common.js`, `webapp/view/jpulse-navigation.js`, `webapp/view/jpulse-plugins/auth-mfa.shtml`:
+    - `@version` 1.0.8 and `@release` 2026-09-30 only
+- notes:
+  - **published** `@jpulse-net/plugin-auth-mfa` 1.0.8. Commit `5a6cda4`, tag `v1.0.8`, pushed `1666e0e..5a6cda4`. npm published with no `repository.url` warning. Tarball shasum `b14d76586167757dcf8450fa1272e994cdac2b77`. 15 files, 40 insertions, 30 deletions
+  - keyword wrapping and the removed blank line are formatting
+  - the rest of the diff is the `@version` / `@release` headers, `package-lock.json`, and the two README titles
+  - W-108's `icon: '🔐'` samples are the user-schema admin and user cards, not `plugin.json`. This diff does not change those cards, so the design doc stays
+  - **out of scope:** controller behavior, tests, framework `docs/CHANGELOG.md`, Latest Release Highlights
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -10929,15 +10968,15 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- review tt-git-diff.txt for accuracy and completness of work item
 - assume W-247, v1.0.15, 2026-09-21
+- review tt-git-diff.txt for accuracy and completness of work item
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
 - update commit-message.txt, following the same format (don't commit)
 - append to cursor_log.txt
 
 plugin release prep:
-- assume W-254, v1.0.4, 2026-09-30
+- assume W-255, v1.0.8, 2026-09-30
 - review tt-git-diff.txt for accuracy and completness of work item
 - review work item and design doc if it matches actual code & fix if needed
 - 3 plugin README.md & docs/README.md: add release to Plugin releases section
@@ -10960,12 +10999,12 @@ git tag v2.0.9; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.4 2026-09-30
+node ../../bin/bump-version.js 1.0.8 2026-09-30
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.4; git push origin main --tags
+git tag v1.0.8; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

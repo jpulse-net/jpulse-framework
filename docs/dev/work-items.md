@@ -10767,17 +10767,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - framework `docs/ai-agent.md` and `docs/genai-instructions.md` already name `ai-google`. Those files are the framework repo, not this plugin commit
   - a new provider round inside one turn starts the attempt count again. A permanent quota (`retryable: false`, such as Gemini `limit: 0`) is one error and is not this wait list — that flag is set by the provider plugin
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-253, v1.0.18, 2026-09-30: ai-core: retry waits as site config, /models alias, provider icons, list rows
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
 - npm package: @jpulse-net/plugin-ai-core
@@ -10858,10 +10849,62 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-254, v1.0.4, 2026-09-30: auth-oauth plugin: provider-list cache path, SVG plugin icon
+- status: 🚧 IN_PROGRESS
+- type: Bugfix
+- repository: github.com/jpulse-net/plugin-auth-oauth (separate repo)
+- npm package: @jpulse-net/plugin-auth-oauth
+- objectives:
+  - the login-page provider list is actually stored in Redis for its 20s TTL
+  - the plugin's own icon on Admin → Plugins and the config page is an inline SVG
+- prerequisites:
+  - W-197, `@jpulse-net/plugin-auth-oauth` 1.0.0: `OauthProviderModel.getCachedProviders()` / `invalidateCachedProviders()`, path `plugin:auth-oauth:config`, consumed by `onAuthGetLoginProviders` and `apiProviders`. The path change was made in the working tree and never committed or published, so 1.0.0 through 1.0.3 still ship the bad path
+- rationale:
+  - `RedisManager.cacheSet` accepts only `controller`, `model`, `view`, or `util` as the first path segment. `plugin` is rejected, the write returns false, and `_validateCacheParams` logs an error. `cacheGet` does not check the component, so it looks up a key that was never written and always misses. Every `/auth/login.shtml` render and every `GET /api/1/auth-oauth/providers` therefore reads MongoDB and logs that error. The 20s TTL and `invalidateCachedProviders()` never had a key to expire or delete
+  - the unit test mocks `RedisManager`, so it accepted the bad path. The published package was never rebuilt with the correction
+  - the plugin icon was the emoji 🔑. Admin → Plugins and the config page title insert a string that starts with `<svg` as HTML, which is how the other plugins draw their icons
+- features:
+  - **cache path.** `CONFIG_CACHE_PATH` is `model:oauthProvider:config` (key stays `providers`, TTL stays 20s). `cacheSet` accepts it, so a hit skips MongoDB, and a provider-list save still clears the key through `invalidateCachedProviders()`. Token exchange stays uncached
+  - **plugin icon.** `plugin.json` `icon` is a 24×24 shield with a keyhole, stroke `currentColor`. This is the plugin's icon, not a provider button icon
+- deliverables:
+  - `plugins/auth-oauth/webapp/model/oauthProvider.js`:
+    - `CONFIG_CACHE_PATH` `plugin:auth-oauth:config` → `model:oauthProvider:config`
+  - `plugins/auth-oauth/webapp/tests/unit/model/oauth-provider.test.js`:
+    - the cache-miss assertion expects `model:oauthProvider:config`
+  - `plugins/auth-oauth/plugin.json`:
+    - `icon` is the shield SVG
+  - `plugins/auth-oauth/webapp/controller/oauthAuth.js`:
+    - comment only: `onPluginConfigBeforeSave` no longer says it is the only hook where throw aborts the save. As of framework v1.7.13 that is the cancellation model for every hook. No behavior change
+  - `plugins/auth-oauth/README.md`:
+    - Plugin releases line for 1.0.4. Older releases restated as one line each, with dates. Title is v1.0.4
+  - `plugins/auth-oauth/docs/README.md`:
+    - Plugin releases section, 1.0.4 line. Title is v1.0.4
+  - `plugins/auth-oauth/commit-message.txt`:
+    - W-254, v1.0.4, 2026-09-30
+  - `docs/dev/design/W-197-auth-oauth-plugin.md`:
+    - §13 sample uses `model:oauthProvider:config` and `ttl`. A correction note records why `plugin:auth-oauth` never stored. Matches the code
+- notes:
+  - **published** `@jpulse-net/plugin-auth-oauth` 1.0.4. Commit `9b5a043`, tag `v1.0.4`. npm warned that `repository.url` was normalized to `git+https://github.com/jpulse-net/plugin-auth-oauth.git` on publish; the package published. Tarball shasum `a637b8c395e7a1385cc1cbbd73fdec08155866a2`
+  - the diff also updates `@genai` on `oauthProvider.js` and `oauth-provider.test.js` (Cursor 3.20, Grok 4.6). Not a product change
+  - README body lines that only changed wrapping are the same text
+  - `npx jest plugins/auth-oauth/webapp/tests/unit --runInBand` from the framework root: 7 suites, 221 tests pass
+  - **out of scope:** provider button icons (those are per-provider config, already emoji or SVG); a test that runs the path through the real `RedisManager` validator; framework `docs/CHANGELOG.md` and Latest Release Highlights (plugin release, not a framework release)
+
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
 - user registration: admin option to get notified by email
+- /admin/plugins.shtml should list plugins in loadOrder instead of first installed;
+    a plugin as-you-type search field is helpful too
 
 ai pending:
 - mcp server for ai-assisted development (ref NestJS)
@@ -10894,9 +10937,9 @@ release prep:
 - append to cursor_log.txt
 
 plugin release prep:
+- assume W-254, v1.0.4, 2026-09-30
 - review tt-git-diff.txt for accuracy and completness of work item
 - review work item and design doc if it matches actual code & fix if needed
-- assume W-253, v1.0.18, 2026-09-30
 - 3 plugin README.md & docs/README.md: add release to Plugin releases section
 - 3 plugin commit-message.txt: update message
 
@@ -10917,12 +10960,12 @@ git tag v2.0.9; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.18 2026-09-30
+node ../../bin/bump-version.js 1.0.4 2026-09-30
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.18; git push origin main --tags
+git tag v1.0.4; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 
@@ -11055,6 +11098,13 @@ template:
 - objectives: ability to authenticate with a GitHub account
 - prerequisits:
   - W-197, v1.0.3, 2026-08-02: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
+
+### W-0: auth-ldap plugin: initial version
+- status: 🕑 PENDING
+- type: Feature
+- objectives: ability to authenticate with an LDAP or AD server
+- icon:
+    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\" /><circle cx=\"12\" cy=\"12\" r=\"3\" /><path d=\"M16 19a4 4 0 0 0-8 0\" /></svg>",
 
 ### W-0: plugins: list available plugins in github.com/jpulse-net/plugin-* packages
 - status: 🕑 PENDING

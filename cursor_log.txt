@@ -28182,3 +28182,40 @@ Recorded the publish. Design doc W-223: W-253 is published as 1.0.18, and Rev 34
 
 
 ============================================================
+2026-09-29 23:30
+
+next: W-254, v1.0.4, 2026-09-30: auth-oauth plugin
+- two features:
+- a long outstanding fix with forgotten commit & build
+- changed icon to svg
+- review changes: @tt-git-diff.txt
+
+Reviewed tt-git-diff.txt (auth-oauth repo, unstaged). The cache path plugin:auth-oauth:config is rejected by RedisManager.cacheSet (component must be controller, model, view, or util), so the login-page provider list was never stored and every render logged an error and read MongoDB. The working tree already had the fix (model:oauthProvider:config) plus an SVG plugin icon (shield with a keyhole) and a comment-only hook note. Filled W-254 (status left IN_PROGRESS). Corrected design doc W-197 §13. Added the 1.0.4 line to plugins/auth-oauth/README.md. docs/README.md has no Plugin releases section, so it was left as-is. Updated commit-message.txt. Plugin unit tests: 7 suites, 221 passed. Not published; version headers stay 1.0.3 for the bump script.
+
+
+============================================================
+2026-09-29 23:57
+
+plugin release prep:
+- assume W-254, v1.0.4, 2026-09-30
+- review tt-git-diff.txt for accuracy and completness of work item
+- review work item and design doc if it matches actual code & fix if needed
+- plugin README.md & docs/README.md: add release to Plugin releases section
+- plugin commit-message.txt: update message
+
+Re-reviewed tt-git-diff.txt after the bump. Product changes are unchanged: cache path model:oauthProvider:config, SVG plugin icon, comment-only hook note. The rest of the diff is the 1.0.4 / 2026-09-30 bump plus README lines unwrapped and older Plugin releases restated with dates. Design doc §13 already matches the code. Added a Plugin Releases section with the 1.0.4 line to plugins/auth-oauth/docs/README.md. README.md already had the 1.0.4 line. commit-message.txt notes both. Work item notes now say bumped, not published. Status left IN_PROGRESS.
+
+
+============================================================
+2026-09-30 00:04
+
+committed & published
+
+same icon change for auth-mfa, start a new chat?
+
+(User paste: auth-oauth commit 9b5a043, tag v1.0.4, push to github.com/jpulse-net/plugin-auth-oauth.git, npm publish @jpulse-net/plugin-auth-oauth@1.0.4. npm warned repository.url was normalized to git+https://github.com/jpulse-net/plugin-auth-oauth.git.)
+
+Recorded the publish on W-254 notes and the design-doc §13 correction (commit 9b5a043, tag v1.0.4). Status left IN_PROGRESS. The npm warning did not block the publish. Recommended a new chat for the auth-mfa icon: separate repo and work item. This checkout's auth-mfa plugin.json is still 1.0.7 and already has an SVG (shield with a plus), not the oauth keyhole.
+
+
+============================================================

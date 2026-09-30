@@ -934,24 +934,27 @@ None of these settings live in the `auth-oauth` plugin config — they're all fr
 
 `onAuthGetLoginProviders` runs on every unauthenticated render of `/auth/login.shtml` — the single highest-traffic unauthenticated route on the site. The naive approach (a `PluginModel.getByName('auth-oauth')` call per render — see §6/Hook Implementations correction above) is one uncached MongoDB round-trip per page view.
 
-The framework has no `onPluginConfigSave`-style hook to invalidate a cache the instant an admin edits provider config, so this plugin uses a short-TTL cache rather than event-based invalidation:
+A short TTL is the backstop. A provider-list save also clears the key immediately (`onPluginConfigBeforeSave` → `invalidateCachedProviders()`):
 
 ```javascript
-// plugins/auth-oauth/webapp/model/oauthAuth.js (excerpt)
+// plugins/auth-oauth/webapp/model/oauthProvider.js (excerpt)
+const CONFIG_CACHE_PATH = 'model:oauthProvider:config';
+const CONFIG_CACHE_KEY = 'providers';
 const CONFIG_CACHE_TTL_SECONDS = 20;
 
-static async getCachedConfig() {
-    const cached = await RedisManager.cacheGetObject('plugin:auth-oauth', 'config');
+static async getCachedProviders() {
+    const cached = await RedisManager.cacheGetObject(CONFIG_CACHE_PATH, CONFIG_CACHE_KEY);
     if (cached) return cached;
 
-    const pluginDoc = await PluginModel.getByName('auth-oauth');
-    const config = pluginDoc?.config || {};
-    await RedisManager.cacheSetObject('plugin:auth-oauth', 'config', config, { ttlSeconds: CONFIG_CACHE_TTL_SECONDS });
-    return config;
+    const providers = await OauthProviderModel.getProviders(); // PluginModel.getByName('auth-oauth').config.providers
+    await RedisManager.cacheSetObject(CONFIG_CACHE_PATH, CONFIG_CACHE_KEY, providers, { ttl: CONFIG_CACHE_TTL_SECONDS });
+    return providers;
 }
 ```
 
-`RedisManager.cacheGetObject`/`cacheSetObject` already fail open (no-op / return `null`) when Redis is unavailable, so this degrades automatically to the original uncached-Mongo-read behavior — no separate in-memory fallback needed. A ~20-second staleness window on provider *metadata* (label/icon/enabled/order — never secrets) is an acceptable trade for admins toggling a provider on the config page; there's no correctness risk, since the actual token exchange in `apiCallback` always reads provider config fresh (uncached) — that path is far lower-traffic and correctness there matters more than a few seconds of caching.
+`RedisManager.cacheGetObject`/`cacheSetObject` already fail open (no-op / return `null`) when Redis is unavailable, so this degrades automatically to the original uncached-Mongo-read behavior — no separate in-memory fallback needed. A ~20-second staleness window on provider *metadata* (label/icon/enabled/order — never secrets) is an acceptable trade for admins toggling a provider on the config page; there's no correctness risk, since the actual token exchange in `apiCallback` always reads provider config fresh (uncached) — that path is far lower-traffic and correctness there matters more than a few seconds of caching. `onPluginConfigBeforeSave` calls `invalidateCachedProviders()` so a save does not wait out the TTL.
+
+**Corrected in v1.0.4** (published, commit `9b5a043`, tag `v1.0.4`): the original sample used path `plugin:auth-oauth` and option `ttlSeconds`. A cache path needs three segments, and `cacheSet` accepts only `controller`, `model`, `view`, or `util` as the first segment (`webapp/utils/redis-manager.js` `_validateCacheParams`). The option name is `ttl`. Shipped 1.0.0–1.0.3 used `plugin:auth-oauth:config` with key `providers`, so every `cacheSet` was rejected (an error log) and the list was never stored — `cacheGet` does not check the component, so it always missed and every login render read MongoDB. The implementation is `OauthProviderModel.getCachedProviders()`, not `getCachedConfig()`.
 
 ---
 
@@ -1456,7 +1459,7 @@ Consumer providers (Google, Apple, GitHub) obviously cannot work air-gapped sinc
 
 ---
 
-**Last Updated:** 2026-08-01 (settings completeness audit, pre-1.0.0 release; Gap 3 role controls fixed same day; Microsoft Entra ID preset added same day; Gap 5 — Microsoft `email_verified` limitation — documented same day, fix deferred to v1.1.0; Microsoft test-tenant setup guidance corrected twice same day, now pointing at Azure free account; Gap 6 — stale `jpulseVersion` — fixed same day during pre-release checklist pass; Gap 2 — broken Nickname option — fixed same day, same pass, by dropping the option — see change notes below; Gap 7 — missing `jpulse-navigation.js` found post-v1.0.0-publish, fixed same day as v1.0.1; Gap 8 — JIT fields shown unconditionally regardless of Linking Strategy, found live during bubblemap.net production setup, fixed as v1.0.2; Gap 9 — `req.protocol` unreliable behind a reverse proxy, broke the very first live Google login on bubblemap.net, fixed as v1.0.3)
+**Last Updated:** 2026-09-30 (settings completeness audit, pre-1.0.0 release; Gap 3 role controls fixed same day; Microsoft Entra ID preset added same day; Gap 5 — Microsoft `email_verified` limitation — documented same day, fix deferred to v1.1.0; Microsoft test-tenant setup guidance corrected twice same day, now pointing at Azure free account; Gap 6 — stale `jpulseVersion` — fixed same day during pre-release checklist pass; Gap 2 — broken Nickname option — fixed same day, same pass, by dropping the option — see change notes below; Gap 7 — missing `jpulse-navigation.js` found post-v1.0.0-publish, fixed same day as v1.0.1; Gap 8 — JIT fields shown unconditionally regardless of Linking Strategy, found live during bubblemap.net production setup, fixed as v1.0.2; Gap 9 — `req.protocol` unreliable behind a reverse proxy, broke the very first live Google login on bubblemap.net, fixed as v1.0.3; Gap 10 — §13 cache path `plugin:auth-oauth:config` rejected by `cacheSet`, so the provider list was never stored, fixed as v1.0.4)
 
 ---
 

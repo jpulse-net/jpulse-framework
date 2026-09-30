@@ -28330,3 +28330,24 @@ auth-oauth 1.0.5 is published. W-256 notes now record commit c7395e3, tag v1.0.5
 
 
 ============================================================
+2026-09-30 13:35
+
+release prep of auth-mfa:
+- assume W-257, v1.0.9, 2026-09-30
+- review tt-git-diff.txt for accuracy and completeness of work item
+- review work item and design doc if it matches actual code & fix if needed
+- plugin README.md & docs/README.md: add release to Plugin releases section
+- plugin commit-message.txt: update message
+
+Auth-mfa release prep for W-257, v1.0.9, 2026-09-30. The tt-git-diff is the plus shield on the menu, profile tabs, page titles, and plugins-index card, plus Reset and Unlock stroke icons, and the 1.0.9 bump. Added the 1.0.9 Plugin releases line to README.md and docs/README.md. Updated commit-message.txt. Design doc W-108 §2 notes the shipped icons. Work item notes say bumped, not published. Status left IN_PROGRESS.
+
+
+============================================================
+2026-09-30 13:39
+
+released and published
+
+auth-mfa 1.0.9 is published. W-257 notes now record commit 74be357, tag v1.0.9, push 5a6cda4..74be357, shasum ec7753d8f8532230d92453ec18b58e3559a32ad7, 14 files, unpacked 142.8 kB, and no repository.url warning. Status left IN_PROGRESS.
+
+
+============================================================

@@ -10924,17 +10924,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - W-108's `icon: '🔐'` samples are the user-schema admin and user cards, not `plugin.json`. This diff does not change those cards, so the design doc stays
   - **out of scope:** controller behavior, tests, framework `docs/CHANGELOG.md`, Latest Release Highlights
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-256, v1.0.5, 2026-09-30: auth-oauth plugin: more SVG icon fixes
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - repository: github.com/jpulse-net/plugin-auth-oauth (separate repo)
 - npm package: @jpulse-net/plugin-auth-oauth
@@ -10970,6 +10961,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
 
 ### W-257, v1.0.9, 2026-09-30: auth-mfa plugin: more SVG icon fixes
 - status: 🚧 IN_PROGRESS
@@ -10995,8 +10988,14 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - page `<h1>` and the plugins-index card use the plus shield
   - `plugins/auth-mfa/webapp/view/auth/mfa-setup.shtml`, `webapp/view/auth/mfa-verify.shtml`:
     - page `<h1>` uses the plus shield at 1em
+  - `plugins/auth-mfa/README.md`, `docs/README.md`:
+    - title is v1.0.9. Plugin releases line for 1.0.9
+  - `plugins/auth-mfa/commit-message.txt`:
+    - W-257, v1.0.9, 2026-09-30
+  - `docs/dev/design/W-108-auth-mfa-plugin.md`:
+    - §2 notes that the shipped card, menu, title, and plugins-index icons are the `plugin.json` shield, and that Reset and Unlock are stroke icons. The sketch below that note is unchanged
 - notes:
-  - **not bumped, not published.** Headers and `plugin.json` `version` stay 1.0.8 until the bump script. Bump from `plugins/auth-mfa`. Do not touch `.jpulse/`
+  - **published** `@jpulse-net/plugin-auth-mfa` 1.0.9. Commit `74be357`, tag `v1.0.9`, push `5a6cda4..74be357`. Tarball shasum `ec7753d8f8532230d92453ec18b58e3559a32ad7`, 14 files, unpacked 142.8 kB. No `repository.url` warning
   - **out of scope:** status marks on the MFA page (⚪, ✅, 🔒, ⚠️), the “New Backup Codes” 🔄 button, the setup-page list glyphs, framework `docs/CHANGELOG.md`, Latest Release Highlights
 
 
@@ -11042,11 +11041,11 @@ release prep:
 - append to cursor_log.txt
 
 plugin release prep:
-- assume W-256, v1.0.5, 2026-09-30
+- assume W-257, v1.0.9, 2026-09-30
 - review tt-git-diff.txt for accuracy and completeness of work item
 - review work item and design doc if it matches actual code & fix if needed
-- plugin README.md & docs/README.md: add release to Plugin releases section
-- plugin commit-message.txt: update message
+- 3 plugin README.md & docs/README.md: add release to Plugin releases section
+- 3 plugin commit-message.txt: update message
 
 ### Misc
 
@@ -11065,12 +11064,12 @@ git tag v2.0.9; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.5 2026-09-30
+node ../../bin/bump-version.js 1.0.9 2026-09-30
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.5; git push origin main --tags
+git tag v1.0.9; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

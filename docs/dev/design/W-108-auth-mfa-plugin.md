@@ -111,6 +111,8 @@ plugins/
 
 ### 2. User Schema Extension (W-107 Format)
 
+As of v1.0.9 the shipped admin and user card icons, the user-menu icons, the page titles, and the plugins-index card are the `plugin.json` shield. Reset and Unlock on the admin card are stroke icons. The sketch below still shows the earlier emoji.
+
 The plugin extends the user schema with `adminCard`/`userCard` metadata for data-driven profile cards:
 
 ```javascript

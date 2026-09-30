@@ -253,6 +253,8 @@ The plugin **does not** modify `webapp/controller/auth.js` directly. All couplin
 
 ### 5. User Schema Extension (W-107 Data-Driven Cards)
 
+As of v1.0.5 the shipped admin and user card icons, the user-menu icon, the Connected Accounts page title, and the plugins-index card are the `plugin.json` shield. The sketch below still shows the earlier emoji and labels.
+
 ```javascript
 // plugins/auth-oauth/webapp/model/oauthAuth.js
 

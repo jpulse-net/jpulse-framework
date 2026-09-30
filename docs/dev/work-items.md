@@ -10884,17 +10884,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `npx jest plugins/auth-oauth/webapp/tests/unit --runInBand` from the framework root: 7 suites, 221 tests pass
   - **out of scope:** provider button icons (those are per-provider config, already emoji or SVG); a test that runs the path through the real `RedisManager` validator; framework `docs/CHANGELOG.md` and Latest Release Highlights (plugin release, not a framework release)
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-255, v1.0.8, 2026-09-30: auth-mfa plugin: SVG plugin icon
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - repository: github.com/jpulse-net/plugin-auth-mfa (separate repo)
 - npm package: @jpulse-net/plugin-auth-mfa
@@ -10932,6 +10923,81 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - the rest of the diff is the `@version` / `@release` headers, `package-lock.json`, and the two README titles
   - W-108's `icon: '🔐'` samples are the user-schema admin and user cards, not `plugin.json`. This diff does not change those cards, so the design doc stays
   - **out of scope:** controller behavior, tests, framework `docs/CHANGELOG.md`, Latest Release Highlights
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-256, v1.0.5, 2026-09-30: auth-oauth plugin: more SVG icon fixes
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- repository: github.com/jpulse-net/plugin-auth-oauth (separate repo)
+- npm package: @jpulse-net/plugin-auth-oauth
+- objectives:
+  - the same shield as `plugin.json` shows in the user menu, on the profile tabs, in the page title, and on the plugins-index card
+- prerequisites:
+  - W-254, `@jpulse-net/plugin-auth-oauth` 1.0.4: `plugin.json` `icon` is the shield with a keyhole. The menu, the profile cards, the Connected Accounts title, and the plugins-index card were still 🔑
+- rationale:
+  - those surfaces insert the icon string as HTML. A string that starts with `<svg` draws. The page title sizes an SVG with `width="1em"`. The plugins-index card sits in a 128px box, so that copy is 64px, the same size hello-world uses there
+- features:
+  - **one shield, four places.** The keyhole shield from `plugin.json` (24×24, stroke `currentColor`, width 1.7) is the menu icon, both profile-tab icons, the Connected Accounts `<h1>` (at 1em), and the plugins-index card (at 64px)
+- deliverables:
+  - `plugins/auth-oauth/webapp/view/jpulse-navigation.js`:
+    - Connected Accounts menu icon is `AUTH_OAUTH_ICON`
+  - `plugins/auth-oauth/webapp/model/oauthAuth.js`:
+    - SSO Providers and Connected Accounts card icons are `AUTH_OAUTH_ICON`
+  - `plugins/auth-oauth/webapp/view/jpulse-plugins/auth-oauth.shtml`:
+    - page `<h1>` and the plugins-index card use the same shield
+  - `plugins/auth-oauth/README.md`, `docs/README.md`:
+    - title is v1.0.5. Plugin releases line for 1.0.5
+  - `plugins/auth-oauth/commit-message.txt`:
+    - W-256, v1.0.5, 2026-09-30
+  - `docs/dev/design/W-197-auth-oauth-plugin.md`:
+    - §5 notes that the shipped card, menu, title, and plugins-index icons are the `plugin.json` shield. The sketch below that note is unchanged
+- notes:
+  - **published** `@jpulse-net/plugin-auth-oauth` 1.0.5. Commit `c7395e3`, tag `v1.0.5`, push `417d8f6..c7395e3`. Tarball shasum `983ac2b56757eab8189be29b51577e76376e4875`, 24 files, unpacked 386.3 kB. No `repository.url` warning (`package.json` already uses `git+https://`)
+  - the header was checked in the browser after the view cache picked up the file. View templates stay cached for up to 10 minutes (`view.cacheTemplates.checkInterval`)
+  - **out of scope:** generic OIDC (🔐) and OAuth2 (🔑) preset icons, the `|| '🔑'` fallback on a provider row, tests that assert those presets, framework `docs/CHANGELOG.md`, Latest Release Highlights
+
+
+
+
+
+
+
+
+### W-257, v1.0.9, 2026-09-30: auth-mfa plugin: more SVG icon fixes
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- repository: github.com/jpulse-net/plugin-auth-mfa (separate repo)
+- npm package: @jpulse-net/plugin-auth-mfa
+- objectives:
+  - the same shield as `plugin.json` shows in the user menu, on the profile tabs, in the page titles, and on the plugins-index card
+  - Reset and Unlock on the admin card use stroke icons sized to the button label
+- prerequisites:
+  - W-255, `@jpulse-net/plugin-auth-mfa` 1.0.8: `plugin.json` `icon` is the shield with a plus. The menu, the profile cards, the page titles, and the plugins-index card were still 🔐. Reset was 🔄 and Unlock was 🔓
+- rationale:
+  - those surfaces insert the icon string as HTML, the same way Admin → Plugins does. The page title uses `1em`. The plugins-index card is 64px inside the 128px box. Reset and Unlock sit in `jp-btn-sm`, so those two glyphs are `1em` with a small vertical align
+- features:
+  - **one shield, several places.** The plus shield from `plugin.json` is the MFA Settings and Two-Factor Auth menu icons, both profile-tab icons, the titles on the MFA settings, setup, and verify pages (at 1em), and the plugins-index card (at 64px)
+  - **card actions.** Reset is a refresh arrow. Unlock is an open lock. Both are stroke `currentColor`, width 1.7
+- deliverables:
+  - `plugins/auth-mfa/webapp/view/jpulse-navigation.js`:
+    - MFA Settings and Two-Factor Auth menu icons are `AUTH_MFA_ICON`
+  - `plugins/auth-mfa/webapp/model/mfaAuth.js`:
+    - both profile-tab icons are `AUTH_MFA_ICON`. Reset is `AUTH_MFA_RESET_ICON`. Unlock is `AUTH_MFA_UNLOCK_ICON`
+  - `plugins/auth-mfa/webapp/view/jpulse-plugins/auth-mfa.shtml`:
+    - page `<h1>` and the plugins-index card use the plus shield
+  - `plugins/auth-mfa/webapp/view/auth/mfa-setup.shtml`, `webapp/view/auth/mfa-verify.shtml`:
+    - page `<h1>` uses the plus shield at 1em
+- notes:
+  - **not bumped, not published.** Headers and `plugin.json` `version` stay 1.0.8 until the bump script. Bump from `plugins/auth-mfa`. Do not touch `.jpulse/`
+  - **out of scope:** status marks on the MFA page (⚪, ✅, 🔒, ⚠️), the “New Backup Codes” 🔄 button, the setup-page list glyphs, framework `docs/CHANGELOG.md`, Latest Release Highlights
 
 
 
@@ -10976,11 +11042,11 @@ release prep:
 - append to cursor_log.txt
 
 plugin release prep:
-- assume W-255, v1.0.8, 2026-09-30
-- review tt-git-diff.txt for accuracy and completness of work item
+- assume W-256, v1.0.5, 2026-09-30
+- review tt-git-diff.txt for accuracy and completeness of work item
 - review work item and design doc if it matches actual code & fix if needed
-- 3 plugin README.md & docs/README.md: add release to Plugin releases section
-- 3 plugin commit-message.txt: update message
+- plugin README.md & docs/README.md: add release to Plugin releases section
+- plugin commit-message.txt: update message
 
 ### Misc
 
@@ -10999,12 +11065,12 @@ git tag v2.0.9; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.8 2026-09-30
+node ../../bin/bump-version.js 1.0.5 2026-09-30
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.8; git push origin main --tags
+git tag v1.0.5; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

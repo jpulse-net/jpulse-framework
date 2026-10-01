@@ -28351,3 +28351,400 @@ auth-mfa 1.0.9 is published. W-257 notes now record commit 74be357, tag v1.0.9, 
 
 
 ============================================================
+2026-09-30 18:54
+
+now I am wondering what the value is of storing monthly usage stats
+- this coudld be derived from daily stats, right?
+
+Yes, fully derivable. aiUsage is never pruned (retentionDays only deletes aiTurns), so every month doc equals the sum of its day docs. The month doc's only job is an O(1) read for monthly caps in onAiQuotaCheck (and quotaSnapshot). Deriving instead = sum <=31 day docs via anchored key-prefix query on the existing unique `key` index; cheap. Deriving also fixes things: no double-count on the usage page, no drift if a crash lands between the two settle writes, month request caps would count in-flight reservations (reserve only touches the day doc today), and a future week period (TD-09) needs no new doc type. Cost: a day-doc pruning job must never be added without a rollup. Recommended: stop writing month docs, add a period-sum helper in aiUsage model used by quota check, snapshot, and usage API; leave existing month docs in place and ignore them (no data deletion); update design doc §10 and the aiUsage model header. Waiting for go-ahead.
+
+
+============================================================
+2026-09-30 19:03
+
+it's good timing for design change
+- let's remove monthly docs
+- data volume is low due to daily aggregation,
+- why do we need a retention period?
+- in other enterprise apps I maintain we keep records indefinitely, or until purged manually
+- do we need two doc types, one for user, one for model?
+- what about a 3rd generic one for site owner? in bubblemap it is a map, in another case it could be a page, a region, or any other bucket
+- how could the 3rd bucket be defined?
+
+retentionDays only purges aiTurns (transcripts: user content, large), never usage numbers; keep usage indefinitely. Turn purge only runs at startup (finding). Proposed one usage doc type per (day, subject, provider, model, scopeType, scopeId) with scopeLabel last-seen; one atomic upsert per turn; all breakdowns are $group. Third bucket = existing thread scope; onAiScopeResolve already returns scope.label (BubbleMap: map name). Raised migration (unique `key` index clash) and reservation timing as open points. Asked decisions; question form interrupted.
+
+
+============================================================
+2026-09-30 19:29
+
+- no backward compat concerns, so no migration etc (we can blow away existing docs)
+- instead of subject, better name the field username or user? yes, it's the service account argument, but it's just anotehr type of user
+- column header for the defining parts of the three tables:
+  - user, provider/model are fixed (and i18n-ized),
+  - where to define the scope, e.g. "Map"?
+  - should be defined once per site, not with every doc update
+  - in bubblemap's case columns header is and remains "Map",
+  - and scopeLabel "Q3 Roadmap" would be the cell value in that column
+- transcript retention: keep 90 days default, purge daily
+
+Brainstorm, no code. Scope column header: translation key per scope type, view.ui.ai.usage.scopeTypes.<scopeType>, defined by whoever owns the scope type in its translations (BubbleMap site/webapp/translations en 'Map', de 'Karte'; hello-ai plugin its own). Translation merge is framework -> plugins -> site (W-222), so it is once per site, localized, no code, nothing stored per doc; fallback raw scopeType. Rejected: Site Config field (not localized), hook typeLabel (code, per turn). Rename subject -> username everywhere (doc field, onAiQuotaCheck result, ctx.quota, API, design doc). Fresh start: drop aiUsage, new unique index. Found: onAiQuotaCheck runs before provider/model are chosen (turnLoop.js ~206 vs ~253); proposed choosing provider/model first so the reservation lands on the same row, and no-provider fails before reserving. Retention: 90 days, purge at startup and every 24 h (idempotent across instances). Offered to write work item + design doc §10 update next.
+
+
+============================================================
+2026-09-30 20:32
+
+- not all sites use i18n, bubblemap does not, so i18n needs to be supported but optional
+- ok with choose the provider and model, then check quota
+- I am not clear yet what the best option is for the 3rd bucket:
+- option 1: a fixed table, a header for scope (e.g. "Map", cell "Q3 Roadmap")
+- option 2: a fixed table, 2 headers for area ("Area", cell "Map") and scope ("Map", cell "Q3 Roadmap")
+- option 3: one table per area (most complex)
+- it looks like you propose option 2?
+- compare the options and make a recommendation
+
+Clarified: previous proposal was option 3 (one table per scope type). Compared: option 1 breaks when a site has more than one scope type (one header can't name mixed rows); option 2 needs a generic scope header when mixed and shows a redundant Area column when not; option 3 always has the right header but can't rank all scopes in one list. Recommended adaptive option 2: one table sorted by cost; one scope type in the period -> Area column hidden and scope header is the type label ("Map") = option 1 look for BubbleMap; mixed -> Area column shown with type labels, scope header generic "Scope". Type label lookup: translation key if the site defines one, else app.conf ai.scopeTypes.<type>.label, else raw type; i18n optional. Provider/model-before-quota accepted.
+
+
+============================================================
+2026-09-30 20:50
+
+this proposal looks good
+
+please write work item W-258, v1.0.19, 2026-10-01 @work-items.md (11001-11012)  and a design doc (design doc is warranted due to scope size)
+
+Wrote docs/dev/design/W-258-ai-usage-redesign.md (status, overview, current state, decisions, usage record shape/indexes/writes/reads, quota order and hook contract with username, caps, capability probe, daily turn purge, usage API, usage page with Day/Month switch, cards, tables, adaptive scope table, formatting, scope type labels, fresh start, sites, testing, out of scope). Filled W-258 objectives, prerequisites, rationale, features, deliverables, notes; status and placement untouched. Changes vs. the brainstorm: scope type label lookup is now app.conf first, then translation, then raw type, so a site can override a plugin's label without translation files; the "Active conversations" card became "Conversations" (threads with a turn in the period), since every user/scope keeps an active thread slot forever; history depth set to 31 days / 12 months; hello-ai ships its scope type label as the plugin reference. BubbleMap override removal listed as a follow-up in its own repo. No code changed.
+
+
+============================================================
+2026-09-30 21:09
+
+I have not yet reviewd the design doc
+- history length: either [previous] [next] buttons, or 60 days for day mode
+- old data purge: ok to do on first run, but cruft in code should be removed in next release (alternatively I could run a mongosh command to avoid code cruft)
+
+what is the right place for ai-core in app.conf?
+- by convention it has system sections, controller and view sections
+- we do not yet have a convention for plugins,
+- it's good timing to define one
+- bubblemap currently has controller.aiAgent.* and view.map.aiAgent.*: @tt-bubblemap-app.conf
+- come up with a proposal
+
+Proposal, no files changed besides this log. app.conf convention for plugins: new top-level `plugins` section, one key per plugin in camelCase of the plugin name (ai-core -> plugins.aiCore, auth-oauth -> plugins.authOauth), same name as the plugin's controller, log prefix, and global; no hyphen quoting, works in {{appConfig.plugins.aiCore.x}}. Plugin structures its own block; no controller/view split inside. Not under controller.* or view.*: those are per-component framework/site layers and a plugin's controller name can collide with a site's. Precedence: code defaults < app.conf < admin settings in MongoDB (Site Config tab or plugin config); one home per setting. app.conf holds deploy-time and code-like settings (scope type labels, prompt override, debug dumps); appConfig is assembled from framework + site + secret files only, plugins ship defaults in code. ai-core today reads top-level `ai.*` (defaultProvider, defaultModel, promptOverride, debugDumps); no site sets it, so move to plugins.aiCore.* in W-258 at no cost. BubbleMap: controller.aiAgent and view.map.aiAgent belong to its own site controller and map view and stay; keys that duplicate ai-core settings (defaultProvider, defaultModel, maxRoundsPerTurn, turnTimeoutMs, ...) to be checked in BubbleMap follow-up. History: recommend 60 days in Day mode now, prev/next later. Old data: recommend new collection name aiUsageDaily instead of a drop-on-first-run; no cruft, nothing fails if mongosh drop of aiUsage is forgotten; a reused aiUsage with old docs would fail the new unique index (old docs all null on identity fields). Waiting for go-ahead to fold into the design doc and work item.
+
+
+============================================================
+2026-09-30 21:27
+
+I like the idea of a plugins section, design make sense
+- however, it fights the site => plugins => jpulse config overload concept
+- do we need to define this in app.conf?
+- plugins already have their own settings in mongo, including gui, so could we use this instead?
+
+Agreed: drop the app.conf plugins section. appConfig is built from framework + site + secret files only; plugins cannot add a layer, so plugin settings in app.conf would be a second channel next to the MongoDB settings that plugins already have (plugin config page, or a Site Config tab via extendSchema). ai-core's four app.conf keys (ai.defaultProvider, ai.defaultModel, ai.promptOverride, ai.debugDumps) are fallbacks for settings already on the AI Agent tab or plugin page; no site sets them; remove the reads in W-258 (settings.js lines 143, 144, 174, 175). Scope type labels are not admin config: the code that invents a scope type names it. Proposed new ai-core hook onAiScopeTypes (execute, continue on error), called by apiUsage; a site or plugin handler adds { scopeType, label }, registered via static hooks next to its onAiScopeResolve handler (BubbleMap aiAgent.js:265, hello-ai helloAi.js:23). Handler can translate with ctx.req, so i18n stays optional. Fallback raw scopeType. Rejected a MongoDB field for labels: admin would need internal scope type ids, and plugin-owned types need code anyway. Convention: plugin settings live in MongoDB; values defined by code come from code via hooks; plugins read app.conf only for framework sections. Revisit a plugin app.conf layer (framework -> plugin -> site) if a deploy-time need appears. Pending go-ahead: fold this, 60-day history, and aiUsageDaily into the design doc and work item.
+
+
+============================================================
+2026-09-30 21:37
+
+yes
+
+Folded into docs/dev/design/W-258-ai-usage-redesign.md and W-258 in work-items.md (status and placement untouched). Design doc: decisions 5 (new collection aiUsageDaily, no migration code), 9 (scope type labels from code via onAiScopeTypes), 10 (plugin settings in MongoDB, app.conf reads removed), 11 (60-day history); index names aiUsageDaily_*; §9 rewritten (onAiScopeTypes hook definition and example, first handler wins, raw-type fallback, hello-ai reference handler; §9.2 table of the four removed ai.* keys and their MongoDB homes; §9.3 plugin configuration convention); §10 now "Old aiUsage collection" with db.aiUsage.drop() and why a new name; §11 BubbleMap follow-up list; tests and out of scope updated. Work item: objectives, prerequisites (W-222 replaced by W-209), rationale, features, deliverables (settings.js, helloAi.js instead of hello-ai translation files, creating-plugins.md convention, settings/hello-ai tests), notes updated. No code changed.
+
+
+============================================================
+2026-09-30 22:52
+
+design doc looks good!
+
+- since we only have one unit, how about calling the collection aiUsage instead of aiUsageDaily?
+- 4.4 Reads: compare:
+  - option 1: design option
+  - option 2: read full date range & aggregate into three buckets in view (single query, more work in browser)
+  - actually I see 7. Usage API already has a format that is easy to consume
+- add a Tech Debt section with TDs for some of the out of scope items
+
+Design doc and W-258 updated, no code. Collection renamed back to aiUsage (indexes aiUsage_identity, aiUsage_user_day). §10 is now a required upgrade step: stop app, db.aiUsage.drop(), start 1.0.19. Documented failure if skipped: the old unique index on `key` treats the missing key on new records as null, so the second record fails, the reservation throws, every AI turn fails at the quota check; new identity index creation also fails; old docs are ignored by range reads (no `day`). §4.4: summarize is one $facet aggregation (totals, by user, by model, by scope) plus a separate history query; added comparison table, option 1 chosen: payload proportional to the page (option 2 ships every record, e.g. 18,000 rows for 60 days at 300/day), server needed anyway for quota rows, onAiScopeTypes labels, and turn counts; view not coupled to storage shape. New §14 Deferred Items and Technical Debt continuing W-223's sequence: TD-19 page period navigation, TD-20 per-user caps on the page, TD-21 manual usage purge, TD-22 per-model caps, TD-23 plugin app.conf layer (State / Why deferred / Trigger). §13 points to them. Work item: features (old data, aggregation, tech debt), deliverables (model indexes and $facet, W-223 §20 pointer entries and TD-09 note), out of scope.
+
+
+============================================================
+2026-09-30 23:10
+
+TD-20 Per-user caps on the usage page
+- review how bubblemap handles user quota
+- assess if we need to include TD-20 if it makes it easier for current bubblemap functionality
+- I added symlink of project at @tt-bubblemap-app so that you can investigate
+
+I added pointers to new TDs in @docs/dev/design/W-223-ai-agent.md
+
+Reviewed tt-bubblemap-app. BubbleMap has no onAiQuotaCheck / onAiQuotaSettle handler (static hooks: onAiScopeResolve, onAiToolRegister, onAiToolExecute, onAiPromptFragment). Its old per-user daily limits dailyRequestsPerUser / dailyTokensPerUser were copied once into ai-core maxRequestsPerDay / maxTokensPerDay by maybeCopyAiAgentToAi(), so all users get the same site caps. Conclusion: TD-20 stays deferred; the W-258 quota column (site caps of the matching period) is exact for BubbleMap. Found dead leftovers: monthlyCostCap in AI_AGENT_DEFAULTS (not copied, no reader), quotaWarnPercent and aiCapability.quotaUsedPercent (set, never computed); the BubbleMap override page also reads cards.spendCap that no API returns. Design doc: TD-20 gets a "checked against BubbleMap" note; §11 BubbleMap follow-up lists removing those leftovers. ai-core has no site setting for a monthly cost cap (only via a quota hook); raised as an option, not added.
+
+
+============================================================
+2026-09-30 23:14
+
+- let's add a maxCostPerMonth, 0 or empty means no cap
+- add implementation plan section to design doc
+
+Design doc: decision 12 and new §5.5 maxCostPerMonth (AI Agent tab, number, default 0, per user, calendar month; cap added only when > 0; existing costUnknown rule means unpriced usage in the month refuses new turns while the cap is set, stated in help text; shown in Month mode quota cell; /quota in the panel printed raw floats, so cost rows get $used / $limit formatting). Tests extended (settings and quota cost-cap cases). New §15 Implementation Plan: 7 phases (usage record and quota core; turn loop order and hook contract; daily turn purge; usage API; usage page, panel, translations, hello-ai handler; documentation; manual verification with ai-mock incl. mock-unpriced), ship together as 1.0.19. Open question recorded: maxRequestsPerDay / maxTokensPerDay treat 0 as a zero limit (blocks every turn), unlike maxCostPerMonth. Work item: feature, deliverables (settings.js, jpulse-common.js /quota, AI Agent tab field), notes. No code changed.
+
+
+============================================================
+2026-09-30 23:21
+
+actually, we need to revisit maxCostPerMonth
+- this can be deployment specific
+- some companies might want to track usage for whole BU, either token count or cost (usually cost)
+- what is better, defer as a TD, or come up with a best guess?
+
+Recommendation, no files changed besides this log: split it. Keep per-user maxCostPerMonth in W-258 (default 0 = off, cheap, well understood; protects against one runaway user, which a BU budget also needs). Defer BU tracking and BU budgets as new TD-24 (group budgets and reporting), next to W-223 TD-03 (quota delegation and grants): the unknowns are how users map to a BU (roles, profile field, directory group), the budget period (month vs fiscal quarter), hard vs soft caps, and alerts; no customer requirement yet. W-258 keeps the door open: records carry username, so BU reporting can group by a username -> BU mapping at read time, or a `group` field can be added to new records later (additive); enforcement goes through the existing quota hooks. Waiting for decision.
+
+
+============================================================
+2026-09-30 23:27
+
+I'm ok to leave maxCostPerMonth,
+- but it should be obvious that this is a per user cap, not total cap
+- at a later point we might have a total cap per month for all users
+
+Design doc §5.5: all three cap labels say "per user" ("Daily request cap per user", "Daily token cap per user", "Monthly cost cap per user (USD)"; de: "... pro Benutzer"), each help text starts "Per user, not a site total."; keys unchanged (max<Dimension>Per<Period>) so stored daily values survive; a future site-wide cap gets its own key maxSiteCostPerMonth. Decision 12 updated; translation deliverables list the relabeled keys. New TD-24 "Site-wide and business-unit budgets" (state, why deferred with open questions for each, related W-223 TD-03, path kept open by the design, trigger); §13 lists it. Added the TD-24 pointer to W-223 §20 in the same format as TD-19..23. Work item: feature text, tech debt list, out of scope. Still open: 0 on the daily caps blocks every turn.
+
+
+============================================================
+2026-09-30 23:31
+
+my point was that name maxRequestsPerDay is not descriptive enough, is it per user for whole site?
+- better: maxUserRequestsPerDay, maxUserTokensPerDay, maxUserCostPerMonth
+
+Renamed the cap keys in the W-258 design doc and work item: maxRequestsPerDay -> maxUserRequestsPerDay, maxTokensPerDay -> maxUserTokensPerDay, new maxUserCostPerMonth; key pattern max<Who><Dimension>Per<Period>, future site-wide cap maxSiteCostPerMonth. Values are stored in configs (doc 'global', data.ai.*); §10 upgrade now has a second mongosh step: db.configs.updateMany({}, {$rename: {'data.ai.maxRequestsPerDay': 'data.ai.maxUserRequestsPerDay', 'data.ai.maxTokensPerDay': 'data.ai.maxUserTokensPerDay'}}); skipped = daily caps fall back to defaults 200/400000, no fallback code. Translation keys follow the field names (old ones removed). Updated decision 12, §1, §5.5 (table with "Was" column), §11 (BubbleMap: AI_AGENT_TO_AI_COPY lines 88-89 and aiAgent.test.js line 449; copy already ran, so only matters for fresh installs), §12 tests, TD-20 note, §15 phases 1/2/5/6/7, open question. Code touch points in ai-core: settings.js, aiCore.js schema, en.conf/de.conf. Still open: 0 on the daily caps blocks every turn.
+
+
+============================================================
+2026-09-30 23:53
+
+ah, meaning of 0
+- what do you recommend?
+- criteria: don't make me think; backward compat N/A
+
+Recommendation: one rule for all three caps, 0 = no cap. Finding: the framework schema form (webapp/view/jpulse-common.js ~line 1795) saves an empty number field as the schema default and parses with parseInt, so "empty" never reaches the database: clearing a daily cap refills 200/400000, clearing the cost cap gives 0. So drop "empty" from the rule and help text; just "0 = no cap". Server rule: missing (never saved) -> code default; > 0 -> cap; 0 or negative -> no cap. Turning AI off stays with the master enabled switch / allowed roles. Side finding: parseInt truncates the cost cap to whole dollars ($25.50 -> 25); proposed help text says "whole US dollars" rather than a framework change. Not yet written into the design doc / work item; offered to do so.
+
+
+============================================================
+2026-10-01 00:13
+
+- yes for 0 means no cap
+- help text is too verbose:
+- Daily request cap per user: "Per user, not a site total. 0: no cap."
+- better:
+- Daily request cap per user: "0: no cap."
+
+W-258 design doc: new decision 13 "0 means no cap, for all three caps" (AI off stays with the on/off switch and allowed roles); decision 12 drops "or empty". §5.5: table of stored value -> meaning (missing = code default 200/400000/no cost cap; > 0 = cap; 0 or negative = no cap); "empty" is not a stored state (form saves the schema default); cost cap in whole dollars (parseInt); help texts short: "0: no cap." / "0: kein Limit." for the daily caps, "Whole US dollars. 0: no cap." / "Ganze US-Dollar. 0: kein Limit." for the cost cap; "Per user, not a site total." removed (labels carry it); calendar month and unpriced-model rule moved to the plugin README (phase 6). Tests: 0 / negative / positive / missing for all three, daily caps at 0 let turns run. Manual check updated. Open question section removed. Work item: new feature bullet for the 0 rule and help text, settings.js deliverable, open-question note removed.
+
+
+============================================================
+2026-10-01 00:21
+
+GET /api/1/ai/usage?period=day|month
+- is period the right name?
+- it's granularity, not a period
+- what is a good name?
+- unit, ...?
+
+Analysis: the switch does two things - picks the window for cards/tables/quota cells (today vs this month) and the bucket size of the history (60 days vs 12 months). Candidates: granularity (AWS Cost Explorer; accurate for history, long, not quite right for "today"), unit (MongoDB $dateTrunc/$dateAdd; generic, could be read as currency/token unit on a usage page), by (short, reads "usage by day"), per (GitHub traffic API uses per=day|week for the same shape: totals plus per-bucket breakdown; matches the cap keys maxUserRequestsPerDay / maxUserCostPerMonth). Recommended per=day|month for the API and page URL. Keep `period` where it really is a window: the cap object { dimension, period, limit } (hook contract, "requests per day") and periodRange(); history row field `period: '2026-09-30'` is a time period value and can stay. Not yet applied to the design doc / work item; offered to do so.
+
+
+============================================================
+2026-10-01 00:36
+
+ok for per=day|month
+
+Applied per=day|month in the W-258 design doc: §7 API line plus a short paragraph on why `per` and where `period` stays (cap { dimension, period, limit }, periodRange(), history row `period` value); response field `per: 'day'`; logging line; §8.1 page URL `?per=month` (same name as the API); model method history(range, per); usage-api test (`per` validation, default day, others 400); phase 4 plan. Work item: usage API feature, usage page feature (URL `?per=month`), aiCore.js deliverable.
+
+
+============================================================
+2026-10-01 00:39
+
+thanks opus
+
+grok: implement, unless questions
+
+Implemented W-258 in ai-core (headers left at 1.0.18). Usage records are one row per day, user, provider, model, and scope; months are sums. Quota checks the chosen provider and model first, then reserves on that identity. Caps renamed to maxUserRequestsPerDay, maxUserTokensPerDay, plus maxUserCostPerMonth; 0 means no cap; app.conf ai is no longer read. Usage API is GET /api/1/ai/usage?per=day|month. Usage page rebuilt (Day/Month switch, cards, by user, by model, adaptive scope, history). onAiScopeTypes added; hello-ai names hello-ai. Turn purge runs at startup and every 24 hours. Unit suites: 27 files, 316 tests passed. Not verified in the browser (no app server running). Before starting this build: stop the app, db.aiUsage.drop(), and $rename the two daily cap keys in configs. BubbleMap follow-up is still in its own repo.
+
+
+============================================================
+2026-10-01 01:19
+
+db task done in dev (aiUsage dropped, cap keys renamed). App started. Bug: change model with /model and pick is ok; send "hi gpt sol"; prompt and response are briefly shown, then wiped. Screenshots of the chat, AI Core page, usage day/month, and site config. Logs: thread listed 49 turns, then each completed turn reloaded and listed 50.
+
+The wipe is the turn window, not the usage change. listByThread sorted oldest-first and kept 50, so once "URL fetch tests" passed 50 turns the reload after each reply replaced the live transcript with the oldest 50 and the new turn was gone. The /model reply stayed because it is local slash output. Also, the completed event was sent before the turn was saved, so a reload could land on an empty reply. listByThread now returns the newest 50 (or the history limit of 40) in chronological order. The completed, canceled, and stalled events are sent after the turn is saved. Unit test covers the window. thread-api and turn-loop: 26 passed. The running npm start process still has the old code; restart it, then send again in that thread. The panel shows the newest 50 turns of a long thread.
+
+
+============================================================
+2026-10-01 01:32
+
+it worked the second try
+(logs: page reload, plugin config save with debugDumps, then a completed turn and apiTurnApplied; listTurns went from 28 to 29)
+
+The first send was saved and marked completed after a single read_draft call (14.8k tokens in, 83 out, empty reply). A normal translation does read_draft, then propose_draft_rewrite, then text (the retry: 31.0k in, 529 out). The panel reloaded the empty turn, so there was no reply and no toast. The second send is the German reply and the Apply card. debugDumps was turned on between the two tries; it only adds logs. The blank first turn is still in that conversation.
+
+
+============================================================
+2026-10-01 01:40
+
+Multi-user check of the day usage page (screenshot, light theme) plus logs for ptester5 (2 turns, then denied admin), peter (oauth login, 1 new turn), and aiCore.apiUsage day, 3 users, 3 models, 1 scope.
+
+The day page matches the database. 10 requests today: siteadmin 7, ptester5 2, peter 1. Tokens 127.1k and $0.31 match the sum of the five usage rows. Models: claude-sonnet-5 8 / 116.7k / $0.29, gpt-6-sol 1 / 5.1k / $0.02, gemini-3.8-flash 1 / 5.4k / <$0.01. Four conversations are four threads that all sit in the one Hello AI scratch pad scope, so the scope table has one row. Peter's thread lists 2 turns because seq 1 is from 2026-09-21; only seq 2 is today. ptester5's admin denial is the role gate.
+
+
+============================================================
+2026-10-01 01:57
+
+Month page with kein Limit and Verlauf (ss 1). Cost cap $1 shows $0.28 / $1.00, $0.02 / $1.00, $0.01 / $1.00 (ss 2). Peter's hallo succeeded (ss 3). Bug: Add URL of https://constitutioncenter.org/the-constitution/full-text fetched 119750 bytes then toasted "That page has almost no text." Pasting the URL into the prompt did not attach it (ss 4).
+
+Month view and the $1 quota cells are correct. Peter's turn was allowed because $0.01 is under $1; the cap refuses the next turn only once this month's cost is already at $1. Add URL kept the first <article> (the preamble, 327 chars) and treated the rest of the page as an empty shell. The reader now keeps <main> when it has more text than the first article. The constitution page extracts to about 45k characters. Pasting a URL into the message sends the address as text and does not fetch it. Restart, then Add URL again.
+
+
+============================================================
+2026-10-01 02:02
+
+The constitution URL works now, but reaching the $1 monthly cap is hard. Month page shows siteadmin $0.45 / $1.00, peter $0.06 / $1.00, ptester5 $0.02 / $1.00, 17 requests, $0.53 total.
+
+The cap is checked at the start of a turn: used >= limit refuses before the provider is called. The turn that crosses $1 still runs; the next one is refused. siteadmin needs about $0.55 more at a few cents per turn. To see the refusal without more spend, set Monthly cost cap per user to 0.4 (any number above 0 is stored) and send one short message as siteadmin. Peter at $0.06 would still be allowed.
+
+
+============================================================
+2026-10-01 02:15
+
+mongosh set data.ai.maxUserCostPerMonth to 0.4 (matched 1, modified 1). Config form shows 0.4. Toast: Quota exceeded: cost / month limit 0.4. Usage month: siteadmin $0.45 / $0.40 Kontingent überschritten. Daily cap 10: Quota exceeded: requests / day limit 10. Mock unpriced: kein Preiseintrag, yellow costs, card note einige Kosten unbekannt, quota cells kein Limit.
+
+Those results match. 13+3+2 requests, token and cost sums, and the unpriced row are consistent. The cost cap is off on the last page, so the unknown-cost lockout (cap still set, month has a turn with no price) was not shown. Saving the AI Agent tab while 0.4 is displayed stores 0.
+
+
+============================================================
+2026-10-01 02:19
+
+Yellow unknown prices are good. Make "einige Kosten unbekannt" yellow too. Sending "hi" with mock returned "Quota exceeded: cost / month limit 0.4".
+
+The cost-card note now uses the same warning color as the yellow cost cells. Reload the usage page; no restart. The toast is the dollar cap: siteadmin is at $0.45, which is already over $0.40, so that check wins. The unknown-cost sentence is used only when the known cost is still under the cap and the month includes a turn with no price.
+
+
+============================================================
+2026-10-01 02:21
+
+The usage page looks good. The cost card shows $0.53 with "einige Kosten unbekannt" in the warning color, and siteadmin's $0.45 is yellow. Quota cells say kein Limit.
+
+Acknowledged. The unknown-cost note matches the yellow cost cells.
+
+
+============================================================
+2026-10-01 12:42
+
+Revisit the constitution URL that failed. Explain why. Temporarily revert the code fix so the error condition can be tested. Objective: user-friendly error messages.
+
+The fetch of https://constitutioncenter.org/the-constitution/full-text succeeded (HTTP 200, 119750 bytes). The reader kept only the first <article>, the preamble, about 327 characters. The empty-shell rule rejects a download of at least 500 bytes whose extracted text is under 2 percent of those bytes. The toast is "That page has almost no text. Paste the article instead." extractHtmlText is temporarily back to first-article-wins. Restart npm start, then Add URL again. Say when to restore the fix.
+
+
+============================================================
+2026-10-01 12:51
+
+The empty-shell toast is shown. "That page has almost no text. Paste the article instead." is cryptic for non-technical users. Explain why there is almost no text, and what to do instead.
+
+The toast now says: "This page has almost no text we can read. The article is probably filled in after the page opens. Copy the text and paste it here, or add it as a file." The first-article reader is still in place so the constitution URL still fails. Restart, then Add URL again. Restore the reader after the wording is accepted.
+
+
+============================================================
+2026-10-01 12:58
+
+The multi-article miss is real, but less common than dynamic content. Do you agree with the new toast: "We couldn't read this page because its content loads dynamically. Please copy and paste the text directly, or add it as a file."
+
+Agreed. The empty-shell check is for HTML that arrives without the article. The constitution page is an extractor miss and the uncommon case. The sentence names the usual cause and the two things the user can do. "Loads dynamically" is the one phrase a non-technical reader may not know.
+
+
+============================================================
+2026-10-01 13:04
+
+The (+) URL toast is clear. Pasting the constitution URL into the prompt makes the model recommend Add URL, which is pointless.
+
+A failed Fetch and send no longer sends the turn; the address goes back into the box and the toast is the only reply. If the address is sent as-is, the model is told the panel already offered the fetch and must not point at Add URL. Restart, then paste the URL again.
+
+
+============================================================
+2026-10-01 13:09
+
+The pasted-URL path still shows the model telling the user to use Add URL. Detect a failed URL fetch and show the same message as the Add URL error toast.
+
+A failed Fetch and send now keeps the address in the box, does not call the model, shows the toast, and adds that same message in the chat under the URL. The earlier Add URL reply stays in the thread. Reload Hello AI and use Fetch and send again.
+
+
+============================================================
+2026-10-01 13:15
+
+The failed-page toast and chat line look good. Other scenarios should keep their previous messages.
+
+The per-code fetch sentences are unchanged. Add URL still shows only the toast. A failed Fetch and send shows that same sentence in the toast and the chat, and does not call the model. Send as-is, a question about a link, and a turn with no attachment use the original instruction again: ask the user to attach the file or URL again. Restart so that instruction is the one the running server sends.
+
+
+============================================================
+2026-10-01 13:19
+
+The failed-page messages look good. Restore the article-reader fix.
+
+extractHtmlText again keeps <main> when it has more text than the first <article>. A page that uses one article per section is read whole. A page whose HTML really has almost no text still shows the dynamic-content message. Restart, then add the constitution URL again.
+
+
+============================================================
+2026-10-01 13:21
+
+Should a page that is partly static and partly dynamic keep the static text and warn the user, if that split can be detected?
+
+The download never includes the part the browser fills in later. Today a page with enough text is attached with no warning, and a page under 2 percent text is refused. A warning is worth it only in the middle: a short real extract plus a sign the rest loads later (large script, empty app root, or a JavaScript-required note). Keep that text and say more of the page may appear after it opens. Below the current bar, keep the refusal. The constitution page is all in the HTML and should not get the warning.
+
+
+============================================================
+2026-10-01 13:27
+
+Still looking for a URL with a mix of static and dynamic content. https://bubblemap.net/hello-ai/ summarized fully, including the scratch-pad Jedi text.
+
+That page is a poor specimen: the scratch pad is in the HTML (1181 characters, just over the 2 percent line). About 74 percent of the file is script, which is the framework, not a missing article. A script-size warning would have been a false gotcha. https://hn.algolia.com/ is the other extreme: 0 characters and an empty app root, so the current refusal is right. No clean public page was found that keeps a real lede in the HTML and withholds the rest. The Verge homepage extracts about 18000 characters of headlines but is so large that the 2 percent rule would still refuse it.
+
+
+============================================================
+2026-10-01 13:35
+
+The constitution URL works again with the restored reader. Add a new TD for the hybrid static/dynamic page case.
+
+TD-25 Partly static HTML pages is in W-223 §20. Enough text is attached with no warning; under 2 percent is refused. The deferred case is a short real opening in the download and more text only after the page opens: keep the static text and warn. Script size alone is not the signal. W-258 §14 notes that TD-25 lives in W-223 because it is the URL reader.
+
+
+============================================================
+2026-10-01 13:42
+
+Move all TDs from the W-258 design doc into W-223, and replace W-258 section 14 with one paragraph pointing at W-223's TD section.
+
+TD-19 through TD-24 now have their full text in W-223 §20, after TD-18 and before TD-25. Section cites that belonged to the usage design are marked W-258. W-258 §14 is one paragraph pointing at W-223 §20. The phase 6 note no longer says those items are one-line pointers.
+
+
+============================================================
+2026-10-01 13:51
+
+Anything left before release prep?
+
+The usage work and the URL-reader fixes verified in this session are done. Before prep, work-items.md still says TD-19 to TD-24 are one-line pointers in W-258 §14. The 1.0.19 plugin release line covers usage only; the reader fix and the empty-page message are user-visible in the same build. The "partly unknown" refusal was not seen in the browser because the dollar cap fired first. BubbleMap's page override stays in that repo. Version bump, status, and commit are the prep itself.
+
+
+============================================================
+2026-10-01 14:16
+
+Plugin release prep for W-258, v1.0.19, 2026-10-01. Review tt-git-diff.txt against the work item and design docs. Add the 1.0.19 line to the three plugins' README and docs README Plugin releases sections. Update the three commit-message.txt files.
+
+The diff matches the usage work. It also keeps the newest turns in a long thread, reads a page with one article per section from main, and shows the dynamic-content message in the chat when a prompt URL fetch fails. Those are now in the work item features and deliverables, in W-258 As Built, and in W-223 §14.2. The tech-debt sentence points at W-223 §20. Status was left IN_PROGRESS. ai-core's 1.0.19 release line includes those fixes. hello-ai's line names the scope type. ai-mock is lockstep with no product change. Commit messages are written and not committed. Headers stay at 1.0.18.
+
+
+============================================================
+2026-10-01 14:27
+
+releases and publish done (ai-core 1.0.19 commit 88bdc4c, tag v1.0.19, npm publish). Review tt-git-diff.txt with core changes. Last plugin updates were a framework commit only, not a jPulse package release. Recommend the same, or publish jpulse?
+
+Commit the framework repo. Do not publish a jPulse release. The diff has no framework runtime: cursor_log, W-223 pointers and TD-19 to TD-25, the W-258 work item, creating-plugins.md Step 2 (plugin settings in MongoDB), and the untracked W-258 design doc. The product shipped in the plugin package. CHANGELOG and Latest Release Highlights are out of scope on the work item. creating-plugins.md rides along on the next real framework release. This diff also marks W-257 DONE and moves the in-progress marker above W-258; W-258 is still IN_PROGRESS.
+
+
+============================================================

@@ -99,6 +99,13 @@ A plain `npm publish` from the primary directory works too, once the primary's `
 
 ## Step 2: Add Configuration (Optional)
 
+Plugin settings live in MongoDB, not in `app.conf`. `appConfig` is built from the framework `app.conf`, the site `app.conf`, and `app-secret.conf` only, so a plugin section in the site file would skip the site → plugins → framework order used everywhere else.
+
+- The plugin's own config page (`plugin.json` `config.schema`, Admin → Plugins → the plugin) or a Site Configuration tab added with `ConfigModel.extendSchema()`. Production behavior belongs on a Site Configuration tab; diagnostics belong on the plugin page.
+- A value defined by code (a scope type, a tool, a provider) comes from code, through a hook.
+- A plugin reads `app.conf` only for framework sections, such as `system`.
+- One home per setting. Do not add an `app.conf` fallback for a setting that already lives in MongoDB.
+
 Configuration fields are automatically turned into an admin UI:
 
 ```json

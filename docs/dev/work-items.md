@@ -10955,17 +10955,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - the header was checked in the browser after the view cache picked up the file. View templates stay cached for up to 10 minutes (`view.cacheTemplates.checkInterval`)
   - **out of scope:** generic OIDC (🔐) and OAuth2 (🔑) preset icons, the `|| '🔑'` fallback on a provider row, tests that assert those presets, framework `docs/CHANGELOG.md`, Latest Release Highlights
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-257, v1.0.9, 2026-09-30: auth-mfa plugin: more SVG icon fixes
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - repository: github.com/jpulse-net/plugin-auth-mfa (separate repo)
 - npm package: @jpulse-net/plugin-auth-mfa
@@ -10997,6 +10988,97 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - notes:
   - **published** `@jpulse-net/plugin-auth-mfa` 1.0.9. Commit `74be357`, tag `v1.0.9`, push `5a6cda4..74be357`. Tarball shasum `ec7753d8f8532230d92453ec18b58e3559a32ad7`, 14 files, unpacked 142.8 kB. No `repository.url` warning
   - **out of scope:** status marks on the MFA page (⚪, ✅, 🔒, ⚠️), the “New Backup Codes” 🔄 button, the setup-page list glyphs, framework `docs/CHANGELOG.md`, Latest Release Highlights
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-258, v1.0.19, 2026-10-01: ai-core: usage by user, model, and scope; usage page with Day/Month switch
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
+- npm package: @jpulse-net/plugin-ai-core
+- design doc: `docs/dev/design/W-258-ai-usage-redesign.md`
+- objectives:
+  - an admin sees AI usage at a glance: stat cards, then usage by user, by provider/model, and by scope (a map, a page, any bucket a site defines), for today or this month
+  - usage numbers are stored once per turn, in one place, and kept indefinitely
+  - the code that defines a scope type names it ("Map") once, with or without i18n
+  - a clear rule for where plugin settings live: MongoDB, not `app.conf`
+- prerequisites:
+  - W-253, `@jpulse-net/plugin-ai-core` 1.0.18: current `aiUsage` model, quota hooks, usage page, retention setting
+  - W-209, framework v1.7.13: extensible hook registry (the new `onAiScopeTypes` hook, `static hooks` registration)
+- rationale:
+  - the usage page dumps raw `aiUsage` documents. Daily and monthly documents are listed side by side, so adding rows double-counts; cost shows as a raw float; there is no breakdown by model or scope
+  - BubbleMap's override has the right layout (cards, by user, by map, by model) but reads a response shape no API builds, so it shows zeros
+  - monthly documents are derivable: nothing purges `aiUsage`, so a month document always equals the sum of its days. Two writes per turn can drift apart, and a monthly request cap misses reservations in flight (they sit on the day document only)
+  - provider and model are not on the usage documents, so "by model" can only come from turns, which retention deletes
+  - every thread already has a scope (`scopeType`, `scopeId`) and `onAiScopeResolve` already returns `scope.label`; that is the third breakdown, no new concept
+  - the turn purge runs only at startup, so a long-running server never purges
+  - ai-core reads four `app.conf` `ai.*` keys that are only fallbacks for settings already in MongoDB with an admin UI; no site sets them. `appConfig` is built from framework, site, and secret files only, so a plugin section in the site `app.conf` would bypass the site → plugins → framework order
+- features:
+  - **one usage record per day, user, provider/model, and scope** in the `aiUsage` collection (same name, new shape). Fields `day`, `username`, `provider`, `model`, `scopeType`, `scopeId`, newest `scopeLabel`, counters, `cost`, `costUnknown`. Unique index on the six identity fields, second index on `username` + `day`. A turn is one reservation write and one settle write on the same document
+  - **no monthly documents.** A month, and any cap period, is a sum over day records (`periodRange(period, now)`); a future `week` is one more case
+  - **usage kept indefinitely.** No automatic purge of usage records
+  - **`subject` is now `username`** in the record, the `onAiQuotaCheck` result (`{ username, caps }`), `ctx.quota`, `quotaSnapshot`, the API, and the page. A pool or service account is another kind of user
+  - **provider and model chosen before the quota check.** The reservation lands on the record the turn settles on; "no provider" fails before anything is reserved. The quota hook context gains `thread`, `provider`, `model`; the settle context gains `scope`
+  - **per-user caps, named so.** AI Agent tab keys `maxRequestsPerDay` / `maxTokensPerDay` renamed to `maxUserRequestsPerDay` / `maxUserTokensPerDay`; new `maxUserCostPerMonth` (whole USD, per user, not a site total, calendar month). Labels say "per user" too ("Daily request cap per user", "Daily token cap per user", "Monthly cost cap per user (USD)"). Stored values renamed with mongosh at upgrade (see old data). A site-wide cap would be `maxSiteCostPerMonth` (TD-24). With the cap set, a month with unpriced usage refuses new turns (existing `costUnknown` rule); the plugin README says so.
+  - **`0` means no cap, for all three caps.** The daily caps no longer read `0` as "nothing allowed"; turning AI off stays with the on/off switch and allowed roles. Help text is short: "0: no cap." on the daily caps, "Whole US dollars. 0: no cap." on the cost cap The panel's `/quota` shows cost rows as `$used / $limit`
+  - **daily turn purge.** At startup and every 24 hours, re-reading `retentionDays` (default 90, `0` keeps turns). Help text on the setting says usage numbers are never deleted
+  - **usage API.** `GET /api/1/ai/usage?per=day|month` (`per`, not `period`: it sets both the window, today or this month, and the history step, days or months) returns `cards`, `byUser` (with quota rows for caps of the matching period), `byModel`, `byScope`, `scopeTypes`, and `history` (last 60 days, or last 12 months)
+  - **usage page.** Day/Month switch in the header (kept in the URL as `?per=month`), five cards (requests, tokens, cost, conversations, failed/stalled), by-user, by-provider/model, and scope tables, and history. Cost as `$0.24`, tokens as `90.2k`
+  - **adaptive scope table.** One scope type in the period: the header is its label ("Map"), cells are scope labels ("Q3 Roadmap"). More than one: an Area column appears and the header is "Scope"
+  - **`onAiScopeTypes` hook.** New ai-core hook (`execute`, continue on error), called by the usage API. A site or plugin handler pushes `{ scopeType, label }` for the types it owns, registered via `static hooks` next to its `onAiScopeResolve`. Plain text, or translated with `ctx.req`; first handler wins; unnamed types show the raw type
+  - **no `app.conf` in ai-core.** `ai.defaultProvider`, `ai.defaultModel`, `ai.promptOverride`, `ai.debugDumps` are no longer read; their MongoDB settings are the only home. Settings resolve as code defaults, then MongoDB
+  - **plugin configuration convention.** Plugin settings live in MongoDB (plugin config page, or a Site Configuration tab via `extendSchema`); values defined by code come from code through hooks; plugins read `app.conf` only for framework sections; one home per setting
+  - **old data.** No migration and no migration code. Required upgrade steps: stop the app, run `db.aiUsage.drop()` and the `$rename` of `data.ai.maxRequestsPerDay` / `data.ai.maxTokensPerDay` in `configs` in mongosh, start 1.0.19. Drop skipped: the old unique index on `key` rejects the second new record and every AI turn fails at the quota check; the same command and a restart recover. Rename skipped: the daily caps fall back to their defaults (200 / 400000)
+  - **aggregation in MongoDB.** The usage API groups in MongoDB (one `$facet` for cards and breakdowns, one query for history) rather than shipping raw rows to the browser: payload stays proportional to the page, and quota rows, scope labels, and turn counts need the server anyway
+  - **tech debt recorded.** TD-19 page period navigation, TD-20 per-user caps on the page, TD-21 manual usage purge, TD-22 per-model caps, TD-23 plugin `app.conf` layer, TD-24 site-wide and business-unit budgets, TD-25 partly static HTML pages. Full text is in W-223 §20
+  - **a long thread keeps the newest turns.** `listByThread` returns the newest `limit` turns, oldest of that window first. The completed, canceled, and stalled events are sent after the turn is saved
+  - **a page with one article per section is read whole.** The HTML reader keeps `<main>` when that text is longer than the first `<article>`. A page whose HTML has almost no text says the content loads dynamically and asks the user to paste the text or add a file. A failed fetch from the prompt shows that same message in the chat and does not send the turn
+- deliverables:
+  - `plugins/ai-core/webapp/model/aiUsage.js`:
+    - new record shape and indexes (`aiUsage_identity`, `aiUsage_user_day`); `summarize` as one `$facet` aggregation; `reserve` / `rollbackReserve` / `settle` on the identity; `sumForUser`, `summarize`, `history`
+  - `plugins/ai-core/webapp/utils/agent/quota.js`:
+    - `periodRange`; cap checks and `quotaSnapshot` sum over the range; `username` replaces `subject`; reserve and settle on `quota.identity`
+  - `plugins/ai-core/webapp/utils/agent/turnLoop.js`:
+    - choose provider/model before `onAiQuotaCheck`; pass `thread`, `provider`, `model` to the check and the last resolved `scope` to the settle
+  - `plugins/ai-core/webapp/controller/aiCore.js`:
+    - `apiUsage` with `per`, aggregations, scope type labels from `onAiScopeTypes`; new `onAiScopeTypes` catalog entry; quota hook descriptions and `contextKeys`; daily retention timer; AI Agent tab: cap fields renamed to `maxUserRequestsPerDay` / `maxUserTokensPerDay`, `maxUserCostPerMonth` field, `retentionDaysHelp`; capability probe uses `{ username, rows }`
+  - `plugins/ai-core/webapp/utils/agent/settings.js`:
+    - `appConfig.ai` no longer read; daily caps read from `maxUserRequestsPerDay` / `maxUserTokensPerDay`; `maxUserCostPerMonth` adds a `cost` / `month` cap; each cap applies only when greater than 0; `@description` updated
+  - `plugins/ai-core/webapp/model/aiTurn.js`:
+    - `listByThread` keeps the newest `limit` turns; `usageWindow` counts conversations and failed or stalled turns in a day range
+  - `plugins/ai-core/webapp/utils/attachments/html.js`:
+    - `<main>` wins when it is longer than the first `<article>`; the empty-shell message names dynamic content
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - `/quota` formats cost rows as `$used / $limit`; a failed prompt-URL fetch shows the fetch error in the chat and does not send the turn
+  - `plugins/ai-core/webapp/view/admin/ai-usage.shtml`:
+    - rebuilt page: header switch, cards, by user, by provider/model, adaptive scope table, history
+  - `plugins/ai-core/webapp/translations/en.conf`, `de.conf`:
+    - new `view.ui.ai.usage.*` strings (switch, cards, sections, columns, empty lines, cost notes); `subject` removed; intro without "subject"; `config.maxRequestsPerDay` / `config.maxTokensPerDay` replaced by `config.maxUserRequestsPerDay` / `config.maxUserTokensPerDay` ("per user" labels) with help keys; `config.maxUserCostPerMonth` and help; `config.retentionDaysHelp`
+  - `plugins/hello-ai/webapp/controller/helloAi.js`:
+    - `onAiScopeTypes` handler names `hello-ai` → "Hello AI", the reference for a plugin-owned scope type
+  - `plugins/ai-core/webapp/tests/unit/`:
+    - `usage-update.test.js` rewritten; `quota.test.js`, `turn-loop.test.js`, `settings.test.js`, `hello-ai.test.js` updated; new `usage-api.test.js`; retention timer test
+  - `plugins/ai-core/README.md`, `plugins/ai-core/docs/README.md`:
+    - usage page, `onAiScopeTypes` example, quota hook result `{ username, caps }`, daily retention, no `app.conf` settings, the three per-user caps, upgrade note with both mongosh steps; Plugin releases line for 1.0.19 at release
+  - `docs/plugins/creating-plugins.md`:
+    - Step 2 (configuration): plugin configuration convention
+  - `docs/dev/design/W-258-ai-usage-redesign.md`:
+    - this item's design
+  - `docs/dev/design/W-223-ai-agent.md`:
+    - §9.7 `aiUsage` row, §10.1 monthly documents, §10.2 subject → username, §17 usage page paragraph and `app.conf` overrides point to W-258; §20 holds TD-19 to TD-25 in full; TD-09 state notes that `week` is now one case in `periodRange`; revision entry
+- notes:
+  - decisions settled in a brainstorming session 2026-09-30, listed in the design doc `## 3. Decisions`; implementation plan in seven phases in design doc `## 15. Implementation Plan`
+  - **follow-up in the BubbleMap repo (not this item):** delete its `site/webapp/view/admin/ai-usage.shtml` override; register `onAiScopeTypes` for `map` → "Map" in `aiAgent.js`; rename `subject` in any own quota handlers; check which `controller.aiAgent.*` keys duplicate ai-core settings; `AI_AGENT_TO_AI_COPY` destinations and `aiAgent.test.js` to the new cap keys; both mongosh steps
+  - **out of scope:** TD-19 to TD-24 (see features), `week` period (W-223 TD-09), framework `docs/CHANGELOG.md` and Latest Release Highlights
+
+
 
 
 
@@ -11041,7 +11123,7 @@ release prep:
 - append to cursor_log.txt
 
 plugin release prep:
-- assume W-257, v1.0.9, 2026-09-30
+- assume W-258, v1.0.19, 2026-10-01
 - review tt-git-diff.txt for accuracy and completeness of work item
 - review work item and design doc if it matches actual code & fix if needed
 - 3 plugin README.md & docs/README.md: add release to Plugin releases section
@@ -11064,12 +11146,12 @@ git tag v2.0.9; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.9 2026-09-30
+node ../../bin/bump-version.js 1.0.19 2026-10-01
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.9; git push origin main --tags
+git tag v1.0.19; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

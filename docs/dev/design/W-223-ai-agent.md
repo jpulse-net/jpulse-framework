@@ -1920,13 +1920,15 @@ source; that half is a site fragment, not a framework one.
 
 ### 9.7 Persistence model
 
+W-258 replaces the `aiUsage` row below: one day record per user, model, and scope, no monthly documents. See `docs/dev/design/W-258-ai-usage-redesign.md`.
+
 Three collections, framework-owned (§18), structurally as today.
 
 | Collection | Key | Notes |
 |---|---|---|
 | `aiThreads` | `(scopeType, scopeId, createdBy)` unique on `status: 'active'` | `createdBy` is a username (§6.1); label, context, provider/model, rollups |
 | `aiTurns` | `threadId`, `seq` | userText, agentText, toolCalls, proposals, sourceRefs, usage, rates, cost, provider/model, status |
-| `aiUsage` | `<subject>:<period>` unique | named counters, `costUnknown` (§10.2) |
+| `aiUsage` | day, user, provider, model, scope (W-258) | named counters, `costUnknown`; a month is the sum of its days |
 
 `sourceRefs` is metadata only — id, name, origin, and type per source or image
 that was attached when the turn ran — and it is the durable half of §14.1's
@@ -1958,6 +1960,8 @@ Threads are username-keyed, which makes them a consumer of the
 
 ### 10.1 Dimensions and periods
 
+W-258 drops monthly documents. A month is `periodRange('month')` over day records. `week` is one more case there (TD-09).
+
 The storage model already generalizes — `increment(subject, period, delta)`
 takes an arbitrary delta and the period is a string, and monthly documents are
 already written on every settle. Only the *caps* are fixed, as two daily
@@ -1985,6 +1989,8 @@ cost cap cannot be enforced against a subject whose recorded cost is partly
 unknown without saying so, so the admin usage page flags it.
 
 ### 10.2 The subject
+
+W-258 renames subject to `username`. The hook result is `{ username, caps }`.
 
 **A turn is charged to one subject, and the subject is the requesting
 username.** That is the entire shipped model, and it is what a site gets
@@ -2611,8 +2617,12 @@ attempt names who triggered it.
 
 What `ai-core` adds on top is the part `UrlFetch` deliberately leaves out: an
 HTML-to-markdown extraction kept small on purpose (readability-lite, no DOM
-library), an empty-shell verdict for a client-rendered page that answers with
-the paste instruction instead of a shell, a provenance snapshot (final URL,
+library). When `<main>` holds more text than the first `<article>`, the reader
+keeps `<main>`, so a page with one article per section is not reduced to its
+preface. An empty-shell verdict for a client-rendered page says the content
+loads dynamically and asks the user to paste the text or add a file. If that
+fetch fails, the address stays in the box, the turn is not sent, and the chat
+shows the same message. A provenance snapshot (final URL,
 fetch time, content type, byte count, digest, redirect count), and a per-code
 user-facing message.
 
@@ -2836,6 +2846,8 @@ both families does not find half its hooks as `unverified` rows.
 ---
 
 ## 17. Configuration and admin
+
+W-258 replaces the usage page and the `app.conf` `ai.*` overrides described below. Caps are `maxUserRequestsPerDay`, `maxUserTokensPerDay`, and `maxUserCostPerMonth`. See `docs/dev/design/W-258-ai-usage-redesign.md`.
 
 `ai-core` contributes a config tab through `ConfigModel.extendSchema()` — the
 `static async initialize()` call site W-207 provides, which is what the
@@ -3111,8 +3123,7 @@ roles, which is where it is already filtered by plugin availability.
 
 ### TD-09 Additional quota periods
 
-**State.** `day` and `month`. The period key is produced by a named function,
-so adding one is a function plus a config enum value.
+**State.** `day` and `month`. W-258 reads a period through `periodRange()`; `week` is one more case there, not a new record type.
 
 **Trigger.** A site wanting `week`, or a billing-cycle period anchored to a
 date other than the first of the month.
@@ -3310,6 +3321,137 @@ default stays `chrome: 'float'`, so a site that omits the option sees no change.
 **Why not in core.** Every round of one turn runs inside one `runTurn` on one process, under the thread lease. Google requires the signature on the current turn. Earlier turns are text history for every provider, and Google does not validate signatures on those.
 
 **Trigger.** A need to persist or replay thought steps across turns or process restarts.
+
+### TD-19 Usage page period navigation
+
+**State.** The page shows today or this month. The history table covers the last 60 days or 12
+months, per user, without the model and scope breakdowns. (W-258-ai-usage-redesign.md design doc)
+
+**Why deferred.** The question "what happened on September 17" is answered by the history table
+at the user level, and that is enough for the first version. Navigation means a `date`
+parameter on the API, previous/next buttons next to the Day/Month switch, a "back to today"
+state, and card labels that name the date instead of "today".
+
+**Trigger.** An admin investigating a past day or month needs the model or scope breakdown for
+it, not only the per-user totals.
+
+### TD-20 Per-user caps on the usage page
+
+**State.** The by-user quota column checks the site caps from settings. A site quota handler
+that returns different caps for some users (a pool, a grant, a role) is not reflected; those
+users show the site caps. (W-258-ai-usage-redesign.md design doc)
+
+**Why deferred.** The caps come from `onAiQuotaCheck`, which runs per turn with an actor. Calling
+it for every user on the page means building an actor per user and running reservation-free
+check code, which the hook contract does not have.
+
+**Trigger.** A site ships a quota handler with per-user caps (TD-03 grants), and its
+admins rely on the usage page to see who is near a cap.
+
+**Checked against BubbleMap (2026-09-30).** BubbleMap registers no `onAiQuotaCheck` or
+`onAiQuotaSettle` handler. Its old per-user daily limits (`dailyRequestsPerUser`,
+`dailyTokensPerUser`) were copied once into ai-core's `maxRequestsPerDay` / `maxTokensPerDay`
+(`maxUserRequestsPerDay` / `maxUserTokensPerDay` after W-258) by
+`maybeCopyAiAgentToAi()`, so every user gets the same site caps. The quota column in W-258 §7 is
+therefore exact for BubbleMap, and TD-20 does not block it.
+
+### TD-21 Manual purge of usage records
+
+**State.** Usage records are kept indefinitely  (W-258-ai-usage-redesign.md design doc decision 2).
+There is no UI or API to delete them.
+
+**Why deferred.** Volume is low (one record per day per user, model, and scope actually used),
+and enterprise practice is to keep usage records until someone decides otherwise. The admin can
+delete by date range in mongosh (`db.aiUsage.deleteMany({ day: { $lt: 'YYYY-MM-DD' } })`).
+
+**Trigger.** A site asks to purge by age, or a user deletion has to remove that user's usage
+records (the `onUserAfterDelete` cascade, §9.7).
+
+### TD-22 Per-model caps
+
+**State.** Caps apply per user across all models. The quota hook now sees the chosen provider
+and model  (W-258-ai-usage-redesign.md design doc §5.2), and usage records carry them, so a cap
+such as "500k tokens a day on the expensive model" is a filter on `sumForUser`, not new storage.
+
+**Why deferred.** A cost cap already limits spending regardless of model. No site has asked to
+ration one model separately.
+
+**Trigger.** A site wants a cheap model unlimited and an expensive one capped, or a provider
+contract caps one model.
+
+### TD-23 Plugin `app.conf` layer
+
+**State.** `appConfig` is built from the framework, site, and secret files only. Plugin settings
+live in MongoDB; values defined by code come from hooks  (W-258-ai-usage-redesign.md design doc
+§9.3).
+
+**Why deferred.** No plugin needs a setting before the database is up or per deployment outside
+MongoDB. A layer would add a fourth config source for no current use.
+
+**Trigger.** A plugin needs a deploy-time setting: something read before MongoDB connects, or
+something that must differ per environment and live in version control. The consistent design
+is a plugin `webapp/app.conf` merged between the framework and the site files, keyed by the
+plugin's own section, matching the site → plugins → framework order of files and translations.
+
+### TD-24 Site-wide and business-unit budgets
+
+**State.** All caps are per user  (W-258-ai-usage-redesign.md design doc §5.5). There is no cap
+on the total for all users, and no grouping of users into business units for reporting or budgets.
+
+**Why deferred.** Two different needs, with open questions each deployment answers differently:
+
+- **site-wide monthly cap** (`maxSiteCostPerMonth`, "Monthly cost cap, all users (USD)"): the
+  simpler one. Open: does reaching it stop every user, or only warn; who is notified; does it
+  count cost only, or tokens too
+- **business-unit budgets**: how a user maps to a unit (role, profile field, directory group, a
+  site-kept table), the budget period (calendar month or fiscal quarter, carry-over), hard stop
+  or soft warning, and alerts at a threshold. Usually tracked as cost
+
+Related: TD-03 (quota delegation and grants: charging a turn to a pool).
+
+**Path, kept open by W-258.**
+
+- site-wide cap: one `$group` over the month's records without a `username` filter, checked in
+  the shipped `onAiQuotaCheck`; the cards on the usage page show `used / cap` in Month mode
+- unit reporting: records carry `username`, so a unit view groups through a username → unit
+  mapping at read time (a hook the site implements), with no schema change; or a `group` field
+  set at settle time on new records (additive)
+- unit enforcement: a site `onAiQuotaCheck` handler sums the unit's records for the period and
+  refuses the turn, using the same range reads (W-258 §4.4)
+
+**Trigger.** A company asks to cap total spend for the site, or to track or cap spend per
+business unit.
+
+### TD-25 Partly static HTML pages
+
+**State.** URL ingest (§14.2) has two outcomes. Enough extracted text is attached
+with no warning. A download of at least 500 bytes whose extracted text is under
+2% of those bytes is refused: the page loads after it opens, so paste the text
+or add a file. A page that uses one `<article>` per section is read from
+`<main>` when that text is longer than the first article. The US Constitution
+full text on constitutioncenter.org is that case, and it attaches.
+ (W-258-ai-usage-redesign.md design doc)
+
+**Why deferred.** The download never includes the part the browser fills in
+later, so a split cannot be proved. A hint is a short real extract next to a
+large script, an empty app root, or a note that JavaScript is required. Script
+size alone is a false hint: Hello AI on BubbleMap is about three quarters
+script, and the scratch pad is entirely in the HTML. Below the 2% bar, a
+navigation menu plus a warning is worse than the refusal. A clean public page
+whose view-source has the opening and whose live page has more text further
+down was not found. Hacker News search (hn.algolia.com) is an empty shell,
+which the refusal already covers. The Verge homepage extracts a long headline
+list and still falls under 2% because the file is huge — a size false alarm,
+not this case.
+
+**Trigger.** A page whose downloaded HTML contains the opening and whose live
+page has more text further down, and attaching only the opening would mislead
+the user.
+
+**Shape.** In that middle band, keep the static text and add a short warning
+that more of the page may appear after it opens, and that they should paste the
+rest if the extract looks incomplete. Do not warn from script size alone. Do
+not replace the empty-shell refusal.
 
 ---
 

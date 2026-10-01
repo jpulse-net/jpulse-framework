@@ -10989,17 +10989,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **published** `@jpulse-net/plugin-auth-mfa` 1.0.9. Commit `74be357`, tag `v1.0.9`, push `5a6cda4..74be357`. Tarball shasum `ec7753d8f8532230d92453ec18b58e3559a32ad7`, 14 files, unpacked 142.8 kB. No `repository.url` warning
   - **out of scope:** status marks on the MFA page (⚪, ✅, 🔒, ⚠️), the “New Backup Codes” 🔄 button, the setup-page list glyphs, framework `docs/CHANGELOG.md`, Latest Release Highlights
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-258, v1.0.19, 2026-10-01: ai-core: usage by user, model, and scope; usage page with Day/Month switch
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
 - npm package: @jpulse-net/plugin-ai-core
@@ -11084,6 +11075,48 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-259, v1.0.3, 2026-10-01: ai-anthropic plugin: replace icon with Anthropic star icon
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- repository: github.com/jpulse-net/plugin-ai-anthropic (separate repo)
+- npm package: @jpulse-net/plugin-ai-anthropic
+- objectives:
+  - Admin → Plugins shows the Claude star for ai-anthropic
+- prerequisites:
+  - W-249, `@jpulse-net/plugin-ai-anthropic` 1.0.2: the icon is the four-stroke A\ lettermark
+  - W-250, ai-openai, and W-251, ai-google: those plugins use the product marks (GPT blossom, Gemini sparkle), not the OpenAI or Google organization marks
+- rationale:
+  - the A\ mark is the organization lettermark. Gemini and GPT in this set are the product marks. Claude's mark is the twelve-ray star
+  - the brand drawing tapers each ray. At the 24px plugin-table size that taper does not read, so the icon is one stroke width with round caps, the Lucide stroke the other plugin icons use. Width is 1.5, under the Lucide default of 2, so twelve rays stay separate
+- features:
+  - **Claude star.** Twelve straight rays from the center, lengths and angles taken from the star artwork. `currentColor`, round caps, stroke width 1.5. It follows light and dark mode. It is not the Gemini four-point sparkle
+  - **one SVG.** Admin → Plugins, the plugins index, the `/model` menu, and the AI Core provider rows read `plugin.json`. ai-anthropic has no navigation file. The AI Core and Hello AI menu icons stay the bot
+- deliverables:
+  - `plugins/ai-anthropic/plugin.json`:
+    - `icon` is the twelve-ray star. `version` is 1.0.3
+  - `plugins/ai-anthropic/package.json`:
+    - version 1.0.3
+  - `plugins/ai-anthropic/README.md`, `docs/README.md`:
+    - title is v1.0.3. Plugin releases line for 1.0.3
+  - `plugins/ai-anthropic/commit-message.txt`:
+    - W-259, v1.0.3, 2026-10-01
+- notes:
+  - Icon only. No controller, test, or `ai-core` change
+  - **tt-git-diff.txt** is the ai-anthropic repo. The product change is the `plugin.json` icon, the 1.0.3 version fields, and the release lines in both READMEs. The other files are `@version` 1.0.3 and `@release` 2026-10-01 from bump-version
+  - no design doc. W-223 still records W-249 as the 1.0.2 lettermark publish; that line is the history of 1.0.2
+  - the `/model` menu was checked: Claude rows show the star
+  - **published** `@jpulse-net/plugin-ai-anthropic` 1.0.3. Commit `5be62e4`, tag `v1.0.3`, push `7afc599..5be62e4`. Tarball shasum `3a49afcb4809d8c4e3265e9133e9ce5e01e7f6fc`, 10 files, unpacked 70.1 kB. No `repository.url` warning
+  - out of scope: framework `docs/CHANGELOG.md`, Latest Release Highlights, the ai-core bundle
+
+
+
+
+
+
+
 
 ### Pending
 
@@ -11123,7 +11156,7 @@ release prep:
 - append to cursor_log.txt
 
 plugin release prep:
-- assume W-258, v1.0.19, 2026-10-01
+- assume W-259, v1.0.3, 2026-10-01
 - review tt-git-diff.txt for accuracy and completeness of work item
 - review work item and design doc if it matches actual code & fix if needed
 - 3 plugin README.md & docs/README.md: add release to Plugin releases section
@@ -11146,12 +11179,12 @@ git tag v2.0.9; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.19 2026-10-01
+node ../../bin/bump-version.js 1.0.3 2026-10-01
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.19; git push origin main --tags
+git tag v1.0.3; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

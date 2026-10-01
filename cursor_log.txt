@@ -28748,3 +28748,73 @@ Commit the framework repo. Do not publish a jPulse release. The diff has no fram
 
 
 ============================================================
+2026-10-01 14:36
+
+Give text to carry forward to the BubbleMap and jPulse sites for required and recommended updates after ai-core 1.0.19.
+
+Required on both sites, app stopped, before starting 1.0.19: plugin update, db.aiUsage.drop(), and the configs rename of the two daily cap keys. Skipping the drop makes every AI turn fail at the quota check. Skipping the rename resets daily caps to 200 and 400000. The drop deletes usage stats only. BubbleMap also needs its usage-page override removed and an onAiScopeTypes handler for map. The jPulse site gets the Hello AI label from the bundled plugin and has no site override in this repo.
+
+
+============================================================
+2026-10-01 15:03
+
+Usage stats only show October instead of the last 90 days after the month rolled.
+
+jp-dev aiUsage has only 2026-10-01 (6 documents, 25 requests). The upgrade drop removed earlier rows. Tag totals are today and Monat totals are the calendar month. The history table is the last 60 days or 12 months. retentionDays of 90 deletes old turns and does not set the usage-page window.
+
+
+============================================================
+2026-10-01 15:15
+
+The 01:12 screenshot is already October 1, so the post-drop testing landed on 2026-10-01. Review whether day scope lists the last 60 days and month scope the last 12 months.
+
+Verlauf uses historyRange: day is today minus 59 days through today (60 days inclusive; 2026-09-17 starts 2026-07-20), month is the 1st of the month 11 months back through today (12 months; 2026-09-17 starts 2025-10-01). Days or months with no rows are omitted. Cards and the user, model, and scope tables use periodRange: today, or the 1st of this month through today.
+
+
+============================================================
+2026-10-01 15:32
+
+next: W-259, v1.0.3, 2026-10-01: ai-anthropic: replace icon with Anthropic * icon
+- for gemini and gpt we use the product branding icons, not org icons google or openai
+- we should do the same for anthropic, e.g replace the A\ icon with the star icon
+- because we have small size, we can't use variable width for the star legs
+- create a svg of attached png, follow the lucide standard
+- if needed, we can reduce the stroke width to less than 2
+- work it
+- create item @work-items.md (11081-11092)
+
+Replaced the A\ lettermark with a twelve-ray Claude star traced from the attached artwork. Lucide stroke: 24 viewBox, currentColor, round caps, width 1.5 so the rays stay separate at the 24px plugin-table size. plugin.json and package.json are 1.0.3. README titles and a 1.0.3 release line (no work-item number) are updated. Commit message is written and not committed. W-259 is filled in; status stays IN_PROGRESS. File headers stay at 1.0.2 until bump-version. Checked the icon beside Gemini and GPT at 24px and 64px, light and dark.
+
+
+============================================================
+2026-10-01 15:43
+
+check if other places define the icon, and fix if needed (jpulse-nav etc)
+
+The Claude star is only in plugins/ai-anthropic/plugin.json. ai-anthropic has no navigation file. ai-core and hello-ai navigation use the AI Core bot icon, not the provider mark. The model menu, the plugins list, and the AI Core provider table read plugin.json at runtime. No second copy of the lettermark remains.
+
+
+============================================================
+2026-10-01 15:48
+
+looks good
+
+release prep:
+- assume W-259, v1.0.3, 2026-10-01
+- review tt-git-diff.txt for accuracy and completeness of work item
+- review work item and design doc if it matches actual code & fix if needed
+- plugin README.md & docs/README.md: add release to Plugin releases section
+- plugin commit-message.txt: update message
+
+tt-git-diff.txt is the ai-anthropic repo. The product change is the star in plugin.json, version 1.0.3, and the 1.0.3 release lines already in both READMEs. The other files are the bump-version headers (1.0.3, 2026-10-01). W-259 now says those surfaces share the one SVG, and that the bump is done. No design doc; W-223's W-249 line stays as the 1.0.2 lettermark history. Commit message is the publish message and is not committed. Status stays IN_PROGRESS. The ai-core bundle was not touched.
+
+
+============================================================
+2026-10-01 15:53
+
+release & publish done. ai-anthropic commit 5be62e4, tag v1.0.3, push 7afc599..5be62e4, npm @jpulse-net/plugin-ai-anthropic@1.0.3, shasum 3a49afcb4809d8c4e3265e9133e9ce5e01e7f6fc, 10 files, unpacked 70.1 kB.
+
+Recorded the publish on W-259. Status stays IN_PROGRESS. The framework checkout still has the work item and cursor log; that is a framework commit, not a jPulse package release.
+
+
+============================================================

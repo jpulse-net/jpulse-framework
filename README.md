@@ -1,4 +1,4 @@
-# jPulse Framework v2.0.9
+# jPulse Framework v2.0.10
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -82,7 +82,7 @@ npm start
 - **Enterprise Security**: Built-in authentication, session management, security headers, and HTML sanitization
 - **Hardened URL Fetch**: `UrlFetch.fetch()` for a URL a user or a config field chose — SSRF guard, size caps, redirect re-validation (not raw Node `fetch()`)
 - **Internationalization**: Complete i18n support with dynamic translation loading
-- **Testing Framework**: 4000+ tests with automated cleanup and isolation
+- **Testing Framework**: 4200+ tests with automated cleanup and isolation
 - **Production Ready**: nginx integration, PM2 clustering, MongoDB replica sets
 
 ## Deployment Requirements
@@ -207,6 +207,7 @@ Business Source License 1.1 with Additional Terms
 
 ## Latest Release Highlights
 
+- **v2.0.10, W-260, 2026-10-01: Admin plugins: list in load order, with search**: Admin → Plugins lists enabled plugins in load order, then every other plugin by name. Search filters that table by name, summary (the description when a plugin has no summary), and author. The total / enabled / disabled counts stay the full install. An empty match is a line under the search field. Startup lines from bootstrap, the hook-audit banner, and app shutdown use the documented severity words `warning` and `ERROR`. Docs: `plugins/managing-plugins.md`, `site-administration.md`.
 - **v2.0.9, W-246, 2026-09-21: View: strip selected file-header tags for privacy**: Views sent to the browser (`.shtml`, `.js`, `.css`, `.tmpl`) drop `@repository`, `@author`, and `@genai` from the first file-header comment. Source on disk is unchanged. The list can be customized in the `app.conf` configuration file. Docs: `site-customization.md`, `security-and-auth.md`.
 - **v2.0.8, W-243, 2026-09-20: Logs: per-area logDebug with a live admin toggle**: Prod logs keep the audit trail (`logRequest` / `logInfo` / `logWarning` / `logError`) and drop the internals. `logDebug` prints only when its area is enabled. Prefix match (`redis` → `redis-manager.cacheSet`, `web` → `websocket…`, `*` all). Boot default is `controller.log.debug` (array, boolean, or comma string) plus `JPULSE_LOG_DEBUG`; the live override on `/admin/logs.shtml` is cluster-wide, expires after `debugTtl` minutes (default 30), and does not survive a restart. Docs: `logging.md`.
 - **v2.0.7, W-242, 2026-09-19: jPulse.UI: mobile.exclusive holds on a viewport resize**: Two same-group panels open on desktop used to stay stacked after a narrow. The shared resize pass now keeps the front-most (`lastActiveAt`) and `hardClose()`s the rest when any open member is exclusive and below its own breakpoint. `autoResize: false` is left alone. Widening does not reopen. Site Configuration names the tab **AI Agent**. Docs: `jpulse-ui-reference.md`, `ai-agent.md`.

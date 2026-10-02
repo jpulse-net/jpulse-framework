@@ -3,8 +3,8 @@
  * @tagline         Shared bootstrap sequence for app and tests
  * @description     Ensures proper module loading order for both app and test environments
  * @file            webapp/utils/bootstrap.js
- * @version         2.0.9
- * @release         2026-09-21
+ * @version         2.0.10
+ * @release         2026-10-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -18,6 +18,12 @@ import StreamBody from './stream-body.js';
 
 let isBootstrapped = false;
 
+/**
+ * Startup line in the same TSV format as LogController.
+ * level must be a documented severity: 'info', 'warning', or 'ERROR'.
+ * @param {string} message
+ * @param {string} [level='info']
+ */
 function bootstrapLog(message, level = 'info') {
     console.log(CommonUtils.formatLogMessage('bootstrap', message, level));
 }
@@ -39,7 +45,7 @@ export function checkLocalAuthRestrictionSafety(appConfig, hookManager, log = bo
         appConfig.controller.auth.localAuthRestriction = 'admins-only';
         log(`⚠️  localAuthRestriction: 'disabled' with no external auth plugin enabled - ` +
             `downgraded to 'admins-only' to prevent self-lockout (see docs/deployment.md, ` +
-            `Break-Glass Account Runbook)`, 'warn');
+            `Break-Glass Account Runbook)`, 'warning');
     }
 }
 
@@ -60,7 +66,7 @@ export function checkEmailVerificationSafety(appConfig, emailController, log = b
     if (appConfig?.controller?.user?.emailVerification === 'required' && !emailController.isConfigured()) {
         log(`⚠️  emailVerification: 'required' with SMTP not configured - verification mail ` +
             `cannot be sent, so enforcement is degraded to 'nag' at runtime until SMTP is ` +
-            `configured`, 'warn');
+            `configured`, 'warning');
     }
 }
 
@@ -79,7 +85,7 @@ export function checkUrlFetchSafety(appConfig, log = bootstrapLog) {
     if (mode === 'prod' || mode === 'production') {
         log(`⚠️  utils.urlFetch.allowPrivateAddresses is true in production - ` +
             `the private-address SSRF guard is off. This switch is for local development ` +
-            `and tests only (see docs/url-fetch.md)`, 'warn');
+            `and tests only (see docs/url-fetch.md)`, 'warning');
     }
 }
 
@@ -252,8 +258,8 @@ export async function bootstrap(options = {}) {
             AppClusterControllerModule.default.initialize();
             bootstrapLog('✅ AppClusterController: Initialized (WebSocket namespace + broadcast + cache APIs)');
         } catch (error) {
-            bootstrapLog(`❌ AppClusterController initialization failed: ${error.message}`, 'error');
-            bootstrapLog(`Error details: ${error.stack || error}`, 'error');
+            bootstrapLog(`❌ AppClusterController initialization failed: ${error.message}`, 'ERROR');
+            bootstrapLog(`Error details: ${error.stack || error}`, 'ERROR');
         }
 
         // Step 11: Initialize health controller clustering (W-076)
@@ -291,7 +297,7 @@ export async function bootstrap(options = {}) {
             // W-207: a failing initialize() does not abort bootstrap, so surface it here as well as in the log
             const failedInitializers = registryStats.failedInitializers || [];
             if (failedInitializers.length > 0) {
-                bootstrapLog(`⚠️  SiteControllerRegistry: ${failedInitializers.length} initializer(s) failed: ${failedInitializers.join(', ')} (see log for details)`, 'error');
+                bootstrapLog(`⚠️  SiteControllerRegistry: ${failedInitializers.length} initializer(s) failed: ${failedInitializers.join(', ')} (see log for details)`, 'ERROR');
             }
         }
 
@@ -325,7 +331,7 @@ export async function bootstrap(options = {}) {
             global.ThemeManager.extendUserModelSchema(global.UserModel);
             bootstrapLog('✅ ThemeManager: Schema extended');
         } catch (error) {
-            bootstrapLog(`⚠️  ThemeManager: Initialization failed (continuing without): ${error.message}`, 'error');
+            bootstrapLog(`⚠️  ThemeManager: Initialization failed (continuing without): ${error.message}`, 'ERROR');
         }
 
         // Step 19: Initialize ConfigController
@@ -388,7 +394,7 @@ export async function bootstrap(options = {}) {
         };
 
     } catch (error) {
-        bootstrapLog(`❌ Bootstrap failed:`, error.message);
+        bootstrapLog(`❌ Bootstrap failed: ${error.message}`, 'ERROR');
         throw error;
     }
 }

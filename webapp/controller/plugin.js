@@ -3,8 +3,8 @@
  * @tagline         Plugin Controller for jPulse Framework WebApp
  * @description     Plugin management controller for the jPulse Framework WebApp
  * @file            webapp/controller/plugin.js
- * @version         2.0.9
- * @release         2026-09-21
+ * @version         2.0.10
+ * @release         2026-10-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -49,6 +49,36 @@ class PluginController {
     }
 
     /**
+     * Admin list order: names in loadOrder first, in that sequence, then every
+     * other plugin by name. Plugins absent from loadOrder are kept.
+     * @param {object[]} plugins - Discovered plugins
+     * @param {string[]} loadOrder - Enabled plugin names from PluginManager
+     * @returns {object[]}
+     */
+    static orderForList(plugins, loadOrder) {
+        const index = new Map();
+        if (Array.isArray(loadOrder)) {
+            loadOrder.forEach((name, i) => {
+                if (!index.has(name)) {
+                    index.set(name, i);
+                }
+            });
+        }
+        const inOrder = [];
+        const rest = [];
+        for (const plugin of plugins || []) {
+            if (plugin && index.has(plugin.name)) {
+                inOrder.push(plugin);
+            } else if (plugin) {
+                rest.push(plugin);
+            }
+        }
+        inOrder.sort((a, b) => index.get(a.name) - index.get(b.name));
+        rest.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        return inOrder.concat(rest);
+    }
+
+    /**
      * List all plugins
      * GET /api/1/plugin/list
      * @param {object} req - Express request object
@@ -58,7 +88,10 @@ class PluginController {
         const startTime = Date.now();
         LogController.logRequest(req, 'plugin.list', '');
         try {
-            const plugins = PluginManager.getAllPlugins();
+            const plugins = PluginController.orderForList(
+                PluginManager.getAllPlugins(),
+                PluginManager.registry && PluginManager.registry.loadOrder
+            );
             const pluginList = [];
 
             for (const plugin of plugins) {

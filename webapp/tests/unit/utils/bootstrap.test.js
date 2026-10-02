@@ -6,8 +6,8 @@
  *                   checkLocalAuthRestrictionSafety() (W-195), checkEmailVerificationSafety() (W-205),
  *                   and checkUrlFetchSafety()
  * @file            webapp/tests/unit/utils/bootstrap.test.js
- * @version         2.0.9
- * @release         2026-09-21
+ * @version         2.0.10
+ * @release         2026-10-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -35,7 +35,7 @@ describe('checkLocalAuthRestrictionSafety (W-195)', () => {
 
         expect(appConfig.controller.auth.localAuthRestriction).toBe('admins-only');
         expect(hookManager.hasHandlers).toHaveBeenCalledWith('onAuthGetLoginProviders');
-        expect(log).toHaveBeenCalledWith(expect.stringContaining("downgraded to 'admins-only'"), 'warn');
+        expect(log).toHaveBeenCalledWith(expect.stringContaining("downgraded to 'admins-only'"), 'warning');
     });
 
     test('leaves disabled as-is when an external auth plugin is enabled', () => {
@@ -95,7 +95,7 @@ describe('checkEmailVerificationSafety (W-205)', () => {
         checkEmailVerificationSafety(appConfig, emailController, log);
 
         expect(emailController.isConfigured).toHaveBeenCalledTimes(1);
-        expect(log).toHaveBeenCalledWith(expect.stringContaining("degraded to 'nag'"), 'warn');
+        expect(log).toHaveBeenCalledWith(expect.stringContaining("degraded to 'nag'"), 'warning');
         // Read-only: unlike checkLocalAuthRestrictionSafety(), this never mutates appConfig -
         // the actual degrade is evaluated live by UserModel.getEmailVerificationPolicy()
         expect(appConfig.controller.user.emailVerification).toBe('required');
@@ -151,7 +151,7 @@ describe('checkUrlFetchSafety', () => {
 
         checkUrlFetchSafety(appConfig, log);
 
-        expect(log).toHaveBeenCalledWith(expect.stringContaining('allowPrivateAddresses'), 'warn');
+        expect(log).toHaveBeenCalledWith(expect.stringContaining('allowPrivateAddresses'), 'warning');
         expect(appConfig.utils.urlFetch.allowPrivateAddresses).toBe(true);
     });
 

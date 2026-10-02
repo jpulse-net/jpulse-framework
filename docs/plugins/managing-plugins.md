@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Managing Plugins via CLI v2.0.9
+# jPulse Docs / Plugins / Managing Plugins via CLI v2.0.10
 
 jPulse Framework provides a command-line interface for managing plugins. This guide covers installation, updates, and publishing.
 
@@ -376,7 +376,7 @@ The framework's `.gitignore` ignores `plugins/*` (except `hello-world`), so your
 
 Plugins can also be managed via the Admin UI at `/admin/plugins`:
 
-- View installed plugins
+- View installed plugins. Enabled plugins are listed in load order; every other plugin follows by name. Search filters the table by name, summary (the description when a plugin has no summary), and author, and leaves the counts unchanged
 - Enable/disable plugins
 - Configure plugin settings
 - View plugin hooks and status

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v2.0.9
+# jPulse Docs / Site Administrator & Developer Documentation v2.0.10
 
 **For Site Administrators & Site Developers**
 
@@ -70,7 +70,7 @@ jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application f
 - See [AI Agent](ai-agent.md)
 
 ### 🧪 **Testing & Quality**
-- 4000+ tests with 100% pass rate
+- 4200+ tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis
@@ -249,6 +249,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v2.0.10, W-260, 2026-10-01: Admin plugins: list in load order, with search**: Admin → Plugins lists enabled plugins in load order, then every other plugin by name. Search filters that table by name, summary (the description when a plugin has no summary), and author. The total / enabled / disabled counts stay the full install. An empty match is a line under the search field. Startup lines from bootstrap, the hook-audit banner, and app shutdown use the documented severity words `warning` and `ERROR`. Docs: [Managing Plugins](plugins/managing-plugins.md), [Site Administration](site-administration.md).
 - **v2.0.9, W-246, 2026-09-21: View: strip selected file-header tags for privacy**: Views sent to the browser (`.shtml`, `.js`, `.css`, `.tmpl`) drop `@repository`, `@author`, and `@genai` from the first file-header comment. Source on disk is unchanged. The list can be customized in the `app.conf` configuration file. Docs: [Site Customization](site-customization.md), [Security and Auth](security-and-auth.md).
 - **v2.0.8, W-243, 2026-09-20: Logs: per-area logDebug with a live admin toggle**: Prod logs keep the audit trail (`logRequest` / `logInfo` / `logWarning` / `logError`) and drop the internals. `logDebug` prints only when its area is enabled. Prefix match (`redis` → `redis-manager.cacheSet`, `web` → `websocket…`, `*` all). Boot default is `controller.log.debug` (array, boolean, or comma string) plus `JPULSE_LOG_DEBUG`; the live override on `/admin/logs.shtml` is cluster-wide, expires after `debugTtl` minutes (default 30), and does not survive a restart. Docs: [Server Logging](logging.md).
 - **v2.0.7, W-242, 2026-09-19: jPulse.UI: mobile.exclusive holds on a viewport resize**: Two same-group panels open on desktop used to stay stacked after a narrow. The shared resize pass now keeps the front-most (`lastActiveAt`) and `hardClose()`s the rest when any open member is exclusive and below its own breakpoint. `autoResize: false` is left alone. Widening does not reopen. Site Configuration names the tab **AI Agent**. Docs: [UI reference](jpulse-ui-reference.md), [AI Agent](ai-agent.md).

@@ -28818,3 +28818,105 @@ Recorded the publish on W-259. Status stays IN_PROGRESS. The framework checkout 
 
 
 ============================================================
+2026-10-01 17:26
+
+bubblemap-dev: db.aiUsage.drop() and the configs rename of the two daily cap keys (matched 1, modified 1). Did we lose any functionality?
+
+The drop deletes aggregated usage totals only. Conversations and turns stay. The rename moved the daily cap values to maxUserRequestsPerDay and maxUserTokensPerDay. Used-against-cap counts start at zero. The old usage documents could not be read by 1.0.19. The BubbleMap usage-page override and the Map scope label are still site-code follow-up.
+
+
+============================================================
+2026-10-01 17:31
+
+on the bubblemap site I noticed a mix of warn and warning in the logs (hook audit banner vs hook-manager.audit detail lines). Why? Should be one or the other. Which is correct? Incorrect use of the log API?
+
+`warning` is the documented severity. The four detail lines use LogController.logWarning, which writes `warning`. The summary line is bootstrapLog, which was passed `warn`, and formatLogMessage prints that string unchanged. Same helper also used lowercase `error` instead of `ERROR`, and the bootstrap catch put the error text in the severity column. Those call sites now use `warning` and `ERROR`. Bootstrap and hook-manager unit tests: 89 passed. A restart is needed before the live log shows the change.
+
+
+============================================================
+2026-10-01 17:45
+
+review custom logs in webapp/app.js as well
+
+appLog is the early logger, before LogController exists. One call passed WARN for an unreadable .jpulse/app.json; that is now warning. The config-load failure already used ERROR. The set-headers callback already used warning. bodyParserLog.warn is the body-limit callback name and already calls logWarning, so the column is warning. Shutdown logError now starts with error:, matching the start-failure line. A missing setHeaders key still warns on every request.
+
+
+============================================================
+2026-10-01 17:47
+
+I am not clear on actions to take on missing middleware.setHeaders key
+
+No action unless the log contains Header "…" not found in middleware.setHeaders.availableHeaders. The shipped headers list matches availableHeaders, so a normal site never emits it. If it appears, the named key is in headers but not in availableHeaders; that header is skipped, and the same warning repeats on every request until site app.conf is fixed.
+
+
+============================================================
+2026-10-01 17:50
+
+complete app start on bubblemap, before fix, and the framework app start
+
+Both startups are clean aside from the known pre-fix hook-audit banner on bubblemap (warn vs warning). No missing setHeaders line. The 32mb bodyLimit warnings are real and already use warning. Both logs open with cache-manager.constructor at vm:0 because that import is hoisted and logs before app.js sets system identity; every later line is vm:4.
+
+
+============================================================
+2026-10-01 17:53
+
+this is a minor fix. I am looking for something more. Review an item we could add, and propose, from the Pending bullets in work-items.md.
+
+Proposed the Admin Plugins list: show enabled plugins in load order, disabled plugins after them by name, plus an as-you-type filter on name, summary, and author. The list API currently follows registry.plugins, which is discovery order. Tab hash, signup email, and site test scaffolding stay pending. Not written into work-items.md.
+
+
+============================================================
+2026-10-01 18:03
+
+yes to fix the plugin list order and add search. Create work item W-260, v2.0.10, 2026-10-01.
+
+W-260 is filled in place. Status stays PENDING. Enabled plugins follow registry.loadOrder; the rest follow by name. Search filters name, summary, and author in the browser and does not change the counts. The matching pending bullet is removed. Tab hash, signup email, and site test scaffolding stay pending.
+
+
+============================================================
+2026-10-01 18:09
+
+work item looks good for feature. Add also files for log fixes.
+
+W-260 keeps the plugin-list feature. A log-severity feature line and deliverables were added for bootstrap.js, hook-manager.js, app.js, and the bootstrap and hook-manager unit tests. Status stays PENDING. The log edits are already in the working tree.
+
+
+============================================================
+2026-10-01 18:12
+
+please implement
+
+Plugin list order is in PluginController.orderForList: loadOrder first, then the rest by name. The Installed Plugins card has a search field that filters name, summary (or description when summary is empty), and author. Counts stay on the full list. en/de strings and managing-plugins.md updated. Plugin controller tests: 21 passed. Dev server is on port 8080. /admin/plugins.shtml returns 401 without a session, so the search field was not clicked through in the browser. Status stays PENDING.
+
+
+============================================================
+2026-10-01 18:20
+
+left-align the "Keine passenden Plugins" text so that it is below the search box
+
+The no-match line uses local-plugin-no-match: left aligned, no extra padding, directly under the search field. The centered empty state stays for loading and for an install with no plugins.
+
+
+============================================================
+2026-10-01 18:22
+
+looks good. anything before release prep?
+
+Nothing else to implement. Deliverables for the plugin list, search, translations, unit test, managing-plugins.md, and the log-severity files are in the tree. Status stays PENDING. Full tests, changelog, and release notes are the release-prep pass. Search also matches the description text when a plugin has no summary.
+
+
+============================================================
+2026-10-01 18:27
+
+release prep:
+- assume W-260, v2.0.10, 2026-10-01
+- review tt-git-diff.txt for accuracy and completness of work item
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+npm test passed. Features and deliverables now record the description fallback, the left-aligned empty match, and an enabled plugin absent from loadOrder. Status stays PENDING. Release notes are in README.md, docs/README.md, and docs/CHANGELOG.md. site-administration.md names the list order and search. Version titles were left for the bump script. commit-message.txt is updated and not committed. The same work-items.md file still has earlier edits: W-155 and W-259 marked done, and notes removed on W-250, W-251, and W-252.
+
+
+============================================================

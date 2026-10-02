@@ -4,8 +4,8 @@
  * @tagline         Plugin Management Dashboard
  * @description     Admin interface for managing installed plugins
  * @file            webapp/view/admin/plugins.shtml
- * @version         2.0.9
- * @release         2026-09-21
+ * @version         2.0.10
+ * @release         2026-10-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -81,6 +81,21 @@
         color: var(--jp-color-text-secondary);
     }
 
+    .local-plugin-search {
+        margin: 0 0 16px;
+    }
+
+    .local-plugin-search .jp-form-input {
+        max-width: 24rem;
+    }
+
+    .local-plugin-no-match {
+        margin: 0;
+        padding: 0;
+        text-align: left;
+        color: var(--jp-color-text-secondary);
+    }
+
     .local-hook-audit {
         margin: 12px 0 20px;
         padding-left: 20px;
@@ -152,6 +167,9 @@
             <!-- Plugins List -->
             <div class="jp-card" style="margin-top: 30px;">
                 <h2>{{i18n.view.admin.plugins.installedPlugins}}</h2>
+                <div class="local-plugin-search">
+                    <input type="search" id="pluginSearch" class="jp-form-input" placeholder="{{i18n.view.admin.plugins.searchPlaceholder}}" aria-label="{{i18n.view.admin.plugins.searchPlaceholder}}" autocomplete="off">
+                </div>
                 <div id="pluginsList">
                     <p class="local-empty-state">{{i18n.view.admin.plugins.loadingPlugins}}</p>
                 </div>
@@ -189,11 +207,13 @@
      * Initialize the plugin management page
      */
     async function initializePluginManagement() {
+        document.getElementById('btnRescan').addEventListener('click', rescanPlugins);
+        document.getElementById('pluginSearch').addEventListener('input', () => {
+            renderPluginsList();
+        });
+
         await loadPlugins();
         await loadHooks();
-
-        // Attach event listeners
-        document.getElementById('btnRescan').addEventListener('click', rescanPlugins);
     }
 
     /**
@@ -232,11 +252,32 @@
     /**
      * Render the plugins list
      */
+    function pluginMatchText(plugin) {
+        const description = String(plugin.description || '').replace(/<[^>]*>/g, ' ');
+        const summary = plugin.summary || description;
+        return [plugin.name, summary, plugin.author].filter(Boolean).join(' ').toLowerCase();
+    }
+
+    function visiblePlugins() {
+        const searchInput = document.getElementById('pluginSearch');
+        const query = (searchInput ? searchInput.value : '').trim().toLowerCase();
+        if (!query) {
+            return allPlugins;
+        }
+        return allPlugins.filter(plugin => pluginMatchText(plugin).includes(query));
+    }
+
     function renderPluginsList() {
         const container = document.getElementById('pluginsList');
+        const plugins = visiblePlugins();
 
         if (allPlugins.length === 0) {
             container.innerHTML = '<p class="local-empty-state">{{i18n.view.admin.plugins.noPlugins}}</p>';
+            return;
+        }
+
+        if (plugins.length === 0) {
+            container.innerHTML = '<p class="local-plugin-no-match">{{i18n.view.admin.plugins.noPluginsMatch}}</p>';
             return;
         }
 
@@ -249,7 +290,7 @@
         html += '<th class="local-col-actions">{{i18n.view.admin.plugins.actions}}</th>';
         html += '</tr></thead><tbody>';
 
-        allPlugins.forEach(plugin => {
+        plugins.forEach(plugin => {
             const status = plugin.enabled ? 'active' : 'disabled';
             const statusText = plugin.enabled ? `{{i18n.view.admin.plugins.statusActive}}` : `{{i18n.view.admin.plugins.statusDisabled}}`;
             const toggleText = plugin.enabled ? `{{i18n.view.admin.plugins.disable}}` : `{{i18n.view.admin.plugins.enable}}`;

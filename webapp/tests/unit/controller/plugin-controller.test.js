@@ -3,8 +3,8 @@
  * @tagline         Unit tests for W-045 PluginController
  * @description     Tests plugin API endpoints including new public getInfo()
  * @file            webapp/tests/unit/controller/plugin-controller.test.js
- * @version         2.0.9
- * @release         2026-09-21
+ * @version         2.0.10
+ * @release         2026-10-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -256,6 +256,52 @@ describe('PluginController (W-045)', () => {
                     elapsed: expect.any(Number)
                 })
             );
+        });
+
+        test('lists enabled plugins in load order, then the rest by name', async () => {
+            function plugin(name, enabled) {
+                return {
+                    name,
+                    metadata: {
+                        version: '1.0.0',
+                        icon: 'plug',
+                        summary: name,
+                        description: '',
+                        author: 'Author',
+                        config: null
+                    },
+                    registryEntry: {
+                        enabled,
+                        autoEnable: false,
+                        status: 'loaded',
+                        errors: [],
+                        discoveredAt: '2025-01-01T00:00:00Z',
+                        enabledAt: enabled ? '2025-01-01T00:00:00Z' : null
+                    }
+                };
+            }
+
+            // Discovery order is not load order. err-enabled is enabled but absent
+            // from loadOrder, so it sorts with the disabled plugins by name.
+            PluginManager.registry = { loadOrder: ['zzz-enabled', 'aaa-enabled'] };
+            PluginManager.getAllPlugins.mockReturnValue([
+                plugin('aaa-enabled', true),
+                plugin('zzz-enabled', true),
+                plugin('mmm-disabled', false),
+                plugin('err-enabled', true),
+                plugin('bbb-disabled', false)
+            ]);
+
+            await PluginController.list(mockReq, mockRes);
+
+            const data = mockRes.json.mock.calls[0][0].data;
+            expect(data.map(item => item.name)).toEqual([
+                'zzz-enabled',
+                'aaa-enabled',
+                'bbb-disabled',
+                'err-enabled',
+                'mmm-disabled'
+            ]);
         });
 
         test('should return empty array when no plugins', async () => {

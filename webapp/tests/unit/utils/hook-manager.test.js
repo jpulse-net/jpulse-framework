@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for HookManager
  * @description     Tests for plugin hook registration and execution system
  * @file            webapp/tests/unit/utils/hook-manager.test.js
- * @version         2.0.9
- * @release         2026-09-21
+ * @version         2.0.10
+ * @release         2026-10-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -848,6 +848,33 @@ describe('HookManager', () => {
                 item.code === 'PREFIX_MISMATCH' && item.hookName === 'onCompletelyUnrelated');
             expect(finding.level).toBe('info');
             expect(finding.message).toContain('onAiCore');
+        });
+
+        test('logAudit banner uses the LogController severity words', () => {
+            HookManager.register('onUserBeforeDelete', 'consumer', jest.fn());
+            const banner = jest.fn();
+
+            HookManager.logAudit(banner);
+
+            expect(banner).toHaveBeenCalledWith(expect.stringContaining('Hook audit:'), 'warning');
+            expect(global.LogController.logWarning).toHaveBeenCalled();
+        });
+
+        test('logAudit banner uses ERROR when a finding is an error', () => {
+            HookManager.defineHook('onAiComplete', {
+                description: 'First',
+                owner: 'ai-core'
+            });
+            HookManager.defineHook('onAiComplete', {
+                description: 'Second',
+                owner: 'other'
+            });
+            const banner = jest.fn();
+
+            HookManager.logAudit(banner);
+
+            expect(banner).toHaveBeenCalledWith(expect.stringContaining('Hook audit:'), 'ERROR');
+            expect(global.LogController.logError).toHaveBeenCalled();
         });
 
         test('conflicting definition is an error finding', () => {

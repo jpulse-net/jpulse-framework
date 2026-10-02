@@ -1,6 +1,40 @@
-# jPulse Docs / Version History v2.0.9
+# jPulse Docs / Version History v2.0.10
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.10, W-260, 2026-10-01
+
+**Commit:** `W-260, v2.0.10, 2026-10-01: plugins: list plugins in load order, with search`
+
+**FEATURE RELEASE**: Admin → Plugins listed plugins in discovery order, and a large install meant scrolling to find one. This release lists enabled plugins in load order and adds search.
+
+**Objective**: The Installed Plugins table follows `registry.loadOrder`. A search field filters that table without changing the counts.
+
+**Key features**:
+- Enabled plugins that appear in `registry.loadOrder` are listed in that sequence. Every other plugin (disabled, missing, or left out of the load order) follows, sorted by name. No plugin is dropped
+- Search matches name, summary, and author, case-insensitive. When summary is empty, the description text is used, because that is the line shown in the row
+- The total / enabled / disabled counts stay the full install. An empty match is a left-aligned line under the search field. Clearing the field shows the full ordered list. Enable, disable, and rescan keep the current query
+- Sorting is in `plugin.list`, so every caller shares the order. Filtering stays in the browser. The hooks table is unchanged
+- Startup lines use the documented severity words `warning` and `ERROR`. `formatLogMessage` prints the severity string as given, so `warn`, `WARN`, and `error` were a second column
+- Docs: `plugins/managing-plugins.md`, `site-administration.md`
+
+**Files changed**:
+- `webapp/controller/plugin.js`: `orderForList` — load order first, then the rest by name
+- `webapp/view/admin/plugins.shtml`: search field; empty-match line left-aligned under the field
+- `webapp/translations/en.conf`, `de.conf`: search placeholder and empty-match string
+- `webapp/tests/unit/controller/plugin-controller.test.js`: list order, including an enabled plugin absent from `loadOrder`
+- `webapp/utils/bootstrap.js`, `webapp/utils/hook-manager.js`, `webapp/app.js`: severity words `warning` and `ERROR`
+- `webapp/tests/unit/utils/bootstrap.test.js`, `webapp/tests/unit/utils/hook-manager.test.js`
+- `docs/plugins/managing-plugins.md`, `docs/site-administration.md`
+- `docs/dev/work-items.md`: W-260 features/deliverables as-built
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.10 / W-260
+- `docs/CHANGELOG.md`: this section
+
+**Release**:
+- Work Item: W-260
+- Version: v2.0.10
+- Release Date: 2026-10-01
 
 ________________________________________________
 ## v2.0.9, W-246, 2026-09-21

@@ -3,8 +3,8 @@
  * @tagline         WebApp for jPulse Framework
  * @description     This is the main application file of the jPulse Framework WebApp
  * @file            webapp/app.js
- * @version         2.0.9
- * @release         2026-09-21
+ * @version         2.0.10
+ * @release         2026-10-01
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -62,7 +62,12 @@ function _getSystemConfig() {
 global.appConfig = global.appConfig || {};
 global.appConfig.system = { ...global.appConfig.system, ..._getSystemConfig() };
 
-// common logging function for app
+/**
+ * Early startup line, before LogController exists. Same TSV format.
+ * level must be a documented severity: 'info', 'warning', or 'ERROR'.
+ * @param {string} message
+ * @param {string} [level='info']
+ */
 function appLog(message, level = 'info') {
     console.log(CommonUtils.formatLogMessage('app', message, level));
 }
@@ -119,7 +124,7 @@ async function loadAppConfig() {
                 // W-199: a peer PM2 instance mid-write (or a genuinely corrupt cache) used
                 // to crash this process via the outer catch's process.exit(1); self-heal
                 // instead by regenerating from the source .conf files - no restart needed
-                appLog(`Cached .jpulse/app.json unreadable (${parseError.message}), regenerating from source .conf files...`, 'WARN');
+                appLog(`Cached .jpulse/app.json unreadable (${parseError.message}), regenerating from source .conf files...`, 'warning');
                 config = await regenerateConfig();
             }
         }
@@ -389,7 +394,7 @@ async function gracefulShutdown(signal) {
 
         LogController.logInfo(null, 'app', 'Graceful shutdown completed');
     } catch (error) {
-        LogController.logError(null, 'app', `Error during shutdown: ${error.message}`);
+        LogController.logError(null, 'app', `error: shutdown failed: ${error.message}`);
     }
 
     process.exit(0);

@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.9
+# jPulse Docs / Dev / Work Items v2.0.10
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -4833,7 +4833,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - Redis caching: out of scope — cache key/value unchanged; optional convention: store { data, ctx? } when attaching context to a cached object
 
 ### W-155, v1.6.12, 2026-02-09: websocket: dynamic namespace with path pattern, one namespace per resource/room
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - design:
   - docs/dev/design/W-154-websocket-namespace-as-object.md -- use case: Bubblemap, Option 2
@@ -10623,7 +10623,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/ai-agent.md` (framework repo, at publish — not a plugin commit):
     - Install / Configure mention `ai-openai` next to `ai-anthropic`. No W-number
 - notes:
-  - **this pass is the spec only.** Do not create the plugin repo or write plugin code until a later instruction. The item stays 🚧 IN_PROGRESS
   - **can this ship without a live OpenAI / ChatGPT key?** Yes, for 1.0.0. Acceptance is the fake-`fetch` unit suite (the same method `ai-anthropic` used). What a key would add — Verify against `api.openai.com`, a Hello AI / panel turn, confirming a model id still accepts Responses — is explicitly **out of the 1.0.0 bar** and is a follow-up when a key exists. Do not block publish on a live ping
   - design source: `docs/dev/design/W-223-ai-agent.md` §9.2–§9.4 (contract), TD-11, §21.14. Clone source: `plugins/ai-anthropic` 1.0.2 (W-224 + W-236 + W-249)
   - **repo layout: `ai-openai` is its own git repo and its own commit**, sibling under `plugins/` (gitignored by the framework except `hello-world`), same as `ai-anthropic` / `auth-mfa`. One publish of `@jpulse-net/plugin-ai-openai` 1.0.0. No `ai-core` version bump
@@ -10703,7 +10702,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/ai-agent.md` and `docs/genai-instructions.md` (framework repo, at publish — not a plugin commit):
     - Install / Configure name `ai-google` next to `ai-anthropic` and `ai-openai`. No W-number. `ai-core` / `ai-mock` guides that name the provider list wait for the next bundle publish, same as the OpenAI wording change
 - notes:
-  - **the plugin tree is implemented** under `plugins/ai-google` (its own repo). The item stays 🚧 IN_PROGRESS until you mark it done
   - **can this ship without a live Gemini key?** Yes, for 1.0.0. Acceptance is the fake-`fetch` unit suite (the same method `ai-openai` used). A key was used before publish: Verify, a Hello AI Flash turn, a Pro free-tier `limit: 0` reply (not retried), and a tool round that applied. Those checks are not in CI. Do not widen `ai-core` to store thought steps in this item
   - design source: `docs/dev/design/W-223-ai-agent.md` §9.2–§9.4 (contract), §5.1, §21.14. Clone source: `plugins/ai-openai` 1.0.0 (W-250). Vendor source: Interactions quickstart and streaming guide, pricing page verified 2026-09-29
   - **repo layout: `ai-google` is its own git repo and its own commit**, sibling under `plugins/` (gitignored by the framework except `hello-world`), same as `ai-openai` / `ai-anthropic`. One publish of `@jpulse-net/plugin-ai-google` 1.0.0. No `ai-core` version bump
@@ -10762,7 +10760,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `plugins/ai-core/commit-message.txt`:
     - W-252, v1.0.17, 2026-09-30
 - notes:
-  - **as-built** in the working tree. No separate design doc — this block is the spec. Status stays 🚧 IN_PROGRESS until you mark it done
   - **bump from `plugins/ai-core`.** `ai-mock` and `hello-ai` lockstep. Headers are still 1.0.16 until you bump. Do not run the bump script from here, and do not touch `.jpulse/`
   - framework `docs/ai-agent.md` and `docs/genai-instructions.md` already name `ai-google`. Those files are the framework repo, not this plugin commit
   - a new provider round inside one turn starts the attempt count again. A permanent quota (`retryable: false`, such as Gemini `limit: 0`) is one error and is not this wait list — that flag is set by the provider plugin
@@ -11069,17 +11066,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **follow-up in the BubbleMap repo (not this item):** delete its `site/webapp/view/admin/ai-usage.shtml` override; register `onAiScopeTypes` for `map` → "Map" in `aiAgent.js`; rename `subject` in any own quota handlers; check which `controller.aiAgent.*` keys duplicate ai-core settings; `AI_AGENT_TO_AI_COPY` destinations and `aiAgent.test.js` to the new cap keys; both mongosh steps
   - **out of scope:** TD-19 to TD-24 (see features), `week` period (W-223 TD-09), framework `docs/CHANGELOG.md` and Latest Release Highlights
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-259, v1.0.3, 2026-10-01: ai-anthropic plugin: replace icon with Anthropic star icon
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - repository: github.com/jpulse-net/plugin-ai-anthropic (separate repo)
 - npm package: @jpulse-net/plugin-ai-anthropic
@@ -11117,13 +11105,63 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-260, v2.0.10, 2026-10-01: plugins: list plugins in load order, with search
+- status: 🕑 PENDING
+- type: Feature
+- objectives:
+  - Admin → Plugins shows enabled plugins in the order they load, and a search field filters that table as you type
+- prerequisites:
+  - `PluginManager.resolveLoadOrder()` already builds `registry.loadOrder` for enabled plugins
+  - `GET /api/1/plugin/list` and `/admin/plugins.shtml` already list every discovered plugin
+- rationale:
+  - `plugin.list` walks `registry.plugins`, which is discovery order (first found), not `registry.loadOrder`
+  - BubbleMap has 27 plugins. Discovery order does not match startup, and finding one means scrolling the whole table
+- features:
+  - **Load order.** Enabled plugins that appear in `registry.loadOrder` are listed in that sequence. Every other plugin (disabled, missing, or left out of the load order) follows, sorted by name. No plugin is dropped
+  - **Search.** A field on the Installed Plugins card filters as you type. A row matches when the query is in the name, summary, or author, case-insensitive. When summary is empty, the description text is used, because that is the line shown in the row. The total / enabled / disabled counts stay the full install. An empty match is a left-aligned line under the search field. Clearing the field shows the full ordered list. Enable, disable, and rescan keep the current query
+  - **Same page.** The hooks table, enable/disable, and Configure are unchanged. Sorting is in `plugin.list` so every caller shares the order. Filtering stays in the browser
+  - **Log severity.** Startup lines use the documented words `warning` and `ERROR`. `formatLogMessage` prints the severity string as given, so `warn`, `WARN`, and `error` were a second column
+- deliverables:
+  - `webapp/controller/plugin.js`:
+    - `list` returns enabled load-order plugins first, then the rest by name
+  - `webapp/view/admin/plugins.shtml`:
+    - search field above the table; `renderPluginsList` applies the query; empty-match line is left-aligned under the field
+  - `webapp/translations/en.conf`, `de.conf`:
+    - search placeholder and the empty-match string under `view.admin.plugins`
+  - `webapp/tests/unit/controller/plugin-controller.test.js`:
+    - list order: a later-discovered enabled plugin that is first in `loadOrder` is returned first; an enabled plugin absent from `loadOrder` sorts with the disabled plugins, by name
+  - `docs/plugins/managing-plugins.md`:
+    - Admin UI list is load order, with search
+  - `webapp/utils/bootstrap.js`:
+    - `bootstrapLog` levels are `warning` and `ERROR`. The failure catch puts the error text in the message and passes `ERROR` as the level
+  - `webapp/utils/hook-manager.js`:
+    - hook-audit banner is `warning`, or `ERROR` when a finding is an error
+  - `webapp/app.js`:
+    - unreadable `.jpulse/app.json` is `warning`. Shutdown `logError` starts with `error:`
+  - `webapp/tests/unit/utils/bootstrap.test.js`:
+    - safety-check logs expect `warning`
+  - `webapp/tests/unit/utils/hook-manager.test.js`:
+    - `logAudit` banner expects `warning`, and `ERROR` when a finding is an error
+- notes:
+  - no design doc
+  - the log-severity edits are already in the working tree
+  - out of scope: hooks-table search, tab hashes (`/admin/config.shtml#ai-tab`), signup email notification, site test scaffolding
+
+
+
+
+
+
+
 
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
 - user registration: admin option to get notified by email
-- /admin/plugins.shtml should list plugins in loadOrder instead of first installed;
-    a plugin as-you-type search field is helpful too
+- ability to activate jpulse tab via url, such as /admin/config.shtml#ai-tab
 
 ai pending:
 - mcp server for ai-assisted development (ref NestJS)
@@ -11148,7 +11186,7 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume W-247, v1.0.15, 2026-09-21
+- assume W-260, v2.0.10, 2026-10-01
 - review tt-git-diff.txt for accuracy and completness of work item
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
@@ -11168,12 +11206,12 @@ plugin release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.9 2026-09-21
+node bin/bump-version.js 2.0.10 2026-10-01
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.9; git push origin main --tags
+git tag v2.0.10; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administration v2.0.9
+# jPulse Docs / Site Administration v2.0.10
 
 Complete guide to managing your jPulse site through the admin interface.
 
@@ -192,7 +192,7 @@ Install, configure, and manage plugins through the admin interface.
 
 ### Features
 
-- View installed plugins with status indicators
+- View installed plugins with status indicators. Enabled plugins are listed in load order; every other plugin follows by name. Search filters by name, summary (the description when a plugin has no summary), and author
 - Enable/disable plugins
 - Configure plugin settings
 - View plugin documentation

@@ -10,13 +10,13 @@
  *                   truthy, (3) appConfig.controller.* is stripped from the context for
  *                   unauthenticated requests, which login.shtml always is.
  * @file            webapp/tests/unit/controller/login-page-render.test.js
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.12, Claude Sonnet 5
+ * @genai           80%, Cursor 3.21, Grok 4.7
  */
 
 import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
@@ -128,6 +128,37 @@ describe('W-195: login.shtml end-to-end render (real file + real context)', () =
         expect(hasLoginButton(html)).toBe(true);
         expect(hasProviderButtonsBlock(html)).toBe(true);
         expect(html).toContain('Sign in with Acme');
+        expect(hasRestrictedNotice(html)).toBe(false);
+    });
+
+    test('localAuthRestriction=admins-only with a credentials provider: form shown, notice hidden, label escaped', async () => {
+        global.appConfig.controller.auth.localAuthRestriction = 'admins-only';
+        global.HookManager.register('onAuthGetLoginProviders', 'dir-plugin', (ctx) => {
+            ctx.providers.push({ type: 'credentials', label: 'Company <script>', order: 10 });
+            return ctx;
+        });
+
+        const html = await render(makeReq());
+
+        expect(hasLoginButton(html)).toBe(true);
+        expect(hasRestrictedNotice(html)).toBe(false);
+        expect(hasRecoveryBanner(html)).toBe(false);
+        expect(html).toContain('Sign in with:');
+        expect(html).toContain('Company &lt;script&gt;');
+        expect(html).not.toContain('Company <script>');
+    });
+
+    test('localAuthRestriction=admins-only with only a redirect provider: form stays hidden', async () => {
+        global.appConfig.controller.auth.localAuthRestriction = 'admins-only';
+        global.HookManager.register('onAuthGetLoginProviders', 'oauth-plugin', (ctx) => {
+            ctx.providers.push({ label: 'Acme SSO', initUrl: '/init', icon: 'k' });
+            return ctx;
+        });
+
+        const html = await render(makeReq());
+
+        expect(hasLoginButton(html)).toBe(false);
+        expect(hasProviderButtonsBlock(html)).toBe(true);
         expect(hasRestrictedNotice(html)).toBe(false);
     });
 });

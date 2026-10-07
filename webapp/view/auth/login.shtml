@@ -4,13 +4,13 @@
  * @tagline         User authentication login page
  * @description     Login form for internal authentication with support for LDAP/OAuth2 planning
  * @file            webapp/view/auth/login.shtml
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.20, Grok 4.6
+ * @genai           60%, Cursor 3.21, Grok 4.7
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -212,6 +212,13 @@
             text-align: center;
         }
 
+        .local-credential-provider {
+            color: var(--jp-theme-text-secondary, #666);
+            font-size: 0.9em;
+            text-align: center;
+            margin-top: 12px;
+        }
+
         .local-action-buttons {
             display: flex;
             gap: 10px;
@@ -274,11 +281,13 @@
                 {{let isRestricted=(ne vars.localAuthMode "none")}}
                 {{let unrestricted=(not vars.isRestricted)}}
                 {{let localFallback=(eq url.param.localFallback "1")}}
-                {{let showLocalForm=(or vars.unrestricted vars.localFallback)}}
+                {{let hasCredentialProviders=(not (array.isEmpty authCredentialProviders))}}
+                {{let showLocalForm=(or vars.unrestricted vars.localFallback vars.hasCredentialProviders)}}
                 {{let hasAuthProviders=(not (array.isEmpty authProviders))}}
 
                 {{#if vars.isRestricted}}
-                  <!-- Restricted site: external providers are the primary sign-in method -->
+                  <!-- Restricted site: redirect providers are the primary sign-in method.
+                       A credentials provider (directory login) keeps the password form too. -->
                   {{#if vars.hasAuthProviders}}
                     <div class="local-auth-methods" id="authMethods">
                         {{#each authProviders}}
@@ -290,7 +299,7 @@
                     </div>
                   {{/if}}
 
-                  {{#if vars.showLocalForm}}
+                  {{#if vars.localFallback}}
                     <div class="jp-divider" id="authDividerLocal">
                         <span>{{i18n.view.auth.login.orSignInWithLocal}}</span>
                     </div>
@@ -298,7 +307,12 @@
                         {{i18n.view.auth.login.recoveryModeBanner}}
                     </div>
                   {{else}}
-                    {{#unless vars.hasAuthProviders}}
+                    {{#if (and vars.hasAuthProviders vars.hasCredentialProviders)}}
+                      <div class="jp-divider" id="authDividerCredentials">
+                          <span>{{i18n.view.auth.login.orSignInWith}}</span>
+                      </div>
+                    {{/if}}
+                    {{#unless (or vars.hasAuthProviders vars.hasCredentialProviders)}}
                       <div class="local-restricted-notice">
                           {{i18n.view.auth.login.restrictedNotice}}
                       </div>
@@ -358,6 +372,9 @@
                           {{i18n.view.auth.login.signIn}}
                       </button>
                   </form>
+                  {{#each authCredentialProviders}}
+                    <p class="local-credential-provider">{{i18n.view.auth.login.credentialsProviderLabel}} {{string.htmlEscape this.label}}</p>
+                  {{/each}}
                 {{/if}}
 
                 {{#unless vars.isRestricted}}

@@ -3,13 +3,13 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.14, Claude Sonnet 5
+ * @genai           60%, Cursor 3.21, Grok 4.7
  */
 
 import UserModel from '../model/user.js';
@@ -195,6 +195,14 @@ class UserController {
                 LogController.logError(req, 'user.changePassword', `error: user not found for session ID: ${req.session.user.id}`);
                 const message = global.i18n.translate(req, 'controller.user.password.userNotFound');
                 return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
+            }
+
+            // W-261: a directory owns this password. Setting a local one would survive offboarding.
+            if (user.passwordManagedBy) {
+                LogController.logError(req, 'user.changePassword',
+                    `error: password managed by ${user.passwordManagedBy} for user ${req.session.user.username}`);
+                const message = global.i18n.translate(req, 'controller.user.password.managedExternally');
+                return global.CommonUtils.sendError(req, res, 409, message, 'PASSWORD_MANAGED_EXTERNALLY');
             }
 
             // W-195: users without a usable local password (e.g. JIT-created by an external-auth
@@ -493,6 +501,13 @@ class UserController {
         }
         if (user.status === 'terminated') {
             return { verdict: 'silent', reason: 'accountTerminated' };
+        }
+
+        // W-261: the directory owns the password. Checked before hasLocalPassword because a
+        // directory account has both, and the admin should hear the specific reason.
+        // Suspended/terminated above still win: those accounts get no mail at all.
+        if (user.passwordManagedBy) {
+            return { verdict: 'ssoNotice', reason: 'passwordManagedExternally' };
         }
 
         // W-195: JIT-provisioned by an external-auth plugin, with a synthetic passwordHash they
@@ -826,6 +841,11 @@ class UserController {
             });
         }
 
+        if (result.errorCode === 'PASSWORD_MANAGED_EXTERNALLY') {
+            const message = global.i18n.translate(req, 'controller.user.password.managedExternally');
+            return global.CommonUtils.sendError(req, res, 409, message, 'PASSWORD_MANAGED_EXTERNALLY');
+        }
+
         if (result.errorCode === 'PASSWORD_POLICY_ERROR') {
             const message = global.i18n.translate(req, 'controller.user.passwordReset.policyError', { details: result.error });
             return global.CommonUtils.sendError(req, res, 400, message, 'PASSWORD_POLICY_ERROR', result.error);
@@ -899,6 +919,7 @@ class UserController {
                     accountSuspended: 'controller.user.passwordReset.notEligibleSuspended',
                     accountTerminated: 'controller.user.passwordReset.notEligibleTerminated',
                     noLocalPassword: 'controller.user.passwordReset.notEligibleNoLocalPassword',
+                    passwordManagedExternally: 'controller.user.passwordReset.notEligiblePasswordManaged',
                     localAuthRestricted: 'controller.user.passwordReset.notEligibleRestricted'
                 };
                 LogController.logError(req, 'user.passwordResetSend',
@@ -1389,6 +1410,7 @@ class UserController {
 
             // Filter allowed fields based on user role
             const filteredData = {};
+            // passwordManagedBy is deliberately not listed: only server code writes it (W-261).
             const adminFields = ['email', 'roles', 'status', 'emailVerified'];
             const regularFields = ['profile', 'preferences'];
 
@@ -1413,6 +1435,14 @@ class UserController {
                 // already works (authenticate() never reads the flag). Same stamp changePassword()
                 // and resetPasswordByToken() already apply.
                 if (updateData.password) {
+                    // W-261: an admin cannot mint a local password for a directory-owned account.
+                    // The whole update is refused; profile fields in the same request are not saved.
+                    if (currentUser.passwordManagedBy) {
+                        LogController.logError(req, 'user.update',
+                            `error: password managed by ${currentUser.passwordManagedBy} for user ${currentUser.username}`);
+                        const message = global.i18n.translate(req, 'controller.user.password.managedExternally');
+                        return global.CommonUtils.sendError(req, res, 409, message, 'PASSWORD_MANAGED_EXTERNALLY');
+                    }
                     filteredData.password = updateData.password;
                     filteredData.hasLocalPassword = true;
                 }

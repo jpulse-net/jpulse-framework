@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.10
+# jPulse Docs / Dev / Work Items v2.0.11
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -11099,17 +11099,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **published** `@jpulse-net/plugin-ai-anthropic` 1.0.3. Commit `5be62e4`, tag `v1.0.3`, push `7afc599..5be62e4`. Tarball shasum `3a49afcb4809d8c4e3265e9133e9ce5e01e7f6fc`, 10 files, unpacked 70.1 kB. No `repository.url` warning
   - out of scope: framework `docs/CHANGELOG.md`, Latest Release Highlights, the ai-core bundle
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-260, v2.0.10, 2026-10-01: plugins: list plugins in load order, with search
-- status: 🕑 PENDING
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - Admin → Plugins shows enabled plugins in the order they load, and a search field filters that table as you type
@@ -11147,8 +11138,133 @@ This is the doc to track jPulse Framework work items, arranged in three sections
     - `logAudit` banner expects `warning`, and `ERROR` when a finding is an error
 - notes:
   - no design doc
-  - the log-severity edits are already in the working tree
+  - released v2.0.10. Tag `v2.0.10`; GitHub Actions `publish.yml` tests and publishes `@jpulse-net/jpulse-framework`
   - out of scope: hooks-table search, tab hashes (`/admin/config.shtml#ai-tab`), signup email notification, site test scaffolding
+
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-261, v2.0.11, 2026-10-07: auth: framework support for directory login plugins
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - let a password-based external auth plugin (auth-ldap, W-262) own a login: accept it, or reject it without falling through to local password auth
+  - let a plugin mark a user's password as owned by an external directory, so no local password can be set or used for that user
+  - keep the username/password form on the login page when a directory plugin is active, also on sites with `localAuthRestriction` set
+- prerequisites:
+  - W-105 / W-109 auth hooks, W-195 external auth primitives (`localAuthRestriction`, `onAuthGetLoginProviders`, `hasLocalPassword`), W-206 password reset
+- rationale:
+  - found while designing W-262 (see docs/dev/design/W-262-auth-ldap-plugin.md §F):
+    - `login()` only checks `skipPasswordCheck && user` after `onAuthBeforeLogin`; anything else runs `UserModel.authenticate()`, and a thrown hook error is logged and skipped (`onError: 'continue'`). A plugin cannot stop a wrong directory password from being tried as a local password, cannot report "directory unavailable", and cannot deny a user IT removed from the directory who still has a local password
+    - `UserController.changePassword()` fires no hook and, for `hasLocalPassword: false`, sets a password without the current one; the admin update path sets a password and flips `hasLocalPassword` back to `true`; `UserModel.authenticate()` never reads `hasLocalPassword`. Each path gives a directory user a local password that survives directory offboarding
+    - `login.shtml` shows the password form only when `localAuthRestriction` is `'none'` or `?localFallback=1`, so a directory-only site set to `'admins-only'` has no form for directory users
+  - password reset needs no change: `_classifyPasswordReset()` already refuses `hasLocalPassword: false`
+- features:
+  - **deny outcome on `onAuthBeforeLogin`.** A handler sets `context.deny = { code, status, messageKey, retryAfter }`. `login()` fires `onAuthFailure` with `code` as the reason, logs, and returns the error; internal auth does not run. `deny` wins over `skipPasswordCheck`. Defaults: status 401, message `controller.auth.invalidCredentials`. The hook's `onError: 'continue'` stays; docs tell auth plugins to catch their own errors and deny
+  - **`passwordManagedBy` user field.** `baseSchema` `passwordManagedBy: { type: 'string', default: '' }`, empty for local passwords, else the owning plugin name. Written only by server code. When set: `UserModel.authenticate()` returns `null`; `changePassword()` and admin password set return 409 `PASSWORD_MANAGED_EXTERNALLY`; password reset classifies as `ssoNotice` with reason `passwordManagedExternally`, and the token-confirm path returns 409 and consumes the reset link; settings and admin Security panels show "Your password is managed by your organization's directory" instead of the password form; the admin "send reset link" button is disabled with that reason
+  - **credentials-type login providers.** `onAuthGetLoginProviders` entries may set `type: 'credentials'` (default `'redirect'`). `handlebar.js` passes them as `authCredentialProviders`; `authProviders` keeps redirect entries only, so auth-oauth is unchanged. `login.shtml` keeps the password form when a credentials provider exists, shows its label HTML-escaped under the form, and skips the "restricted" notice. Server-side `localAuthRestriction` enforcement is unchanged
+  - **break-glass recipe.** `docs/deployment.md` runbook gains the database step to clear `passwordManagedBy` when the owning plugin is gone
+  - **Plugin SVG tab icons.** `.jp-tab-icon.jp-tab-icon-html svg` is 1.4em with a negative vertical margin, and tab padding is 10px 12px, so an SVG icon tab is the same height as a text-only tab
+- deliverables:
+  - `webapp/controller/auth.js`:
+    - `login()`: `deny` handling right after `onAuthBeforeLogin`
+  - `webapp/utils/hook-definitions.js`:
+    - `onAuthBeforeLogin`: `deny` in `contextKeys`; `onAuthGetLoginProviders`: `type` noted in the description
+  - `webapp/model/user.js`:
+    - `passwordManagedBy` in `baseSchema`; `authenticate()` returns `null` when set
+  - `webapp/controller/user.js`:
+    - `changePassword()`, admin `update()` password branch, `_classifyPasswordReset()`: refuse when `passwordManagedBy` is set; token confirm returns 409 and consumes the link; field not accepted from update payloads
+  - `webapp/controller/handlebar.js`:
+    - split `authProviders` / `authCredentialProviders`
+  - `webapp/view/auth/login.shtml`:
+    - password form shown for credentials providers; label under the form
+  - `webapp/view/user/settings.tmpl`, `webapp/view/admin/user-profile.shtml`:
+    - Security panel note for directory-managed passwords; reset-link button reason
+  - `webapp/translations/en.conf`, `de.conf`:
+    - `controller.user.password.managedExternally`, password-reset reason, panel note, login label wrapper
+  - `webapp/tests/unit/controller/auth-controller.test.js`, `user-change-password.test.js`, `user-password-reset-endpoints.test.js`, `webapp/tests/unit/model/user-password-reset.test.js`, `user-password-managed-by.test.js`, `handlebar-auth-providers.test.js`, `login-page-render.test.js`:
+    - deny shapes and precedence; each refusal path, including a consumed reset link; credentials providers rendering on restricted and unrestricted sites
+  - `webapp/view/jpulse-common.css`:
+    - SVG tab icons at 1.4em so the tab box matches a text-only tab
+  - `docs/hooks.md`, `docs/handlebars.md`:
+    - deny contract; credentials providers; "password login plugins" section next to "External Login Providers"; `authCredentialProviders`
+  - `docs/security-and-auth.md`, `docs/api-reference.md`, `docs/deployment.md`:
+    - `passwordManagedBy`, `PASSWORD_MANAGED_EXTERNALLY`, break-glass recipe
+- notes:
+  - design: docs/dev/design/W-262-auth-ldap-plugin.md §F
+  - ships before W-262; the plugin requires `jpulseVersion >=2.0.11`
+  - verify with a throwaway site plugin whose `onAuthBeforeLogin` denies one username
+  - out of scope: clearing `passwordManagedBy` from the admin UI (W-262 TD-05), per-identifier login throttle in the framework (W-262 TD-12), fail-closed hook errors (W-262 TD-15)
+
+
+
+
+
+
+
+
+### W-262, v1.0.0, 2026-10-07: plugins: auth-ldap plugin for LDAP and Active Directory login
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - users sign in on the normal jPulse login form with their LDAP or Active Directory username and password
+  - the directory decides who may sign in: a user disabled or removed in the directory can no longer sign in, even with a local password
+  - v1.0.0 is authentication only; group support is technical debt
+- prerequisites:
+  - W-261 (login deny, `passwordManagedBy`, credentials-type login providers)
+  - W-197 auth-oauth plugin as the reference for JIT creation, role sanitizing, layout, secret encryption
+- rationale:
+  - company sites authenticate against AD or OpenLDAP; without this plugin every user needs a separate jPulse password
+  - LDAP login stays on the username/password form, so it uses `onAuthBeforeLogin`, not the redirect flow (`completeExternalAuth()`, login buttons) auth-oauth uses
+- features:
+  - **presets.** OpenLDAP and Active Directory (default) fill in the search filter and attribute mapping; custom for anything else. Users can sign in with the login name or their email (`mail` is in both filters). AD: `sAMAccountName`, UPN, and `DOMAIN\user` logins, `userAccountControl` disabled check, `objectGUID` link
+  - **login.** Service-account (or anonymous) search with an escaped `{{username}}` filter, then bind as the found DN. Several server URLs tried in order. An empty password is rejected before any bind
+  - **secure transport.** `ldaps://` or StartTLS required, TLS 1.2 minimum, certificate verified, optional CA PEM. Plain `ldap://` only with an explicit "allow insecure" switch
+  - **outcomes.** The plugin accepts the login, denies it, or steps aside for jPulse accounts never linked to the directory (design doc §4 table). Linked users never fall back to local auth; directory down → "directory unavailable"; removed or disabled in the directory → denied; directory ID changed → denied and logged
+  - **accounts.** Link key is the directory stable ID: OpenLDAP `entryUUID` (string), AD `objectGUID` (16-byte binary, stored as the canonical GUID string; AD has no `entryUUID`). `idAttributeFormat` `auto` (default), `string`, `guid`, `hex`; binary IDs are never decoded as text. Strategies `link-existing` (default) and `jit-create`. Username linking per `linkByUsername`: `when-signup-disabled` (default), `always` (warning on save with open signup), `never`. Email linking only to a verified local email; admin accounts not linked unless `linkAdminAccounts`. JIT: `emailVerified: true`, random password, `hasLocalPassword: false`, `passwordManagedBy: 'auth-ldap'`, non-admin default roles, `active` or `pending`. Linking an existing account replaces its local password the same way
+  - **jPulse username.** Derived once from the login attribute (AD `sAMAccountName`, OpenLDAP `uid`): lowercase, accents stripped, other characters outside `[a-z0-9_.-]` replaced with `-` (`John Smith` → `john-smith`); `-2` … `-6` on collision; never renamed when the directory name changes. Users keep signing in with whatever they type in Windows; the stable ID picks the account
+  - **profile sync.** First name, last name, and email refreshed on each login (skipped with a warning when the email belongs to another user)
+  - **AD lockout protection.** Per-username failure throttle in Redis, checked before contacting the directory
+  - **errors.** Generic messages to the user (invalid credentials, directory unavailable, password expired); "not set up for this site, contact the site administrator" when the directory login works but no jPulse account can be linked; AD bind sub-codes and the decision row in the log; passwords never logged
+  - **admin.** Config tabs Directory, Users, Accounts, Security; bind password encrypted at rest; save-time validation; "Test connection" with an optional test login showing each step, the jPulse username the entry maps to, and which jPulse user the login would map to; warns when a local admin with the same name would take the login
+  - **cards.** W-107 admin and user cards for the read-only `ldap` block
+  - **air-gapped.** `ldapts` vendored into the plugin (MIT, pure JavaScript); no runtime npm dependency
+  - **MFA.** auth-mfa's step runs after the directory login (framework, no plugin code)
+- deliverables:
+  - `plugins/auth-ldap/plugin.json`, `package.json`, `README.md`, `docs/README.md`, `.gitignore`, `webapp/bump-version.conf`:
+    - manifest with icon, `jpulseVersion >=2.0.11`, config schema; admin guide (presets, TLS, AD group filter, site modes, troubleshooting, break-glass)
+  - `plugins/auth-ldap/webapp/vendor/ldapts/`, `bin/copy-vendor-ldapts.js`:
+    - pinned `ldapts` 9.0.0 `index.mjs`, `LICENSE`, `VERSION`; refresh script verifying npm integrity
+  - `plugins/auth-ldap/webapp/utils/directoryPresets.js`:
+    - preset defaults, identifier normalization
+  - `plugins/auth-ldap/webapp/utils/ldapClient.js`:
+    - connect with failover and TLS, service bind, search, user bind, error classes, AD sub-codes, `objectGUID`
+  - `plugins/auth-ldap/webapp/utils/loginDecision.js`:
+    - pure outcome table (design doc §4)
+  - `plugins/auth-ldap/webapp/utils/userResolver.js`:
+    - match, link, JIT create, profile sync
+  - `plugins/auth-ldap/webapp/model/ldapAuth.js`:
+    - `user.ldap` schema extension and cards
+  - `plugins/auth-ldap/webapp/controller/ldapAuth.js`:
+    - `onAuthBeforeLogin`, `onAuthGetLoginProviders` (credentials type), `onPluginConfigBeforeSave` (validation, bind password encryption), throttle, `POST /api/1/auth-ldap/admin/test`, assignable roles
+  - `plugins/auth-ldap/webapp/view/jpulse-common.js`:
+    - Test connection dialog, role options loader
+  - `plugins/auth-ldap/webapp/translations/en.conf`, `de.conf`:
+    - `plugin.authLdap.*` strings
+  - `plugins/auth-ldap/webapp/tests/unit/` (presets, client, decision, resolver, controller), `webapp/tests/integration/ldap-server.test.js`:
+    - mocked `ldapts` unit tests; integration test skipped unless `LDAP_TEST_URL` is set
+- notes:
+  - design doc with implementation plan, test plan, and technical debt: docs/dev/design/W-262-auth-ldap-plugin.md
+  - repo `github.com/jpulse-net/plugin-auth-ldap`, package `@jpulse-net/plugin-auth-ldap`
+  - test directories: `ldap.forumsys.com` (public, plain LDAP on 389, for manual OpenLDAP tests, not CI); `rroemhild/test-openldap` Docker image for TLS and `memberOf`; a Samba AD container or Windows Server evaluation VM for the AD rows before release
+  - out of scope for v1.0.0 (design doc Technical Debt): group → role mapping, jPulse group sync, several directories, deprovisioning sync and session revocation, admin link/unlink/convert tools, direct bind mode, Kerberos/SPNEGO, directory password change
+
 
 
 
@@ -11162,6 +11278,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
 - user registration: admin option to get notified by email
 - ability to activate jpulse tab via url, such as /admin/config.shtml#ai-tab
+- jpSelect mobile bug: tap on an option in the Edit Details icon picker in BubbleMap does not select it: `jpSelect` (framework `webapp/view/jpulse-common.js`) selects on `click`, and the touch blur of its search input closes the list first; `jpCombo` already selects on `mousedown`
+- admin can add user
 
 ai pending:
 - mcp server for ai-assisted development (ref NestJS)
@@ -11186,7 +11304,7 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume W-260, v2.0.10, 2026-10-01
+- assume W-261, v2.0.11, 2026-10-07
 - review tt-git-diff.txt for accuracy and completness of work item
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
@@ -11194,11 +11312,11 @@ release prep:
 - append to cursor_log.txt
 
 plugin release prep:
-- assume W-259, v1.0.3, 2026-10-01
+- assume W-262, v1.0.0, 2026-10-07
 - review tt-git-diff.txt for accuracy and completeness of work item
 - review work item and design doc if it matches actual code & fix if needed
-- 3 plugin README.md & docs/README.md: add release to Plugin releases section
-- 3 plugin commit-message.txt: update message
+- plugin README.md & docs/README.md: add release to Plugin releases section
+- plugin commit-message.txt: update message
 
 ### Misc
 
@@ -11206,23 +11324,23 @@ plugin release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.10 2026-10-01
+node bin/bump-version.js 2.0.11 2026-10-07
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.10; git push origin main --tags
+git tag v2.0.11; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.3 2026-10-01
+node ../../bin/bump-version.js 1.0.0 2026-10-07
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.3; git push origin main --tags
+git tag v1.0.0; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 
@@ -11355,13 +11473,6 @@ template:
 - objectives: ability to authenticate with a GitHub account
 - prerequisits:
   - W-197, v1.0.3, 2026-08-02: auth-oauth plugin: single sign-on with auth servers like Okta, Google, Apple
-
-### W-0: auth-ldap plugin: initial version
-- status: 🕑 PENDING
-- type: Feature
-- objectives: ability to authenticate with an LDAP or AD server
-- icon:
-    "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\" /><circle cx=\"12\" cy=\"12\" r=\"3\" /><path d=\"M16 19a4 4 0 0 0-8 0\" /></svg>",
 
 ### W-0: plugins: list available plugins in github.com/jpulse-net/plugin-* packages
 - status: 🕑 PENDING
@@ -11531,12 +11642,6 @@ template:
 - status: 🕑 PENDING
 - type: Idea
 - objective: separate admin tasks for larger orgs, such as an admin for Sales, another for Engineering, or separate by divisions
-
-### W-0: auth controller: authentication with LDAP
-- status: 🕑 PENDING
-- type: Feature
-- implement as plugin
-- strategy to push/sync LDAP attributes into user doc
 
 ### W-0: i18n: utility app to manage translations
 - status: 🕑 PENDING

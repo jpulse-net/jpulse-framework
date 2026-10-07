@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v2.0.10
+# jPulse Docs / Security & Authentication v2.0.11
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -126,7 +126,7 @@ Content-Type: application/json
 
 **Error Responses:**
 - **400**: Missing credentials (`MISSING_CREDENTIALS`)
-- **401**: Invalid credentials (`INVALID_CREDENTIALS`)
+- **401**: Invalid credentials (`INVALID_CREDENTIALS`). A password-login plugin can deny with its own code and status via `onAuthBeforeLogin` `context.deny` (see [Hooks — Password Login Plugins](hooks.md#password-login-plugins)); that denial does not fall through to the local password
 - **403**: Login disabled (`LOGIN_DISABLED`, `appConfig.controller.auth.disableLogin`)
 - **403**: Local auth restricted (`LOCAL_AUTH_RESTRICTED`, `appConfig.controller.auth.localAuthRestriction`, internal auth only — see below)
 - **403**: Account status blocks login (`ACCOUNT_PENDING_APPROVAL` / `ACCOUNT_SUSPENDED` / `ACCOUNT_TERMINATED` / `ACCOUNT_INACTIVE`)
@@ -221,6 +221,7 @@ and only the person holding the inbox sees it:
 |---|---|
 | No matching username or email | nothing |
 | No usable local password (provisioned by an external auth provider) | "you sign in with your provider" explainer, no link |
+| Password owned by a directory (`passwordManagedBy` set) | same explainer, reason `passwordManagedExternally` |
 | `localAuthRestriction` makes local login unusable for this account | same explainer — a password they could never sign in with is not worth resetting |
 | `status: 'suspended'` or `'terminated'` | nothing; the administrator owns that conversation |
 | `status: 'pending'` or `'inactive'` | reset link — they may be waiting on approval and still deserve working credentials |
@@ -612,6 +613,8 @@ static schema = {
 ```
 
 `hasLocalPassword` marks whether a user has a real, usable local password — external-auth plugins set it to `false` when they JIT-create a user with a synthetic/unknown `passwordHash`. `UserController.changePassword()` skips the `currentPassword` check when it's `false` (the session already proves identity) and resets it to `true` on success; absent reads as `true`, so no migration is needed for existing local-signup users.
+
+`passwordManagedBy` names the plugin whose directory owns the password. Empty or absent means a local password. While it is set, `UserModel.authenticate()` returns null, and changing, resetting, or an administrator setting the password returns **409** `PASSWORD_MANAGED_EXTERNALLY`. A reset link used while the field is set is consumed, and no password is written. Only server code writes the field. See [Hooks — Password Login Plugins](hooks.md#password-login-plugins).
 
 `username`/`email` `unique: true` above is enforced at the database level: both fields are backed by real MongoDB unique indexes, created at startup with a pre-check that skips index creation (and logs a warning) rather than crashing if pre-existing duplicates are found, so an admin can resolve them first. `email` is additionally normalized to lowercase before every read/write/comparison (mirroring the pre-existing `username` normalization, including a one-time backfill of already-stored mixed-case values), so e.g. `peter@x.com` and `Peter@X.com` can't coexist as separate accounts.
 

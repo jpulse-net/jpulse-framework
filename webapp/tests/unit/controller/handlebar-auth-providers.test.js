@@ -6,13 +6,13 @@
  *                   leaves it empty elsewhere so sites without an external-auth plugin pay
  *                   zero cost
  * @file            webapp/tests/unit/controller/handlebar-auth-providers.test.js
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.12, Claude Sonnet 5
+ * @genai           80%, Cursor 3.21, Grok 4.7
  */
 
 import { describe, test, expect, beforeEach, afterEach } from '@jest/globals';
@@ -92,6 +92,37 @@ describe('W-195: authProviders context injection', () => {
         const result = await HandlebarController.expandHandlebars(makeReq('/auth/login.shtml'), template, {});
 
         expect(result.trim()).toBe('[First][NoOrder]');
+    });
+
+    test('type credentials is split out of authProviders and keeps its order', async () => {
+        global.HookManager.register('onAuthGetLoginProviders', 'dir-plugin', (context) => {
+            context.providers.push({ id: 'ldap', type: 'credentials', label: 'Company account', order: 10 });
+            return context;
+        });
+        global.HookManager.register('onAuthGetLoginProviders', 'oauth-plugin', (context) => {
+            context.providers.push({ id: 'oauth', label: 'Acme SSO', initUrl: '/oauth/init', order: 50 });
+            return context;
+        });
+
+        const req = makeReq('/auth/login.shtml');
+        const buttons = await HandlebarController.expandHandlebars(req, '{{#each authProviders}}[{{this.label}}]{{/each}}', {});
+        const labels = await HandlebarController.expandHandlebars(req, '{{#each authCredentialProviders}}[{{this.label}}]{{/each}}', {});
+
+        expect(buttons.trim()).toBe('[Acme SSO]');
+        expect(labels.trim()).toBe('[Company account]');
+    });
+
+    test('authCredentialProviders is empty off the login page', async () => {
+        global.HookManager.register('onAuthGetLoginProviders', 'dir-plugin', (context) => {
+            context.providers.push({ type: 'credentials', label: 'Company account' });
+            return context;
+        });
+
+        const result = await HandlebarController.expandHandlebars(
+            makeReq('/dashboard.shtml'), '{{#each authCredentialProviders}}{{this.label}}{{/each}}', {}
+        );
+
+        expect(result.trim()).toBe('');
     });
 });
 

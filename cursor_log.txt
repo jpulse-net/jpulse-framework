@@ -28920,3 +28920,287 @@ npm test passed. Features and deliverables now record the description fallback, 
 
 
 ============================================================
+2026-10-01 18:33
+
+release and build done
+
+Recorded v2.0.10 on W-260 notes: tag v2.0.10, publish.yml tests and publishes the package. Status left DONE. The working-tree note for the log edits is removed. No commit hash was given, so none was written.
+
+
+============================================================
+2026-10-06 18:15
+
+brainstorming on ldap auth plugin
+- currently we have internal user/pwd auth, auth-oauth plugin
+- next step is a new auth-ldap plugin for ldp & ad server auth
+- initial version hust for auth
+- later version could be group support (not yet in jpulse)
+- constraint: I do not have an ldap server for testing; are there public ldap servers I could use?
+
+LDAP auth belongs on the existing login form through onAuthBeforeLogin (search, then bind as the found DN). OAuth's redirect helper and login-page buttons are the wrong path. v1 is one directory with OpenLDAP and AD presets, TLS on by default, JIT off, and a stored DN so groups can be added later. Groups stay out until jPulse has a group model. ldap.forumsys.com is up today (plain bind on 389 works; LDAPS on 636 only with cert checks off; StartTLS fails) and is enough for an OpenLDAP smoke test. There is no public Active Directory. Unit tests should mock ldapts; a local OpenLDAP container covers TLS and AD-shaped attributes.
+
+
+============================================================
+2026-10-06 18:28
+
+- is ldapts native js? can we ship the lib as part of the plugin? relevant for airgapped deployment
+
+ldapts 9.0.0 is pure JavaScript. The published tarball is two bundled files (dist/index.cjs and dist/index.mjs, about 120KB each) plus TypeScript sources and MIT license. Runtime imports are Node built-ins only: node:net, node:tls, node:crypto, node:util. No .node addon and no libldap. The declared dependency strict-event-emitter-types is types-only and is not referenced by the bundle. It can ship inside the plugin. A normal install declares it and `jpulse plugin install` puts it in plugins/auth-ldap/node_modules, which needs a registry once. A fully air-gapped site with no registry can vendor dist/index.cjs and LICENSE into the plugin so the tarball is complete. Simple bind and LDAPS/StartTLS are covered. Kerberos/GSSAPI is outside this library.
+
+
+============================================================
+2026-10-06 18:32
+
+auth-oauth has jit creation of user if enabled
+- does it make sense to offer the same for ldap auth?
+
+Yes. JIT fits LDAP better than OAuth: only people in the company directory can bind, so it is the usual way LDAP-backed apps onboard users. Offer three strategies like OAuth: pre-provisioned only, link to an existing local user, and JIT create. Keep JIT off by default. The directory search filter is the admission gate in v1; on AD it can require one group with a memberOf clause, without jPulse group support. Reuse the OAuth JIT recipe: random password hash, hasLocalPassword false, default roles user only, never admin/root, status active or pending, name fallback. Two corrections to the earlier sketch. Link on entryUUID (OpenLDAP) or objectGUID (AD), not the DN, because the DN changes when a user moves OUs. A jPulse user linked to LDAP who is no longer in the directory must be denied, not passed to local password auth, or AD offboarding does not lock them out. Also block "Set Password" for LDAP-linked users, so a JIT user cannot keep a local password after AD offboarding. Do not link by username while local signup is open (squatting, same class as W-198). Missing mail fails with a clear error, because email is required. forumsys check: entryUUID is present, givenName is absent on einstein (cn split needed), no memberOf overlay.
+
+
+============================================================
+2026-10-06 18:46
+
+- a jit-created user's email can be set to verified
+- do we need a design doc for ldap, or is a work item sufficient?
+
+Noted: JIT users get emailVerified true, same as auth-oauth. Recommend a design doc plus two work items, mirroring OAuth (W-195 framework work, W-197 plugin with design doc; auth-mfa W-108 also had one). Reason found in code: the plugin cannot do what the earlier sketch assumed with today's framework. onAuthBeforeLogin can only substitute a user (skipPasswordCheck + user); it has no deny result, and a thrown error is logged and skipped (default onError continue), so login falls through to UserModel.authenticate(). That means the plugin cannot stop a wrong directory password from being retried against a local password, cannot report "directory unavailable", and cannot deny a removed directory user who has a local password. UserController.changePassword() fires no hook, so the plugin cannot block Set Password for LDAP-linked users; admin password set (W-174) also flips hasLocalPassword true. Framework work item: a deny outcome on onAuthBeforeLogin, and a way to refuse local passwords for externally managed accounts. Plugin design doc can be shorter than W-197's.
+
+
+============================================================
+2026-10-06 18:57
+
+- I created empty placeholder @docs/dev/design/W-262-auth-ldap-plugin.md
+- I created two work items stubs, feel free to change title
+- the svg icon is addd too (to be removed from work item once placed)
+- please create deign doc with implementation plan,
+- add TD section for group support, and other potential items
+- create wrok items
+
+Wrote docs/dev/design/W-262-auth-ldap-plugin.md: scope, decisions table, plugin layout with plugin.json (icon placed there), presets, login outcome table (accept / deny / step aside for unlinked local accounts), account resolution (link-existing default, jit-create; stable ID; username link only with signup disabled; admin accounts not linked by default), user.ldap block, profile sync, config tabs, TLS and encrypted bind password, per-username throttle for AD lockout, error codes and AD sub-codes, admin Test connection, site modes, framework prerequisites (§F), security requirements, vendored ldapts for air-gapped, test plan with a forumsys manual matrix, 7-phase implementation plan (about 6.5-8.5 days), TD-1..TD-17 (group to role mapping first; jPulse groups, several directories, deprovisioning sync, admin tools, direct bind, Kerberos, and more), open questions. Filled in W-261 (retitled "auth: framework support for directory login plugins (login deny, directory-managed passwords, password form)") and W-262 (retitled "plugins: auth-ldap plugin for LDAP and Active Directory login"): objectives, prerequisites, rationale, features, deliverables, notes. Status and section placement unchanged. Icon removed from the W-262 notes. Third framework gap found while reading login.shtml: the password form is hidden whenever localAuthRestriction is not 'none', so W-261 adds credentials-type login providers. Password reset needs no framework change. Linking strategies are two, not three: there is no admin link UI, so pre-provisioning means creating the jPulse user with the directory username.
+
+
+============================================================
+2026-10-06 21:05
+
+design doc looks good
+- in a corporate AD I have seen that objectGUID exists, and is a binary (not number, not string); entryUUID does not exist
+- "pre-provisioning means creating the jPulse user with the directory username (signup disabled)" => what is the username?
+  - I see: login attribute, lowercased, characters outside `[a-z0-9_.-]` replaced with `-`; `-2` … `-6` suffix on collision
+  - but user logs in with sAMAccountName in AD case - any case for confusion?
+- passwordManagedBy name: ok
+- Default preset: active-directory
+- Linking an existing account by username:
+  - disabled is ok
+  - how about a configure flag so that an admin has a choice?
+- ACCOUNT_NOT_PROVISIONED: helpful is ok (most deployments are in a controlled env)
+
+Found the design doc being edited concurrently by another session that already applied most of the feedback (objectGUID binary + idAttributeFormat auto/string/guid/hex, linkByUsername when-signup-disabled/always/never, default preset active-directory, helpful ACCOUNT_NOT_PROVISIONED, §5 "jPulse username vs. the name users type"). Kept own edit: mail added to both preset search filters, "ID format" row in the preset table. Answered the username question: login works with whatever the user types (sAMAccountName, UPN, DOMAIN\user, mail) because the stable ID picks the account; only the displayed jPulse username can differ - normalized characters (John Smith -> john-smith), -2 collision suffix, a local admin with the same name takes the login (break-glass admins need distinct names), AD rename keeps the jPulse username, duplicate sAMAccountName across domains is ambiguous (use UPN). Paused remaining edits to avoid clobbering.
+
+
+============================================================
+2026-10-06 21:14
+
+oops, go ahead with your edits
+
+W-262 design doc: §5 now lists mail among AD login forms and says the jPulse username comes from sAMAccountName, never from what was typed; §8 Accounts tab adds linkByUsername; §12 Test connection shows the derived jPulse username, the match rule, a JIT -2 suffix, and warns on a same-name unlinked local admin or skipped username linking; unit tests cover idAttributeFormat, GUID bytes that are invalid UTF-8, linkByUsername modes, normalizeUsername; manual matrix rows 18-21 (mail login, linkByUsername with open signup, local admin warning) and AD rows (mail login, ObjectGUID compare, sAMAccountName with space/accent); Open Questions turned into Resolved Questions (1-6). W-262 work item features updated: AD default preset, mail login, objectGUID binary + idAttributeFormat, linkByUsername, new "jPulse username" bullet, helpful not-provisioned message, Test connection username preview and local-admin warning. Status and placement unchanged.
+
+
+============================================================
+2026-10-06 21:19
+
+looks good
+
+all ready to hand over to grok for implementation?
+
+Yes, ready. Checked the W-262 design doc: no TBD/TODO or open questions left, all referenced design docs exist, phased implementation plan present (W-261 framework first, then plugin). Handover advice: two separate handovers (W-261 framework in this repo, verify, then W-262 plugin in plugins/auth-ldap/ as its own git repo like auth-oauth/auth-mfa, gitignored by the framework); user creates or approves the plugin git repo (no git without approval); network needed for forumsys and vendoring ldapts; AD-specific code (objectGUID, AD sub-codes, userAccountControl) only unit-tested until a Samba AD / Windows VM is available; design doc is the spec - deviations must be written back to it; no version bumps or work-item status changes. Provided a suggested handover prompt.
+
+
+============================================================
+2026-10-06 21:26
+
+grok:
+Implement W-261 (framework support for directory login plugins) per docs/dev/design/W-262-auth-ldap-plugin.md section "F. Framework Prerequisites (W-261)" and Implementation Plan Phase 1, plus the W-261 work item in docs/dev/work-items.md.
+The design doc is the spec; if you must deviate, update the design doc and tell me. Done when npm test is green and the throwaway-plugin check in Phase 1 step 7 passes.
+Do not start W-262 yet.
+
+Implemented W-261 in the framework only. onAuthBeforeLogin deny (wins over skipPasswordCheck; malformed deny still denies with generic 401); passwordManagedBy on the user schema (authenticate returns null, changePassword and admin password set return 409, password reset classifies as ssoNotice reason passwordManagedExternally, token confirm returns 409 and consumes the link); credentials-type login providers split into authCredentialProviders so the password form stays up on restricted sites, label HTML-escaped under the form; settings and admin Security panels hide the password form and disable the reset-link button. Docs updated (hooks, handlebars, security-and-auth, api-reference, deployment, design doc token-confirm sentence). npm test exit 0. Throwaway site controller denied username w261-deny-check with 503 and was removed afterward. W-262 not started. Work-item status left as found.
+
+
+============================================================
+2026-10-06 21:40
+
+do you recommend any manual tests, or good to go?
+
+API and login-page rendering are covered by npm test, including the throwaway deny check. Recommended three short manual checks before relying on the panels, because Settings and the admin Security panel were never opened in a browser: normal login still works; a test user with passwordManagedBy set shows the directory note instead of the password form (Settings and admin), and the admin reset-link button is disabled; clear the field afterward. A credentials-provider label on a restricted login page is optional, since the real login template was rendered in tests. Not a blocker for starting W-262.
+
+
+============================================================
+2026-10-06 22:08
+
+- I had to fix botched comments: @auth.js (534-573)
+- I had to fix botched indent @user-profile.shtml (297-316)
+- where do I set passwordManagedBy? I do not see a gui setting, so use mogosh?
+- I found a ui issue, caused by a recent change of plugin icons from unicode to svg, see ss 1
+- expected: tabs shold not be taller than other tabs, icon size should be not taller than text
+
+Left the auth.js comments and the user-profile.shtml indent as the user fixed them. passwordManagedBy has no GUI; a directory plugin writes it, and for a manual check use mongosh on db.users (dev db jp-dev), e.g. set passwordManagedBy to auth-ldap on a test user such as ptester20, then clear it to empty string. While set, that account cannot sign in with a local password. Tab icons: plugin SVGs are 24x24, so SSO/MFA tabs were taller than text tabs. .jp-tab-icon.jp-tab-icon-html svg is now 1em (the tab's 14px font). Checked in a browser: Sicherheit, SSO Providers, and MFA Settings all 39px tall; the SVG measured 14x14 against a 17px label.
+
+
+============================================================
+2026-10-06 22:31
+
+- I tweaked the svg style settings for larger icon while keeping the tab height unchanged
+- passwordManagedBy test ok
+
+I think I want to wait with release and build until auth-ldap plugin is done (in case of any jpulse changes needed)
+
+Left the tab SVG size at 1.4em with negative vertical margins, which keeps the tab box the same height as a text-only tab. Updated the CSS comment that still described the earlier 1em size. passwordManagedBy manual check is confirmed. Agreed to hold the release and version bump until the auth-ldap plugin is done, so any further framework changes ship in the same build. No version bump, no work-item status change.
+
+
+============================================================
+2026-10-06 22:36
+
+next:
+
+Implement W-262 (auth-ldap plugin for LDAP and Active Directory login, @work-items.md (11208-11264) ) per docs/dev/design/W-262-auth-ldap-plugin.md section "F. Framework Prerequisites (W-261)" and Implementation Plan Phase 1, plus the W-261 work item in docs/dev/work-items.md.
+
+The design doc is the spec; if you must deviate, update the design doc and tell me.
+
+W-261 was already in the framework, so this turn built the auth-ldap plugin in plugins/auth-ldap (gitignored by the framework; no git repo created). Vendored ldapts 9.0.0. Login decision table, resolver, client, config schema, encrypted bind password, test connection, cards, en/de strings, admin guide. 45 unit tests passed. Integration test skips unless LDAP_TEST_URL is set. Deviation: throttle cache path is controller:auth-ldap:fail because cacheDel rejects a plugin: component; design section 10 updated. Test discovery registered the plugin as disabled. Manual forumsys/AD matrix and release not done. No version bump, no work-item status change.
+
+
+============================================================
+2026-10-06 23:19
+
+- I made many changes to headers to match the convention
+- I renamed scripts to bin, and renamed the file in it; fix other places that needs fixing
+- I redid the bump script; check for accuracy
+
+Left the header convention edits as written. Pointed package.json, the plugin README, the script @file and EOF lines, the design doc, and the work-item deliverable at bin/copy-vendor-ldapts.js. The npm script is now copy-vendor-ldapts. The redone bump-version.conf matches bin/bump-version.js: header patterns, README and docs titles, plugin.json and package.json versions, and the package-lock rules (root and packages[""] only; a dependency version stays). Added webapp/translations/*.conf, which was the one set of headered files the patterns skipped. Did not run the bump script.
+
+
+============================================================
+2026-10-06 23:33
+
+fix @plugins/auth-ldap/package.json , reference @plugins/auth-oauth/package.json
+
+Aligned plugins/auth-ldap/package.json with the auth-oauth package: field order, keywords, git+ repository URL, GitHub Packages publishConfig, main, and files. Kept version 1.0.99, an empty dependencies object (ldapts stays vendored), and the copy-vendor-ldapts script. Dropped the unused jpulse.plugin field.
+
+
+============================================================
+2026-10-06 23:35
+
+do we need a dependency on jpulse?
+
+No. The plugin runs inside the framework, so package.json does not depend on jPulse. Compatibility is plugin.json jpulseVersion >=2.0.11, which is what the framework checks. auth-oauth has no jPulse dependency either. The publishing guide shows an optional peerDependencies example; this plugin does not need it.
+
+
+============================================================
+2026-10-06 23:52
+
+review app start log with plugin enabled
+
+Startup is clean for auth-ldap. Translations merged, three hooks registered (onAuthBeforeLogin at 50, onAuthGetLoginProviders and onPluginConfigBeforeSave at 100), controller initialized, and POST /api/1/auth-ldap/admin/test plus GET /api/1/auth-ldap/admin/roles registered. No error or warning lines. The 12 enabled vs 10 active gap is test-primary and test-secondary, both status missing. jpulseVersion >=2.0.11 did not block load on framework 2.0.10 because the compatibility check is still an empty stub; this working tree already contains the login changes the plugin needs.
+
+
+============================================================
+2026-10-06 23:54
+
+make test work with npm
+
+npm test in plugins/auth-ldap failed with Missing script: "test".
+
+2026-10-06 23:56
+
+compare with ai-core
+
+The test script now matches ai-core: npx jest plugins/auth-ldap/webapp/tests/unit --runInBand. Added jest.config.cjs, which switches to the framework root so Babel, globalSetup, and .jpulse/app.json resolve. Added that file to the bump patterns. npm test from the plugin directory: 5 suites, 45 tests passed.
+
+
+============================================================
+2026-10-07 00:38
+
+login as newton succeeded, plus settings, admin security, rate-limit, and break-glass screenshots and logs.
+
+JIT login, the managed-password panels, five failures then RATE_LIMITED, and siteadmin break-glass all match the design. firstName was stored as the word "undefined" because ldapts returns a missing requested attribute as []. String(undefined) blocked the display-name fallback. Empty arrays are now blank, so cn "Isaac Newton" supplies the first name. 47 unit tests passed. Restart, then sign in again after the 15-minute failure window, and the profile should update.
+
+
+============================================================
+2026-10-07 00:43
+
+fixed
+
+Einstein's settings page shows Albert Einstein, with first name Albert and last name Einstein. The empty-attribute fallback is confirmed.
+
+
+============================================================
+2026-10-07 00:56
+
+oh, does the framework have a way for an admin to to create a user?
+
+No. The admin users page lists and edits existing accounts. New accounts come from public signup (POST /api/1/user/signup) or from a plugin that creates them, such as auth-ldap JIT. For a link-existing test, sign the forumsys user up first, then turn signup off and sign in with the directory password.
+
+
+============================================================
+2026-10-07 01:03
+
+- I created a tesla user by signing up
+- I tried to login with the local password
+- it asked me for mfa to continue, which I have not set up
+- I could login with `password` password
+
+The first attempt was the local password. LDAP bind failed, the unlinked account stepped aside, local auth succeeded, and the next step was email verification at /auth/email-verify.shtml, not MFA. The directory password then linked tesla (row 11). Profile sync replaced tesla@example.com with the directory address and marked it verified, so login went straight to /home/.
+
+
+============================================================
+2026-10-07 01:05
+
+ah, all good then
+
+Confirmed the tesla link-existing result is the intended behavior.
+
+
+============================================================
+2026-10-07 01:13
+
+mfa enablement works as expected
+
+anything else before release prep of W-261?
+
+MFA after a directory login is confirmed. W-261 deny, passwordManagedBy panels, the credentials form, and break-glass have all been seen through auth-ldap. The one behavior not yet clicked is the password form staying visible when local login is admins-only. After that, release prep is the 2.0.11 bump. No further framework code is pending from these tests.
+
+
+============================================================
+2026-10-07 01:21
+
+- set local login to admins only, auth works as expected for admin, denied for existing user
+
+Admins-only local login is confirmed: an admin signs in, a non-admin local user is denied. That was the last W-261 check before release prep.
+
+
+============================================================
+2026-10-07 01:24
+
+here is the proper release prep list:
+@work-items.md (11304-11310)
+
+Reviewed tt-git-diff.txt against W-261. Features and deliverables now record that a directory-owned reset link returns 409 and is consumed, and that plugin SVG tab icons draw at 1.4em. Status stays IN_PROGRESS. security-and-auth.md notes the consumed link. README.md, docs/README.md, and docs/CHANGELOG.md have the v2.0.11 highlight. commit-message.txt is rewritten for W-261. Version headers were not bumped, and nothing was committed.
+
+
+============================================================
+2026-10-07 01:32
+
+bump is done
+
+please check all headers of all framework files and site files that ship with framework (exclude plugins)
+
+copyright should be changed from:
+ * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+
+to:
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+
+After bump, 235 framework/site/bin/templates/babel files still had the 2025-only Peter Thoeny line (bump-version only touches @version/@release). Bulk-updated all of them. Zero remaining outside plugins; site *.tmpl files that say "2025 Site Administrator" were left as-is. view.test.js still uses a short 2025 fixture on purpose for header-strip tests.
+
+
+============================================================

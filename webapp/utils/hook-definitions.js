@@ -4,13 +4,13 @@
  * @description     Definitions of every hook fired by framework code, seeded into
  *                  HookManager's catalog at module load through the public defineHooks() API.
  * @file            webapp/utils/hook-definitions.js
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.15, Grok 4.6
+ * @genai           80%, Cursor 3.21, Grok 4.7
  */
 
 /**
@@ -33,9 +33,10 @@ const frameworkHookDefinitions = {
     // Authentication hooks (8)
     // ================================================================
     onAuthBeforeLogin: {
-        description: 'Before credential validation - external auth (LDAP/OAuth), captcha',
+        description: 'Before credential validation - external auth (LDAP/OAuth), captcha. ' +
+            'Set deny to reject the login; it wins over skipPasswordCheck',
         contextKeys: ['req', 'identifier', 'password', 'captchaToken', 'skipPasswordCheck',
-            'user', 'authMethod'],
+            'user', 'authMethod', 'deny'],
         canModify: true,
         since: '1.3.10'
     },
@@ -76,7 +77,9 @@ const frameworkHookDefinitions = {
         since: '1.3.10'
     },
     onAuthGetLoginProviders: {
-        description: 'Provide external auth provider buttons for the login page (OAuth, LDAP, SAML)',
+        description: 'Provide login providers for the login page. Default type "redirect" is a ' +
+            'button (OAuth, SAML). type "credentials" keeps the username/password form and shows ' +
+            'the entry\'s label under it (directory login)',
         contextKeys: ['req', 'providers'],
         canModify: true,
         since: '1.7.1'

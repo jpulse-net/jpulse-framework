@@ -4,13 +4,13 @@
  * @description     Tests that currentPassword verification is skipped for users without a
  *                   usable local password (hasLocalPassword === false), and enforced otherwise
  * @file            webapp/tests/unit/user/user-change-password.test.js
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.12, Claude Sonnet 5
+ * @genai           80%, Cursor 3.21, Grok 4.7
  */
 
 import { describe, test, expect, beforeEach, beforeAll, jest } from '@jest/globals';
@@ -110,6 +110,19 @@ describe('UserController.changePassword (W-195)', () => {
                 hasLocalPassword: true
             }));
             expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+        });
+
+        test('should refuse when passwordManagedBy is set (W-261)', async () => {
+            UserModel.findById = jest.fn().mockResolvedValue(mockUserWith({ passwordManagedBy: 'auth-ldap' }));
+            mockReq.body = { currentPassword: 'oldPass123!', newPassword: 'newPass123!' };
+
+            await UserController.changePassword(mockReq, mockRes);
+
+            expect(global.CommonUtils.sendError).toHaveBeenCalledWith(
+                mockReq, mockRes, 409, 'controller.user.password.managedExternally', 'PASSWORD_MANAGED_EXTERNALLY'
+            );
+            expect(UserModel.updateById).not.toHaveBeenCalled();
+            expect(UserModel.verifyPassword).not.toHaveBeenCalled();
         });
 
         test('should treat an absent hasLocalPassword field as true (pre-W-195 users)', async () => {

@@ -3,13 +3,13 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.20, Grok 4.6
+ * @genai           60%, Cursor 3.21, Grok 4.7
  */
 
 import UserModel from '../model/user.js';
@@ -533,6 +533,32 @@ class AuthController {
     }
 
     /**
+     * Normalize a plugin's onAuthBeforeLogin deny payload (W-261).
+     * code must be an error-code token; messageKey must be an i18n key, never free text.
+     * Anything else falls back to a generic 401 invalid-credentials denial — the login is
+     * still denied, because a malformed deny must not fall through to local auth.
+     * @param {*} deny - Whatever the handler assigned to context.deny
+     * @returns {{ code: string, status: number, messageKey: string, extra: object|null }}
+     */
+    static _normalizeLoginDeny(deny) {
+        const value = (deny && typeof deny === 'object') ? deny : {};
+        const code = (typeof value.code === 'string' && /^[A-Z][A-Z0-9_]*$/.test(value.code))
+            ? value.code
+            : 'INVALID_CREDENTIALS';
+        const status = Number.isInteger(value.status) && value.status >= 400 && value.status <= 599
+            ? value.status
+            : 401;
+        const messageKey = (typeof value.messageKey === 'string' && /^[A-Za-z0-9_.-]+$/.test(value.messageKey))
+            ? value.messageKey
+            : 'controller.auth.invalidCredentials';
+        const retryAfter = Number(value.retryAfter);
+        const extra = (Number.isFinite(retryAfter) && retryAfter >= 0)
+            ? { retryAfter: Math.ceil(retryAfter) }
+            : null;
+        return { code, status, messageKey, extra };
+    }
+
+    /**
      * User login/authentication - Multi-step flow
      * POST /api/1/auth/login
      * W-105: Enhanced with plugin hooks for external auth providers (OAuth2, LDAP, MFA)
@@ -629,6 +655,25 @@ class AuthController {
                     authMethod: 'internal'
                 };
                 beforeLoginContext = await global.HookManager.execute('onAuthBeforeLogin', beforeLoginContext);
+
+                // W-261: a plugin can reject this login outright. deny wins over skipPasswordCheck,
+                // and internal auth does not run. The hook stays onError 'continue', so a plugin
+                // that wants a directory failure to stick must catch its own errors and set deny
+                // rather than throw.
+                if (beforeLoginContext.deny) {
+                    const deny = AuthController._normalizeLoginDeny(beforeLoginContext.deny);
+                    await global.HookManager.execute('onAuthFailure', {
+                        req,
+                        identifier,
+                        reason: deny.code,
+                        authMethod: beforeLoginContext.authMethod
+                    });
+
+                    global.LogController.logError(req, 'auth.login',
+                        `error: login denied (${deny.code}) for identifier: ${identifier}`);
+                    const message = global.i18n.translate(req, deny.messageKey);
+                    return global.CommonUtils.sendError(req, res, deny.status, message, deny.code, deny.extra);
+                }
 
                 if (beforeLoginContext.skipPasswordCheck && beforeLoginContext.user) {
                     // External auth provided the user (LDAP, OAuth2, etc.)

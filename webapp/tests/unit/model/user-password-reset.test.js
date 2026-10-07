@@ -7,13 +7,13 @@
  *                   limiters, the detached send, and the mechanism-only contract (no status,
  *                   hasLocalPassword or restriction checks anywhere in this layer)
  * @file            webapp/tests/unit/model/user-password-reset.test.js
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           85%, Cursor 3.15, Claude Opus 5
+ * @genai           85%, Cursor 3.21, Grok 4.7
  */
 
 import { describe, test, expect, beforeAll, beforeEach, afterEach, jest } from '@jest/globals';
@@ -299,6 +299,20 @@ describe('UserModel password reset primitives (W-206)', () => {
             const result = await UserModel.resetPasswordByToken(mockReq, validToken, 'a-good-password');
 
             expect(result.success).toBe(true);
+        });
+
+        test('refuses a directory-owned password without writing one, and consumes the link (W-261)', async () => {
+            UserModel.findById.mockResolvedValue({ ...mockUser, passwordManagedBy: 'auth-ldap' });
+
+            const result = await UserModel.resetPasswordByToken(mockReq, validToken, 'a-good-password');
+
+            expect(result).toEqual(expect.objectContaining({
+                success: false, errorCode: 'PASSWORD_MANAGED_EXTERNALLY', user: null
+            }));
+            expect(UserModel.updateById).not.toHaveBeenCalled();
+            expect(global.RedisManager.cacheDelToken).toHaveBeenCalledWith(
+                'controller:user:passwordResetLink', USER_ID
+            );
         });
     });
 

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v2.0.10
+# jPulse Docs / Site Administrator & Developer Documentation v2.0.11
 
 **For Site Administrators & Site Developers**
 
@@ -249,6 +249,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v2.0.11, W-261, 2026-10-07: Auth: a directory plugin can accept or deny a password login**: `onAuthBeforeLogin` may set `deny`. The local password is not tried after that. `passwordManagedBy` names the plugin that owns the password: local sign-in, change, admin set, and reset all refuse with `PASSWORD_MANAGED_EXTERNALLY`, and a reset link used in that state is consumed. A login provider with `type: 'credentials'` keeps the username/password form on the page when local login is restricted, and shows its label under the form. Plugin SVG tab icons draw at 1.4em so those tabs stay the same height as a text tab. Docs: [Hooks](hooks.md), [Handlebars](handlebars.md), [Security and Auth](security-and-auth.md), [Deployment](deployment.md).
 - **v2.0.10, W-260, 2026-10-01: Admin plugins: list in load order, with search**: Admin → Plugins lists enabled plugins in load order, then every other plugin by name. Search filters that table by name, summary (the description when a plugin has no summary), and author. The total / enabled / disabled counts stay the full install. An empty match is a line under the search field. Startup lines from bootstrap, the hook-audit banner, and app shutdown use the documented severity words `warning` and `ERROR`. Docs: [Managing Plugins](plugins/managing-plugins.md), [Site Administration](site-administration.md).
 - **v2.0.9, W-246, 2026-09-21: View: strip selected file-header tags for privacy**: Views sent to the browser (`.shtml`, `.js`, `.css`, `.tmpl`) drop `@repository`, `@author`, and `@genai` from the first file-header comment. Source on disk is unchanged. The list can be customized in the `app.conf` configuration file. Docs: [Site Customization](site-customization.md), [Security and Auth](security-and-auth.md).
 - **v2.0.8, W-243, 2026-09-20: Logs: per-area logDebug with a live admin toggle**: Prod logs keep the audit trail (`logRequest` / `logInfo` / `logWarning` / `logError`) and drop the internals. `logDebug` prints only when its area is enabled. Prefix match (`redis` → `redis-manager.cacheSet`, `web` → `websocket…`, `*` all). Boot default is `controller.log.debug` (array, boolean, or comma string) plus `JPULSE_LOG_DEBUG`; the live override on `/admin/logs.shtml` is cluster-wide, expires after `debugTtl` minutes (default 30), and does not survive a restart. Docs: [Server Logging](logging.md).

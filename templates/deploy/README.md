@@ -1,4 +1,4 @@
-# jPulse Framework v2.0.10 Deployment Guide for %SITE_NAME%
+# jPulse Framework v2.0.11 Deployment Guide for %SITE_NAME%
 
 **Site Generated**: %GENERATION_DATE%
 **Deployment Type**: %DEPLOYMENT_TYPE%
@@ -285,10 +285,10 @@ See the [Configuration Files](#configuration-files) table below and [Installatio
  * @site            %SITE_NAME%
  * @generated       %GENERATION_DATE%
  * @file            templates/deploy/README.md
- * @release         2026-10-01
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           60%, Cursor 1.7, Claude Sonnet 4
 -->

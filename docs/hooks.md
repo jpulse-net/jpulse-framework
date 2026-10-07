@@ -1,4 +1,4 @@
-# jPulse Docs / Hooks v2.0.10
+# jPulse Docs / Hooks v2.0.11
 
 Named extension points that the framework, a site, or a plugin can **define**, and that any plugin or site controller can **handle**. Use them to intercept, modify, react to, or veto operations without patching framework code.
 
@@ -187,6 +187,11 @@ IS enforced automatically by the framework for this `skipPasswordCheck` path - `
 same status check against `context.user` that it runs for internal password logins, right after
 this hook returns. Your handler does not need to (and should not) duplicate that check itself.
 
+To reject the login instead of accepting it, set `context.deny` (see "Password Login Plugins"
+below). `deny` wins over `skipPasswordCheck`, and internal password auth does not run. The hook's
+`onError` stays `'continue'`: a thrown error is logged and skipped, so a directory failure would
+fall through to the local password. Catch errors inside the handler and set `deny`.
+
 ## Available Hooks
 
 ### Authentication Hooks
@@ -198,7 +203,7 @@ Total: %DYNAMIC{plugins-hooks-count namespace="onAuth"}% hooks
 <!-- Plugin hooks as of v1.3.10: (above dynamic list shows the current list)
 | Hook | Context | Can Modify | Can Cancel | Description |
 |------|---------|------------|------------|-------------|
-| `onAuthBeforeLogin` | `{ req, identifier, password, captchaToken, skipPasswordCheck, user, authMethod }` | ✅ | ❌ | Before credential validation - external auth (LDAP/OAuth), captcha |
+| `onAuthBeforeLogin` | `{ req, identifier, password, captchaToken, skipPasswordCheck, user, authMethod, deny }` | ✅ | ❌ | Before credential validation - external auth (LDAP/OAuth), captcha. Set deny to reject the login |
 | `onAuthBeforeSession` | `{ req, user, sessionData }` | ✅ | ❌ | Before session is created - add data to session |
 | `onAuthAfterLogin` | `{ req, user, session, authMethod }` | ❌ | ❌ | After successful login - audit logging, notifications |
 | `onAuthFailure` | `{ req, identifier, reason }` | ❌ | ❌ | On login failure - rate limiting, lockout |
@@ -492,6 +497,82 @@ static async apiCallback(req, res) {
 `completeExternalAuth()` does not re-check `user.status` or `localAuthRestriction` (the latter
 only governs the local username/password path) - your callback handler is responsible for
 rejecting e.g. `status: 'pending'` users before calling it.
+
+### Password Login Plugins
+
+A directory plugin proves the password itself and stays on the username/password form. It does
+not use `completeExternalAuth()` and it does not add a redirect button.
+
+```javascript
+static hooks = {
+    onAuthBeforeLogin: {},
+    onAuthGetLoginProviders: {}
+};
+
+// type 'credentials' keeps the password form and shows label under it.
+// Omit type (or use 'redirect') for a button, as in the section above.
+static async onAuthGetLoginProviders(context) {
+    context.providers.push({
+        type: 'credentials',
+        label: 'Company account',
+        order: 10
+    });
+    return context;
+}
+
+static async onAuthBeforeLogin(context) {
+    try {
+        const outcome = await this.authenticateWithDirectory(context.identifier, context.password);
+        if (outcome.user) {
+            context.skipPasswordCheck = true;
+            context.user = outcome.user;
+            context.authMethod = 'ldap';
+        } else if (outcome.deny) {
+            context.deny = outcome.deny;
+        }
+        // No deny and no user: step aside. login() then tries the local password.
+    } catch (error) {
+        context.deny = {
+            code: 'AUTH_PROVIDER_UNAVAILABLE',
+            status: 503,
+            messageKey: 'plugin.example.error.unavailable'
+        };
+    }
+    return context;
+}
+```
+
+`context.deny` is `{ code, status, messageKey, retryAfter }`:
+
+| Field | Required | Meaning |
+|---|---|---|
+| `code` | yes | `/^[A-Z][A-Z0-9_]*$/`. Becomes the API error code and the `onAuthFailure` reason. Anything else is treated as `INVALID_CREDENTIALS`, and the login is still denied |
+| `status` | no | HTTP status, 400–599. Default 401 |
+| `messageKey` | no | i18n key (`/^[A-Za-z0-9_.-]+$/`). Default `controller.auth.invalidCredentials`. Free text is ignored |
+| `retryAfter` | no | Seconds, passed through like `RATE_LIMITED` |
+
+`type: 'credentials'` entries are not buttons. The login page receives them as
+`authCredentialProviders`; `authProviders` keeps redirect entries only. The password form stays
+visible when a credentials provider exists, including on a site with `localAuthRestriction` set,
+and each label is shown under the form through `string.htmlEscape` (this template engine does
+not escape `{{ }}` by itself). Server-side `localAuthRestriction` is unchanged: it still applies
+only when `authMethod` stays `'internal'`.
+
+**`passwordManagedBy`.** A string on the user document. Empty or absent means a local password.
+A plugin name means that plugin's directory owns the password, and only server code may write
+the field (it is not accepted from user or admin update payloads). While it is set:
+
+- `UserModel.authenticate()` returns null, so a leftover local hash cannot sign in
+- `PUT /api/1/user/password` and an admin password set return **409** `PASSWORD_MANAGED_EXTERNALLY`
+- password reset classifies the account as the "you sign in with your provider" explainer, reason
+  `passwordManagedExternally`; a reset link that is already in flight is refused with the same
+  409 and consumed
+- Settings and the admin user Security panel replace the password form with a note, and the
+  admin "send reset link" button is disabled
+
+Clearing the field (convert the account back to a local password) is not in the admin UI. The
+break-glass recipe in [Deployment](deployment.md#break-glass-account-runbook) includes the
+database step.
 
 Any `onAuthGetWarnings` toasts (e.g. an MFA-not-enabled nag) are carried across the final `302`
 via `CommonUtils.appendToastsToUrl()` and shown automatically once the destination page loads -

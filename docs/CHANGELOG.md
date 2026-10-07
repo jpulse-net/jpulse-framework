@@ -1,6 +1,45 @@
-# jPulse Docs / Version History v2.0.10
+# jPulse Docs / Version History v2.0.11
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.11, W-261, 2026-10-07
+
+**Commit:** `W-261, v2.0.11, 2026-10-07: auth: framework support for directory login plugins`
+
+**FEATURE RELEASE**: A directory plugin could accept a password login, but it could not reject one. A wrong directory password fell through to the local password, and a directory-owned account could still be given a local password. This release adds a deny result, a field that marks the password as directory-owned, and a way to keep the username/password form on a site that has restricted local login.
+
+**Objective**: A password-login plugin can accept the login or reject it. A password the directory owns cannot be used or replaced locally. The login form stays available for those users when local login is limited to admins.
+
+**Key features**:
+- `onAuthBeforeLogin` may set `context.deny` (`code`, `status`, `messageKey`, `retryAfter`). `login()` returns that error and does not call `UserModel.authenticate()`. `deny` wins over `skipPasswordCheck`. A missing status or message uses 401 and `controller.auth.invalidCredentials`. The hook stays `onError: 'continue'`; the plugin catches its own errors and sets `deny`
+- `passwordManagedBy` is an empty string for a local password, or the owning plugin's name. Only server code writes it. While set, `authenticate()` returns null; change-password and an admin password set return 409 `PASSWORD_MANAGED_EXTERNALLY`; password reset classifies as `ssoNotice` with reason `passwordManagedExternally`; confirming a reset token returns 409 and consumes the link
+- Settings and the admin Security panel show a directory-managed note instead of the password form. The admin "send reset link" button is disabled for that reason
+- `onAuthGetLoginProviders` entries may set `type: 'credentials'` (default `'redirect'`). Redirect entries stay in `authProviders`. Credentials entries go to `authCredentialProviders`, so auth-oauth is unchanged. The login page keeps the password form when a credentials provider exists, HTML-escapes its label under the form, and skips the restricted-login notice. Server-side `localAuthRestriction` is unchanged
+- Break-glass in `deployment.md` also clears `passwordManagedBy`
+- Plugin SVG tab icons draw at 1.4em, with a negative vertical margin, so an icon tab is the same height as a text-only tab
+- Docs: `hooks.md`, `handlebars.md`, `security-and-auth.md`, `api-reference.md`, `deployment.md`
+
+**Files changed**:
+- `webapp/controller/auth.js`: deny handling immediately after `onAuthBeforeLogin`
+- `webapp/utils/hook-definitions.js`: `deny` on `onAuthBeforeLogin`; `type` on `onAuthGetLoginProviders`
+- `webapp/model/user.js`: `passwordManagedBy`; `authenticate()` returns null; reset-by-token consumes the link
+- `webapp/controller/user.js`: change, admin set, reset classification, and token confirm
+- `webapp/controller/handlebar.js`: `authCredentialProviders`
+- `webapp/view/auth/login.shtml`, `webapp/view/user/settings.tmpl`, `webapp/view/admin/user-profile.shtml`
+- `webapp/view/jpulse-common.css`: SVG tab icon size
+- `webapp/translations/en.conf`, `de.conf`
+- `webapp/tests/unit/controller/auth-controller.test.js`, `user-change-password.test.js`, `user-password-reset-endpoints.test.js`, `handlebar-auth-providers.test.js`, `login-page-render.test.js`
+- `webapp/tests/unit/model/user-password-reset.test.js`, `user-password-managed-by.test.js`
+- `docs/hooks.md`, `docs/handlebars.md`, `docs/security-and-auth.md`, `docs/api-reference.md`, `docs/deployment.md`
+- `docs/dev/work-items.md`: W-261 features/deliverables as-built
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.11 / W-261
+- `docs/CHANGELOG.md`: this section
+
+**Release**:
+- Work Item: W-261
+- Version: v2.0.11
+- Release Date: 2026-10-07
 
 ________________________________________________
 ## v2.0.10, W-260, 2026-10-01

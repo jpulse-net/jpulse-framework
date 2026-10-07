@@ -7,8 +7,8 @@
  *                   passwordResetSend() (admin, honest response) - plus the eligibility
  *                   classifier and the cross-path token invalidation
  * @file            webapp/tests/unit/controller/user-password-reset-endpoints.test.js
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -298,6 +298,20 @@ describe('UserController: W-206 password reset endpoints', () => {
             expect(AuthController.beginAuthenticatedSession).not.toHaveBeenCalled();
         });
 
+        test('returns 409 PASSWORD_MANAGED_EXTERNALLY and creates no session (W-261)', async () => {
+            UserModel.resetPasswordByToken.mockResolvedValue({
+                success: false, errorCode: 'PASSWORD_MANAGED_EXTERNALLY', user: null
+            });
+
+            await UserController.passwordResetConfirm(mockReq, mockRes);
+
+            expect(mockRes.status).toHaveBeenCalledWith(409);
+            expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+                code: 'PASSWORD_MANAGED_EXTERNALLY'
+            }));
+            expect(AuthController.beginAuthenticatedSession).not.toHaveBeenCalled();
+        });
+
         test('normalizes the confirm limiter retryAfter to seconds', async () => {
             UserModel.resetPasswordByToken.mockResolvedValue({
                 success: false, errorCode: 'PASSWORD_RESET_RATE_LIMITED', retryAfter: 900000, user: null
@@ -423,6 +437,7 @@ describe('UserController: W-206 password reset endpoints', () => {
 
         test.each([
             [{ hasLocalPassword: false }, 'noLocalPassword'],
+            [{ passwordManagedBy: 'auth-ldap', hasLocalPassword: false }, 'passwordManagedExternally'],
             [{ status: 'suspended' }, 'accountSuspended'],
             [{ status: 'terminated' }, 'accountTerminated']
         ])('refuses an ineligible account honestly, naming the reason (%#)', async (overrides, expectedReason) => {
@@ -478,6 +493,23 @@ describe('UserController: W-206 password reset endpoints', () => {
                 hasLocalPassword: true
             }));
             expect(UserModel.invalidatePasswordReset).toHaveBeenCalledWith('user-1');
+        });
+
+        test('an admin setting a password for a directory-owned account is refused and nothing is written (W-261)', async () => {
+            mockReq.params = { id: 'user-1' };
+            mockReq.session.user = { id: 'admin-1', username: 'adminuser', roles: ['admin'] };
+            mockReq.body = { password: 'a-good-password', profile: { firstName: 'Patricia' } };
+            AuthController.isAuthorized.mockReturnValue(true);
+            UserModel.findById.mockResolvedValue({ ...activeUser, passwordManagedBy: 'auth-ldap' });
+            UserModel.getSchemaExtensionsMetadata.mockReturnValue({});
+
+            await UserController.update(mockReq, mockRes);
+
+            expect(mockRes.status).toHaveBeenCalledWith(409);
+            expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+                code: 'PASSWORD_MANAGED_EXTERNALLY'
+            }));
+            expect(UserModel.updateById).not.toHaveBeenCalled();
         });
 
         test('an update() that does not touch the password leaves the reset token alone', async () => {

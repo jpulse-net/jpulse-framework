@@ -3,13 +3,13 @@
  * @tagline         Handlebars template processing controller
  * @description     Extracted handlebars processing logic from ViewController (W-088)
  * @file            webapp/controller/handlebar.js
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.20, Grok 4.6
+ * @genai           60%, Cursor 3.21, Grok 4.7
  */
 
 import path from 'path';
@@ -735,13 +735,23 @@ class HandlebarController {
 
         // W-195: External auth provider buttons for the login page. Guarded by hasHandlers() +
         // path check so sites without an external-auth plugin (the common case) pay zero cost.
+        // W-261: type 'credentials' stays on the password form (directory login). Everything
+        // else, including a missing type, stays a redirect button so existing providers are unchanged.
         let authProviders = [];
+        let authCredentialProviders = [];
         if (req.path === '/auth/login.shtml' && global.HookManager?.hasHandlers?.('onAuthGetLoginProviders')) {
             try {
                 const providersResult = await global.HookManager.execute('onAuthGetLoginProviders', { req, providers: [] });
-                authProviders = (providersResult.providers || [])
+                const sorted = (providersResult.providers || [])
                     .slice()
                     .sort((a, b) => (a.order || 100) - (b.order || 100));
+                for (const provider of sorted) {
+                    if (provider?.type === 'credentials') {
+                        authCredentialProviders.push(provider);
+                    } else {
+                        authProviders.push(provider);
+                    }
+                }
             } catch (error) {
                 LogController.logWarning(req, 'handlebar._buildInternalContext',
                     `Failed to collect auth login providers: ${error.message}`);
@@ -810,6 +820,8 @@ class HandlebarController {
             vars: {},
             // W-195: External auth provider buttons for /auth/login.shtml (empty elsewhere)
             authProviders: authProviders,
+            // W-261: Directory login labels for the password form (empty elsewhere)
+            authCredentialProviders: authCredentialProviders,
             // W-206: password reset offered? (login/reset/admin-profile pages only, false elsewhere)
             passwordResetAvailable: passwordResetAvailable,
             // W-159: Per-page sidebar disable (set by ViewController from view's <body> before expand)

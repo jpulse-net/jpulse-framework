@@ -3,13 +3,13 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.20, Grok 4.6
+ * @genai           80%, Cursor 3.21, Grok 4.7
  */
 
 // Import Jest globals and test utilities first
@@ -820,6 +820,66 @@ describe('AuthController', () => {
 
             expect(mockRes.status).not.toHaveBeenCalledWith(403);
             expect(mockReq.session.user).toMatchObject({ username: 'testuser', isAuthenticated: true });
+        });
+    });
+
+    describe('W-261: onAuthBeforeLogin deny', () => {
+        beforeEach(() => {
+            mockReq.body = { identifier: 'testuser', password: 'secret' };
+            mockReq.originalUrl = '/api/1/auth/login';
+            global.HookManager?.clear?.();
+        });
+
+        test('deny wins over skipPasswordCheck and internal auth does not run', async () => {
+            const onFailure = jest.fn();
+            global.HookManager.register('onAuthFailure', 'watch', onFailure);
+            global.HookManager.register('onAuthBeforeLogin', 'dir-plugin', (context) => {
+                context.skipPasswordCheck = true;
+                context.user = {
+                    _id: 'other',
+                    username: 'should-not-be-used',
+                    status: 'active',
+                    profile: { firstName: 'No', lastName: 'One' },
+                    roles: ['user']
+                };
+                context.authMethod = 'ldap';
+                context.deny = {
+                    code: 'AUTH_PROVIDER_UNAVAILABLE',
+                    status: 503,
+                    messageKey: 'plugin.example.error.unavailable',
+                    retryAfter: 30
+                };
+                return context;
+            });
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(UserModel.authenticate).not.toHaveBeenCalled();
+            expect(mockReq.session.user).toBeUndefined();
+            expect(onFailure).toHaveBeenCalledWith(expect.objectContaining({
+                reason: 'AUTH_PROVIDER_UNAVAILABLE',
+                identifier: 'testuser',
+                authMethod: 'ldap'
+            }));
+            expect(global.CommonUtils.sendError).toHaveBeenCalledWith(
+                mockReq, mockRes, 503, 'plugin.example.error.unavailable',
+                'AUTH_PROVIDER_UNAVAILABLE', { retryAfter: 30 }
+            );
+        });
+
+        test('a malformed deny still denies, using the generic fallback', async () => {
+            global.HookManager.register('onAuthBeforeLogin', 'dir-plugin', (context) => {
+                context.deny = { code: 'not a code', status: 200, messageKey: '<script>' };
+                return context;
+            });
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(UserModel.authenticate).not.toHaveBeenCalled();
+            expect(global.CommonUtils.sendError).toHaveBeenCalledWith(
+                mockReq, mockRes, 401, 'Invalid username/email or password',
+                'INVALID_CREDENTIALS', null
+            );
         });
     });
 

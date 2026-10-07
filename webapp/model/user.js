@@ -3,13 +3,13 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.14, Claude Sonnet 5
+ * @genai           60%, Cursor 3.21, Grok 4.7
  */
 
 import database from '../database.js';
@@ -58,6 +58,10 @@ class UserModel {
         // synthetic/unknown passwordHash; changePassword() resets it to true on success.
         // Default true + absent-reads-as-true means no migration/backfill is needed.
         hasLocalPassword: { type: 'boolean', default: true },
+        // W-261: which plugin owns this password. Empty (or absent) means a local password.
+        // A plugin name means the directory owns it: authenticate() refuses, and no local
+        // password can be set or reset. Written only by server code, never from an update payload.
+        passwordManagedBy: { type: 'string', default: '' },
         // W-198/W-205: has this user's email address actually been verified? false for every
         // brand-new signup going forward (stamped by applyDefaults() below). Accounts that
         // predate this field are backfilled once, at startup, from absent to true (see
@@ -1698,6 +1702,15 @@ class UserModel {
             return { success: false, errorCode: 'PASSWORD_RESET_INVALID_TOKEN', user: null };
         }
 
+        // W-261: write-guard, not a session policy. Status and localAuthRestriction stay in
+        // UserController._classifyPasswordReset(); this one refuses the write itself, because
+        // setting a password here would mint a local credential for a directory-owned account.
+        // The token is consumed so the link cannot be reused if the flag is cleared later.
+        if (user.passwordManagedBy) {
+            await this.invalidatePasswordReset(parsed.userId);
+            return { success: false, errorCode: 'PASSWORD_MANAGED_EXTERNALLY', user: null };
+        }
+
         const updatedUser = await this.updateById(parsed.userId, {
             password: newPassword,
             // W-195: they now know a real, usable local password, whether or not they had one
@@ -1751,6 +1764,12 @@ class UserModel {
             }
 
             if (!user) {
+                return null;
+            }
+
+            // W-261: a directory-owned password must not succeed here, even when the stored
+            // hash would match. Offboarding in the directory is how that account loses access.
+            if (user.passwordManagedBy) {
                 return null;
             }
 

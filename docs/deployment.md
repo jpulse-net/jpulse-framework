@@ -1,4 +1,4 @@
-# jPulse Docs / Production Deployment Guide v2.0.10
+# jPulse Docs / Production Deployment Guide v2.0.11
 
 A comprehensive guide for deploying jPulse Framework sites to production environments. This documentation is accessible on all jPulse sites at `/jpulse-docs/deployment`.
 
@@ -514,9 +514,22 @@ The framework never lets a site lock itself out completely by configuration alon
      )
    '
    ```
+   If that admin's password is owned by a directory plugin, also clear `passwordManagedBy`.
+   Otherwise the local password still will not be accepted, and Settings will not offer a
+   password form:
+
+   ```bash
+   mongosh "$DB_URI" --eval '
+     db.users.updateOne(
+       { username: "admin" },
+       { $set: { passwordManagedBy: "" } }
+     )
+   '
+   ```
+
    Then sign in at `/auth/login.shtml?localFallback=1` and **change the password immediately**
    from Settings once inside (this also resets `hasLocalPassword` normally, so there's nothing
-   else to clean up).
+   else to clean up). Leave `passwordManagedBy` empty.
 5. **Once inside, temporarily relax the policy if needed** to let other users in while the SSO
    outage is resolved: set `controller.auth.localAuthRestriction: 'none'` in `app.conf` and
    restart, or leave it as-is if only admin access is needed to diagnose the outage. Revert once

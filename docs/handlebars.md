@@ -1,4 +1,4 @@
-# jPulse Docs / Handlebars Templating v2.0.10
+# jPulse Docs / Handlebars Templating v2.0.11
 
 The jPulse Framework uses server-side Handlebars templating to create dynamic web pages. This document provides a comprehensive guide to using Handlebars in your jPulse applications.
 
@@ -202,7 +202,11 @@ Leaf-string `{{i18n.x.y}}` usage is unchanged: a string is returned directly, an
 
 ### `{{authProviders}}` - External Login Providers
 
-Array of `{ label, icon, initUrl, buttonColor, order }` objects contributed by plugins via the `onAuthGetLoginProviders` hook (see [Hooks](hooks.md)), sorted by `order`. Populated only when rendering `/auth/login.shtml` and only if a handler is registered; empty array (`[]`) elsewhere/otherwise, so use `{{#unless (array.isEmpty authProviders)}}` rather than `{{#if authProviders}}` (an empty array is truthy in Handlebars).
+Array of `{ label, icon, initUrl, buttonColor, order }` objects contributed by plugins via the `onAuthGetLoginProviders` hook (see [Hooks](hooks.md)), sorted by `order`. Entries with `type: 'credentials'` are not included here; they go to `authCredentialProviders` below. Populated only when rendering `/auth/login.shtml` and only if a handler is registered; empty array (`[]`) elsewhere/otherwise, so use `{{#unless (array.isEmpty authProviders)}}` rather than `{{#if authProviders}}` (an empty array is truthy in Handlebars).
+
+### `{{authCredentialProviders}}` - Directory Login Labels
+
+Array of the same provider objects whose `type` is `'credentials'`, sorted by `order`. The login page keeps the username/password form when this array is non-empty and shows each `label` under the form. Empty array elsewhere, with the same empty-array caveat as `authProviders`.
 
 ### `{{vars.*}}` - Custom Variables
 

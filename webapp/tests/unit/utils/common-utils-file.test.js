@@ -5,11 +5,11 @@
  *                   by PluginManager and app.js to eliminate torn reads of `.jpulse/*.json` caches
  *                   under concurrent PM2 cluster access
  * @file            webapp/tests/unit/utils/common-utils-file.test.js
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           85%, Cursor 3.13, Claude Sonnet 5
  */

@@ -3,11 +3,11 @@
  * @tagline         Site Override and Plugin Path Resolution Utility
  * @description     Provides path resolution for site overrides (W-014) and plugins (W-045)
  * @file            webapp/utils/path-resolver.js
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
  * @genai           70%, Cursor 2.0, Claude Sonnet 4.5
  */

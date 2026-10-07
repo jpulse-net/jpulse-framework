@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v2.0.10
+# jPulse Docs / REST API Reference v2.0.11
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -541,7 +541,7 @@ Authenticate user and create session.
 
 **Error Responses:**
 - **400**: Missing identifier or password (`MISSING_CREDENTIALS`)
-- **401**: Invalid credentials (`INVALID_CREDENTIALS`)
+- **401**: Invalid credentials (`INVALID_CREDENTIALS`). A password-login plugin may deny with its own `code` and status (`onAuthBeforeLogin` `context.deny`); internal auth does not run after a denial. `retryAfter` (seconds), when the plugin sets it, is returned the same way as `RATE_LIMITED`
 - **403**: Login disabled (`LOGIN_DISABLED`), local auth restricted (`LOCAL_AUTH_RESTRICTED` — see [`controller.auth.localAuthRestriction`](security-and-auth.md#restricting-local-usernamepassword-login)), or account status blocks login (`ACCOUNT_PENDING_APPROVAL` / `ACCOUNT_SUSPENDED` / `ACCOUNT_TERMINATED` / `ACCOUNT_INACTIVE`)
 - **429**: Too many requests from this IP (`RATE_LIMITED` — see [`controller.auth.loginRateLimit`](security-and-auth.md#rate-limiting)); response includes `retryAfter` (seconds)
 - **500**: Internal server error
@@ -781,7 +781,7 @@ Notes:
 - **400**: Validation error (last admin protection, self-removal prevention)
 - **403**: Unauthorized (regular user trying to update another user)
 - **404**: User not found
-- **409**: Email already exists
+- **409**: Email already exists, or the request includes `password` while `passwordManagedBy` is set (`PASSWORD_MANAGED_EXTERNALLY` — the rest of that request is not saved)
 
 #### Get User Enums
 Retrieve enum values from user schema (roles, status, theme, etc.). Useful for populating dropdowns dynamically.
@@ -855,6 +855,7 @@ Change user's password, with current password verification (unless the user has 
 **Error Responses:**
 - **400**: Missing passwords or validation failure (`MISSING_PASSWORDS`), incorrect current password (`INVALID_CURRENT_PASSWORD`)
 - **404**: User not found (`USER_NOT_FOUND`)
+- **409**: The password is owned by a directory plugin (`PASSWORD_MANAGED_EXTERNALLY`)
 - **422**: New password doesn't meet requirements
 
 **`hasLocalPassword`:** If the user's `hasLocalPassword` field is `false` (set by an external-auth plugin when it JIT-creates a user with a synthetic, unusable `passwordHash`), `currentPassword` is not required — the user's session already proves identity. `hasLocalPassword` is set/reset to `true` on any successful password change. See [Security & Authentication](security-and-auth.md#input-validation).
@@ -1129,6 +1130,7 @@ Returned when the account's status (or `localAuthRestriction`) would make a sign
   `PASSWORD_RESET_EXPIRED`), or a password that fails the policy (`PASSWORD_POLICY_ERROR` — the
   token is **not** consumed, so the same link can be used again)
 - **403**: `PASSWORD_RESET_UNAVAILABLE` or `LOGIN_DISABLED`
+- **409**: The password is owned by a directory plugin (`PASSWORD_MANAGED_EXTERNALLY`); the link is consumed and no password is written
 - **429**: Too many attempts (`PASSWORD_RESET_RATE_LIMITED` — see [Rate Limiting](security-and-auth.md#rate-limiting)); response includes `retryAfter` (seconds)
 
 #### Email a User a Reset Link (Admin)
@@ -1168,8 +1170,8 @@ not reported as "sent." Every send is logged with the acting administrator's use
 - **403**: `PASSWORD_RESET_UNAVAILABLE` or `LOGIN_DISABLED`
 - **404**: User not found (`USER_NOT_FOUND`)
 - **409**: The account can't use a reset link (`PASSWORD_RESET_NOT_ELIGIBLE`); the response carries
-  a `reason` of `noLocalPassword`, `localAuthRestricted`, `accountSuspended`, or
-  `accountTerminated`, and `error` explains what to do instead
+  a `reason` of `noLocalPassword`, `passwordManagedExternally`, `localAuthRestricted`,
+  `accountSuspended`, or `accountTerminated`, and `error` explains what to do instead
 - **503**: SMTP rejected the message (`EMAIL_SEND_FAILED`); the just-stored token is discarded
 
 ### Administrative User Management

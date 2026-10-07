@@ -4,13 +4,13 @@
  * @tagline         Admin user profile management with view and edit capabilities
  * @description     Admin user profile management (always-edit, aligned with /user/settings)
  * @file            webapp/view/admin/user-profile.shtml
- * @version         2.0.10
- * @release         2026-10-01
+ * @version         2.0.11
+ * @release         2026-10-07
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
- * @copyright       2025 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
+ * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.15, Claude Sonnet 5
+ * @genai           60%, Cursor 3.21, Grok 4.7
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -274,7 +274,10 @@
                     <div class="jp-card jp-schema-section">
                         <div class="jp-info-box">
                             <p>{{i18n.view.admin.userProfile.resetLinkNote}}</p>
-                            <p>{{i18n.view.admin.userProfile.securityNote}}</p>
+                            <p id="adminSecurityNote">{{i18n.view.admin.userProfile.securityNote}}</p>
+                        </div>
+                        <div id="adminPasswordManagedNote" class="jp-info-box jp-hidden">
+                            <p>{{i18n.view.admin.userProfile.securityNoteManagedExternally}}</p>
                         </div>
                         <!-- W-206: mailing a link is the better default - the admin never learns
                              the password, it expires in an hour, and only the mailbox holder can
@@ -292,22 +295,24 @@
                                 </button>
                             </span>
                         </div>
-                        <div class="jp-form-group">
-                            <label for="newPassword" class="jp-form-label">
-                                {{i18n.view.admin.userProfile.newPassword}}
-                                <span class="jp-text-muted"> ({{i18n.view.admin.userProfile.securityMinHint}} {{appConfig.model.user.passwordPolicy.minLength}})</span>
-                            </label>
-                            <input type="password" id="newPassword" name="newPassword" class="jp-form-input" autocomplete="new-password">
-                        </div>
-                        <div class="jp-form-group">
-                            <label for="confirmPassword" class="jp-form-label">{{i18n.view.admin.userProfile.confirmPassword}}</label>
-                            <input type="password" id="confirmPassword" name="confirmPassword" class="jp-form-input" autocomplete="new-password">
-                        </div>
-                        <div id="passwordError" class="jp-error-box jp-hidden" style="margin-top: 12px;"></div>
-                        <div class="jp-btn-group" style="margin-top: 20px;">
-                            <button class="jp-btn jp-btn-danger" onclick="setAdminPassword()">
-                                🔑 {{i18n.view.admin.userProfile.setPassword}}
-                            </button>
+                        <div id="adminPasswordFields">
+                            <div class="jp-form-group">
+                                <label for="newPassword" class="jp-form-label">
+                                    {{i18n.view.admin.userProfile.newPassword}}
+                                    <span class="jp-text-muted"> ({{i18n.view.admin.userProfile.securityMinHint}} {{appConfig.model.user.passwordPolicy.minLength}})</span>
+                                </label>
+                                <input type="password" id="newPassword" name="newPassword" class="jp-form-input" autocomplete="new-password">
+                            </div>
+                            <div class="jp-form-group">
+                                <label for="confirmPassword" class="jp-form-label">{{i18n.view.admin.userProfile.confirmPassword}}</label>
+                                <input type="password" id="confirmPassword" name="confirmPassword" class="jp-form-input" autocomplete="new-password">
+                            </div>
+                            <div id="passwordError" class="jp-error-box jp-hidden" style="margin-top: 12px;"></div>
+                            <div class="jp-btn-group" style="margin-top: 20px;">
+                                <button class="jp-btn jp-btn-danger" onclick="setAdminPassword()">
+                                    🔑 {{i18n.view.admin.userProfile.setPassword}}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1024,6 +1029,7 @@
             document.getElementById('emailVerified').checked = user.emailVerified !== false;
             updateEmailVerifiedAtLine(user);
             updateSendResetLinkButton(user);
+            updateDirectoryManagedPassword(user);
 
             // W-174: Set roles select (options already populated by loadRoles)
             const rolesSelect = document.getElementById('roles');
@@ -1091,11 +1097,24 @@
                 title = `{{i18n.view.admin.userProfile.sendResetLinkBlockedSuspended}}`;
             } else if (user.status === 'terminated') {
                 title = `{{i18n.view.admin.userProfile.sendResetLinkBlockedTerminated}}`;
+            } else if (user.passwordManagedBy) {
+                title = `{{i18n.view.admin.userProfile.sendResetLinkBlockedManaged}}`;
             } else if (user.hasLocalPassword === false) {
                 title = `{{i18n.view.admin.userProfile.sendResetLinkBlockedSso}}`;
             }
             btn.disabled = !!title;
             wrap.title = title;
+        }
+
+        // W-261: a directory-owned password has no form. The reset-link button stays, disabled.
+        function updateDirectoryManagedPassword(user) {
+            const managed = !!user.passwordManagedBy;
+            const note = document.getElementById('adminPasswordManagedNote');
+            const fields = document.getElementById('adminPasswordFields');
+            const securityNote = document.getElementById('adminSecurityNote');
+            if (note) note.classList.toggle('jp-hidden', !managed);
+            if (fields) fields.classList.toggle('jp-hidden', managed);
+            if (securityNote) securityNote.classList.toggle('jp-hidden', managed);
         }
 
         // W-206: mails the user the same link they would have requested themselves. Answers

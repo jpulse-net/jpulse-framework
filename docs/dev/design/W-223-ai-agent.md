@@ -3147,7 +3147,7 @@ formula evaluator, its formula-dependent tools become server-capable and
 someone must notice and re-declare them, rather than them moving on their own
 and becoming MCP-exposable for free.
 
-### TD-11 The `ai-openai` provider
+### TD-11 The `ai-openai` provider -- DONE W-250, v1.0.0, 2026-09-29
 
 **State.** W-250, `@jpulse-net/plugin-ai-openai` 1.0.0. Clone of
 `ai-anthropic`; Responses API wire; no `ai-core` change.

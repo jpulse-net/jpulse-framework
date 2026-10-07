@@ -1,7 +1,7 @@
 # W-262: plugins: auth-ldap plugin for LDAP and Active Directory login
 
 ## Status
-🕑 PENDING — design and implementation plan. Depends on the framework work in W-261 (§F below).
+Implemented as plugin v1.0.0 (2026-10-07). Depends on the framework work in W-261 (§F), shipped as jPulse >= 2.0.11.
 
 ## Objective
 
@@ -71,7 +71,7 @@ working when the directory is down.
 - **W-198 / W-205:** `emailVerified` and unique email/username — linking by email requires a verified local email
 - **W-201:** account status gate in `login()` applies to external logins too
 - **W-204:** IP rate limit on `POST /api/1/auth/login` (applies to LDAP logins unchanged)
-- **W-206:** password reset — already refuses accounts with `hasLocalPassword: false`
+- **W-206:** password reset — refuses accounts with `hasLocalPassword: false`. W-261 also refuses while `passwordManagedBy` is set, and consumes the reset link
 - **W-222:** plugin translations (`webapp/translations/*.conf` in a plugin)
 - **W-108:** auth-mfa plugin — composes with LDAP login through `onAuthGetSteps`
 - **W-107:** data-driven user profile cards
@@ -115,6 +115,7 @@ Mirrors auth-oauth:
 plugins/auth-ldap/
 ├── plugin.json
 ├── package.json                      # no runtime dependencies (ldapts is vendored)
+├── jest.config.cjs                   # delegates to the framework Jest config
 ├── README.md
 ├── bin/
 │   └── copy-vendor-ldapts.js         # refresh webapp/vendor/ldapts from a pinned npm version
@@ -277,6 +278,7 @@ supports `memberOf` only when the server has the `memberOf` overlay. The docs sh
 
 | # | Situation | Result |
 |---|---|---|
+| 0 | Empty password | deny `INVALID_CREDENTIALS` before any directory call, including for an unlinked local account. An empty LDAP simple bind is an anonymous bind on many servers |
 | 1 | `local` is *unlinked* and has an admin role, `linkAdminAccounts` off | step aside — directory not contacted |
 | 2 | Throttle exceeded for this identifier | deny `RATE_LIMITED` (429, `retryAfter`) — directory not contacted |
 | 3 | Connect / TLS / service bind / timeout error | *unlinked*: step aside. *linked* or *none*: deny `AUTH_PROVIDER_UNAVAILABLE` (503) |
@@ -316,7 +318,7 @@ static async onAuthBeforeLogin(context) {
     }
     try {
         const facts = await LdapAuthController._gatherFacts(req, config, identifier, password);
-        const decision = decideLogin(facts, config);
+        const decision = decideLogin(facts);
         if (decision.result === 'user') {
             context.skipPasswordCheck = true;
             context.user = decision.user;
@@ -516,7 +518,9 @@ Config page: `/admin/plugin-config.shtml?plugin=auth-ldap`. Flat fields only (no
 **Save-time validation** (`onPluginConfigBeforeSave`, throw to abort with a readable message):
 each URL parses and is `ldap://` or `ldaps://`; `ldap://` without `startTls` requires
 `allowInsecure`; filter contains `{{username}}` and has balanced parentheses; `searchBase` set;
-timeouts within 1000–60000 ms. The plugin is inert (`config.ready === false`) until `urls` and
+timeouts within 1000–60000 ms; `maxFailedAttempts` within 1–100; `failureWindowMinutes` within
+1–1440. Saving a URL without a search base, or a search base without a URL, is rejected; leaving
+both empty is allowed. The plugin is inert (`config.ready === false`) until `urls` and
 `searchBase` are set, so enabling it before configuring changes nothing.
 
 ### 9. Connection, TLS, Secrets
@@ -629,7 +633,7 @@ Registering this hook also satisfies the bootstrap check that downgrades
 | Site mode | `controller.user.disableSignup` | `localAuthRestriction` | `linkingStrategy` | Notes |
 |---|---|---|---|---|
 | Company directory only | `true` | `'admins-only'` | `jit-create` | One or two local admins for break-glass; AD group in the filter |
-| Directory, admins pre-create accounts | `true` | `'admins-only'` | `link-existing` | Admin creates a jPulse user with the directory username; first login links it |
+| Directory, accounts already exist | `true` | `'admins-only'` | `link-existing` | No admin create-user screen. The jPulse user must already exist with the normalized directory username; first login links it |
 | Migration from local accounts | `true` | `'none'` → later `'admins-only'` | `link-existing` | Users sign in with the directory password; accounts link by username; turn on the restriction once linked |
 | Public site, staff from directory | `false` | `'none'` | `link-existing` | Username linking is off with open signup; staff link by verified email |
 
@@ -818,6 +822,11 @@ account, expired password sub-code, `objectGUID` link (`ldap.id` equals `Get-ADU
 a `sAMAccountName` with a space or accent (jPulse username normalized, Test connection shows it),
 `memberOf` filter, Global Catalog port.
 
+Forumsys checks on 2026-10-07 covered JIT (`newton`), display-name fallback when `givenName` is empty
+(`einstein`), link-existing (`tesla`), the per-username throttle, the managed-password panels,
+break-glass, MFA after a directory login, and admins-only local login. Not run: rows 4, 10, 11,
+15–21, LDAPS, the Docker `memberOf` image, the AD rows, and an air-gapped install.
+
 ---
 
 ## Implementation Plan
@@ -877,7 +886,7 @@ Framework (W-261): see the W-261 work item.
 
 Plugin (W-262):
 
-- [x] `plugin.json`, `package.json`, `README.md`, `docs/README.md`, `.gitignore`, `webapp/bump-version.conf`
+- [x] `plugin.json`, `package.json`, `jest.config.cjs`, `README.md`, `docs/README.md`, `.gitignore`, `webapp/bump-version.conf`
 - [x] `webapp/vendor/ldapts/` (`index.mjs`, `LICENSE`, `VERSION`), `bin/copy-vendor-ldapts.js`
 - [x] `webapp/utils/directoryPresets.js`
 - [x] `webapp/utils/ldapClient.js`

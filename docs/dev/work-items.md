@@ -11141,17 +11141,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - released v2.0.10. Tag `v2.0.10`; GitHub Actions `publish.yml` tests and publishes `@jpulse-net/jpulse-framework`
   - out of scope: hooks-table search, tab hashes (`/admin/config.shtml#ai-tab`), signup email notification, site test scaffolding
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-261, v2.0.11, 2026-10-07: auth: framework support for directory login plugins
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - let a password-based external auth plugin (auth-ldap, W-262) own a login: accept it, or reject it without falling through to local password auth
@@ -11208,6 +11199,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
 
 ### W-262, v1.0.0, 2026-10-07: plugins: auth-ldap plugin for LDAP and Active Directory login
 - status: 🚧 IN_PROGRESS
@@ -11237,7 +11230,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **air-gapped.** `ldapts` vendored into the plugin (MIT, pure JavaScript); no runtime npm dependency
   - **MFA.** auth-mfa's step runs after the directory login (framework, no plugin code)
 - deliverables:
-  - `plugins/auth-ldap/plugin.json`, `package.json`, `README.md`, `docs/README.md`, `.gitignore`, `webapp/bump-version.conf`:
+  - `plugins/auth-ldap/plugin.json`, `package.json`, `jest.config.cjs`, `README.md`, `docs/README.md`, `.gitignore`, `webapp/bump-version.conf`:
     - manifest with icon, `jpulseVersion >=2.0.11`, config schema; admin guide (presets, TLS, AD group filter, site modes, troubleshooting, break-glass)
   - `plugins/auth-ldap/webapp/vendor/ldapts/`, `bin/copy-vendor-ldapts.js`:
     - pinned `ldapts` 9.0.0 `index.mjs`, `LICENSE`, `VERSION`; refresh script verifying npm integrity
@@ -11263,6 +11256,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - design doc with implementation plan, test plan, and technical debt: docs/dev/design/W-262-auth-ldap-plugin.md
   - repo `github.com/jpulse-net/plugin-auth-ldap`, package `@jpulse-net/plugin-auth-ldap`
   - test directories: `ldap.forumsys.com` (public, plain LDAP on 389, for manual OpenLDAP tests, not CI); `rroemhild/test-openldap` Docker image for TLS and `memberOf`; a Samba AD container or Windows Server evaluation VM for the AD rows before release
+  - forumsys checks on 2026-10-07: JIT, link-existing, empty `givenName` fallback, throttle, managed-password panels, break-glass, MFA, admins-only. Not run: second login, offboarding filter, unreachable URL, pending JIT, case and mail login, LDAPS, Docker, AD, air-gapped install
   - out of scope for v1.0.0 (design doc Technical Debt): group → role mapping, jPulse group sync, several directories, deprovisioning sync and session revocation, admin link/unlink/convert tools, direct bind mode, Kerberos/SPNEGO, directory password change
 
 
@@ -11315,8 +11309,8 @@ plugin release prep:
 - assume W-262, v1.0.0, 2026-10-07
 - review tt-git-diff.txt for accuracy and completeness of work item
 - review work item and design doc if it matches actual code & fix if needed
-- plugin README.md & docs/README.md: add release to Plugin releases section
-- plugin commit-message.txt: update message
+- 3 plugin README.md & docs/README.md: add release to Plugin releases section
+- 3 plugin commit-message.txt: update message
 
 ### Misc
 

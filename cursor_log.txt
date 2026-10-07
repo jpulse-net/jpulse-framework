@@ -29182,7 +29182,12 @@ Admins-only local login is confirmed: an admin signs in, a non-admin local user 
 2026-10-07 01:24
 
 here is the proper release prep list:
-@work-items.md (11304-11310)
+- assume W-261, v2.0.11, 2026-10-07
+- review tt-git-diff.txt for accuracy and completness of work item
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
 
 Reviewed tt-git-diff.txt against W-261. Features and deliverables now record that a directory-owned reset link returns 409 and is consumed, and that plugin SVG tab icons draw at 1.4em. Status stays IN_PROGRESS. security-and-auth.md notes the consumed link. README.md, docs/README.md, and docs/CHANGELOG.md have the v2.0.11 highlight. commit-message.txt is rewritten for W-261. Version headers were not bumped, and nothing was committed.
 
@@ -29201,6 +29206,34 @@ to:
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
 
 After bump, 235 framework/site/bin/templates/babel files still had the 2025-only Peter Thoeny line (bump-version only touches @version/@release). Bulk-updated all of them. Zero remaining outside plugins; site *.tmpl files that say "2025 Site Administrator" were left as-is. view.test.js still uses a short 2025 fixture on purpose for header-strip tests.
+
+
+============================================================
+2026-10-07 02:03
+
+plugin release prep:
+- assume W-262, v1.0.0, 2026-10-07
+- review work item and design doc if it matches actual code & fix if needed
+- plugin README.md & docs/README.md: add release to Plugin releases section
+- plugin commit-message.txt: update message
+
+Reviewed the auth-ldap plugin against W-262 and the design doc. Status stays IN_PROGRESS. Design status now says implemented v1.0.0. Aligned the outcome table (empty password is row 0), save validation bounds, decideLogin(facts), jest.config.cjs, and the site mode that assumed an admin create-user screen. Recorded which forumsys checks ran and which did not. Plugin README.md and docs/README.md each have a 1.0.0 Plugin releases line. plugins/auth-ldap/commit-message.txt is written. Nothing was committed.
+
+
+============================================================
+2026-10-07 02:13
+
+walk me through new classic personal access token
+
+Walked through creating a GitHub classic personal access token for npm.pkg.github.com: write:packages (which includes read:packages), repo only if the plugin repo is private, authorize it for the jpulse-net org if SSO is on, replace the existing //npm.pkg.github.com/:_authToken line in ~/.npmrc, then npm whoami and npm publish. Version stays 1.0.0.
+
+
+============================================================
+2026-10-07 02:20
+
+that worked
+
+npm publish of @jpulse-net/plugin-auth-ldap@1.0.0 succeeded (terminal transcript pasted). Confirmed it landed on https://npm.pkg.github.com as 1.0.0, tag latest, public access, 23 files.
 
 
 ============================================================

@@ -4,8 +4,8 @@
  * @tagline         Hello World Plugin overview page
  * @description     Overview and quick access for Hello World reference plugin
  * @file            plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml
- * @version         2.0.11
- * @release         2026-10-07
+ * @version         2.0.12
+ * @release         2026-10-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -167,7 +167,7 @@
                 <h2>What You Can Do</h2>
                 <ul class="local-action-list">
                     <li><strong>Explore the Demo:</strong> Visit <a href="/hello-plugin/">/hello-plugin/</a> to see interactive examples of plugin features</li>
-                    <li><strong>Site-wide Hello settings:</strong> Configure the site Hello message and badge in <a href="/admin/config.shtml">Site Configuration</a> → Hello tab (for administrators)</li>
+                    <li><strong>Site-wide Hello settings:</strong> Configure the site Hello message and badge in <a href="/admin/config.shtml#helloWorldConfig-tab">Site Configuration → Hello</a> (for administrators)</li>
                     <li><strong>Configure Plugin Settings:</strong> Customize plugin-only behavior (welcome message, statistics) in the <a href="/admin/plugin-config.shtml?plugin=hello-world">plugin configuration</a> (for administrators only)</li>
                     <li><strong>Learn Plugin Development:</strong> Use this as a template for creating your own plugins</li>
                     <li><strong>Test API Endpoints:</strong> Try the plugin's REST API at <code>/api/1/helloPlugin</code></li>

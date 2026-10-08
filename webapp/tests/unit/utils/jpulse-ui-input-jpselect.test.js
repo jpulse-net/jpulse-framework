@@ -3,13 +3,13 @@
  * @tagline         Unit Tests for jPulse.UI.input.jpSelect (W-151)
  * @description     Tests for jpSelect init, setAllValues/getAllValues multi-select
  * @file            webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js
- * @version         2.0.11
- * @release         2026-10-07
+ * @version         2.0.12
+ * @release         2026-10-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.5, Claude Sonnet 4.6
+ * @genai           80%, Cursor 3.21, Grok 4.7
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
@@ -271,6 +271,64 @@ describe('jPulse.UI.input.jpSelect (W-151)', () => {
 
             expect(dropdown.classList.contains('jp-jpselect-open')).toBe(true);
             expect(dropdown.classList.contains('jp-jpselect-dropdown-open-up')).toBe(true);
+        });
+    });
+
+    describe('option selection', () => {
+        test('mousedown selects an option after a search-input blur with no focus target', () => {
+            const sel = document.createElement('select');
+            sel.innerHTML = '<option value="a">A</option><option value="b">B</option>';
+            sel.setAttribute('data-jpselect', '1');
+            document.body.appendChild(sel);
+            window.jPulse.UI.input.jpSelect.init(sel, { search: true });
+
+            const dropdown = document.querySelector('.jp-jpselect-dropdown');
+            const search = dropdown.querySelector('.jp-jpselect-search');
+            document.querySelector('.jp-jpselect-trigger').click();
+            search.focus();
+
+            search.dispatchEvent(new window.FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+            expect(dropdown.classList.contains('jp-jpselect-open')).toBe(true);
+
+            const option = dropdown.querySelector('.jp-jpselect-option[data-value="b"]');
+            option.dispatchEvent(new window.MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+
+            expect(sel.value).toBe('b');
+            expect(dropdown.classList.contains('jp-jpselect-open')).toBe(false);
+            expect(document.querySelector('.jp-jpselect-trigger').textContent).toBe('B');
+        });
+
+        test('focus leaving the widget for another control still closes the list', () => {
+            const sel = document.createElement('select');
+            sel.innerHTML = '<option value="a">A</option><option value="b">B</option>';
+            sel.setAttribute('data-jpselect', '1');
+            document.body.appendChild(sel);
+            window.jPulse.UI.input.jpSelect.init(sel, { search: true });
+
+            const dropdown = document.querySelector('.jp-jpselect-dropdown');
+            const outside = document.createElement('button');
+            document.body.appendChild(outside);
+            document.querySelector('.jp-jpselect-trigger').click();
+
+            dropdown.querySelector('.jp-jpselect-search').dispatchEvent(
+                new window.FocusEvent('focusout', { bubbles: true, relatedTarget: outside })
+            );
+            expect(dropdown.classList.contains('jp-jpselect-open')).toBe(false);
+            expect(sel.value).toBe('a');
+        });
+
+        test('Enter on the highlighted option still selects it', () => {
+            const sel = document.createElement('select');
+            sel.innerHTML = '<option value="a">A</option><option value="b">B</option>';
+            sel.setAttribute('data-jpselect', '1');
+            document.body.appendChild(sel);
+            window.jPulse.UI.input.jpSelect.init(sel);
+
+            document.querySelector('.jp-jpselect-trigger').click();
+            const list = document.querySelector('.jp-jpselect-list');
+            list.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+            expect(sel.value).toBe('a');
         });
     });
 });

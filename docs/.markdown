@@ -164,5 +164,7 @@ dev/design/
 Api             API
 Ai              AI
 CHANGELOG       Version History
+Ldap            LDAP
+Oauth           OAuth
 
 # EOF docs/.markdown

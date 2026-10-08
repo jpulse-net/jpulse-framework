@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v2.0.11
+# jPulse Docs / jPulse.UI Widget Reference v2.0.12
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -690,7 +690,7 @@ const panelTabs = jPulse.UI.tabs.register('content-tabs', {
 
 ### Features
 - **Automatic type detection**: Detects navigation vs panel tabs from configuration
-- **URL-based activation**: Navigation tabs auto-activate based on current URL
+- **URL-based activation**: Navigation tabs auto-activate based on current URL. Panel tabs open from a matching URL hash on arrival (`/admin/config.shtml#ai-tab`). The hash wins over the caller's default tab. Clicking a tab does not change the URL. A hash that is not a tab id in the group (a heading anchor) is left alone. Schema tabs use `{blockKey}-tab`. Plugin-config tabs use the tab-label slug plus `-tab` (`Providers` → `#providers-tab`).
 - **Responsive design**: Scroll on mobile, wrap on desktop
 - **Slide animations**: Smooth transitions for panel tabs
 - **Icon support**: Optional `icon` on each tab object — **trusted HTML** from server-side schema (same mental model as nav icons: plain text/emoji or inline SVG markup). The label string is always escaped; only `icon` is inserted as markup.

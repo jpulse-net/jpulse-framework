@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         2.0.11
- * @release         2026-10-07
+ * @version         2.0.12
+ * @release         2026-10-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -2362,26 +2362,12 @@ window.jPulse = {
                             label.className = 'jp-jpselect-option-label';
                             label.textContent = item.label;
                             div.appendChild(label);
-                            div.addEventListener('click', (e) => {
+                            // mousedown, not click: a touch on an option blurs the search
+                            // input first, and that focusout used to hide the list before click.
+                            div.addEventListener('mousedown', (e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                if (typeof opts.onOptionPreview === 'function') opts.onOptionPreview(null, null);
-                                const opt = Array.from(sel.options).find((o) => o.value === item.value);
-                                if (!opt) return;
-                                if (multi) {
-                                    opt.selected = !opt.selected;
-                                    div.classList.toggle('jp-jpselect-option-selected', opt.selected);
-                                    div.setAttribute('aria-selected', opt.selected ? 'true' : 'false');
-                                    const c = div.querySelector('input[type="checkbox"]');
-                                    if (c) c.checked = opt.selected;
-                                    updateSelectAllButton();
-                                } else {
-                                    sel.selectedIndex = Array.from(sel.options).indexOf(opt);
-                                    updateCaption();
-                                    closeDropdown();
-                                }
-                                updateCaption();
-                                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                                chooseOption(div);
                             });
                             listEl.appendChild(div);
                         });
@@ -2410,9 +2396,30 @@ window.jPulse = {
                         if (opt) opt.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                     };
 
+                    const chooseOption = (div) => {
+                        if (!div) return;
+                        const value = div.getAttribute('data-value');
+                        if (typeof opts.onOptionPreview === 'function') opts.onOptionPreview(null, null);
+                        const opt = Array.from(sel.options).find((o) => o.value === value);
+                        if (!opt) return;
+                        if (multi) {
+                            opt.selected = !opt.selected;
+                            div.classList.toggle('jp-jpselect-option-selected', opt.selected);
+                            div.setAttribute('aria-selected', opt.selected ? 'true' : 'false');
+                            const c = div.querySelector('input[type="checkbox"]');
+                            if (c) c.checked = opt.selected;
+                            updateSelectAllButton();
+                        } else {
+                            sel.selectedIndex = Array.from(sel.options).indexOf(opt);
+                            updateCaption();
+                            closeDropdown();
+                        }
+                        updateCaption();
+                        sel.dispatchEvent(new Event('change', { bubbles: true }));
+                    };
+
                     const selectHighlightedOption = () => {
-                        const opt = getOptionAt(highlightedIndex);
-                        if (opt) opt.click();
+                        chooseOption(getOptionAt(highlightedIndex));
                     };
 
                     const updateSelectAllButton = () => {
@@ -2617,8 +2624,11 @@ window.jPulse = {
                     const closeOnFocusLoss = (e) => {
                         const next = e.relatedTarget;
                         if (!dropdown.classList.contains('jp-jpselect-open')) return;
-                        if (next && wrap.contains(next)) return;
-                        if (next && dropdown.contains(next)) return;
+                        // A touch on a non-focusable option blurs the search input with a
+                        // null relatedTarget. Leave the list up so the option mousedown can select.
+                        if (!next) return;
+                        if (wrap.contains(next)) return;
+                        if (dropdown.contains(next)) return;
                         closeDropdown();
                     };
                     wrap.addEventListener('focusout', closeOnFocusLoss);
@@ -5815,7 +5825,8 @@ window.jPulse = {
              * @param {string} elementId - The ID of the .jp-tabs element
              * @param {Object} options - Configuration options
              * @param {string} activeTabId - Active tab ID (optional)
-             *                 - auto-detects active tab from URL if not specified
+             *                 - auto-detects active tab from the URL path if not specified (navigation tabs)
+             *                 - panel tabs: a location hash that matches a tab id (for example #ai-tab) wins over this argument
              *                 - overrides options.activeTab
              * @returns {Object} Handle object with methods for controlling the tabs
              */
@@ -5864,8 +5875,22 @@ window.jPulse = {
 
                 const tabType = hasNavTabs ? 'navigation' : 'panel';
 
-                // Setup the tabs
-                jPulse.UI.tabs._setup(element, config, finalActiveTab, tabType);
+                // Panel tabs: a URL hash that equals a tab id opens that tab on arrival.
+                // Clicks do not write the hash.
+                let resolvedActiveTab = finalActiveTab;
+                let openedFromHash = false;
+                if (tabType === 'panel') {
+                    const fromHash = jPulse.UI.tabs._tabIdFromHash(config.tabs);
+                    if (fromHash) {
+                        resolvedActiveTab = fromHash;
+                        openedFromHash = true;
+                    }
+                }
+
+                jPulse.UI.tabs._setup(element, config, resolvedActiveTab, tabType);
+                if (openedFromHash) {
+                    jPulse.UI.tabs._revealTab(element, resolvedActiveTab);
+                }
 
                 // Return handle object for method chaining and cleaner API
                 return {
@@ -6663,7 +6688,7 @@ window.jPulse = {
                         // Navigation tab - navigate to URL
                         window.location.href = tabData.url;
                     } else if (tabType === 'panel') {
-                        // Panel tab - switch panels
+                        // Panel tab - switch panels. The URL hash is read on arrival only.
                         jPulse.UI.tabs._setActiveTab(tabsElement, tabId, true);
                     }
                 });
@@ -6931,6 +6956,50 @@ window.jPulse = {
                 return !isVisible;
             },
 
+
+            /**
+             * Fragment id from the current URL, without the leading #.
+             * @returns {string}
+             */
+            _hashId: () => {
+                const hash = window.location.hash || '';
+                if (hash.length < 2) return '';
+                const raw = hash.charAt(0) === '#' ? hash.slice(1) : hash;
+                try {
+                    return decodeURIComponent(raw);
+                } catch (e) {
+                    return raw;
+                }
+            },
+
+            /**
+             * Tab id in this group that the URL hash names, if any.
+             * Disabled and hidden tabs are ignored.
+             * @param {Array} tabs - Tab definitions
+             * @returns {string|null}
+             */
+            _tabIdFromHash: (tabs) => {
+                const hashId = jPulse.UI.tabs._hashId();
+                if (!hashId || !Array.isArray(tabs)) return null;
+                const match = tabs.find(tab => tab && tab.id === hashId && !tab.disabled && !jPulse.UI.tabs._isTabHidden(tab));
+                return match ? match.id : null;
+            },
+
+            /**
+             * Scroll the active tab button into the tab strip when a hash selected it.
+             * @param {Element} tabsElement - The .jp-tabs element
+             * @param {string} tabId - Tab id to reveal
+             */
+            _revealTab: (tabsElement, tabId) => {
+                if (!tabsElement || !tabId) return;
+                const activeEl = Array.from(tabsElement.querySelectorAll('.jp-tab')).find(tab => tab.dataset.tabId === tabId);
+                if (!activeEl || typeof activeEl.scrollIntoView !== 'function') return;
+                try {
+                    activeEl.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+                } catch (e) {
+                    // jsdom and older browsers may reject the options object
+                }
+            },
 
             /**
              * Public method to activate a tab

@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v2.0.11
+# jPulse Docs / Front-End Development Guide v2.0.12
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -828,6 +828,8 @@ Plugins declare their configuration with a flat array of field defs in `plugin.j
 ```
 
 Single-tab plugins (no `tab` keys, or all using the same one) render flat (no tabs UI). Multi-tab plugins render through the tabs renderer. `loadOptions`, `onInit`, and `showWhen` all work in `plugin.json` — use registry-name strings for handlers.
+
+A panel tab opens from the URL hash when the tab group is registered. Site Configuration uses the schema block key plus `-tab` (`/admin/config.shtml#ai-tab`, `/admin/config.shtml#email-tab`). Plugin config uses the tab-label slug plus `-tab` (`/admin/plugin-config.shtml?plugin=auth-oauth#providers-tab`). Clicking a tab does not change the URL.
 
 See the **[Plugin.json normalization table](jpulse-ui-reference.md#pluginjson-legacy-type--unified-type-inputtype-normalization)** for the full legacy-`type` → unified-`(type, inputType)` mapping.
 

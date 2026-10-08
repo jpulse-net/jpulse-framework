@@ -3,8 +3,8 @@
  * @tagline         Unit Tests for jPulse.UI Dialog, Accordion, Tab, and Tooltip Widgets
  * @description     Tests for client-side UI widgets: alertDialog, infoDialog, accordion, tabs, tooltip
  * @file            webapp/tests/unit/utils/jpulse-ui-widgets.test.js
- * @version         2.0.11
- * @release         2026-10-07
+ * @version         2.0.12
+ * @release         2026-10-08
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -688,6 +688,9 @@ describe('jPulse.UI Tabs Widget (W-064)', () => {
 
     beforeEach(() => {
         document.body.innerHTML = '';
+        if (window.location.hash) {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
     });
 
     describe('Tab Registration and API', () => {
@@ -1141,6 +1144,99 @@ describe('jPulse.UI Tabs Widget (W-064)', () => {
             expect(tabsElement._jpTabsConfig).toBeUndefined();
             expect(tabsElement._jpTabsType).toBeUndefined();
             expect(tabsElement._jpTabsActiveTab).toBeUndefined();
+        });
+    });
+
+    describe('URL hash activation', () => {
+        test('should open the panel tab named by the URL hash over an explicit default', () => {
+            window.location.hash = '#tab2';
+            document.body.innerHTML = `
+                <div id="panelTabs" class="jp-tabs"></div>
+                <div id="panel1" class="jp-panel">Panel 1</div>
+                <div id="panel2" class="jp-panel">Panel 2</div>
+            `;
+
+            const handle = window.jPulse.UI.tabs.register('panelTabs', {
+                tabs: [
+                    { id: 'tab1', label: 'Tab 1', panelId: 'panel1' },
+                    { id: 'tab2', label: 'Tab 2', panelId: 'panel2' }
+                ]
+            }, 'tab1');
+
+            expect(handle.getActiveTab()).toBe('tab2');
+            expect(document.querySelector('[data-tab-id="tab2"]').classList.contains('jp-tab-active')).toBe(true);
+        });
+
+        test('should ignore a hash that is not a tab in this group', () => {
+            window.location.hash = '#some-heading';
+            document.body.innerHTML = `
+                <div id="panelTabs" class="jp-tabs"></div>
+                <div id="panel1" class="jp-panel">Panel 1</div>
+                <div id="panel2" class="jp-panel">Panel 2</div>
+            `;
+
+            const handle = window.jPulse.UI.tabs.register('panelTabs', {
+                tabs: [
+                    { id: 'tab1', label: 'Tab 1', panelId: 'panel1' },
+                    { id: 'tab2', label: 'Tab 2', panelId: 'panel2' }
+                ]
+            }, 'tab1');
+
+            expect(handle.getActiveTab()).toBe('tab1');
+            expect(window.location.hash).toBe('#some-heading');
+        });
+
+        test('should ignore the hash for navigation tabs', () => {
+            window.location.hash = '#about';
+            document.body.innerHTML = `<div id="navTabs" class="jp-tabs"></div>`;
+
+            const handle = window.jPulse.UI.tabs.register('navTabs', {
+                tabs: [
+                    { id: 'home', label: 'Home', url: '/home/' },
+                    { id: 'about', label: 'About', url: '/about/' }
+                ]
+            }, 'home');
+
+            expect(handle.getActiveTab()).toBe('home');
+        });
+
+        test('should not change the URL when a panel tab is clicked', () => {
+            document.body.innerHTML = `
+                <div id="panelTabs" class="jp-tabs"></div>
+                <div id="panel1" class="jp-panel">Panel 1</div>
+                <div id="panel2" class="jp-panel">Panel 2</div>
+            `;
+
+            const handle = window.jPulse.UI.tabs.register('panelTabs', {
+                tabs: [
+                    { id: 'tab1', label: 'Tab 1', panelId: 'panel1' },
+                    { id: 'tab2', label: 'Tab 2', panelId: 'panel2' }
+                ]
+            }, 'tab1');
+
+            document.querySelector('[data-tab-id="tab2"]').click();
+
+            expect(handle.getActiveTab()).toBe('tab2');
+            expect(window.location.hash).toBe('');
+        });
+
+        test('should not switch tabs when the hash changes after registration', () => {
+            document.body.innerHTML = `
+                <div id="panelTabs" class="jp-tabs"></div>
+                <div id="panel1" class="jp-panel">Panel 1</div>
+                <div id="panel2" class="jp-panel">Panel 2</div>
+            `;
+
+            const handle = window.jPulse.UI.tabs.register('panelTabs', {
+                tabs: [
+                    { id: 'ai-tab', label: 'AI', panelId: 'panel1' },
+                    { id: 'email-tab', label: 'Email', panelId: 'panel2' }
+                ]
+            }, 'ai-tab');
+
+            window.location.hash = '#email-tab';
+            window.dispatchEvent(new Event('hashchange'));
+            expect(handle.getActiveTab()).toBe('ai-tab');
         });
     });
 

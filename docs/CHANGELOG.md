@@ -1,6 +1,37 @@
-# jPulse Docs / Version History v2.0.11
+# jPulse Docs / Version History v2.0.12
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.12, W-263, 2026-10-08
+
+**Commit:** `W-263, v2.0.12, 2026-10-08: jPulse.UI.tabs: open a panel tab from the URL; jpSelect mobile fix`
+
+**FEATURE RELEASE**: Docs and app pages can open a specific panel tab, and a tap on a jpSelect option selects it on a phone.
+
+**Objective**: A link such as `/admin/config.shtml#ai-tab` opens that tab when the page loads. Clicking a tab does not add a history entry. A tap on a jpSelect option selects it, including when the dropdown has a search field.
+
+**Key features**:
+- When a panel tab group is registered, a URL hash that equals a visible, enabled tab id in that group opens that tab, ahead of the caller's default. Navigation tabs still follow the path. A hash that is not a tab id (a heading anchor) is left alone. Clicking a tab does not change the URL. A hash change after register does not switch tabs. The chosen tab button scrolls into the strip
+- No separate anchor registry. The check is exact equality with `tab.id` inside `register()`, which is when config tabs exist. Schema tabs are `{blockKey}-tab` (`ai-tab`, `email-tab`, `helloWorldConfig-tab`). Plugin-config tabs are the tab-label slug plus `-tab` (`Providers` → `providers-tab`)
+- jpSelect chooses an option on `mousedown`, the same as jpCombo. A blur with no new focus target leaves the list open so the tap can land. Focus moving to another control still closes the list. Enter still selects the highlighted option. Multi-select still toggles and stays open
+- Docs: `jpulse-ui-reference.md`, `front-end-development.md`, `plugins/creating-plugins.md`, `api-reference.md`, `sending-email.md`, `site-administration.md`
+
+**Files changed**:
+- `webapp/view/jpulse-common.js`: hash on register; clicks do not write the hash; jpSelect `mousedown` and null-target focusout
+- `webapp/tests/unit/utils/jpulse-ui-widgets.test.js`: arrival hash, heading hash, navigation tabs, click leaves the URL, hashchange after register
+- `webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js`: mousedown after a search-field blur; focus to another control still closes; Enter still selects
+- `docs/jpulse-ui-reference.md`, `docs/front-end-development.md`, `docs/plugins/creating-plugins.md`
+- `docs/api-reference.md`, `docs/sending-email.md`, `docs/site-administration.md`: `#general-tab`, `#email-tab`, `#broadcast-tab`, `#manifest-tab`
+- `plugins/hello-world/plugin.json`, `plugins/hello-world/webapp/view/hello-plugin/index.shtml`, `plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml`: Hello settings link to `#helloWorldConfig-tab`
+- `docs/dev/work-items.md`: W-263 features/deliverables as-built
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.12 / W-263
+- `docs/CHANGELOG.md`: this section
+
+**Release**:
+- Work Item: W-263
+- Version: v2.0.12
+- Release Date: 2026-10-08
 
 ________________________________________________
 ## v2.0.11, W-261, 2026-10-07

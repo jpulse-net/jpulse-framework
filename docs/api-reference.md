@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v2.0.11
+# jPulse Docs / REST API Reference v2.0.12
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -82,7 +82,7 @@ AuthController.userIsAuthorized(user, roleOrRoles) // roleOrRoles: string or arr
 - `POST /api/1/auth/logout` - User logout
 
 #### Admin Endpoints (Admin/Root Roles Required)
-Admin roles are defined in **site config** (Admin → Site Configuration → General tab) and read at runtime via `ConfigModel.getEffectiveAdminRoles()`. They are not read from app.conf.
+Admin roles are defined in **site config** (Admin → Site Configuration → General, `/admin/config.shtml#general-tab`) and read at runtime via `ConfigModel.getEffectiveAdminRoles()`. They are not read from app.conf.
 
 - `GET /api/1/user/search` - User management and search
 - `POST /api/1/user/password-reset/send` - Email a user a password reset link

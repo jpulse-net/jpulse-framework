@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administration v2.0.11
+# jPulse Docs / Site Administration v2.0.12
 
 Complete guide to managing your jPulse site through the admin interface.
 
@@ -42,7 +42,7 @@ Access the site configuration page at `/admin/config.shtml` to manage site-wide 
 
 ### Email Configuration
 
-Configure SMTP settings for sending emails from your jPulse application. See the [Sending Email Guide](sending-email.md) for complete documentation including:
+Configure SMTP settings for sending emails from your jPulse application at `/admin/config.shtml#email-tab`. See the [Sending Email Guide](sending-email.md) for complete documentation including:
 
 - SMTP server configuration
 - Provider-specific setup (Gmail, SendGrid, AWS SES, Office 365, Mailgun)
@@ -51,7 +51,7 @@ Configure SMTP settings for sending emails from your jPulse application. See the
 
 ### Broadcast Message Configuration
 
-Configure site-wide messages that are shown to all users with a prominent yellow banner positioned below the header.
+Configure site-wide messages at `/admin/config.shtml#broadcast-tab`. They are shown to all users with a prominent yellow banner positioned below the header.
 
 1. **Enable Broadcast Message**: Check the box to activate the broadcast system
 2. **Broadcast Message**: Enter your message content (HTML supported)
@@ -64,7 +64,7 @@ Configure site-wide messages that are shown to all users with a prominent yellow
 
 ### Manifest (License, Compliance, Monitoring)
 
-The **Manifest** section in `/admin/config.shtml` manages license and compliance-related settings stored in MongoDB. This is the single source of truth for these settings across app-cluster deployments.
+The **Manifest** section at `/admin/config.shtml#manifest-tab` manages license and compliance-related settings stored in MongoDB. This is the single source of truth for these settings across app-cluster deployments.
 
 **Fields:**
 - **License Key**: Commercial license key (stored server-side). Bulk API reads and templates show it as configured or not configured; an admin can reveal the value, and that reveal is recorded in Admin → Logs.

@@ -54,7 +54,7 @@ working when the directory is down.
 |---|---|
 | Group → role mapping, group sync | Separate design; jPulse has no group model yet |
 | Several directories at once | One directory covers the common case; config is shaped so a list can follow |
-| Background deprovisioning sync, session revocation | Needs a scheduled job and session lookup by user |
+| Background deprovisioning sync, session revocation | Designed in TD-04; needs a scheduled job and session lookup by user |
 | Kerberos / SPNEGO (Windows integrated sign-in) | Needs a native `libldap`/GSSAPI addon, conflicts with air-gapped goal |
 | Changing or resetting the directory password from jPulse | Directory write access, AD password policy handling |
 | Admin "link to directory user" / "convert to local account" actions | v1 links automatically; manual tools follow |
@@ -904,7 +904,9 @@ Plugin (W-262):
 
 Items deliberately left out of v1.0.0, roughly in the order they are likely to be wanted.
 
-**TD-01 — Group → role mapping (v1.1).** jPulse already has roles (including site-defined roles), so
+### TD-01 — Group → role mapping (v1.1)
+
+jPulse already has roles (including site-defined roles), so
 this does not need a jPulse group model. Config: a list of `{ groupDn, roles[] }`. On each login,
 read the user's groups and set the mapped roles. Details to design:
 - group lookup per directory: AD `memberOf` (plus nesting via `LDAP_MATCHING_RULE_IN_CHAIN`, plus
@@ -915,53 +917,175 @@ read the user's groups and set the mapped roles. Details to design:
 - admin-equivalent roles only when an explicit `allowAdminMapping` is on, logged on every grant
 - what happens when the group lookup fails (keep previous roles, log)
 
-**TD-02 — jPulse groups.** Once the framework has groups, sync directory group membership to them.
+### TD-02 — jPulse groups
+
+Once the framework has groups, sync directory group membership to them.
 Depends on a framework group work item that does not exist yet.
 
-**TD-03 — Several directories.** `directories: [...]` with routing by UPN suffix or a domain picker
+### TD-03 — Several directories
+
+`directories: [...]` with routing by UPN suffix or a domain picker
 on the login page; per-directory presets and IDs (`ldap.directoryId`).
 
-**TD-04 — Deprovisioning sync and session revocation.** A scheduled job that checks linked users
-against the directory and suspends missing or disabled ones, and ends their sessions. Today a
-removed user is blocked at next login but keeps an existing session until it expires.
+### TD-04 — Deprovisioning sync and session revocation
 
-**TD-05 — Admin account tools.** "Link to directory user" (search the directory from the admin user
+A scheduled job ends the sessions of linked users the directory has disabled or removed. Today
+that user is blocked at the next login and keeps an existing session until it expires. Recorded
+2026-10-07 for a later implementation. Not part of v1.0.0.
+
+The check covers users who still have a live session, at an interval the identity provider
+chooses. A company of 3000 employees is the size to plan for: if all 3000 are signed in, the
+directory sees about 15 searches a day, not 3000 binds and not a walk of the whole directory.
+Someone who is already logged out is left to the v1 login check.
+
+Two clocks stay separate. The framework owns both; each plugin fills in only its own.
+
+**Account still allowed** is a pull. LDAP, SSO, and a CAC-backed account all use it. LDAP's
+default interval is 24 hours. SSO can use a shorter interval, or wait until a refresh is
+explicitly rejected. This is also the clock for "the directory account behind a CAC was disabled."
+
+**Card still present** is a push. The reader is on the client. When the card is removed, that
+client calls the same revoke path and the session ends within seconds. A missed heartbeat while
+the network is down is an unreachable provider, so the session stays. The LDAP plugin does not
+implement presence. The daily sweep is not how card removal is detected.
+
+**Who is in the set.** Users with `passwordManagedBy` set and at least one unexpired session.
+Local accounts, including break-glass admins, are not in it. Membership follows the session
+lifetime. Refresh the index on the session touch cadence (`touchAfter`), so an idle open tab
+stays in the set until the cookie expires. A short "last click" TTL would drop that tab out of
+the sweep and leave the session up.
+
+The session store is keyed by session id (`configureSessionStore`), so the framework also keeps
+`userId → session ids`. Written at login, removed on logout, and the user leaves the due set
+when the last session goes.
+
+**Redis due set.** A sorted set, member `userId`, score `nextCheckAt`. On login and after a
+`valid` check, `nextCheckAt = now + recheckInterval + jitter`. Jitter is a few hours (default
+4). Without it, everyone who signed in at 09:00 becomes due together at 09:00 the next day.
+Keys follow the cache convention, component `util`, namespace `sessionAssurance`.
+
+**Sweep.** One process holds a Redis lock, so a cluster does not multiply the lookups. Every
+minute it takes one batch of at most 200 due users that share a provider. LDAP runs one
+service-account search for that batch: same search base and same `searchFilter`, with the
+`{{username}}` clause replaced by an OR of stable ids (`entryUUID` / `objectGUID`). Attributes
+are the ones `mapEntry` already uses, including `userAccountControl` when `disabledCheck` is
+`userAccountControl` (bit `0x2`). No user bind. Batch size stays under Active Directory's
+default page size of 1000. One batch a minute means a coincident set of 3000 finishes in about
+15 minutes. Connection reuse (TD-09) helps; one new connection per batch is still a small load
+at this rate.
+
+**Three results.** `revalidate` returns one of these per user. Only `invalid` ends a session.
+
+| Result | When | Action |
+|---|---|---|
+| `valid` | The search finished and the entry is allowed | Next check in a day, plus jitter |
+| `invalid` | The search finished and this account is disabled, missing, or outside the login filter | Revoke that user's sessions |
+| `unknown` | Timeout, TLS error, service-account bind failure, or a truncated page | Keep the session |
+
+A disabled entry (`userAccountControl` bit `0x2`, or the same disabled fact login already uses)
+is `invalid` immediately. A stable id missing from a completed search that returned other rows
+in the same batch is `invalid` immediately. A completed search that returns nobody is `unknown`
+for the whole batch: an empty answer is also what a broken filter or a failed operation looks
+like, and it must not log out everyone who was due. The first `unknown` ends the tick. The
+remaining batches wait. Those users are rescheduled with a backoff of minutes, then longer,
+capped around an hour, and the failure is logged once.
+
+**Revoke** deletes every session id in that user's index and tells each process to close that
+user's websockets. It does not set `user.status` to `suspended`. The W-201 status gate in
+`login()` runs after `onAuthBeforeLogin` and would keep rejecting the account after IT
+re-enables it in the directory. `suspended` stays an admin action. The next login already
+re-checks the directory, so a re-enabled account signs in again with no unsuspend step in
+jPulse.
+
+A new login while the directory cannot be reached stays denied (`AUTH_PROVIDER_UNAVAILABLE`,
+the v1 fail-closed rule). People who are already in keep the session until a completed check
+says the account is no longer allowed.
+
+**Plugin contract.** The framework groups the batch by `passwordManagedBy` and calls that
+provider:
+
+```javascript
+static sessionAssurance = {
+    provider: 'auth-ldap',
+    recheckIntervalMs: 24 * 60 * 60 * 1000,
+    async revalidate(users) {
+        // users: [{ userId, directoryId }]
+        // return [{ userId, status: 'valid'|'invalid'|'unknown', reason }]
+    }
+};
+```
+
+SSO later implements the same contract (introspection, or a refresh the identity provider
+explicitly rejects). A network failure of the token endpoint is `unknown`. CAC later uses the
+same daily account check and, separately, a presence call that invokes revoke directly.
+
+Left out of this item: walking the directory, rechecking on every HTTP request, and binding as
+the user. "No longer in a required group" waits on TD-01. Until then, `invalid` means disabled,
+missing, or outside `searchFilter`.
+
+### TD-05 — Admin account tools
+
+"Link to directory user" (search the directory from the admin user
 page), "Unlink" and "Convert to local account" (clears `passwordManagedBy`, requires the admin to set
 a new password). Needs a framework API for clearing `passwordManagedBy`.
 
-**TD-06 — Direct bind mode.** Bind with a DN template (`uid={{username}},ou=people,…`) or an AD UPN
+### TD-06 — Direct bind mode
+
+Bind with a DN template (`uid={{username}},ou=people,…`) or an AD UPN
 without a service account, then read the user's own entry.
 
-**TD-07 — Directory-owned profile fields.** Show synced fields read-only in settings so users do not
+### TD-07 — Directory-owned profile fields
+
+Show synced fields read-only in settings so users do not
 edit values the next login overwrites. Likely a framework hook or schema flag.
 
-**TD-08 — Profile-complete step.** For entries without `mail` or names, a step like auth-oauth's
+### TD-08 — Profile-complete step
+
+For entries without `mail` or names, a step like auth-oauth's
 `oauth-profile-complete` instead of `ACCOUNT_NOT_PROVISIONED`.
 
-**TD-09 — Connection reuse.** Keep one service-bound connection per process for searches; user binds
+### TD-09 — Connection reuse
+
+Keep one service-bound connection per process for searches; user binds
 stay on their own connection.
 
-**TD-10 — Kerberos / SPNEGO.** Windows integrated sign-in. Needs native GSSAPI (`ldap-native` or
+### TD-10 — Kerberos / SPNEGO
+
+Windows integrated sign-in. Needs native GSSAPI (`ldap-native` or
 an HTTP Negotiate front end); a separate plugin so `auth-ldap` stays pure JavaScript.
 
-**TD-11 — Directory password change.** Let a user with an expired AD password change it from jPulse
+### TD-11 — Directory password change
+
+Let a user with an expired AD password change it from jPulse
 (AD `unicodePwd` modify over LDAPS).
 
-**TD-12 — Framework per-identifier login throttle.** Generalize §10 into the framework login so
+### TD-12 — Framework per-identifier login throttle
+
+Generalize §10 into the framework login so
 local accounts get it too; the plugin then uses the framework's.
 
-**TD-13 — Admin status view.** Last successful bind, recent failures by type, linked user count.
+### TD-13 — Admin status view
 
-**TD-14 — `onUserSyncProfile`.** The framework hook is marked planned; adopt it for profile sync
+Last successful bind, recent failures by type, linked user count.
+
+### TD-14 — `onUserSyncProfile`
+
+The framework hook is marked planned; adopt it for profile sync
 when it ships.
 
-**TD-15 — Fail-closed hook errors.** A framework option to make `onAuthBeforeLogin` errors deny
+### TD-15 — Fail-closed hook errors
+
+A framework option to make `onAuthBeforeLogin` errors deny
 the login instead of continuing; v1 relies on the plugin catching everything.
 
-**TD-16 — Test directory in CI.** Run the integration test against the Docker OpenLDAP image in the
+### TD-16 — Test directory in CI
+
+Run the integration test against the Docker OpenLDAP image in the
 plugin's CI; add a Samba AD job if one can be made reliable.
 
-**TD-17 — Login label per language.** `loginLabel` is a single string; per-language labels when
+### TD-17 — Login label per language
+
+`loginLabel` is a single string; per-language labels when
 plugin config supports translated values.
 
 ---

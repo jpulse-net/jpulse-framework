@@ -29237,3 +29237,189 @@ npm publish of @jpulse-net/plugin-auth-ldap@1.0.0 succeeded (terminal transcript
 
 
 ============================================================
+2026-10-07 13:39
+
+I'd like to brainstorm on TD-04 — Deprovisioning sync and session revocation
+
+- in a large org that check could impose a load on the system
+- example: a large org with 3 employees using the system every day
+- objectives:
+  - relative quick detection of disabled user, followed by forced logout action
+  - it should be generic for different idp types (ldap, sso, cac)
+  - in cac case, logout should happen within seconds of removing the card
+  - for ldap once a day is likely ok
+- idea:
+  - keep track of user's latest access timestamp in redis, value with ttl
+  - script runs in intervals and checks users by latest access timestamp if still valid
+
+Brainstorm only, no code or design-doc edits. Recommended a framework session-assurance layer: a Redis due-set of users who still have a live session, each IdP declaring its own recheck interval, one batched revalidate, then suspend and revoke via a userId-to-session index. LDAP once a day on those few users is the right load. CAC card removal is a client presence signal in seconds, separate from the daily account check. The activity TTL must follow session lifetime so an idle open tab is still checked.
+
+
+============================================================
+2026-10-07 13:47
+
+oh, my bad, the potential scenario is 3000 employees (an actial case I manage)
+
+edge case: an idp that temporarily cannot be reached should not drop the user session
+
+Scaled the session-assurance sweep to 3000 live sessions: batch directory searches (about 200 per call), jitter the next-check time, and stop the tick on the first connection failure. Recheck has three outcomes — valid, invalid, unknown. Only a completed lookup that shows the account disabled or gone revokes the session. Unreachable, timeout, and a truncated result keep the session and retry with backoff.
+
+
+============================================================
+2026-10-07 16:47
+
+elaborate on W-262-auth-ldap-plugin.md (930-935) for design at a later time
+
+Expanded TD-04 in the auth-ldap design doc into a later design, not an implementation. Live sessions only, sized for 3000. Redis due set with jitter, one batched service-account search of 200 stable ids per minute. Three results: valid, invalid, unknown. An empty search, a timeout, or a truncated page keeps every session in the batch and stops the tick. Revoke deletes sessions and does not set user.status to suspended, so a re-enabled directory account can sign in again. CAC card removal stays a separate presence call. The v1 out-of-scope row now points at TD-04.
+
+
+============================================================
+2026-10-07 21:58
+
+next:
+- ability to activate jpulse tab via url, such as /admin/config.shtml#ai-tab
+- fix ai-core and other places to deep link to tab
+
+Panel tabs now open from a URL hash (#ai-tab wins over the default tab). Clicking a tab or calling activateTab writes the hash; Back restores the previous tab; a heading hash is left alone. Schema tabs are {blockKey}-tab; plugin-config tabs are the tab-label slug plus -tab. Deep links updated for AI Agent, Hello, email, broadcast, manifest, general, provider plugins, and auth-oauth Providers. Covered by tab widget unit tests.
+
+
+============================================================
+2026-10-07 22:14
+
+you jumped the gun and already implemented
+- I intended to discuss the feature, options, and select the best option
+- does change the url on each tab click make sense?
+  - it increases the browser stack
+  - do people want to share tab urls?
+  - maybe more used for doc & app pages to deep link to a tab?
+- explain how the implementation is done
+  - do we need a register for tab anchors?
+  - or simply check at page load time if an anchor matches the tab id + '-tab'?
+
+Agreed this should have been a design discussion first. Recommended inbound-only: when a tab group is registered, if the URL hash equals one of that group's tab ids, open it. Do not push a history entry on each click. No separate anchor registry; schema tabs are already named blockKey-tab, and the match is exact equality with tab.id at register time (config tabs exist only after the schema fetch). pushState-on-click is the current code and is the weaker option for config forms and example pages.
+
+
+============================================================
+2026-10-07 22:25
+
+strip the click-to-history behavior and leave arrival-only
+
+Removed pushState, the hashchange/popstate listener, and history restore. A panel tab group still opens the tab whose id equals the URL hash when register() runs. Clicks only switch the panel. Docs and the tab unit tests match that.
+
+
+============================================================
+2026-10-07 22:32
+
+- I tested the link in /jpulse-plugins/ai-core.shtml and it opened up the AI tab properly
+- let me know other deep links you created to test
+
+Listed the other clickable deep links and the address-bar URLs: AI usage settings, Hello, email, broadcast, manifest, general, auth-oauth Providers, and the provider plugin Provider tabs.
+
+
+============================================================
+2026-10-07 22:46
+
+- I did not see a lin in /admin/ai-usage.shtml
+- maybe because no usage today?
+- looking at the page, "Keine Nutzung heute." has no padding
+- do we need that notification?
+- I think it's obvious when you look at all the 0
+
+The deep link is the KI-Agent-Einstellungen button in the header, not a text link, and it is there with or without usage. Removed the extra "No usage today" line above the cards. Empty tables still use that sentence as their empty row.
+
+
+============================================================
+2026-10-07 22:50
+
+is "Keine Nutzung heute." used anywhre else
+- if not, remove from translations (why keep cruft???)
+
+It is still the empty-row text in the day-view tables (by user, model, scope, and history). The month view uses the paired string. Left both translations in place.
+
+
+============================================================
+2026-10-07 22:55
+
+- thanks, looks good
+- let's fix a ui issue: vertical-align the [tag] [monat] buttons with [KI-Agent-Einstellungen]
+
+The Tag/Monat group had the framework button-group's 20px vertical margin, and the settings control is a link so the page-header link rule shrank it and added a bottom margin. Page CSS on that row clears both so the three controls share one center line.
+
+
+============================================================
+2026-10-07 22:59
+
+- vertical align is fixed
+- not-picking now, but spacing between buttons should be aligned
+
+Tag and Monat already sit 8px apart inside the button group. The settings link was 12px further out. The row now uses that same 8px gap, so the three controls are evenly spaced.
+
+
+============================================================
+2026-10-07 23:01
+
+can you increase the gap between [tag] [monat] to 12px instead?
+
+The day/month button group now uses a 12px gap, the same as the space before KI-Agent-Einstellungen.
+
+
+============================================================
+2026-10-07 23:05
+
+let's fix this bug as part of this work item:
+- jpSelect mobile bug: tap on an option in the Edit Details icon picker in BubbleMap does not select it: `jpSelect` (framework `webapp/view/jpulse-common.js`) selects on `click`, and the touch blur of its search input closes the list first; `jpCombo` already selects on `mousedown`
+
+jpSelect now selects on mousedown, and a blur with no new focus target leaves the list open so that tap can land. Moving focus to another control still closes it. Keyboard Enter still selects the highlighted option. 17 jpSelect unit tests passed. Noted under W-263 deliverables; the Pending line is unchanged.
+
+
+============================================================
+2026-10-07 23:17
+
+- confirmed to work with mobile simulation (I can test actual mobile only after release; desktop still works)
+- let me know which plugins you touched
+
+The jpSelect tap fix is framework-only. Plugins edited earlier in this work, for tab deep links and the AI usage header: ai-core, hello-world, ai-anthropic, ai-openai, ai-google, ai-mock, and auth-oauth (docs only for ai-mock and auth-oauth).
+
+
+============================================================
+2026-10-07 23:21
+
+hmm, I don't think the changes to ai-anthropic adds much value
+(diff of README.md, docs/README.md, plugin.json adding parenthetical tab URLs)
+
+Reverted those three ai-anthropic files to the original wording. The steps still name Configure, the Provider tab, and Site Configuration → AI, without the address-bar paths.
+
+
+============================================================
+2026-10-07 23:24
+
+actually, ai-google has the same changes of very little value
+- I reverted
+(git restore of ai-google README.md, docs/README.md, plugin.json)
+
+Confirmed the Google files are back to the original wording. Removed the same parenthetical tab paths from ai-openai README.md, docs/README.md, and the Default model help in plugin.json. Clickable #ai-tab links remain in ai-core.
+
+
+============================================================
+2026-10-07 23:54
+
+- review tt-git-diff.txt for accuracy and completness of work item
+- create work item @work-items.md (11262-11277)
+
+Filled W-263 from the framework diff: arrival-only panel-tab hash, jpSelect mousedown selection, tests, doc deep links, and the Hello plugin links. Left status IN_PROGRESS. Called out what is in the same diff but not this item: the TD-04 LDAP design write-up, docs/.markdown LDAP/OAuth labels, the session log, and work-items bookkeeping. ai-core stays W-264.
+
+
+============================================================
+2026-10-08 00:06
+
+release prep:
+- assume W-263, v2.0.12, 2026-10-08
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+W-263 features and deliverables already match the diff, so that file was left as-is (status unchanged). Added the v2.0.12 highlight to README.md and docs/README.md, the changelog section, and commit-message.txt. Did not bump version headers. The commit message lists the other working-tree files that are not this item.
+
+
+============================================================

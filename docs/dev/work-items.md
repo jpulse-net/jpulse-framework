@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.11
+# jPulse Docs / Dev / Work Items v2.0.12
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -11193,17 +11193,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - verify with a throwaway site plugin whose `onAuthBeforeLogin` denies one username
   - out of scope: clearing `passwordManagedBy` from the admin UI (W-262 TD-05), per-identifier login throttle in the framework (W-262 TD-12), fail-closed hook errors (W-262 TD-15)
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-262, v1.0.0, 2026-10-07: plugins: auth-ldap plugin for LDAP and Active Directory login
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - users sign in on the normal jPulse login form with their LDAP or Active Directory username and password
@@ -11265,15 +11256,67 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-263, v2.0.12, 2026-10-08: jPulse.UI.tabs: open a panel tab from the URL; jpSelect mobile fix
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - a link such as `/admin/config.shtml#ai-tab` opens that panel tab when the page loads
+  - clicking a tab does not add a browser-history entry
+  - a tap on a jpSelect option selects it, including when the dropdown has a search field
+- prerequisites:
+  - W-064 tab widget; W-151 jpSelect
+- rationale:
+  - docs and app pages need to land on one config tab. The address is for arrival. Updating it on every click grows the history stack, and Back should leave the page
+  - on touch, the search field blurs before `click`. The list closed, so the option never selected (BubbleMap Edit Details icon picker)
+- features:
+  - **arrival only.** When a panel tab group is registered, a URL hash that equals a visible, enabled tab id in that group opens that tab, ahead of the caller's default. Navigation tabs still follow the path. A hash that is not a tab id in the group (a heading anchor) is left alone. Clicking a tab does not change the URL. A hash change after register does not switch tabs. The chosen tab button scrolls into the strip
+  - **tab ids.** No separate anchor registry. The check is exact equality with `tab.id` inside `register()`, which is when config tabs exist (after the schema fetch). Schema tabs are `{blockKey}-tab` (`ai-tab`, `email-tab`, `helloWorldConfig-tab`). Plugin-config tabs are the tab-label slug plus `-tab` (`Providers` → `providers-tab`)
+  - **jpSelect tap.** An option is chosen on `mousedown`, the same as jpCombo. A blur with no new focus target leaves the list open so the tap can land. Focus moving to another control still closes the list. Enter still selects the highlighted option. Multi-select still toggles and stays open
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - panel tabs: `_hashId`, `_tabIdFromHash`, `_revealTab`; hash wins on register; clicks do not write the hash
+    - jpSelect: option `mousedown`, `chooseOption` shared with keyboard Enter; focusout with a null relatedTarget does not close the list
+  - `webapp/tests/unit/utils/jpulse-ui-widgets.test.js`:
+    - hash opens that panel over the default; a heading hash is ignored; navigation tabs ignore the hash; a click does not change the hash; hashchange after register does not switch tabs
+  - `webapp/tests/unit/utils/jpulse-ui-input-jpselect.test.js`:
+    - mousedown selects after a search-field blur with no focus target; focus moving to another control still closes the list; Enter still selects the highlighted option
+  - `docs/jpulse-ui-reference.md`, `docs/front-end-development.md`, `docs/plugins/creating-plugins.md`:
+    - arrival-only hash behavior; schema `{blockKey}-tab`; plugin-config slug plus `-tab`
+  - `docs/api-reference.md`, `docs/sending-email.md`, `docs/site-administration.md`:
+    - General `#general-tab`, email `#email-tab`, broadcast `#broadcast-tab`, manifest `#manifest-tab`
+  - `plugins/hello-world/plugin.json`, `plugins/hello-world/webapp/view/hello-plugin/index.shtml`, `plugins/hello-world/webapp/view/jpulse-plugins/hello-world.shtml`:
+    - site Hello settings link to `/admin/config.shtml#helloWorldConfig-tab`
+- notes:
+  - jpSelect verified in a mobile simulation; a physical phone is after release. Desktop still selects
+  - ai-core deep links and the usage-page header are W-264 (plugin repo; not in this framework diff)
+  - not this item: parenthetical tab URLs in the provider READMEs (removed; not in this diff); writing the hash on each tab click (rejected)
+
+
+
+
+### W-264, v1.0.20, 2026-10-08: ai-core plugin: FIXME
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+- prerequisits:
+- rationale:
+- features:
+- deliverables:
+  - FIXME `path/file`:
+    - FIXME summary
+- notes:
+
+
 
 
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
 - user registration: admin option to get notified by email
-- ability to activate jpulse tab via url, such as /admin/config.shtml#ai-tab
-- jpSelect mobile bug: tap on an option in the Edit Details icon picker in BubbleMap does not select it: `jpSelect` (framework `webapp/view/jpulse-common.js`) selects on `click`, and the touch blur of its search input closes the list first; `jpCombo` already selects on `mousedown`
-- admin can add user
+- admin can register user: random password, "must change password" flag
 
 ai pending:
 - mcp server for ai-assisted development (ref NestJS)
@@ -11281,12 +11324,10 @@ ai pending:
 old pending:
 - fix responsive style issue with user icon right margin, needs to be symmetrical to site icon
 - offer file.timestamp and file.exists also for static files (but not file.include)
-- version history: label is not shown in history table
 
 ### Potential next items:
 - W-0: i18n: vue.js SPA support
 - W-0: deployment: docker strategy
-- W-0: auth controller: authentication with LDAP (see W-109 for flow design)
 
 ### Chat instructions
 
@@ -11298,7 +11339,7 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume W-261, v2.0.11, 2026-10-07
+- assume W-263, v2.0.12, 2026-10-08
 - review tt-git-diff.txt for accuracy and completness of work item
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)

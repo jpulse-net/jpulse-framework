@@ -29423,3 +29423,35 @@ W-263 features and deliverables already match the diff, so that file was left as
 
 
 ============================================================
+2026-10-08 00:24
+
+release done: W-263 v2.0.12 committed d31fe4f6, tagged, pushed
+
+next:
+- create work item for ai-core plugin @work-items.md (11295-11306)
+- review tt-git-diff.txt for accuracy and completeness of work
+
+Filled W-264 from the ai-core diff. Six files: clickable #ai-tab links (plugin page, plugin help, usage settings, README, docs), the host-not-allowed path, and the usage header (alignment, 12px gap, empty banner removed). Status left IN_PROGRESS. The diff does not include the reverted provider-plugin paths or a test.
+
+
+============================================================
+2026-10-08 00:27
+
+plugin release prep:
+- assume W-264, v1.0.20, 2026-10-08
+- 3 plugin README.md & docs/README.md: add release to Plugin releases section
+- 3 plugin commit-message.txt: update message
+
+Added the 1.0.20 Plugin releases line to ai-core, ai-mock, and hello-ai (README and docs/README). ai-core describes the AI Agent tab links, the usage header, and the empty banner. ai-mock and hello-ai are lockstep with no product change. Rewrote the three commit-message.txt files. Did not bump versions or commit.
+
+
+============================================================
+2026-10-08 00:34
+
+3 plugins released, package created
+(ai-core commit ae4e302, tag v1.0.20, push 88bdc4c..ae4e302, npm publish @jpulse-net/plugin-ai-core@1.0.20, shasum 8f7072b5fe773f751992a025f61f645dd0b6e613, 99 files)
+
+Recorded the publish on W-264 notes. Status left IN_PROGRESS. One package contains ai-core, ai-mock, and hello-ai.
+
+
+============================================================

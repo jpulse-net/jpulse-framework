@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.12
+# jPulse Docs / Dev / Work Items v2.0.11
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -11250,17 +11250,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - forumsys checks on 2026-10-07: JIT, link-existing, empty `givenName` fallback, throttle, managed-password panels, break-glass, MFA, admins-only. Not run: second login, offboarding filter, unreachable URL, pending JIT, case and mail login, LDAPS, Docker, AD, air-gapped install
   - out of scope for v1.0.0 (design doc Technical Debt): group → role mapping, jPulse group sync, several directories, deprovisioning sync and session revocation, admin link/unlink/convert tools, direct bind mode, Kerberos/SPNEGO, directory password change
 
-
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-263, v2.0.12, 2026-10-08: jPulse.UI.tabs: open a panel tab from the URL; jpSelect mobile fix
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - a link such as `/admin/config.shtml#ai-tab` opens that panel tab when the page loads
@@ -11297,17 +11288,49 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
-### W-264, v1.0.20, 2026-10-08: ai-core plugin: FIXME
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-264, v1.0.20, 2026-10-08: ai-core plugin: links open the AI Agent tab; usage page header
 - status: 🚧 IN_PROGRESS
 - type: Feature
+- repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
+- npm package: @jpulse-net/plugin-ai-core
 - objectives:
-- prerequisits:
+  - a link that names Site Configuration → AI Agent opens that tab
+  - the usage page Day/Month switch lines up with the settings button, with the same gap between all three
+  - an empty day is obvious from the zero cards, without a second sentence above them
+- prerequisites:
+  - W-263, framework v2.0.12: a URL hash that matches a panel tab id opens that tab on arrival
+  - W-258, `@jpulse-net/plugin-ai-core` 1.0.19: the usage page
 - rationale:
+  - the AI Agent tab is one block on Site Configuration. A link to the page landed on the first tab
+  - the settings control is a link inside the page header, so the header's link rule sat it lower and smaller than the Day/Month buttons, and the button group added its own vertical margin
+  - "No usage today." above the cards repeated what the zeros already show, and that line had no padding
 - features:
+  - **AI Agent tab.** Clickable links to `/admin/config.shtml#ai-tab`: the plugins page, the plugin-config help, the usage-page settings button, the package README install sentence, and the installed-plugin guide (install, tool timeout, false-claim list, URL caps, and the Admin section)
+  - **host not allowed.** The fetch error names the same address in parentheses. That string is plain text, so it is not a link
+  - **usage header.** Day, Month, and the settings button share one center line, 12px apart. Page CSS clears the button group's vertical margin and the page-header link's smaller font
+  - **no empty banner.** When by-user and by-model are both empty, the status line above the cards stays blank. Empty tables still use "No usage today." and "No usage this month."
 - deliverables:
-  - FIXME `path/file`:
-    - FIXME summary
+  - `plugins/ai-core/webapp/view/jpulse-plugins/ai-core.shtml`:
+    - Site Configuration → AI Agent links to `#ai-tab`
+  - `plugins/ai-core/plugin.json`:
+    - the help list's Site Configuration link is `#ai-tab`, and the label includes "→ AI Agent"
+  - `plugins/ai-core/webapp/view/admin/ai-usage.shtml`:
+    - settings button links to `#ai-tab`; header row CSS (group margin 0, gap 12px, button font 14px); `render()` no longer writes the empty-day or empty-month sentence above the cards
+  - `plugins/ai-core/webapp/utils/attachments/ingest.js`:
+    - `HOST_NOT_ALLOWED` names `/admin/config.shtml#ai-tab`
+  - `plugins/ai-core/README.md`:
+    - install sentence links Site Configuration → AI Agent to `#ai-tab`
+  - `plugins/ai-core/docs/README.md`:
+    - the same link on the install sentence, the tool-timeout row, the false-claim paragraph, the URL-ingest paragraph, and the Admin section. Older release notes are unchanged
 - notes:
+  - **published** `@jpulse-net/plugin-ai-core` 1.0.20. Commit `ae4e302`, tag `v1.0.20`, push `88bdc4c..ae4e302`. Tarball shasum `8f7072b5fe773f751992a025f61f645dd0b6e613`, 99 files, package 204.2 kB, unpacked 1.0 MB. Bundle members `ai-core`, `ai-mock`, `hello-ai`. Registry `https://npm.pkg.github.com`, tag `latest`, public access
+  - the hash opens the tab only on framework v2.0.12 or later. On an older framework the link still opens Site Configuration, on the first tab
+  - `emptyToday` and `emptyMonth` stay in `en.conf` and `de.conf`. They are the empty row inside the tables
+  - not in this diff: parenthetical tab paths in ai-anthropic, ai-openai, and ai-google (removed). No unit test; the changes are links, one error string, and page CSS
 
 
 
@@ -11347,7 +11370,7 @@ release prep:
 - append to cursor_log.txt
 
 plugin release prep:
-- assume W-262, v1.0.0, 2026-10-07
+- assume W-264, v1.0.20, 2026-10-08
 - review tt-git-diff.txt for accuracy and completeness of work item
 - review work item and design doc if it matches actual code & fix if needed
 - 3 plugin README.md & docs/README.md: add release to Plugin releases section
@@ -11359,23 +11382,23 @@ plugin release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.11 2026-10-07
+node bin/bump-version.js 2.0.12 2026-10-08
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.11; git push origin main --tags
+git tag v2.0.12; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.0 2026-10-07
+node ../../bin/bump-version.js 1.0.20 2026-10-08
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.0; git push origin main --tags
+git tag v1.0.20; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

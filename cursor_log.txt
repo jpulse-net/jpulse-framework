@@ -29597,3 +29597,119 @@ Reviewed tt-git-diff.txt against W-265. The CSS matches the work item. Added the
 
 
 ============================================================
+2026-10-15 01:02
+
+released:
+
+MacBook-Pro-4:jpulse-framework peterthoeny$ ga .
+MacBook-Pro-4:jpulse-framework peterthoeny$ git commit -F commit-message.txt
+[main 737e0a11] W-265, v2.0.13, 2026-10-15: jPulse.UI.tooltip: clip a long word in an HTML table
+ 370 files changed, 921 insertions(+), 695 deletions(-)
+MacBook-Pro-4:jpulse-framework peterthoeny$ git tag v2.0.13; git push origin main --tags
+Enumerating objects: 810, done.
+Counting objects: 100% (810/810), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (423/423), done.
+Writing objects: 100% (438/438), 380.54 KiB | 3.25 MiB/s, done.
+Total 438 (delta 324), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (324/324), completed with 312 local objects.
+To github.com:jpulse-net/jpulse-framework.git
+   e2f047b5..737e0a11  main -> main
+ * [new tag]           v2.0.13 -> v2.0.13
+
+Recorded the release on W-265 notes. Commit 737e0a11, tag v2.0.13, push e2f047b5..737e0a11 main. Status left IN_PROGRESS.
+
+
+============================================================
+2026-10-15 01:15
+
+write work item @work-items.md (11365-11376)
+
+Filled W-266 as the shared-module spec. Status left PENDING. Title area is utils, not controllers: SharedModule.load lives in webapp/utils/shared-module.js. Export is one @export binding. Comment stripping stays in the helper. Cache follows the include-cache config. No REST route and no change to file.include.
+
+
+============================================================
+2026-10-15 01:23
+
+please implement
+
+Implemented SharedModule.load in webapp/utils/shared-module.js. It resolves view paths like file.include, reads one @export binding, strips {{!-- --}} comments, rejects other {{ in code, and runs the script in vm without window, document, jPulse, require, process, or fs. The compiled value follows controller.handlebar.cacheIncludes. Added unit tests (10 passed) and a Shared Modules section in docs/template-reference.md. Did not change work-item status or version headers.
+
+
+============================================================
+2026-10-15 01:26
+
+do you recommend any manual tests?
+
+ready for release prep?
+
+One optional smoke check: include a small @export .tmpl on a page and SharedModule.load the same path. No framework screen changed, so a UI pass is not needed. Ready to start release prep. The new unit file passed (10). The full suite has not been run yet; that is the first release-prep step, then changelog, README highlights, and commit-message.txt.
+
+
+============================================================
+2026-10-15 01:34
+
+to test, please create temporary :
+-site/webapp/view/hello/hello-shared.tmpl
+- site/webapp/view/hello/hello-shared.shtml
+- add to site/webapp/controller/hello.js
+
+Added a temporary hello-shared.tmpl (@export helloShared.echo), a page at /hello/hello-shared.shtml that includes it and compares the browser result with GET /api/1/hello/shared, and apiShared on the hello controller. The new route is public. The original /api/1/hello stays listed because a static routes array replaces api* discovery. Restart once, then open the page. Expect shared:browser, shared:server, and "both sides match". Delete the two view files and the temporary route afterward.
+
+
+============================================================
+2026-10-15 01:38
+
+/api/1/hello/shared returns:
+{"success":true,"data":{"text":"shared:server"}}
+
+The manual check passed. The page shows shared:browser, shared:server, and "both sides match". The API returns the same server string. Temporary hello-shared files are still in place until removed.
+
+
+============================================================
+2026-10-15 01:39
+
+yes, clean up
+
+Removed hello-shared.tmpl, hello-shared.shtml, and the temporary route from site/webapp/controller/hello.js. The hello controller is back to the original /api/1/hello endpoint. Restart so /api/1/hello/shared is no longer registered.
+
+
+============================================================
+2026-10-15 01:42
+
+release prep:
+- assume W-266, v2.0.14, 2026-10-15
+- review tt-git-diff.txt for accuracy and completness of work item
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Reviewed tt-git-diff.txt against W-266. The loader, tests, and template-reference section match the work item. Updated the plain-JS feature (comments become spaces so line numbers match) and the test deliverable to match the suite. Status left IN_PROGRESS. Release notes for v2.0.14, 2026-10-15 are in README.md, docs/README.md, and docs/CHANGELOG.md. commit-message.txt is updated. No version bump and no commit. Noted other work-items.md edits that are not this item. Full npm test was not re-run; the shared-module unit file passed (10) and the manual check passed.
+
+
+============================================================
+2026-10-15 01:45
+
+any reason why we can't support/resolve {{handlebars}}?
+
+The page already expands Handlebars: file.include runs expandHandlebars on the included file with the page request. SharedModule.load does not. It has no request, it is sync, and it caches one export per file mtime. Helpers need that request, and many substitutions differ per user, locale, or query, so a cached export would freeze the first caller's values. The two sides stay one program only when both run the same source. Handlebars also lexes the whole file, including {{ inside JavaScript strings, which this loader deliberately leaves alone. No code change.
+
+
+============================================================
+2026-10-15 01:49
+
+let me understand how that looks at runtime. what if a site wants to use handlebars. would that be possible server side? there is a function & api to resolve handlebars
+
+Walked the two runtimes. A page include already runs expandHandlebars on the shared file with that page request, so {{ }} in the .tmpl is baked into the script the browser runs. SharedModule.load reads the same file and runs it raw; {{ in code throws. Server-side resolve already exists as HandlebarController.expandHandlebars(req, template, context) and POST /api/1/handlebar/expand. Both return a string. load() does not call them and will not accept a file that still contains those tokens. A site that wants a resolved value passes it in as an argument from the page template and from the controller. No code change.
+
+
+============================================================
+2026-10-15 01:54
+
+is the doc clear enough? add this example?
+
+The Shared Modules section stated that {{ in code makes load throw, and it said to pass config in as arguments. It did not show that the page include expands Handlebars while load runs the file as written, or how to pass a resolved value from both sides. Added that example to docs/template-reference.md: the page passes {{app.site.name}} into parse, and the controller resolves the same token with HandlebarController.expandHandlebars before calling SharedModule.load.
+
+
+============================================================

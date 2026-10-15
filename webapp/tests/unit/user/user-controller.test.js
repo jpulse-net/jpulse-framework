@@ -3,7 +3,7 @@
  * @tagline         Controller tests for User authentication and management
  * @description     Unit tests for UserController endpoints, error handling, and HTTP responses
  * @file            webapp/tests/unit/user/user-controller.test.js
- * @version         2.0.13
+ * @version         2.0.14
  * @release         2026-10-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

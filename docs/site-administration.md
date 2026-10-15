@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administration v2.0.13
+# jPulse Docs / Site Administration v2.0.14
 
 Complete guide to managing your jPulse site through the admin interface.
 

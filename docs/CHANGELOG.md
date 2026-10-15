@@ -1,6 +1,36 @@
-# jPulse Docs / Version History v2.0.13
+# jPulse Docs / Version History v2.0.14
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.14, W-266, 2026-10-15
+
+**Commit:** `W-266, v2.0.14, 2026-10-15: utils: shared module loader`
+
+**FEATURE RELEASE**: One plain-JS view `.tmpl` runs in the browser and on the server.
+
+**Objective**: The page includes the file. The server loads the same path and returns the exported value. A file with Handlebars outside `{{!-- --}}` comments is rejected.
+
+**Key features**:
+- `SharedModule.load('map/search/query.tmpl')` is sync. The path is the include path and ends in `.tmpl`. Resolution is site, then plugins, then framework
+- One `@export` name in the file-header comment. That name is the top-level binding. The page calls it after `{{file.include}}`
+- `{{!-- --}}` comments are replaced with spaces, so a throw's line number matches the file. Any other `{{` in code is an error. A string, a template literal, or a JavaScript comment may contain `{{`
+- The server runs the file with language built-ins and `console`. `window`, `document`, `jPulse`, `require`, `process`, and `fs` are absent. Callers pass config in as arguments
+- The compiled value follows `controller.handlebar.cacheIncludes` (default refresh 10 minutes). With the cache disabled, every load recompiles
+- Docs: `template-reference.md`
+
+**Files changed**:
+- `webapp/utils/shared-module.js`: `SharedModule.load`
+- `webapp/tests/unit/utils/shared-module.test.js`: resolution, export, plain JS, sandbox, cache
+- `docs/template-reference.md`: Shared Modules, next to `file.include`
+- `docs/dev/work-items.md`: W-266 features and deliverables as-built
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.14 / W-266
+- `docs/CHANGELOG.md`: this section
+
+**Release**:
+- Work Item: W-266
+- Version: v2.0.14
+- Release Date: 2026-10-15
 
 ________________________________________________
 ## v2.0.13, W-265, 2026-10-15

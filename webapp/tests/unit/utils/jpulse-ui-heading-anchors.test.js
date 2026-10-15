@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for jPulse.UI.headingAnchors (W-118)
  * @description     Tests for heading anchor links feature: slugify, ID generation, link creation
  * @file            webapp/tests/unit/utils/jpulse-ui-heading-anchors.test.js
- * @version         2.0.13
+ * @version         2.0.14
  * @release         2026-10-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

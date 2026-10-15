@@ -4,7 +4,7 @@
  * @description     Renders configured vs not-configured, omits untouched secrets from
  *                  getFormData, and confirms a programmatic reveal does not mark dirty
  * @file            webapp/tests/unit/utils/jpulse-ui-input-sensitive.test.js
- * @version         2.0.13
+ * @version         2.0.14
  * @release         2026-10-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

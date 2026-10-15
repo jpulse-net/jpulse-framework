@@ -3,7 +3,7 @@
  * @tagline         Automated tests to audit i18n translation usage
  * @description     Tests to ensure translation key consistency and validate i18n references
  * @file            webapp/tests/unit/i18n/i18n-usage-audit.test.js
- * @version         2.0.13
+ * @version         2.0.14
  * @release         2026-10-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

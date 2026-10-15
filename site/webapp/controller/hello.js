@@ -3,7 +3,7 @@
  * @tagline         Demo Site Controller Override
  * @description     Example of how to override framework controllers
  * @file            site/webapp/controller/hello.js
- * @version         2.0.13
+ * @version         2.0.14
  * @release         2026-10-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

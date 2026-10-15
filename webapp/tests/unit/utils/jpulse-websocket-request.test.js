@@ -3,7 +3,7 @@
  * @tagline         Unit tests for jPulse.ws.request / reply (W-208)
  * @description     Loads real jpulse-common.js and exercises the request/response client API
  * @file            webapp/tests/unit/utils/jpulse-websocket-request.test.js
- * @version         2.0.13
+ * @version         2.0.14
  * @release         2026-10-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

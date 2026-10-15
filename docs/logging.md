@@ -1,4 +1,4 @@
-# jPulse Docs / Server Logging v2.0.13
+# jPulse Docs / Server Logging v2.0.14
 
 How the server writes the application log: the line format, the five `LogController` calls, and how to turn diagnostic volume up for one area without restarting.
 

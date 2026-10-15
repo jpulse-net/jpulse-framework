@@ -4,7 +4,7 @@
  * @description     Covers single vs bundle vs both-shapes, validatePluginJson bundle/deps,
  *                  companion primary lookup, and dependency install planning
  * @file            webapp/tests/unit/utils/plugin-package.test.js
- * @version         2.0.13
+ * @version         2.0.14
  * @release         2026-10-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -3,7 +3,7 @@
  * @tagline         Theme discovery and schema extension utility
  * @description     Discovers themes from framework, plugins, and site; extends UserModel theme enum
  * @file            webapp/utils/theme-manager.js
- * @version         2.0.13
+ * @version         2.0.14
  * @release         2026-10-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

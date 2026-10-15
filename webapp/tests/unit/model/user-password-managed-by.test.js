@@ -4,7 +4,7 @@
  * @description     Confirms the baseSchema field, that new local users are not stamped with it,
  *                   and that authenticate() returns null without checking the hash when it is set
  * @file            webapp/tests/unit/model/user-password-managed-by.test.js
- * @version         2.0.13
+ * @version         2.0.14
  * @release         2026-10-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

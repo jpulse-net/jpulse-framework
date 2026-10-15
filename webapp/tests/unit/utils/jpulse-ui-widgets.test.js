@@ -3,7 +3,7 @@
  * @tagline         Unit Tests for jPulse.UI Dialog, Accordion, Tab, and Tooltip Widgets
  * @description     Tests for client-side UI widgets: alertDialog, infoDialog, accordion, tabs, tooltip
  * @file            webapp/tests/unit/utils/jpulse-ui-widgets.test.js
- * @version         2.0.13
+ * @version         2.0.14
  * @release         2026-10-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

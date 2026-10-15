@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.13
+# jPulse Docs / Dev / Work Items v2.0.14
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -11325,15 +11325,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `emptyToday` and `emptyMonth` stay in `en.conf` and `de.conf`. They are the empty row inside the tables
   - not in this diff: parenthetical tab paths in ai-anthropic, ai-openai, and ai-google (removed). No unit test; the changes are links, one error string, and page CSS
 
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-265, v2.0.13, 2026-10-15: jPulse.UI.tooltip: clip a long word in an HTML table
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Bugfix
 - objectives:
   - an HTML table inside a tooltip stays inside the popup
@@ -11356,10 +11349,55 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/jpulse-ui-reference.md`:
     - HTML content: a table stays inside the popup; the last column clips a long word
 - notes:
+  - **released** v2.0.13. Commit `737e0a11`, tag `v2.0.13`, push `e2f047b5..737e0a11` main. 370 files (version bump included)
   - a long token in a column that is not last can still set that column's width
   - a small table stretches to the popup max-width instead of hugging the cells
   - Chrome check with these rules: label about 33px on one line, `pneumonoultramicroscopicsilicovolcanoconiosis` clipped inside a 300px box, plain text about 150px wide
   - no JavaScript change. `jPulse.UI.tooltip._createTooltip` still assigns `data-tooltip` as HTML
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-266, v2.0.14, 2026-10-15: utils: shared module loader
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - one plain-JS view `.tmpl` runs in the browser via `{{file.include}}` and on the server via `SharedModule.load`
+  - the server resolves and caches that file the same way an include does, and returns the exported value
+  - a file that contains Handlebars outside `{{!-- --}}` comments is rejected
+- prerequisites:
+  - `{{file.include}}` inlines a view file and drops `{{!-- --}}` comments before the browser runs the script
+  - `PathResolver.resolveModuleWithPlugins`: site, then plugins in load order, then framework
+  - `controller.handlebar.cacheIncludes`: enabled, `checkInterval` 10 (minutes)
+- rationale:
+  - BubbleMap keeps a second copy when the same logic is needed on the server. The pair is `site/webapp/view/map/ai-proposal.tmpl` and `site/webapp/utils/aiProposal.js`. Formula tests read the `.tmpl`, strip comments, and run the source in `vm`
+  - the search-query parser has to run per keystroke on the canvas and, later, on the server for multi-map search. One file removes the twin and the parity test
+  - the helper is a util. It reads through its own cache, registered with the include-cache config, so it does not import the Handlebars controller
+- features:
+  - **call.** `import SharedModule from '../utils/shared-module.js'` then `SharedModule.load('map/search/query.tmpl')`. Sync. The path is the include path, relative to the view directory, and includes `.tmpl`. The return value is the export
+  - **resolve.** `view/<path>` through `resolveModuleWithPlugins`. Reject `..` and absolute paths, the same rule as `file.include`. Reject a path that does not end in `.tmpl`
+  - **export.** One `@export` name in the file-header comment, next to `@name`. The name is the top-level binding (`const`, `let`, `var`, `function`, or `class`). The server reads `@export` before stripping, runs the script, and returns that binding. The page keeps `{{file.include}}` and calls the binding as a page global. Two modules on one page need two names. Each server load gets its own context
+  - **plain JS.** `{{!-- --}}` comments are replaced with spaces, so a throw's line number matches the file. Any other `{{` in code is rejected. `{{` inside a string, a template literal, or a `//` or `/* */` comment is allowed. The caller never sees the source
+  - **sandbox.** A fresh `vm` context. The filename is the resolved path, so a throw points at the file. The initial run times out after one second. In scope: language built-ins and `console`. Out of scope: `window`, `document`, `jPulse`, `require`, `process`, `fs`. Callers pass config in as arguments. A module does not call another module's global; the caller loads both and passes one in. The sandbox blocks accidental Node or DOM use. Site and plugin code stays trusted the same way a controller is
+  - **cache.** Register a cache with `controller.handlebar.cacheIncludes`. Keep the compiled value until that cache sees a new mtime. `enabled: false` recompiles every call. The default refresh is 10 minutes, the same window as an include. No separate dev path that stats on every load
+  - **log.** `logDebug` when a module is compiled. `logError` when it is rejected. A cache hit does not log
+- deliverables:
+  - `webapp/utils/shared-module.js`:
+    - `SharedModule.load(includePath)`
+  - `webapp/tests/unit/utils/shared-module.test.js`:
+    - site wins over plugin wins over framework; `..` and a non-`.tmpl` path throw; `@export` with `const`; a missing binding throws; `{{!-- --}}` is stripped; `{{` in code throws; `{{` inside a string, a template literal, or a comment is kept; `window`, `document`, `jPulse`, `require`, `process`, and `fs` are absent and `console` is present; a second load returns the cached value until the file cache refreshes; `enabled: false` recompiles
+  - `docs/template-reference.md`:
+    - a short section next to `file.include`: the `@export` header, the page include, and `SharedModule.load`. No work-item number
+- notes:
+  - example file: header `@export mapSearchQuery`, then `const mapSearchQuery = { parse, match }`. Page: `{{file.include "map/search/query.tmpl"}}`. Server: `const mapSearchQuery = SharedModule.load('map/search/query.tmpl')`
+  - `module.exports` and ESM `export` do not survive a classic-script include. A `jPulse.shared.define` wrapper would put a client API in a file that must not use client jPulse
+  - deleting BubbleMap's `aiProposal.js` twin is a site change, after this ships
+  - out of scope: a bundler; running an HTML template on the server; a REST route that serves the source; any change to `{{file.include}}`; imports between shared modules
+  - ai-core's hashed module URL (design `docs/dev/design/W-223-ai-agent.md` §8, TD-07) stays deferred. This item is the server half of a file the page already includes
 
 
 
@@ -11393,7 +11431,7 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume W-265, v2.0.13, 2026-10-15
+- assume W-266, v2.0.14, 2026-10-15
 - review tt-git-diff.txt for accuracy and completness of work item
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
@@ -11413,12 +11451,12 @@ plugin release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.13 2026-10-15
+node bin/bump-version.js 2.0.14 2026-10-15
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.13; git push origin main --tags
+git tag v2.0.14; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa
@@ -11485,7 +11523,7 @@ template:
     - FIXME summary
 - notes:
 
-### W-202, v1.7.6, 2026-08-xx: auth: add locked status
+### W-202, v1.7.6, 2026-xx-xx: auth: add locked status
 - status: 🕑 PENDING
 - type: Feature
 - depends on: W-201 (centralized, per-status account-status check in `auth.js`'s `login()` - this

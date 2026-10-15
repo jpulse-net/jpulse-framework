@@ -1,4 +1,4 @@
-# jPulse Docs / Template Reference v2.0.13
+# jPulse Docs / Template Reference v2.0.14
 
 > **Need comprehensive template details?** This reference covers all template features, security, performance, and development patterns. For a quick introduction to Handlebars syntax, see [Handlebars Quick Start](handlebars-quick-start.md).
 
@@ -444,6 +444,61 @@ The `{{file.include}}` directive allows secure inclusion of other template files
 
 {{file.include "jpulse-footer.tmpl"}}
 ```
+
+### Shared Modules
+
+A view `.tmpl` that is plain JavaScript can run in the page and on the server. The file names one top-level binding in its header:
+
+```html
+{{!--
+ * @name            map/search/query
+ * @export          mapSearchQuery
+--}}
+
+const mapSearchQuery = {
+    parse(text, options) { /* ... */ },
+    match(parsed, item) { /* ... */ }
+};
+```
+
+`const`, `let`, `var`, `function`, and `class` all work. The binding is top-level. On one page, each shared module needs its own name.
+
+The page includes the file at the top level of a classic script. Later script on that page calls the binding:
+
+```html
+<script>
+{{file.include "map/search/query.tmpl"}}
+</script>
+```
+
+The server loads the same path and gets that binding back:
+
+```javascript
+import SharedModule from '../utils/shared-module.js';
+
+const mapSearchQuery = SharedModule.load('map/search/query.tmpl');
+```
+
+The path is the include path, relative to the view directory, and it ends in `.tmpl`. Resolution is site, then plugins, then framework. The result is cached the same way `{{file.include}}` is.
+
+The page include expands Handlebars in the file before the browser runs it. `SharedModule.load` runs the file as written. `{{!-- --}}` comments are removed. Any other `{{` in code makes `load` throw. A string, a template literal, or a JavaScript comment may contain `{{`.
+
+Resolve a value in the caller and pass it in. The shared file stays plain JavaScript, so both sides run the same source.
+
+```html
+<script>
+{{file.include "map/search/query.tmpl"}}
+mapSearchQuery.parse(text, { label: '{{app.site.name}}' });
+</script>
+```
+
+```javascript
+const label = await HandlebarController.expandHandlebars(req, '{{app.site.name}}');
+const mapSearchQuery = SharedModule.load('map/search/query.tmpl');
+mapSearchQuery.parse(text, { label });
+```
+
+The server runs the file with language built-ins and `console`. A shared module stands alone: the caller loads each file and passes what the next one needs.
 
 ### File Timestamps
 

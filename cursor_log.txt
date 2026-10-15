@@ -29455,3 +29455,145 @@ Recorded the publish on W-264 notes. Status left IN_PROGRESS. One package contai
 
 
 ============================================================
+2026-10-10 16:08
+
+I want a small framework feature: ability to load one view .tmpl file as shared code in both the browser and on the server.
+
+What we have today
+
+Browser pages pull in JavaScript by server-side include:
+
+{{file.include "map/math/parse.tmpl"}}
+
+Some of those files are plain JavaScript. The only Handlebars in them is a {{!-- ... --}} header comment. The include inlines the source into the page, so the browser runs it as a script.
+
+The server cannot include a .tmpl that way. When the same logic is needed on the server, we keep a second hand-written copy. In bubblemap-app site app the pair is site/webapp/view/map/ai-proposal.tmpl and site/webapp/utils/aiProposal.js. The formula unit tests work around this by reading the .tmpl files, stripping {{!-- --}} comments, and running the source in Node's vm.
+
+PathResolver.resolveModuleWithPlugins already resolves site, then plugins, then framework. View includes use that same priority.
+
+What I need
+
+A server helper, for example:
+
+const mod = jPulse.sharedModule.load('map/search/query.tmpl');
+
+Behavior:
+
+1. Resolve the path with the same order as {{file.include}}: site override, then plugins, then framework. The path is relative to the view directory, same as an include path.
+2. Read the file once and cache the module. In dev, invalidate the cache the same way include caching already does.
+3. Reject the file if it contains Handlebars other than {{!-- comments --}}. After comment stripping, a shared module must be plain JavaScript.
+4. Run it in vm and return the exported value. Please pick one export convention (a known global, or module.exports) and document it.
+5. These files must not use the DOM, window, or client jPulse APIs. The helper does not provide those. Callers pass config in as arguments.
+
+The browser side stays {{file.include}} of the same file. Please do not add a REST endpoint that serves the source to the browser. The page include already does that.
+
+Why
+
+BubbleMap needs one search-query parser and matcher for the canvas (per keystroke, in the browser) and for the server (later, multi-map search). One source file avoids a permanent twin and a parity test. The same helper would let us delete the aiProposal.js twin.
+
+Non-goals
+
+- Not a bundler.
+- Not a general "run any template on the server" feature. Only plain-JS .tmpl modules.
+- No change to {{file.include}} for HTML templates.
+
+Please propose the API, the export convention, where the helper lives, and whether comment-stripping belongs in the framework or in the caller.
+
+I am open for ideas to enhance this. objective: good dx with "don't make me think" (too much)
+
+Proposed SharedModule.load in webapp/utils/shared-module.js. Export convention is one top-level binding named by @export in the existing file-header comment; the server reads that binding out after the script runs, so const works in both the page and vm. Comment stripping and the Handlebars check stay inside the helper. Cache uses the same include-cache config (default 10 min mtime refresh). No REST route, no change to file.include, modules stay self-contained. Waiting for go-ahead before implementing.
+
+
+============================================================
+2026-10-10 20:52
+
+Tooltip HTML tables overflow the popup when a cell contains a long unbroken word.
+
+File: webapp/view/jpulse-common.css, .jp-tooltip-popup (W-126).
+The popup sets max-width: 300px (250px under 768px) and word-wrap: break-word.
+data-tooltip is assigned as HTML (jPulse.UI.tooltip._createTooltip sets innerHTML).
+
+Plain text wraps inside the box. A <table> does not. Automatic table layout uses the longest word as the cell's minimum width, so the table grows past max-width. Overflow is visible, and the word paints outside the popup. overflow-wrap: break-word on the popup does not fix this: the table grows to fit the word instead of the word breaking inside the capped box.
+
+Please contain any table inside .jp-tooltip-popup, without changing tooltips that are plain text. For example:
+
+.jp-tooltip-popup table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+}
+.jp-tooltip-popup th,
+.jp-tooltip-popup td {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+A long token such as pneumonoultramicroscopicsilicovolcanoconiosis should wrap inside the cell and stay inside the yellow box. Ordinary words should keep wrapping on spaces. The popup's max-width should still apply.
+
+let me know how you would fix this, wait for my go-ahead to change code
+
+Proposed a CSS-only fix on .jp-tooltip-popup table/th/td: width and max-width 100%, table-layout fixed, overflow-wrap anywhere and word-break break-word on cells. Plain-text tooltips stay on the existing shrink-to-fit rules. Noted that fixed layout equalizes columns that have no explicit widths, so the narrow label column in the screenshot would share the box with the long-text column. No code changed; waiting for go-ahead.
+
+
+============================================================
+2026-10-10 21:04
+
+oh, giving equal column width is not what we want!
+- we should keep the "as needed" column width
+- would `overflow-wrap: break-word;` fix the issue?
+
+No. overflow-wrap: break-word does not lower a table cell's min-content, so the long token still sets the column width and the table still crosses the 300px box (measured in Chrome: box 300px, table 308px, 19px past the border). overflow-wrap: anywhere keeps automatic column widths and contains the table (label column about 24-31px, long-text column takes the rest, table inside the padding). A short two-column table stayed about 101px wide. word-break: break-word measured the same as anywhere. Revised proposal is cell rules only, no table-layout: fixed and no width: 100%. No CSS edited.
+
+
+============================================================
+2026-10-10 21:24
+
+how about a compromise?
+- keep automatic col widh,
+- truncate words that are too long (instead of leaking outside the table)
+
+Automatic column width and truncation conflict for the cell that holds the long token: the column is only truncated once it is narrower than that word. Chrome check: giving every cell max-width 0 plus ellipsis contains the word but splits columns equally. Limiting the shrink to the last column keeps earlier columns at content width (label about 28px) and cuts the long token with an ellipsis, while spaced words in that cell still wrap. Two limits: a long token in an earlier column still sets that column's width, and a small table stretches to the popup max-width. No CSS edited.
+
+
+============================================================
+2026-10-10 21:38
+
+please make the changes
+
+Added tooltip table rules in webapp/view/jpulse-common.css. The table stays within the popup max-width. Earlier cells are nowrap so their columns stay as wide as the text. The last cell wraps on spaces and clips an unbreakable token with an ellipsis. Plain text tooltips are unchanged. Chrome check: label column about 33px, long token clipped inside a 300px box, plain text hugged its content at 150px. A small table still stretches to the popup max-width.
+
+
+============================================================
+2026-10-10 21:58
+
+please create work item @work-items.md (11335-11346) from stub
+
+Filled the in-progress W-265 stub. Title: tooltip: clip a long word in an HTML table. Version and date left as v2.0.13, 2026-10-10. Status left IN_PROGRESS. Objectives, prerequisites (W-126), rationale, features, the jpulse-common.css deliverable, and the two limits (non-last column, small table stretches) are written in. Section placement unchanged.
+
+
+============================================================
+2026-10-15 00:44
+
+I got sidetracked with bubblemap-app site coding
+
+what is the status here?
+- see latest @tt-git-diff.txt
+
+W-265 is implemented and uncommitted on main. CSS in jpulse-common.css clips a long token in the last tooltip-table cell; earlier columns stay nowrap. Work item is still IN_PROGRESS. Not released: no version bump, changelog, or commit. The shared-module proposal is only in the cursor log, not in code. The same diff also marks W-264 DONE and points the release notes at v2.0.13.
+
+
+============================================================
+2026-10-15 00:46
+
+release prep:
+- assume W-265, v2.0.13, 2026-10-15
+- review tt-git-diff.txt for accuracy and completness of work item
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Reviewed tt-git-diff.txt against W-265. The CSS matches the work item. Added the UI reference as a deliverable; status left IN_PROGRESS. Release notes for v2.0.13, 2026-10-15 are in README.md, docs/README.md, and docs/CHANGELOG.md. Tooltip HTML-table behavior is in docs/jpulse-ui-reference.md. commit-message.txt is updated. No version bump and no commit.
+
+
+============================================================

@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         2.0.12
- * @release         2026-10-08
+ * @version         2.0.13
+ * @release         2026-10-15
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -4618,6 +4618,29 @@ body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {
     /* Make it clearly non-interactive */
     cursor: default;
     user-select: none;
+}
+
+/* HTML tables: earlier columns stay as wide as their text. The last column
+   uses the remaining space inside max-width and clips an unbreakable token.
+   word-wrap on that cell overrides the popup so the token is cut instead of
+   widening the column. */
+.jp-tooltip-popup table {
+    width: 100%;
+    max-width: 100%;
+}
+.jp-tooltip-popup th,
+.jp-tooltip-popup td {
+    white-space: nowrap;
+}
+.jp-tooltip-popup th:last-child,
+.jp-tooltip-popup td:last-child {
+    width: 100%;
+    max-width: 0;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: normal;
+    word-wrap: normal;
 }
 
 .jp-tooltip-popup.jp-tooltip-show {

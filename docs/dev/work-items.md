@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.11
+# jPulse Docs / Dev / Work Items v2.0.13
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -11285,15 +11285,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - ai-core deep links and the usage-page header are W-264 (plugin repo; not in this framework diff)
   - not this item: parenthetical tab URLs in the provider READMEs (removed; not in this diff); writing the hash on each tab click (rejected)
 
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-264, v1.0.20, 2026-10-08: ai-core plugin: links open the AI Agent tab; usage page header
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
 - npm package: @jpulse-net/plugin-ai-core
@@ -11335,6 +11328,44 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-265, v2.0.13, 2026-10-15: jPulse.UI.tooltip: clip a long word in an HTML table
+- status: 🚧 IN_PROGRESS
+- type: Bugfix
+- objectives:
+  - an HTML table inside a tooltip stays inside the popup
+  - columns before the last stay as wide as their text, on one line
+  - a word too long for the last column is cut with an ellipsis
+  - words with spaces in the last column still wrap
+  - a tooltip that is plain text is unchanged
+- prerequisites:
+  - W-126: `.jp-tooltip-popup` is capped at 300px (250px under 768px), and `data-tooltip` is inserted as HTML
+- rationale:
+  - automatic table layout uses the longest word as a cell's minimum width. `word-wrap: break-word` on the popup does not lower that minimum, so the table grows past `max-width` and the word paints outside the yellow box
+  - equal columns were rejected. Wrapping the long token mid-word was rejected. The last column is the one that gives up space
+- features:
+  - **fit the box.** The table's width and max-width are 100% of the popup, so the popup's 300px / 250px cap still applies
+  - **earlier columns.** Those cells do not wrap, so a label such as `CC-3` stays on one line and the column matches the text
+  - **last column.** It takes the remaining width, wraps on spaces, and clips an unbreakable token with an ellipsis. Its wrap mode overrides the popup, so the token is cut instead of widening the column
+- deliverables:
+  - `webapp/view/jpulse-common.css`:
+    - `.jp-tooltip-popup table`, and `th` / `td` rules, after the popup block
+  - `docs/jpulse-ui-reference.md`:
+    - HTML content: a table stays inside the popup; the last column clips a long word
+- notes:
+  - a long token in a column that is not last can still set that column's width
+  - a small table stretches to the popup max-width instead of hugging the cells
+  - Chrome check with these rules: label about 33px on one line, `pneumonoultramicroscopicsilicovolcanoconiosis` clipped inside a 300px box, plain text about 150px wide
+  - no JavaScript change. `jPulse.UI.tooltip._createTooltip` still assigns `data-tooltip` as HTML
+
+
+
+
+
+
 ### Pending
 
 - site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
@@ -11362,7 +11393,7 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume W-263, v2.0.12, 2026-10-08
+- assume W-265, v2.0.13, 2026-10-15
 - review tt-git-diff.txt for accuracy and completness of work item
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
@@ -11370,7 +11401,7 @@ release prep:
 - append to cursor_log.txt
 
 plugin release prep:
-- assume W-264, v1.0.20, 2026-10-08
+- assume W-265, v2.0.13, 2026-10-10
 - review tt-git-diff.txt for accuracy and completeness of work item
 - review work item and design doc if it matches actual code & fix if needed
 - 3 plugin README.md & docs/README.md: add release to Plugin releases section
@@ -11382,12 +11413,12 @@ plugin release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.12 2026-10-08
+node bin/bump-version.js 2.0.13 2026-10-15
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.12; git push origin main --tags
+git tag v2.0.13; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

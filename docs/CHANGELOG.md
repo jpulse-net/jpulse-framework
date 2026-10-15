@@ -1,6 +1,34 @@
-# jPulse Docs / Version History v2.0.12
+# jPulse Docs / Version History v2.0.13
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.13, W-265, 2026-10-15
+
+**Commit:** `W-265, v2.0.13, 2026-10-15: jPulse.UI.tooltip: clip a long word in an HTML table`
+
+**BUGFIX RELEASE**: A long unbroken word in a tooltip HTML table painted outside the popup. The last column now clips that word.
+
+**Objective**: An HTML table inside a tooltip stays inside the popup. Columns before the last stay as wide as their text. A word too long for the last column is cut with an ellipsis. Words with spaces still wrap. A plain-text tooltip is unchanged.
+
+**Key features**:
+- The table's width and max-width are 100% of the popup, so the existing cap still applies: 300px, or 250px under 768px
+- Cells before the last do not wrap, so a short label stays on one line and the column matches the text
+- The last cell takes the remaining width, wraps on spaces, and clips an unbreakable token with an ellipsis. Its wrap mode overrides the popup's `word-wrap: break-word`, so the token is cut instead of widening the column
+- A long token in a column that is not last can still set that column's width. A small table stretches to the popup max-width
+- Docs: `jpulse-ui-reference.md`
+
+**Files changed**:
+- `webapp/view/jpulse-common.css`: `.jp-tooltip-popup table` and `th` / `td` rules
+- `docs/jpulse-ui-reference.md`: HTML table behavior under tooltip HTML content
+- `docs/dev/work-items.md`: W-265 features/deliverables as-built
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.13 / W-265
+- `docs/CHANGELOG.md`: this section
+
+**Release**:
+- Work Item: W-265
+- Version: v2.0.13
+- Release Date: 2026-10-15
 
 ________________________________________________
 ## v2.0.12, W-263, 2026-10-08

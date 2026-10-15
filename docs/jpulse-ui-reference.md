@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v2.0.12
+# jPulse Docs / jPulse.UI Widget Reference v2.0.13
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -1396,7 +1396,7 @@ Individual tooltips can override these defaults using `data-tooltip-position` an
 
 ### Features
 
-- **HTML Content Support**: All tooltip content is treated as HTML, allowing rich formatting
+- **HTML Content Support**: All tooltip content is treated as HTML, allowing rich formatting. An HTML table stays inside the popup (300px, or 250px under 768px). Columns before the last stay as wide as their text. A word that does not fit in the last column is cut with an ellipsis; words with spaces still wrap
 - **Smart Positioning**: Automatically positions tooltip to stay within viewport bounds. After the box is shifted, the arrow stays pointed at the trigger (not the center of the tooltip).
 - **Mobile Support**: On touch devices, tooltips appear on tap instead of hover
 - **Keyboard Accessibility**: Tooltips appear on focus and can be dismissed with Escape key

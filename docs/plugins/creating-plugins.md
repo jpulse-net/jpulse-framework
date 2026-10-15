@@ -104,8 +104,8 @@ Plugin settings live in MongoDB, not in `app.conf`. `appConfig` is built from th
 - The plugin's own config page (`plugin.json` `config.schema`, Admin → Plugins → the plugin) or a Site Configuration tab added with `ConfigModel.extendSchema()`. Production behavior belongs on a Site Configuration tab; diagnostics belong on the plugin page.
 - Open a tab from the URL hash. Site Configuration uses the schema block key plus `-tab` (`/admin/config.shtml#ai-tab`). The plugin page uses the tab-label slug plus `-tab` (`/admin/plugin-config.shtml?plugin=your-plugin#advanced-tab`).
 - A value defined by code (a scope type, a tool, a provider) comes from code, through a hook.
-- A plugin reads `app.conf` only for framework sections, such as `system`.
-- One home per setting. Do not add an `app.conf` fallback for a setting that already lives in MongoDB.
+- A plugin reads `app.conf` only for framework sections, such as `system`, plus the Max rounds per turn exception below.
+- One home per setting. Do not add an `app.conf` fallback for a setting that already lives in MongoDB. The exception is Max rounds per turn: when that number has not been saved, the AI plugin reads `controller.aiAgent.maxRoundsPerTurn` if it is a finite number greater than 0. A saved number, including 8, still wins. Otherwise the default is 8.
 
 Configuration fields are automatically turned into an admin UI:
 

@@ -11355,15 +11355,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - Chrome check with these rules: label about 33px on one line, `pneumonoultramicroscopicsilicovolcanoconiosis` clipped inside a 300px box, plain text about 150px wide
   - no JavaScript change. `jPulse.UI.tooltip._createTooltip` still assigns `data-tooltip` as HTML
 
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-266, v2.0.14, 2026-10-15: utils: shared module loader
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - one plain-JS view `.tmpl` runs in the browser via `{{file.include}}` and on the server via `SharedModule.load`
@@ -11393,11 +11386,84 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `docs/template-reference.md`:
     - a short section next to `file.include`: the `@export` header, the page include, and `SharedModule.load`. No work-item number
 - notes:
+  - **released** v2.0.14. Commit `1b5be95a`, tag `v2.0.14`, push `737e0a11..1b5be95a` main. 372 files (version bump included)
   - example file: header `@export mapSearchQuery`, then `const mapSearchQuery = { parse, match }`. Page: `{{file.include "map/search/query.tmpl"}}`. Server: `const mapSearchQuery = SharedModule.load('map/search/query.tmpl')`
   - `module.exports` and ESM `export` do not survive a classic-script include. A `jPulse.shared.define` wrapper would put a client API in a file that must not use client jPulse
   - deleting BubbleMap's `aiProposal.js` twin is a site change, after this ships
   - out of scope: a bundler; running an HTML template on the server; a REST route that serves the source; any change to `{{file.include}}`; imports between shared modules
   - ai-core's hashed module URL (design `docs/dev/design/W-223-ai-agent.md` §8, TD-07) stays deferred. This item is the server half of a file the page already includes
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-267, v1.0.21, 2026-10-15: ai-core plugin: failed turn stays visible; improved error reporting
+- status: ✅ DONE
+- type: Feature
+- repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
+- npm package: @jpulse-net/plugin-ai-core
+- objectives:
+  - a failed turn with no agent text and no stored error still shows its message in the panel until the user switches conversations or reloads
+  - a limit message states what was hit, then says the person can contact a site admin. It does not name a settings page or tell them to raise a number
+  - a new deployment's max rounds come from app.conf until Site Config saves a number, including 8
+- prerequisites:
+  - the panel reloads the thread after a turn ends and keeps local lines when `keepLocals` is set
+  - `AI_MAX_ROUNDS` sinks an error and does not store `turn.error`. A timeout and a quota failure do store `turn.error`
+  - Site Config `data.ai.maxRoundsPerTurn` when present; otherwise `app.conf` `controller.aiAgent.maxRoundsPerTurn`
+- rationale:
+  - after the thread reloads, a max-rounds failure looks like silence: no agent text, no stored error, and the toast is gone
+  - the short strings named an internal cap or pointed at Site Configuration. An organization may have a fixed policy the person cannot change
+  - the AI Agent tab's default for max rounds was the literal 8, so the first save stored 8 even when app.conf had another number. The code default stays 8 when neither source has a number
+- features:
+  - **ephemeral line.** On a transport `error` event the toast stays, and `noteEphemeral` adds a local line: trimmed text, skip empty, skip a duplicate of the last ephemeral line. The local is `userText` empty, `agentText`, `agentNode` null, `at` now, `ephemeral` true. The error handler does not call `renderTurns`. The existing `openThread(..., { keepLocals: true })` renders it. A local with no user text has no user bubble. The line uses `plg-ai-agent plg-ai-ephemeral` (danger color and danger background). After turns load, `dropShownEphemeral` removes that line only when a turn with no agent text already stores the same `turn.error`. Other locals stay. The line is not saved on the turn
+  - **limits.** Max rounds: `Stopped after N rounds. The agent used every tool round before it finished. You can contact a site admin for details.` Both turn timeouts: `This turn timed out before it finished. You can contact a site admin for details.` A known quota names the admin field (`Daily request cap per user`, `Daily token cap per user`, `Monthly cost cap per user (USD)`, `Monthly request cap`, `Monthly token cap`, `Daily cost cap (USD)`, otherwise `usage cap`). Cost is `$N`. Message: `The ${label} of ${limit} is reached. You can contact a site admin for details.` Unknown cost stays `Quota cost is partly unknown; refusing new turns until it is resolved.` Source count: `This conversation already has N sources, the maximum. You can contact a site admin for details.` Image drops use `oversizeImage`; convert drops use `oversizeConvert` (en and de). A host that is not allowed names the host and the same contact sentence, not Site Configuration. A page over the URL size limit, and an image the server still rejects as too large, use the same contact sentence. Provider rate-limit text stays as the provider sent it. A tool timeout stays a tool result for the model
+  - **max rounds.** Code default stays 8. A saved Site Config number wins, including 8. When `data.ai.maxRoundsPerTurn` is missing, `appConfMaxRounds()` uses `global.appConfig.controller.aiAgent.maxRoundsPerTurn` if it is a finite number greater than 0, otherwise 8. `mergeSettings` calls it. The AI Agent tab schema default is `appConfMaxRounds() ?? 8`, read in `initialize()` so the first save stores the app.conf value
+- deliverables:
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - `noteEphemeral`, `dropShownEphemeral`, no user bubble when `userText` is empty, class `plg-ai-ephemeral`, error handler keeps the toast and does not call `renderTurns`, `keepLocals: true` unchanged
+    - source-count toast; image drops use `oversizeImage`; convert drops use `oversizeConvert`
+  - `plugins/ai-core/webapp/view/jpulse-common.css`:
+    - `.plg-ai-agent.plg-ai-ephemeral` after `.plg-ai-agent`
+  - `plugins/ai-core/webapp/translations/en.conf`, `plugins/ai-core/webapp/translations/de.conf`:
+    - `oversizeFile` replaced by `oversizeImage` and `oversizeConvert`
+  - `plugins/ai-core/webapp/utils/agent/turnLoop.js`:
+    - `AI_MAX_ROUNDS` sink message; both `AI_TIMEOUT` throws share `turnTimeoutMessage()`. The max-rounds path still does not store `turn.error`
+  - `plugins/ai-core/webapp/utils/agent/quota.js`:
+    - known-cost message uses the admin field label; cost renders as `$N`
+  - `plugins/ai-core/webapp/utils/agent/settings.js`:
+    - exported `appConfMaxRounds()`; `mergeSettings` uses it when the site number is missing
+  - `plugins/ai-core/webapp/controller/aiCore.js`:
+    - AI Agent tab default for `maxRoundsPerTurn` is `appConfMaxRounds() ?? 8`
+    - image staging rejection: `This image is over the size limit. You can contact a site admin for details.`
+  - `plugins/ai-core/webapp/utils/attachments/ingest.js`:
+    - `HOST_NOT_ALLOWED` names the host and the contact sentence
+    - `RESPONSE_TOO_LARGE` names the URL size limit and the contact sentence
+  - `docs/dev/design/W-258-ai-usage-redesign.md`, `docs/plugins/creating-plugins.md`:
+    - the "no app.conf fallback" rule keeps one exception: a missing `maxRoundsPerTurn` reads `controller.aiAgent.maxRoundsPerTurn`
+  - `plugins/ai-core/docs/README.md` Admin section:
+    - the same max-rounds rule, next to "no `app.conf` `ai` section"
+  - `plugins/ai-core/README.md`, `plugins/ai-core/docs/README.md`, and the `ai-mock` and `hello-ai` README pairs:
+    - 1.0.21 line at the top of Plugin releases. Companions are lockstep, no product change
+  - `plugins/ai-core/commit-message.txt`, `plugins/ai-mock/commit-message.txt`, `plugins/hello-ai/commit-message.txt`:
+    - publish message for v1.0.21
+  - `plugins/ai-core/webapp/tests/unit/settings.test.js`, `turn-loop.test.js`, `quota.test.js`, `regressions.test.js`, `attachments.test.js`:
+    - missing site max rounds with app.conf 16 yields 16; a saved 8 yields 8; no app.conf value yields 8
+    - a scripted tool loop past `maxRoundsPerTurn` fails with the new `AI_MAX_ROUNDS` message
+    - timeout expects `/contact a site admin for details/`
+    - a monthly request cap of 3 throws `/Monthly request cap of 3 is reached/`
+    - panel source still calls `openThread` with `keepLocals: true` and contains `noteEphemeral`, `dropShownEphemeral`, and `plg-ai-ephemeral`; CSS contains `.plg-ai-agent.plg-ai-ephemeral`
+    - host-not-allowed does not name Site Configuration; the URL size message names the limit
+- notes:
+  - the ephemeral line lasts until the user switches conversations or reloads. It is not written on the turn
+  - admin and install docs still name Site Configuration → AI Agent. That text is for someone configuring the site. The chat toast does not
+  - `url is required`, role and thread errors, and slash-command lines are unchanged. A tool result size cap stays a result for the model
+  - the plugin fallback for max rounds stays 8. A site `app.conf` value such as 16 applies only when the field has not been saved
+  - **published** `@jpulse-net/plugin-ai-core` 1.0.21. Commit `12d8322`, tag `v1.0.21`, push `ae4e302..12d8322`. 80 files, 342 insertions, 192 deletions. Tarball shasum `3cf096aa367ec12d3634523ebaae64b122db7781`, 99 files, package 206.3 kB, unpacked 1.0 MB. Bundle members `ai-core`, `ai-mock`, `hello-ai`. Registry `https://npm.pkg.github.com`, tag `latest`, public access
+  - `tt-git-diff.txt` is the first pass. The host, URL size, and image staging sentences, and `attachments.test.js`, are in the tree and in the deliverables above. They are not in that diff file
 
 
 
@@ -11439,7 +11505,7 @@ release prep:
 - append to cursor_log.txt
 
 plugin release prep:
-- assume W-265, v2.0.13, 2026-10-10
+- assume W-267, v1.0.21, 2026-10-15
 - review tt-git-diff.txt for accuracy and completeness of work item
 - review work item and design doc if it matches actual code & fix if needed
 - 3 plugin README.md & docs/README.md: add release to Plugin releases section
@@ -11462,12 +11528,12 @@ git tag v2.0.14; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.20 2026-10-08
+node ../../bin/bump-version.js 1.0.21 2026-10-15
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.20; git push origin main --tags
+git tag v1.0.21; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

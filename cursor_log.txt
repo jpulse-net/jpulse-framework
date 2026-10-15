@@ -29713,3 +29713,94 @@ The Shared Modules section stated that {{ in code makes load throw, and it said 
 
 
 ============================================================
+2026-10-15 01:59
+
+release done:
+
+MacBook-Pro-4:jpulse-framework peterthoeny$ ga .
+MacBook-Pro-4:jpulse-framework peterthoeny$ git commit -F commit-message.txt
+[main 1b5be95a] W-266, v2.0.14, 2026-10-15: utils: shared module loader
+ 372 files changed, 1202 insertions(+), 384 deletions(-)
+ create mode 100644 webapp/tests/unit/utils/shared-module.test.js
+ create mode 100644 webapp/utils/shared-module.js
+MacBook-Pro-4:jpulse-framework peterthoeny$ git tag v2.0.14; git push origin main --tags
+Enumerating objects: 812, done.
+Counting objects: 100% (812/812), done.
+Delta compression using up to 16 threads
+Compressing objects: 100% (425/425), done.
+Writing objects: 100% (440/440), 384.15 KiB | 2.91 MiB/s, done.
+Total 440 (delta 324), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (324/324), completed with 312 local objects.
+To github.com:jpulse-net/jpulse-framework.git
+   737e0a11..1b5be95a  main -> main
+ * [new tag]           v2.0.14 -> v2.0.14
+
+Recorded the release on W-266 notes. Commit 1b5be95a, tag v2.0.14, push 737e0a11..1b5be95a main. 372 files, version bump included. Status left IN_PROGRESS.
+
+
+============================================================
+2026-10-15 15:03
+
+Verify three AI panel changes in the ai-core plugin at plugins/ai-core.
+
+Leave version numbers, dates, and release notes alone. 4-space indent, no tabs, no trailing spaces on blank lines. Do not tell the user to raise a setting or name Site Configuration. An org may have a fixed policy. State what limit was hit, then: "You can contact a site admin for details." or the like.
+
+1. Ephemeral error line in the panel
+2. Limit messages
+3. Max rounds for a new deployment
+
+if it helps, here are the changes: @tt-git-diff.txt
+
+Checked tt-git-diff.txt against the three requirements and the current ai-core sources. The diff matches: ephemeral error locals (noteEphemeral, dropShownEphemeral, plg-ai-ephemeral, keepLocals, no renderTurns in the error handler), the longer limit messages (rounds, timeout, quota labels, source cap, oversizeImage/oversizeConvert), and appConfMaxRounds() with a saved number still winning. Version, date, and release headers were left alone. No tabs or trailing spaces on the touched files. Jest: settings, turn-loop, quota, and regressions, 88 passed. Did not drive a live panel turn in the browser.
+
+
+============================================================
+2026-10-15 15:12
+
+- create work item from stub @work-items.md (11404-11415)
+- review code for userfriendly messages, fix if needed
+
+Filled W-267 in place (status left PENDING): failed turn stays visible, limit text names the limit, app.conf max rounds until Site Config saves a number. Reviewed chat-facing strings. Rounds, timeout, quota, source count, and oversize image/convert already matched. Changed three that still pointed at a setting or said only "size cap": a disallowed host names the host and asks the person to contact a site admin; a page over the URL size limit uses the same sentence; an image the server still rejects says it is over the size limit and uses the same sentence. Provider rate-limit text, tool timeouts, and the unknown-cost sentence were left as they were. Admin docs still name Site Configuration. Attachment tests: 29 passed.
+
+
+============================================================
+2026-10-15 15:17
+
+plugin release prep:
+- assume W-267, v1.0.21, 2026-10-15
+- review tt-git-diff.txt for accuracy and completeness of work item
+- review work item and design doc if it matches actual code & fix if needed
+- 3 plugin README.md & docs/README.md: add release to Plugin releases section
+- 3 plugin commit-message.txt: update message
+
+Reviewed tt-git-diff.txt against W-267 and the tree. The diff matches the first pass (ephemeral line, limit strings, appConfMaxRounds). It does not include the later host, URL size, and image staging sentences or attachments.test.js; those are in the code and in the work item. W-258 and creating-plugins.md said never to add an app.conf fallback; recorded the max-rounds exception so they match the code. Added the same sentence to the AI Core admin guide. Added the 1.0.21 Plugin releases line to ai-core, ai-mock, and hello-ai README.md and docs/README.md. Updated the three commit-message.txt files. Status left IN_PROGRESS. Version headers not bumped. Not committed.
+
+
+============================================================
+2026-10-15 15:22
+
+"When Max rounds per turn is not saved, app.conf controller.aiAgent.maxRoundsPerTurn is used if it is a positive number; a saved number, including 8, wins"
+- I thought the default max number of turns is 16?
+
+The plugin code default is 8. 16 is BubbleMap's site app.conf value at controller.aiAgent.maxRoundsPerTurn. A new deployment with that key gets 16 until Site Config saves a number. A saved 8 still wins over that 16. This framework checkout does not set the key, so it falls back to 8. No files changed.
+
+
+============================================================
+2026-10-15 15:24
+
+wondering if 8 is too low for typical deployments, 16 might be more appropriate? any downside?
+
+8 is enough for a reply with no tools, because the loop stops when the model returns text. A tool-using turn spends one round per model call that asks for tools, and BubbleMap already hit 8 before it finished. 16 is a better ceiling for that. The downside is a stuck tool loop: quota is checked only at turn start, so tokens and cost can run about twice as far, and the 120s turn timeout can stop the turn before round 16. A site that already saved 8 stays at 8. No files changed.
+
+
+============================================================
+2026-10-15 15:35
+
+let's keep as is
+
+3 plugins released, package published
+
+Recorded the publish on W-267 notes. Max rounds fallback stays 8. Commit 12d8322, tag v1.0.21, push ae4e302..12d8322. Package @jpulse-net/plugin-ai-core@1.0.21, shasum 3cf096aa367ec12d3634523ebaae64b122db7781, 99 files, 206.3 kB. Bundle ai-core, ai-mock, hello-ai. Status left IN_PROGRESS.
+
+
+============================================================

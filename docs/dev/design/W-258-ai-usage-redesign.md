@@ -114,7 +114,8 @@ Settled with the work item owner before this draft:
    new hook `onAiScopeTypes` (§9). i18n is optional: a handler returns plain text or translates
    it
 10. **Plugin settings live in MongoDB, not `app.conf`** (§9.3). ai-core's `app.conf` reads are
-    removed
+    removed. W-267 later reads `controller.aiAgent.maxRoundsPerTurn` only when Site Config has
+    not saved that number
 11. **History covers 60 days in Day mode** and 12 months in Month mode. Previous/next navigation
     of the whole page is TD-19
 12. **Cap keys say "per user".** `maxRequestsPerDay` and `maxTokensPerDay` become
@@ -597,8 +598,12 @@ would bypass the site → plugins → framework order everywhere else. The conve
   the plugin page (the split ai-core already uses)
 - **values defined by code come from code,** through hooks (scope types and labels, tools,
   providers)
-- **plugins read `app.conf` only for framework sections,** such as `system`
-- **one home per setting.** Do not add an `app.conf` fallback for a MongoDB setting
+- **plugins read `app.conf` only for framework sections,** such as `system`, plus the max-rounds exception below
+- **one home per setting.** Do not add an `app.conf` fallback for a MongoDB setting. W-267 is
+  the exception: when Site Config has not saved `maxRoundsPerTurn`, `mergeSettings` reads
+  `appConfig.controller.aiAgent.maxRoundsPerTurn` if it is a finite number greater than 0. A
+  saved number, including 8, wins. Otherwise the code default is 8. The AI Agent tab's schema
+  default is that same value, so the first save stores it. No other AI setting reads `app.conf`
 - a plugin `app.conf` layer (framework, then plugin, then site) would be the consistent design if
   a deploy-time need appears, such as a setting needed before the database is up. Nothing needs
   it today (TD-23)
@@ -648,8 +653,9 @@ BubbleMap), both under the same ownership as the plugin.
     line 265) for `map` → "Map"
   - rename `subject` to `username` in its own quota handlers, if any
   - check which `controller.aiAgent.*` keys in its `app.conf` duplicate ai-core settings
-    (`defaultProvider`, `defaultModel`, `maxRoundsPerTurn`, `turnTimeoutMs`, …) and whether its
-    code still reads them. `controller.aiAgent` and `view.map.aiAgent` themselves stay: they are
+    (`defaultProvider`, `defaultModel`, `turnTimeoutMs`, …) and whether its code still reads
+    them. `maxRoundsPerTurn` in that block is read by ai-core when Site Config has not saved a
+    number (W-267). `controller.aiAgent` and `view.map.aiAgent` themselves stay: they are
     site settings for site code
   - remove quota leftovers nothing reads: `monthlyCostCap` in `AI_AGENT_DEFAULTS`
     (`aiAgent.js`, not in the copy list, no reader), and `quotaWarnPercent` /

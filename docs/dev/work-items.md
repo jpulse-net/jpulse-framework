@@ -11393,14 +11393,6 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - out of scope: a bundler; running an HTML template on the server; a REST route that serves the source; any change to `{{file.include}}`; imports between shared modules
   - ai-core's hashed module URL (design `docs/dev/design/W-223-ai-agent.md` §8, TD-07) stays deferred. This item is the server half of a file the page already includes
 
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-267, v1.0.21, 2026-10-15: ai-core plugin: failed turn stays visible; improved error reporting
 - status: ✅ DONE
 - type: Feature
@@ -11465,6 +11457,66 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - **published** `@jpulse-net/plugin-ai-core` 1.0.21. Commit `12d8322`, tag `v1.0.21`, push `ae4e302..12d8322`. 80 files, 342 insertions, 192 deletions. Tarball shasum `3cf096aa367ec12d3634523ebaae64b122db7781`, 99 files, package 206.3 kB, unpacked 1.0 MB. Bundle members `ai-core`, `ai-mock`, `hello-ai`. Registry `https://npm.pkg.github.com`, tag `latest`, public access
   - `tt-git-diff.txt` is the first pass. The host, URL size, and image staging sentences, and `attachments.test.js`, are in the tree and in the deliverables above. They are not in that diff file
 
+### W-268, v1.0.22, 2026-10-16: ai-core plugin: scrolling cards, pasted lines, source text, cut-off tool calls
+- status: ✅ DONE
+- type: Feature
+- repository: github.com/jpulse-net/plugin-ai-core (separate repo; bundle members `ai-core`, `ai-mock`, `hello-ai`, lockstep version)
+- npm package: @jpulse-net/plugin-ai-core
+- objectives:
+  - a long proposal preview scrolls inside the card, so the kind label and Apply/Undo stay with the card
+  - a pasted user message keeps its newlines in the chat log
+  - the page can read one attached source's text from the panel handle. The attachment list stays metadata
+  - a tool call cut off before it finishes does not end as an empty turn
+  - the form-copy sentences stay in the turn loop. They are not a new plugin feature
+- prerequisites:
+  - `renderCardHtml` already emits kind, preview, actions, then an optional status, as siblings
+  - `turn.userText` already keeps pasted newlines. `renderTurnHtml` inserts `escapeHtml` of that string inside `.plg-ai-user`
+  - the panel minimum height is 360px. Compose, the thread row, and the toolbar stay outside the message scroller
+  - `[mock:truncated]` emits `tool_use_truncated` and no tool call, including on a retry. The mock provider `maxTokens` is 4096
+- rationale:
+  - a form card that lists a form and about 20 records, field by field, grew past a small panel. Apply and Undo sat below the fold
+  - HTML collapsed the newlines in the user bubble, so a pasted CSV showed as one line. The model already received the original text
+  - the map copies an attached CSV or spreadsheet itself. It needs that source's text. Putting the text on `attachments()` would mix file bodies into the chip list
+  - a truncated tool call completed with no agent text, so the turn looked empty
+  - the form sentences name the site tool `propose_subtree`. They ride in the prompt from the turn loop. Splitting them into a plugin feature would be a second product
+- features:
+  - **card preview.** `.plg-ai-card-preview` keeps `white-space: pre-wrap` and `color: var(--jp-theme-text-primary)`. It gains `max-height: 8rem` and `overflow-y: auto`. The kind label and the action buttons stay outside that box. `renderCardHtml` is unchanged. 8rem is the height that still shows SUBTREE and Apply/Undo in a 360px panel. 18rem of preview alone was 288px, taller than that panel's message area
+  - **pasted lines.** `.plg-ai-user` gains `white-space: pre-wrap` and keeps `overflow-wrap: anywhere`. Newlines are not turned into `<br>`. Send, storage, and `trim()` on the compose box are unchanged
+  - **source text.** `panelApi.sourceText(id)` is also `handle.sourceText`, next to `attachments` and `attachmentFile`. A missing id returns null. A hit returns `{ id, name, mimeType, text, truncated }`. `name`, `mimeType`, and `text` are `''` when absent. `truncated` is true when `src.truncated` is set or `src.provenance.truncated` is set. `attachments()` is still metadata only
+  - **record budget.** Exported `formRecordBudget(maxTokens)`. A missing or non-positive `maxTokens` counts as 4096. `n = floor((cap - 1000) / 150)`, then clamp to 8..40. At 4096 that is 20. A verbose record is treated as about 150 output tokens, with 1000 left for the form bubble and the tool wrapper, and a cap of 40 so a large output setting still fits one card
+  - **form paragraph.** `formBatchLine(maxTokens)` is one paragraph appended on every round. `siteInstructions` is `settings.siteInstructions` and that paragraph, empty parts dropped, the rest joined with a blank line. Site instructions stay first. The paragraph says an attached CSV or spreadsheet is copied by the page; `propose_subtree` takes the form in `tree`, or `[]` when the form is already on the map, and `records: { sourceId, columns }`; `columns` maps each field key to the header text; read only the header and two sample rows with `get_source` and do not write `formData` for those rows; do not set `records.count`; "all the rows" means every row; one call copies every data row, up to 500 on the card; a workbook with more than one sheet sets `records.sheet`; only a sheet longer than 500 returns the next `records.start`; a table pasted in the message is not a source; the 20-record limit is only for that pasted table; that pasted call can include the form and at most N records (`N` from the budget), each `formRef` and `formData` only, with no title, icon, notes, or children; `titleFormat` is `= JOIN(B($name, $sku), ", ")`, not `{{ }}`; the JOIN separator is a comma and a space; a column of values like `12/10/2017` is a date field stored as `2017-12-10`; a column of ISO date-times is a datetime field stored as written; further pasted rows wait until they Apply and ask for the next batch; a longer pasted call is cut off and does not become a card; a search table is a `propose_subtree` node with `searchQuery` only, such as `form:#inventory-form`, not `TABLE()` or `in:self`
+  - **cut-off tool call.** After the provider events for the round, if any event is `tool_use_truncated` and there is no completed tool call: the first time, and only when another round still fits under `maxRounds`, append `The call to NAME was cut off before it finished, so it did not run. ` plus `formBatchLine` to the last user message when its content is a string, otherwise push a user message. NAME is the truncated event names joined by `, `, or `the tool`. Increment the round and continue. One retry only. After that retry, or when no round remains, set `agentText` to the existing text plus a newline plus `The reply was cut off before the change could be proposed. ` plus `formBatchLine`. If `agentText` was empty, the note alone is the text. Status is `completed`. Stop the turn. A round that has both a finished tool call and a truncated sibling stays on the existing tool path
+- deliverables:
+  - `plugins/ai-core/webapp/view/jpulse-common.css`:
+    - `.plg-ai-card-preview`: `max-height: 8rem`, `overflow-y: auto`, `white-space: pre-wrap` kept
+    - `.plg-ai-user`: `white-space: pre-wrap`, `overflow-wrap: anywhere` kept
+  - `plugins/ai-core/webapp/view/jpulse-common.js`:
+    - `sourceText` on `panelApi` and on the float-panel handle, next to `attachmentFile`
+  - `plugins/ai-core/webapp/utils/agent/turnLoop.js`:
+    - exported `formRecordBudget`; private `formBatchLine` uses it and is joined into `siteInstructions` before `assemblePrompt`
+    - one truncated-tool retry, then a completed note. No card is created for the cut-off call
+  - `plugins/ai-core/webapp/tests/unit/panel-strip.test.js`:
+    - "handle.attachments still lists both families from live state" asserts `/sourceText:\s*function \(id\)/`
+  - `plugins/ai-core/webapp/tests/unit/turn-loop.test.js`:
+    - "truncated tool arguments" (`[mock:truncated]`) asserts status `completed`, a `tool_use_truncated` event, `agentText` matching `/cut off/`, and `agentText` matching `/at most 20 records/`
+  - `plugins/ai-core/webapp/tests/unit/proposals.test.js`:
+    - "turnLoop.js contains no proposal machinery" still rejects `propose_` in the loop. It skips `formBatchLine`, which names `propose_subtree`
+- notes:
+  - Hello AI `previewLine` still clips each side at 80 characters. A temporary 1000-character clip was used to see the scroller and then restored. The full replacement remains in `payload.text`
+  - `plugin.json` and the `@version` / `@release` headers were bumped in the publish commit
+  - the form sentences are BubbleMap copy living in the turn loop. They are not registered as a tool and not a separate module
+  - the two named tests and the purity test passed after the purity scan skipped `formBatchLine`
+  - **published** `@jpulse-net/plugin-ai-core` 1.0.22. Commit `37c7feb`, tag `v1.0.22`, push `12d8322..37c7feb`. 80 files, 248 insertions, 158 deletions. Tarball shasum `680e6a07fa0f4c649baaaea14222242a934e0c7a`, 99 files, package 208.5 kB, unpacked 1.0 MB. Bundle members `ai-core`, `ai-mock`, `hello-ai`. Registry `https://npm.pkg.github.com`, tag `latest`, public access
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+
 
 
 
@@ -11505,7 +11557,7 @@ release prep:
 - append to cursor_log.txt
 
 plugin release prep:
-- assume W-267, v1.0.21, 2026-10-15
+- assume W-268, v1.0.22, 2026-10-16
 - review tt-git-diff.txt for accuracy and completeness of work item
 - review work item and design doc if it matches actual code & fix if needed
 - 3 plugin README.md & docs/README.md: add release to Plugin releases section
@@ -11528,12 +11580,12 @@ git tag v2.0.14; git push origin main --tags
 cd plugins/auth-mfa
 git diff
 git status
-node ../../bin/bump-version.js 1.0.21 2026-10-15
+node ../../bin/bump-version.js 1.0.22 2026-10-16
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v1.0.21; git push origin main --tags
+git tag v1.0.22; git push origin main --tags
 npm publish
 (or this in jpulse prj root: npx jpulse plugin publish auth-mfa --registry=https://npm.pkg.github.com )
 

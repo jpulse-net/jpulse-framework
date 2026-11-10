@@ -3,13 +3,13 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         2.0.14
- * @release         2026-10-15
+ * @version         2.0.15
+ * @release         2026-11-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.20, Grok 4.6
+ * @genai           60%, Cursor 3.27, Grok 4.7
  */
 
 window.jPulse = {
@@ -1319,6 +1319,7 @@ window.jPulse = {
                         });
                     } catch (_) {}
                 });
+                jPulse.UI.input.segment.initAll(root);
                 jPulse.UI.input.initSensitiveFields(root);
             },
 
@@ -3280,6 +3281,130 @@ window.jPulse = {
                     setTimeout(() => runWhenConnected(() => updateUI(current)), 100);
                     setTimeout(() => runWhenConnected(() => updateUI(current)), 250);
                     setTimeout(() => runWhenConnected(() => updateUI(current)), 450);
+                }
+            },
+
+            /**
+             * Single-choice segment track. The radios are the value. The page owns any localStorage.
+             * @param {string|Element} element - .jp-segment element or selector
+             */
+            segment: {
+                _seq: 0,
+
+                _resolve: (element) => {
+                    if (!element) return null;
+                    const el = typeof element === 'string' ? document.querySelector(element) : element;
+                    if (!el || el.nodeType !== 1 || !el.classList || !el.classList.contains('jp-segment')) return null;
+                    return el;
+                },
+
+                _radios: (el) => {
+                    return Array.from(el.querySelectorAll('input[type="radio"]')).filter((radio) => {
+                        return radio.closest('.jp-segment') === el;
+                    });
+                },
+
+                _enabled: (el) => {
+                    return jPulse.UI.input.segment._radios(el).filter((radio) => !radio.disabled);
+                },
+
+                /**
+                 * Bind Home/End and normalize the group. A second call on the same element does nothing.
+                 * @param {string|Element} element - .jp-segment element or selector
+                 */
+                init: (element) => {
+                    const el = jPulse.UI.input.segment._resolve(element);
+                    if (!el) return;
+                    if (el.dataset.jpSegmentInited === '1') return;
+                    el.dataset.jpSegmentInited = '1';
+
+                    if (!el.getAttribute('role')) el.setAttribute('role', 'radiogroup');
+
+                    const radios = jPulse.UI.input.segment._radios(el);
+                    if (el.getAttribute('aria-disabled') === 'true') {
+                        radios.forEach((radio) => { radio.disabled = true; });
+                    }
+
+                    let shared = '';
+                    radios.forEach((radio) => {
+                        const name = radio.getAttribute('name');
+                        if (name && !shared) shared = name;
+                    });
+                    if (!shared && radios.length) {
+                        jPulse.UI.input.segment._seq += 1;
+                        shared = 'jp-segment-' + jPulse.UI.input.segment._seq;
+                    }
+                    if (shared) {
+                        radios.forEach((radio) => {
+                            if (!radio.getAttribute('name')) radio.setAttribute('name', shared);
+                        });
+                    }
+
+                    const enabled = jPulse.UI.input.segment._enabled(el);
+                    if (enabled.length && !enabled.some((radio) => radio.checked)) {
+                        radios.forEach((radio) => { radio.checked = radio === enabled[0]; });
+                    }
+
+                    el.addEventListener('keydown', (event) => {
+                        if (event.key !== 'Home' && event.key !== 'End') return;
+                        const items = jPulse.UI.input.segment._enabled(el);
+                        if (!items.length) return;
+                        event.preventDefault();
+                        const target = event.key === 'Home' ? items[0] : items[items.length - 1];
+                        target.focus();
+                        if (target.checked) return;
+                        jPulse.UI.input.segment._radios(el).forEach((radio) => {
+                            radio.checked = radio === target;
+                        });
+                        target.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                },
+
+                /**
+                 * Init every .jp-segment under root. root defaults to document.
+                 * @param {Element|string} [root] - Container element or selector
+                 */
+                initAll: (root) => {
+                    const scope = root
+                        ? (typeof root === 'string' ? document.querySelector(root) : root)
+                        : document;
+                    if (!scope || !scope.querySelectorAll) return;
+                    const nodes = [];
+                    if (scope.classList && scope.classList.contains('jp-segment')) nodes.push(scope);
+                    scope.querySelectorAll('.jp-segment').forEach((el) => nodes.push(el));
+                    nodes.forEach((el) => {
+                        try {
+                            jPulse.UI.input.segment.init(el);
+                        } catch (_) {
+                            // Skip element if init fails
+                        }
+                    });
+                },
+
+                /**
+                 * Select value without dispatching change. Disabled and unknown values are left as they are.
+                 * @param {string|Element} element - .jp-segment element or selector
+                 * @param {string} value - Radio value to select
+                 */
+                set: (element, value) => {
+                    const el = jPulse.UI.input.segment._resolve(element);
+                    if (!el) return;
+                    const radios = jPulse.UI.input.segment._radios(el);
+                    const wanted = value === undefined || value === null ? '' : String(value);
+                    const match = radios.find((radio) => radio.value === wanted && !radio.disabled);
+                    if (!match) return;
+                    radios.forEach((radio) => { radio.checked = radio === match; });
+                },
+
+                /**
+                 * @param {string|Element} element - .jp-segment element or selector
+                 * @returns {string} Checked radio value, or ''
+                 */
+                value: (element) => {
+                    const el = jPulse.UI.input.segment._resolve(element);
+                    if (!el) return '';
+                    const checked = jPulse.UI.input.segment._radios(el).find((radio) => radio.checked);
+                    return checked ? checked.value : '';
                 }
             }
         },
@@ -6365,6 +6490,22 @@ window.jPulse = {
                         parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-checkbox-group">' +
                             '<input type="checkbox" id="' + inputId + '" name="' + name + '" class="jp-edit-field" ' + dataPathAttr + ' value="true"' + checked + '>' +
                             '<label for="' + inputId + '">' + escapedLabel + '</label></div>' + helpHtml + '</div>');
+                    } else if (inputType === 'segment') {
+                        const optionsArr = (fieldDef.options && fieldDef.options.length) ? fieldDef.options : (fieldDef.enum || []).map((v) => (v && typeof v === 'object' ? v : { value: v, label: String(v) }));
+                        const sizeClass = fieldDef.size === 'sm' ? ' jp-segment-sm' : '';
+                        const equalClass = fieldDef.equal ? ' jp-segment-equal' : '';
+                        const groupDisabled = fieldDef.disabled ? ' aria-disabled="true"' : '';
+                        const ariaLabel = escape(label).replace(/"/g, '&quot;');
+                        const segmentHtml = optionsArr.map((opt, idx) => {
+                            const ov = (opt && typeof opt === 'object' && opt.value !== undefined) ? opt.value : opt;
+                            const lab = (opt && typeof opt === 'object' && opt.label !== undefined) ? escape(String(opt.label)) : escape(String(ov));
+                            const checked = (value === ov || (value !== undefined && value !== null && String(value) === String(ov))) ? ' checked' : '';
+                            const optDisabled = (fieldDef.disabled || (opt && typeof opt === 'object' && opt.disabled)) ? ' disabled' : '';
+                            const rid = inputId + '-' + idx;
+                            return '<label class="jp-segment-item" for="' + rid + '"><input type="radio" id="' + rid + '" name="' + name + '" class="jp-edit-field"' + (idx === 0 ? (dataPathAttr + requiredAttr) : '') + ' value="' + escape(String(ov)) + '"' + checked + optDisabled + '><span>' + lab + '</span></label>';
+                        }).join('');
+                        parts.push('<div class="' + wrapClass + '"' + wrapAttrs + '><div class="jp-form-group"><label class="jp-form-label">' + escapedLabel + '</label>' +
+                            '<div class="jp-segment' + sizeClass + equalClass + '" role="radiogroup" aria-label="' + ariaLabel + '"' + groupDisabled + '>' + segmentHtml + '</div>' + helpHtml + '</div></div>');
                     } else if (inputType === 'radio') {
                         const optionsArr = (fieldDef.options && fieldDef.options.length) ? fieldDef.options : (fieldDef.enum || []).map((v) => (v && typeof v === 'object' ? v : { value: v, label: String(v) }));
                         const layoutClass = fieldDef.layout === 'horizontal' ? ' jp-form-radio-group-horizontal' : '';
@@ -12402,6 +12543,7 @@ window.jPulse = {
                 case 'textarea':
                 case 'select':
                 case 'radio':
+                case 'segment':
                 case 'jpSelect':
                 case 'jpCombo':
                     out.type = 'string';
@@ -13933,6 +14075,7 @@ jPulse.dom.ready(() => {
     jPulse.appCluster._isClusterMode = ('{{appCluster.available}}' === 'true');
     jPulse.UI.sourceCode.initAll();
     jPulse.UI.tooltip.initAll(); // Auto-initialize tooltips (W-126)
+    jPulse.UI.input.segment.initAll();
 
     // Show a batch of queued toast messages - shared by both delivery mechanisms below
     // Format: [{ toastType, message, link?, linkText?, duration? }, ...]

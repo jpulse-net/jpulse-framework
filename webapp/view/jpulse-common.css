@@ -3,13 +3,13 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         2.0.14
- * @release         2026-10-15
+ * @version         2.0.15
+ * @release         2026-11-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.21, Grok 4.7
+ * @genai           60%, Cursor 3.27, Grok 4.7
  */
 
 /* ========================================
@@ -953,6 +953,121 @@ body {
         width: 100%;
         max-width: 200px;
     }
+}
+
+/* ========================================
+ * SEGMENT CONTROL
+ * One connected track of radios. jp-btn-group stays a row of actions.
+ * ======================================== */
+
+.jp-segment {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    border: 1px solid var(--jp-theme-border-color, #dee2e6);
+    border-radius: 4px;
+    overflow-x: auto;
+    vertical-align: middle;
+    background: transparent;
+}
+
+.jp-segment-item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: 0;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    background: transparent;
+    color: var(--jp-theme-text-secondary, #666);
+}
+
+.jp-segment-item + .jp-segment-item {
+    border-left: 1px solid var(--jp-theme-border-color, #dee2e6);
+}
+
+.jp-segment-item:first-child {
+    border-top-left-radius: 3px;
+    border-bottom-left-radius: 3px;
+}
+
+.jp-segment-item:last-child {
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+}
+
+.jp-segment-item input[type="radio"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.jp-segment-item input[type="radio"]:focus {
+    outline: none;
+}
+
+.jp-segment:focus-within {
+    box-shadow: 0 0 0 2px var(--jp-theme-focus-ring, rgba(0, 122, 204, 0.2));
+}
+
+.jp-segment-item:hover:not(:has(input[type="radio"]:checked)):not(:has(input[type="radio"]:disabled)) {
+    background: var(--jp-theme-bg-tertiary, #e9ecef);
+}
+
+.jp-segment-item:has(input[type="radio"]:checked) {
+    background: var(--jp-theme-color-primary, #007acc);
+    color: var(--jp-theme-text-inverse, #ffffff);
+}
+
+.jp-segment-item:hover:has(input[type="radio"]:checked):not(:has(input[type="radio"]:disabled)) {
+    background: var(--jp-theme-color-primary-hover, #0056b3);
+    color: var(--jp-theme-text-inverse, #ffffff);
+}
+
+.jp-segment-item:has(input[type="radio"]:disabled) {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.jp-segment-item:has(input[type="radio"]:disabled) input[type="radio"] {
+    cursor: not-allowed;
+}
+
+.jp-segment-item:has(input[type="radio"]:disabled):not(:has(input[type="radio"]:checked)) {
+    color: var(--jp-theme-text-muted, #999);
+}
+
+.jp-segment.jp-segment-sm {
+    min-height: 0;
+}
+
+.jp-segment-sm .jp-segment-item {
+    padding: 6px 10px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.jp-segment.jp-segment-equal {
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
 }
 
 /* ========================================

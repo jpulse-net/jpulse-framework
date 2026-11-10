@@ -4,13 +4,13 @@
  * @tagline         Interactive UI widget examples and demonstrations
  * @description     Comprehensive examples of jPulse UI widgets including dialogs, accordions, tabs
  * @file            webapp/view/jpulse-examples/ui-widgets.shtml
- * @version         2.0.14
- * @release         2026-10-15
+ * @version         2.0.15
+ * @release         2026-11-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.20, Grok 4.6
+ * @genai           60%, Cursor 3.27, Grok 4.7
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -45,6 +45,18 @@
         [data-theme="dark"] .local-demo-spacer-1 { background: linear-gradient(45deg, #0b2a33, #1b2f53); }
         [data-theme="dark"] .local-demo-spacer-2 { background: linear-gradient(45deg, #2d1b3a, #1f2937); }
         [data-theme="dark"] .local-demo-spacer-3 { background: linear-gradient(45deg, #0f2f1b, #1f2937); }
+
+        .local-segment-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 12px 0 20px;
+        }
+
+        #segment-example-panel > .jp-segment {
+            margin: 8px 0 20px;
+        }
 
         /* Complex dialog demo content: avoid inline styles (keep theme-friendly). */
         .local-dialog-file-list {
@@ -448,8 +460,124 @@ jPulse.dom.ready(() =&gt; {
             </div>
         </div>
 
+        <!-- Segment control -->
+        <h3 class="local-heading-3">2.2 Segment control</h3>
+        <div class="jp-info-box">
+            <p><strong>What you learn:</strong> A single choice drawn as one track. Both labels stay visible, and the selected segment is filled. <code>jp-segment-sm</code> sits beside a small button. <code>jp-segment-equal</code> gives the segments the same width. A disabled segment is skipped.</p>
+            <p><strong>Behind the scenes:</strong> Each option is a radio. <code>jPulse.UI.input.segment</code> adds Home and End. The toolbar example below remembers its value in <code>localStorage</code> from the page. A form field is read with <code>getAllValues</code>, the same way as the other inputs in section 3.2.</p>
+        </div>
+        <div id="segment-demo-tabs" class="jp-tabs"></div>
+        <div id="segment-example-panel" class="jp-panel">
+            <p>Small segment beside a button. Reload the page and this choice is still selected.</p>
+            <div class="local-segment-row">
+                <div id="segment-demo-layout" class="jp-segment jp-segment-sm" aria-label="Layout">
+                    <label class="jp-segment-item">
+                        <input type="radio" name="demo-layout" value="grouped" checked>
+                        <span>Grouped</span>
+                    </label>
+                    <label class="jp-segment-item">
+                        <input type="radio" name="demo-layout" value="flat">
+                        <span>Flat</span>
+                    </label>
+                </div>
+                <button type="button" id="segment-demo-refresh" class="jp-btn jp-btn-sm jp-btn-secondary">Refresh</button>
+                <span id="segment-demo-layout-value" class="jp-text-muted"></span>
+            </div>
+
+            <p>Equal width:</p>
+            <div class="jp-segment jp-segment-equal" aria-label="Range">
+                <label class="jp-segment-item">
+                    <input type="radio" name="demo-range" value="day" checked>
+                    <span>Day</span>
+                </label>
+                <label class="jp-segment-item">
+                    <input type="radio" name="demo-range" value="week">
+                    <span>Week</span>
+                </label>
+                <label class="jp-segment-item">
+                    <input type="radio" name="demo-range" value="month">
+                    <span>Month</span>
+                </label>
+            </div>
+
+            <p>A disabled segment is skipped:</p>
+            <div class="jp-segment" aria-label="Status">
+                <label class="jp-segment-item">
+                    <input type="radio" name="demo-status" value="active" checked>
+                    <span>Active</span>
+                </label>
+                <label class="jp-segment-item">
+                    <input type="radio" name="demo-status" value="archived">
+                    <span>Archived</span>
+                </label>
+                <label class="jp-segment-item">
+                    <input type="radio" name="demo-status" value="locked" disabled>
+                    <span>Locked</span>
+                </label>
+            </div>
+        </div>
+        <div id="segment-source-panel" class="jp-panel">
+            <div class="jp-source-code" data-lang="html">
+&lt;!-- Small segment beside a button --&gt;
+&lt;div id="layout-segment" class="jp-segment jp-segment-sm" aria-label="Layout"&gt;
+    &lt;label class="jp-segment-item"&gt;
+        &lt;input type="radio" name="layout" value="grouped" checked&gt;
+        &lt;span&gt;Grouped&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;label class="jp-segment-item"&gt;
+        &lt;input type="radio" name="layout" value="flat"&gt;
+        &lt;span&gt;Flat&lt;/span&gt;
+    &lt;/label&gt;
+&lt;/div&gt;
+&lt;button type="button" class="jp-btn jp-btn-sm"&gt;Refresh&lt;/button&gt;
+
+&lt;!-- Equal width --&gt;
+&lt;div class="jp-segment jp-segment-equal" aria-label="Range"&gt;
+    &lt;label class="jp-segment-item"&gt;
+        &lt;input type="radio" name="range" value="day" checked&gt;
+        &lt;span&gt;Day&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;label class="jp-segment-item"&gt;
+        &lt;input type="radio" name="range" value="week"&gt;
+        &lt;span&gt;Week&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;label class="jp-segment-item"&gt;
+        &lt;input type="radio" name="range" value="month"&gt;
+        &lt;span&gt;Month&lt;/span&gt;
+    &lt;/label&gt;
+&lt;/div&gt;
+
+&lt;!-- Disabled segment is skipped --&gt;
+&lt;div class="jp-segment" aria-label="Status"&gt;
+    &lt;label class="jp-segment-item"&gt;
+        &lt;input type="radio" name="status" value="active" checked&gt;
+        &lt;span&gt;Active&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;label class="jp-segment-item"&gt;
+        &lt;input type="radio" name="status" value="archived"&gt;
+        &lt;span&gt;Archived&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;label class="jp-segment-item"&gt;
+        &lt;input type="radio" name="status" value="locked" disabled&gt;
+        &lt;span&gt;Locked&lt;/span&gt;
+    &lt;/label&gt;
+&lt;/div&gt;
+
+&lt;script&gt;
+// The page remembers the choice. The widget does not touch localStorage.
+const segment = document.getElementById('layout-segment');
+const key = 'jp:layout';
+const saved = localStorage.getItem(key);
+if (saved) jPulse.UI.input.segment.set(segment, saved);
+segment.addEventListener('change', (event) =&gt; {
+    localStorage.setItem(key, event.target.value);
+});
+&lt;/script&gt;
+            </div>
+        </div>
+
         <!-- Dialog Widget -->
-        <h3 class="local-heading-3">2.2 Dialog Widget</h3>
+        <h3 class="local-heading-3">2.3 Dialog Widget</h3>
         <div class="jp-info-box">
             <p><strong>What you learn:</strong> How to create modal dialogs for user interactions including alerts, confirmations, and custom content dialogs with async/await patterns. Use the <strong>onOpen</strong> callback when your dialog <code>message</code> contains dynamic HTML with input widgets (jpSelect, slider, tagInput) — call <code>jPulse.UI.input.initAll(dialog)</code> inside onOpen so those widgets work. The <strong>Custom Dialog</strong> button opens a form with a text field, three-line textarea, checkbox, and jp-select with search — useful for checking keyboard behavior (caret moves, dropdown keys) inside a modal.</p>
             <p><strong>Behind the scenes:</strong> Uses jPulse's dialog system with promise-based responses, customizable buttons, HTML content support, <code>onOpen</code> (fired before animation), <code>onClose</code>, and automatic focus management.</p>
@@ -710,7 +838,7 @@ document.getElementById('complexBtn').addEventListener('click', async () =&gt; {
         </div>
 
         <!-- Notification System -->
-        <h3 class="local-heading-3">2.3 Non-Blocking Toast Notifications</h3>
+        <h3 class="local-heading-3">2.4 Non-Blocking Toast Notifications</h3>
         <div class="jp-info-box">
             <p><strong>What you learn:</strong> How to display different types of user notifications including success, error, warning, and info messages with customizable duration and styling.</p>
             <p><strong>Behind the scenes:</strong> Uses jPulse's slidedown notification system with automatic positioning, fade animations, and configurable display options.</p>
@@ -767,7 +895,7 @@ jPulse.url.redirect('/dashboard', {
         </div>
 
         <!-- Floating Panel Widget -->
-        <h3 class="local-heading-3">2.4 Floating Panel Widget</h3>
+        <h3 class="local-heading-3">2.5 Floating Panel Widget</h3>
         <div class="jp-info-box">
             <p><strong>What you learn:</strong> How to add a non-modal, draggable, resizable panel that remembers its position and open state across reloads, stacks with other panels by last-active time, and animates to and from a launcher button. Narrow the viewport to see the mobile bottom sheet.</p>
             <p><strong>Behind the scenes:</strong> <code>jPulse.UI.floatPanel.create()</code> owns geometry, persistence, z-order, and the ghost animation. The markup is yours — the widget writes position styles onto the element you pass (MPA) and never injects content into the panel body.</p>
@@ -918,8 +1046,8 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
         <!-- Input Widgets & Form Data Utilities -->
         <h3 class="local-heading-3" id="input-widgets-form-data-utilities">3.2 Input Widgets &amp; Form Data Utilities</h3>
         <div class="jp-info-box">
-            <p><strong>What you learn:</strong> Two input widgets—<strong>tagInput</strong> (list-in-one-input, e.g. roles) and <strong>jpSelect</strong> (enhanced single/multi-select with search, select all/clear all)—and the supporting form-data helpers that work with them and with any form fields.</p>
-            <p><strong>Supporting utilities (not widgets):</strong> <code>jPulse.UI.input.setAllValues(form, data)</code> and <code>getAllValues(form)</code> set or read values by <code>data-path</code>; <code>setFormData(form, data, schema)</code> and <code>getFormData(form, schema)</code> do the same with schema defaults and coercion. They work with tagInput, jpSelect, checkboxes, and standard inputs. See <a href="/jpulse-docs/jpulse-ui-reference#input-utilities-input-widgets-setget-form-data">jPulse UI Reference</a>.</p>
+            <p><strong>What you learn:</strong> Input widgets—<strong>tagInput</strong> (list-in-one-input, e.g. roles), <strong>jpSelect</strong> (enhanced single/multi-select with search, select all/clear all), and <strong>segment</strong> (one choice, drawn as a track)—and the supporting form-data helpers that work with them and with any form fields.</p>
+            <p><strong>Supporting utilities (not widgets):</strong> <code>jPulse.UI.input.setAllValues(form, data)</code> and <code>getAllValues(form)</code> set or read values by <code>data-path</code>; <code>setFormData(form, data, schema)</code> and <code>getFormData(form, schema)</code> do the same with schema defaults and coercion. They work with tagInput, jpSelect, segment, the slider, checkboxes, and standard inputs. See <a href="/jpulse-docs/jpulse-ui-reference#input-utilities-input-widgets-setget-form-data">jPulse UI Reference</a>.</p>
         </div>
         <div id="input-widgets-demo-tabs" class="jp-tabs"></div>
         <div id="input-widgets-example-panel" class="jp-panel">
@@ -964,6 +1092,19 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
                     </select>
                 </div>
                 <div class="jp-form-group">
+                    <label>Layout (segment)</label>
+                    <div id="input-widgets-demo-layout" class="jp-segment" aria-label="Layout">
+                        <label class="jp-segment-item">
+                            <input type="radio" name="demo-form-layout" value="grouped" checked data-path="demo.layout">
+                            <span>Grouped</span>
+                        </label>
+                        <label class="jp-segment-item">
+                            <input type="radio" name="demo-form-layout" value="flat">
+                            <span>Flat</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="jp-form-group">
                     <label for="input-widgets-demo-slider">Volume (slider, 0–100, initial value 25, default 50)</label>
                     <input type="number" id="input-widgets-demo-slider" name="sliderValue" class="jp-form-input" data-slider data-path="demo.sliderValue" data-slider-min="0" data-slider-max="100" data-slider-step="5" data-slider-default="50" value="25">
                 </div>
@@ -995,6 +1136,18 @@ document.getElementById('demo-form').addEventListener('submit', async (e) =&gt; 
     &lt;!-- ... 10 options --&gt;
 &lt;/select&gt;
 
+&lt;!-- segment: one choice, same data-path contract as a radio group --&gt;
+&lt;div class="jp-segment" aria-label="Layout"&gt;
+    &lt;label class="jp-segment-item"&gt;
+        &lt;input type="radio" name="layout" value="grouped" checked data-path="demo.layout"&gt;
+        &lt;span&gt;Grouped&lt;/span&gt;
+    &lt;/label&gt;
+    &lt;label class="jp-segment-item"&gt;
+        &lt;input type="radio" name="layout" value="flat"&gt;
+        &lt;span&gt;Flat&lt;/span&gt;
+    &lt;/label&gt;
+&lt;/div&gt;
+
 &lt;!-- slider: integer value, value in thumb, optional default tick --&gt;
 &lt;input type="number" id="demo-slider" data-slider data-path="demo.sliderValue"
     data-slider-min="0" data-slider-max="100" data-slider-step="5" data-slider-default="50" value="50"&gt;
@@ -1011,11 +1164,11 @@ jPulse.UI.input.jpSelect.init(document.querySelector('#demo-country'), {
 });
 jPulse.UI.input.jpSelect.init(document.querySelector('#demo-tags'), { search: true, selectAll: true });
 jPulse.UI.input.slider.init(document.querySelector('#demo-slider'));
-// Or: jPulse.UI.input.initAll(form);
+// .jp-segment is initialized on DOM ready, and by jPulse.UI.input.initAll(form)
 
 // Set values (e.g. after loading from API)
 jPulse.UI.input.setAllValues(form, {
-    demo: { roles: ['admin', 'user'], country: 'de', tags: ['a', 'c'], sliderValue: 75 }
+    demo: { roles: ['admin', 'user'], country: 'de', tags: ['a', 'c'], layout: 'flat', sliderValue: 75 }
 });
 
 // Read values and show in dialog (or use for API payload)
@@ -1456,6 +1609,37 @@ jPulse.UI.sourceCode.initAll();
                 }
             }
 
+            jPulse.UI.tabs.register('segment-demo-tabs', {
+                tabs: [
+                    { id: 'segment-example-tab', label: 'Example', panelId: 'segment-example-panel' },
+                    { id: 'segment-source-tab', label: 'Source Code', panelId: 'segment-source-panel' }
+                ],
+                slideAnimation: true
+            }, 'segment-example-tab');
+
+            const layoutSegment = document.getElementById('segment-demo-layout');
+            const layoutValue = document.getElementById('segment-demo-layout-value');
+            if (layoutSegment && typeof jPulse.UI.input.segment !== 'undefined') {
+                const layoutKey = 'jp:ui-widgets.layout';
+                let savedLayout = null;
+                try { savedLayout = localStorage.getItem(layoutKey); } catch (err) { savedLayout = null; }
+                if (savedLayout) jPulse.UI.input.segment.set(layoutSegment, savedLayout);
+                const showLayout = () => {
+                    if (layoutValue) layoutValue.textContent = jPulse.UI.input.segment.value(layoutSegment);
+                };
+                showLayout();
+                layoutSegment.addEventListener('change', (event) => {
+                    try { localStorage.setItem(layoutKey, event.target.value); } catch (err) { /* ignore */ }
+                    showLayout();
+                });
+                const layoutRefresh = document.getElementById('segment-demo-refresh');
+                if (layoutRefresh) {
+                    layoutRefresh.addEventListener('click', () => {
+                        jPulse.UI.toast.info('Layout: ' + jPulse.UI.input.segment.value(layoutSegment));
+                    });
+                }
+            }
+
             jPulse.UI.tabs.register('button-demo-tabs', {
                 tabs: [
                     { id: 'button-example-tab', label: 'Example', panelId: 'button-example-panel' },
@@ -1546,7 +1730,7 @@ jPulse.UI.sourceCode.initAll();
             if (inputWidgetsForm && setSampleBtn && getValuesBtn && typeof jPulse.UI.input.setAllValues === 'function') {
                 setSampleBtn.addEventListener('click', () => {
                     jPulse.UI.input.setAllValues(inputWidgetsForm, {
-                        demo: { roles: ['admin', 'editor'], country: 'ch', tags: ['a', 'c', 'e'], sliderValue: 75 }
+                        demo: { roles: ['admin', 'editor'], country: 'ch', tags: ['a', 'c', 'e'], layout: 'flat', sliderValue: 75 }
                     });
                     jPulse.UI.toast.success('Sample values set.');
                 });

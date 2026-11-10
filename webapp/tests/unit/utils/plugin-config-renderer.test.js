@@ -3,13 +3,13 @@
  * @tagline         Unit Tests for plugin.json schema → unified block-structure adapter (W-189)
  * @description     pluginSchemaToBlocks normalization table, flattenBlockValues, integration smoke tests
  * @file            webapp/tests/unit/utils/plugin-config-renderer.test.js
- * @version         2.0.14
- * @release         2026-10-15
+ * @version         2.0.15
+ * @release         2026-11-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.2, Claude Opus 4.7
+ * @genai           80%, Cursor 3.27, Grok 4.7
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
@@ -55,8 +55,8 @@ describe('jPulse.schemaForm.pluginSchemaToBlocks (W-189)', () => {
             });
         });
 
-        test('select/radio/jpSelect/jpCombo → string + inputType=<same>', () => {
-            ['select', 'radio', 'jpSelect', 'jpCombo'].forEach((t) => {
+        test('select/radio/segment/jpSelect/jpCombo → string + inputType=<same>', () => {
+            ['select', 'radio', 'segment', 'jpSelect', 'jpCombo'].forEach((t) => {
                 const out = win.jPulse.schemaForm._normalizePluginFieldDef({ id: 'x', type: t, label: 'X' });
                 expect(out.type).toBe('string');
                 expect(out.inputType).toBe(t);

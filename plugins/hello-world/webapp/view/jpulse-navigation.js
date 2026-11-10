@@ -3,8 +3,8 @@
  * @tagline         Navigation of the Hello World Plugin
  * @description     Navigation for the Hello World Plugin, appended to the framework navigation
  * @file            plugins/hello-world/webapp/view/jpulse-navigation.js
- * @version         2.0.14
- * @release         2026-10-15
+ * @version         2.0.15
+ * @release         2026-11-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

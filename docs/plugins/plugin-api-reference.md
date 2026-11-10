@@ -1,4 +1,4 @@
-# jPulse Docs / Plugins / Plugins API Reference v2.0.14
+# jPulse Docs / Plugins / Plugins API Reference v2.0.15
 
 Complete API reference for jPulse plugin developers.
 
@@ -387,6 +387,7 @@ When `readOnly` is missing or `false`, the profile page renders an input. Use `r
 | `number` | Numeric input | — |
 | `checkbox` | Checkbox toggle (also: omit `inputType` when `type: 'boolean'`) | — |
 | `select` | Dropdown (requires `options`) | `options: [{ value, label }]` or `['str', ...]` |
+| `segment` | Single-choice track. Value is one string | `options: [{ value, label, disabled? }]`, `size: 'sm'`, `equal: true` |
 | `slider` | Range slider widget; value stored as number | `min`, `max`, `step`, `default` (reference tick position), `suffix` (label suffix, e.g. `'px'`) |
 | `tagInput` | Tag input widget; value stored as `string[]` | — |
 

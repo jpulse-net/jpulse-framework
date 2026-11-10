@@ -29957,3 +29957,69 @@ Recorded the publish on W-268 notes. Commit 37c7feb, tag v1.0.22, push 12d8322..
 
 
 ============================================================
+2026-11-09 22:09
+
+Add a segment control to jPulse. A single button with aria-pressed is the wrong control for a choice of two modes. ... needs redesign. Objectives: don't make me think DX; works standalone with status saved in localStorage; works as part of a jp form alongside jpSelect, similar to a simple radio button group.
+
+Redesigned spec, not implemented. jp-segment is a native radio group drawn as one track. Toolbar use adds data-storage and persists in localStorage with no page script. Schema use is inputType: 'segment' with the same options shape as radio, so setAllValues, getAllValues, getFormData, setFormData, and showWhen already apply. jPulse.UI.segment has init, initAll, set (no change event), and value. Selected fill is --jp-theme-color-primary with --jp-theme-text-inverse. Waiting for go-ahead.
+
+
+============================================================
+2026-11-09 22:31
+
+jp-segment might not be the right namespace. Maybe jPulse.UI.input.segment, radioSegment, or jpSegment. CSS if jpSegment: jp-jpsegment or jp-form-jpsegment. localStorage does not need to be handled by the widget; show pros and cons of external JS vs a widget option.
+
+Recommended jPulse.UI.input.segment, inputType segment, CSS jp-segment, matching slider and tagInput. jpSegment would force jp-jpsegment the way jpSelect forced jp-jpselect. jp-form-jpsegment reads as form chrome. localStorage stays in page script; the widget only reports the change. A form field that also writes storage can fight setFormData. Waiting for go-ahead.
+
+
+============================================================
+2026-11-09 22:43
+
+ok, makes sense. please write work item @work-items.md (11519-11530)
+
+Filled W-269 in place. Status left IN_PROGRESS. Heading left at v1.0.23. Spec is jPulse.UI.input.segment, inputType segment, class jp-segment, native radios, no localStorage in the widget, page-owned storage snippet in the docs and the example. jp-btn-group and jp-btn-nav-group stay. Version headers not to be touched.
+
+
+============================================================
+2026-11-09 23:07
+
+- looks good
+- implement
+- document
+- add example in /jpulse-examples/ui-widgets.shtml
+
+Implemented jPulse.UI.input.segment. Class jp-segment, native radios, schema inputType segment. localStorage stays in the page. Example is section 2.2 of /jpulse-examples/ui-widgets.shtml, plus a Layout field in the input-widgets form. Docs updated in the style reference, UI reference, genai instructions, plugin API, and front-end development. Focus ring sits on the track so the sideways scroll does not clip it. Checked in the browser in light and dark, including click, reload, Home/End, the form Get/Set buttons, and a narrow viewport. Unit tests: 72 passed. W-269 left IN_PROGRESS. README and CHANGELOG left for release prep because the work item heading says v1.0.23 while the framework notes are at 2.0.14.
+
+
+============================================================
+2026-11-09 23:19
+
+- looks good
+- change "groups" => "grouped", "list" => "flat"
+
+Renamed the segment example from Groups/List to Grouped/Flat, values grouped and flat. Updated the widgets example, its source, the form field, the style reference, the UI reference, the work item schema default, and the unit tests. Tests passed. Reload the widgets page to see it.
+
+
+============================================================
+2026-11-09 23:29
+
+anything left before release prep?
+
+Feature work for W-269 is done. Release prep still needs the full test run, README and docs/README highlights, CHANGELOG, and commit-message.txt, all as v2.0.15. The work item heading is already v2.0.15; the last two deliverable bullets still say v1.0.23.
+
+
+============================================================
+2026-11-09 23:32
+
+release prep:
+- assume W-269, v2.0.15, 2026-11-09
+- review tt-git-diff.txt for accuracy and completness of work item
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Release prep for W-269, v2.0.15, 2026-11-09. Reviewed tt-git-diff.txt against the work item. Updated the disabled-segment feature line, added front-end-development.md to the deliverables, and changed the highlight and changelog lines from v1.0.23 to v2.0.15. Status left IN_PROGRESS. Added the v2.0.15 highlight to README.md and docs/README.md, the changelog section, and commit-message.txt. Version headers were not bumped. npm test exited 0. Nothing was committed.
+
+
+============================================================

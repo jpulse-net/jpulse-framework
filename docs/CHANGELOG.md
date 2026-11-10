@@ -1,6 +1,45 @@
-# jPulse Docs / Version History v2.0.14
+# jPulse Docs / Version History v2.0.15
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.15, W-269, 2026-11-09
+
+**Commit:** `W-269, v2.0.15, 2026-11-09: jPulse.UI: new jPulse.UI.input.segment widget`
+
+**FEATURE RELEASE**: A single choice is drawn as one connected track. Both labels stay visible. The selected segment uses the primary fill.
+
+**Objective**: A toolbar and a schema form share one control. The control is a native radio group, so the existing form helpers read it. Remembering the choice in `localStorage` stays in the page.
+
+**Key features**:
+- Class `jp-segment`. Each option is a `<label class="jp-segment-item">` with a visually hidden radio. `jp-segment-sm` matches `.jp-btn-sm`. `jp-segment-equal` gives every segment the width of the widest label. The track stays on one row and scrolls sideways when the labels do not fit
+- `jPulse.UI.input.segment` has `init`, `initAll`, `set`, and `value`. `set` does not dispatch `change` and does not touch `localStorage`. DOM ready and `jPulse.UI.input.initAll` both call `initAll`
+- Tab, Left, and Right are the browser's radio behavior. Home and End move to the first and last enabled option. Enter still submits the form
+- Schema field: `type: 'string'`, `inputType: 'segment'`, same `options` shape as `radio`. Flat keys `size: 'sm'` and `equal: true`. `plugin.json` `type: 'segment'` normalizes like `radio`
+- Focus ring is on the track, the same ring a form input uses. A disabled segment uses the reduced opacity of `.jp-btn:disabled`. An unselected disabled segment uses muted text. A selected disabled segment keeps the primary fill
+- Demo at `/jpulse-examples/ui-widgets.shtml` §2.2, including one segment in the input-widgets form
+- Docs: `jpulse-ui-reference.md`, `style-reference.md`, `front-end-development.md`, `plugins/plugin-api-reference.md`, `genai-instructions.md`
+
+**Files changed**:
+- `webapp/view/jpulse-common.css`: `.jp-segment`, `.jp-segment-item`, `.jp-segment-sm`, `.jp-segment-equal`
+- `webapp/view/jpulse-common.js`: `jPulse.UI.input.segment`, schema render, plugin field normalization
+- `webapp/view/jpulse-examples/ui-widgets.shtml`: section 2.2 and the form field in section 3.2
+- `webapp/tests/unit/utils/jpulse-ui-input-segment.test.js`: init, keyboard, set/value, form round-trip
+- `webapp/tests/unit/utils/jpulse-ui-tabs-schema.test.js`: `inputType: 'segment'` markup
+- `webapp/tests/unit/utils/plugin-config-renderer.test.js`: `type: 'segment'` normalization
+- `docs/jpulse-ui-reference.md`: segment widget, inputType table, flat keys, normalization row
+- `docs/style-reference.md`: Segment control, after Button groups
+- `docs/front-end-development.md`: `segment` in the schema render list
+- `docs/plugins/plugin-api-reference.md`: editable-field `inputType` row
+- `docs/genai-instructions.md`: `segment` in the schema `inputType` list (hardlinked under `webapp/static/assets/jpulse-docs/`)
+- `docs/dev/work-items.md`: W-269 features and deliverables as-built
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.15 / W-269
+- `docs/CHANGELOG.md`: this section
+
+**Release**:
+- Work Item: W-269
+- Version: v2.0.15
+- Release Date: 2026-11-09
 
 ________________________________________________
 ## v2.0.14, W-266, 2026-10-15

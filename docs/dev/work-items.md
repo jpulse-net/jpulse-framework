@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.14
+# jPulse Docs / Dev / Work Items v2.0.15
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -11516,6 +11516,100 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 -------------------------------------------------------------------------
 ## 🚧 IN_PROGRESS Work Items
 
+### W-269, v2.0.15, 2026-11-09: jPulse.UI: new jPulse.UI.input.segment widget
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - add `jPulse.UI.input.segment`, a single-choice control drawn as one connected track. Both labels stay visible. The selected segment is a solid primary fill. An unselected segment has no fill
+  - the control is a native radio group. `setAllValues`, `getAllValues`, `setFormData`, `getFormData`, and `showWhen` already read radios, so a segment in a schema form works beside `jpSelect` with no new form plumbing
+  - standalone markup works in a toolbar with no page script for selection. Remembering the value in `localStorage` stays page script. The widget does not read or write storage
+  - leave `jp-btn-group` as a row of independent actions and `jp-btn-nav-group` as a path with arrows
+- prerequisits:
+  - W-189: radio handling in `setAllValues` / `getAllValues` / `showWhen` (`_getFormFieldValue`), and `inputType: 'radio'` in `_renderSchemaBlockFields`. Segment reuses that path
+- rationale:
+  - a single button with `aria-pressed` is the wrong control for a choice of two modes. In a dark toolbar, next to a normal button, the pressed and unpressed states look alike
+  - the widget lives at `jPulse.UI.input.segment`, schema `inputType: 'segment'`, class `jp-segment`. Same shape as `slider` / `tagInput`: there is no native `<segment>` to disambiguate, so the name does not grow a `jp` prefix. `jpSelect` has that prefix only because `<select>` was already taken, and the class then became `jp-jpselect`. `jp-form-jpsegment` would read as form chrome (`jp-form-input`, `jp-form-radio-group`); this control also sits in a toolbar
+  - storage stays outside the widget. A form field that also wrote `localStorage` could overwrite the value `setFormData` just applied. A segment value is one string; the page already owns other preferences the same way. The float panel stores geometry inside the widget because reimplementing drag position is a different size of job
+- features:
+  - markup. The group is `role="radiogroup"` with `aria-label`. Each option is a `<label class="jp-segment-item">` containing `<input type="radio">` and a `<span>` for the label. The input is visually hidden and stays focusable. The label is the hit target. Do not add `role="radio"` or `aria-checked`; the native radio already exposes the checked state
+  - one option is selected. A click selects that radio and clears the others. The `change` event is the radio's own bubbling `change`. The value is `event.target.value`
+  - track. Shared border, no gap, radius only on the outer ends. `flex-wrap: nowrap` and `white-space: nowrap`. It does not stack the way a button group can. When the labels do not fit, the track scrolls sideways (`overflow-x: auto`). A ring on the item is clipped by that scroll, so the focus ring is on the track
+  - sizes. Default matches a form field: `min-height: 42px`, padding `8px 12px`, font-size `14px`, in line with `.jp-jpselect-trigger`. `jp-segment-sm` matches `.jp-btn-sm` (padding `6px 10px`, font-size `12px`, line-height `1.4`). `jp-segment-equal` is `inline-grid` with `grid-auto-flow: column` and `grid-auto-columns: 1fr`, so each segment is as wide as the widest label and the track stays only as wide as that row
+  - selected segment: background `var(--jp-theme-color-primary, #007acc)`, text `var(--jp-theme-text-inverse, #ffffff)`. Unselected: no fill, text `var(--jp-theme-text-secondary, #666)`. Hover on an unselected segment: `var(--jp-theme-bg-tertiary, #e9ecef)`. Hover on the selected segment: `var(--jp-theme-color-primary-hover, #0056b3)`. Border: `var(--jp-theme-border-color, #dee2e6)`. Focus: `box-shadow: 0 0 0 2px var(--jp-theme-focus-ring, rgba(0, 122, 204, 0.2))` on `.jp-segment:focus-within`, same ring the form inputs use. The selected fill shows which option has the keyboard. A disabled segment uses the same reduced opacity as `.jp-btn:disabled`. An unselected disabled segment uses `var(--jp-theme-text-muted, #999)`. A selected disabled segment keeps the primary fill. No new colors. `--jp-theme-primary` and `--jp-theme-text-on-primary` do not exist
+  - keyboard. Tab lands on the selected radio (browser behavior for a same-name group). Left and Right move the selection, wrap, and skip a disabled radio (native). Home and End, added in `init`, move to the first and last enabled radio and dispatch `change` only when the selection changes. Enter still submits the form
+  - a disabled radio is skipped and ignores clicks. `aria-disabled="true"` on the group makes `init` set `disabled` on every radio. A schema field with `disabled: true` renders every radio disabled and sets `aria-disabled` on the group. A disabled group does nothing
+  - `init(element)` is idempotent (`data-jp-segment-inited="1"`). A missing `name` is filled with a generated name shared by that group only, so two segments on one page stay separate. When no enabled radio is checked, `init` checks the first enabled radio and does not dispatch `change`
+  - `initAll(root)` finds `.jp-segment` under `root` (document when omitted). Called from `jPulse.dom.ready` and from `jPulse.UI.input.initAll`, so a dialog that inits its inputs picks the segment up too
+  - `set(element, value)` checks the enabled radio with that value. Unknown or disabled values leave the current selection. No `change` event. No `localStorage` write
+  - `value(element)` returns the checked radio's value, or `''`
+  - schema field, same options shape as `radio`:
+    ```
+    layout: {
+        type: 'string',
+        inputType: 'segment',
+        label: 'Layout',
+        default: 'grouped',
+        size: 'sm',
+        equal: true,
+        options: [
+            { value: 'grouped', label: 'Grouped' },
+            { value: 'flat', label: 'Flat', disabled: true }
+        ]
+    }
+    ```
+    `size: 'sm'` adds `jp-segment-sm`. `equal: true` adds `jp-segment-equal`. `data-path` and `required` go on the first radio, same as `inputType: 'radio'`. `name` follows the other fields (`data.<block>.<path>`). An option `disabled: true` disables that radio. `plugin.json` `type: 'segment'` normalizes to `type: 'string'`, `inputType: 'segment'`, in the same switch arm as `radio`
+  - page-owned storage, shown in the example source and the UI reference, not implemented by the widget. `set` does not dispatch `change`, so restoring on load does not write the key again:
+    ```
+    const key = 'jp:layout';
+    const saved = localStorage.getItem(key);
+    if (saved) jPulse.UI.input.segment.set(segment, saved);
+    segment.addEventListener('change', (event) => {
+        localStorage.setItem(key, event.target.value);
+    });
+    ```
+- deliverables:
+  - `webapp/view/jpulse-common.css`:
+    - `.jp-segment`, `.jp-segment-item`, `.jp-segment-sm`, `.jp-segment-equal`, and the visually hidden radio, after the button-group rules and before `.jp-btn-nav-group`. Do not change `.jp-btn-group` or `.jp-btn-nav-group`
+  - `webapp/view/jpulse-common.js`:
+    - `jPulse.UI.input.segment` with `init`, `initAll`, `set`, `value`, placed with the other `jPulse.UI.input` widgets
+    - `jPulse.UI.input.initAll` calls `segment.initAll(root)`
+    - `jPulse.dom.ready` calls `segment.initAll()`
+    - `_renderSchemaBlockFields`: `inputType === 'segment'` branch, same option walk as `radio`
+    - `_normalizePluginFieldDef`: `case 'segment'` falls through with `radio` / `jpSelect` / `jpCombo` to `type: 'string'`, `inputType: 'segment'`
+  - `webapp/tests/unit/utils/jpulse-ui-input-segment.test.js` (new):
+    - `init` on a missing element is a no-op. A second `init` does not bind Home/End twice
+    - click checks one radio, clears the other, dispatches one `change`, and `value()` returns it
+    - `set` checks without a `change` event. An unknown or disabled value leaves the selection
+    - a disabled radio ignores click. `aria-disabled="true"` on the group disables every radio
+    - a missing `name` becomes one generated name for that group. No checked radio becomes the first enabled radio, with no `change`
+    - Home and End move to the ends. `change` fires only when the selection changes
+    - `getAllValues` / `setAllValues` round-trip a `data-path` on the first radio
+    - the widget source does not mention `localStorage`
+  - `webapp/tests/unit/utils/jpulse-ui-tabs-schema.test.js`:
+    - `inputType: 'segment'` renders `.jp-segment`, one `type="radio"` per option, `data-path` on the first radio, `jp-segment-sm` when `size: 'sm'`, `jp-segment-equal` when `equal: true`, and `disabled` on a disabled option
+  - `webapp/tests/unit/utils/plugin-config-renderer.test.js`:
+    - `type: 'segment'` normalizes to `type: 'string'`, `inputType: 'segment'`. Add `'segment'` to the existing `select` / `radio` / `jpSelect` / `jpCombo` case list
+  - `webapp/static/assets/jpulse-docs/style-reference.md`:
+    - new "Segment control" section after Button groups. Show the markup, `jp-segment-sm`, an equal-width Day / Week / Month row, and a disabled segment
+  - `webapp/view/jpulse-examples/ui-widgets.shtml`:
+    - a working example with the source beside it, same Example / Source tabs as the other widgets. Live: small segment beside a `jp-btn-sm`, the equal Day / Week / Month row, a disabled segment, and one segment inside the existing input-widgets form so "Get form values" includes it next to jpSelect. The source tab shows the four-line `localStorage` snippet as page code
+  - `docs/jpulse-ui-reference.md`:
+    - new segment section next to the other input widgets: markup, `init` / `initAll` / `set` / `value`, keyboard, the page-owned storage snippet
+    - add `segment` to the `inputType` table and to the other `inputType` lists in that file. Flat keys `size` and `equal`. Normalization table: `segment` joins the `select` / `radio` / `jpSelect` / `jpCombo` row (`string` + `inputType: <same>`)
+  - `docs/genai-instructions.md`:
+    - add `segment` to the schema `inputType` list. This file is hardlinked at `webapp/static/assets/jpulse-docs/genai-instructions.md`; one edit updates both
+  - `docs/plugins/plugin-api-reference.md`:
+    - add `segment` to the editable-field `inputType` table
+  - `docs/front-end-development.md`:
+    - add `segment` to the schema field types that `renderTabsAndPanelsFromSchema` renders
+  - `README.md`, `docs/README.md` — Latest Release Highlights — v2.0.15 / W-269
+  - `docs/CHANGELOG.md` — v2.0.15 / W-269 section
+- notes:
+  - do not touch `@version` / `@release` headers. The bump script does that
+  - check the example in the light theme and the dark theme. In both, the selected segment is obvious from the fill alone
+  - `jp-btn-group` and `jp-btn-nav-group` stay as they are
+  - a form segment omits storage. The toolbar example is the place that shows the four lines
+
 
 
 
@@ -11529,6 +11623,7 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 - admin can register user: random password, "must change password" flag
 
 ai pending:
+- voice input for user prompt
 - mcp server for ai-assisted development (ref NestJS)
 
 old pending:
@@ -11549,7 +11644,7 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix issues
-- assume W-266, v2.0.14, 2026-10-15
+- assume W-269, v2.0.15, 2026-11-09
 - review tt-git-diff.txt for accuracy and completness of work item
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
@@ -11569,12 +11664,12 @@ plugin release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.14 2026-10-15
+node bin/bump-version.js 2.0.15 2026-11-09
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.14; git push origin main --tags
+git tag v2.0.15; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa

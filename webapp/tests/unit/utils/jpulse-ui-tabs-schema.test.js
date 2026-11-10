@@ -3,13 +3,13 @@
  * @tagline         Unit Tests for renderTabsAndPanelsFromSchema and schema flow (W-148 Phase 4)
  * @description     Low-hanging fruit: _walkSchemaFields, renderTabsAndPanelsFromSchema flow classes and field HTML
  * @file            webapp/tests/unit/utils/jpulse-ui-tabs-schema.test.js
- * @version         2.0.14
- * @release         2026-10-15
+ * @version         2.0.15
+ * @release         2026-11-09
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.4, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.27, Grok 4.7
  */
 
 import { describe, test, expect, beforeEach } from '@jest/globals';
@@ -317,6 +317,35 @@ describe('jPulse.UI.tabs schema-driven (W-148 Phase 4)', () => {
             };
             const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, { roles: ['a'] });
             expect(html).toMatch(/<select[^>]*data-jpselect[^>]*multiple/);
+        });
+
+        test('segment inputType renders a jp-segment radio track', () => {
+            const blockDef = {
+                _meta: {},
+                layout: {
+                    type: 'string',
+                    inputType: 'segment',
+                    label: 'Layout',
+                    size: 'sm',
+                    equal: true,
+                    options: [
+                        { value: 'grouped', label: 'Grouped' },
+                        { value: 'flat', label: 'Flat', disabled: true },
+                        { value: 'board', label: 'Board' }
+                    ]
+                }
+            };
+            const html = win.jPulse.UI.tabs._renderSchemaBlockFields('blk', blockDef, { layout: 'grouped' });
+            expect(html).toContain('class="jp-segment jp-segment-sm jp-segment-equal"');
+            expect(html).toContain('role="radiogroup"');
+            expect(html).toContain('aria-label="Layout"');
+            expect(html.match(/type="radio"/g)).toHaveLength(3);
+            expect(html.match(/data-path="/g)).toHaveLength(1);
+            expect(html).toContain('data-path="blk.layout"');
+            expect(html).toContain('value="grouped" checked');
+            expect(html).toContain('value="flat" disabled');
+            expect(html).toContain('value="board"');
+            expect(html).not.toMatch(/value="board"[^>]*disabled/);
         });
 
         test('radio inputType renders <input type="radio"> for each option', () => {

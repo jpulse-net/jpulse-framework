@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v2.0.14
+# jPulse Docs / Site Administrator & Developer Documentation v2.0.15
 
 **For Site Administrators & Site Developers**
 
@@ -249,6 +249,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v2.0.15, W-269, 2026-11-09: jPulse.UI: new jPulse.UI.input.segment widget**: A single choice is drawn as one track (`jp-segment`). Both labels stay visible, and the selected segment uses the primary fill. It is a native radio group, so `setAllValues`, `getAllValues`, `setFormData`, `getFormData`, and `showWhen` read it the same way as `radio`. A schema field uses `inputType: 'segment'` (`size: 'sm'`, `equal: true`). Remembering the choice in `localStorage` stays in the page. Demo at `/jpulse-examples/ui-widgets.shtml` §2.2. Docs: [UI reference](jpulse-ui-reference.md), [Style reference](style-reference.md), [Front-End Development](front-end-development.md), [Plugin API](plugins/plugin-api-reference.md).
 - **v2.0.14, W-266, 2026-10-15: Utils: load a plain-JS view template on the server**: A view `.tmpl` that is plain JavaScript runs in the page with `{{file.include}}` and on the server with `SharedModule.load`. The file names one top-level binding with `@export` in its header. The path is the include path. Resolution is site, then plugins, then framework, and the result is cached the same way an include is. `{{!-- --}}` comments are allowed; any other `{{` in code is rejected. Docs: [Template reference](template-reference.md).
 - **v2.0.13, W-265, 2026-10-15: jPulse.UI.tooltip: clip a long word in an HTML table**: An HTML table inside a tooltip stays inside the popup (300px, or 250px under 768px). Columns before the last stay as wide as their text. A word that does not fit the last column is cut with an ellipsis; words with spaces still wrap. A plain-text tooltip is unchanged. Docs: [UI reference](jpulse-ui-reference.md).
 - **v2.0.12, W-263, 2026-10-08: jPulse.UI.tabs: open a panel tab from the URL; jpSelect mobile fix**: A link such as `/admin/config.shtml#ai-tab` opens that panel tab when the page loads. The hash wins over the default tab. Clicking a tab does not change the URL, and a hash that is not a tab id (a heading) is left alone. Schema tabs are `{blockKey}-tab`. Plugin-config tabs are the tab-label slug plus `-tab` (`Providers` → `#providers-tab`). jpSelect chooses an option on mousedown, so a tap still selects when the search field blurs first. Docs: [UI reference](jpulse-ui-reference.md), [Front-End Development](front-end-development.md), [Creating Plugins](plugins/creating-plugins.md), [API Reference](api-reference.md), [Sending Email](sending-email.md), [Site Administration](site-administration.md).

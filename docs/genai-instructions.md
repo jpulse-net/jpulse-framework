@@ -1,4 +1,4 @@
-# jPulse Docs / Generative-AI Instructions for AI Assistants v2.0.14
+# jPulse Docs / Generative-AI Instructions for AI Assistants v2.0.15
 
 Instructions for AI assistants working with jPulse Framework site development. This document contains critical framework conventions, patterns, and guidance for generating correct code suggestions.
 
@@ -55,7 +55,7 @@ This is not the in-site agent. For a scoped agent that calls site tools from a c
    - See [jPulse.UI Widget Reference](jpulse-ui-reference.md)
    - **Config-style forms**: Use schema-driven tabs/panels and setFormData/getFormData; see [Schema-driven config forms](front-end-development.md#-schema-driven-config-forms) in the Front-End Development Guide
    - **Schema-form generator**: For dynamic forms (config UI, plugin config, widget settings), prefer the schema-driven flow over hand-rolling field renderers:
-     - Set `inputType` per field (`text`, `email`, `number`, `select`, `jpSelect`, `jpCombo`, `radio`, `checkboxGroup`, `tagInput`, `slider`, `fieldGrid`, `help`, `separator`, etc.)
+     - Set `inputType` per field (`text`, `email`, `number`, `select`, `jpSelect`, `jpCombo`, `radio`, `segment`, `checkboxGroup`, `tagInput`, `slider`, `fieldGrid`, `help`, `separator`, etc.). `segment` is one choice drawn as a track (`size: 'sm'`, `equal: true`); the page owns any `localStorage`
      - For **`fieldGrid`** (typed-column table stored as array of row objects): set `columns[]` with per-column `inputType` (`text`/`number`/`select`/`checkbox`), optional `emptyRows` (default 2), `maxRows` (default 16); value is `[{ colId: value, … }, …]`; empty rows are not persisted
      - For widgets, use **flat tuning keys** on the field def: `search`, `searchPlaceholder`, `selectAll`, `allowCustom`, `multiple` (matches the existing `slider` precedent — no nested `widgetOptions` wrapper)
      - For async option lists, set `loadOptions: async (ctx) => […]` (function in JS schemas; named string in `plugin.json` resolved via `jPulse.schemaForm.register(name, fn)`)

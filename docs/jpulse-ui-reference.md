@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v2.0.14
+# jPulse Docs / jPulse.UI Widget Reference v2.0.15
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -11,7 +11,7 @@ Complete reference documentation for all `jPulse.UI.*` widgets available in the 
 - [Collapsible Components](#collapsible-components) - Expandable/collapsible sections
 - [Accordion Component](#accordion-component) - Grouped sections with mutual exclusion
 - [Tab Interface](#tab-interface) - Navigation and panel tabs
-- [Input utilities: input widgets, set/get form data)](#input-utilities-input-widgets-setget-form-data) - tagInput widget, jpSelect widget, setAllValues/getAllValues, setFormData/getFormData
+- [Input utilities: input widgets, set/get form data)](#input-utilities-input-widgets-setget-form-data) - tagInput widget, jpSelect widget, segment widget, setAllValues/getAllValues, setFormData/getFormData
 - [Source Code Display](#source-code-display) - Syntax-highlighted code blocks
 - [Tooltip Component](#tooltip-component) - Helpful tooltips on any element
 - [Pagination Helper](#pagination-helper) - Cursor-based pagination state management
@@ -757,7 +757,7 @@ jPulse.UI.input.tagInput.setSuggestions(tagsInput, allTags);
 
 #### `jPulse.UI.input.initAll(container?)`
 
-Namespace-level: inits all input widget types in container (e.g. `[data-taginput]` → tagInput.init, `select[data-jpselect]` → jpSelect.init, `select[data-jpcombo]` → jpCombo.init, `input[data-slider]` → slider.init, `input[data-field-grid]` → fieldGrid row sync). One call after populateForm; no listing ids.
+Namespace-level: inits all input widget types in container (e.g. `[data-taginput]` → tagInput.init, `select[data-jpselect]` → jpSelect.init, `select[data-jpcombo]` → jpCombo.init, `input[data-slider]` → slider.init, `.jp-segment` → segment.init, `input[data-field-grid]` → fieldGrid row sync). One call after populateForm; no listing ids. `.jp-segment` is also initialized on DOM ready.
 
 **Parameters:** `container` (Element|undefined) - Form or container; defaults to `document` if omitted
 
@@ -887,7 +887,66 @@ jPulse.UI.input.initAll(configForm);
 
 If `data-slider-default` (or `options.default`) is set, a small vertical line is drawn on the track at that value. If default is not set, no tick is shown.
 
-**Schema-driven forms:** When rendering forms from a schema (e.g. `jPulse.UI.tabs.renderTabsAndPanelsFromSchema` with config or plugin schema), you can use **`inputType: 'slider'`** on a field to render a slider instead of a plain number input. The field should have `type: 'number'` and may include `min`, `max`, `step`, `default` (for the default tick), and `suffix` (for the thumb label, e.g. `"%"` or `" ms"`). The rendered input will have `data-slider` and the appropriate `data-slider-*` attributes; call `jPulse.UI.input.initAll(form)` after populating so the slider is initialized. Supported schema inputTypes for form rendering include: `checkbox`, `tagInput`, `textarea`, `number`, **`slider`**, `select`, `jpSelect`, `jpCombo`, `radio`, `checkboxGroup`, **`fieldGrid`**, **`custom`**, `help`, `separator`, `button`, `password`, `text`, `email`, `url`, `tel`.
+**Schema-driven forms:** When rendering forms from a schema (e.g. `jPulse.UI.tabs.renderTabsAndPanelsFromSchema` with config or plugin schema), you can use **`inputType: 'slider'`** on a field to render a slider instead of a plain number input. The field should have `type: 'number'` and may include `min`, `max`, `step`, `default` (for the default tick), and `suffix` (for the thumb label, e.g. `"%"` or `" ms"`). The rendered input will have `data-slider` and the appropriate `data-slider-*` attributes; call `jPulse.UI.input.initAll(form)` after populating so the slider is initialized. Supported schema inputTypes for form rendering include: `checkbox`, `tagInput`, `textarea`, `number`, **`slider`**, `select`, `jpSelect`, `jpCombo`, `radio`, **`segment`**, `checkboxGroup`, **`fieldGrid`**, **`custom`**, `help`, `separator`, `button`, `password`, `text`, `email`, `url`, `tel`.
+
+---
+
+### segment widget
+
+A single choice drawn as one track. Both labels stay visible. The selected segment uses the primary fill. An unselected segment has no fill. The control is a native radio group, so `setAllValues`, `getAllValues`, `setFormData`, `getFormData`, and `showWhen` read it the same way they read `inputType: 'radio'`.
+
+`jp-btn-group` stays a row of independent actions. `jp-btn-nav-group` stays a path with arrows.
+
+**Markup:**
+
+```html
+<div class="jp-segment jp-segment-sm" aria-label="Layout">
+    <label class="jp-segment-item">
+        <input type="radio" name="layout" value="grouped" checked>
+        <span>Grouped</span>
+    </label>
+    <label class="jp-segment-item">
+        <input type="radio" name="layout" value="flat">
+        <span>Flat</span>
+    </label>
+</div>
+```
+
+`jp-segment-sm` matches the height of `.jp-btn-sm`. The default size matches a form field (about 42px, in line with `.jp-jpselect-trigger`). `jp-segment-equal` makes every segment as wide as the widest label, and the track stays only as wide as that row. The track stays on one row. When the labels do not fit, it scrolls sideways. Focus draws the same ring a form input uses, around the track.
+
+**Keyboard:** Tab lands on the selected radio. Left and Right move the selection, wrap, and skip a disabled radio. Home and End move to the first and last enabled radio. Enter still submits the form.
+
+**`jPulse.UI.input.segment.init(element)`** binds Home/End and, when `name` is missing, assigns one generated name to that group. A second call on the same element does nothing. `initAll(root)` finds every `.jp-segment` under `root` (document when `root` is omitted). DOM ready calls `initAll()`, and `jPulse.UI.input.initAll` does too.
+
+**`set(element, value)`** selects that value and does not dispatch `change`. An unknown or disabled value leaves the current selection. **`value(element)`** returns the checked value, or `''`. `element` may be the group element or a selector.
+
+The widget does not read or write `localStorage`. A toolbar page that wants to remember the choice does this. `set` does not dispatch `change`, so restoring on load does not write the key again:
+
+```javascript
+const key = 'jp:layout';
+const saved = localStorage.getItem(key);
+if (saved) jPulse.UI.input.segment.set(segment, saved);
+segment.addEventListener('change', (event) => {
+    localStorage.setItem(key, event.target.value);
+});
+```
+
+**Schema:** `type: 'string'`, `inputType: 'segment'`, same `options` shape as `radio`. Flat keys: `size: 'sm'`, `equal: true`. An option `disabled: true` disables that radio. `disabled: true` on the field disables the group. `data-path` and `required` go on the first radio. `plugin.json` `type: 'segment'` normalizes like `radio`.
+
+```javascript
+layout: {
+    type: 'string',
+    inputType: 'segment',
+    label: 'Layout',
+    default: 'grouped',
+    size: 'sm',
+    equal: true,
+    options: [
+        { value: 'grouped', label: 'Grouped' },
+        { value: 'flat', label: 'Flat' }
+    ]
+}
+```
 
 ---
 
@@ -950,7 +1009,7 @@ Untouched sensitive fields (mask or empty, not edited after load) are omitted so
 
 **When to use:** Use **setFormData/getFormData** when you have a complete schema and want one-line set/get with defaults and coercion. Use **setAllValues/getAllValues** when you have no schema or apply defaults yourself.
 
-**Schema inputTypes:** Fields in the schema can set `inputType` to control how they are rendered: `checkbox`, `tagInput`, `textarea`, `number`, `slider`, `select`, `jpSelect`, `jpCombo`, `radio`, `checkboxGroup`, `fieldGrid`, `help`, `separator`, `email`, `url`, `tel`, `password`, `button`, or `text`. For `inputType: 'slider'`, the field may also specify `min`, `max`, `step`, and `default` (for the default tick); the rendered input is then initialized via `jPulse.UI.input.initAll(form)`. For `inputType: 'fieldGrid'`, see [fieldGrid — structured typed-column grid](#fieldgrid--structured-typed-column-grid).
+**Schema inputTypes:** Fields in the schema can set `inputType` to control how they are rendered: `checkbox`, `tagInput`, `textarea`, `number`, `slider`, `select`, `jpSelect`, `jpCombo`, `radio`, `segment`, `checkboxGroup`, `fieldGrid`, `help`, `separator`, `email`, `url`, `tel`, `password`, `button`, or `text`. For `inputType: 'slider'`, the field may also specify `min`, `max`, `step`, and `default` (for the default tick); the rendered input is then initialized via `jPulse.UI.input.initAll(form)`. For `inputType: 'fieldGrid'`, see [fieldGrid — structured typed-column grid](#fieldgrid--structured-typed-column-grid).
 
 ---
 
@@ -977,6 +1036,7 @@ These are independent. `{ type: 'string', inputType: 'jpCombo' }` says "the valu
 | `slider` | jPulse slider | Honors flat `min`, `max`, `step`, `default`, `suffix` |
 | `checkbox` | Single `<input type="checkbox">` | Default for `type: 'boolean'` |
 | `radio` | Group of `<input type="radio">` from `options` | Honors `layout: 'horizontal'` |
+| `segment` | Connected track of radios (`.jp-segment`) | Same `options` as `radio`. Flat `size: 'sm'`, `equal: true`. See [segment widget](#segment-widget) |
 | `checkboxGroup` | Group of checkboxes from `options` | Multi-value array via `name="…[]"` |
 | `select` | Native `<select>` | Default when `options` / `enum` present |
 | `jpSelect` | Searchable enhanced select widget | Honors flat `search`, `selectAll`, `searchPlaceholder`, `multiple` |
@@ -1013,7 +1073,9 @@ Common widget options live as **flat keys on the field def** (matches the existi
 | `selectAll` | `jpSelect` (when `multiple`) | Adds a "Select all" toggle in the dropdown |
 | `allowCustom` | `jpCombo` (default `true`) | Set to `false` to make it a searchable-select that reverts non-list typing |
 | `placeholder` | text-like + selects | `<input placeholder>` / placeholder option for combo |
-| `required` | text/select/textarea/number/radio | Adds HTML5 `required` (skipped for hidden fields, see `showWhen`) |
+| `required` | text/select/textarea/number/radio/segment | Adds HTML5 `required` (skipped for hidden fields, see `showWhen`) |
+| `size` | `segment` | `'sm'` adds `jp-segment-sm` so the track matches `.jp-btn-sm`. Default matches a form field |
+| `equal` | `segment` | `true` adds `jp-segment-equal`. Each segment is as wide as the widest label |
 | `readonly` | text-like | `readonly` attribute |
 
 For uncommon, advanced widget callbacks (`onOptionPreview`, `onCustomValue`, `separator`, `captionFormatSome` / `captionFormatAll`), reach via `onInit(ctx)` and mutate `ctx.widgetOptions` before widget init runs.
@@ -1210,7 +1272,7 @@ When `pluginSchemaToBlocks` adapts a flat plugin.json schema, it normalizes lega
 | Legacy `plugin.json` `type` | Unified `(type, inputType)` |
 |------------------------------|------------------------------|
 | `text` / `password` / `email` / `url` / `tel` / `textarea` | `string` + `inputType: <same>` |
-| `select` / `radio` / `jpSelect` / `jpCombo` | `string` + `inputType: <same>` |
+| `select` / `radio` / `segment` / `jpSelect` / `jpCombo` | `string` + `inputType: <same>` |
 | `number` | `number` (no `inputType`) |
 | `slider` | `number` + `inputType: 'slider'` |
 | `boolean` / `checkbox` | `boolean` (no `inputType`) |

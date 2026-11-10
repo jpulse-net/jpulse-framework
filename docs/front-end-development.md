@@ -1,4 +1,4 @@
-# jPulse Docs / Front-End Development Guide v2.0.14
+# jPulse Docs / Front-End Development Guide v2.0.15
 
 Complete guide to client-side development with the jPulse JavaScript framework, covering utilities, form handling, UI components, and best practices for building interactive web applications.
 
@@ -658,7 +658,7 @@ jPulse.UI.tabs.renderTabsAndPanelsFromSchema(
 
 - Creates one tab button per block in `schema.data` (ordered by `_meta.order`).
 - Creates one panel per block with a flow layout div (`.jp-form-flow`, `.jp-form-flow-cols-N`).
-- Renders fields from schema (`text`, `password`, `email`, `url`, `tel`, `number`, `slider`, `textarea`, `checkbox`, `radio`, `checkboxGroup`, `select`, `jpSelect`, `jpCombo`, `tagInput`, `fieldGrid`, `help`, `separator`, `button`).
+- Renders fields from schema (`text`, `password`, `email`, `url`, `tel`, `number`, `slider`, `textarea`, `checkbox`, `radio`, `segment`, `checkboxGroup`, `select`, `jpSelect`, `jpCombo`, `tagInput`, `fieldGrid`, `help`, `separator`, `button`).
 - Virtual buttons: `type: 'button'` with `action: 'actionName'` render as buttons; wire handlers via `button[data-action]` delegation.
 - Returns a handle with a `.ready` Promise that resolves after async `loadOptions` / `onInit` settle (see "Async options & lifecycle" below).
 

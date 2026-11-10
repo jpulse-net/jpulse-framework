@@ -1,4 +1,4 @@
-# jPulse Docs / Style Reference v2.0.14
+# jPulse Docs / Style Reference v2.0.15
 
 Comprehensive CSS framework documentation for the jPulse `jp-*` styling system, providing consistent, responsive, and enterprise-ready components for web applications.
 
@@ -267,6 +267,77 @@ Grouped buttons with responsive stacking:
     <button class="jp-btn jp-btn-outline">Preview</button>
 </div>
 ```
+
+#### Segment control
+One choice, drawn as a single track. Both labels stay visible. The selected segment uses the primary fill. An unselected segment has no fill. `jp-segment-sm` matches the height of `.jp-btn-sm`. `jp-segment-equal` gives every segment the width of the widest label. The track stays on one row.
+
+```html
+<div class="jp-segment" role="radiogroup" aria-label="Layout">
+    <label class="jp-segment-item">
+        <input type="radio" name="layout" value="grouped" checked>
+        <span>Grouped</span>
+    </label>
+    <label class="jp-segment-item">
+        <input type="radio" name="layout" value="flat">
+        <span>Flat</span>
+    </label>
+</div>
+```
+
+Small, for a toolbar beside `.jp-btn-sm`:
+
+```html
+<div class="jp-segment jp-segment-sm" role="radiogroup" aria-label="Layout">
+    <label class="jp-segment-item">
+        <input type="radio" name="layout" value="grouped" checked>
+        <span>Grouped</span>
+    </label>
+    <label class="jp-segment-item">
+        <input type="radio" name="layout" value="flat">
+        <span>Flat</span>
+    </label>
+</div>
+```
+
+Equal width:
+
+```html
+<div class="jp-segment jp-segment-equal" role="radiogroup" aria-label="Range">
+    <label class="jp-segment-item">
+        <input type="radio" name="range" value="day" checked>
+        <span>Day</span>
+    </label>
+    <label class="jp-segment-item">
+        <input type="radio" name="range" value="week">
+        <span>Week</span>
+    </label>
+    <label class="jp-segment-item">
+        <input type="radio" name="range" value="month">
+        <span>Month</span>
+    </label>
+</div>
+```
+
+A disabled segment is skipped:
+
+```html
+<div class="jp-segment" role="radiogroup" aria-label="Status">
+    <label class="jp-segment-item">
+        <input type="radio" name="status" value="active" checked>
+        <span>Active</span>
+    </label>
+    <label class="jp-segment-item">
+        <input type="radio" name="status" value="archived">
+        <span>Archived</span>
+    </label>
+    <label class="jp-segment-item">
+        <input type="radio" name="status" value="locked" disabled>
+        <span>Locked</span>
+    </label>
+</div>
+```
+
+Colors use the existing theme variables: `--jp-theme-color-primary`, `--jp-theme-text-inverse`, `--jp-theme-text-secondary`, `--jp-theme-text-muted`, `--jp-theme-bg-tertiary`, `--jp-theme-border-color`, and `--jp-theme-focus-ring`. Focus draws that ring around the track. Behavior and `jPulse.UI.input.segment` are in the [segment widget](jpulse-ui-reference.md#segment-widget) section.
 
 #### Button Navigation Groups
 Navigation-specific button group with arrows showing hierarchy:

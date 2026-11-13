@@ -30023,3 +30023,214 @@ Release prep for W-269, v2.0.15, 2026-11-09. Reviewed tt-git-diff.txt against th
 
 
 ============================================================
+2026-11-09 23:39
+
+released
+
+git commit -F commit-message.txt
+[main 26cdb259] W-269, v2.0.15, 2026-11-09: jPulse.UI: new jPulse.UI.input.segment widget
+ 373 files changed, 1745 insertions(+), 712 deletions(-)
+ create mode 100644 webapp/tests/unit/utils/jpulse-ui-input-segment.test.js
+git tag v2.0.15; git push origin main --tags
+48f0ebc1..26cdb259  main -> main
+ * [new tag]           v2.0.15 -> v2.0.15
+
+Recorded the release on W-269 notes. Commit 26cdb259, tag v2.0.15, push 48f0ebc1..26cdb259 main. 373 files, version bump included. Status left IN_PROGRESS. The note is a local edit after the tag.
+
+
+============================================================
+2026-11-09 23:43
+
+this is in prod, not dev here
+
+[peterthoeny@vm1-twiki-org ~]$ cat .npmrc
+@peterthoeny:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=ghp_y......
+
+The 401 is an invalid or expired classic PAT on the prod server ~/.npmrc. Walked through creating or regenerating a classic token with read:packages and repo, authorizing SSO for jpulse-net if prompted, replacing the single _authToken line in place, adding the @jpulse-net registry scope, then npm whoami and npx jpulse update. The @peterthoeny scope line does not cover @jpulse-net/jpulse-framework. Told them not to paste the token.
+
+============================================================
+2026-11-12 22:10
+
+next: request from bubblemap app site:
+
+Float panels are clamped between z-index 940 and 979. assignZOrder in jPulse.UI.floatPanel writes that band back on every raise, so a site cannot keep a panel above it. On the map, the full-screen spreadsheet reuses the image lightbox at z-index 2000, so the sheet covers the AI Agent and Map Chat and takes the clicks. Dropping the sheet under 940 is the wrong fix: the site header is z-index 1000 and would cover the sheet title, and the site nav sits around 900.
+
+Please add a way for one site to place its own float panels above its own full-screen layer, without raising every panel in the product. A create option such as zIndexBase would replace 940 for that panel, with a small band above it so several panels in the group still stack. The map would pass a base around 2100 while a spreadsheet is open, and leave the default when it closes. Raising, dragging, and a second panel in the same group must stay inside that band and must not be pulled back to 979. Panels that stay on the default band still sit under the image lightbox. The mobile bottom sheet needs the same band, or the phone panel stays trapped under the spreadsheet.
+
+- review work item
+- ask questions if unclear
+- suggest change of spec, goal is a good UX & DX; use the "don't make me think" paradigm
+- plan how to implement (wait for my go ahead)
+
+Reviewed the float-panel z-order. assignZOrder writes every open panel into 940-979 on raise, drag, and open, so a site z-index cannot stick. Recommended zIndexBase plus setZIndexBase(null) for the spreadsheet toggle, and setGroupZIndexBase when the panels share a group. Same 40-wide band, including the mobile sheet. Default panels stay at 940-979. Ghost, dialogs, and toasts follow a raised band so a confirm and a toast still appear above the chat. Escape follows the visible front panel. Asked whether AI and Map Chat are the whole group. No code changes; waiting for go-ahead.
+
+
+============================================================
+2026-11-12 22:45
+
+- hmm, the original proposal from the bubblemap app was already cind of complex, and the proposal here does not look "don't make me think"
+- can we jump outside the box, and look for a simpler solution?
+- such as an option to open a new dialog/panel above or below existing ones,
+- and guaranteeing a free range like 0...20 for sub-components embedded in the new dialog/panel?
+
+Replaced the zIndexBase band API with one call: jPulse.UI.floatPanel.above(sheet) while the spreadsheet is open, and above(null) when it closes. Panels stay on the normal layer until then, so the image lightbox still covers them. Each panel and dialog becomes a stacking context, so z-index 0-20 inside it is local. Dialogs, toasts, and menus stay above the panels without a number the site has to pick. Asked whether every open panel on the map should rise. No code changes.
+
+
+============================================================
+2026-11-12 23:10
+
+- no code, no work item yet
+- before we discuss any spec:
+- see actual site code: tmp-bubblemap-app/site/webapp
+- user might have ai chat panel and/or map chat panel open
+- user opens spreadsheet panel
+- ideally "it just works" regardless if chat panels are open or not
+
+Read the map site. Map Chat and AI Agent are both float panels on document.body, group map, z-index 940-979. The spreadsheet is the image lightbox teleported to body at 2000/2001, flagged with imageDialogSheet. openImageDialog does not look at the chat handles. Closed chats stay closed and the sheet is fine. An open chat, one or both, sits under the sheet and cannot be clicked. Launchers at 890 and the K/A shortcuts are also swallowed while that dialog is open. Sheet menus at 4000, record and export dialogs at 2500, and the delete confirm at 4100 already paint above the lightbox. No spec, no code.
+
+
+============================================================
+2026-11-12 23:19
+
+- brainstorm: what if we simply raise the z-index of most framework dialogs to provide space for site panels that either open above or below existing dialogs?
+
+Raising the dialog floor (alerts at 2000, confirms at 1000) up toward the tooltip at 10000 leaves a gap above the spreadsheet at 2000. A map chat created in that gap stays above the sheet whether or not it was open, and a confirm still covers it. The image lightbox shares 2000 with the sheet, so it would have to move up with the dialogs or open chats would cover photos too. Toasts at 2100 and portaled menus at 3000 have to follow the dialogs. Sheet menus at 4000 and the site's 2500/4100 overrides stay meaningful if the panel gap sits under 2500.
+
+============================================================
+2026-11-12 23:30
+
+- I am not concerned about backward compat,
+- I can fix the z-index (if any) for bubblemap app,
+  - e.g. change 2000 for spreadsheet as needed
+- let's fix z-index ranges that are wide enough and flexible enough
+- should default for new panels be on top of whatever dialogs are currently open?
+- is any special action needed for keyboard focus?
+  - objective: whatever panel has the focus should have keyboard focus, regardless where the focus is in the panel
+
+Recommended thousand-wide bands: chrome 1000, site-under-panels 2000 (spreadsheet), default panels 3000, site-over-panels 4000 (image lightbox, sheet menus), dialogs 5000 for alert and confirm, opt-in panels over dialogs 6000, toasts 7000, spare 8000, tooltips 9000. Each panel and dialog is a stacking context so 0-20 inside it stays local. Default panels stay under dialogs; opening one does not cover a dialog already on screen. Focus-within raises the panel and leaves the caret where it is. Escape and the front panel follow that. Arrow nudge stays on the panel root only. No code.
+
+
+============================================================
+2026-11-12 23:42
+
+I'm not clear about the keyboard focus with modeless panels:
+- when multiple panels are open:
+- user clicks on ai chat => keyboard focus is on ai chat
+- user clicks on map chat => map chat moves above ai chat, keyboard focus is on map chat
+- user clicks on ai chat again => ai chat moves above map chat, keyboard focus is on ai chat
+- user opens spreadsheet => focus is on spreadsheet, while both chat panels sit above
+- user clicks on ai chat panel => keyboard focus is on ai chat
+- etc
+
+Clarified that painting order and the keyboard target are separate. A click on a panel raises it and puts the keyboard there. Opening the spreadsheet takes the keyboard even though the chats stay painted above it. A later click on a chat takes the keyboard back. The sheet does not focus itself on open today, so a caret already in a chat stays there. No code.
+
+
+============================================================
+2026-11-12 23:49
+
+so what are the action items?
+- fix z-index of framework code
+- document z-index for site developers, private band (maybe increase to 50?),  keyboard focus handling (if needed)
+- give me first a plan
+
+Plan only. Framework z-index moves to thousand-wide bands: panels 3000, dialogs 5000 for alert and confirm, opt-in panels over dialogs 6000, toasts 7000, tooltips 9000. Private range inside a panel or dialog is 0-50. Keyboard: focus inside a panel raises it without moving the caret; Escape closes that panel only when focus is inside one. The spreadsheet takes focus itself when it opens. Bubblemap z-index stays a site follow-up. No code.
+
+
+============================================================
+2026-11-12 23:58
+
+looks good
+- write work item @work-items.md (11614-11625)
+- document private range better 0–49, so it's easier to do the math for multiple panels
+
+Wrote W-270, v2.0.16, 2026-11-14, status left IN_PROGRESS. Thousand-wide bands. Each panel or dialog owns base through base+49, and the next one starts at base+50: 3000–3049, then 3050–3099, then 3100–3149. Offset 49 is the resize handle and the ghost. Site content inside the layer uses 0–48. Dialogs and aboveDialogs panels use the same step from 5000 and 6000. No code.
+
+
+============================================================
+2026-11-13 00:12
+
+looks good, please implement
+
+Implemented the z-index bands. Default float panels use 3000 + index * 50 (3050, 3100, last slot 3950). aboveDialogs starts at 6000. Dialogs share a 5000 floor and step by 50. Toasts are 7000. Tooltips are 9000. Each layer owns offsets 0-49; resize handles and the ghost use 49, and a portaled menu uses offset 40 of the opener. Click and focus raise a panel without moving the caret. Escape closes the panel that contains focus, leaves the key alone when focus is outside, and yields to an open dialog or an open menu. Documented in jpulse-ui-reference.md. Unit tests passed. Release notes left for release prep. Bubblemap z-index is still a site follow-up.
+
+
+============================================================
+2026-11-13 00:31
+
+- I do manual tests and found a small issue, unlikely related to this code change
+- open up two nested dialogs, see ss, hit esc, both close
+- expected: only top one closes
+- other ui tests ok
+
+Confirmed this was already in the dialog Escape listeners, not the z-index bands. Each open dialog listened for Escape and closed itself. The listener now closes only the top dialog and is removed when that dialog closes. A second Escape closes the one underneath. Unit test added. Checked on the widgets page: Escape dismissed Confirm Deletion and left Delete Files open.
+
+
+============================================================
+
+2026-11-13 00:32
+
+- nested dialog esc fixed
+- next: dropdown should be above floating panels
+
+Page menus now paint at 4500, above float panels and below dialogs. The user menu is moved to document.body while it is open, because the header layer would keep it underneath. The site nav menu is 4500 and its flyout portal is 4510. A menu opened from inside a panel or dialog stays at that layer's base plus 40. You confirmed the widgets page looks right.
+
+
+============================================================
+2026-11-13 00:40
+
+- I tested, it's fixed
+- next: sidepanel, do you think it should be above or below floating panel?
+- I would assume above too, like dropdown menu
+- but maybe depends:
+- a side panel that toggles and stays put should be below floating panel
+- a side panel that opens on hover (right side) should be above floating panel
+- but that might be confusing to learn,
+- soo keep as is?
+
+Recommended the split you described, and left the code as it is. A sidebar that stays open remains page chrome at 895, under float panels. A hover sidebar, once open, should paint around 4400: above those panels, below page menus at 4500 and dialogs at 5000. The thin hover strip stays at 894 so a panel or a full-screen layer keeps its edge. That follows the mode already chosen, so there is no extra rule to learn. No code change yet.
+
+
+============================================================
+2026-11-13 00:43
+
+ah, that makes sense, do the split behavior
+
+A sidebar that stays open stays at 895, under float panels. A hover sidebar, while open on a wide viewport, is 4400 and its separator is 4401, above those panels and below page menus and dialogs. The hover strip stays at 894. On a narrow viewport every sidebar stays at 900. Checked on the widgets page: the open right table of contents receives the click over the Notes panel, and the open left toggle sidebar stays under it.
+
+
+============================================================
+2026-11-13 00:48
+
+- looks good
+- review code for z-index related mobile behavior
+- anything else before release prep?
+
+Reviewed the mobile stack. Sidebars, dialogs, toasts, tooltips, and the placed user menu match the bands. The hamburger menu is the one regression: it stays at 1000, and a float panel at 3000 now covers it. Before the band move the menu was above panels. Release prep still owes the v2.0.16 highlights, the changelog, and the version bump. Bubblemap z-index stays a site follow-up. No code change.
+
+
+============================================================
+2026-11-13 00:53
+
+yes, raise the hamburger menu above float panels and keep it below the header
+
+The mobile menu is 4310 and its dimmer is 4300, above float panels and below page menus and dialogs. Both start at the header height, so the header and the hamburger stay in front. Checked at a phone width: the open menu covers the Notes sheet, the dimmer covers the rest of the sheet, and the hamburger button still receives the click.
+
+
+============================================================
+2026-11-13 00:57
+
+release prep:
+@work-items.md (11708-11714)
+
+- assume W-270, v2.0.16, 2026-11-14
+- review tt-git-diff.txt for accuracy and completness of work item
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Reviewed tt-git-diff.txt against W-270. The features and deliverables omitted the follow-ups, so those were added: page menus at 4500 with the user menu moved to document.body, the hover sidebar at 4400, the mobile menu at 4310 starting under the header, and Escape closing only the top dialog. Status stays in progress. Added the v2.0.16 highlight to README.md and docs/README.md, the v2.0.16 section to docs/CHANGELOG.md, and replaced commit-message.txt. Version headers were not bumped and nothing was committed. npm test exited 0. tmp-bubblemap-app is untracked and should not be added.
+
+
+============================================================

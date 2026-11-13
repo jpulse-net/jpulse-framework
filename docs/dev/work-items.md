@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.15
+# jPulse Docs / Dev / Work Items v2.0.16
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -11508,16 +11508,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - the two named tests and the purity test passed after the purity scan skipped `formBatchLine`
   - **published** `@jpulse-net/plugin-ai-core` 1.0.22. Commit `37c7feb`, tag `v1.0.22`, push `12d8322..37c7feb`. 80 files, 248 insertions, 158 deletions. Tarball shasum `680e6a07fa0f4c649baaaea14222242a934e0c7a`, 99 files, package 208.5 kB, unpacked 1.0 MB. Bundle members `ai-core`, `ai-mock`, `hello-ai`. Registry `https://npm.pkg.github.com`, tag `latest`, public access
 
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-269, v2.0.15, 2026-11-09: jPulse.UI: new jPulse.UI.input.segment widget
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - add `jPulse.UI.input.segment`, a single-choice control drawn as one connected track. Both labels stay visible. The selected segment is a solid primary fill. An unselected segment has no fill
@@ -11605,10 +11597,90 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `README.md`, `docs/README.md` — Latest Release Highlights — v2.0.15 / W-269
   - `docs/CHANGELOG.md` — v2.0.15 / W-269 section
 - notes:
+  - **released** v2.0.15. Commit `26cdb259`, tag `v2.0.15`, push `48f0ebc1..26cdb259` main. 373 files (version bump included)
   - do not touch `@version` / `@release` headers. The bump script does that
   - check the example in the light theme and the dark theme. In both, the selected segment is obvious from the fill alone
   - `jp-btn-group` and `jp-btn-nav-group` stay as they are
   - a form segment omits storage. The toolbar example is the place that shows the four lines
+
+
+
+
+
+
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-270, v2.0.16, 2026-11-14: jPulse.UI: z-index bands and panel keyboard focus
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- objectives:
+  - give every framework layer a thousand-wide z-index band, with a private range of 0–49 inside each panel and each dialog, so a site can place its own full-screen layer under the chats without picking a number out of a crowded scale
+  - a click on a modeless panel raises that panel and puts the keyboard there. Painting a panel above another layer does not move the keyboard
+- prerequisites:
+  - W-220, v2.0.0: `jPulse.UI.floatPanel`. Today `assignZOrder` writes every open panel into 940–979 on create, open, close, raise, and drag
+- rationale:
+  - the map spreadsheet reuses the image lightbox at z-index 2000. Map Chat and the AI Agent are float panels on `document.body` in 940–979, so the sheet covers whichever of them is open and takes the clicks. A closed chat is fine: nothing in that path opens it
+  - confirms start at 1000 and alerts at 2000, the same floor as the lightbox. A panel cannot move above the sheet without covering a confirm, and a confirm cannot clear the sheet unless the site passes a hardcoded z-index (the map uses 2500 and 4100)
+  - the private range is 0–49, fifty values. The next panel or dialog starts at offset 50. Offset 50 is never a member of the previous layer, so stacking several panels is `base + index * 50`
+  - keyboard focus follows the last click or open. The chats stay painted above the spreadsheet, and the keyboard stays on the spreadsheet until the user clicks a chat
+- features:
+  - **bands.** Each band is a thousand wide. Header and the rest of the page chrome stay in 1000–1999 (header at 1000)
+    - 2000–2999: site layers that default panels cover. The spreadsheet goes here
+    - 3000–3999: default float panels
+    - 4000–4999: site layers that cover those panels. The image viewer and the sheet menus go here. Framework pieces in this band: the mobile navigation menu at 4310 (dimmer 4300), an open hover sidebar at 4400 (separator 4401), and a page menu at 4500 (site-nav flyout portal 4510)
+    - 5000–5999: dialogs. Alert and confirm share this floor. An explicit `zIndex` still wins
+    - 6000–6999: a float panel created with `aboveDialogs: true`. Default is false, so opening a panel does not cover a dialog that is already open
+    - 7000–7999: toasts, including while a dialog is open. The 2100 toast rule goes away
+    - 8000–8999: spare
+    - 9000–9999: tooltips
+  - **private range 0–49.** A layer's base is `bandStart + index * 50`. It owns `base` through `base + 49`. The next one starts at `base + 50`
+    - default panels: index 0 is 3000–3049, index 1 is 3050–3099, index 2 is 3100–3149. The last slot that fits under 4000 is index 19 at 3950–3999 (20 panels)
+    - dialogs use the same step from 5000. Index 0 is 5000–5049, index 1 is 5050–5099, through index 19 at 5950–5999
+    - `aboveDialogs` panels use the same step from 6000, through index 19 at 6950–6999
+    - offset 0 is the panel or dialog element. Offsets 1–48 are that layer's private numbers. Offset 49 is framework-only: the resize handles inside the panel, and the ghost on `body` at `base + 49`. Offset 50 belongs to the next layer
+    - inside a panel or a dialog, write z-index 0–48. The layer is a stacking context, so those numbers stay inside it. A node moved to `body` adds the layer base to the same offset, and stays below the next layer
+    - a menu opened inside a panel or a dialog (jpSelect, tag suggestions, jpCombo) uses offset 40 of that layer. The front layer has the highest base, so its menu paints above the other panels or dialogs in that band and below offset 49 and the next band
+    - a menu opened from the page, outside any panel or dialog, is 4500. The user menu is moved to `document.body` when it opens, because the header's own layer would keep it under the panels. The site nav dropdown is 4500. A flyout that does not fit is moved into a portal at 4510
+  - **sidebars and the mobile menu.** A pinned sidebar stays at 895, under float panels. A hover sidebar, while open on a wide viewport, is 4400 and its separator is 4401. The hover strip stays at 894, so a panel or a full-screen layer keeps that edge. On a narrow viewport every sidebar stays an overlay at 900
+    - the mobile navigation menu is 4310 and its dimmer is 4300. Both start at the header height, so the header and the hamburger button stay in front
+  - **keyboard.** Clicking a panel raises it among the panels and puts the keyboard in it. A click on a field leaves the caret in the field. A click on the blank chrome focuses the panel, so the arrow keys can move it
+    - focus moving into a panel, including by Tab, raises that panel and does not move the caret
+    - Escape closes the panel that contains the focus. Focus outside every panel, including on the spreadsheet, leaves the key alone. An open framework dialog takes Escape first, and only the top dialog closes. An open jpSelect or tag menu takes the first Escape and the panel stays
+    - opening a site full-screen layer does not focus a panel. The site focuses that layer itself. The panels stay on their band and do not pull the keyboard back
+- deliverables:
+  - `webapp/view/jpulse-common.js`:
+    - dialog floor 5000 for alert and confirm. Nested dialogs step by 50. Explicit `zIndex` unchanged
+    - float panels: default band `3000 + index * 50`, `aboveDialogs` band `6000 + index * 50`, ghost at `base + 49`. Raise, drag, and a second panel stay in the band they were created in
+    - `focusin` inside a panel raises it without moving focus. Escape closes the panel that contains `document.activeElement`, and does nothing when focus is outside every panel. An open dialog or an open jpSelect or tag menu takes Escape first
+    - a menu opened inside a panel or a dialog uses offset 40 of that layer. A menu opened from the page is 4500. The user menu is moved to `document.body` when shown
+    - Escape on a dialog closes only the top dialog. The listener is removed when that dialog closes
+  - `webapp/view/jpulse-common.css`:
+    - `.jp-float-panel` and `.jp-dialog` form a stacking context. Resize handles use local z-index 49
+    - toasts at 7000. Tooltip at 9000. The dialog-open toast rule at 2100 is removed
+    - page dropdown and site nav dropdown at 4500. Site-nav flyout portal at 4510
+    - an open hover sidebar at 4400 and its separator at 4401 (min-width 769px). The hover strip stays at 894. A pinned sidebar stays at 895. A narrow viewport sidebar stays at 900
+    - the mobile navigation menu at 4310 and its dimmer at 4300. Both start at the header height
+    - the float-panel comment lists the bands and the 0–49 slot
+  - `webapp/tests/unit/utils/jpulse-ui-float-panel.test.js`:
+    - two default panels land at 3000 and 3050 and stay there across raise and drag. A third is 3100. `aboveDialogs: true` starts at 6000. A 21st panel shares 3950
+    - a page menu is 4500. A menu opened from a panel at 3050 is 3090. A menu opened from a dialog at 5000 is 5040
+    - focus moving into a back panel raises it and leaves the caret in its field
+    - Escape closes the panel that contains focus. It does not close a panel when focus is outside, when a menu is open, or when a dialog is open
+  - `webapp/tests/unit/utils/jpulse-ui-widgets.test.js`:
+    - a confirm and an alert both start at 5000. A second dialog is 5050. An explicit `zIndex` of 0 wins. A toast is 7000. The tooltip popup is 9000
+    - Escape closes only the top dialog when two are open
+    - an open hover sidebar is 4400. The mobile menu is 4310 and starts at the header height
+  - `docs/jpulse-ui-reference.md`:
+    - the band table, the 0–49 formula with the index 0 / 1 / 2 example, `aboveDialogs`, page menus, the sidebar split, the mobile menu, and the focus rule. The site focuses its own full-screen layer on open
+  - `docs/sidebars.md`: an open hover sidebar paints above float panels. The hover strip stays under them
+  - `README.md`, `docs/README.md` — Latest Release Highlights — v2.0.16 / W-270
+  - `docs/CHANGELOG.md` — v2.0.16 / W-270 section
+- notes:
+  - do not touch `@version` / `@release` headers. The bump script does that
+  - Bubblemap is not in this item. Afterward: spreadsheet stays at 2000, image viewer and sheet menus move to the 4000s, and the record, export, and delete confirms drop their hardcoded z-index so a normal dialog at 5000 covers them
+  - 20 panels is the capacity of one band (index 0–19). A 21st panel shares the last slot, `base + 49` still below the next band
+  - release highlights and the changelog are written at release prep
 
 
 
@@ -11643,8 +11715,8 @@ next work item: W-0...
 - plan how to implement (wait for my go ahead)
 
 release prep:
-- run tests, and fix issues
-- assume W-269, v2.0.15, 2026-11-09
+- run tests, and fix any issues
+- assume W-270, v2.0.16, 2026-11-14
 - review tt-git-diff.txt for accuracy and completness of work item
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
@@ -11664,12 +11736,12 @@ plugin release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.15 2026-11-09
+node bin/bump-version.js 2.0.16 2026-11-14
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.15; git push origin main --tags
+git tag v2.0.16; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa
@@ -11719,6 +11791,12 @@ npm run test:integration
 npm test -- --testPathPattern=jpulse-ui-navigation
 npm test -- --verbose --passWithNoTests=false 2>&1 | grep "FAIL"
 npx jest webapp/tests/unit/controller/handlebar-logical-helpers.test.js
+
+=== Renew GitHub credentials ===
+- https://github.com/settings/tokens
+- Generate new token (classic)
+- note: jPulse Framework package read
+- scopes: repo, read:packages
 
 -------------------------------------------------------------------------
 ## 🕑 PENDING Work Items

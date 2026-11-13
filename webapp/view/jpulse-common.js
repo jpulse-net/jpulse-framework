@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         2.0.15
- * @release         2026-11-09
+ * @version         2.0.16
+ * @release         2026-11-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -940,10 +940,49 @@ window.jPulse = {
     // ============================================================
 
     UI: {
-        // Dialog management
+        // Dialog management. Alert and confirm share one floor.
+        // A layer owns offsets 0–49. The next layer starts at +50.
         _dialogStack: [],
-        _baseZIndex: 1000,
-        _alertZIndex: 2000,
+        _baseZIndex: 5000,
+        _alertZIndex: 5000,
+        _layerStride: 50,
+        _menuOffset: 40,
+        _chromeZIndex: 1000,
+        _dropdownZIndex: 4500,
+
+        /**
+         * Base z-index of the panel or dialog that contains el.
+         * Page chrome is 1000 when the node is in neither.
+         * @param {Element} el
+         * @returns {number}
+         */
+        _layerBase: (el) => {
+            if (!el || typeof el.closest !== 'function') {
+                return jPulse.UI._chromeZIndex;
+            }
+            const layer = el.closest('.jp-float-panel, .jp-dialog-overlay');
+            if (!layer) {
+                return jPulse.UI._chromeZIndex;
+            }
+            const z = parseInt(layer.style.zIndex, 10);
+            return Number.isFinite(z) ? z : jPulse.UI._chromeZIndex;
+        },
+
+        /**
+         * Z-index for a menu portaled to body.
+         * A menu opened from a panel or dialog uses offset 40 of that layer.
+         * A menu opened from the page sits above float panels and below dialogs.
+         * @param {Element} el
+         * @returns {number}
+         */
+        _menuZIndex: (el) => {
+            const inLayer = el && typeof el.closest === 'function'
+                && el.closest('.jp-float-panel, .jp-dialog-overlay');
+            if (!inLayer) {
+                return jPulse.UI._dropdownZIndex;
+            }
+            return jPulse.UI._layerBase(el) + jPulse.UI._menuOffset;
+        },
         _previousFocus: null, // Store previous focus to restore on dialog close
         /** When non-null, body/html scroll is locked while a modal is open (wheel / touch pad). */
         _dialogBodyScrollLockSnapshot: null,
@@ -2057,7 +2096,7 @@ window.jPulse = {
 
                     const positionDropdown = () => {
                         const rect = wrap.getBoundingClientRect();
-                        const zIndex = (jPulse.UI._alertZIndex || 2000) + 1000;
+                        const zIndex = jPulse.UI._menuZIndex(wrap);
                         dropdown.style.position = 'fixed';
                         dropdown.style.left = rect.left + 'px';
                         dropdown.style.width = Math.max(rect.width, 120) + 'px';
@@ -2448,9 +2487,10 @@ window.jPulse = {
                                 if (otherTrigger) otherTrigger.setAttribute('aria-expanded', 'false');
                             }
                         });
-                        // Position dropdown in viewport (W-173: always in body, above dialogs)
+                        // Position dropdown in viewport (W-173: always in body).
+                        // Offset 40 of the layer that opened it.
                         const triggerRect = trigger.getBoundingClientRect();
-                        const dropdownZIndex = (jPulse.UI._alertZIndex || 2000) + 1000;
+                        const dropdownZIndex = jPulse.UI._menuZIndex(wrap);
                         dropdown.style.position = 'fixed';
                         dropdown.style.left = triggerRect.left + 'px';
                         dropdown.style.width = triggerRect.width + 'px';
@@ -2843,7 +2883,7 @@ window.jPulse = {
                             }
                         });
                         const wrapRect = wrap.getBoundingClientRect();
-                        const dropdownZIndex = (jPulse.UI._alertZIndex || 2000) + 1000;
+                        const dropdownZIndex = jPulse.UI._menuZIndex(wrap);
                         dropdown.style.position = 'fixed';
                         dropdown.style.left = wrapRect.left + 'px';
                         dropdown.style.width = wrapRect.width + 'px';
@@ -3577,21 +3617,17 @@ window.jPulse = {
                     config.onOpen(dialog);
                 }
 
-                // Set z-index: first dialog uses type-based base tier; nested dialogs always above
-                // the current top overlay (mixed alert/info vs confirm types used to stack wrong).
-                // Explicit options.zIndex wins (including 0).
+                // One dialog floor for every type. The next dialog starts 50 above
+                // the current top. Explicit options.zIndex wins (including 0).
                 let zIndex;
                 if (config.zIndex != null) {
                     zIndex = Number(config.zIndex);
                 } else if (jPulse.UI._dialogStack.length > 0) {
                     const topItem = jPulse.UI._dialogStack[jPulse.UI._dialogStack.length - 1];
                     const topZ = parseInt(topItem.overlay.style.zIndex, 10);
-                    zIndex = (Number.isFinite(topZ) ? topZ : jPulse.UI._baseZIndex) + 10;
+                    zIndex = (Number.isFinite(topZ) ? topZ : jPulse.UI._alertZIndex) + jPulse.UI._layerStride;
                 } else {
-                    const isSimpleDialog = ['alert', 'info', 'success'].includes(config.type);
-                    zIndex = isSimpleDialog
-                        ? (jPulse.UI._alertZIndex + jPulse.UI._dialogStack.length)
-                        : (jPulse.UI._baseZIndex + jPulse.UI._dialogStack.length * 10);
+                    zIndex = jPulse.UI._alertZIndex;
                 }
                 overlay.style.zIndex = zIndex;
                 jPulse.UI._dialogStack.push({ overlay, dialog, type: config.type });
@@ -3605,18 +3641,30 @@ window.jPulse = {
                     dialog.classList.add('jp-dialog-show');
                 }, 10);
 
-                // Handle ESC key (close with cancelled result)
+                // Handle ESC key (close with cancelled result).
+                // Every open dialog has a listener. Only the top one closes.
                 const handleEscape = (e) => {
-                    if (e.key === 'Escape') {
-                        document.removeEventListener('keydown', handleEscape);
-                        jPulse.UI._closeDialog(overlay, dialog);
-                        resolve({
-                            confirmed: false,
-                            button: 'ESC',
-                            cancelled: true
-                        });
+                    if (!e || e.key !== 'Escape') {
+                        return;
                     }
+                    const stack = jPulse.UI._dialogStack;
+                    if (!stack.length || stack[stack.length - 1].overlay !== overlay) {
+                        return;
+                    }
+                    if (e.preventDefault) {
+                        e.preventDefault();
+                    }
+                    if (e.stopImmediatePropagation) {
+                        e.stopImmediatePropagation();
+                    }
+                    jPulse.UI._closeDialog(overlay, dialog);
+                    resolve({
+                        confirmed: false,
+                        button: 'ESC',
+                        cancelled: true
+                    });
                 };
+                overlay._escapeHandler = handleEscape;
                 document.addEventListener('keydown', handleEscape);
 
                 // Focus management
@@ -3847,9 +3895,13 @@ window.jPulse = {
          * cascade / drag / resize / ghost) and the create() / handle surface.
          */
         floatPanel: (() => {
-            const Z_PANEL_MIN = 940;
-            const Z_PANEL_MAX = 979;
-            const Z_GHOST = 985;
+            const Z_STRIDE = 50;
+            const Z_GHOST_OFFSET = 49;
+            const Z_SLOTS = 20;
+            const Z_BAND_DEFAULT = 3000;
+            const Z_BAND_ABOVE = 6000;
+            const Z_PANEL_MIN = Z_BAND_DEFAULT;
+            const Z_PANEL_MAX = Z_BAND_DEFAULT + (Z_SLOTS - 1) * Z_STRIDE;
             const MOBILE_INSET = 4;
             const DEFAULT_CASCADE = { offsetX: -48, offsetY: -48 };
             const ALL_DIRS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
@@ -4255,17 +4307,27 @@ window.jPulse = {
                 };
             };
 
+            const bandOf = (inst) => (inst.opts.aboveDialogs ? Z_BAND_ABOVE : Z_BAND_DEFAULT);
+
             const assignZOrder = () => {
-                const open = [];
+                const groups = new Map();
                 registry.forEach((inst) => {
-                    if (inst.state.open) {
-                        open.push(inst);
+                    if (!inst.state.open) {
+                        return;
                     }
+                    const band = bandOf(inst);
+                    if (!groups.has(band)) {
+                        groups.set(band, []);
+                    }
+                    groups.get(band).push(inst);
                 });
-                open.sort((a, b) => a.state.lastActiveAt - b.state.lastActiveAt);
-                open.forEach((inst, index) => {
-                    inst.state.zIndex = Math.min(Z_PANEL_MAX, Z_PANEL_MIN + index);
-                    inst._applyDom();
+                groups.forEach((members, band) => {
+                    members.sort((a, b) => a.state.lastActiveAt - b.state.lastActiveAt);
+                    members.forEach((inst, index) => {
+                        const slot = Math.min(index, Z_SLOTS - 1);
+                        inst.state.zIndex = band + slot * Z_STRIDE;
+                        inst._applyDom();
+                    });
                 });
             };
 
@@ -4329,14 +4391,32 @@ window.jPulse = {
                 if (document.querySelector('.jp-dialog-show')) {
                     return;
                 }
-                const frontInst = openInstsFrontFirst()[0];
-                if (!frontInst) {
+                if (document.querySelector(
+                    '.jp-jpselect-dropdown.jp-jpselect-open, .jp-taginput-suggest-dropdown.jp-taginput-suggest-open'
+                )) {
+                    return;
+                }
+                const active = document.activeElement;
+                if (!active || active === document.body || active === document.documentElement) {
+                    return;
+                }
+                let target = null;
+                registry.forEach((inst) => {
+                    if (!inst.state.open || !inst.el || !inst.el.contains(active)) {
+                        return;
+                    }
+                    target = inst;
+                });
+                if (!target) {
                     return;
                 }
                 if (e.preventDefault) {
                     e.preventDefault();
                 }
-                frontInst.handle.close();
+                if (e.stopPropagation) {
+                    e.stopPropagation();
+                }
+                target.handle.close();
             };
 
             const ensureSharedListeners = () => {
@@ -4348,7 +4428,7 @@ window.jPulse = {
                     sharedResizeBound = true;
                 }
                 if (!sharedEscapeBound && typeof document !== 'undefined') {
-                    document.addEventListener('keydown', onSharedEscape);
+                    document.addEventListener('keydown', onSharedEscape, true);
                     sharedEscapeBound = true;
                 }
             };
@@ -4362,7 +4442,7 @@ window.jPulse = {
                     sharedResizeBound = false;
                 }
                 if (sharedEscapeBound) {
-                    document.removeEventListener('keydown', onSharedEscape);
+                    document.removeEventListener('keydown', onSharedEscape, true);
                     sharedEscapeBound = false;
                 }
             };
@@ -4413,7 +4493,7 @@ window.jPulse = {
                     const ghost = document.createElement('div');
                     ghost.className = 'jp-float-panel-ghost';
                     ghost.setAttribute('aria-hidden', 'true');
-                    applyRectStyles(ghost, from, Z_GHOST);
+                    applyRectStyles(ghost, from, inst.state.zIndex + Z_GHOST_OFFSET);
                     ghost.style.transition = [
                         `left ${durationMs}ms ease`,
                         `top ${durationMs}ms ease`,
@@ -4451,7 +4531,7 @@ window.jPulse = {
                                 finish();
                                 return;
                             }
-                            applyRectStyles(ghost, to, Z_GHOST);
+                            applyRectStyles(ghost, to, inst.state.zIndex + Z_GHOST_OFFSET);
                         };
                         if (typeof requestAnimationFrame === 'function') {
                             requestAnimationFrame(() => {
@@ -4503,6 +4583,7 @@ window.jPulse = {
                     id,
                     storageKey: options.storageKey || `jp:floatPanel:${id}`,
                     group: options.group || 'default',
+                    aboveDialogs: options.aboveDialogs === true,
                     minWidth: toFinite(options.minWidth, 240),
                     minHeight: toFinite(options.minHeight, 160),
                     margin: toFinite(options.margin, 8),
@@ -4558,7 +4639,7 @@ window.jPulse = {
                         h: desktop.h,
                         open: !!loaded.open,
                         lastActiveAt: toFinite(loaded.lastActiveAt, 0),
-                        zIndex: Z_PANEL_MIN,
+                        zIndex: options.aboveDialogs === true ? Z_BAND_ABOVE : Z_BAND_DEFAULT,
                         mobile: isMobileViewport(mobile),
                         dragging: false,
                         resizing: false
@@ -4901,6 +4982,13 @@ window.jPulse = {
                         el.setAttribute('tabindex', '-1');
                     }
                     el.addEventListener('pointerdown', inst._onPanelDown);
+                    inst._onPanelFocus = () => {
+                        if (!inst.state.open) {
+                            return;
+                        }
+                        inst.handle.raise();
+                    };
+                    el.addEventListener('focusin', inst._onPanelFocus);
                     inst._onDragKey = (e) => {
                         if (!e || !inst.state.open || inst.state.mobile) {
                             return;
@@ -5007,6 +5095,9 @@ window.jPulse = {
                     const el = inst.el;
                     if (el && inst._onPanelDown) {
                         el.removeEventListener('pointerdown', inst._onPanelDown);
+                    }
+                    if (el && inst._onPanelFocus) {
+                        el.removeEventListener('focusin', inst._onPanelFocus);
                     }
                     if (el && inst._onDragKey) {
                         el.removeEventListener('keydown', inst._onDragKey);
@@ -5197,7 +5288,10 @@ window.jPulse = {
                     mobileSheetRect,
                     Z_PANEL_MIN,
                     Z_PANEL_MAX,
-                    Z_GHOST
+                    Z_STRIDE,
+                    Z_GHOST_OFFSET,
+                    Z_BAND_ABOVE,
+                    Z_SLOTS
                 }
             };
         })(),
@@ -8387,25 +8481,51 @@ window.jPulse = {
                 let hideTimeout = null;
                 const isMobileDevice = jPulse.device.isMobile() || jPulse.device.isTouchDevice();
 
+                // The header is its own stacking context, so a menu inside it
+                // cannot paint above a float panel. Move it to the body when shown.
+                const placeUserDropdown = () => {
+                    const rect = userIcon.getBoundingClientRect();
+                    if (dropdown.parentNode !== document.body) {
+                        document.body.appendChild(dropdown);
+                    }
+                    dropdown.style.position = 'fixed';
+                    dropdown.style.marginTop = '0';
+                    dropdown.style.top = Math.round(rect.bottom + 5) + 'px';
+                    dropdown.style.right = Math.max(0, Math.round(window.innerWidth - rect.right)) + 'px';
+                    dropdown.style.left = 'auto';
+                    dropdown.style.zIndex = String(jPulse.UI._dropdownZIndex);
+                };
+                const showUserDropdown = () => {
+                    placeUserDropdown();
+                    dropdown.classList.add('show');
+                };
+                const hideUserDropdown = () => {
+                    dropdown.classList.remove('show');
+                };
+
                 if (isMobileDevice) {
                     // Mobile: tap to toggle behavior ONLY
                     userIcon.addEventListener('click', (event) => {
                         event.preventDefault();
                         event.stopPropagation();
-                        dropdown.classList.toggle('show');
+                        if (dropdown.classList.contains('show')) {
+                            hideUserDropdown();
+                        } else {
+                            showUserDropdown();
+                        }
                     });
 
                     // Close on outside tap
                     document.addEventListener('click', (event) => {
-                        if (!userMenu.contains(event.target)) {
-                            dropdown.classList.remove('show');
+                        if (!userMenu.contains(event.target) && !dropdown.contains(event.target)) {
+                            hideUserDropdown();
                         }
                     });
 
                     // Close on menu item selection
                     dropdown.addEventListener('click', (event) => {
                         if (event.target.tagName === 'A') {
-                            dropdown.classList.remove('show');
+                            hideUserDropdown();
                         }
                     });
 
@@ -8425,13 +8545,13 @@ window.jPulse = {
                             clearTimeout(hideTimeout);
                             hideTimeout = null;
                         }
-                        dropdown.classList.add('show');
+                        showUserDropdown();
                     });
 
                     userIcon.addEventListener('mouseleave', (e) => {
                         if (!dropdown.contains(e.relatedTarget)) {
                             hideTimeout = setTimeout(() => {
-                                dropdown.classList.remove('show');
+                                hideUserDropdown();
                                 hideTimeout = null;
                             }, closeDelay);
                         }
@@ -8442,12 +8562,12 @@ window.jPulse = {
                             clearTimeout(hideTimeout);
                             hideTimeout = null;
                         }
-                        dropdown.classList.add('show');
+                        showUserDropdown();
                     });
 
                     dropdown.addEventListener('mouseleave', () => {
                         hideTimeout = setTimeout(() => {
-                            dropdown.classList.remove('show');
+                            hideUserDropdown();
                             hideTimeout = null;
                         }, closeDelay);
                     });
@@ -9193,6 +9313,10 @@ window.jPulse = {
             if (overlay._keydownHandler) {
                 document.removeEventListener('keydown', overlay._keydownHandler, true);
                 overlay._keydownHandler = null;
+            }
+            if (overlay._escapeHandler) {
+                document.removeEventListener('keydown', overlay._escapeHandler);
+                overlay._escapeHandler = null;
             }
 
             // Remove from stack
@@ -11617,7 +11741,7 @@ window.jPulse = {
                 const hoverZone = document.createElement('div');
                 hoverZone.className = 'jp-sidebar-hover-zone';
                 hoverZone.style.width = `${hoverZoneWidth}px`;
-                hoverZone.style.zIndex = '894'; // Below sidebar (895) so sidebar is on top when open
+                hoverZone.style.zIndex = '894'; // Under float panels, so a panel keeps this edge
                 hoverZone.style.pointerEvents = 'auto';
                 // Background is controlled by CSS (.jp-sidebar-hover-zone and :hover)
 

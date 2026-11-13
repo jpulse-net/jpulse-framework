@@ -1,4 +1,4 @@
-# jPulse Docs / Getting Started with jPulse v2.0.15
+# jPulse Docs / Getting Started with jPulse v2.0.16
 
 This tutorial will guide you through creating your first jPulse site, from basic setup to implementing site-specific customizations using the site override system.
 

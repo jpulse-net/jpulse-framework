@@ -1,4 +1,4 @@
-# jPulse Docs / Sidebars Guide v2.0.15
+# jPulse Docs / Sidebars Guide v2.0.16
 
 Complete guide to using and configuring sidebars in the jPulse Framework for desktop and mobile.
 
@@ -204,6 +204,7 @@ Hover mode is a desktop-only UX optimized for quick, low-friction access (for ex
 - Opens when you hover the hover zone at the edge of `.jp-main`
 - Closes when you move the mouse away (with a small delay to avoid accidental close)
 - Uses overlay behavior and sticky viewport positioning so the sidebar stays accessible while you scroll
+- While open, paints above float panels and below page menus and dialogs. The hover strip at the edge stays under those panels
 - Toggle buttons are hidden in hover mode
 - Separator drag-to-resize is supported; the final width is applied when you release the mouse
 

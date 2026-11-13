@@ -3,8 +3,8 @@
  * @tagline         Common CSS of the jPulse Framework
  * @description     Component-based CSS for the jPulse Framework with framework/site separation
  * @file            webapp/view/jpulse-common.css
- * @version         2.0.15
- * @release         2026-11-09
+ * @version         2.0.16
+ * @release         2026-11-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -590,7 +590,7 @@ body {
     box-shadow: var(--jp-theme-shadow-lg, 0 4px 12px rgba(0,0,0,0.15));
     min-width: 160px;
     display: none;
-    z-index: 1101;  /* Above header, below user icon */
+    z-index: 4500; /* Above float panels, below dialogs. Shown from document.body */
     margin-top: 5px;
 }
 
@@ -1965,7 +1965,7 @@ body {
     border-radius: 4px;
     background: var(--jp-theme-bg-primary, #fff);
     box-shadow: var(--jp-theme-shadow-md, 0 2px 10px rgba(0,0,0,0.1));
-    z-index: 1200; /* Above tab panels, section headers, and other content */
+    z-index: 1200; /* Fallback. A portaled menu sets offset 40 of its layer */
 }
 /* W-173: dropdown appended to body so it works inside modal dialogs */
 .jp-jpselect-dropdown-portal {
@@ -3285,7 +3285,7 @@ body {
     position: fixed;
     top: var(--jp-header-height, 50px);
     left: 0;  /* Will be positioned dynamically via JS to align with logo */
-    z-index: 900;
+    z-index: 4500; /* Above float panels, below dialogs */
     background: var(--jp-theme-bg-primary, #ffffff);
     border: 1px solid var(--jp-theme-border-color, #dee2e6);
     border-radius: 0 0 8px 8px;
@@ -3311,7 +3311,7 @@ body {
     left: 0;
     width: 0;
     height: 0;
-    z-index: 905;
+    z-index: 4510; /* Above the site nav dropdown, below dialogs */
 }
 
 /* Navigation Level (recursive) */
@@ -3523,16 +3523,18 @@ body {
     transform: translateY(-8px) rotate(-45deg);
 }
 
-/* Mobile Menu Overlay - Semi-transparent backdrop */
+/* Mobile Menu Overlay - Semi-transparent backdrop.
+   Starts under the header so the bar, and the hamburger in it, stay clickable.
+   4300 is above float panels and below the menu, page menus (4500), and dialogs. */
 .jp-mobile-menu-overlay {
     display: none;
     position: fixed;
-    top: 0;
+    top: var(--jp-header-height, 50px);
     left: 0;
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
+    z-index: 4300;
     opacity: 0;
     transition: opacity 0.3s ease;
 }
@@ -3542,23 +3544,23 @@ body {
     opacity: 1;
 }
 
-/* Mobile Menu Panel - Slide-in from left */
+/* Mobile Menu Panel - Slide-in from left.
+   Top matches the overlay so the panel does not cover the header. */
 .jp-mobile-menu {
     display: none;
     position: fixed;
-    top: 0;
+    top: var(--jp-header-height, 50px);
     left: 0;
     bottom: 0;
     width: 280px;
     max-width: 85vw;
     background: white;
-    z-index: 1000;
+    z-index: 4310;
     overflow-y: auto;
     overflow-x: hidden;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
     transform: translateX(-100%);
     transition: transform 0.3s ease;
-    padding-top: var(--jp-header-height, 50px);
 }
 
 .jp-mobile-menu.jp-active {
@@ -3924,7 +3926,7 @@ body.jp-mobile-menu-open {
     min-width: {{appConfig.view.toastMessage.minWidth}}px;
     max-width: {{appConfig.view.toastMessage.maxWidth}}px;
     width: calc(100vw - {{appConfig.view.toastMessage.minMarginLeftRight}}px * 2);
-    z-index: 999;
+    z-index: 7000;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     transition: transform 0.6s ease-out;
     text-align: left;
@@ -3958,10 +3960,6 @@ body.jp-mobile-menu-open {
 .jp-toast-close:focus {
     outline: 2px solid var(--jp-theme-color-primary, #007acc);
     outline-offset: 2px;
-}
-
-body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {
-    z-index: 2100;
 }
 
 .jp-toast.jp-toast-show {
@@ -4345,7 +4343,7 @@ body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {
     opacity: 0;
     pointer-events: none; /* visibility:hidden blocks focus; opacity+pointer-events does not */
     transition: opacity 0.3s ease;
-    z-index: 2000; /* Base z-index, will be overridden */
+    z-index: 5000; /* Floor, overridden per dialog */
 }
 
 .jp-dialog-overlay.jp-dialog-show {
@@ -4355,6 +4353,7 @@ body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {
 
 /* Dialog Container */
 .jp-dialog {
+    isolation: isolate;
     background: var(--jp-theme-bg-primary, #ffffff);
     border-radius: 8px;
     box-shadow: var(--jp-theme-shadow-lg, 0 10px 30px rgba(0, 0, 0, 0.3));
@@ -4490,10 +4489,9 @@ body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {
 }
 
 /* ========================================
- * FLOATING PANEL (W-220)
- * z-index band: panels 940-979, ghost 985
- * (above sidebar 895-897 and jp-tabs 900-906;
- *  below toasts 999, site header 1000, jpSelect 1200, dialogs 2000+)
+ * FLOATING PANEL
+ * Default panels: 3000 + index * 50, owning offsets 0-49.
+ * aboveDialogs panels start at 6000. Ghost is base + 49.
  * ======================================== */
 
 :root {
@@ -4501,6 +4499,7 @@ body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {
 }
 
 .jp-float-panel {
+    isolation: isolate;
     position: fixed;
     display: flex;
     flex-direction: column;
@@ -4588,7 +4587,7 @@ body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {
 
 .jp-float-panel-resize {
     position: absolute;
-    z-index: 1;
+    z-index: 49;
     background: transparent;
     touch-action: none;
 }
@@ -4669,7 +4668,7 @@ body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {
     position: fixed;
     box-sizing: border-box;
     pointer-events: none;
-    z-index: 985;
+    /* z-index is set inline: the panel base plus 49 */
     border: 1px solid var(--jp-theme-border-color);
     background: var(--jp-theme-bg-tertiary);
     opacity: 0.45;
@@ -4716,7 +4715,7 @@ body:has(.jp-dialog-overlay.jp-dialog-show) .jp-toast {
 /* Tooltip popup element (created dynamically) */
 .jp-tooltip-popup {
     position: absolute;
-    z-index: 10000; /* Above dialogs (2000) and other UI */
+    z-index: 9000; /* Tooltip band, above panels and dialogs */
     background: var(--jp-theme-color-warning-bg, #fff3cd); /* Match warning box background */
     color: var(--jp-theme-color-warning-text, #856404); /* Match warning box text */
     padding: 6px 10px; /* Smaller, more compact padding to differentiate from buttons */
@@ -5496,7 +5495,7 @@ h6 .heading-anchor {
     box-shadow: var(--jp-theme-shadow-sm, 0 1px 3px rgba(0,0,0,0.1));
     overflow: hidden;
     transition: left 0.5s ease, right 0.5s ease, width 0.5s ease, opacity 0.3s ease;
-    z-index: 895;
+    z-index: 895; /* Stays under float panels. An open hover sidebar is raised below. */
     cursor: default;
     pointer-events: none; /* disabled when closed */
 }
@@ -5644,13 +5643,27 @@ body.jp-sidebar-dragging .jp-sidebar-separator.jp-sidebar-separator-overlay::aft
 .jp-sidebar-hover-zone {
     background: transparent;
     pointer-events: auto;
-    z-index: 894; /* Below sidebar (895) so sidebar is on top when open */
+    z-index: 894; /* Under float panels, so a panel keeps this edge */
     transition: background-color 120ms ease;
 }
 
 /* Subtle visual feedback when hovering the hover zone (closed-state affordance) */
 .jp-sidebar-hover-zone:hover {
     background: var(--jp-theme-sidebar-hover-zone-bg, rgba(0, 0, 0, 0.03));
+}
+
+/* Hover is a peek: while open it paints above float panels (through 3999)
+   and below page menus (4500) and dialogs (5000). The strip stays at 894.
+   A narrow viewport uses the mobile overlay at 900 instead. */
+@media (min-width: 769px) {
+    .jp-sidebar-mode-hover.jp-sidebar-open {
+        z-index: 4400;
+    }
+
+    .jp-sidebar-left.jp-sidebar-mode-hover.jp-sidebar-open ~ .jp-sidebar-separator-left,
+    .jp-sidebar-right.jp-sidebar-mode-hover.jp-sidebar-open ~ .jp-sidebar-separator-right {
+        z-index: 4401;
+    }
 }
 
 /* Sticky sidebars (overlay/hover modes) - TD-2 + TD-4 */

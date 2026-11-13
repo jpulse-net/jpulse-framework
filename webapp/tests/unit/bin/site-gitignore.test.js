@@ -4,8 +4,8 @@
  * @description     Writes the full template when missing; appends the plugin-runtime
  *                  block when a customized file lacks it; second run is unchanged
  * @file            webapp/tests/unit/bin/site-gitignore.test.js
- * @version         2.0.15
- * @release         2026-11-09
+ * @version         2.0.16
+ * @release         2026-11-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

@@ -4,8 +4,8 @@
  * @description     Round-trip, salt-namespacing, and tamper-detection tests for
  *                   encryptSecret()/decryptSecret()
  * @file            webapp/tests/unit/utils/crypto-secrets.test.js
- * @version         2.0.15
- * @release         2026-11-09
+ * @version         2.0.16
+ * @release         2026-11-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

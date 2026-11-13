@@ -3,13 +3,13 @@
  * @tagline         Unit tests for jPulse.UI.floatPanel
  * @description     Tests for the floating panel widget: persistence, clamp, cascade, drag, resize, stack, mobile, Escape, MPA/SPA contract
  * @file            webapp/tests/unit/utils/jpulse-ui-float-panel.test.js
- * @version         2.0.15
- * @release         2026-11-09
+ * @version         2.0.16
+ * @release         2026-11-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.20, Grok 4.6
+ * @genai           80%, Cursor 3.27, Grok 4.7
  */
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
@@ -501,6 +501,75 @@ describe('jPulse.UI.floatPanel', () => {
             expect(a.isOpen()).toBe(false);
             expect(window.jPulse.UI.floatPanel.front()).toBe(c);
         });
+
+        test('default panels step by 50 and a drag stays in that band', () => {
+            const a = make({
+                id: 'slot-a',
+                defaults: { x: 20, y: 80, w: 260, h: 180, open: true }
+            });
+            const b = make({
+                id: 'slot-b',
+                defaults: { x: 40, y: 100, w: 260, h: 180, open: true }
+            });
+            const c = make({
+                id: 'slot-c',
+                defaults: { x: 60, y: 120, w: 260, h: 180, open: true }
+            });
+            a.state.lastActiveAt = 1;
+            b.state.lastActiveAt = 2;
+            c.state.lastActiveAt = 3;
+            c.raise();
+            expect(a.state.zIndex).toBe(3000);
+            expect(b.state.zIndex).toBe(3050);
+            expect(c.state.zIndex).toBe(3100);
+            c.startDrag({ clientX: 80, clientY: 90, button: 0 });
+            dispatchMove(140, 160);
+            dispatchUp();
+            expect(c.state.zIndex).toBe(3100);
+            const hi = make({
+                id: 'slot-hi',
+                aboveDialogs: true,
+                defaults: { x: 20, y: 80, w: 260, h: 180, open: true }
+            });
+            expect(hi.state.zIndex).toBe(6000);
+            expect(c.state.zIndex).toBe(3100);
+        });
+
+        test('a 21st panel shares the last slot', () => {
+            const panels = [];
+            for (let i = 0; i < 21; i++) {
+                const handle = make({
+                    id: `many-${i}`,
+                    defaults: { x: 10, y: 10, w: 260, h: 180, open: true }
+                });
+                handle.state.lastActiveAt = i + 1;
+                panels.push(handle);
+            }
+            panels[20].raise();
+            expect(panels[0].state.zIndex).toBe(3000);
+            expect(panels[18].state.zIndex).toBe(3900);
+            expect(panels[19].state.zIndex).toBe(3950);
+            expect(panels[20].state.zIndex).toBe(3950);
+        });
+
+        test('a portaled menu uses offset 40 of the opener layer', () => {
+            expect(window.jPulse.UI._dropdownZIndex).toBe(4500);
+            expect(window.jPulse.UI._menuZIndex(document.body)).toBe(4500);
+            const panel = document.createElement('div');
+            panel.className = 'jp-float-panel';
+            panel.style.zIndex = '3050';
+            const field = document.createElement('input');
+            panel.appendChild(field);
+            document.body.appendChild(panel);
+            expect(window.jPulse.UI._menuZIndex(field)).toBe(3090);
+            const overlay = document.createElement('div');
+            overlay.className = 'jp-dialog-overlay';
+            overlay.style.zIndex = '5000';
+            const dialogField = document.createElement('input');
+            overlay.appendChild(dialogField);
+            document.body.appendChild(overlay);
+            expect(window.jPulse.UI._menuZIndex(dialogField)).toBe(5040);
+        });
     });
 
     describe('mobile.exclusive', () => {
@@ -676,21 +745,53 @@ describe('jPulse.UI.floatPanel', () => {
     });
 
     describe('Escape', () => {
-        test('closes the front panel', async () => {
+        const openAside = (id) => {
+            const el = document.createElement('aside');
+            document.body.appendChild(el);
             const handle = make({
-                id: 'esc-1',
+                id,
+                el,
                 defaults: { x: 20, y: 80, w: 260, h: 180, open: true }
             });
+            return { el, handle };
+        };
+
+        test('closes the panel that contains focus', async () => {
+            const { el, handle } = openAside('esc-1');
+            const other = openAside('esc-2');
+            el.focus();
+            expect(document.activeElement).toBe(el);
             document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
             await new Promise((resolve) => setTimeout(resolve, 20));
             expect(handle.isOpen()).toBe(false);
+            expect(other.handle.isOpen()).toBe(true);
+        });
+
+        test('an open menu inside the panel takes Escape', async () => {
+            const { el, handle } = openAside('esc-menu');
+            el.focus();
+            const menu = document.createElement('div');
+            menu.className = 'jp-jpselect-dropdown jp-jpselect-open';
+            document.body.appendChild(menu);
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            expect(handle.isOpen()).toBe(true);
+        });
+
+        test('does nothing when focus is outside every panel', async () => {
+            const { handle } = openAside('esc-outside');
+            const outside = document.createElement('textarea');
+            document.body.appendChild(outside);
+            outside.focus();
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            expect(handle.isOpen()).toBe(true);
+            expect(document.activeElement).toBe(outside);
         });
 
         test('is a no-op while a .jp-dialog-show element is in the document', async () => {
-            const handle = make({
-                id: 'esc-dialog',
-                defaults: { x: 20, y: 80, w: 260, h: 180, open: true }
-            });
+            const { el, handle } = openAside('esc-dialog');
+            el.focus();
             const dialog = document.createElement('div');
             dialog.className = 'jp-dialog-show';
             document.body.appendChild(dialog);
@@ -838,6 +939,40 @@ describe('jPulse.UI.floatPanel', () => {
             closeBtn.focus();
             closeBtn.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
             expect(document.activeElement).toBe(closeBtn);
+        });
+
+        test('focusin on a back panel raises it and leaves the caret in the field', async () => {
+            let now = 1000;
+            const clock = jest.spyOn(Date, 'now').mockImplementation(() => {
+                now += 1;
+                return now;
+            });
+            try {
+                const backEl = document.createElement('aside');
+                const field = document.createElement('input');
+                backEl.appendChild(field);
+                document.body.appendChild(backEl);
+                const frontEl = document.createElement('aside');
+                document.body.appendChild(frontEl);
+                const back = make({
+                    id: 'focus-back',
+                    el: backEl,
+                    defaults: { x: 20, y: 80, w: 260, h: 180, open: true }
+                });
+                const front = make({
+                    id: 'focus-front',
+                    el: frontEl,
+                    defaults: { x: 40, y: 100, w: 260, h: 180, open: true }
+                });
+                front.raise();
+                expect(front.state.zIndex).toBeGreaterThan(back.state.zIndex);
+                field.focus();
+                field.dispatchEvent(new window.FocusEvent('focusin', { bubbles: true }));
+                expect(document.activeElement).toBe(field);
+                expect(back.state.zIndex).toBeGreaterThan(front.state.zIndex);
+            } finally {
+                clock.mockRestore();
+            }
         });
     });
 

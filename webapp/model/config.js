@@ -3,8 +3,8 @@
  * @tagline         Config Model for jPulse Framework WebApp
  * @description     This is the config model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/config.js
- * @version         2.0.15
- * @release         2026-11-09
+ * @version         2.0.16
+ * @release         2026-11-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/

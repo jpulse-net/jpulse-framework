@@ -3,13 +3,13 @@
  * @tagline         Unit Tests for jPulse.UI Dialog, Accordion, Tab, and Tooltip Widgets
  * @description     Tests for client-side UI widgets: alertDialog, infoDialog, accordion, tabs, tooltip
  * @file            webapp/tests/unit/utils/jpulse-ui-widgets.test.js
- * @version         2.0.15
- * @release         2026-11-09
+ * @version         2.0.16
+ * @release         2026-11-14
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.15, Grok 4.6
+ * @genai           80%, Cursor 3.27, Grok 4.7
  */
 
 import { describe, test, expect, beforeEach, afterEach, jest } from '@jest/globals';
@@ -172,6 +172,41 @@ describe('jPulse.UI Dialog Widgets (W-048)', () => {
             const overlay = document.querySelector('.jp-dialog-overlay');
             expect(overlay).toBeFalsy();
         });
+
+        test('Escape closes only the top dialog when two are open', async () => {
+            let firstSettled = false;
+            const firstPromise = window.jPulse.UI.confirmDialog({
+                message: 'First',
+                buttons: ['Cancel', 'OK']
+            }).then((result) => {
+                firstSettled = true;
+                return result;
+            });
+            const secondPromise = window.jPulse.UI.confirmDialog({
+                message: 'Second',
+                buttons: ['Cancel', 'Delete']
+            });
+            expect(window.jPulse.UI._dialogStack.length).toBe(2);
+
+            document.dispatchEvent(new KeyboardEvent('keydown', {
+                key: 'Escape',
+                bubbles: true,
+                cancelable: true
+            }));
+            const secondResult = await secondPromise;
+            expect(secondResult.cancelled).toBe(true);
+            expect(firstSettled).toBe(false);
+            expect(window.jPulse.UI._dialogStack.length).toBe(1);
+
+            document.dispatchEvent(new KeyboardEvent('keydown', {
+                key: 'Escape',
+                bubbles: true,
+                cancelable: true
+            }));
+            const firstResult = await firstPromise;
+            expect(firstResult.cancelled).toBe(true);
+            expect(window.jPulse.UI._dialogStack.length).toBe(0);
+        });
     });
 
     describe('Info Dialog', () => {
@@ -195,23 +230,80 @@ describe('jPulse.UI Dialog Widgets (W-048)', () => {
     });
 
     describe('Dialog Z-Index Management', () => {
-        test('should assign higher z-index to subsequent dialogs', async () => {
+        test('confirm starts at 5000', async () => {
+            const confirmPromise = window.jPulse.UI.confirmDialog({
+                message: 'Confirm',
+                buttons: ['OK']
+            });
+            expect(document.querySelector('.jp-dialog-overlay').style.zIndex).toBe('5000');
+            document.querySelector('.jp-dialog-btn').click();
+            await confirmPromise;
+        });
+
+        test('alert and the next dialog are 5000 and 5050', async () => {
             const dialog1Promise = window.jPulse.UI.alertDialog('First dialog');
             const dialog2Promise = window.jPulse.UI.infoDialog('Second dialog');
-
             const overlays = document.querySelectorAll('.jp-dialog-overlay');
             expect(overlays.length).toBe(2);
-
-            const zIndex1 = parseInt(overlays[0].style.zIndex);
-            const zIndex2 = parseInt(overlays[1].style.zIndex);
-
-            expect(zIndex2).toBeGreaterThan(zIndex1);
-
-            // Close dialogs
-            const buttons = document.querySelectorAll('.jp-dialog-btn');
-            buttons.forEach(button => button.click());
-
+            expect(overlays[0].style.zIndex).toBe('5000');
+            expect(overlays[1].style.zIndex).toBe('5050');
+            document.querySelectorAll('.jp-dialog-btn').forEach(button => button.click());
             await Promise.all([dialog1Promise, dialog2Promise]);
+        });
+
+        test('an explicit zIndex still wins, including 0', async () => {
+            const customPromise = window.jPulse.UI.confirmDialog({
+                message: 'Custom',
+                buttons: ['OK'],
+                zIndex: 0
+            });
+            expect(document.querySelector('.jp-dialog-overlay').style.zIndex).toBe('0');
+            document.querySelector('.jp-dialog-btn').click();
+            await customPromise;
+        });
+
+        test('toasts use 7000 and tooltips use 9000', () => {
+            const cssPath = path.join(process.cwd(), 'webapp/view/jpulse-common.css');
+            const css = fs.readFileSync(cssPath, 'utf8');
+            const toastStart = css.indexOf('.jp-toast {');
+            const toastSlice = css.slice(toastStart, css.indexOf('.jp-toast-close'));
+            expect(toastSlice).toMatch(/z-index:\s*7000/);
+            expect(css).not.toMatch(/z-index:\s*2100/);
+            const tipStart = css.indexOf('.jp-tooltip-popup {');
+            const tipSlice = css.slice(tipStart, tipStart + 500);
+            expect(tipSlice).toMatch(/z-index:\s*9000/);
+        });
+
+        test('an open hover sidebar paints above float panels', () => {
+            const cssPath = path.join(process.cwd(), 'webapp/view/jpulse-common.css');
+            const css = fs.readFileSync(cssPath, 'utf8');
+            const hoverStart = css.indexOf('.jp-sidebar-mode-hover.jp-sidebar-open {');
+            expect(hoverStart).toBeGreaterThan(-1);
+            const hoverSlice = css.slice(hoverStart, hoverStart + 500);
+            expect(hoverSlice).toMatch(/z-index:\s*4400/);
+            expect(hoverSlice).toMatch(/z-index:\s*4401/);
+            const baseStart = css.indexOf('.jp-sidebar {');
+            const baseSlice = css.slice(baseStart, baseStart + 700);
+            expect(baseSlice).toMatch(/z-index:\s*895/);
+            const zoneStart = css.indexOf('.jp-sidebar-hover-zone {');
+            const zoneSlice = css.slice(zoneStart, zoneStart + 300);
+            expect(zoneSlice).toMatch(/z-index:\s*894/);
+        });
+
+        test('the mobile menu paints above float panels and starts below the header', () => {
+            const cssPath = path.join(process.cwd(), 'webapp/view/jpulse-common.css');
+            const css = fs.readFileSync(cssPath, 'utf8');
+            const overlayStart = css.indexOf('.jp-mobile-menu-overlay {');
+            expect(overlayStart).toBeGreaterThan(-1);
+            const overlaySlice = css.slice(overlayStart, overlayStart + 450);
+            expect(overlaySlice).toMatch(/z-index:\s*4300/);
+            expect(overlaySlice).toMatch(/top:\s*var\(--jp-header-height/);
+            const menuStart = css.indexOf('\n.jp-mobile-menu {');
+            expect(menuStart).toBeGreaterThan(-1);
+            const menuSlice = css.slice(menuStart, menuStart + 550);
+            expect(menuSlice).toMatch(/z-index:\s*4310/);
+            expect(menuSlice).toMatch(/top:\s*var\(--jp-header-height/);
+            expect(menuSlice).not.toMatch(/padding-top/);
         });
     });
 

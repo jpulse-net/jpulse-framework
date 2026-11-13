@@ -1,4 +1,4 @@
-# jPulse Docs / jPulse.UI Widget Reference v2.0.15
+# jPulse Docs / jPulse.UI Widget Reference v2.0.16
 
 Complete reference documentation for all `jPulse.UI.*` widgets available in the jPulse Framework front-end JavaScript library.
 
@@ -263,7 +263,7 @@ const result = await jPulse.UI.confirmDialog({
   - `minWidth` (number): Minimum dialog width (default: 400)
   - `height` (number|string): Dialog height
   - `minHeight` (number): Minimum dialog height (default: 200)
-  - `zIndex` (number): Custom z-index (default: auto-calculated). Omitted or `null` uses automatic stacking; any other value is applied (including **`0`**, v1.6.39+).
+  - `zIndex` (number): Custom z-index (default: auto-calculated). Omitted or `null` uses automatic stacking; any other value is applied (including **`0`**, v1.6.39+). The automatic floor is 5000, and a dialog opened on top of another adds 50.
   - `onOpen` (Function): Callback when dialog opens; receives `dialog` element. Fired **synchronously** after the dialog is appended to the DOM and **before** any open animation — use it to initialize widgets (e.g. `jPulse.UI.input.initAll(dialog)`) when `message` contains dynamic HTML with jpSelect, slider, or other input widgets.
   - `onClose` (Function): Callback when dialog closes; fired on **all** close paths — button click, ESC key, and programmatic close. Not called when an object-style button callback returns `{ dontClose: true }` or throws (see below).
 
@@ -277,7 +277,7 @@ const result = await jPulse.UI.confirmDialog({
 - **Draggable headers**: All dialogs can be dragged by their header
 - **Mobile-friendly sizing**: On small or short screens, dialogs stay within the visible area so users are not stuck with clipped or sideways-scrolling modals. You usually do not need extra `onOpen` sizing for typical phone layouts—the framework adjusts for you.
 - **Background scroll lock**: While at least one modal is open, the framework locks page scrolling (`overflow: hidden` on `html` and `body`, `overscroll-behavior: none`, and optional `padding-right` to offset the missing scrollbar) so trackpad/touch/wheel does not scroll the content behind the overlay. Restored when the last dialog in the stack closes.
-- **Dialog stacking**: Multiple dialogs stack with automatic z-index management; only the topmost dialog responds to keyboard events. When a dialog is already open, the next overlay’s z-index is based on the **current top** overlay (not on `type`), so mixed sequences such as `info` then `confirm` still stack correctly. The first dialog continues to use type-based default bands (`alert` / `info` / `success` vs `confirm`).
+- **Dialog stacking**: Multiple dialogs stack with automatic z-index management; only the topmost dialog responds to keyboard events. Alert, info, success, and confirm share one floor at 5000. A dialog opened on top of another starts 50 higher than the current top overlay. Content inside the dialog uses local z-index 0–48. A menu portaled out of the dialog uses offset 40 of that dialog.
 - **HTML support**: Message content supports simple HTML (site owner controlled)
 - **Keyboard navigation** (all dialog types):
   - **Enter**: activates the default button (last button, or `defaultButton` option); excluded inside `<textarea>`
@@ -354,6 +354,7 @@ Place the panel element where `position: fixed` is viewport-relative. An ancesto
 | `launcher` | Element \| selector | — | Reference-only; used for the ghost animation and focus return |
 | `storageKey` | string | `jp:floatPanel:<id>` | Persistence key |
 | `group` | string | `'default'` | Scope for `mobile.exclusive` |
+| `aboveDialogs` | boolean | `false` | Paint this panel in the 6000–6999 band, above dialogs. Fixed when the panel is created. A default panel stays in 3000–3999 and does not cover a dialog that is already open |
 | `defaults` | `{ x, y, w, h, open }` | `{ x: null, y: null, w: 360, h: 280, open: false }` | Used when storage is empty, malformed, or throws. Null `x` / `y` → bottom-right |
 | `minWidth` / `minHeight` | number | `240` / `160` | Resize floor; a viewport smaller than the minimum still yields a usable rect |
 | `margin` | number | `8` | Inset from all four viewport edges |
@@ -438,20 +439,41 @@ const panel = jPulse.UI.floatPanel.create({
 
 A widget handle (or a `jPulse.ws` handle) is not reactive state. Keep it out of `data()` / `reactive()`, or wrap it in `markRaw()`. Destroy the panel on unmount when the component remounts — the registry keys on `id`, and a fresh `data()` does not remove the old entry. This is guidance; storing the handle on `data()` has not been seen to break `toggle` / `destroy`.
 
-### Z-index band
+### Z-index bands
 
-| Layer | Z-index |
-|---|---|
-| Sidebar | 895 / 896 / 897 |
-| `jp-tabs` elevation | 900 / 901 / 905 / 906 |
-| **Floating panels** | **940–979** (assigned by `lastActiveAt`; older open panels sit lower) |
-| **Ghost animation** | **985** |
-| Toast messages | 999 |
-| Site header | 1000 |
-| `jpSelect` dropdown | 1200 |
-| Dialogs | 2000+ |
+Each layer owns offsets 0–49. The next layer starts 50 higher:
 
-Toasts deliberately paint above panels. Panels clamp below the header via `topOffset`, so they never need to paint over it. A dialog opened from a panel always covers it.
+`base = bandStart + index * 50`
+
+Index 0 owns `base` through `base + 49`. Index 1 owns `base + 50` through `base + 99`. Index 2 owns `base + 100` through `base + 149`.
+
+| Band | Z-index | What lives there |
+|---|---|---|
+| Header and page chrome | 1000–1999 | The site header stays at 1000. A menu opened from the page, outside any panel or dialog, is 4500 so it paints above float panels and below dialogs |
+| Site layer under panels | 2000–2999 | A full-screen site surface that should sit under the default float panels, such as a spreadsheet |
+| Float panels | 3000–3999 | Default panels, ordered by last use. Index 0 is 3000–3049, index 1 is 3050–3099, index 2 is 3100–3149. The last slot is index 19 at 3950–3999. A 21st panel shares that last slot |
+| Site layer over panels | 4000–4999 | A full-screen site surface that should cover the default panels, such as an image viewer, and the menus that belong to it. An open hover sidebar is 4400 and its separator is 4401. The mobile navigation menu is 4310 and its dimmer is 4300 |
+| Dialogs | 5000–5999 | Alert and confirm share this floor. The first dialog is 5000. The next starts 50 above the current top. Pass `zIndex` to override, including `0` |
+| Panels above dialogs | 6000–6999 | Panels created with `aboveDialogs: true`. Same 50-step slots, starting at 6000 |
+| Toasts | 7000–7999 | Toast messages, whether or not a dialog is open |
+| Spare | 8000–8999 | Unused |
+| Tooltips | 9000–9999 | Tooltip popups |
+
+Offset 0 is the panel or dialog element. Offsets 1–48 are private: site content inside the panel or dialog uses a local z-index in that range, and the stacking context keeps it inside the layer. Offset 49 is reserved for the framework. Resize handles use local z-index 49. The open/close ghost is appended to `document.body` at `base + 49`, so it paints above its own panel and below the next layer.
+
+A menu moved to `document.body` (a jpSelect dropdown, tag suggestions, the user menu, or the site nav menu) uses offset 40 of the layer that opened it when that layer is a panel or dialog. The front panel has the highest base in its band, so its menu paints above the other panels in that band and below the next band. A click raises the panel before the menu opens. A menu opened from the page is 4500: above every default float panel, and below dialogs. The user menu is moved to `document.body` when it opens, because the header's own layer would otherwise keep it under the panels.
+
+A sidebar that stays open stays at 895, under float panels. A hover sidebar, while it is open on a wide viewport, is 4400 and its separator is 4401: above those panels, below page menus and dialogs. The hover strip stays at 894, so a panel or a full-screen layer keeps that edge. On a narrow viewport every sidebar is an overlay at 900 and stays under the panels.
+
+The mobile navigation menu is 4310 and its dimmer is 4300, above float panels and below page menus and dialogs. Both start at the header height, so the header and the hamburger button stay in front.
+
+`aboveDialogs` is a create option. It is not saved with the panel's geometry. Raise and drag stay in the band chosen at create time. Opening a panel does not cover a dialog that is already open unless that panel was created with `aboveDialogs: true`.
+
+Panels are still clamped below the header by `topOffset`, so they do not cover the header even though their band is above 1000.
+
+### Keyboard
+
+Where a panel is painted and where the keyboard goes are separate. A click on a panel raises it among the panels in its band and puts the keyboard there. A click on a field leaves the caret in the field. A click on blank chrome focuses the panel root so the arrow keys can nudge it. Tabbing into a panel raises it and leaves the caret where it landed. Escape closes the panel that contains the focused element. Pass `el` so that lookup can see the panel. An open menu inside that panel (a jpSelect list, or tag suggestions) takes the first Escape. When focus is outside every panel, Escape is left alone. An open dialog still takes Escape. Opening a full-screen site layer does not move focus onto a panel that happens to be painted above it. The site focuses that layer itself.
 
 ### Features
 
@@ -460,7 +482,7 @@ Toasts deliberately paint above panels. Panels clamp below the header via `topOf
 - **Ghost animation**: double-`requestAnimationFrame` commit, `transitionend` plus a timeout safety net, bypassed under `prefers-reduced-motion`. No launcher (or a launcher that has gone away) falls back to a center-scale animation
 - **N-panel stack**: adding a third panel needs no new code
 - **Mobile sheet**: 4px plus left/right safe-area, `heightRatio` of the safe viewport, lifted by `safe-area-inset-bottom`; group-scoped `exclusive` also holds on viewport resize (front-most survives)
-- **Keyboard**: programmatic focus goes to the panel element (no visible ring) on open and on a click of the header or body, so arrow keys can nudge it; interactive children keep their own focus. Escape closes the front panel (dialogs win)
+- **Keyboard**: a click or Tab raises the panel that received it. A field keeps the caret. Blank chrome focuses the panel root so the arrow keys can nudge it. Escape closes the panel that contains focus. An open menu inside the panel takes the first Escape. Focus outside every panel leaves Escape alone. An open dialog still takes Escape
 - **Accessibility**: consumer supplies `role="dialog"` and a label; the widget sets the close-button and resize-handle labels from i18n. Headings inside `.jp-float-panel` and `.jp-dialog` do not get heading-anchor 🔗 icons
 
 ---

@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administrator & Developer Documentation v2.0.15
+# jPulse Docs / Site Administrator & Developer Documentation v2.0.16
 
 **For Site Administrators & Site Developers**
 
@@ -70,7 +70,7 @@ jPulse is a **MEVN stack** (MongoDB, Express, Vue.js, Node.js) web application f
 - See [AI Agent](ai-agent.md)
 
 ### 🧪 **Testing & Quality**
-- 4200+ tests with 100% pass rate
+- 4300+ tests with 100% pass rate
 - Automated test cleanup and isolation
 - CI/CD ready with Jest integration
 - Coverage reporting and analysis
@@ -249,6 +249,7 @@ jPulse is designed for:
 
 ## Latest Release Highlights
 
+- **v2.0.16, W-270, 2026-11-14: jPulse.UI: z-index bands and panel keyboard focus**: Each framework layer owns a thousand-wide band and offsets 0–49. Default float panels start at 3000 and step by 50 (3050, 3100, last slot 3950). A panel created with `aboveDialogs: true` starts at 6000. Alert and confirm share 5000; the next dialog adds 50. Toasts are 7000. Tooltips are 9000. A menu opened from the page is 4500 (the user menu moves to `document.body`). A menu opened inside a panel or dialog uses that layer's base plus 40. An open hover sidebar is 4400; a pinned sidebar stays under the panels. The mobile navigation menu is 4310 and starts below the header. A click or Tab raises the panel that received it and leaves the caret in the field. Escape closes that panel, the top dialog, or an open menu first. Demo at `/jpulse-examples/ui-widgets.shtml` §2.5. Docs: [UI reference](jpulse-ui-reference.md), [Sidebars](sidebars.md).
 - **v2.0.15, W-269, 2026-11-09: jPulse.UI: new jPulse.UI.input.segment widget**: A single choice is drawn as one track (`jp-segment`). Both labels stay visible, and the selected segment uses the primary fill. It is a native radio group, so `setAllValues`, `getAllValues`, `setFormData`, `getFormData`, and `showWhen` read it the same way as `radio`. A schema field uses `inputType: 'segment'` (`size: 'sm'`, `equal: true`). Remembering the choice in `localStorage` stays in the page. Demo at `/jpulse-examples/ui-widgets.shtml` §2.2. Docs: [UI reference](jpulse-ui-reference.md), [Style reference](style-reference.md), [Front-End Development](front-end-development.md), [Plugin API](plugins/plugin-api-reference.md).
 - **v2.0.14, W-266, 2026-10-15: Utils: load a plain-JS view template on the server**: A view `.tmpl` that is plain JavaScript runs in the page with `{{file.include}}` and on the server with `SharedModule.load`. The file names one top-level binding with `@export` in its header. The path is the include path. Resolution is site, then plugins, then framework, and the result is cached the same way an include is. `{{!-- --}}` comments are allowed; any other `{{` in code is rejected. Docs: [Template reference](template-reference.md).
 - **v2.0.13, W-265, 2026-10-15: jPulse.UI.tooltip: clip a long word in an HTML table**: An HTML table inside a tooltip stays inside the popup (300px, or 250px under 768px). Columns before the last stay as wide as their text. A word that does not fit the last column is cut with an ellipsis; words with spaces still wrap. A plain-text tooltip is unchanged. Docs: [UI reference](jpulse-ui-reference.md).

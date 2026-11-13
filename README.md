@@ -1,4 +1,4 @@
-# jPulse Framework v2.0.15
+# jPulse Framework v2.0.16
 
 jPulse Framework is a web application framework, designed to build scalable and secure applications for enterprise and government organizations. Developers can focus on the business logic, while jPulse handles foundational infrastructure, such as user management, authentication, logging, real-time communication, and scaling. Built on MVC architecture, jPulse uniquely supports both MPA and SPA patterns, giving developers flexibility to choose the right architecture for each part of their application. Our guiding philosophy is "don't make me think," creating intuitive development experiences that accelerate productivity, enhanced further by AI-assisted development (vibe coding).
 
@@ -82,7 +82,7 @@ npm start
 - **Enterprise Security**: Built-in authentication, session management, security headers, and HTML sanitization
 - **Hardened URL Fetch**: `UrlFetch.fetch()` for a URL a user or a config field chose — SSRF guard, size caps, redirect re-validation (not raw Node `fetch()`)
 - **Internationalization**: Complete i18n support with dynamic translation loading
-- **Testing Framework**: 4200+ tests with automated cleanup and isolation
+- **Testing Framework**: 4300+ tests with automated cleanup and isolation
 - **Production Ready**: nginx integration, PM2 clustering, MongoDB replica sets
 
 ## Deployment Requirements
@@ -207,6 +207,7 @@ Business Source License 1.1 with Additional Terms
 
 ## Latest Release Highlights
 
+- **v2.0.16, W-270, 2026-11-14: jPulse.UI: z-index bands and panel keyboard focus**: Each framework layer owns a thousand-wide band and offsets 0–49. Default float panels start at 3000 and step by 50 (3050, 3100, last slot 3950). A panel created with `aboveDialogs: true` starts at 6000. Alert and confirm share 5000; the next dialog adds 50. Toasts are 7000. Tooltips are 9000. A menu opened from the page is 4500 (the user menu moves to `document.body`). A menu opened inside a panel or dialog uses that layer's base plus 40. An open hover sidebar is 4400; a pinned sidebar stays under the panels. The mobile navigation menu is 4310 and starts below the header. A click or Tab raises the panel that received it and leaves the caret in the field. Escape closes that panel, the top dialog, or an open menu first. Demo at `/jpulse-examples/ui-widgets.shtml` §2.5. Docs: `jpulse-ui-reference.md`, `sidebars.md`.
 - **v2.0.15, W-269, 2026-11-09: jPulse.UI: new jPulse.UI.input.segment widget**: A single choice is drawn as one track (`jp-segment`). Both labels stay visible, and the selected segment uses the primary fill. It is a native radio group, so `setAllValues`, `getAllValues`, `setFormData`, `getFormData`, and `showWhen` read it the same way as `radio`. A schema field uses `inputType: 'segment'` (`size: 'sm'`, `equal: true`). Remembering the choice in `localStorage` stays in the page. Demo at `/jpulse-examples/ui-widgets.shtml` §2.2. Docs: `jpulse-ui-reference.md`, `style-reference.md`, `front-end-development.md`, `plugins/plugin-api-reference.md`.
 - **v2.0.14, W-266, 2026-10-15: Utils: load a plain-JS view template on the server**: A view `.tmpl` that is plain JavaScript runs in the page with `{{file.include}}` and on the server with `SharedModule.load`. The file names one top-level binding with `@export` in its header. The path is the include path. Resolution is site, then plugins, then framework, and the result is cached the same way an include is. `{{!-- --}}` comments are allowed; any other `{{` in code is rejected. Docs: `template-reference.md`.
 - **v2.0.13, W-265, 2026-10-15: jPulse.UI.tooltip: clip a long word in an HTML table**: An HTML table inside a tooltip stays inside the popup (300px, or 250px under 768px). Columns before the last stay as wide as their text. A word that does not fit the last column is cut with an ellipsis; words with spaces still wrap. A plain-text tooltip is unchanged. Docs: `jpulse-ui-reference.md`.

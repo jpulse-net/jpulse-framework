@@ -1,6 +1,43 @@
-# jPulse Docs / Version History v2.0.15
+# jPulse Docs / Version History v2.0.16
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.16, W-270, 2026-11-14
+
+**Commit:** `W-270, v2.0.16, 2026-11-14: jPulse.UI: z-index bands and panel keyboard focus`
+
+**FEATURE RELEASE**: Each framework layer owns a thousand-wide z-index band and offsets 0–49. A site full-screen layer in the 2000s stays under the chats. A dialog stays over those chats.
+
+**Objective**: A site can place its own full-screen layer under the default float panels without picking a number out of a crowded scale. A click puts the keyboard on the panel that was clicked. Painting a panel above another layer does not move the keyboard.
+
+**Key features**:
+- Default float panels start at 3000 and step by 50. Index 0 is 3000–3049, index 1 is 3050–3099, index 2 is 3100–3149. The last slot is index 19 at 3950–3999. A 21st panel shares 3950. The ghost is `base + 49`
+- `aboveDialogs: true` starts that panel at 6000. The default is false, so opening a panel does not cover a dialog that is already open. Raise and drag stay in the band the panel was created in
+- Alert and confirm share 5000. The next dialog adds 50. An explicit `zIndex` still wins, including 0. Escape closes only the top dialog
+- Toasts are 7000, including while a dialog is open. Tooltips are 9000
+- A menu opened inside a panel or dialog (jpSelect, tag suggestions, jpCombo) uses that layer's base plus 40. A menu opened from the page is 4500. The user menu moves to `document.body` when it opens. The site nav dropdown is 4500, and a flyout that does not fit moves into a portal at 4510
+- A pinned sidebar stays at 895. A hover sidebar, while open on a wide viewport, is 4400 and its separator is 4401. The hover strip stays at 894. On a narrow viewport every sidebar stays an overlay at 900
+- The mobile navigation menu is 4310 and its dimmer is 4300. Both start at the header height, so the header and the hamburger button stay in front
+- A click or Tab raises the panel that received it and leaves the caret in the field. A click on blank chrome focuses the panel so the arrow keys can move it. Escape closes the panel that contains the focus. An open dialog or an open menu takes Escape first. Focus outside every panel leaves the key alone. Opening a site full-screen layer does not focus a panel
+- Demo at `/jpulse-examples/ui-widgets.shtml` §2.5
+- Docs: `jpulse-ui-reference.md`, `sidebars.md`
+
+**Files changed**:
+- `webapp/view/jpulse-common.js`: dialog floor 5000, panel bands, page menus at 4500, top-dialog Escape, panel keyboard
+- `webapp/view/jpulse-common.css`: stacking contexts, toasts 7000, tooltip 9000, page menus, hover sidebar, mobile menu
+- `webapp/tests/unit/utils/jpulse-ui-float-panel.test.js`: bands, menu offset, focus, Escape
+- `webapp/tests/unit/utils/jpulse-ui-widgets.test.js`: dialog floor, nested Escape, hover sidebar, mobile menu
+- `docs/jpulse-ui-reference.md`: band table, 0–49 formula, page menus, sidebars, mobile menu, focus rule
+- `docs/sidebars.md`: open hover sidebar paints above float panels
+- `docs/dev/work-items.md`: W-270 features and deliverables as-built
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.16 / W-270
+- `docs/CHANGELOG.md`: this section
+
+**Release**:
+- Work Item: W-270
+- Version: v2.0.16
+- Release Date: 2026-11-14
 
 ________________________________________________
 ## v2.0.15, W-269, 2026-11-09

@@ -4,13 +4,13 @@
  * @tagline         Admin logs viewer interface
  * @description     Log analysis and search interface for site administrators
  * @file            webapp/view/admin/logs.shtml
- * @version         2.0.16
- * @release         2026-11-14
+ * @version         2.0.17
+ * @release         2026-11-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.20, Grok 4.6
+ * @genai           60%, Cursor 3.30, Grok 4.7
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -101,6 +101,38 @@
         /* Table container */
         #logsTableContainer {
             display: block;
+        }
+
+        #logsTable th.jp-sortable {
+            padding-right: 22px;
+        }
+
+        .local-filter-row th {
+            padding-top: 4px;
+            padding-bottom: 8px;
+            vertical-align: middle;
+        }
+
+        .local-filter-row .jp-jpselect-wrap {
+            width: 100%;
+        }
+
+        .local-filter-row .jp-form-input,
+        .local-filter-row .jp-jpselect-trigger {
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 400;
+            min-height: 0;
+            width: 100%;
+        }
+
+        .jp-table th.local-filter-actions {
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .local-filter-actions .jp-btn + .jp-btn {
+            margin-left: 6px;
         }
 
         /* Changes dropdown */
@@ -332,47 +364,6 @@
                 <small class="jp-form-help" style="margin-left: 15px; align-self: center;">{{i18n.view.admin.logs.searchDateExamples}}</small>
             </div>
 
-            <!-- Search filters -->
-            <div class="jp-search-section">
-                <form class="jp-search-form" id="logsSearchForm">
-                    <div class="jp-search-fields">
-                        <div class="jp-form-group">
-                            <label for="searchDate" class="jp-form-label">{{i18n.view.admin.logs.searchDate}}</label>
-                            <input type="text" id="searchDate" name="createdAt" class="jp-form-input" placeholder="YYYY-MM-DD, YYYY-MM, or YYYY">
-                        </div>
-                        <div class="jp-form-group">
-                            <label for="searchUsername" class="jp-form-label">{{i18n.view.admin.logs.searchUsername}}</label>
-                            <input type="text" id="searchUsername" name="createdBy" class="jp-form-input" placeholder="{{i18n.view.admin.logs.searchUsernamePlaceholder}}">
-                        </div>
-                        <div class="jp-form-group">
-                            <label for="searchAction" class="jp-form-label">{{i18n.view.admin.logs.searchAction}}</label>
-                            <select id="searchAction" name="data.action" class="jp-form-select">
-                                <option value="">{{i18n.view.admin.logs.allActions}}</option>
-                                <option value="read">Read</option>
-                                <option value="create">Create</option>
-                                <option value="update">Update</option>
-                                <option value="delete">Delete</option>
-                            </select>
-                        </div>
-                        <div class="jp-form-group">
-                            <label for="searchDocType" class="jp-form-label">{{i18n.view.admin.logs.searchDocType}}</label>
-                            <select id="searchDocType" name="data.docType" class="jp-form-select">
-                                <option value="">{{i18n.view.admin.logs.allDocTypes}}</option>
-                                {{#each appConfig.system.docTypes}}
-                                <option value="{{this}}">{{this}}</option>
-                                {{/each}}
-                            </select>
-                        </div>
-                        <div class="jp-form-group">
-                            <div class="jp-btn-group">
-                                <button type="submit" class="jp-btn jp-btn-primary">{{i18n.view.admin.logs.search}}</button>
-                                <button type="button" class="jp-btn jp-btn-secondary" onclick="clearFilters()">{{i18n.view.admin.logs.clear}}</button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-
             <!-- Results info and controls -->
             <div class="local-results-info jp-hidden" id="resultsInfo">
                 <div>
@@ -391,7 +382,8 @@
                 </div>
             </div>
 
-            <!-- Results table -->
+            <!-- Results table. Filters sit under their columns; Changes is wide enough for the buttons. -->
+            <form id="logsSearchForm">
             <div class="jp-table-container" id="logsTableContainer">
                 <table class="jp-table" id="logsTable">
                     <thead>
@@ -402,12 +394,40 @@
                             <th class="jp-sortable" data-sort="data.docType">{{i18n.view.admin.logs.docType}}</th>
                             <th>{{i18n.view.admin.logs.changes}}</th>
                         </tr>
+                        <tr class="local-filter-row">
+                            <th>
+                                <input type="text" id="searchDate" name="createdAt" class="jp-form-input" placeholder="YYYY-MM-DD" aria-label="{{i18n.view.admin.logs.searchDate}}">
+                            </th>
+                            <th>
+                                <input type="text" id="searchUsername" name="createdBy" class="jp-form-input" placeholder="{{i18n.view.admin.logs.searchUsernamePlaceholder}}" aria-label="{{i18n.view.admin.logs.searchUsername}}">
+                            </th>
+                            <th>
+                                <select id="searchAction" name="data.action" multiple class="jp-form-input" aria-label="{{i18n.view.admin.logs.searchAction}}">
+                                    <option value="read">Read</option>
+                                    <option value="create">Create</option>
+                                    <option value="update">Update</option>
+                                    <option value="delete">Delete</option>
+                                </select>
+                            </th>
+                            <th>
+                                <select id="searchDocType" name="data.docType" multiple class="jp-form-input" aria-label="{{i18n.view.admin.logs.searchDocType}}">
+                                    {{#each appConfig.system.docTypes}}
+                                    <option value="{{this}}">{{this}}</option>
+                                    {{/each}}
+                                </select>
+                            </th>
+                            <th class="local-filter-actions">
+                                <button type="submit" class="jp-btn jp-btn-primary jp-btn-sm">{{i18n.view.admin.logs.search}}</button>
+                                <button type="button" class="jp-btn jp-btn-secondary jp-btn-sm" onclick="clearFilters()">{{i18n.view.admin.logs.clear}}</button>
+                            </th>
+                        </tr>
                     </thead>
                     <tbody id="logsTableBody">
                         <!-- Logs will be populated dynamically -->
                     </tbody>
                 </table>
             </div>
+            </form>
 
             <!-- Loading and no results states -->
             <div class="jp-loading jp-hidden" id="loading">
@@ -493,6 +513,8 @@
         let debugTtlTimer = null;
 
         jPulse.dom.ready(() => {
+            initFilterSelect(document.getElementById('searchAction'), '{{i18n.view.admin.logs.allActions}}');
+            initFilterSelect(document.getElementById('searchDocType'), '{{i18n.view.admin.logs.allDocTypes}}');
             setupEventListeners();
             initializeSorting();
             setDefaultDate();
@@ -819,17 +841,29 @@
             currentFilters = {};
 
             for (const [key, value] of formData.entries()) {
-                if (value.trim()) {
-                    currentFilters[key] = value.trim();
-                }
+                const trimmed = String(value).trim();
+                if (!trimmed) continue;
+                currentFilters[key] = currentFilters[key] ? currentFilters[key] + ',' + trimmed : trimmed;
             }
 
             loadLogs(currentFilters);
             updateActiveFiltersDisplay();
         }
 
+        function initFilterSelect(select, placeholder) {
+            if (!select || select.dataset.jpselectInited) {
+                if (select && typeof select._jpSelectUpdateCaption === 'function') select._jpSelectUpdateCaption();
+                return;
+            }
+            jPulse.UI.input.jpSelect.init(select, { placeholder, selectAll: true, minDropdownWidth: 180 });
+        }
+
         function clearFilters() {
             document.getElementById('logsSearchForm').reset();
+            ['searchAction', 'searchDocType'].forEach(id => {
+                const select = document.getElementById(id);
+                if (select && typeof select._jpSelectUpdateCaption === 'function') select._jpSelectUpdateCaption();
+            });
             setDefaultDate();
             currentFilters = {};
             // W-080: Reset cursor state

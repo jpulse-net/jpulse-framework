@@ -1,6 +1,57 @@
-# jPulse Docs / Version History v2.0.16
+# jPulse Docs / Version History v2.0.17
 
 This document tracks the evolution of the jPulse Framework through its work items (W-nnn) and version releases, providing a comprehensive changelog based on git commit history and requirements documentation.
+
+________________________________________________
+## v2.0.17, W-202, 2026-11-26
+
+**Commit:** `W-202, v2.0.17, 2026-11-26: Auth: per-account login lockout`
+
+**FEATURE RELEASE**: Too many failed local-password attempts lock that one account. The lock is not an account status, and it lifts on its own.
+
+**Objective**: Stop password guessing against a known account without treating the person as suspended. An admin can see the lock and clear it. A user is told how long to wait, or to reset their password.
+
+**Key features**:
+- Defaults are 5 attempts and 15 minutes, in `app.conf` `controller.auth.lockout` (`enabled`, `maxAttempts`, `lockoutDurationMinutes`). This is not a Site Configuration screen
+- `security.lockedUntil` is what enforces the lock. `security.lastFailedLoginAt` records the last failure. The rolling counter is Redis, keyed by user id, so username and email share one budget
+- Unknown identifiers are not counted. Neither are directory-owned accounts (`passwordManagedBy` set, or `hasLocalPassword` false)
+- The check runs before bcrypt. A locked account gets `403 ACCOUNT_LOCKED` and `retryAfter` seconds, and `onAuthFailure` fires with reason `ACCOUNT_LOCKED`
+- No new lock is created when Redis is down. A lock already stored still applies
+- A successful local login, a successful password reset, and a successful external login clear the lock and the counter. External auth (`onAuthBeforeLogin` with `skipPasswordCheck`) is never blocked by the lock
+- The users list shows a Locked badge beside the status, with a tooltip for when it lifts. The status filter can include Locked; the page sends that as `locked=1`. Admins can also pass `locked=0`. The profile header shows the same badge, and Unlock clears the lock
+- `POST /api/1/user/unlock` with `{ "username" }` or `{ "id" }`, admin only
+- Users and logs filters sit in a second table-header row. Users columns sort with a three-click cycle. Logs action and document type are multi-selects
+- A plain enum value still has to be in the enum. A value that uses the search operators, including a comma, is parsed by StringQueryParser, so `status=active,pending` is an OR
+- jpSelect option rows use less padding. `minDropdownWidth` keeps a short trigger from clipping its options
+- Docs: `security-and-auth.md`, `site-administration.md`, `api-reference.md`
+
+**Files changed**:
+- `webapp/model/user.js`: security fields, lock helpers, search `locked=0|1`, custom role names
+- `webapp/controller/auth.js`: pre-compare gate, failed-attempt counter, clear on success, external-auth exception
+- `webapp/controller/user.js`: reset confirm clears the lock; `unlockAccount`
+- `webapp/routes.js`: `POST /api/1/user/unlock`
+- `webapp/app.conf`: `controller.auth.lockout`
+- `webapp/view/admin/users.shtml`: header filters, Locked badge, three-click sort
+- `webapp/view/admin/user-profile.shtml`: header badge and Unlock
+- `webapp/view/admin/logs.shtml`: header filters; action and type multi-selects
+- `webapp/utils/common.js`: enum search expressions use StringQueryParser
+- `webapp/view/jpulse-common.js`: jpSelect `minDropdownWidth`
+- `webapp/view/jpulse-common.css`: tighter jpSelect option padding
+- `webapp/view/auth/login.shtml`, `email-verify.shtml`, `reset-password.shtml`: mechanism notes stripped before the browser
+- `webapp/translations/en.conf`, `de.conf`: lockout and admin strings
+- `webapp/tests/unit/controller/auth-controller.test.js`
+- `webapp/tests/unit/controller/user-password-reset-endpoints.test.js`
+- `webapp/tests/unit/user/user-lockout-schema.test.js`
+- `webapp/tests/unit/utils/common-utils.test.js`
+- `docs/security-and-auth.md`, `docs/site-administration.md`, `docs/api-reference.md`
+- `docs/dev/work-items.md`: W-202 features and deliverables as-built
+- `README.md`, `docs/README.md`: Latest Release Highlights — v2.0.17 / W-202
+- `docs/CHANGELOG.md`: this section
+
+**Release**:
+- Work Item: W-202
+- Version: v2.0.17
+- Release Date: 2026-11-26
 
 ________________________________________________
 ## v2.0.16, W-270, 2026-11-14

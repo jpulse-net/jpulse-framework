@@ -6,13 +6,13 @@
  *                  (blocked by the email-verify step) and an authenticated 'nag'-mode session -
  *                  plus the ?status=verified|expired|invalid landing states for the confirm link.
  * @file            webapp/view/auth/email-verify.shtml
- * @version         2.0.16
- * @release         2026-11-14
+ * @version         2.0.17
+ * @release         2026-11-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           85%, Cursor 3.14, Claude Sonnet 5
+ * @genai           85%, Cursor 3.30, Grok 4.7
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -119,7 +119,7 @@
         <div class="jp-container-400 local-verify-container">
             <div class="jp-card local-verify-card">
 
-                <!-- Code entry state (mid-login pendingAuth, or authenticated 'nag' self-service) -->
+                {{!-- Code entry state (mid-login pendingAuth, or authenticated 'nag' self-service) --}}
                 <div id="codeFormState" class="local-hidden">
                     <div class="local-verify-icon">📧</div>
                     <h1>{{i18n.view.auth.emailVerify.title}}</h1>
@@ -141,7 +141,7 @@
                         <span id="resendCooldownText" class="local-hidden"></span>
                     </div>
 
-                    <!-- Cross-device auto-advance: shown only for the mid-login (pendingAuth) case -->
+                    {{!-- Cross-device auto-advance: shown only for the mid-login (pendingAuth) case --}}
                     <div id="waitingHint" class="local-waiting-hint local-hidden">
                         <span class="local-waiting-spinner"></span>
                         <span>{{i18n.view.auth.emailVerify.waitingHint}}</span>
@@ -178,7 +178,7 @@
                     </p>
                 </div>
 
-                <!-- No active verification context at all (no session, no pendingAuth) -->
+                {{!-- No active verification context at all (no session, no pendingAuth) --}}
                 <div id="deadEndState" class="local-hidden">
                     <div class="local-verify-icon">🔒</div>
                     <h1>{{i18n.view.auth.emailVerify.deadEndTitle}}</h1>
@@ -193,13 +193,13 @@
     </div>
 
     <script>
-        // W-205: single page serving pendingAuth mid-login, authenticated self-service ('nag'
-        // mode), and the confirm route's ?status= landing states - see design doc "UI" section.
+        {{!-- W-205: single page serving pendingAuth mid-login, authenticated self-service ('nag'
+             mode), and the confirm route's ?status= landing states - see design doc "UI" section. --}}
         const isAuthenticated = {{#if user.isAuthenticated}}true{{else}}false{{/if}};
         const statusParam = jPulse.url.getParam('status');
         const redirectParam = jPulse.url.getParam('redirect') || '/';
 
-        const POLL_INTERVAL_MS = 8000;   // W-205: 6-10s range, avoids the old 4s endpoint-sharing issue
+        const POLL_INTERVAL_MS = 8000;
         const MAX_POLL_FAILURES = 3;     // stop auto-polling after this many consecutive failures
 
         let isSelfService = false;      // true once we know this is the authenticated ('nag') flow
@@ -268,10 +268,10 @@
             }
         }
 
-        // W-205: cross-device "am I verified yet" poll - its own GET endpoint (not
-        // /api/1/auth/login) so it falls outside both the login rate limiter and nginx's
-        // stricter 'login' zone; a poll guesses no secret and shouldn't share either budget
-        // with real login attempts (see AuthController.pendingStatus()).
+        {{!-- W-205: cross-device "am I verified yet" poll - its own GET endpoint (not
+             /api/1/auth/login) so it falls outside both the login rate limiter and nginx's
+             stricter 'login' zone; a poll guesses no secret and shouldn't share either budget
+             with real login attempts (see AuthController.pendingStatus()). --}}
         async function pollPendingAuth() {
             try {
                 return await jPulse.api.get('/api/1/auth/pending-status');

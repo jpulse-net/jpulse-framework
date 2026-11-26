@@ -3,13 +3,13 @@
  * @tagline         User Controller for jPulse Framework WebApp
  * @description     This is the user controller for the jPulse Framework WebApp
  * @file            webapp/controller/user.js
- * @version         2.0.16
- * @release         2026-11-14
+ * @version         2.0.17
+ * @release         2026-11-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.21, Grok 4.7
+ * @genai           60%, Cursor 3.30, Grok 4.7
  */
 
 import UserModel from '../model/user.js';
@@ -738,6 +738,11 @@ class UserController {
 
             const user = resetResult.user;
 
+            // W-202: a successful password reset clears any brute-force lockout on the account -
+            // the legitimate owner just proved mailbox access, so the local throttle is released.
+            await UserModel.clearLock(user._id);
+            await AuthController.clearLoginLockoutCounter(user._id);
+
             // Detached: the after-the-fact notice is what makes a compromised-inbox takeover
             // noisy, but a mail transport problem must never fail a reset that already succeeded.
             UserModel.sendPasswordChangedNotice(req, user);
@@ -970,6 +975,51 @@ class UserController {
     }
 
     /**
+     * Admin unlocks an account that the W-202 brute-force lockout locked
+     * POST /api/1/user/unlock   { id | username }
+     *
+     * Clears the durable lock (security.lockedUntil) and the Redis attempt counter, so a support
+     * case does not have to wait out the lockout window. Admin-only (enforced in routes.js).
+     * `locked` is not an account status, so this is deliberately separate from the status field
+     * and the status dropdown - it only touches the lockout state.
+     * @param {object} req - Express request object
+     * @param {object} res - Express response object
+     */
+    static async unlockAccount(req, res) {
+        try {
+            LogController.logRequest(req, 'user.unlockAccount',
+                JSON.stringify({ id: req.body.id, username: req.body.username }));
+
+            const { id, username } = req.body;
+            let user = null;
+            if (id) {
+                user = await UserModel.findById(id);
+            } else if (username) {
+                user = await UserModel.findByUsername(username);
+            }
+
+            if (!user) {
+                LogController.logError(req, 'user.unlockAccount', `error: user not found: ${id || username || '(none given)'}`);
+                const message = global.i18n.translate(req, 'controller.user.unlock.userNotFound');
+                return global.CommonUtils.sendError(req, res, 404, message, 'USER_NOT_FOUND');
+            }
+
+            await UserModel.clearLock(user._id);
+            await AuthController.clearLoginLockoutCounter(user._id);
+
+            LogController.logInfo(req, 'user.unlockAccount',
+                `success: account unlocked for user: ${user.username} by admin ${req.session.user.username}`);
+            const message = global.i18n.translate(req, 'controller.user.unlock.success');
+            return res.json({ success: true, message });
+
+        } catch (error) {
+            LogController.logError(req, 'user.unlockAccount', `error: ${error.message}`);
+            const message = global.i18n.translate(req, 'controller.user.unlock.internalError', { details: error.message });
+            return global.CommonUtils.sendError(req, res, 500, message, 'INTERNAL_ERROR', error.message);
+        }
+    }
+
+    /**
      * Search users using schema-based query
      * GET /api/1/user/search
      * W-134: Updated to use profile access policy and field filtering
@@ -991,7 +1041,10 @@ class UserController {
 
             const adminRoles = ConfigModel.getEffectiveAdminRoles();
             const isAdmin = AuthController.isAuthenticated(req) && AuthController.isAuthorized(req, adminRoles);
-            const results = await UserModel.search(req.query, { substringEmail: isAdmin });
+            const results = await UserModel.search(req.query, {
+                substringEmail: isAdmin,
+                includeLockFilter: isAdmin
+            });
 
             // W-134: Filter fields for each user in results
             if (results.data && Array.isArray(results.data)) {

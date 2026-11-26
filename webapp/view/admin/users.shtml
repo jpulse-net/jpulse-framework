@@ -4,8 +4,8 @@
  * @tagline         Admin user management interface
  * @description     User management dashboard for site administrators
  * @file            webapp/view/admin/users.shtml
- * @version         2.0.16
- * @release         2026-11-14
+ * @version         2.0.17
+ * @release         2026-11-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -51,7 +51,63 @@
             font-size: 11px;
         }
 
-        /* W-205: verified/unverified badge next to the Email cell */
+        /* Lock badge sits on the same line as the status badge, with tighter padding
+           so the pair does not grow the row. */
+        .local-status-cell {
+            white-space: nowrap;
+        }
+
+        .local-status-cell .jp-status-badge,
+        .local-status-cell .local-lock-badge {
+            padding: 2px 6px;
+            font-size: 10px;
+            line-height: 1.4;
+            vertical-align: middle;
+        }
+
+        .local-lock-badge {
+            display: inline-block;
+            margin-left: 8px;
+            border-radius: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            background: var(--jp-theme-color-warning-bg);
+            color: var(--jp-theme-color-warning-text);
+            cursor: help;
+        }
+
+        #usersTable th.jp-sortable {
+            padding-right: 22px;
+        }
+
+        .local-filter-row th {
+            padding-top: 4px;
+            padding-bottom: 8px;
+            vertical-align: middle;
+        }
+
+        .local-filter-row .jp-jpselect-wrap {
+            width: 100%;
+        }
+
+        .local-filter-row .jp-form-input,
+        .local-filter-row .jp-jpselect-trigger {
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 400;
+            min-height: 0;
+            width: 100%;
+        }
+
+        .jp-table th.local-filter-actions {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .local-filter-actions .jp-btn + .jp-btn {
+            margin-left: 6px;
+        }
+
         .local-email-verify-badge {
             cursor: help;
         }
@@ -132,41 +188,6 @@
                   </div>
               </div>
 
-              <div class="jp-search-section">
-                  <form class="jp-search-form" id="searchForm">
-                      <div class="jp-search-fields">
-                          <div class="jp-form-group">
-                              <label for="searchName" class="jp-form-label">{{i18n.view.admin.users.searchName}}</label>
-                              <input type="text" id="searchName" name="name" class="jp-form-input" placeholder="{{i18n.view.admin.users.searchNamePlaceholder}}">
-                          </div>
-                          <div class="jp-form-group">
-                              <label for="searchEmail" class="jp-form-label">{{i18n.view.admin.users.searchEmail}}</label>
-                              <input type="text" id="searchEmail" name="email" class="jp-form-input" placeholder="{{i18n.view.admin.users.searchEmailPlaceholder}}">
-                          </div>
-                          <div class="jp-form-group">
-                              <label for="searchRole" class="jp-form-label">{{i18n.view.admin.users.searchRole}}</label>
-                              <select id="searchRole" name="roles" class="jp-form-select">
-                                  <option value="">{{i18n.view.admin.users.allRoles}}</option>
-                                  <!-- Options will be populated dynamically -->
-                              </select>
-                          </div>
-                          <div class="jp-form-group">
-                              <label for="searchStatus" class="jp-form-label">{{i18n.view.admin.users.searchStatus}}</label>
-                              <select id="searchStatus" name="status" class="jp-form-select">
-                                  <option value="">{{i18n.view.admin.users.allStatuses}}</option>
-                                  <!-- Options will be populated from schema -->
-                              </select>
-                          </div>
-                          <div class="jp-form-group">
-                              <div class="jp-btn-group">
-                                  <button type="submit" class="jp-btn jp-btn-primary">{{i18n.view.admin.users.search}}</button>
-                                  <button type="button" class="jp-btn jp-btn-secondary" onclick="clearSearch()">{{i18n.view.admin.users.clear}}</button>
-                              </div>
-                          </div>
-                      </div>
-                  </form>
-              </div>
-
               <!-- Results info -->
               <div class="jp-output jp-mb-15 jp-hidden local-results-info" id="resultsInfo">
                   <span id="resultsCount">0 results</span>
@@ -181,23 +202,42 @@
                   </div>
               </div>
 
-              <div class="jp-table-container" id="usersTableContainer">
-                  <table class="jp-table" id="usersTable">
-                      <thead>
-                          <tr>
-                              <th>{{i18n.view.admin.users.user}}</th>
-                              <th>{{i18n.view.admin.users.email}}</th>
-                              <th>{{i18n.view.admin.users.roles}}</th>
-                              <th>{{i18n.view.admin.users.status}}</th>
-                              <th>{{i18n.view.admin.users.lastLogin}}</th>
-                              <th>{{i18n.view.admin.users.actions}}</th>
-                          </tr>
-                      </thead>
-                      <tbody id="usersTableBody">
-                          <!-- Users will be populated dynamically -->
-                      </tbody>
-                  </table>
-              </div>
+              <form id="searchForm">
+                  <div class="jp-table-container" id="usersTableContainer">
+                      <table class="jp-table" id="usersTable">
+                          <thead>
+                              <tr>
+                                  <th class="jp-sortable" data-sort="username">{{i18n.view.admin.users.user}}</th>
+                                  <th class="jp-sortable" data-sort="email">{{i18n.view.admin.users.email}}</th>
+                                  <th class="jp-sortable" data-sort="roles">{{i18n.view.admin.users.roles}}</th>
+                                  <th class="jp-sortable" data-sort="status">{{i18n.view.admin.users.status}}</th>
+                                  <th class="jp-sortable" data-sort="lastLogin">{{i18n.view.admin.users.lastLogin}}</th>
+                                  <th>{{i18n.view.admin.users.actions}}</th>
+                              </tr>
+                              <tr class="local-filter-row">
+                                  <th>
+                                      <input type="text" id="searchName" name="name" class="jp-form-input" placeholder="{{i18n.view.admin.users.searchName}}" aria-label="{{i18n.view.admin.users.searchName}}">
+                                  </th>
+                                  <th>
+                                      <input type="text" id="searchEmail" name="email" class="jp-form-input" placeholder="{{i18n.view.admin.users.searchEmail}}" aria-label="{{i18n.view.admin.users.searchEmail}}">
+                                  </th>
+                                  <th>
+                                      <select id="searchRole" name="roles" multiple class="jp-form-input" aria-label="{{i18n.view.admin.users.searchRole}}"></select>
+                                  </th>
+                                  <th>
+                                      <select id="searchStatus" name="status" multiple class="jp-form-input" aria-label="{{i18n.view.admin.users.searchStatus}}"></select>
+                                  </th>
+                                  <th colspan="2" class="local-filter-actions">
+                                      <button type="submit" class="jp-btn jp-btn-primary jp-btn-sm">{{i18n.view.admin.users.search}}</button>
+                                      <button type="button" class="jp-btn jp-btn-secondary jp-btn-sm" onclick="clearSearch()">{{i18n.view.admin.users.clear}}</button>
+                                  </th>
+                              </tr>
+                          </thead>
+                          <tbody id="usersTableBody">
+                          </tbody>
+                      </table>
+                  </div>
+              </form>
 
               <div class="jp-pagination jp-hidden" id="pagination">
                   <button id="prevPage" class="jp-btn jp-btn-outline" disabled>{{i18n.view.admin.users.previous}}</button>
@@ -229,6 +269,9 @@
         let allUsers = [];
         let userSchema = null;
         let pageSize = 50;
+        let showLockedFilter = false;
+        // Third click on a column returns to the default (newest accounts first), with no arrow.
+        let currentSort = { field: 'createdAt', order: 'desc' };
 
         // W-205: hide the verified/unverified badge entirely when the site has turned
         // verification off - a permanently-unfixable warning icon on every row would be pure
@@ -244,6 +287,7 @@
             loadUserStats();
             loadUsers();
             setupEventListeners();
+            setupSorting();
         });
 
         function setupEventListeners() {
@@ -266,6 +310,29 @@
             });
         }
 
+        function setupSorting() {
+            document.querySelectorAll('#usersTable .jp-sortable').forEach(header => {
+                header.addEventListener('click', () => {
+                    const field = header.getAttribute('data-sort');
+                    if (currentSort.field === field && currentSort.order === 'asc') {
+                        currentSort = { field, order: 'desc' };
+                    } else if (currentSort.field === field && currentSort.order === 'desc') {
+                        currentSort = { field: 'createdAt', order: 'desc' };
+                    } else {
+                        currentSort = { field, order: 'asc' };
+                    }
+                    document.querySelectorAll('#usersTable .jp-sortable').forEach(th => {
+                        th.classList.remove('jp-sort-asc', 'jp-sort-desc');
+                    });
+                    if (currentSort.field !== 'createdAt') {
+                        header.classList.add(currentSort.order === 'asc' ? 'jp-sort-asc' : 'jp-sort-desc');
+                    }
+                    jPulse.UI.pagination.resetState(paginationState);
+                    loadUsers(currentFilters);
+                });
+            });
+        }
+
         function changePageSize() {
             pageSize = parseInt(document.getElementById('pageSize').value);
             // W-080: Reset cursor state when page size changes
@@ -284,6 +351,8 @@
                     document.getElementById('activeUsers').textContent = stats.byStatus?.active || 0;
                     document.getElementById('adminUsers').textContent = stats.admins || 0;
                     document.getElementById('recentLogins').textContent = stats.recentLogins?.last30d || 0;
+                    showLockedFilter = !!stats.hasLocalPasswordUsers;
+                    syncLockedFilterOption();
                 }
             } catch (error) {
                 console.error('- jPulse: Failed to load stats:', error);
@@ -298,7 +367,7 @@
                 // Build query parameters
                 const params = new URLSearchParams();
                 params.append('limit', pageSize);
-                params.append('sort', '-createdAt'); // Descending by createdAt (API also accepts 'createdAt:-1')
+                params.append('sort', currentSort.order === 'desc' ? '-' + currentSort.field : currentSort.field);
 
                 // If cursor provided, use it (for next/prev navigation)
                 if (cursor) {
@@ -335,8 +404,9 @@
             const noResults = document.getElementById('noResults');
 
             if (!users || users.length === 0) {
-                noResults.style.display = 'block';
-                usersTable.style.display = 'none';
+                tbody.innerHTML = '';
+                noResults.classList.remove('jp-hidden');
+                usersTable.style.display = 'table';
                 return;
             }
 
@@ -348,7 +418,7 @@
 
             // Show the table
             usersTable.style.display = 'table';
-            noResults.style.display = 'none';
+            noResults.classList.add('jp-hidden');
         }
 
         function createUserRow(user) {
@@ -390,10 +460,22 @@
             ).join('');
             tr.appendChild(rolesCell);
 
-            // Status
+            {{!-- Lock badge while security.lockedUntil is still in the future.
+                 Lock is separate from status: an Active account can be locked. --}}
             const statusCell = document.createElement('td');
+            statusCell.className = 'local-status-cell';
             const status = user.status || 'unknown';
-            statusCell.innerHTML = `<span class="jp-status-badge jp-status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+            const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+            let statusHtml = `<span class="jp-status-badge jp-status-${status}">${jPulse.string.escapeHtml(statusLabel)}</span>`;
+            const lockedUntil = user.security && user.security.lockedUntil ? new Date(user.security.lockedUntil) : null;
+            if (lockedUntil && lockedUntil.getTime() > Date.now()) {
+                const lockedTitle = `{{i18n.view.admin.users.lockedUntilTooltip}}`
+                    .replace('%DATE%', jPulse.date.formatLocalDateAndTime(lockedUntil));
+                statusHtml += ` <span class="local-lock-badge jp-tooltip" data-tooltip="${jPulse.string.escapeHtml(lockedTitle)}" data-tooltip-position="top">{{i18n.view.admin.users.lockedBadge}}</span>`;
+            }
+            statusCell.innerHTML = statusHtml;
+            const lockBadge = statusCell.querySelector('.local-lock-badge');
+            if (lockBadge && jPulse.UI.tooltip) jPulse.UI.tooltip.init(lockBadge);
             tr.appendChild(statusCell);
 
             // Last login - use ISO date format (YYYY-MM-DD)
@@ -480,14 +562,36 @@
 
             // Filter out empty values; name → *term* for substring match (multiFieldSearch + StringQueryParser)
             Object.keys(formData).forEach(key => {
-                if (formData[key] && formData[key].toString().trim()) {
-                    let val = formData[key].toString().trim();
-                    if (key === 'name' && val && !/[*;,]/.test(val)) {
-                        val = `*${val}*`;
-                    }
-                    searchParams[key] = val;
+                const raw = formData[key];
+                if (raw == null || raw === '') return;
+                let val;
+                if (Array.isArray(raw)) {
+                    const parts = raw.map(part => String(part).trim()).filter(Boolean);
+                    if (!parts.length) return;
+                    val = parts.join(',');
+                } else {
+                    val = String(raw).trim();
+                    if (!val) return;
                 }
+                if (key === 'name' && val && !/[*;,]/.test(val)) {
+                    val = `*${val}*`;
+                }
+                searchParams[key] = val;
             });
+
+            // Locked is a dropdown convenience, not a status. The search API takes it separately.
+            if (searchParams.status) {
+                const parts = searchParams.status.split(',').map(part => part.trim()).filter(Boolean);
+                const statuses = parts.filter(part => part !== 'locked');
+                if (parts.includes('locked')) {
+                    searchParams.locked = '1';
+                }
+                if (statuses.length) {
+                    searchParams.status = statuses.join(',');
+                } else {
+                    delete searchParams.status;
+                }
+            }
 
             // Store current search for pagination
             currentFilters = searchParams;
@@ -501,16 +605,47 @@
         }
 
         // Restore original working functions
+        function selectedValues(select) {
+            return Array.from(select.selectedOptions).map(option => option.value);
+        }
+
+        function restoreSelected(select, values) {
+            const chosen = new Set(values);
+            Array.from(select.options).forEach(option => {
+                option.selected = chosen.has(option.value);
+            });
+        }
+
+        function initFilterSelect(select, placeholder) {
+            if (!select || select.dataset.jpselectInited) {
+                if (select && typeof select._jpSelectUpdateCaption === 'function') select._jpSelectUpdateCaption();
+                return;
+            }
+            jPulse.UI.input.jpSelect.init(select, { placeholder, selectAll: true, minDropdownWidth: 180 });
+        }
+
+        function syncLockedFilterOption() {
+            const statusSelect = document.getElementById('searchStatus');
+            if (!statusSelect) return;
+            const existing = statusSelect.querySelector('option[value="locked"]');
+            if (showLockedFilter && !existing) {
+                const option = document.createElement('option');
+                option.value = 'locked';
+                option.textContent = '{{i18n.view.admin.users.lockedOnly}}';
+                statusSelect.appendChild(option);
+            } else if (!showLockedFilter && existing) {
+                existing.remove();
+            }
+            if (typeof statusSelect._jpSelectUpdateCaption === 'function') statusSelect._jpSelectUpdateCaption();
+        }
+
         async function loadRoles() {
             try {
                 const response = await jPulse.api.get('/api/1/user/enums?fields=roles');
                 if (response.success && response.data && response.data.roles) {
                     const roleSelect = document.getElementById('searchRole');
-                    const currentValue = roleSelect.value; // Preserve current selection
-
-                    // Clear existing options except "All Roles"
-                    roleSelect.innerHTML = '<option value="">{{i18n.view.admin.users.allRoles}}</option>';
-
+                    const current = selectedValues(roleSelect);
+                    roleSelect.innerHTML = '';
                     const roles = response.data.roles;
                     if (Array.isArray(roles)) {
                         roles.forEach(role => {
@@ -520,9 +655,8 @@
                             roleSelect.appendChild(option);
                         });
                     }
-
-                    // Restore selection
-                    roleSelect.value = currentValue;
+                    restoreSelected(roleSelect, current);
+                    initFilterSelect(roleSelect, '{{i18n.view.admin.users.allRoles}}');
                 } else {
                     jPulse.UI.toast.error('Failed to load role options: ' + (response.error || 'Unknown error'));
                 }
@@ -536,25 +670,21 @@
             try {
                 const response = await jPulse.api.get('/api/1/user/enums?fields=status');
                 if (response.success && response.data && response.data.status) {
-            const statusSelect = document.getElementById('searchStatus');
-            const currentValue = statusSelect.value;
-
-            statusSelect.innerHTML = '<option value="">{{i18n.view.admin.users.allStatuses}}</option>';
-
+                    const statusSelect = document.getElementById('searchStatus');
+                    const current = selectedValues(statusSelect);
+                    statusSelect.innerHTML = '';
                     const statuses = response.data.status;
                     if (Array.isArray(statuses)) {
-            statuses.forEach(status => {
-                const option = document.createElement('option');
-                option.value = status;
+                        statuses.forEach(status => {
+                            const option = document.createElement('option');
+                            option.value = status;
                             option.textContent = status;
-                statusSelect.appendChild(option);
-            });
+                            statusSelect.appendChild(option);
+                        });
                     }
-
-                    // Restore selection if it was set
-                    if (currentValue) {
-            statusSelect.value = currentValue;
-                    }
+                    syncLockedFilterOption();
+                    restoreSelected(statusSelect, current);
+                    initFilterSelect(statusSelect, '{{i18n.view.admin.users.allStatuses}}');
                 } else {
                     jPulse.UI.toast.error('Failed to load status options: ' + (response.error || 'Unknown error'));
                 }
@@ -566,15 +696,7 @@
 
         function showLoading(show) {
             const loadingState = document.getElementById('loadingState');
-            const tableContainer = document.getElementById('usersTableContainer');
-
-            if (show) {
-                loadingState.style.display = 'block';
-                tableContainer.style.display = 'none';
-            } else {
-                loadingState.style.display = 'none';
-                tableContainer.style.display = 'block';
-            }
+            loadingState.style.display = show ? 'block' : 'none';
         }
 
         function showNoResults() {
@@ -585,17 +707,17 @@
 
         // Clear search functionality
         function clearSearch() {
-            // Reset form fields
             document.getElementById('searchName').value = '';
             document.getElementById('searchEmail').value = '';
-            document.getElementById('searchRole').value = '';
-            document.getElementById('searchStatus').value = '';
+            ['searchRole', 'searchStatus'].forEach(id => {
+                const select = document.getElementById(id);
+                if (!select) return;
+                Array.from(select.options).forEach(option => { option.selected = false; });
+                if (typeof select._jpSelectUpdateCaption === 'function') select._jpSelectUpdateCaption();
+            });
 
-            // Reset current filters
             currentFilters = {};
-            currentPage = 1;
-
-            // Reload all users
+            jPulse.UI.pagination.resetState(paginationState);
             loadUsers();
         }
     </script>

@@ -3,13 +3,13 @@
  * @tagline         Unit Tests for CommonUtils
  * @description     Tests for common utility functions
  * @file            webapp/tests/unit/utils/common-utils.test.js
- * @version         2.0.16
- * @release         2026-11-14
+ * @version         2.0.17
+ * @release         2026-11-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 2.6, Claude Sonnet 4.5
+ * @genai           80%, Cursor 3.30, Grok 4.7
  */
 
 import CommonUtils from '../../../utils/common.js';
@@ -76,6 +76,30 @@ describe('CommonUtils', () => {
             const result = CommonUtils.schemaBasedQuery(testSchema, params);
 
             expect(result.query.status).toBeUndefined();
+        });
+
+        test('should hand a comma list on an enum field to StringQueryParser', () => {
+            const params = { status: 'active, pending' };
+            const result = CommonUtils.schemaBasedQuery(testSchema, params);
+
+            expect(result.query.$or).toEqual([
+                { status: 'active' },
+                { status: 'pending' }
+            ]);
+        });
+
+        test('should hand a comma list on a nested enum field to StringQueryParser', () => {
+            const schema = {
+                data: {
+                    action: { type: 'string', enum: ['create', 'update', 'delete', 'read'] }
+                }
+            };
+            const result = CommonUtils.schemaBasedQuery(schema, { 'data.action': 'create,update' });
+
+            expect(result.query.$or).toEqual([
+                { 'data.action': 'create' },
+                { 'data.action': 'update' }
+            ]);
         });
 
         test('should handle nested schema paths', () => {

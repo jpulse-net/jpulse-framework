@@ -3,13 +3,13 @@
  * @tagline         Unit tests for Auth Controller
  * @description     Tests for authentication controller middleware and utility functions
  * @file            webapp/tests/unit/controller/auth-controller.test.js
- * @version         2.0.16
- * @release         2026-11-14
+ * @version         2.0.17
+ * @release         2026-11-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           80%, Cursor 3.21, Grok 4.7
+ * @genai           80%, Cursor 3.30, Grok 4.7
  */
 
 // Import Jest globals and test utilities first
@@ -1542,6 +1542,188 @@ describe('AuthController', () => {
 
             expect(global.CommonUtils.sendError).not.toHaveBeenCalledWith(
                 expect.anything(), expect.anything(), 429, expect.anything(), 'RATE_LIMITED', expect.anything());
+            expect(mockReq.session.user).toMatchObject({ username: 'testuser', isAuthenticated: true });
+        });
+    });
+
+    // W-202: per-account brute-force lockout (distinct from the per-IP rate limit above)
+    describe('W-202: per-account login lockout', () => {
+        const baseUser = {
+            _id: 'u1',
+            username: 'testuser',
+            email: 'testuser@example.com',
+            profile: { firstName: 'Test', lastName: 'User' },
+            roles: ['user'],
+            status: 'active',
+            loginCount: 0,
+            hasLocalPassword: true
+        };
+        const LOCKOUT_PATH = 'controller:auth:rateLimit:lockout:login';
+
+        beforeEach(() => {
+            mockReq.body = { identifier: 'testuser', password: 'validpassword' };
+            mockReq.ip = '127.0.0.1';
+            global.HookManager = { execute: jest.fn().mockImplementation((name, ctx) => Promise.resolve(ctx)) };
+            global.RedisManager = {
+                cacheCheckRateLimit: jest.fn().mockResolvedValue({ allowed: true, count: 1, retryAfter: 0 }),
+                cacheDel: jest.fn().mockResolvedValue(true)
+            };
+            global.appConfig.controller.auth.lockout = { enabled: true, maxAttempts: 5, lockoutDurationMinutes: 15 };
+            global.i18n.translate = jest.fn((req, key, ctx = {}) =>
+                key === 'controller.auth.accountLocked' ? `Locked for ${ctx.minutes} minutes` : key);
+            // Default: account found and not locked
+            UserModel.findByIdentifier.mockResolvedValue({ ...baseUser });
+            UserModel.isLocked.mockReturnValue(false);
+            UserModel.lockRemainingMs.mockReturnValue(0);
+        });
+
+        afterEach(() => {
+            delete global.RedisManager;
+            delete global.appConfig.controller.auth.lockout;
+        });
+
+        test('refuses a locked account with 403 ACCOUNT_LOCKED before the bcrypt compare', async () => {
+            UserModel.isLocked.mockReturnValue(true);
+            UserModel.lockRemainingMs.mockReturnValue(9 * 60 * 1000); // 9 minutes left
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(UserModel.authenticate).not.toHaveBeenCalled();
+            expect(global.CommonUtils.sendError).toHaveBeenCalledWith(
+                mockReq, mockRes, 403, expect.any(String), 'ACCOUNT_LOCKED', { retryAfter: 540 });
+            expect(global.HookManager.execute).toHaveBeenCalledWith('onAuthFailure',
+                expect.objectContaining({ reason: 'ACCOUNT_LOCKED' }));
+            expect(mockReq.session.user).toBeUndefined();
+        });
+
+        test('locks the account when a wrong password crosses the threshold', async () => {
+            UserModel.authenticate.mockResolvedValue(null);
+            // Key by path so only the lockout counter is over-threshold - the per-IP limiter
+            // (W-204) runs first in login() and must still pass.
+            global.RedisManager.cacheCheckRateLimit.mockImplementation((path) =>
+                Promise.resolve(path === LOCKOUT_PATH
+                    ? { allowed: false, count: 5, retryAfter: 0 }
+                    : { allowed: true, count: 1, retryAfter: 0 }));
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(global.RedisManager.cacheCheckRateLimit).toHaveBeenCalledWith(
+                LOCKOUT_PATH, 'u1', { limit: 5, windowSeconds: 900 });
+            expect(UserModel.setLock).toHaveBeenCalledWith('u1', expect.any(Date));
+            expect(global.RedisManager.cacheDel).toHaveBeenCalledWith(LOCKOUT_PATH, 'u1');
+            expect(global.CommonUtils.sendError).toHaveBeenCalledWith(
+                mockReq, mockRes, 403, expect.any(String), 'ACCOUNT_LOCKED', { retryAfter: 900 });
+        });
+
+        test('a wrong password below the threshold returns INVALID_CREDENTIALS and does not lock', async () => {
+            UserModel.authenticate.mockResolvedValue(null);
+            global.RedisManager.cacheCheckRateLimit.mockResolvedValue({ allowed: true, count: 2, retryAfter: 0 });
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(UserModel.setLock).not.toHaveBeenCalled();
+            expect(mockRes.status).toHaveBeenCalledWith(401);
+            expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'INVALID_CREDENTIALS' }));
+        });
+
+        test('does not count a wrong password for an unknown identifier', async () => {
+            UserModel.findByIdentifier.mockResolvedValue(null);
+            UserModel.authenticate.mockResolvedValue(null);
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(global.RedisManager.cacheCheckRateLimit).not.toHaveBeenCalledWith(
+                LOCKOUT_PATH, expect.anything(), expect.anything());
+            expect(UserModel.setLock).not.toHaveBeenCalled();
+            expect(mockRes.status).toHaveBeenCalledWith(401);
+        });
+
+        test('does not count a wrong password for a directory-owned (external) account', async () => {
+            UserModel.findByIdentifier.mockResolvedValue({ ...baseUser, passwordManagedBy: 'ldap' });
+            UserModel.authenticate.mockResolvedValue(null);
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(global.RedisManager.cacheCheckRateLimit).not.toHaveBeenCalledWith(
+                LOCKOUT_PATH, expect.anything(), expect.anything());
+            expect(UserModel.setLock).not.toHaveBeenCalled();
+        });
+
+        test('does not count a wrong password when the account has no local password', async () => {
+            UserModel.findByIdentifier.mockResolvedValue({ ...baseUser, hasLocalPassword: false });
+            UserModel.authenticate.mockResolvedValue(null);
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(global.RedisManager.cacheCheckRateLimit).not.toHaveBeenCalledWith(
+                LOCKOUT_PATH, expect.anything(), expect.anything());
+            expect(UserModel.setLock).not.toHaveBeenCalled();
+        });
+
+        test('still refuses an already-locked account when Redis is unavailable', async () => {
+            delete global.RedisManager;
+            UserModel.isLocked.mockReturnValue(true);
+            UserModel.lockRemainingMs.mockReturnValue(9 * 60 * 1000);
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(UserModel.authenticate).not.toHaveBeenCalled();
+            expect(global.CommonUtils.sendError).toHaveBeenCalledWith(
+                mockReq, mockRes, 403, expect.any(String), 'ACCOUNT_LOCKED', { retryAfter: 540 });
+        });
+
+        test('fails open (no new lockout) when Redis is unavailable', async () => {
+            delete global.RedisManager;
+            UserModel.authenticate.mockResolvedValue(null);
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(UserModel.setLock).not.toHaveBeenCalled();
+            expect(mockRes.status).toHaveBeenCalledWith(401);
+        });
+
+        test('does not count attempts when lockout is disabled', async () => {
+            global.appConfig.controller.auth.lockout = { enabled: false };
+            UserModel.authenticate.mockResolvedValue(null);
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(global.RedisManager.cacheCheckRateLimit).not.toHaveBeenCalledWith(
+                LOCKOUT_PATH, expect.anything(), expect.anything());
+            expect(UserModel.setLock).not.toHaveBeenCalled();
+        });
+
+        test('a successful login clears the lock and the Redis counter', async () => {
+            UserModel.authenticate.mockResolvedValue({ ...baseUser });
+
+            await AuthController.login(mockReq, mockRes);
+
+            expect(UserModel.updateById).toHaveBeenCalledWith('u1',
+                expect.objectContaining({ 'security.lockedUntil': null }));
+            expect(global.RedisManager.cacheDel).toHaveBeenCalledWith(LOCKOUT_PATH, 'u1');
+            expect(mockReq.session.user).toMatchObject({ username: 'testuser', isAuthenticated: true });
+        });
+
+        test('decision A+: external auth is never gated by a lock and clears it on success', async () => {
+            UserModel.isLocked.mockReturnValue(true); // account is "locked"
+            global.HookManager.execute = jest.fn().mockImplementation((name, ctx) => {
+                if (name === 'onAuthBeforeLogin') {
+                    ctx.skipPasswordCheck = true;
+                    ctx.user = { ...baseUser };
+                    ctx.authMethod = 'ldap';
+                }
+                return Promise.resolve(ctx);
+            });
+
+            await AuthController.login(mockReq, mockRes);
+
+            // External path never looks the account up for the gate, so the lock cannot block it
+            expect(UserModel.findByIdentifier).not.toHaveBeenCalled();
+            expect(global.CommonUtils.sendError).not.toHaveBeenCalledWith(
+                expect.anything(), expect.anything(), 403, expect.anything(), 'ACCOUNT_LOCKED', expect.anything());
+            // ...and a successful external login clears any existing lock
+            expect(UserModel.updateById).toHaveBeenCalledWith('u1',
+                expect.objectContaining({ 'security.lockedUntil': null }));
             expect(mockReq.session.user).toMatchObject({ username: 'testuser', isAuthenticated: true });
         });
     });

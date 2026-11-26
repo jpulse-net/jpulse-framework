@@ -1,4 +1,4 @@
-# jPulse Docs / Security & Authentication v2.0.16
+# jPulse Docs / Security & Authentication v2.0.17
 
 Complete guide to security features, authentication, authorization, and security best practices in the jPulse Framework.
 
@@ -130,7 +130,55 @@ Content-Type: application/json
 - **403**: Login disabled (`LOGIN_DISABLED`, `appConfig.controller.auth.disableLogin`)
 - **403**: Local auth restricted (`LOCAL_AUTH_RESTRICTED`, `appConfig.controller.auth.localAuthRestriction`, internal auth only — see below)
 - **403**: Account status blocks login (`ACCOUNT_PENDING_APPROVAL` / `ACCOUNT_SUSPENDED` / `ACCOUNT_TERMINATED` / `ACCOUNT_INACTIVE`)
+- **403**: Account temporarily locked after too many failed attempts (`ACCOUNT_LOCKED` — see [Account Lockout](#account-lockout)); response includes `retryAfter` (seconds)
 - **429**: Too many requests from this IP (`RATE_LIMITED`, `appConfig.controller.auth.loginRateLimit` — see [Rate Limiting](#rate-limiting)); response includes `retryAfter` (seconds)
+
+#### Account Lockout
+
+A per-account brute-force lockout protects individual accounts from password guessing. It is
+distinct from both the per-IP [rate limiting](#rate-limiting) above (which bounds request volume
+from one source) and the admin-controlled account `status` (pending/suspended/etc.): a lockout is
+system-managed, temporary, and lifts on its own.
+
+How it works:
+
+- Each failed local-password login increments a **rolling per-account counter in Redis**, keyed by
+  the user's id (not the submitted identifier, so trying both the username and the email does not
+  double the budget).
+- When the counter reaches `maxAttempts` within the window, the account is locked by stamping
+  `security.lockedUntil` on the user document (`lockoutDurationMinutes` into the future) and the
+  counter is cleared.
+- The lock is checked **before** the bcrypt password comparison on every subsequent login, so a
+  locked account is rejected with `403 ACCOUNT_LOCKED` (and a `retryAfter` in seconds) without the
+  server doing password work.
+- The lock clears automatically when `lockedUntil` passes, and immediately on any trusted recovery:
+  a successful login, a successful password reset, or an [admin unlock](site-administration.md#unlocking-an-account).
+
+Configuration (`appConfig.controller.auth.lockout`, defaults shown):
+
+```javascript
+lockout: {
+    enabled: true,              // set false to disable per-account lockout entirely
+    maxAttempts: 5,             // failed attempts within the window before locking
+    lockoutDurationMinutes: 15  // how long the account stays locked
+}
+```
+
+Scope and safety:
+
+- **Only existing accounts with a local password are counted.** An unknown identifier is never
+  counted (so the lockout can't be used to enumerate accounts), and a directory-owned account
+  (`passwordManagedBy`, or `hasLocalPassword: false`) is never counted — those authenticate through
+  their provider, not the local password.
+- **External auth is never blocked by a local lock, and a successful external login clears it.**
+  If a plugin (OAuth, LDAP, SAML) proves identity via `onAuthBeforeLogin` with `skipPasswordCheck`,
+  the login proceeds regardless of `security.lockedUntil`, and completing it clears the lock — the
+  lockout only ever gates the local password path.
+- **Fails open.** Like the other app-level limiters, if `global.RedisManager` is absent or Redis is
+  unreachable, the counter is skipped and logins proceed — a broken cache must never lock everyone
+  out. A lock already written to a user document still enforces (it doesn't depend on Redis).
+- Every lock, denied-while-locked attempt, and unlock is written to the audit log, and a lockout
+  fires the `onAuthFailure` hook just like an invalid-credentials failure.
 
 #### Restricting Local (Username/Password) Login
 
@@ -366,6 +414,7 @@ if (AuthController.isAuthorized(req, '_public')) {
 #### Admin Endpoints (Admin/Root Roles Required)
 
 - `GET /api/1/user/search` - User management and search
+- `POST /api/1/user/unlock` - Clear a brute-force account lock (see [Account Lockout](#account-lockout))
 - `GET /api/1/config/*` - Configuration access (secrets masked in bulk reads)
 - `GET /api/1/config/:id/secret` - Reveal one stored secret (audited)
 - `POST /api/1/config` - Configuration creation
@@ -553,7 +602,8 @@ matches, regex locations are not considered.
 
 | Endpoint | Config | Default | Notes |
 |---|---|---|---|
-| `POST /api/1/auth/login` (all steps, not just credentials) | `appConfig.controller.auth.loginRateLimit` (`enabled`/`maxAttempts`/`windowSeconds`) | `true` / 20 / 300s | Returns `429 RATE_LIMITED` with `retryAfter` (seconds); fires the `onAuthFailure` hook |
+| `POST /api/1/auth/login` (all steps, not just credentials) | `appConfig.controller.auth.loginRateLimit` (`enabled`/`maxAttempts`/`windowSeconds`) | `true` / 20 / 300s | Per IP. Returns `429 RATE_LIMITED` with `retryAfter` (seconds); fires the `onAuthFailure` hook |
+| `POST /api/1/auth/login` (failed local-password attempts) | `appConfig.controller.auth.lockout` (`enabled`/`maxAttempts`/`lockoutDurationMinutes`) | `true` / 5 / 15 min | Per account (not per IP). Locks the account after the threshold; subsequent logins get `403 ACCOUNT_LOCKED` with `retryAfter` — see [Account Lockout](#account-lockout) |
 | `POST /api/1/user/email-verify` (code attempts, incl. the login-flow `email-verify` step) | hardcoded, not site-configurable | 5 attempts / 15 min per account | Returns `429 EMAIL_VERIFY_RATE_LIMITED` with `retryAfter` |
 | `POST /api/1/user/email-verify/send` (resend, incl. auto-issue at signup/login) | hardcoded, not site-configurable | 3 sends / 10 min per account | Returns `429 EMAIL_VERIFY_RATE_LIMITED` with `retryAfter` |
 | `POST /api/1/user/password-reset` (request a link) | `appConfig.controller.user.passwordResetRateLimit` (`enabled`/`maxAttempts`/`windowSeconds`) | `true` / 10 / 300s | Per IP — the only limiter that can bound enumeration of accounts that don't exist. Returns `429 RATE_LIMITED` with `retryAfter` (seconds) |

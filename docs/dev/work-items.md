@@ -1,4 +1,4 @@
-# jPulse Docs / Dev / Work Items v2.0.16
+# jPulse Docs / Dev / Work Items v2.0.17
 
 This is the doc to track jPulse Framework work items, arranged in three sections:
 
@@ -11603,16 +11603,8 @@ This is the doc to track jPulse Framework work items, arranged in three sections
   - `jp-btn-group` and `jp-btn-nav-group` stay as they are
   - a form segment omits storage. The toolbar example is the place that shows the four lines
 
-
-
-
-
-
--------------------------------------------------------------------------
-## 🚧 IN_PROGRESS Work Items
-
 ### W-270, v2.0.16, 2026-11-14: jPulse.UI: z-index bands and panel keyboard focus
-- status: 🚧 IN_PROGRESS
+- status: ✅ DONE
 - type: Feature
 - objectives:
   - give every framework layer a thousand-wide z-index band, with a private range of 0–49 inside each panel and each dialog, so a site can place its own full-screen layer under the chats without picking a number out of a crowded scale
@@ -11687,10 +11679,145 @@ This is the doc to track jPulse Framework work items, arranged in three sections
 
 
 
+-------------------------------------------------------------------------
+## 🚧 IN_PROGRESS Work Items
+
+### W-202, v2.0.17, 2026-11-26: auth: add locked status
+- status: 🚧 IN_PROGRESS
+- type: Feature
+- depends on: W-201 (centralized, per-status account-status check in `auth.js`'s `login()` - this
+  work item adds a 5th branch to that same block rather than introducing a second check location)
+- objective: give jPulse a `locked` status that is conceptually distinct from `suspended`/
+  `terminated` - `locked` protects *the account* against someone else (e.g. brute-force login
+  attempts, suspicious activity), while `suspended`/`terminated` are admin/moderator actions that
+  protect *the community* from the account - paired with the actual detection/auto-clear mechanism
+  that sets and clears it, so this doesn't become another status value nothing ever sets (the exact
+  trap W-201 exists to fix)
+- discovered while: reviewing W-201's revised spec - raised the idea of adding a `locked` status;
+  agreed it's a distinct, valuable concept, but out of scope for W-201 (a narrowly-scoped bugfix)
+  since there is currently no failed-login-attempt tracking, lockout threshold, or auto-unlock
+  mechanism anywhere in the framework (confirmed via repo-wide search - the only trace is the
+  aspirational `hook-manager.js` `onAuthFailure` doc string "On login failure - rate limiting,
+  lockout", never implemented) - adding the enum value alone, with nothing to ever set it, would
+  just recreate W-201's bug in a new shape
+- related backlog item: `W-084` ("security: harden security") already lists "Account Lockout:
+  Automatic account lockout after N failed login attempts (configurable threshold)" as an
+  undetailed to-do bullet with no design behind it - this work item formalizes/supersedes that
+  bullet with a concrete design (W-084 itself intentionally left untouched - not moved, not marked
+  done, per this session's file-editing constraints)
+- why not fold this into `suspended` via a reason sub-field instead: considered (e.g.
+  `status: 'suspended', statusReason: 'security' | 'policy'`) as a smaller-schema-footprint
+  alternative, but rejected for now - splitting "why is this account blocked" across two fields
+  is more for a developer/admin to hold in their head than one clear top-level `status` value, and
+  `locked`'s lifecycle (system-set, often auto-clearing) is different enough from `suspended`'s
+  (admin-set, admin-cleared) that conflating their storage shape would likely leak into the admin
+  UI/search/query layer anyway
+- design decisions (FINALIZED 2026-11-25 for hand-off to grok - these supersede any mechanical
+  phrasing in the sections above; in particular the "`locked` status enum value" and "5th branch
+  in the W-201 status block" framing is NOT the chosen design - see the storage and check-point
+  decisions below):
+  - storage model: Option C (hybrid). Do NOT add `locked` to the user `status` enum. `status`
+    stays admin-controlled lifecycle only (`pending`/`active`/`inactive`/`suspended`/`terminated`),
+    so the admin-set and system-set lifecycles never share one field. Lockout is its own dedicated
+    state on the user document:
+    - `security.lockedUntil` (timestamp) - the account is locked while `lockedUntil > now`. This
+      field is what enforces the lock: durable (survives a Redis flush and app restarts),
+      queryable, and multi-server consistent.
+    - `security.lastFailedLoginAt` (timestamp) - last failed-login time, for admin visibility.
+    - the rolling failed-attempt COUNTER is NOT stored on the user document - it lives in Redis,
+      keyed by normalized identifier, so an ordinary failed attempt never writes the user doc.
+      Only an actual lockout writes `security.lockedUntil` / `security.lastFailedLoginAt`. This
+      reuses the established per-IP limiter pattern (`RedisManager.cacheCheckRateLimit`).
+    - rejected alternative (persisted `status: 'locked'`): would force a `statusBeforeLock` field
+      plus restore-on-unlock logic (a system lock must not clobber an admin's `inactive`/etc.),
+      and would ripple into the status enum, its `$group` counts, filters, labels, and the admin
+      status dropdown - all for no gain, because (see next bullet) the audit trail does not come
+      from the `status` field anyway.
+  - audit trail: the durable history of lock / unlock / failed-attempt events comes from
+    `LogController` security log lines (the existing `onAuthFailure` path plus new lock/unlock log
+    entries), NOT from the `status` field - `status` only ever holds *current* state, never
+    history. This is the key reason overloading `status` was rejected: it would not have provided
+    an audit trail.
+  - keyed by identifier only (normalized/lowercased, same as email handling). This item does NOT
+    re-implement IP-based limiting: `login()` already has a per-IP limiter (W-204,
+    `controller:auth:rateLimit:login`, default 20/300s, fail-open without Redis). W-202 layers a
+    per-account lockout on top of it. The identifier-only DoS caveat (an attacker locking a known
+    victim by submitting wrong passwords) is accepted, mitigated by the short lock duration, the
+    reset-link escape hatch in the message, and the existing W-204 IP cap.
+  - check point: the lock gate runs BEFORE the bcrypt password compare, to throttle guessing and
+    save CPU. Because `locked` is not a `status` value, this is a check on `security.lockedUntil`,
+    NOT a branch of the post-`authenticate()` W-201 status block. Intended flow: resolve the user
+    by identifier first, return `ACCOUNT_LOCKED` when `security.lockedUntil > now`, otherwise run
+    the normal credential compare. Implementation note for grok: `UserModel.authenticate()`
+    currently does lookup + bcrypt compare together - split the lookup from the compare (or add a
+    lock-aware pre-check) rather than duplicating the credential path.
+  - thresholds (configurable): defaults `maxAttempts: 5`, `lockoutDurationMinutes: 15`, under
+    `appConfig.controller.auth.lockout.{ enabled, maxAttempts, lockoutDurationMinutes }`, surfaced
+    on Site Configuration so a site admin can tune or disable it.
+  - clear conditions: lazy auto-clear once `lockedUntil` passes (a login after the timeout is
+    allowed and resets the Redis counter); early clear on a successful login; early clear on a
+    successful password reset; admin manual unlock (clears `security.lockedUntil` and the Redis
+    counter).
+  - redis dependency: the rolling counter needs Redis, so WITHOUT Redis no NEW lockouts are
+    detected (fail-open on detection, consistent with the W-204 limiter), while an already-set
+    `security.lockedUntil` still enforces. Redis becomes a hard requirement in the planned v3.0,
+    which removes this degradation.
+  - user-facing copy: a distinct, non-punitive message (e.g. "Too many failed attempts. Try again
+    in {{minutes}} minutes, or reset your password.") - deliberately NOT the `suspended`/
+    `terminated` "contact your administrator" framing, since a locked-out legitimate user is not
+    being accused of anything.
+- features:
+  - per-account login lockout after 5 failed local-password attempts in 15 minutes (both set in
+    `app.conf` `controller.auth.lockout`, not on Site Configuration), layered on the per-IP limit.
+    `locked` is not a user status
+  - durable `security.lockedUntil` and `security.lastFailedLoginAt`. The rolling counter is Redis,
+    keyed by user id. Unknown identifiers, directory-owned accounts, and accounts with no local
+    password are not counted
+  - the lock is checked before bcrypt and returns `403 ACCOUNT_LOCKED` with `retryAfter`. A lock
+    already stored still applies when Redis is down. No new lock is created without Redis
+  - clears when the time passes, on a successful local login, on a successful password reset, and
+    on a successful external login. External auth is never blocked by the lock
+  - admins see a Locked badge on the users list and the profile header, can include Locked in the
+    status filter (the page sends `locked=1` on its own), and can unlock from the profile or
+    `POST /api/1/user/unlock`. Search accepts `locked=0` or `locked=1` for admins only
+  - users and logs filters sit in the table header. Users columns sort with a three-click cycle.
+    Logs action and document type are multi-selects. A comma list on an enum field is an OR
+  - the login message tells the user how long to wait, or to reset their password
+- deliverables:
+  - `webapp/model/user.js`: `security.lockedUntil` and `security.lastFailedLoginAt` (not a status
+    value); `isLocked`, `lockRemainingMs`, `setLock`, `clearLock`; lookup split from the password
+    compare; search accepts `locked=0|1` separately from status, and custom role names
+  - `webapp/controller/auth.js`: gate before bcrypt; count failed local passwords by user id;
+    lock at the threshold; clear the counter and `lockedUntil` on success; `onAuthFailure` reason
+    `ACCOUNT_LOCKED`; external auth (`skipPasswordCheck`) is not gated and clears the lock
+  - `webapp/controller/user.js`: password-reset confirm clears the lock; `unlockAccount`
+  - `webapp/routes.js`: `POST /api/1/user/unlock`, admin only
+  - `webapp/app.conf`: `controller.auth.lockout` `{ enabled, maxAttempts, lockoutDurationMinutes }`
+  - `webapp/view/admin/users.shtml`: header filters, Locked badge and tooltip, three-click sort
+  - `webapp/view/admin/user-profile.shtml`: header badge, unlock control
+  - `webapp/view/admin/logs.shtml`: header filters; action and document type are multi-selects
+  - `webapp/utils/common.js`: an enum value that uses search operators goes through StringQueryParser
+  - `webapp/view/jpulse-common.js`: jpSelect `minDropdownWidth`
+  - `webapp/view/jpulse-common.css`: tighter jpSelect option padding
+  - `webapp/view/auth/login.shtml`, `email-verify.shtml`, `reset-password.shtml`: mechanism notes
+    use `{{!-- --}}` so they are not sent to the browser
+  - `webapp/translations/en.conf`, `de.conf`: `controller.auth.accountLocked` and the admin strings
+  - tests: `auth-controller.test.js`, `user-password-reset-endpoints.test.js`,
+    `user-lockout-schema.test.js`, `common-utils.test.js`
+  - docs: `docs/security-and-auth.md`, `docs/site-administration.md`, `docs/api-reference.md`
+- benefits: gives legitimate users a clear, actionable, non-accusatory explanation when an
+  automated security measure (not an admin decision) blocks their login, and gives the framework
+  real brute-force protection on `/api/1/auth/login`, which has none today
+
+
+
+
+
+
 
 ### Pending
 
-- site: add testing infra by default to site/webapp/tests/ (unit, integration, manual), copy once
+- site: add test infrastructure by default to site/webapp/tests/ (unit, integration, manual), copy once
 - user registration: admin option to get notified by email
 - admin can register user: random password, "must change password" flag
 
@@ -11716,7 +11843,7 @@ next work item: W-0...
 
 release prep:
 - run tests, and fix any issues
-- assume W-270, v2.0.16, 2026-11-14
+- assume W-202, v2.0.17, 2026-11-26
 - review tt-git-diff.txt for accuracy and completness of work item
 - if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
 - update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
@@ -11736,12 +11863,12 @@ plugin release prep:
 npm test
 git diff
 git status
-node bin/bump-version.js 2.0.16 2026-11-14
+node bin/bump-version.js 2.0.17 2026-11-26
 git diff
 git status
 git add .
 git commit -F commit-message.txt
-git tag v2.0.16; git push origin main --tags
+git tag v2.0.17; git push origin main --tags
 
 === PLUGIN release & package build on github ===
 cd plugins/auth-mfa
@@ -11814,69 +11941,37 @@ template:
     - FIXME summary
 - notes:
 
-### W-202, v1.7.6, 2026-xx-xx: auth: add locked status
+### W-0: ai: MCP server
 - status: 🕑 PENDING
 - type: Feature
-- depends on: W-201 (centralized, per-status account-status check in `auth.js`'s `login()` - this
-  work item adds a 5th branch to that same block rather than introducing a second check location)
-- objective: give jPulse a `locked` status that is conceptually distinct from `suspended`/
-  `terminated` - `locked` protects *the account* against someone else (e.g. brute-force login
-  attempts, suspicious activity), while `suspended`/`terminated` are admin/moderator actions that
-  protect *the community* from the account - paired with the actual detection/auto-clear mechanism
-  that sets and clears it, so this doesn't become another status value nothing ever sets (the exact
-  trap W-201 exists to fix)
-- discovered while: reviewing W-201's revised spec - raised the idea of adding a `locked` status;
-  agreed it's a distinct, valuable concept, but out of scope for W-201 (a narrowly-scoped bugfix)
-  since there is currently no failed-login-attempt tracking, lockout threshold, or auto-unlock
-  mechanism anywhere in the framework (confirmed via repo-wide search - the only trace is the
-  aspirational `hook-manager.js` `onAuthFailure` doc string "On login failure - rate limiting,
-  lockout", never implemented) - adding the enum value alone, with nothing to ever set it, would
-  just recreate W-201's bug in a new shape
-- related backlog item: `W-084` ("security: harden security") already lists "Account Lockout:
-  Automatic account lockout after N failed login attempts (configurable threshold)" as an
-  undetailed to-do bullet with no design behind it - this work item formalizes/supersedes that
-  bullet with a concrete design (W-084 itself intentionally left untouched - not moved, not marked
-  done, per this session's file-editing constraints)
-- why not fold this into `suspended` via a reason sub-field instead: considered (e.g.
-  `status: 'suspended', statusReason: 'security' | 'policy'`) as a smaller-schema-footprint
-  alternative, but rejected for now - splitting "why is this account blocked" across two fields
-  is more for a developer/admin to hold in their head than one clear top-level `status` value, and
-  `locked`'s lifecycle (system-set, often auto-clearing) is different enough from `suspended`'s
-  (admin-set, admin-cleared) that conflating their storage shape would likely leak into the admin
-  UI/search/query layer anyway
-- design considerations (none locked in yet - to be resolved when this item is scheduled):
-  - tracking storage: a failed-attempt counter + `lockedUntil` timestamp, either on the user
-    document (simplest, no new infra) or in Redis via `global.RedisManager.cacheCheckRateLimit()`
-    (already the established pattern for per-IP rate limiting, e.g.
-    `plugins/auth-oauth/webapp/controller/oauthAuth.js` `apiInit`/`apiCallback` - better suited to
-    multi-server deployments, see W-055 load-balancer work item)
-  - keyed by identifier, by IP, or both - identifier-only tracking lets an attacker weaponize the
-    lockout itself as a denial-of-service against a known victim's account (repeatedly submit
-    wrong passwords for someone else's username) - likely needs IP-based rate limiting as a
-    complementary control, not a replacement, mirroring the `onAuthFailure` hook's existing
-    "rate limiting, lockout" framing as two related but separate concerns
-  - configurable threshold/duration (e.g. `appConfig.controller.auth.lockout.maxAttempts`,
-    `.lockoutDurationMinutes`), auto-clear on timeout, and/or early clear on successful password
-    reset
-  - admin manual-unlock action in the user-management UI, for support cases before the timeout
-    elapses
-  - whether the counter should be driven through the existing `onAuthFailure` hook (already fired
-    on every login failure today) rather than new bespoke tracking code in `auth.js`, so plugins
-    get the same signal for their own auditing/alerting
-  - distinct, non-punitive user-facing copy (e.g. "Too many failed attempts. Try again in
-    {{minutes}} minutes, or reset your password.") vs. `suspended`/`terminated`'s
-    "contact your administrator" framing - the whole point of separating these statuses is that
-    the message a locked-out legitimate user sees should not sound like an accusation
-  - slots into `auth.js`'s `login()` status-check block (W-201) as a 5th sequential check
-    (`'locked'` → `ACCOUNT_LOCKED`), no restructuring of that block needed
-- features: not yet scoped - see design considerations above; to be finalized when this item is
-  picked up
-- deliverables: not yet scoped - to be broken out (schema enum + optional lockout fields, tracking
-  mechanism, `appConfig` options, `login()` branch, admin unlock UI, translations, tests) once this
-  item is picked up
-- benefits: gives legitimate users a clear, actionable, non-accusatory explanation when an
-  automated security measure (not an admin decision) blocks their login, and gives the framework
-  real brute-force protection on `/api/1/auth/login`, which has none today
+- objective: expose a running jPulse site's own AI tools to EXTERNAL MCP clients (Cursor, Claude
+  Desktop, any Model Context Protocol client) over an MCP server, so an outside assistant can read
+  and act on the live application under the site's existing authorization - the runtime mirror of
+  the in-product AI agent
+- NOT the same as the separate "mcp server for ai-assisted development (ref NestJS)" idea in the
+  pending notes: that one is dev-time (helping write jPulse); THIS one is runtime (an external
+  agent operating a deployed site)
+- rationale:
+  - the 2.0 AI agent already built a per-object tool registry (onAiToolRegister / onAiToolExecute /
+    onAiScopeResolve) with scope:read / scope:write authorization and a resolved actor identity; an
+    MCP server is mostly a second transport in front of that same registry, not a new stack - high
+    leverage for the effort
+  - differentiated, enterprise-relevant AI surface; strong candidate for the headline of the big
+    v3.0 release (Jan 2027)
+- high-level design (full design doc to follow - do NOT implement from this entry):
+  - reuse the existing onAi* tool registry and scope resolution; do NOT invent a second tool model
+  - enforce the site's existing authorization (scope:read / scope:write) and run every tool call as
+    a resolved actor - an MCP client must never get more than that actor would get in the web UI
+  - external-client authentication (how an MCP client proves it is a given actor - API token vs
+    session vs OAuth) is the main open question for the design doc
+  - transport (stdio vs streamable HTTP/SSE), tool discovery/listing, and how scopeType/scopeId map
+    onto MCP tools/resources are also for the design doc
+  - likely ships as a plugin alongside ai-core (consistent with the AI feature's plugin packaging),
+    to be confirmed in the design doc
+- prerequisits:
+  - the AI agent tool registry and onAi* hooks (ai-core plugin + framework AI/document hooks, v2.0.x)
+- notes: scope and deliverables intentionally left high-level here; a design doc will break this
+  down before implementation
 
 ### W-0: auth-oauth plugin: support Apple IdP
 - status: 🕑 PENDING
@@ -11955,9 +12050,6 @@ template:
   - Security Headers Audit: Review and tighten CSP policy (reduce unsafe-inline, unsafe-eval)
   - Dependency Scanning: Automated vulnerability scanning for npm dependencies (npm audit integration)
   - Security Monitoring: Set up alerts for suspicious authentication patterns
-  - MFA (Multi-Factor Authentication): SMS or authenticator app support (planned as plugin, see W-0 auth controller MFA)
-  - OAuth2 Authentication: OAuth2 provider integration (planned as plugin, see W-0 auth controller OAuth2)
-  - LDAP Authentication: LDAP/Active Directory integration (planned as plugin, see W-0 auth controller LDAP)
 
 ### W-081: tests: restructure for better maintainability
 - status: 🕑 PENDING (post-1.0)

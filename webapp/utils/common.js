@@ -3,13 +3,13 @@
  * @tagline         Common Utilities for jPulse Framework WebApp
  * @description     Shared utility functions used across the jPulse Framework WebApp
  * @file            webapp/utils/common.js
- * @version         2.0.16
- * @release         2026-11-14
+ * @version         2.0.17
+ * @release         2026-11-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.19, Grok 4.6
+ * @genai           60%, Cursor 3.30, Grok 4.7
  */
 
 import fs from 'fs';
@@ -451,16 +451,20 @@ class CommonUtils {
                     });
                 }
             } else if (fieldSchema.enum) {
-                // Handle enum fields (before string type check)
-                if (fieldSchema.enum.includes(value)) {
+                // A plain value must be one of the enum members. A search expression
+                // (comma OR, and the other StringQueryParser operators) is parsed as-is.
+                const stringValue = String(value).trim();
+                if (fieldSchema.enum.includes(stringValue)) {
                     fieldQueries.push({
-                        query: { [key]: value },
+                        query: { [key]: stringValue },
                         useCollation: true,
                         collation: { locale: 'en', strength: 2 }
                     });
-                } else {
-                    // Skip invalid enum values
-                    continue;
+                } else if (/[,;!*]/.test(stringValue) || /^\/.+\/[gimsuy]*$/.test(stringValue)) {
+                    const parsed = CommonUtils.StringQueryParser.parse(key, stringValue);
+                    if (parsed.query && Object.keys(parsed.query).length > 0) {
+                        fieldQueries.push(parsed);
+                    }
                 }
             } else if (fieldSchema.type === 'string') {
                 // W-141: Use new StringQueryParser

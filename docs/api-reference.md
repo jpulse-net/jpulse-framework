@@ -1,4 +1,4 @@
-# jPulse Docs / REST API Reference v2.0.16
+# jPulse Docs / REST API Reference v2.0.17
 
 Complete REST API documentation for the jPulse Framework `/api/1/*` endpoints with routing, authentication, and access control information.
 
@@ -86,6 +86,7 @@ Admin roles are defined in **site config** (Admin → Site Configuration → Gen
 
 - `GET /api/1/user/search` - User management and search
 - `POST /api/1/user/password-reset/send` - Email a user a password reset link
+- `POST /api/1/user/unlock` - Clear a brute-force account lock
 - `GET /api/1/config/*` - Configuration access (bulk reads mask secrets; see [Sensitive fields](#sensitive-fields))
 - `GET /api/1/config/:id/secret` - Reveal one stored secret (audited)
 - `POST /api/1/config` - Configuration creation
@@ -543,6 +544,7 @@ Authenticate user and create session.
 - **400**: Missing identifier or password (`MISSING_CREDENTIALS`)
 - **401**: Invalid credentials (`INVALID_CREDENTIALS`). A password-login plugin may deny with its own `code` and status (`onAuthBeforeLogin` `context.deny`); internal auth does not run after a denial. `retryAfter` (seconds), when the plugin sets it, is returned the same way as `RATE_LIMITED`
 - **403**: Login disabled (`LOGIN_DISABLED`), local auth restricted (`LOCAL_AUTH_RESTRICTED` — see [`controller.auth.localAuthRestriction`](security-and-auth.md#restricting-local-usernamepassword-login)), or account status blocks login (`ACCOUNT_PENDING_APPROVAL` / `ACCOUNT_SUSPENDED` / `ACCOUNT_TERMINATED` / `ACCOUNT_INACTIVE`)
+- **403**: Account temporarily locked after too many failed attempts (`ACCOUNT_LOCKED` — see [Account Lockout](security-and-auth.md#account-lockout)); response includes `retryAfter` (seconds). An admin can lift the lock early — see [Unlock Account](#unlock-account)
 - **429**: Too many requests from this IP (`RATE_LIMITED` — see [`controller.auth.loginRateLimit`](security-and-auth.md#rate-limiting)); response includes `retryAfter` (seconds)
 - **500**: Internal server error
 
@@ -1174,6 +1176,40 @@ not reported as "sent." Every send is logged with the acting administrator's use
   `accountSuspended`, or `accountTerminated`, and `error` explains what to do instead
 - **503**: SMTP rejected the message (`EMAIL_SEND_FAILED`); the just-stored token is discarded
 
+#### Unlock Account
+Clear a brute-force lock on an account so the user can sign in again without waiting for the
+lockout window to pass. See [Account Lockout](security-and-auth.md#account-lockout) for how the lock
+is set.
+
+**Route:** `POST /api/1/user/unlock`
+**Middleware:** `AuthController.requireAdminRole()`
+**Authentication:** Required (admin role)
+
+**Request Body:**
+```json
+{
+    "username": "jane"
+}
+```
+
+Accepts `username` or `id`.
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Account unlocked"
+}
+```
+
+Clears both the lock timestamp on the user document and the rolling failed-attempt counter. It is
+idempotent — unlocking an account that isn't locked simply succeeds. Every unlock is logged with the
+acting administrator's username.
+
+**Error Responses:**
+- **404**: User not found (`USER_NOT_FOUND`)
+- **500**: Internal server error
+
 ### Administrative User Management
 
 #### Get Public User Profile
@@ -1321,7 +1357,8 @@ Search and filter users with advanced query capabilities.
 - `profile.firstName` (string): First name filter with search syntax support
 - `profile.lastName` (string): Last name filter with search syntax support
 - `roles` (string): Role filter with search syntax (`guest`, `user`, `admin`, `root`)
-- `status` (string): Status filter with search syntax (`active`, `inactive`, `pending`, `suspended`)
+- `status` (string): Status filter with search syntax (`pending`, `active`, `inactive`, `suspended`, `terminated`). A comma list matches any of those values (`status=active,pending`)
+- `locked` (`0` or `1`): Admin only. `1` keeps accounts whose lock is still in effect; `0` keeps accounts that are not locked. Omit it to leave the lock out of the filter. Any other value is ignored, and non-admins cannot filter on it
 - `createdAt` (string): Date range filter (YYYY, YYYY-MM, YYYY-MM-DD) - supports wildcards
 - `lastLogin` (string): Last login date filter - supports wildcards
 - `limit` (number): Maximum results to return (default: 50, max: 1000)

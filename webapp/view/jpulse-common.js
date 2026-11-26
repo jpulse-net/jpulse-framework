@@ -3,8 +3,8 @@
  * @tagline         Common JavaScript utilities for the jPulse Framework
  * @description     This is the common JavaScript utilities for the jPulse Framework
  * @file            webapp/view/jpulse-common.js
- * @version         2.0.16
- * @release         2026-11-14
+ * @version         2.0.17
+ * @release         2026-11-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
@@ -2301,7 +2301,8 @@ window.jPulse = {
                         placeholder: (sel.getAttribute('placeholder') || '{{i18n.view.ui.input.jpSelect.placeholder}}' || '').trim(),
                         captionFormatSome: '{{i18n.view.ui.input.jpSelect.captionFormatSome}}' || '%NUM% selected',
                         captionFormatAll: '{{i18n.view.ui.input.jpSelect.captionFormatAll}}' || 'All selected',
-                        separator: '{{i18n.view.ui.input.jpSelect.separator}}' || ', '
+                        separator: '{{i18n.view.ui.input.jpSelect.separator}}' || ', ',
+                        minDropdownWidth: 0
                     };
                     const opts = { ...defaults, ...options };
 
@@ -2491,9 +2492,14 @@ window.jPulse = {
                         // Offset 40 of the layer that opened it.
                         const triggerRect = trigger.getBoundingClientRect();
                         const dropdownZIndex = jPulse.UI._menuZIndex(wrap);
+                        const dropdownWidth = Math.max(triggerRect.width, Number(opts.minDropdownWidth) || 0);
+                        let dropdownLeft = triggerRect.left;
+                        if (dropdownLeft + dropdownWidth > window.innerWidth - 8) {
+                            dropdownLeft = Math.max(8, window.innerWidth - 8 - dropdownWidth);
+                        }
                         dropdown.style.position = 'fixed';
-                        dropdown.style.left = triggerRect.left + 'px';
-                        dropdown.style.width = triggerRect.width + 'px';
+                        dropdown.style.left = dropdownLeft + 'px';
+                        dropdown.style.width = dropdownWidth + 'px';
                         dropdown.style.zIndex = String(dropdownZIndex);
                         const spaceBelow = window.innerHeight - triggerRect.bottom;
                         const spaceAbove = triggerRect.top;

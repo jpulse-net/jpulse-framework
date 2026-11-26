@@ -7,13 +7,13 @@
  *                   passwordResetSend() (admin, honest response) - plus the eligibility
  *                   classifier and the cross-path token invalidation
  * @file            webapp/tests/unit/controller/user-password-reset-endpoints.test.js
- * @version         2.0.16
- * @release         2026-11-14
+ * @version         2.0.17
+ * @release         2026-11-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           85%, Cursor 3.15, Claude Opus 5
+ * @genai           85%, Cursor 3.30, Grok 4.7
  */
 
 import { describe, test, expect, beforeAll, beforeEach, jest } from '@jest/globals';
@@ -340,6 +340,13 @@ describe('UserController: W-206 password reset endpoints', () => {
             expect(UserModel.sendPasswordChangedNotice).toHaveBeenCalledWith(mockReq, activeUser);
         });
 
+        test('clears any account lock on success (W-202) - a reset is a trusted recovery', async () => {
+            await UserController.passwordResetConfirm(mockReq, mockRes);
+
+            expect(UserModel.clearLock).toHaveBeenCalledWith('user-1');
+            expect(AuthController.clearLoginLockoutCounter).toHaveBeenCalledWith('user-1');
+        });
+
         test('signs an active user in through beginAuthenticatedSession()', async () => {
             mockReq.session.user = { id: 'user-1', username: 'pruser' };
 
@@ -459,6 +466,42 @@ describe('UserController: W-206 password reset endpoints', () => {
 
             expect(mockRes.status).toHaveBeenCalledWith(403);
             expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'PASSWORD_RESET_UNAVAILABLE' }));
+        });
+    });
+
+    describe('unlockAccount() - POST /api/1/user/unlock (admin, W-202)', () => {
+        beforeEach(() => {
+            mockReq.session.user = { id: 'admin-1', username: 'adminuser', roles: ['admin'] };
+            mockReq.body = { username: 'pruser' };
+            UserModel.findByUsername.mockResolvedValue(activeUser);
+            UserModel.findById.mockResolvedValue(activeUser);
+        });
+
+        test('returns 404 when the user does not exist', async () => {
+            UserModel.findByUsername.mockResolvedValue(null);
+
+            await UserController.unlockAccount(mockReq, mockRes);
+
+            expect(mockRes.status).toHaveBeenCalledWith(404);
+            expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ code: 'USER_NOT_FOUND' }));
+            expect(UserModel.clearLock).not.toHaveBeenCalled();
+        });
+
+        test('clears the lock timestamp and the failed-attempt counter by username', async () => {
+            await UserController.unlockAccount(mockReq, mockRes);
+
+            expect(UserModel.clearLock).toHaveBeenCalledWith('user-1');
+            expect(AuthController.clearLoginLockoutCounter).toHaveBeenCalledWith('user-1');
+            expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+        });
+
+        test('resolves the account by id when given', async () => {
+            mockReq.body = { id: 'user-1' };
+
+            await UserController.unlockAccount(mockReq, mockRes);
+
+            expect(UserModel.findById).toHaveBeenCalledWith('user-1');
+            expect(UserModel.clearLock).toHaveBeenCalledWith('user-1');
         });
     });
 

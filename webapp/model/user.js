@@ -3,13 +3,13 @@
  * @tagline         User Model for jPulse Framework WebApp
  * @description     This is the user model for the jPulse Framework WebApp using native MongoDB driver
  * @file            webapp/model/user.js
- * @version         2.0.16
- * @release         2026-11-14
+ * @version         2.0.17
+ * @release         2026-11-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.21, Grok 4.7
+ * @genai           60%, Cursor 3.30, Grok 4.7
  */
 
 import database from '../database.js';
@@ -76,6 +76,15 @@ class UserModel {
         emailVerifiedAt: { type: 'date', default: null },
         lastLogin: { type: 'date', default: null },
         loginCount: { type: 'number', default: 0 },
+        // W-202: account-protection state, system-managed (never admin-set, and deliberately
+        // NOT a value of the `status` enum above). `lockedUntil` enforces a brute-force lockout
+        // while it is in the future; the rolling failed-attempt counter that triggers it lives
+        // in Redis, not here, so an ordinary failed attempt never writes this document. See
+        // docs/security-and-auth.md#account-lockout.
+        security: {
+            lockedUntil: { type: 'date', default: null },
+            lastFailedLoginAt: { type: 'date', default: null }
+        },
         createdAt: { type: 'date', auto: true },
         updatedAt: { type: 'date', auto: true },
         updatedBy: { type: 'string', default: '' },
@@ -472,6 +481,11 @@ class UserModel {
         // W-205)
         if (result.emailVerified === undefined) result.emailVerified = false;
 
+        // W-202: account-protection defaults - new signups start unlocked
+        if (!result.security) result.security = {};
+        if (result.security.lockedUntil === undefined) result.security.lockedUntil = null;
+        if (result.security.lastFailedLoginAt === undefined) result.security.lastFailedLoginAt = null;
+
         return result;
     }
 
@@ -652,6 +666,22 @@ class UserModel {
             const qp = { ...(queryParams || {}) };
             const substringEmail = !!modelOptions.substringEmail;
 
+            // Lock is not an account status and not a schema field, so schemaBasedQuery cannot
+            // see it. Admins pass locked=1 (currently locked) or locked=0 (not locked);
+            // everyone else has the parameter ignored. Status is left for schemaBasedQuery,
+            // which uses StringQueryParser for a comma list such as status=active,pending.
+            let lockFragment = null;
+            if (modelOptions.includeLockFilter) {
+                lockFragment = UserModel._lockSearchFragment(qp.locked);
+            }
+            delete qp.locked;
+
+            // Roles come from site config and can include names that are not in the schema
+            // enum (user/admin/root). schemaBasedQuery drops those, which made a filter for a
+            // custom role match everyone. Match the requested names directly.
+            const rolesFragment = UserModel._rolesSearchFragment(qp.roles);
+            delete qp.roles;
+
             // Admin: substring match on email (escaped regex). Non-admin: exact match via schemaBasedQuery.
             let emailFragment = null;
             if (substringEmail && qp.email && typeof qp.email === 'string' && qp.email.trim()) {
@@ -673,12 +703,62 @@ class UserModel {
             if (emailFragment) {
                 queryResult = UserModel._mergeUserSearchQueryFragment(queryResult, emailFragment);
             }
+            if (rolesFragment) {
+                queryResult = UserModel._mergeUserSearchQueryFragment(queryResult, rolesFragment);
+            }
+            if (lockFragment) {
+                queryResult = UserModel._mergeUserSearchQueryFragment(queryResult, lockFragment);
+            }
 
             const collection = UserModel.getCollection();
             return CommonUtils.paginatedSearch(collection, queryResult, queryParams, {});
         } catch (error) {
             throw new Error(`Failed to search users: ${error.message}`);
         }
+    }
+
+    /**
+     * Mongo filter for one or more role names. Exact membership, not limited to the schema enum.
+     * @param {string|string[]} rolesParam - One role, a comma-separated list, or an array
+     * @returns {object|null} Query fragment, or null when nothing was requested
+     * @private
+     */
+    static _rolesSearchFragment(rolesParam) {
+        const raw = Array.isArray(rolesParam) ? rolesParam : String(rolesParam == null ? '' : rolesParam).split(',');
+        const roles = [...new Set(
+            raw.flatMap(value => String(value).split(','))
+                .map(value => value.trim())
+                .filter(value => value && !value.includes('$'))
+        )];
+        if (!roles.length) {
+            return null;
+        }
+        return { roles: { $in: roles } };
+    }
+
+    /**
+     * Mongo filter for the admin lock search. `1` is lockedUntil in the future;
+     * `0` is everyone else (never locked, or the lock has already expired).
+     * Anything else, including an empty value, means "don't filter".
+     * @param {string} lockedParam - Query value, `1` or `0`
+     * @returns {object|null} Query fragment, or null when the parameter is absent or unrecognized
+     * @private
+     */
+    static _lockSearchFragment(lockedParam) {
+        const value = String(lockedParam == null ? '' : lockedParam).trim();
+        const now = new Date();
+        if (value === '1') {
+            return { 'security.lockedUntil': { $gt: now } };
+        }
+        if (value === '0') {
+            return {
+                $or: [
+                    { 'security.lockedUntil': null },
+                    { 'security.lockedUntil': { $lte: now } }
+                ]
+            };
+        }
+        return null;
     }
 
     /**
@@ -761,6 +841,20 @@ class UserModel {
                         recentLogins30d: [
                             { $match: { lastLogin: { $gte: last30d } } },
                             { $count: 'count' }
+                        ],
+                        // Accounts whose password this app can lock. Directory-owned accounts
+                        // (passwordManagedBy set) and accounts with no local password are excluded.
+                        // { field: null } matches null and missing.
+                        localPassword: [
+                            { $match: {
+                                hasLocalPassword: { $ne: false },
+                                $or: [
+                                    { passwordManagedBy: null },
+                                    { passwordManagedBy: '' }
+                                ]
+                            } },
+                            { $limit: 1 },
+                            { $count: 'count' }
                         ]
                     }
                 }
@@ -778,7 +872,8 @@ class UserModel {
                     last24h: data.recentLogins24h[0]?.count || 0,
                     last7d: data.recentLogins7d[0]?.count || 0,
                     last30d: data.recentLogins30d[0]?.count || 0
-                }
+                },
+                hasLocalPasswordUsers: (data.localPassword[0]?.count || 0) > 0
             };
 
             // Convert byStatus array to object
@@ -1757,34 +1852,116 @@ class UserModel {
      */
     static async authenticate(identifier, password) {
         try {
-            // Find user by username or email
-            let user = await this.findByUsername(identifier);
-            if (!user) {
-                user = await this.findByEmail(identifier);
-            }
-
+            const user = await this.findByIdentifier(identifier);
             if (!user) {
                 return null;
             }
-
-            // W-261: a directory-owned password must not succeed here, even when the stored
-            // hash would match. Offboarding in the directory is how that account loses access.
-            if (user.passwordManagedBy) {
+            if (!await this.verifyCredentials(user, password)) {
                 return null;
             }
-
-            // Verify password
-            const isValid = await this.verifyPassword(password, user.passwordHash);
-            if (!isValid) {
-                return null;
-            }
-
             // Return user without password hash
             const { passwordHash, ...userWithoutPassword } = user;
             return userWithoutPassword;
         } catch (error) {
             throw new Error(`Authentication failed: ${error.message}`);
         }
+    }
+
+    /**
+     * Resolve a login identifier (username or email) to a full user document, including the
+     * passwordHash. W-202: split out of authenticate() so login() can look the account up,
+     * check an account lock, and decide whether to count a failed attempt - all before spending
+     * a bcrypt compare - without duplicating the lookup or the credential path.
+     * @param {string} identifier - LoginId or email
+     * @returns {Promise<object|null>} Full user document (with passwordHash) or null
+     */
+    static async findByIdentifier(identifier) {
+        let user = await this.findByUsername(identifier);
+        if (!user) {
+            user = await this.findByEmail(identifier);
+        }
+        return user;
+    }
+
+    /**
+     * Verify a plain-text password against a resolved user document. W-202: the compare half of
+     * authenticate(), so login() can gate on a lock between lookup and compare.
+     * @param {object} user - Full user document (with passwordHash)
+     * @param {string} password - Plain text password
+     * @returns {Promise<boolean>} True if the local password is valid
+     */
+    static async verifyCredentials(user, password) {
+        if (!user) {
+            return false;
+        }
+        // W-261: a directory-owned password must not succeed here, even when the stored hash
+        // would match. Offboarding in the directory is how that account loses access.
+        if (user.passwordManagedBy) {
+            return false;
+        }
+        return await this.verifyPassword(password, user.passwordHash);
+    }
+
+    // ---------------------------------------------------------------------------------------
+    // W-202: account lockout state. `status` stays admin-controlled (pending/active/inactive/
+    // suspended/terminated); a brute-force lockout is its own system-managed state on
+    // `security.lockedUntil`, enforced below and in auth.js's login(). The rolling attempt
+    // counter that trips the lock lives in Redis (see AuthController). These writes go straight
+    // to the collection rather than through updateById() so a failed-login lockout does not fire
+    // the profile-save hooks or bump saveCount like a user edit.
+    // ---------------------------------------------------------------------------------------
+
+    /**
+     * Is this account currently locked (lockedUntil in the future)?
+     * @param {object} user - User document
+     * @returns {boolean} True if locked right now
+     */
+    static isLocked(user) {
+        const until = user?.security?.lockedUntil;
+        return !!until && new Date(until).getTime() > Date.now();
+    }
+
+    /**
+     * Milliseconds remaining until the lock lifts (0 if not locked).
+     * @param {object} user - User document
+     * @returns {number} Remaining lock time in ms
+     */
+    static lockRemainingMs(user) {
+        const until = user?.security?.lockedUntil;
+        if (!until) {
+            return 0;
+        }
+        return Math.max(0, new Date(until).getTime() - Date.now());
+    }
+
+    /**
+     * Lock an account until the given time, and stamp the last failed-login time.
+     * @param {string|ObjectId} userId - User ID
+     * @param {Date} lockedUntil - When the lock lifts
+     * @returns {Promise<void>}
+     */
+    static async setLock(userId, lockedUntil) {
+        const collection = this.getCollection();
+        const objectId = typeof userId === 'string' ? new ObjectId(userId) : userId;
+        await collection.updateOne(
+            { _id: objectId },
+            { $set: { 'security.lockedUntil': lockedUntil, 'security.lastFailedLoginAt': new Date() } }
+        );
+    }
+
+    /**
+     * Clear an account lock (admin unlock, successful login, successful password reset).
+     * Leaves `security.lastFailedLoginAt` intact as a record of the last failure.
+     * @param {string|ObjectId} userId - User ID
+     * @returns {Promise<void>}
+     */
+    static async clearLock(userId) {
+        const collection = this.getCollection();
+        const objectId = typeof userId === 'string' ? new ObjectId(userId) : userId;
+        await collection.updateOne(
+            { _id: objectId },
+            { $set: { 'security.lockedUntil': null } }
+        );
     }
 
     /**

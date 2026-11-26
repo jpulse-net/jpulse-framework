@@ -1,4 +1,4 @@
-# jPulse Docs / Site Administration v2.0.16
+# jPulse Docs / Site Administration v2.0.17
 
 Complete guide to managing your jPulse site through the admin interface.
 
@@ -179,8 +179,30 @@ Manage user accounts, roles, and permissions through the admin interface.
 - Edit user profiles and roles
 - Disable/delete user accounts
 - Last admin protection (prevents removing the last admin)
+- See which accounts are temporarily locked (a Locked badge next to the account status), and filter the list to locked accounts from the status filter
+- Unlock an account that was locked by repeated failed logins (see below)
 
 See [Security & Authentication Guide](security-and-auth.md) for detailed information about roles, permissions, and authentication.
+
+### Unlocking an Account
+
+After too many failed password attempts, an account is temporarily locked and the user is told to
+wait or reset their password (see [Account Lockout](security-and-auth.md#account-lockout)). The lock
+lifts on its own when the lockout window passes, and a successful password reset also clears it, so
+most users never need help. When someone needs to get back in sooner, an admin can clear the lock
+immediately:
+
+- **Users list**: `/admin/users.shtml` shows a **Locked** badge beside the account status while the lock is in effect, with a tooltip for when it lifts. The status filter can also include **Locked**. The page sends that as its own `locked=1` parameter, together with any real statuses selected. It is offered only when the site has at least one account with a locally managed password. The profile header shows the same badge next to the account status.
+- **Admin UI**: open the user's profile (`/admin/user-profile.shtml`). When the account is locked,
+  the security panel shows when the lock lifts and an **Unlock account** button; clicking it (after
+  a confirmation) clears the lock at once.
+- **API**: `POST /api/1/user/unlock` with `{ "username": "..." }` (or `{ "id": "..." }`), admin/root
+  only — see [REST API Reference](api-reference.md#unlock-account).
+
+Unlocking clears both the lock timestamp on the user and the rolling failed-attempt counter, and is
+recorded in the audit log. The lockout thresholds themselves (`maxAttempts`, `lockoutDurationMinutes`,
+and `enabled`) are set in `app.conf` under `controller.auth.lockout` — see
+[Account Lockout](security-and-auth.md#account-lockout) for the config block and defaults.
 
 ---
 
@@ -273,8 +295,8 @@ jPulse provides two independent cache systems, both visible in the System Status
 **Access**: `/admin/logs.shtml` (requires `admin` or `root` role)
 
 Search and analyze system logs with:
-- Date range filtering
-- User/action/document type filters
+- Date range filtering, including the Today / Yesterday / This Month presets
+- Username, action, and document-type filters in the table header. Action and document type are multi-selects
 - Sortable results table
 - Expandable change details
 - Export capabilities

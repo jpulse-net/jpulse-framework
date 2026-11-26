@@ -4,13 +4,13 @@
  * @tagline         Admin user profile management with view and edit capabilities
  * @description     Admin user profile management (always-edit, aligned with /user/settings)
  * @file            webapp/view/admin/user-profile.shtml
- * @version         2.0.16
- * @release         2026-11-14
+ * @version         2.0.17
+ * @release         2026-11-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.21, Grok 4.7
+ * @genai           60%, Cursor 3.30, Grok 4.7
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -92,6 +92,16 @@
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        .local-header-lock {
+            background: var(--jp-theme-color-warning-bg);
+            color: var(--jp-theme-color-warning-text);
+            cursor: help;
+        }
+
+        #accountLockRow {
+            padding-bottom: 14px;
         }
 
         /* W-107: Plugin card styles (match user settings: jp-card primary bg, not secondary gray) */
@@ -210,6 +220,7 @@
                         <div class="jp-user-avatar local-header-avatar" id="userAvatar">?</div>
                         <span class="jp-user-details local-header-name" id="userName">-</span>
                         <span class="jp-status-badge local-header-status" id="userStatusBadge">-</span>
+                        <span class="jp-status-badge local-header-lock jp-hidden" id="userLockBadge">{{i18n.view.admin.users.lockedBadge}}</span>
                     </div>
                 </div>
                 <p class="jp-user-details" id="userDetails" style="margin-top: -8px; margin-bottom: 16px;">-</p>
@@ -279,9 +290,9 @@
                         <div id="adminPasswordManagedNote" class="jp-info-box jp-hidden">
                             <p>{{i18n.view.admin.userProfile.securityNoteManagedExternally}}</p>
                         </div>
-                        <!-- W-206: mailing a link is the better default - the admin never learns
+                        {{!-- W-206: mailing a link is the better default - the admin never learns
                              the password, it expires in an hour, and only the mailbox holder can
-                             use it. Set Password below stays for the cases that need it. -->
+                             use it. Set Password below stays for the cases that need it. --}}
                         <div class="jp-btn-group" style="margin-bottom: 20px;">
                             <!-- Wrapper carries the title when the button is disabled: browsers
                                  do not fire hover on disabled controls, so a title on the button
@@ -294,6 +305,16 @@
                                     📧 {{i18n.view.admin.userProfile.sendResetLink}}
                                 </button>
                             </span>
+                        </div>
+                        {{!-- W-202: shown only while the account is locked by the brute-force
+                             lockout; cleared by Unlock, a successful login, or a password reset.
+                             "Locked" is not an account status, so it lives here, not in the
+                             status dropdown. --}}
+                        <div id="accountLockRow" class="jp-info-box jp-hidden" style="margin-bottom: 20px;">
+                            <p id="accountLockNote"></p>
+                            <button class="jp-btn jp-btn-secondary" id="unlockBtn" onclick="unlockAccount()">
+                                🔓 {{i18n.view.admin.userProfile.unlockAccount}}
+                            </button>
                         </div>
                         <div id="adminPasswordFields">
                             <div class="jp-form-group">
@@ -1030,6 +1051,7 @@
             updateEmailVerifiedAtLine(user);
             updateSendResetLinkButton(user);
             updateDirectoryManagedPassword(user);
+            updateLockStatus(user);
 
             // W-174: Set roles select (options already populated by loadRoles)
             const rolesSelect = document.getElementById('roles');
@@ -1117,9 +1139,9 @@
             if (securityNote) securityNote.classList.toggle('jp-hidden', managed);
         }
 
-        // W-206: mails the user the same link they would have requested themselves. Answers
-        // honestly, unlike the public endpoint - an admin on this page already knows the account
-        // exists, so a generic failure would just leave them waiting for mail that isn't coming.
+        {{!-- W-206: mails the user the same link they would have requested themselves. Answers
+             honestly, unlike the public endpoint - an admin on this page already knows the account
+             exists, so a generic failure would just leave them waiting for mail that isn't coming. --}}
         async function sendPasswordResetLink() {
             const btn = document.getElementById('sendResetLinkBtn');
             if (!PASSWORD_RESET_AVAILABLE || btn?.disabled) return;
@@ -1145,6 +1167,61 @@
                 jPulse.form.setLoadingState(btn, false);
                 // setLoadingState re-enables the control - put the site-wide veto back
                 if (!PASSWORD_RESET_AVAILABLE) btn.disabled = true;
+            }
+        }
+
+        {{!-- W-202: the account-lock row is derived, not a stored status - it appears only while
+             security.lockedUntil is in the future. The admin can lift the lock early with Unlock. --}}
+        function updateLockStatus(user) {
+            const row = document.getElementById('accountLockRow');
+            const note = document.getElementById('accountLockNote');
+            if (!row || !note) return;
+            const until = user.security && user.security.lockedUntil ? new Date(user.security.lockedUntil) : null;
+            const locked = until && until.getTime() > Date.now();
+            row.classList.toggle('jp-hidden', !locked);
+            const headerBadge = document.getElementById('userLockBadge');
+            if (headerBadge) {
+                headerBadge.classList.toggle('jp-hidden', !locked);
+                if (locked) {
+                    headerBadge.classList.add('jp-tooltip');
+                    headerBadge.dataset.tooltipPosition = 'top';
+                    headerBadge.dataset.tooltip = jPulse.string.escapeHtml(
+                        `{{i18n.view.admin.users.lockedUntilTooltip}}`.replace('%DATE%', jPulse.date.formatLocalDateAndTime(until))
+                    );
+                    if (headerBadge._jpTooltip) {
+                        headerBadge._jpTooltip.innerHTML = headerBadge.dataset.tooltip;
+                    } else if (jPulse.UI.tooltip) {
+                        jPulse.UI.tooltip.init(headerBadge);
+                    }
+                }
+            }
+            if (locked) {
+                note.textContent = `{{i18n.view.admin.userProfile.accountLockedUntil}}`.replace('%DATE%', jPulse.date.formatLocalDateAndTime(until));
+            }
+        }
+
+        async function unlockAccount() {
+            const btn = document.getElementById('unlockBtn');
+            const confirmResult = await jPulse.UI.confirmDialog({
+                title: `{{i18n.view.admin.userProfile.unlockConfirmTitle}}`,
+                message: `{{i18n.view.admin.userProfile.unlockConfirmMessage}}`.replace('%USERNAME%', currentUsername),
+                buttons: [`{{i18n.view.admin.userProfile.cancel}}`, `{{i18n.view.admin.userProfile.unlockConfirmButton}}`]
+            });
+            if (confirmResult.button !== `{{i18n.view.admin.userProfile.unlockConfirmButton}}`) return;
+
+            jPulse.form.setLoadingState(btn, true, `{{i18n.view.admin.userProfile.unlocking}}`);
+            try {
+                const result = await jPulse.api.post('/api/1/user/unlock', { username: currentUsername });
+                if (result.success) {
+                    jPulse.UI.toast.success(result.message);
+                    await loadUser();
+                } else {
+                    jPulse.UI.toast.error(result.error, { duration: 8000 });
+                }
+            } catch (error) {
+                jPulse.UI.toast.error(`{{i18n.view.admin.userProfile.networkError}}`.replace('%ERROR%', error.message));
+            } finally {
+                jPulse.form.setLoadingState(btn, false);
             }
         }
 

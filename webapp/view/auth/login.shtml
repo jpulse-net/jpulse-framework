@@ -4,13 +4,13 @@
  * @tagline         User authentication login page
  * @description     Login form for internal authentication with support for LDAP/OAuth2 planning
  * @file            webapp/view/auth/login.shtml
- * @version         2.0.16
- * @release         2026-11-14
+ * @version         2.0.17
+ * @release         2026-11-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.21, Grok 4.7
+ * @genai           60%, Cursor 3.30, Grok 4.7
 -->
 <html {{appConfig.system.htmlAttrs}}>
 <head>
@@ -286,8 +286,8 @@
                 {{let hasAuthProviders=(not (array.isEmpty authProviders))}}
 
                 {{#if vars.isRestricted}}
-                  <!-- Restricted site: redirect providers are the primary sign-in method.
-                       A credentials provider (directory login) keeps the password form too. -->
+                  {{!-- Restricted site: redirect providers are the primary sign-in method.
+                       A credentials provider (directory login) keeps the password form too. --}}
                   {{#if vars.hasAuthProviders}}
                     <div class="local-auth-methods" id="authMethods">
                         {{#each authProviders}}
@@ -378,7 +378,7 @@
                 {{/if}}
 
                 {{#unless vars.isRestricted}}
-                  <!-- Unrestricted site: local form is primary, external providers are secondary -->
+                  {{!-- Unrestricted site: local form is primary, external providers are secondary --}}
                   {{#if vars.hasAuthProviders}}
                     <div class="jp-divider" id="authDivider">
                         <span>{{i18n.view.auth.login.orSignInWith}}</span>
@@ -410,7 +410,7 @@
             const loginForm = document.getElementById('loginForm');
             const redirectUrl = `{{url.param.redirect}}` || '/';
 
-            // W-195: loginForm is absent when localAuthRestriction hides the local form
+            {{!-- W-195: loginForm is absent when localAuthRestriction hides the local form --}}
             if (loginForm) {
                 // Custom form handler for multi-step login
                 loginForm.addEventListener('submit', async (event) => {
@@ -482,7 +482,7 @@
             const signupSuccess = `{{url.param.signup}}`;
             const username = `{{url.param.username}}`;
 
-            // W-195: these boxes only exist in the DOM when the local form is rendered
+            {{!-- W-195: these boxes only exist in the DOM when the local form is rendered --}}
             if (signupSuccess === 'success' && username) {
                 const signupText = document.getElementById('signupSuccessText');
                 if (signupText) {
@@ -514,8 +514,8 @@
             // Build redirect URL with return path
             const returnParam = encodeURIComponent(redirectUrl);
 
-            // W-195: plugin-provided step page (see onAuthGetSteps `page`) takes precedence over
-            // the built-in switch-case below, so future step plugins don't need a framework change
+            {{!-- W-195: plugin-provided step page (see onAuthGetSteps `page`) takes precedence over
+                 the built-in switch-case below, so future step plugins don't need a framework change --}}
             if (result.page) {
                 window.location.href = `${result.page}?redirect=${returnParam}`;
                 return;

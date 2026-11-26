@@ -3,13 +3,13 @@
  * @tagline         Authentication Controller for jPulse Framework WebApp
  * @description     This is the authentication controller for the jPulse Framework WebApp
  * @file            webapp/controller/auth.js
- * @version         2.0.16
- * @release         2026-11-14
+ * @version         2.0.17
+ * @release         2026-11-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.21, Grok 4.7
+ * @genai           60%, Cursor 3.30, Grok 4.7
  */
 
 import UserModel from '../model/user.js';
@@ -297,11 +297,16 @@ class AuthController {
      * @returns {Promise<{warnings: array, elapsed: number}>}
      */
     static async _completeLoginSession(req, user, authMethod, startTime) {
-        // Update login statistics
+        // Update login statistics. W-202: any successful login (local or external) also clears
+        // an account lock - this is where decision A+ is realized, so a locked-out user who can
+        // satisfy their external provider is let back in and the local lockout is released. The
+        // lockedUntil clear rides the same write; the Redis attempt counter is cleared below.
         await UserModel.updateById(user._id, {
             lastLogin: new Date(),
-            loginCount: (user.loginCount || 0) + 1
+            loginCount: (user.loginCount || 0) + 1,
+            'security.lockedUntil': null
         });
+        await AuthController.clearLoginLockoutCounter(user._id);
 
         // Build session data
         let sessionData = {
@@ -558,6 +563,92 @@ class AuthController {
         return { code, status, messageKey, extra };
     }
 
+    // W-202: per-account brute-force lockout. The rolling failed-attempt counter lives in Redis
+    // (fixed window = lock duration), keyed by user id so an attacker can't double the budget by
+    // alternating the username and the email form of the same account. The durable lock itself
+    // is user.security.lockedUntil (set here, enforced in login()'s gate, cleared on success /
+    // password reset / admin unlock). This is a complement to the per-IP loginRateLimit (W-204),
+    // not a replacement. Fully-qualified path: the same string is used for the increment and the
+    // delete so cacheCheckRateLimit() and cacheDel() build the same key.
+    static LOCKOUT_RATE_PATH = 'controller:auth:rateLimit:lockout:login';
+
+    /**
+     * Record a failed local-login attempt for an existing account and lock it if the configured
+     * threshold is reached. Fails open (no new lockouts) when lockout is disabled or Redis is
+     * unavailable - an already-set lock still enforces via login()'s gate.
+     * @param {object} user - Full user document of the account that just failed the password check
+     * @returns {Promise<{minutes: number, retryAfterSeconds: number}|null>} Lock info if this
+     *   attempt crossed the threshold and locked the account, else null
+     */
+    static async _recordFailedLoginAttempt(user) {
+        const cfg = global.appConfig?.controller?.auth?.lockout;
+        if (cfg?.enabled === false || !global.RedisManager) {
+            return null;
+        }
+        const maxAttempts = cfg?.maxAttempts || 5;
+        const durationMinutes = cfg?.lockoutDurationMinutes || 15;
+        const key = user._id.toString();
+        const result = await global.RedisManager.cacheCheckRateLimit(
+            AuthController.LOCKOUT_RATE_PATH, key,
+            { limit: maxAttempts, windowSeconds: durationMinutes * 60 });
+        if (!result || result.count < maxAttempts) {
+            return null;
+        }
+        const lockedUntil = new Date(Date.now() + durationMinutes * 60 * 1000);
+        await UserModel.setLock(user._id, lockedUntil);
+        // Reset the counter so the window after the lock lifts starts clean.
+        await global.RedisManager.cacheDel(AuthController.LOCKOUT_RATE_PATH, key);
+        return { minutes: durationMinutes, retryAfterSeconds: durationMinutes * 60 };
+    }
+
+    /**
+     * Clear the Redis failed-attempt counter for an account. The durable lock is cleared
+     * separately via UserModel.clearLock(). Called on a successful login, a successful password
+     * reset, and an admin unlock. No-op without Redis.
+     * @param {string|ObjectId} userId - User ID
+     * @returns {Promise<void>}
+     */
+    static async clearLoginLockoutCounter(userId) {
+        if (!global.RedisManager || typeof global.RedisManager.cacheDel !== 'function') {
+            return;
+        }
+        try {
+            await global.RedisManager.cacheDel(AuthController.LOCKOUT_RATE_PATH, userId.toString());
+        } catch (error) {
+            // Best-effort cleanup - a counter-delete failure must never break the login,
+            // password reset, or admin unlock that triggered it.
+            global.LogController?.logWarning?.(null, 'auth.clearLoginLockoutCounter',
+                `warning: failed to clear lockout counter: ${error.message}`);
+        }
+    }
+
+    /**
+     * Send the standard ACCOUNT_LOCKED refusal (403 + retryAfter), firing onAuthFailure and
+     * logging, for both the pre-compare gate and the just-locked case. W-202.
+     * @param {object} req - Express request
+     * @param {object} res - Express response
+     * @param {object} user - The locked user document
+     * @param {string} identifier - The submitted login identifier
+     * @param {number} retryAfterSeconds - Seconds until the lock lifts
+     * @param {boolean} justLocked - True when this request is the one that crossed the threshold
+     * @returns {Promise<object>} The Express response
+     */
+    static async _denyLockedLogin(req, res, user, identifier, retryAfterSeconds, justLocked = false) {
+        await global.HookManager.execute('onAuthFailure', {
+            req,
+            identifier,
+            reason: 'ACCOUNT_LOCKED',
+            authMethod: 'internal'
+        });
+        global.LogController.logWarning(req, 'auth.login', justLocked
+            ? `error: account locked after too many failed attempts for user: ${user.username}`
+            : `error: login attempt on locked account for user: ${user.username}`);
+        const minutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
+        const message = global.i18n.translate(req, 'controller.auth.accountLocked', { minutes });
+        return global.CommonUtils.sendError(req, res, 403, message, 'ACCOUNT_LOCKED',
+            { retryAfter: retryAfterSeconds });
+    }
+
     /**
      * User login/authentication - Multi-step flow
      * POST /api/1/auth/login
@@ -675,7 +766,22 @@ class AuthController {
                     return global.CommonUtils.sendError(req, res, deny.status, message, deny.code, deny.extra);
                 }
 
-                if (beforeLoginContext.skipPasswordCheck && beforeLoginContext.user) {
+                // W-202: on the internal (local-password) path, resolve the account first so a
+                // brute-force lock can be enforced BEFORE the bcrypt compare, and so a wrong
+                // password can be counted per-account. External auth (skipPasswordCheck) proves
+                // identity through its own provider and is never gated or counted here (decision
+                // A+); _completeLoginSession() clears any lock on a successful external login.
+                const isExternalAuth = !!(beforeLoginContext.skipPasswordCheck && beforeLoginContext.user);
+                let lockCandidate = null;
+                if (!isExternalAuth) {
+                    lockCandidate = await UserModel.findByIdentifier(identifier);
+                    if (lockCandidate && UserModel.isLocked(lockCandidate)) {
+                        return await AuthController._denyLockedLogin(req, res, lockCandidate, identifier,
+                            Math.ceil(UserModel.lockRemainingMs(lockCandidate) / 1000));
+                    }
+                }
+
+                if (isExternalAuth) {
                     // External auth provided the user (LDAP, OAuth2, etc.)
                     user = beforeLoginContext.user;
                 } else {
@@ -684,6 +790,18 @@ class AuthController {
                 }
 
                 if (!user) {
+                    // W-202: a wrong password against an existing local account counts toward the
+                    // per-account lockout. An unknown identifier and a directory-owned account
+                    // never count (finalized decision).
+                    if (!isExternalAuth && lockCandidate &&
+                        !lockCandidate.passwordManagedBy && lockCandidate.hasLocalPassword !== false) {
+                        const lock = await AuthController._recordFailedLoginAttempt(lockCandidate);
+                        if (lock) {
+                            return await AuthController._denyLockedLogin(req, res, lockCandidate,
+                                identifier, lock.retryAfterSeconds, true);
+                        }
+                    }
+
                     // Hook: login failure
                     await global.HookManager.execute('onAuthFailure', {
                         req,

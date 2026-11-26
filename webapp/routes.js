@@ -3,13 +3,13 @@
  * @tagline         Routes of the jPulse Framework
  * @description     This is the routing file for the jPulse Framework
  * @file            webapp/route.js
- * @version         2.0.16
- * @release         2026-11-14
+ * @version         2.0.17
+ * @release         2026-11-26
  * @repository      https://github.com/jpulse-net/jpulse-framework
  * @author          Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @copyright       2025-2026 Peter Thoeny, https://twiki.org & https://github.com/peterthoeny/
  * @license         BSL 1.1 -- see LICENSE file; for commercial use: team@jpulse.net
- * @genai           60%, Cursor 3.15, Grok 4.6
+ * @genai           60%, Cursor 3.30, Grok 4.7
  */
 
 import path from 'path';
@@ -122,6 +122,9 @@ router.post('/api/1/user/password-reset', UserController.passwordReset);
 router.get('/api/1/user/password-reset/verify', UserController.passwordResetVerify);
 router.post('/api/1/user/password-reset/confirm', UserController.passwordResetConfirm);
 router.post('/api/1/user/password-reset/send', AuthController.requireAdminRole(), UserController.passwordResetSend);
+// W-202: admin clears a brute-force account lockout (security.lockedUntil + Redis attempt
+// counter). Admin-only; keyed by { id | username }, mirroring password-reset/send above.
+router.post('/api/1/user/unlock', AuthController.requireAdminRole(), UserController.unlockAccount);
 // W-134: Changed from admin-only to profile access policy (access control in controller)
 router.get('/api/1/user/search', UserController.search);
 // W-134: Changed from admin-only to authenticated users (for /user/ dashboard stats)

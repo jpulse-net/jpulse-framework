@@ -30234,3 +30234,196 @@ Reviewed tt-git-diff.txt against W-270. The features and deliverables omitted th
 
 
 ============================================================
+2026-11-13 01:09
+
+released
+
+git commit ef62bf72, tag v2.0.16, pushed main and the tag.
+
+please give me a paragraph or two on site code fixes needed
+
+The spreadsheet stays on the lightbox at 2000. The image viewer and the fullscreen widget, which share that backdrop, move to 4000 so the chats paint above the sheet and under the picture. Sheet menus are already on document.body at 4000 and can stay. Drop the hardcoded confirm zIndex values 2500 and 4100 so those dialogs use the framework floor at 5000. Focus the sheet when it opens. Remove the site toast overrides at 2100 and 1100, which now pull toasts below the new 7000 band.
+
+
+============================================================
+2026-11-25 23:55
+
+look at pending items work-items.md - what could be a worthy 2.1 feature within pending ones, or a new one not in the list that matches the target use case? [over several turns: picked W-202 + an MCP server; set a goal of a big Jan 2027 release to justify bumping the BSL change date from 2030-01-01 to 2031-01-01; then: finalize W-202 for hand-off to grok, and advise v2.0.17 vs v2.1.0]
+
+Reviewed the pending backlog against the framework's target use case (enterprise/gov, security, AI-assisted dev, "don't make me think"). Read that the 2.x line is built around the in-product AI agent. Recommended W-202 (per-account login lockout) as the strongest pending security pick and a runtime MCP server (exposing the site's onAi* tool registry to external MCP clients) as a differentiated new feature.
+
+On the BSL strategy: explained that BSL Change Dates are per-release and not retroactive - bumping LICENSE to 2031-01-01 only governs code shipped from that release onward (v2.0.16 and earlier keep 2030-01-01), which is exactly why the January release must be substantial enough that users adopt it. Laid out a roadmap: small 2.0.x security releases (W-202 first) leading to a big January 2027 release headlined by the MCP server. User chose 3.0.0 for January with a deliberate breaking change (candidate: make Redis mandatory, a pending backlog item), and chose to start with W-202.
+
+Reviewed W-202 against the actual code: found IP rate limiting already exists (W-204), so W-202 is purely per-account lockout; the W-201 status block is at auth.js login(). Drove three design decisions with the user and settled on Option C (hybrid): do NOT add 'locked' to the status enum; instead a dedicated security.lockedUntil + security.lastFailedLoginAt on the user doc, with the rolling failed-attempt counter in Redis; gate before bcrypt; defaults 5 attempts / 15 minutes; audit trail from LogController, not the status field. Recommended versioning W-202 as v2.0.17 (project ships features as 2.0.x patches; reserve 3.0.0 for the January milestone). Rewrote the W-202 design/features/deliverables in docs/dev/work-items.md for the grok hand-off, leaving its status and section placement untouched (the user had already moved it to IN_PROGRESS and set v2.0.17/2026-11-26).
+
+
+============================================================
+2026-11-26 00:07
+
+yes, please give the hand-off blurb [then: write mcp server work item work-items.md (11941-11947) - not in detail, but to the level we discussed; we will create a design doc later]
+
+Provided a self-contained, copy-pasteable hand-off blurb for grok to implement W-202 v2.0.17: points to the finalized W-202 spec in docs/dev/work-items.md as authoritative, summarizes the Option C design (dedicated security.lockedUntil + security.lastFailedLoginAt, Redis-backed per-identifier counter, gate before bcrypt, 5/15 defaults, ACCOUNT_LOCKED, audit via LogController), flags the one non-trivial refactor (split UserModel.authenticate() lookup from the bcrypt compare), and lists the hard framework constraints (no git, no @version header edits, no work-item status/placement changes, no .jpulse/ edits, 4-space/no-trailing-space style, logging convention, run tests).
+
+Then filled in the pending "ai: MCP server" work item stub (docs/dev/work-items.md, the W-0 PENDING entry) to the discussed level (design doc to follow): a RUNTIME MCP server exposing a running site's own onAi* tool registry to external MCP clients (Cursor, Claude Desktop, etc.) under the site's existing scope:read/scope:write authorization and resolved actor - explicitly distinguished from the separate dev-time "mcp server for ai-assisted development" idea. Captured rationale (reuses the 2.0 tool registry as a second transport; headline candidate for the big v3.0 Jan 2027 release), high-level design points, and the main open question (external-client authentication) for the forthcoming design doc. Left status as PENDING and placement untouched.
+
+
+============================================================
+2026-11-26 00:47
+
+Thanks opus / grok: - let's use A+: local path only is blocked; a successful external login also CLEARS the lock - implement unless questions
+
+Implemented W-202 per-account login lockout (v2.0.17) end to end, decision A+ (only the local-password path is gated; a successful external/SSO login proceeds regardless of the lock and clears it). Model (webapp/model/user.js): added system-managed security.lockedUntil + security.lastFailedLoginAt fields and defaults, pure isLocked()/lockRemainingMs() helpers, direct-collection setLock()/clearLock() (no save hooks), and split authenticate() into findByIdentifier()+verifyCredentials() so login() can run a lock-aware pre-check without duplicating the credential path. Controller (webapp/controller/auth.js): Redis-backed rolling counter keyed by user._id, gate before bcrypt returning 403 ACCOUNT_LOCKED with retryAfter, lock at threshold, fail-open without Redis; folded lock-clearing into the single _completeLoginSession() convergence point so both internal and external successful logins clear it. Password reset (controller/user.js) clears the lock; added admin-only POST /api/1/user/unlock endpoint + route + admin user-profile.shtml unlock UI; app.conf controller.auth.lockout block (enabled/5/15); en + de translations.
+
+Tests: added 9 controller unit tests (gate-before-bcrypt, threshold lock, below-threshold, non-counting of unknown/directory-owned accounts, fail-open, disabled, success clears, A+ external clears), 4 reset/unlock-endpoint tests, and 10 model tests (schema, defaults, isLocked/lockRemainingMs). Fixed one self-inflicted test bug (path-keyed the cacheCheckRateLimit mock so the per-IP limiter still passes). Full suite green: 4193 unit + 113 integration tests pass, zero regressions. Docs: added an Account Lockout section (#account-lockout) + ACCOUNT_LOCKED login response + app-level limiter row in docs/security-and-auth.md, an "Unlocking an Account" admin section in docs/site-administration.md, and the Unlock Account endpoint + ACCOUNT_LOCKED response in docs/api-reference.md. Noted that a true counter-driven integration test isn't feasible under the Redis-fallback test env, so that path is covered by unit tests instead.
+
+
+============================================================
+2026-11-26 00:55
+
+@user-profile.shtml (297-301) - does this comment disclose something that is better hidden from hackers? if so, better use {{!-- --}} to hide comments (it gets stripped before sending to browser) - review other view content for potential disclosure
+
+The lockout HTML comment did not reveal a bypass (admin-only page; reset-clears-lock is already in the public lock message; the external-auth clear rule was not in the comment). It was still a developer note shipped via <!-- -->, including the work-item id and the "not an account status" model. Converted it, the matching script note, and the adjacent reset-link lifetime note to {{!-- --}}. On public auth views, stripped comments that state security invariants: reset responses are identical and expired/invalid are collapsed, the verify probe does not consume the token, a reset may not create a session, unavailability can mean no mail server, the token is stripped from the URL to avoid history/Referer, email-verify pendingAuth/nag flow, and that the pending-status poll sits outside the login rate limiter and nginx login zone. Also stripped login-page notes that name localAuthRestriction and onAuthGetSteps. Left executable references that the browser must have (security.lockedUntil on the admin page, the pending-status URL, the poll interval).
+
+
+============================================================
+2026-11-26 12:29
+
+- how can I induce a lock of a test user?
+- it would help to see locked status in the index page,
+- possibly a new (LOCKED) badge next to the status cell
+- possibe to filter by locked too?
+  - add to status field; change status to multi-select?
+
+Explained how to lock a local-password test user (five wrong passwords, Redis required; LDAP users such as tesla/einstein/newton are not counted) and the direct security.lockedUntil shortcut. Did not add "locked" to the status enum or turn status into a multi-select: a lock is orthogonal, so Active + Locked must stay possible. Added a Locked badge beside the status cell on /admin/users.shtml (tooltip with the lift time) and a separate Lock filter (All / Locked / Not locked) that ANDs with status. Search support is admin-only in UserModel.search via includeLockFilter. en/de strings and site-administration note updated. Three new unit tests pass.
+
+
+============================================================
+2026-11-26 12:43
+
+/admin/user-profile.shtml?username=w247verify - missing padding below unlock button - show locked status badge in upper right next to status badge. /admin/users.shtml - status cell margin and less padding so the row does not grow; move filters into the table header; role and status become jpSelect multi-selects; fold locked into the status filter only, split it out when searching; show locked only when some account has a locally managed password; search and cancel in a right-aligned colspan over the last two columns.
+
+Added padding under the unlock box and a Locked badge beside the profile header status. Moved the users filters into a second header row (name, email, role multi-select, status multi-select, Search and Cancel spanning the last two columns). Locked is an extra status-filter option, not a status, and is sent separately from real statuses. The option is added only when user stats report at least one locally managed password. Status and lock badges in the list stay on one line with tighter padding. Search accepts comma-separated statuses plus a locked token. Could not click through the admin pages here (401 without a session).
+
+
+============================================================
+2026-11-26 13:01
+
+/admin/users.shtml - much better. filter apply and cancel 2-colspan cell align right. filter for just admin is correct. filter for just geek shows user roles too; expected 1 hit. multi-select filters add min width so options are not clipped. increase padding for status and locked badges a bit, same as role badges. possible to make table sortable, 3 cycle? look if jpulse supports that already. profile looks good.
+
+Geek was dropped because schemaBasedQuery only keeps roles in the schema enum (user, admin, root). Site roles such as geek never became a query, so the list stayed unfiltered. Role search now matches the requested names directly. Search and Cancel are right-aligned with a more specific table-header rule. Status and lock badges use the same padding as role badges. Filter dropdowns have a 180px minimum width. Column headers use the existing jp-sortable styles with a three-click cycle (ascending, descending, then back to newest-first). The user column sorts by username. Restart needed for the role query.
+
+
+============================================================
+2026-11-26 13:13
+
+- sort works nicely
+- looks good in light mode and english as well
+- change tooltip to jpulse style
+- reduce the padding for dropdown checkbox options a bit (for all, not just this page)
+
+Lock badges on the users list and the profile header now use the jPulse tooltip (jp-tooltip / data-tooltip) instead of the browser title. jpSelect option rows use 4px 10px padding instead of 8px 12px, for every dropdown.
+
+
+============================================================
+2026-11-26 13:18
+
+- dropdown checkbox opions look good
+- make jpulse tooltip top, not left
+
+The lock-badge tooltip on the users list and the profile header is pinned above the badge with data-tooltip-position="top". Auto placement had chosen the left because that side had more room.
+
+
+============================================================
+2026-11-26 13:21
+
+- tooltup looks good now
+- search api:
+- I assumed splitting up locked from status was view side,
+- api wold be cleaner not to conflate the two
+- compare the two options:
+- option 1: search api handles both & slpits (current behavior)
+- option 2: users page splits up, then calls api with separate  fields for locked and status
+
+Compared the two. The search API already accepts locked as its own parameter (locked=yes|no); the status list also accepts a locked token and the model peels it off. Recommended option 2: the users page is the one that invented the combined dropdown, so it should send status and locked separately. Multi-status (active,pending) stays on the status parameter. No code change yet.
+
+
+============================================================
+2026-11-26 13:27
+
+- ok, change for option 2
+- also, I think the api convention for booleans is 0 or 1, not yes or no
+- on comma list, that shoudl be supported by the model, check how it figures out the query from the parameters (i.e. no special handling should be needed in controller)
+
+The users page now peels Locked out of the status dropdown and sends locked=1 beside status. The search controller still forwards the query unchanged. schemaBasedQuery now turns a comma list of enum values into a match on any of them, which is how status=active,pending is applied. The lock filter accepts only 1 and 0. A locked word left inside status is ignored. Restart needed for the model and query-builder change.
+
+
+============================================================
+2026-11-26 13:31
+
+ah, found it: StringQueryParser @common.js (118-133)
+
+Enum fields were stopping before StringQueryParser, so a comma list never became an OR. A plain status still has to be one enum value. A value that uses the search operators, including a comma, is now parsed by StringQueryParser. status=active,pending is an OR of those two statuses. Restart still needed.
+
+
+============================================================
+2026-11-26 13:42
+
+- is it [clear] or [cancel]?
+- I think  [clear] is better for clearing a filter; prove me wrong
+
+Clear is the right label. The button empties the filters and reloads the full list; it does not abandon an edit or a dialog. Restored Clear / Löschen on the users page, matching the logs page.
+
+
+============================================================
+2026-11-26 13:46
+
+- next: /admin/logs.shtml
+- move filter into table header,
+- no need for 2-colspan, last column is wide enough for buttons
+
+Moved the logs date, username, action, and document-type filters into a second header row under those columns. Search and Clear sit in the Changes column, right-aligned, without a colspan. Date presets stay above the table. Could not open the page here (401 without a session).
+
+
+============================================================
+2026-11-26 13:49
+
+- looks good
+- change action and type to multi-select
+- left justify filter buttons
+
+Action and document type on the logs page are now jpSelect multi-selects. Nothing selected means no filter; several values are sent as a comma list, which StringQueryParser already turns into an OR. Search and Clear are left-aligned in the Changes column. Refresh is enough.
+
+
+============================================================
+2026-11-26 13:52
+
+- looks good
+- what is left?
+
+Nothing is left on the logs filter request. W-202's agreed feature work is in place: lock gate, admin unlock, users list and profile badges, search with locked=0|1 separate from status, and the logs filters in the header. The work item is still marked in progress for the user to close. Lockout settings stay in app.conf, not Site Configuration. The full test suite has not been re-run since the later search changes.
+
+
+============================================================
+2026-11-26 13:58
+
+- full test pass
+- any more low hanging fruit tests for the new feature?
+
+Added four tests: no local password is not counted, an existing lock still refuses login when Redis is down, locked=0 stays beside a status filter, and a nested enum comma list (log action) goes through StringQueryParser. Full suite passed: 4347 passed, 0 failed, 1 skipped (4205 unit, 113 integration).
+
+
+============================================================
+2026-11-26 14:04
+
+release prep:
+- assume W-202, v2.0.17, 2026-11-26
+- review tt-git-diff.txt for accuracy and completness of work item
+- if needed, update features & deliverables in work item to document work done (don't change status, don't make any other changes to this file)
+- update README.md (## latest release highlights), docs/README.md (## latest release highlights), docs/CHANGELOG.md, and any other doc in docs/ as needed (don't bump version, I'll do that with bump script)
+- update commit-message.txt, following the same format (don't commit)
+- append to cursor_log.txt
+
+Reviewed the diff against W-202. Features and deliverables now match what shipped: app.conf lockout (not Site Configuration), Redis keyed by user id, external auth never blocked and clears the lock, admin badge and unlock, header filters, and enum comma lists via StringQueryParser. Status was left in progress. Release notes added to both READMEs and the changelog. Site administration notes the logs header filters. commit-message.txt is ready and was not committed. Version headers were not bumped. user-lockout-schema.test.js was missing from the diff file and is called out in the commit message.
+
+
+============================================================
